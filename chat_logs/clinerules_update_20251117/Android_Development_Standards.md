@@ -1,0 +1,771 @@
+# Android APP 開發規範
+
+## 語言規範
+- **程式碼內容**：使用英文撰寫（類別名稱、變數名稱、註解、日誌訊息等）
+- **Claude Code Chat對話**：使用繁體中文進行溝通
+- **主要開發語言**：Kotlin（優先）或 Java
+
+## 版本控制規則
+
+### 版本號格式：`主版本.次版本.修訂號 (Build號)`
+
+- **主版本號（+1.0.0）**：重大功能變更或架構重構時遞增
+- **次版本號（+0.1.0）**：新增功能或顯著改進時遞增  
+- **修訂號（+0.0.1）**：Bug修復或小幅調整時遞增
+- **Build號**：每次編譯自動遞增（用於內部測試）
+
+### 版本號範例
+```
+1.0.0 (1)    → 初始發布版本
+1.1.0 (5)    → 新增功能版本
+1.1.1 (7)    → Bug修復版本
+2.0.0 (15)   → 重大版本更新
+```
+
+### build.gradle 版本配置範例
+```kotlin
+android {
+    defaultConfig {
+        applicationId = "com.example.app"
+        versionCode = 1
+        versionName = "1.0.0"
+    }
+}
+```
+
+## 日期與版本記錄
+- 每次發布版本時，必須更新 CHANGELOG.md 記錄變更內容
+- 日期格式：`YYYY-MM-DD`
+- 記錄格式遵循 [Keep a Changelog](https://keepachangelog.com/) 標準
+
+### CHANGELOG.md 範例
+```markdown
+# Changelog
+
+## [1.1.0] - 2025-11-15
+### Added
+- New user profile feature
+- Dark mode support
+
+### Fixed
+- Crash on network timeout
+- Memory leak in image loading
+
+## [1.0.0] - 2025-11-01
+### Added
+- Initial release
+```
+
+## 專案結構規範
+
+### 標準 Android 專案結構
+```
+app/
+├── src/
+│   ├── main/
+│   │   ├── java/com/example/app/
+│   │   │   ├── ui/           # UI相關類別
+│   │   │   ├── data/         # 資料層
+│   │   │   ├── domain/       # 業務邏輯層
+│   │   │   ├── di/           # 依賴注入
+│   │   │   └── utils/        # 工具類別
+│   │   ├── res/              # 資源文件
+│   │   └── AndroidManifest.xml
+│   ├── test/                 # 單元測試
+│   └── androidTest/          # UI測試
+└── build.gradle.kts
+```
+
+## 命名規範
+
+### 類別命名規則
+- 使用 `PascalCase`（大駝峰命名法）
+- 名稱必須有意義且清楚表達用途
+- Activity: 以 `Activity` 結尾
+- Fragment: 以 `Fragment` 結尾
+- ViewModel: 以 `ViewModel` 結尾
+- Adapter: 以 `Adapter` 結尾
+
+#### ✅ 良好範例
+```kotlin
+class MainActivity : AppCompatActivity()
+class UserProfileFragment : Fragment()
+class UserViewModel : ViewModel()
+class MessageListAdapter : RecyclerView.Adapter()
+interface UserRepository
+```
+
+#### ❌ 避免使用
+```kotlin
+class Main : AppCompatActivity()        // 不明確
+class Fragment1 : Fragment()            // 無意義
+class VM : ViewModel()                  // 過度縮寫
+class Adapter : RecyclerView.Adapter()  // 太通用
+```
+
+### 變數與函數命名規則
+- 變數使用 `camelCase`（小駝峰命名法）
+- 常數使用 `UPPER_SNAKE_CASE`
+- 布林值建議以 `is`, `has`, `should` 開頭
+- 函數名稱使用動詞開頭
+- 變數名稱**至少3個字元**
+
+#### ✅ 良好範例
+```kotlin
+// Variables
+val userName: String = "John"
+val userAge: Int = 25
+var isLoggedIn: Boolean = false
+var hasPermission: Boolean = true
+
+// Constants
+const val MAX_RETRY_COUNT = 3
+const val DEFAULT_TIMEOUT = 30000L
+const val API_BASE_URL = "https://api.example.com"
+
+// Functions
+fun fetchUserData()
+fun saveUserProfile()
+fun isNetworkAvailable(): Boolean
+fun calculateTotalPrice(items: List<Item>): Double
+```
+
+#### ❌ 避免使用
+```kotlin
+val un = "John"              // 太短
+val x = 25                   // 無意義
+var lgn = false              // 縮寫不清楚
+const val MAX = 3            // 不夠具體
+fun get()                    // 太簡略
+fun data()                   // 不是動詞
+```
+
+### 資源檔案命名規則
+
+#### Layout 檔案
+- Activity: `activity_<name>.xml`
+- Fragment: `fragment_<name>.xml`
+- Dialog: `dialog_<name>.xml`
+- Item: `item_<name>.xml`
+
+```
+activity_main.xml
+fragment_user_profile.xml
+dialog_confirm.xml
+item_message.xml
+```
+
+#### Drawable 資源
+- Icon: `ic_<name>_<size>.xml`
+- Background: `bg_<description>.xml`
+- Shape: `shape_<description>.xml`
+
+```
+ic_home_24dp.xml
+ic_settings_black_24dp.xml
+bg_rounded_corner.xml
+shape_circle_blue.xml
+```
+
+## 程式碼文件模板
+
+### Kotlin 類別檔頭模板
+```kotlin
+/**
+ * ClassName: MainActivity
+ * Description: Main entry point of the application
+ * Author: Your Name
+ * Date: 2025-11-15
+ * Version: 1.0.0
+ *
+ * Modifications:
+ * - 2025-11-15: Initial creation
+ */
+package com.example.app.ui
+
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+
+class MainActivity : AppCompatActivity() {
+    
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+    
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+    }
+}
+```
+
+### Java 類別檔頭模板
+```java
+/**
+ * ClassName: MainActivity
+ * Description: Main entry point of the application
+ * Author: Your Name
+ * Date: 2025-11-15
+ * Version: 1.0.0
+ *
+ * Modifications:
+ * - 2025-11-15: Initial creation
+ */
+package com.example.app.ui;
+
+import android.os.Bundle;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+    
+    private static final String TAG = "MainActivity";
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+    }
+}
+```
+
+## 日誌記錄規範
+
+### Log 級別定義
+使用 Android 標準 Log 類別進行日誌記錄：
+
+```kotlin
+// Log Levels
+Log.v(TAG, "Verbose message")    // 詳細訊息
+Log.d(TAG, "Debug message")      // 除錯訊息
+Log.i(TAG, "Info message")       // 一般訊息
+Log.w(TAG, "Warning message")    // 警告訊息
+Log.e(TAG, "Error message")      // 錯誤訊息
+```
+
+### 使用規範
+```kotlin
+class UserRepository {
+    companion object {
+        private const val TAG = "UserRepository"
+    }
+    
+    fun fetchUser(userId: String) {
+        Log.d(TAG, "Fetching user data for ID: $userId")
+        
+        try {
+            // Fetch user logic
+            Log.i(TAG, "User data fetched successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch user data: ${e.message}", e)
+        }
+    }
+}
+```
+
+### 生產環境日誌處理
+```kotlin
+// BuildConfig-based logging
+object Logger {
+    private const val TAG = "AppLogger"
+    
+    fun d(tag: String, message: String) {
+        if (BuildConfig.DEBUG) {
+            Log.d(tag, message)
+        }
+    }
+    
+    fun e(tag: String, message: String, throwable: Throwable? = null) {
+        if (BuildConfig.DEBUG) {
+            Log.e(tag, message, throwable)
+        }
+        // Send to crash reporting service in production
+        // FirebaseCrashlytics.getInstance().recordException(throwable)
+    }
+}
+```
+
+## 對話記錄管理
+
+### Claude Code Chat 對話記錄
+
+#### 檔案位置
+- 所有與 Claude Code 的對話記錄自動儲存到專案根目錄的 `/chat_logs/`
+
+#### 檔案命名規範
+1. **開發功能對話**: `chat_[功能簡稱]_YYYYMMDD_HHMMSS.md`
+   - 例如: `chat_auth_20251117_143025.md`
+   - 功能簡稱: 1-4字母，如 auth, ui, ml, api, db
+
+2. **版本更新記錄**: `YY-MM-DD_CHANGELOG_v[版本號].md`
+   - 例如: `25-11-17_CHANGELOG_v1.1.0.md`
+
+3. **其他對話記錄**: `chat_log_YYYYMMDD_HHMMSS.txt`
+   - 例如: `chat_log_20251117_143025.txt`
+
+#### 記錄內容
+每次對話記錄應包含：
+- 對話時間戳
+- 用戶問題
+- Claude 回應
+- 執行的命令和結果
+- 相關的代碼變更
+
+#### 對話記錄範例結構
+```markdown
+=== Claude Code Chat Log ===
+Date: 2025-11-17
+Time: 14:30:25
+Project: SmartCameraApp1
+Feature: User Authentication
+
+[14:30:25] User: 請幫我實作登入功能的 ViewModel
+[14:30:30] Claude: 好的，我會創建 LoginViewModel...
+[14:30:35] Created: LoginViewModel.kt
+[14:30:40] Result: Success
+
+---
+```
+
+## 配置檔案管理
+
+### SharedPreferences 使用規範
+```kotlin
+// PreferencesManager.kt
+class PreferencesManager(private val context: Context) {
+    
+    companion object {
+        private const val PREF_NAME = "app_preferences"
+        private const val KEY_USER_NAME = "user_name"
+        private const val KEY_IS_LOGGED_IN = "is_logged_in"
+        private const val KEY_THEME_MODE = "theme_mode"
+    }
+    
+    private val sharedPreferences = context.getSharedPreferences(
+        PREF_NAME, 
+        Context.MODE_PRIVATE
+    )
+    
+    var userName: String
+        get() = sharedPreferences.getString(KEY_USER_NAME, "") ?: ""
+        set(value) = sharedPreferences.edit()
+            .putString(KEY_USER_NAME, value)
+            .apply()
+    
+    var isLoggedIn: Boolean
+        get() = sharedPreferences.getBoolean(KEY_IS_LOGGED_IN, false)
+        set(value) = sharedPreferences.edit()
+            .putBoolean(KEY_IS_LOGGED_IN, value)
+            .apply()
+}
+```
+
+### 應用程式配置文件
+使用 `config.properties` 或 `BuildConfig` 管理配置：
+
+```kotlin
+// build.gradle.kts
+android {
+    defaultConfig {
+        buildConfigField("String", "API_BASE_URL", "\"https://api.example.com\"")
+        buildConfigField("int", "MAX_RETRY_COUNT", "3")
+        buildConfigField("long", "REQUEST_TIMEOUT", "30000L")
+    }
+}
+
+// Usage
+val apiUrl = BuildConfig.API_BASE_URL
+val maxRetry = BuildConfig.MAX_RETRY_COUNT
+```
+
+## 錯誤處理規範
+
+### 必須處理的情況
+- 網路請求失敗
+- 資料解析錯誤
+- 權限被拒絕
+- 檔案讀寫錯誤
+- 記憶體不足
+- Activity/Fragment 生命週期問題
+
+### 錯誤處理範例
+```kotlin
+class UserRepository(private val apiService: ApiService) {
+    
+    suspend fun fetchUser(userId: String): Result<User> {
+        return try {
+            val response = apiService.getUser(userId)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch user: ${response.code()}"))
+            }
+        } catch (e: IOException) {
+            Log.e(TAG, "Network error: ${e.message}", e)
+            Result.failure(Exception("Network error. Please check your connection."))
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error: ${e.message}", e)
+            Result.failure(Exception("An unexpected error occurred."))
+        }
+    }
+}
+```
+
+### ViewModel 錯誤處理
+```kotlin
+class UserViewModel(
+    private val userRepository: UserRepository
+) : ViewModel() {
+    
+    private val _uiState = MutableLiveData<UiState<User>>()
+    val uiState: LiveData<UiState<User>> = _uiState
+    
+    fun loadUser(userId: String) {
+        viewModelScope.launch {
+            _uiState.value = UiState.Loading
+            
+            userRepository.fetchUser(userId)
+                .onSuccess { user ->
+                    _uiState.value = UiState.Success(user)
+                }
+                .onFailure { error ->
+                    _uiState.value = UiState.Error(error.message ?: "Unknown error")
+                }
+        }
+    }
+}
+
+sealed class UiState<out T> {
+    object Loading : UiState<Nothing>()
+    data class Success<T>(val data: T) : UiState<T>()
+    data class Error(val message: String) : UiState<Nothing>()
+}
+```
+
+## 依賴管理
+
+### 推薦使用的主要依賴庫
+```kotlin
+// build.gradle.kts (Module level)
+dependencies {
+    // AndroidX Core
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.11.0")
+    
+    // Lifecycle & ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
+    
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    
+    // Networking
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    
+    // Image Loading
+    implementation("io.coil-kt:coil:2.5.0")
+    
+    // Dependency Injection
+    implementation("com.google.dagger:hilt-android:2.48")
+    kapt("com.google.dagger:hilt-compiler:2.48")
+    
+    // Testing
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+}
+```
+
+## Git 版本控制建議
+
+### .gitignore 設定
+```gitignore
+# Built application files
+*.apk
+*.aab
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Generated files
+bin/
+gen/
+out/
+build/
+
+# Gradle files
+.gradle/
+local.properties
+
+# Android Studio files
+.idea/
+*.iml
+.externalNativeBuild
+.cxx
+
+# Keystore files
+*.jks
+*.keystore
+
+# Chat logs (optional)
+chat_logs/
+```
+
+### Git Commit 訊息格式
+```
+[類型] 簡短說明
+
+詳細變更內容：
+- 變更項目 1
+- 變更項目 2
+- 變更項目 3
+
+相關 Issue: #123
+```
+
+### Commit 類型
+- **[Feature]**: 新增功能
+- **[Fix]**: Bug 修復
+- **[Refactor]**: 代碼重構
+- **[UI]**: UI/UX 調整
+- **[Perf]**: 效能優化
+- **[Docs]**: 文件更新
+- **[Test]**: 測試相關
+- **[Build]**: 建置相關
+
+### Commit 範例
+```
+[Feature] Add user profile screen
+
+Changes:
+- Implement UserProfileFragment with MVVM architecture
+- Add UserProfileViewModel with user data fetching logic
+- Create profile layout with Material Design components
+- Integrate Coil for profile image loading
+
+Related Issue: #42
+```
+
+## 開發完成流程
+
+### 功能開發完成後的檢查流程
+
+1. **功能驗證**
+   - 執行應用並測試新功能
+   - 驗證所有相關功能點
+   - 檢查性能和記憶體使用
+
+2. **測試決策** ⭐ **重要**
+   > **詢問用戶**：「此功能開發已完成。是否要為此功能編寫單元測試？」
+
+   **若選擇 YES**：
+   - 進行第3步（編寫單元測試）
+
+   **若選擇 NO**：
+   - 記錄決策理由於對話記錄中
+   - 跳至第4步（記錄變更）
+
+3. **編寫單元測試**（如選擇是）
+   - 建立相應的 Test 類別
+   - 編寫至少 3-5 個測試案例
+   - 遵循 Given-When-Then 結構
+   - 確保測試覆蓋率 > 80%
+   - 執行測試確保通過
+
+4. **記錄變更**
+   - 儲存本次對話記錄到 chat_logs/
+   - 更新 CHANGELOG.md
+   - 編寫清晰的 Commit 訊息
+
+5. **提交變更**
+   - 執行 Git add
+   - 執行 Git commit
+   - 推送到遠端倉庫（如適用）
+
+---
+
+## 測試規範
+
+### 單元測試規範
+
+#### 測試命名規範
+- 測試方法使用 backtick 命名（Kotlin）
+- 格式：```fun `should do something when condition`()```
+- 遵循 Given-When-Then 結構
+- 測試名稱應清楚描述測試意圖
+
+#### 測試覆蓋率要求
+- **目標覆蓋率**: > 80%（Core Business Logic）
+- **最低覆蓋率**: > 60%（整體代碼）
+- **優先順序**:
+  1. ViewModel 和 UseCase（必須）
+  2. Repository（推薦）
+  3. Model 和 Util（可選）
+
+#### ViewModel 單元測試範例
+```kotlin
+// UserViewModelTest.kt
+class UserViewModelTest {
+
+    @get:Rule
+    val instantExecutorRule = InstantTaskExecutorRule()
+
+    private lateinit var mockRepository: UserRepository
+    private lateinit var viewModel: UserViewModel
+
+    @Before
+    fun setUp() {
+        mockRepository = mock()
+        viewModel = UserViewModel(mockRepository)
+    }
+
+    @Test
+    fun `when fetch user succeeds, should update state to success`() = runTest {
+        // Given (準備)
+        val expectedUser = User(id = "1", name = "John")
+        whenever(mockRepository.fetchUser("1"))
+            .thenReturn(Result.success(expectedUser))
+
+        // When (執行)
+        viewModel.loadUser("1")
+        advanceUntilIdle()
+
+        // Then (驗證)
+        val state = viewModel.uiState.value
+        assertTrue(state is UiState.Success)
+        assertEquals(expectedUser, (state as UiState.Success).data)
+    }
+
+    @Test
+    fun `when fetch user fails, should update state to error`() = runTest {
+        // Given
+        val errorMessage = "Network error"
+        whenever(mockRepository.fetchUser("1"))
+            .thenReturn(Result.failure(Exception(errorMessage)))
+
+        // When
+        viewModel.loadUser("1")
+        advanceUntilIdle()
+
+        // Then
+        val state = viewModel.uiState.value
+        assertTrue(state is UiState.Error)
+        assertEquals(errorMessage, (state as UiState.Error).message)
+    }
+}
+```
+
+#### 測試工具依賴
+```kotlin
+// build.gradle.kts
+testImplementation("junit:junit:4.13.2")
+testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
+testImplementation("org.mockito:mockito-core:5.2.0")
+testImplementation("androidx.test:core:1.5.0")
+testImplementation("androidx.arch.core:core-testing:2.2.0")
+testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+```
+
+#### 執行測試
+```bash
+# 執行所有測試
+./gradlew test
+
+# 執行特定測試類別
+./gradlew testDebugUnitTest --tests "com.example.app.ui.UserViewModelTest"
+
+# 生成測試覆蓋率報告
+./gradlew testDebugUnitTestCoverage
+```
+
+## 程式碼品質
+
+### 必須遵守的規則
+- [ ] 使用 Kotlin Coding Conventions
+- [ ] 每個類別不超過 300 行
+- [ ] 每個函數不超過 50 行
+- [ ] 避免使用硬編碼字串（使用 strings.xml）
+- [ ] 避免使用硬編碼顏色（使用 colors.xml）
+- [ ] 使用依賴注入（推薦 Hilt）
+- [ ] 遵循 MVVM 或 MVI 架構模式
+
+### 代碼檢查工具
+- **Lint**: Android Studio 內建
+- **Detekt**: Kotlin 靜態分析工具
+- **ktlint**: Kotlin 代碼格式檢查
+
+---
+
+## 快速參考
+
+### 功能開發流程檢查清單（完整版）
+
+#### 開發階段
+- [ ] 創建符合命名規範的類別文件
+- [ ] 加入檔頭註解模板
+- [ ] 實作 MVVM/MVI 架構
+- [ ] 添加適當的日誌記錄
+- [ ] 實作錯誤處理機制
+
+#### 功能驗證階段
+- [ ] 執行應用並測試新功能
+- [ ] 驗證所有相關功能點
+- [ ] 檢查性能和記憶體使用
+
+#### 測試決策階段 ⭐ 重要
+**詢問用戶**：「此功能開發已完成。是否要為此功能編寫單元測試？」
+
+**若選擇 YES**：
+- [ ] 建立相應的 Test 類別（TestClassName.kt）
+- [ ] 編寫至少 3-5 個測試案例
+- [ ] 遵循 Given-When-Then 結構
+- [ ] 執行測試確保全部通過
+- [ ] 驗證測試覆蓋率 > 80%
+
+**若選擇 NO**：
+- [ ] 記錄決策理由於對話記錄中
+- [ ] 添加代碼註解說明為何跳過單元測試
+
+#### 記錄與提交階段
+- [ ] 儲存對話記錄到 chat_logs/（遵循命名規範）
+- [ ] 更新 CHANGELOG.md（保持最新版本）
+- [ ] 撰寫清晰的 Commit 訊息
+  ```
+  [Feature] Add new functionality
+
+  Changes:
+  - Implement UserAuthViewModel
+  - Add login flow with error handling
+  - Write unit tests for authentication logic
+
+  Testing:
+  - All tests passing (coverage: 85%)
+  - Verified on Android 11+
+  ```
+- [ ] 代碼審查（如適用）
+- [ ] 提交到 Git (git add . && git commit && git push)
+
+### 版本發布檢查清單
+- [ ] 更新版本號（versionCode & versionName）
+- [ ] 更新 CHANGELOG.md
+- [ ] 更新文件檔頭日期
+- [ ] 執行所有測試
+- [ ] 執行 Lint 檢查
+- [ ] 生成 Release APK/AAB
+- [ ] Tag Git 版本
+- [ ] 推送到遠端倉庫
+- [ ] 發布到 Google Play Console（如適用）
+
+### 日常開發檢查清單
+- [ ] 程式碼遵循命名規範
+- [ ] 變數名稱至少 3 個字元
+- [ ] 添加必要的註解
+- [ ] 使用適當的 Log 級別
+- [ ] 處理可能的異常
+- [ ] 儲存對話記錄（如使用 Claude）
+- [ ] 編寫 Commit 訊息
+- [ ] Code Review（如團隊開發）
