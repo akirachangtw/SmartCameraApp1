@@ -46,7 +46,7 @@ class CameraRepositoryImpl @Inject constructor(
 
         // Filtering thresholds
         private const val MIN_OBJECT_CONFIDENCE = 0.5f
-        private const val MIN_FACE_SIZE = 0.10f  // v1.4.1: Reduced from 0.15f to detect smaller/distant faces
+        private const val MIN_FACE_SIZE = 0.15f
     }
 
     // 偵測結果狀態流
@@ -235,18 +235,6 @@ class CameraRepositoryImpl @Inject constructor(
                 // 從結果中提取人臉與物件
                 val faces = result.getValue(faceDetector) ?: emptyList()
                 val objects = result.getValue(objectDetector) ?: emptyList()
-
-                // v1.4.1 DEBUG: 詳細記錄每個偵測到的人臉座標
-                if (faces.isNotEmpty()) {
-                    Log.d(TAG, "=== Detected ${faces.size} faces ===")
-                    faces.forEachIndexed { index, face ->
-                        val box = face.boundingBox
-                        Log.d(TAG, "Face #$index: " +
-                                "trackingId=${face.trackingId ?: "null"}, " +
-                                "box=[L:${box.left}, T:${box.top}, R:${box.right}, B:${box.bottom}], " +
-                                "size=[W:${box.width()}, H:${box.height()}]")
-                    }
-                }
 
                 // 過濾低信心度物件
                 val filteredObjects = objects.filter { obj ->

@@ -42,12 +42,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.sp
-import android.util.Log
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.objects.DetectedObject
 import local.mylab.smartcameraapp1.domain.model.DetectionResult
-
-private const val TAG = "DetectionOverlay"
 
 /**
  * Detection overlay composable
@@ -76,21 +73,11 @@ fun DetectionOverlay(
     // Update animations when detection results change
     LaunchedEffect(detectionResult) {
         detectionResult?.let { result ->
-            // v1.4.1 DEBUG: Log animation updates
-            if (result.faces.isNotEmpty()) {
-                Log.d(TAG, "=== Animating ${result.faces.size} faces ===")
-            }
-
             // Animate face boxes
             // IMPORTANT: Coordinates are already in View space, no transformation needed!
             result.faces.forEachIndexed { index, face ->
                 val trackingId = face.trackingId ?: index
                 val screenRect = face.boundingBox.toComposeRect()
-
-                // v1.4.1 DEBUG: Log each face being animated
-                Log.d(TAG, "Animating Face #$index: trackingId=$trackingId, " +
-                        "rect=[L:${screenRect.left}, T:${screenRect.top}, " +
-                        "R:${screenRect.right}, B:${screenRect.bottom}]")
 
                 val animatable = animatedFaceBoxes.getOrPut(trackingId) {
                     Animatable(screenRect, Rect.VectorConverter)
