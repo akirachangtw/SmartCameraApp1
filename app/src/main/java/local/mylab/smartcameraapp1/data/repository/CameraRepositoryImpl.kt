@@ -236,6 +236,18 @@ class CameraRepositoryImpl @Inject constructor(
                 val faces = result.getValue(faceDetector) ?: emptyList()
                 val objects = result.getValue(objectDetector) ?: emptyList()
 
+                // v1.4.1 DEBUG: 詳細記錄每個偵測到的人臉座標
+                if (faces.isNotEmpty()) {
+                    Log.d(TAG, "=== Detected ${faces.size} faces ===")
+                    faces.forEachIndexed { index, face ->
+                        val box = face.boundingBox
+                        Log.d(TAG, "Face #$index: " +
+                                "trackingId=${face.trackingId ?: "null"}, " +
+                                "box=[L:${box.left}, T:${box.top}, R:${box.right}, B:${box.bottom}], " +
+                                "size=[W:${box.width()}, H:${box.height()}]")
+                    }
+                }
+
                 // 過濾低信心度物件
                 val filteredObjects = objects.filter { obj ->
                     val confidence = obj.labels.firstOrNull()?.confidence ?: 0f

@@ -56,6 +56,40 @@ Test in the following scenarios:
 - Object detection confidence threshold: 50% (unchanged)
 - Coordinate system: `COORDINATE_SYSTEM_VIEW_REFERENCED` (unchanged)
 
+### 🐛 Debug Notes (2025-11-25)
+
+**Issue Discovered in v1.4.1 Testing**:
+- UI shows "4 人臉" but only 1-2 green bounding boxes render on screen
+- This is NOT a detection problem (ML Kit is correctly detecting 4 faces)
+- This is a rendering/animation problem in `DetectionOverlay`
+
+**Debug Implementation**:
+1. Added detailed coordinate logging in `CameraRepositoryImpl`:
+   - Logs all detected face coordinates from ML Kit
+   - Format: trackingId, bounding box (L/T/R/B), size (W/H)
+
+2. Added animation logging in `DetectionOverlay`:
+   - Logs which faces are being animated
+   - Logs animation target rectangles
+   - Helps identify tracking ID conflicts or animation system bugs
+
+3. Created PowerShell automation scripts in `tools/`:
+   - `install-apk.ps1` - Install APK to connected device
+   - `capture-logcat.ps1` - Capture filtered logcat output
+   - `deploy-and-log.ps1` - One-click deploy and logging
+
+**Possible Causes**:
+- Coordinates outside visible screen range (need to verify in logcat)
+- Animation system bug (tracking ID conflicts, stale state)
+- Canvas clipping issues
+
+**Next Steps**:
+1. Build APK with debug logging
+2. Run `tools\deploy-and-log.ps1`
+3. Test with 4-person scene
+4. Analyze logcat for coordinate patterns
+5. Identify and fix rendering issue
+
 ---
 
 ## [1.4.0] - 2025-11-23
