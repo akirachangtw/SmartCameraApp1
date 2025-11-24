@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2025-11-24
+
+### 🎯 Improved Face Detection Rate
+
+This version improves face detection rate by lowering the minimum face size threshold, enabling detection of smaller and more distant faces.
+
+### Changed
+- **CameraRepositoryImpl** - Face detection optimization
+  - Reduced `MIN_FACE_SIZE` from `0.15f` (15%) to `0.10f` (10%)
+  - Enables detection of smaller/distant faces in multi-person scenarios
+  - Performance impact: minimal (still using PERFORMANCE_MODE_FAST)
+
+### Problem Analysis (from v1.4.0 Testing)
+**Test Results**:
+- ✅ Bounding box alignment accuracy: **Perfect** (v1.4.0 coordinate transformation success)
+- ❌ Detection rate: **Low** (many faces not detected in multi-person scenes)
+
+**Root Cause**:
+- `MIN_FACE_SIZE = 0.15f` was too restrictive
+- Example: In 640px width image, face must be ≥ 96px to be detected
+- Distant people in platform/crowd scenes were filtered out by ML Kit
+
+**Test Scenarios** (v1.4.0):
+- Platform scene (6-7 people): Only 1 face detected → **Detection rate: ~14%**
+- TV screen scene (2 people): Only 1 face detected → **Detection rate: 50%**
+- Close-up scene (1 person): 1 face detected → **Detection rate: 100%**
+
+### Expected Improvements
+With `MIN_FACE_SIZE = 0.10f`:
+- Multi-person scenes: Detection rate **14% → 50-70%**
+- TV screen scenes: Detection rate **50% → 100%**
+- Close-up scenes: No change (already 100%)
+- Trade-off: Slight increase in false positives (acceptable)
+
+### Version Bump
+- versionCode: 11 → 12
+- versionName: 1.4.0 → 1.4.1
+
+### Testing Recommendations
+Test in the following scenarios:
+1. Multi-person scene (platform, crowd) - Verify increased detection count
+2. TV/screen scene (2-3 people) - Verify all faces detected
+3. Close-up scene (1 person) - Verify no regression
+4. Check for false positives (non-face objects being detected)
+5. Verify performance (no lag or frame drops)
+
+### Technical Notes
+- Face detection uses `PERFORMANCE_MODE_FAST` (unchanged)
+- Object detection confidence threshold: 50% (unchanged)
+- Coordinate system: `COORDINATE_SYSTEM_VIEW_REFERENCED` (unchanged)
+
+---
+
 ## [1.4.0] - 2025-11-23
 
 ### 🎯 MAJOR REFACTOR: Migration to Official MlKitAnalyzer
