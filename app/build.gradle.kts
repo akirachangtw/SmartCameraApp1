@@ -14,8 +14,8 @@ android {
         applicationId = "local.mylab.smartcameraapp1"
         minSdk = 24
         targetSdk = 36
-        versionCode = 11
-        versionName = "1.4.0"
+        versionCode = 13
+        versionName = "1.4.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

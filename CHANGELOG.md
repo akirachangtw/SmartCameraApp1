@@ -5,6 +5,101 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2025-11-25
+
+### 🐛 Fixed - Multi-Face Detection Rendering Issue
+
+**Problem Description**:
+- ML Kit correctly detected N faces (UI displayed correct count)
+- But only 1 bounding box rendered on screen
+- After screen gesture (swipe), more boxes appeared but positions were incorrect
+
+**Root Cause Analysis**:
+- DetectionOverlay's animation system had sequential execution issue
+- `animateTo` is a suspend function that executes sequentially by default
+- For N faces, animation requires N × 150ms to complete
+- ML Kit updates detection results every 100-200ms (high frequency)
+- New detection cancels incomplete animations from previous cycle
+- Result: Only first face animation completes and renders
+
+**Timeline Example**:
+```
+T=0ms:   ML Kit detects 4 faces → LaunchedEffect starts
+T=0ms:   Start animating Face #0
+T=150ms: Face #0 animation completes ✅
+T=150ms: Start animating Face #1
+T=200ms: ML Kit new detection → LaunchedEffect cancelled ❌
+T=200ms: New LaunchedEffect starts → restart from beginning
+Result:  Only Face #0 displays on screen
+```
+
+**Why Screen Gesture Temporarily "Fixed" It**:
+- Gesture triggers UI recomposition
+- Restarts animation cycle with different timing
+- By chance, more animations complete before next detection
+- But positions may be incorrect (using stale coordinates)
+
+**Testing Verification**:
+- v1.4.1 Testing: Problem discovered (suspected MIN_FACE_SIZE change)
+- v1.4.0 Revert Testing: Confirmed v1.4.0 also has same issue
+- Conclusion: Problem exists in animation system, unrelated to MIN_FACE_SIZE
+
+**Solution Implemented**:
+- Removed animation system entirely from DetectionOverlay
+- Changed to direct Canvas drawing without animations
+- All detected boxes now render immediately
+- Code simplified: 285 lines → 226 lines
+- Performance improved: No animation calculation overhead
+
+**Impact**:
+- Bounding boxes no longer have smooth transition animations
+- But immediate display is more important for detection tools
+- Users likely won't notice animation removal
+- CPU usage reduced (no Compose animation calculations)
+
+### Changed
+- **DetectionOverlay.kt** - Complete rewrite removing animation system
+  - Removed imports: `Animatable`, `AnimationVector4D`, `VectorConverter`, `tween`, `LaunchedEffect`, `remember`
+  - Removed animation state management (~50 lines)
+  - Changed to direct drawing in Canvas composable
+  - All faces and objects render immediately without delay
+  - Preserved drawing functions: `drawFaceBoundingBox`, `drawObjectBoundingBox`, `toComposeRect`
+
+### Version Bump
+- versionCode: 11 → 13 (skipped 12 as it was v1.4.1)
+- versionName: 1.4.0 → 1.4.2
+
+### Testing Recommendations
+Priority test scenarios:
+1. **Without Screen Gesture** (Most Important)
+   - Test 3-4 person scene
+   - Expected: All boxes display immediately on first detection
+   - Compare: v1.4.0 showed only 1 box
+2. **Multi-Person Scene**
+   - Test 6+ person scene
+   - Expected: All face boxes display immediately
+   - Box count matches UI display
+3. **Dynamic Scene**
+   - Test with people moving
+   - Expected: Boxes update immediately with no delay
+   - Positions accurate
+4. **Performance**
+   - Monitor CPU usage
+   - Expected: Lower than v1.4.0 (no animation calculations)
+
+### Success Criteria
+v1.4.2 is successful if:
+- ✅ ML Kit detects N faces → immediately displays N boxes (no screen gesture needed)
+- ✅ Box count matches UI display ("N 人臉" → N green boxes visible)
+- ✅ Box positions correct (aligned with actual faces)
+- ✅ Real-time updates with no noticeable delay
+
+### Reference Files
+- Test screenshots: `others/v1.4.0-Testing1/`, `others/v1.4.1-Testing/`
+- Handoff document: `chat_logs/handoff_v142_20251125.md`
+
+---
+
 ## [1.4.1] - 2025-11-24
 
 ### 🎯 Improved Face Detection Rate

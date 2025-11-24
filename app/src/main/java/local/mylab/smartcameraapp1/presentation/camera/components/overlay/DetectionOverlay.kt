@@ -3,13 +3,13 @@
  * Description: Canvas-based overlay for drawing ML Kit detection bounding boxes
  * Author: Claude Code
  * Date: 2025-11-18
- * Version: 1.4.0
+ * Version: 1.4.2
  *
  * Features:
  * - Face bounding boxes with tracking IDs (green)
  * - Object bounding boxes with labels and confidence scores (blue)
  * - Uses official MlKitAnalyzer with VIEW_REFERENCED coordinates (no manual transformation needed!)
- * - Smooth animations for box transitions
+ * - Direct rendering without animations for immediate display
  *
  * Modifications:
  * - 2025-11-18: Initial creation
@@ -19,18 +19,14 @@
  * - 2025-11-23: Improved boundary checking, removed out-of-bounds warnings for filtered detections (v1.3.4)
  * - 2025-11-23: MAJOR REFACTOR - Removed all manual coordinate transformation logic, now using
  *               official MlKitAnalyzer with COORDINATE_SYSTEM_VIEW_REFERENCED (v1.4.0)
+ * - 2025-11-25: Removed animation system to fix multi-face rendering issue - all boxes now
+ *               display immediately without sequential animation delays (v1.4.2)
  */
 package local.mylab.smartcameraapp1.presentation.camera.components.overlay
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector4D
-import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -54,6 +50,9 @@ import local.mylab.smartcameraapp1.domain.model.DetectionResult
  * IMPORTANT: With v1.4.0, coordinates from MlKitAnalyzer are already in VIEW space,
  * so we can draw them directly without any transformation!
  *
+ * v1.4.2: Removed animation system to fix rendering issue where only first box displayed.
+ * All detected boxes now render immediately.
+ *
  * @param detectionResult ML Kit detection result (coordinates already in View space)
  * @param modifier Modifier for the canvas
  */
@@ -62,86 +61,28 @@ fun DetectionOverlay(
     detectionResult: DetectionResult?,
     modifier: Modifier = Modifier
 ) {
-    // Animated bounding boxes for smooth transitions
-    val animatedFaceBoxes = remember {
-        mutableMapOf<Int, Animatable<Rect, AnimationVector4D>>()
-    }
-    val animatedObjectBoxes = remember {
-        mutableMapOf<Int, Animatable<Rect, AnimationVector4D>>()
-    }
-
-    // Update animations when detection results change
-    LaunchedEffect(detectionResult) {
-        detectionResult?.let { result ->
-            // Animate face boxes
-            // IMPORTANT: Coordinates are already in View space, no transformation needed!
-            result.faces.forEachIndexed { index, face ->
-                val trackingId = face.trackingId ?: index
-                val screenRect = face.boundingBox.toComposeRect()
-
-                val animatable = animatedFaceBoxes.getOrPut(trackingId) {
-                    Animatable(screenRect, Rect.VectorConverter)
-                }
-
-                animatable.animateTo(
-                    targetValue = screenRect,
-                    animationSpec = tween(durationMillis = 150)
-                )
-            }
-
-            // Animate object boxes
-            // IMPORTANT: Coordinates are already in View space, no transformation needed!
-            result.objects.forEachIndexed { index, obj ->
-                val trackingId = obj.trackingId ?: index
-                val screenRect = obj.boundingBox.toComposeRect()
-
-                val animatable = animatedObjectBoxes.getOrPut(trackingId) {
-                    Animatable(screenRect, Rect.VectorConverter)
-                }
-
-                animatable.animateTo(
-                    targetValue = screenRect,
-                    animationSpec = tween(durationMillis = 150)
-                )
-            }
-
-            // Remove stale animations
-            val currentFaceIds = result.faces.mapIndexed { index, face ->
-                face.trackingId ?: index
-            }.toSet()
-            animatedFaceBoxes.keys.retainAll(currentFaceIds)
-
-            val currentObjectIds = result.objects.mapIndexed { index, obj ->
-                obj.trackingId ?: index
-            }.toSet()
-            animatedObjectBoxes.keys.retainAll(currentObjectIds)
-        }
-    }
-
     Canvas(modifier = modifier.fillMaxSize()) {
         detectionResult?.let { result ->
-            // Draw face bounding boxes
+            // Draw face bounding boxes directly (no animation)
             result.faces.forEachIndexed { index, face ->
                 val trackingId = face.trackingId ?: index
-                animatedFaceBoxes[trackingId]?.value?.let { rect ->
-                    drawFaceBoundingBox(
-                        rect = rect,
-                        trackingId = trackingId,
-                        face = face
-                    )
-                }
+                val rect = face.boundingBox.toComposeRect()
+                drawFaceBoundingBox(
+                    rect = rect,
+                    trackingId = trackingId,
+                    face = face
+                )
             }
 
-            // Draw object bounding boxes
+            // Draw object bounding boxes directly (no animation)
             result.objects.forEachIndexed { index, obj ->
                 val trackingId = obj.trackingId ?: index
-                animatedObjectBoxes[trackingId]?.value?.let { rect ->
-                    drawObjectBoundingBox(
-                        rect = rect,
-                        trackingId = trackingId,
-                        detectedObject = obj
-                    )
-                }
+                val rect = obj.boundingBox.toComposeRect()
+                drawObjectBoundingBox(
+                    rect = rect,
+                    trackingId = trackingId,
+                    detectedObject = obj
+                )
             }
         }
     }
