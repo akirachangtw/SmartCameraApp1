@@ -5,6 +5,110 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-11-25
+
+### 🎨 New Feature - Smart Composition Guide (Prototype)
+
+This version introduces the **AI Live Photographer** feature's first component: a real-time composition guide based on the **Rule of Thirds**.
+
+This is a simplified prototype to validate the concept before implementing the full architecture outlined in the development blueprint.
+
+### Added
+
+**New Components**:
+1. **GridOverlay.kt** - Rule of Thirds grid visualization
+   - Semi-transparent dashed lines dividing the frame into thirds
+   - Highlights the four optimal subject placement points
+   - Non-intrusive design for better user experience
+
+2. **CompositionHint.kt** - Real-time composition feedback
+   - Color-coded hints (Green = Good, Amber = Needs Adjustment, Gray = No Subject)
+   - Simple text-based guidance
+   - Positioned below flash button for visibility
+
+3. **CompositionState.kt** - Composition analysis state model
+   - Sealed class representing Good/NeedsAdjustment/NoSubject states
+   - Clean architecture data model
+
+**Enhanced Logic**:
+4. **CameraViewModel** - Composition analysis engine
+   - `analyzeComposition()` - Analyzes face position relative to Rule of Thirds
+   - `checkRuleOfThirds()` - Algorithm checking alignment with intersection points
+   - Tolerance: ±10% of image width for both axes
+   - Real-time analysis triggered on every ML Kit detection update
+
+**UI Integration**:
+5. **CameraScreen** - Integrated new overlays
+   - GridOverlay always visible on camera preview
+   - CompositionHint displays real-time feedback
+   - Stacked above detection bounding boxes
+
+### Technical Details
+
+**Algorithm - Rule of Thirds**:
+```
+Grid divides frame into 9 equal parts (3x3)
+Intersection points at:
+- (1/3, 1/3), (2/3, 1/3)
+- (1/3, 2/3), (2/3, 2/3)
+
+Good composition = Subject center within 10% tolerance of any intersection point
+```
+
+**Prototype Limitations**:
+- Only analyzes first detected face (simplified)
+- Image dimensions estimated from bounding box (not accurate)
+- Simple "Adjust Position" message (no directional guidance)
+- No analysis for objects (only faces)
+
+**Next Steps** (Full Implementation in v2.0):
+- Refactor to Clean Architecture (Domain layer UseCase)
+- Add precise dimension calculation using PreviewView size
+- Implement directional suggestions ("Move left", "Move up")
+- Add headroom analysis
+- Add edge distance checking
+- Support multi-subject composition analysis
+
+### Version Bump
+- versionCode: 14 → 15
+- versionName: 1.4.3 → 1.5.0
+
+### Files Changed
+- New: `presentation/camera/model/CompositionState.kt`
+- New: `presentation/camera/components/overlay/GridOverlay.kt`
+- New: `presentation/camera/components/overlay/CompositionHint.kt`
+- Modified: `presentation/camera/CameraViewModel.kt` (+115 lines)
+- Modified: `presentation/camera/CameraScreen.kt` (+15 lines)
+- Modified: `app/build.gradle.kts` (version bump)
+
+### Testing Recommendations
+1. **Basic Functionality**
+   - Verify grid lines display correctly
+   - Verify hint updates in real-time
+   - Test with 0 faces, 1 face, multiple faces
+
+2. **Composition Scenarios**
+   - Position face at Rule of Thirds intersection → should show "Good Composition"
+   - Position face at center → should show "Adjust Position"
+   - No faces detected → should show "No Subject Detected"
+
+3. **UI/UX**
+   - Grid lines should be visible but not intrusive
+   - Hint should not block important UI elements
+   - All overlays work correctly with existing detection boxes
+
+### Known Issues
+- Image dimensions are estimated, not precise (will fix in v2.0)
+- Only analyzes first face in multi-face scenarios
+- No directional guidance yet
+
+### Reference
+- Development Blueprint: `chat_logs/AI_PHOTOGRAPHER_COMPLETE_BLUEPRINT_20251112.md`
+- Feature Spec: `chat_logs/AI即時攝影師_專項開發計畫.md`
+- Based on Week 3-4 tasks (simplified prototype version)
+
+---
+
 ## [1.4.3] - 2025-11-25
 
 ### 🎯 Adopt Google ML Kit Official Default Value for MIN_FACE_SIZE

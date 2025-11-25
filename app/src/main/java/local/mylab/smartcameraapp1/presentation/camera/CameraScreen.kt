@@ -1,14 +1,15 @@
 /**
  * ClassName: CameraScreen
- * Description: Main camera screen with ML Kit detection bounding box overlay
+ * Description: Main camera screen with ML Kit detection and composition guidance
  * Author: Claude Code
  * Date: 2025-11-17
- * Version: 1.4.0
+ * Version: 1.5.0
  *
  * Modifications:
  * - 2025-11-17: Added ML Kit detection result text overlay
  * - 2025-11-18: Replaced text overlay with bounding box overlay
  * - 2025-11-23: Simplified to use MlKitAnalyzer with VIEW_REFERENCED coordinates (v1.4.0)
+ * - 2025-11-25: Added smart composition guide with Rule of Thirds grid (v1.5.0)
  */
 package local.mylab.smartcameraapp1.presentation.camera
 
@@ -58,7 +59,9 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import local.mylab.smartcameraapp1.presentation.camera.components.CameraPreview
 import local.mylab.smartcameraapp1.presentation.camera.components.PermissionRequestScreen
+import local.mylab.smartcameraapp1.presentation.camera.components.overlay.CompositionHint
 import local.mylab.smartcameraapp1.presentation.camera.components.overlay.DetectionOverlay
+import local.mylab.smartcameraapp1.presentation.camera.components.overlay.GridOverlay
 
 /**
  * 相機畫面 - 拍照功能
@@ -76,6 +79,7 @@ fun CameraScreen(
     viewModel: CameraViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val compositionState by viewModel.compositionState.collectAsState() // v1.5.0
     val snackbarHostState = remember { SnackbarHostState() }
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
@@ -118,6 +122,20 @@ fun CameraScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+
+                // v1.5.0: Rule of Thirds grid overlay
+                GridOverlay(
+                    modifier = Modifier.fillMaxSize(),
+                    visible = true
+                )
+
+                // v1.5.0: Composition hint overlay
+                CompositionHint(
+                    compositionState = compositionState,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 56.dp) // Below flash button
+                )
 
                 // 簡易計數顯示（可選，保留用於調試）
                 state.detectionResult?.let { result ->
