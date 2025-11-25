@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2025-11-25
+
+### 🎯 Adopt Google ML Kit Official Default Value for MIN_FACE_SIZE
+
+After v1.4.2 successfully fixed the rendering issue, we can now safely optimize detection rate by adopting Google's official recommended default value.
+
+### Changed
+- **CameraRepositoryImpl.kt** - Face detection threshold optimization
+  - Changed `MIN_FACE_SIZE` from `0.15f` to `0.10f` (Google ML Kit official default value)
+  - Improves detection rate for distant faces and multi-person scenarios
+  - Research shows 0.1 is the official default, balancing accuracy and performance
+
+### Rationale
+**Why now?**
+- v1.4.2 fixed the rendering issue (all detected faces display immediately)
+- No longer limited by animation system's sequential execution
+- Safe to handle more detected faces without UI lag
+
+**Why 0.10f?**
+- Google ML Kit official default value
+- Validated by Google for general-purpose face detection
+- Previous v1.4.1 testing confirmed 0.10f has no performance issues
+- Better coverage for distant/smaller faces in multi-person scenes
+
+### Expected Improvements
+- Multi-person scenes: Better detection coverage
+- Distant faces: Higher detection rate
+- Platform/crowd scenes: More comprehensive face tracking
+- Performance: Minimal impact (already tested in v1.4.1)
+
+### Version Bump
+- versionCode: 13 → 14
+- versionName: 1.4.2 → 1.4.3
+
+### Testing Recommendations
+Compare with v1.4.2 test results:
+1. Same multi-person scenes as v1.4.2
+2. Expected: More faces detected (especially distant ones)
+3. Verify: All boxes still display immediately (no rendering lag)
+4. Monitor: Performance remains stable
+
+### Reference
+- Google ML Kit Face Detection official documentation
+- Recommended range: 0.1 - 0.5 (with 0.1 as default)
+- Use 0.1-0.2 for general real-time applications
+
+---
+
 ## [1.4.2] - 2025-11-25
 
 ### 🐛 Fixed - Multi-Face Detection Rendering Issue

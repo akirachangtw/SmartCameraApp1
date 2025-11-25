@@ -46,7 +46,7 @@ class CameraRepositoryImpl @Inject constructor(
 
         // Filtering thresholds
         private const val MIN_OBJECT_CONFIDENCE = 0.5f
-        private const val MIN_FACE_SIZE = 0.15f
+        private const val MIN_FACE_SIZE = 0.10f  // Google ML Kit official default value
     }
 
     // 偵測結果狀態流
