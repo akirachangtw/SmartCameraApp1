@@ -5,6 +5,185 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-alpha03] - 2025-11-27
+
+### 🎯 Complete Composition Rules with Weighted Scoring (Phase 3)
+
+This version implements **Phase 3** of the v2.0 development plan: Complete composition rule set with multi-rule weighted scoring system.
+
+The composition analysis now evaluates **four photography rules simultaneously**, providing comprehensive composition guidance beyond simple Rule of Thirds.
+
+### Added
+
+**New Composition Rules**:
+
+1. **Headroom Analysis (25% weight)**
+   - Analyzes space above subject's head
+   - Ideal range: 5-15% of image height
+   - Too little: cramped feeling (score penalty)
+   - Too much: subject too low (score penalty)
+   - Perfect range: full score (1.0)
+
+2. **Edge Distance Checking (25% weight)**
+   - Ensures subject not too close to frame edges
+   - Minimum safe margin: 5% of image dimensions
+   - Checks all four edges (left, right, top, bottom)
+   - Score based on closest edge distance
+
+3. **Multi-Subject Support (20% weight)**
+   - Automatically selects primary subject (largest face)
+   - Scores composition complexity:
+     - 1 face = 1.0 (perfect - single subject)
+     - 2 faces = 0.8 (good - duo composition)
+     - 3 faces = 0.6 (acceptable - group)
+     - 4+ faces = 0.4 (complex - crowd)
+
+4. **Enhanced Rule of Thirds (30% weight)**
+   - Improved scoring with gradual falloff
+   - Distance-based scoring (not binary good/bad)
+   - Considers both horizontal and vertical alignment
+
+**Weighted Scoring System**:
+- Each rule produces score 0.0 - 1.0
+- Weighted average determines overall quality
+- Threshold 0.7 = "Good Composition"
+- Below 0.7 = "Needs Adjustment" with specific guidance
+
+**Intelligent Suggestions**:
+- Identifies weakest rule automatically
+- Provides targeted feedback:
+  - Rule of Thirds issue → "Move Left/Right/Up/Down"
+  - Headroom issue → "Move Up/Down (More/Less Headroom)"
+  - Edge issue → "Move Away From Edge"
+
+### Changed
+
+**Refactored Components**:
+
+1. **AnalyzeCompositionUseCase.kt** (+240 lines)
+   - `selectPrimarySubject()` - Chooses largest face from multiple
+   - `performCompositionAnalysis()` - Multi-rule scoring orchestrator
+   - `analyzeRuleOfThirdsScore()` - Enhanced with gradual scoring
+   - `analyzeHeadroomScore()` - NEW: Headroom analysis
+   - `analyzeEdgeDistanceScore()` - NEW: Edge distance checking
+   - `analyzeSubjectDetectionScore()` - NEW: Multi-subject handling
+   - `generateDetailedSuggestion()` - Intelligent feedback based on weakest rule
+   - `CompositionAnalysis` data class - Holds all rule scores
+
+2. **Constants added**:
+   - `GOOD_COMPOSITION_THRESHOLD = 0.7f`
+   - `WEIGHT_RULE_OF_THIRDS = 0.30f`
+   - `WEIGHT_HEADROOM = 0.25f`
+   - `WEIGHT_EDGE_DISTANCE = 0.25f`
+   - `WEIGHT_SUBJECT_DETECTION = 0.20f`
+   - `IDEAL_HEADROOM_MIN = 0.05f` (5%)
+   - `IDEAL_HEADROOM_MAX = 0.15f` (15%)
+   - `MIN_EDGE_DISTANCE = 0.05f` (5%)
+
+### Technical Details
+
+**Composition Analysis Flow**:
+```
+DetectionResult → Select Primary Subject (if multiple)
+    ↓
+Calculate 4 Rule Scores:
+  - Rule of Thirds: Distance to intersection points
+  - Headroom: Space above subject (5-15% ideal)
+  - Edge Distance: Margins from all edges (≥5%)
+  - Subject Count: Complexity penalty
+    ↓
+Weighted Average: 0.30 + 0.25 + 0.25 + 0.20 = 1.0
+    ↓
+Overall Score ≥ 0.7 → Good
+Overall Score < 0.7 → Needs Adjustment (with targeted suggestion)
+```
+
+**Scoring Examples**:
+
+Example 1: Perfect Portrait
+- Rule of Thirds: 0.95 (well aligned)
+- Headroom: 1.0 (10% - ideal)
+- Edge Distance: 1.0 (good margins)
+- Subject Count: 1.0 (single subject)
+- **Overall: 0.99 → "Good Composition" ✓**
+
+Example 2: Too Close to Edge
+- Rule of Thirds: 0.85
+- Headroom: 0.90
+- Edge Distance: 0.30 (too close!)
+- Subject Count: 1.0
+- **Overall: 0.71 → "Good Composition" ✓** (just passed)
+
+Example 3: Poor Headroom + Off-Center
+- Rule of Thirds: 0.40 (centered)
+- Headroom: 0.50 (2% - too cramped)
+- Edge Distance: 0.95
+- Subject Count: 1.0
+- **Overall: 0.64 → "Move Down (More Headroom)" ✗**
+
+**Multi-Subject Handling**:
+Before (Phase 1-2):
+```kotlin
+val face = faces.first()  // Always analyzes first detected
+```
+
+After (Phase 3):
+```kotlin
+val primaryFace = selectPrimarySubject(faces)  // Selects largest (closest)
+```
+
+### Version Bump
+- versionCode: 17 → 18
+- versionName: 2.0.0-alpha02 → 2.0.0-alpha03
+
+### Files Changed
+- Modified: `domain/usecase/AnalyzeCompositionUseCase.kt` (+240 lines)
+- Modified: `app/build.gradle.kts` (version bump)
+- Modified: `CHANGELOG.md` (this file)
+
+### Testing Results
+- ✅ Build passes successfully (21s)
+- ✅ No compilation errors
+- ⚠️ Kapt language version warning (non-blocking)
+
+### Impact on User Experience
+
+**More Accurate Feedback**:
+- Users now receive specific guidance based on actual composition weaknesses
+- "Move Down (More Headroom)" is more actionable than "Adjust Position"
+
+**Handles Complex Scenarios**:
+- Multiple people in frame → Analyzes largest (primary subject)
+- Group photos → Appropriate scoring (0.4-0.8 based on count)
+
+**Professional Results**:
+- 4-rule evaluation matches real photography principles
+- Weighted system ensures balanced composition
+
+### Next Steps (v2.0 Roadmap)
+
+**Phase 4: Enhanced Directional UI** (Optional)
+- Visual arrows/indicators for suggestions
+- On-screen guidelines highlighting weak areas
+- Animated feedback
+
+**Phase 5: Unit Tests** (Next Priority)
+- AnalyzeCompositionUseCaseTest
+  - Test each rule independently
+  - Test weighted scoring calculation
+  - Test multi-subject selection
+  - Test edge cases (0 faces, boundary conditions)
+- Target coverage: >80%
+
+### Notes
+- This is an **alpha** release with major feature additions
+- No breaking changes to existing APIs
+- All Phase 1-2 functionality preserved
+- Composition analysis now significantly more sophisticated
+- Ready for comprehensive unit testing (Phase 5)
+
+---
+
 ## [2.0.0-alpha02] - 2025-11-27
 
 ### 📐 Accuracy - Accurate Dimension Calculation (Phase 2)
