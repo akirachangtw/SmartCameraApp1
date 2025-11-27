@@ -3,7 +3,12 @@
     "allow": [
       "Bash(git checkout:*)",
       "Bash(time:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(Select-String -Pattern \"(BUILD|FAILED|error|warning)\")",
+      "Bash(Select-Object -First 50)",
+      "Bash(gradlew.bat assembleDebug:*)"
     ],
     "deny": [],
     "ask": []
