@@ -12,11 +12,14 @@ import androidx.compose.ui.viewinterop.AndroidView
  *
  * v1.4.0: Simplified - no longer needs size tracking callback since
  * MlKitAnalyzer with VIEW_REFERENCED handles coordinate transformation automatically
+ *
+ * v2.0 Phase 2: Added onSizeChanged callback for composition analysis accuracy
  */
 @Composable
 fun CameraPreview(
     controller: LifecycleCameraController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSizeChanged: ((Int, Int) -> Unit)? = null
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -31,6 +34,10 @@ fun CameraPreview(
                 controller.bindToLifecycle(lifecycleOwner)
             }
         },
-        modifier = modifier
+        modifier = modifier,
+        update = { previewView ->
+            // Phase 2: Report size changes for accurate composition analysis
+            onSizeChanged?.invoke(previewView.width, previewView.height)
+        }
     )
 }

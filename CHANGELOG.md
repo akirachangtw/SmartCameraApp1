@@ -5,6 +5,132 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-alpha02] - 2025-11-27
+
+### 📐 Accuracy - Accurate Dimension Calculation (Phase 2)
+
+This version implements **Phase 2** of the v2.0 development plan: Accurate dimension calculation for composition analysis.
+
+The composition analysis now uses actual PreviewView dimensions instead of estimation, significantly improving the accuracy of Rule of Thirds alignment detection.
+
+### Added
+
+**Preview Size Tracking**:
+1. **CameraViewModel.updatePreviewSize()** - New public method
+   - Accepts preview width and height in pixels
+   - Stores dimensions for composition analysis
+   - Logs size updates for debugging
+
+2. **CameraPreview onSizeChanged callback** - New optional parameter
+   - Reports PreviewView size changes
+   - Invoked in AndroidView's update block
+   - Enables real-time size tracking
+
+**Dimension Passing Flow**:
+3. **Complete data flow implementation**
+   - CameraPreview → CameraViewModel → AnalyzeCompositionUseCase
+   - Dimensions passed through all layers
+   - Clean Architecture maintained
+
+### Changed
+
+**Modified Components**:
+1. **CameraViewModel.kt**
+   - Added `previewWidth` and `previewHeight` state variables
+   - Added `updatePreviewSize()` method with logging
+   - Updated `analyzeComposition()` to pass actual dimensions to UseCase
+   - Removed TODO comments (Phase 2 complete)
+
+2. **CameraScreen.kt**
+   - Updated `CameraPreview` call to include `onSizeChanged` callback
+   - Callback invokes `viewModel.updatePreviewSize()`
+   - Comments added for Phase 2 tracking
+
+3. **CameraPreview.kt**
+   - Added optional `onSizeChanged` parameter
+   - Implemented size reporting in `update` block
+   - Updated documentation
+
+4. **AnalyzeCompositionUseCase.kt**
+   - Enhanced dimension handling logic
+   - Prioritizes actual dimensions over estimation
+   - Falls back to estimation if dimensions unavailable (legacy compatibility)
+   - Added warning log when using estimation
+   - Updated documentation to reflect Phase 2 changes
+
+### Technical Details
+
+**Dimension Flow**:
+```
+PreviewView (actual size)
+    ↓ onSizeChanged callback
+CameraScreen
+    ↓ viewModel.updatePreviewSize()
+CameraViewModel (stores width/height)
+    ↓ analyzeCompositionUseCase(previewWidth, previewHeight)
+AnalyzeCompositionUseCase
+    ↓ Uses actual dimensions for Rule of Thirds
+Accurate composition analysis ✓
+```
+
+**Accuracy Improvements**:
+- **Before (Phase 1)**: Estimated dimensions using `boundingBox.right * 1.5f`
+  - Inaccurate, varies with subject distance
+  - Could cause false positives/negatives
+
+- **After (Phase 2)**: Actual PreviewView dimensions
+  - Precise pixel-perfect calculations
+  - Consistent across all scenarios
+  - Reliable Rule of Thirds detection
+
+**Backward Compatibility**:
+- UseCase still accepts `null` dimensions
+- Falls back to estimation if needed
+- Warning logged when estimation used
+- No breaking changes to existing code
+
+### Version Bump
+- versionCode: 16 → 17
+- versionName: 2.0.0-alpha01 → 2.0.0-alpha02
+
+### Files Changed
+- Modified: `presentation/camera/CameraViewModel.kt` (+25 lines)
+- Modified: `presentation/camera/CameraScreen.kt` (+5 lines)
+- Modified: `presentation/camera/components/CameraPreview.kt` (+9 lines)
+- Modified: `domain/usecase/AnalyzeCompositionUseCase.kt` (+20 lines)
+- Modified: `app/build.gradle.kts` (version bump)
+- Modified: `CHANGELOG.md` (this file)
+
+### Testing Results
+- ✅ Build passes successfully
+- ✅ No compilation errors
+- ⚠️ Deprecation warning: `LocalLifecycleOwner` (non-blocking, library migration)
+
+### Next Steps (v2.0 Roadmap)
+
+**Phase 3: Complete Composition Rules** (Next)
+- Headroom analysis (face-to-top distance)
+- Edge distance checking (subject-to-edge margins)
+- Multi-subject support (analyze multiple faces)
+- Weighted scoring system (combine multiple rules)
+
+**Phase 4: Directional Suggestions** (Partially Complete)
+- ✅ Basic directional text suggestions implemented (Phase 1)
+- ⏳ Visual arrows/indicators (optional enhancement)
+
+**Phase 5: Unit Tests** (Planned)
+- AnalyzeCompositionUseCaseTest
+- CameraViewModelTest (composition methods)
+- Target coverage: >80%
+
+### Notes
+- This is an **alpha** release focused on accuracy improvement
+- No UI changes visible to users
+- Composition analysis now significantly more reliable
+- Lays groundwork for Phase 3 (multi-rule analysis)
+
+---
+
 ## [2.0.0-alpha01] - 2025-11-27
 
 ### 🏗️ Architecture - Clean Architecture Refactor (Phase 1)

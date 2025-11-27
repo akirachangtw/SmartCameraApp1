@@ -36,6 +36,10 @@ class CameraViewModel @Inject constructor(
     private val _compositionState = MutableStateFlow<CompositionState>(CompositionState.NoSubject)
     val compositionState: StateFlow<CompositionState> = _compositionState.asStateFlow()
 
+    // Preview dimensions (v2.0 Phase 2)
+    private var previewWidth: Int? = null
+    private var previewHeight: Int? = null
+
     init {
         // 訂閱偵測結果
         observeDetectionResults()
@@ -56,6 +60,21 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.StopAnalysis -> stopAnalysis()
             is CameraUiEvent.ShowError -> showError(event.message)
         }
+    }
+
+    /**
+     * Updates preview dimensions for accurate composition analysis
+     *
+     * This should be called when PreviewView size changes.
+     * Enables accurate Rule of Thirds calculation without estimation.
+     *
+     * @param width Preview width in pixels
+     * @param height Preview height in pixels
+     */
+    fun updatePreviewSize(width: Int, height: Int) {
+        previewWidth = width
+        previewHeight = height
+        Log.d(TAG, "Preview size updated: ${width}x${height}")
     }
 
     private fun capturePhoto() {
@@ -159,15 +178,17 @@ class CameraViewModel @Inject constructor(
      * This delegates the composition analysis logic to AnalyzeCompositionUseCase,
      * following Clean Architecture principles.
      *
+     * Phase 2: Now passes actual preview dimensions for accurate analysis.
+     *
      * @param detectionResult Current ML Kit detection result
      */
     private fun analyzeComposition(detectionResult: DetectionResult) {
         // Delegate to UseCase (Clean Architecture)
-        // TODO: Phase 2 - Pass actual preview dimensions
+        // Phase 2: Pass actual preview dimensions if available
         _compositionState.value = analyzeCompositionUseCase(
             detectionResult = detectionResult,
-            previewWidth = null,  // Will be implemented in Phase 2
-            previewHeight = null   // Will be implemented in Phase 2
+            previewWidth = previewWidth,
+            previewHeight = previewHeight
         )
     }
 }

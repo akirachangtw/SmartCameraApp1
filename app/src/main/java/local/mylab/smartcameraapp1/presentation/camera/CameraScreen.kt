@@ -109,9 +109,13 @@ fun CameraScreen(
                     .padding(paddingValues)
             ) {
                 // 相機預覽
+                // v2.0 Phase 2: Pass size callback for accurate composition analysis
                 CameraPreview(
                     controller = viewModel.getCameraController(),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    onSizeChanged = { width, height ->
+                        viewModel.updatePreviewSize(width, height)
+                    }
                 )
 
                 // ML Kit 偵測邊界框覆蓋層

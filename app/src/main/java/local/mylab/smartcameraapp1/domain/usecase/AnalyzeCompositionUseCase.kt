@@ -17,6 +17,7 @@
  */
 package local.mylab.smartcameraapp1.domain.usecase
 
+import android.util.Log
 import local.mylab.smartcameraapp1.domain.model.DetectionResult
 import local.mylab.smartcameraapp1.presentation.camera.model.CompositionState
 import javax.inject.Inject
@@ -42,12 +43,19 @@ import kotlin.math.abs
  */
 class AnalyzeCompositionUseCase @Inject constructor() {
 
+    companion object {
+        private const val TAG = "AnalyzeCompositionUseCase"
+    }
+
     /**
      * Analyzes composition of detected subjects in the frame
      *
+     * Phase 2: Now prioritizes actual preview dimensions for accurate analysis.
+     * Falls back to estimation only if dimensions are not provided.
+     *
      * @param detectionResult Current ML Kit detection result
-     * @param previewWidth Width of the preview view in pixels (optional for prototype)
-     * @param previewHeight Height of the preview view in pixels (optional for prototype)
+     * @param previewWidth Width of the preview view in pixels (Phase 2: now prioritized)
+     * @param previewHeight Height of the preview view in pixels (Phase 2: now prioritized)
      * @return CompositionState indicating composition quality and suggestions
      */
     operator fun invoke(
@@ -71,10 +79,20 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         val faceCenterX = boundingBox.centerX().toFloat()
         val faceCenterY = boundingBox.centerY().toFloat()
 
-        // Use actual preview dimensions if available, otherwise estimate
-        // TODO: Phase 2 - Always use actual preview dimensions
-        val imageWidth = previewWidth?.toFloat() ?: (boundingBox.right * 1.5f)
-        val imageHeight = previewHeight?.toFloat() ?: (boundingBox.bottom * 1.5f)
+        // Phase 2: Prioritize actual preview dimensions for accuracy
+        val imageWidth: Float
+        val imageHeight: Float
+
+        if (previewWidth != null && previewHeight != null) {
+            // Use actual dimensions (accurate)
+            imageWidth = previewWidth.toFloat()
+            imageHeight = previewHeight.toFloat()
+        } else {
+            // Fallback to estimation (legacy behavior for compatibility)
+            imageWidth = boundingBox.right * 1.5f
+            imageHeight = boundingBox.bottom * 1.5f
+            Log.w(TAG, "Preview dimensions not provided, using estimation (less accurate)")
+        }
 
         // Perform Rule of Thirds analysis
         val ruleOfThirdsResult = analyzeRuleOfThirds(
