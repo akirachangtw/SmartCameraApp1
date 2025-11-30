@@ -14,8 +14,8 @@ android {
         applicationId = "local.mylab.smartcameraapp1"
         minSdk = 24
         targetSdk = 36
-        versionCode = 18
-        versionName = "2.0.0-alpha03"
+        versionCode = 19
+        versionName = "2.0.0-beta01"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -88,6 +88,9 @@ dependencies {
 
     // === 測試 ===
     testImplementation(libs.junit)
+    testImplementation("org.robolectric:robolectric:4.11.1")
+    testImplementation("org.mockito:mockito-core:5.7.0")
+    testImplementation("org.mockito:mockito-inline:5.2.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
