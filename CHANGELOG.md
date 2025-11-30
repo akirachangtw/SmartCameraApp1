@@ -5,6 +5,139 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-beta02] - 2025-11-30
+
+### 🎨 Visual Enhancements - Directional Indicator Arrows (Phase 4)
+
+This version implements **Phase 4** of the v2.0 development plan: Visual composition guidance with directional arrows.
+
+Users now receive **visual directional guidance** with animated arrows pointing in the direction to improve composition, making the AI Photographer feature more intuitive and user-friendly.
+
+### Added
+
+**Directional Indicator System**:
+1. **DirectionalIndicator.kt** - Animated arrow overlay component (~270 lines)
+   - Supports 8 directions: Up, Down, Left, Right, Up-Left, Up-Right, Down-Left, Down-Right
+   - Pulsing animation effect (0.4 → 1.0 alpha, 1000ms cycle)
+   - Amber color (#FFC107) to match composition hint
+   - Only displays when composition needs adjustment
+
+2. **Arrow Rendering**:
+   - **Up Arrow**: Top center (15% from top)
+   - **Down Arrow**: Bottom center (15% from bottom)
+   - **Left Arrow**: Left center (15% from left)
+   - **Right Arrow**: Right center (15% from right)
+   - **Combined Arrows**: Multiple arrows for diagonal directions
+
+3. **Message Parsing**:
+   - Automatically parses `CompositionState.NeedsAdjustment` messages
+   - Extracts direction from suggestions: "Move Up", "Move Down and Right", etc.
+   - Falls back to no arrows for non-directional messages: "Move Away From Edge"
+
+### Technical Details
+
+**Arrow Design**:
+```
+Arrow Structure:
+- Arrow size: 60dp
+- Stroke width: 4dp
+- Color: Amber (#FFC107)
+- Animation: Infinite pulsing (1 second cycle)
+
+Positioning:
+- Positioned 15% from respective edges
+- Centered on axis perpendicular to direction
+- Multiple arrows for diagonal guidance
+```
+
+**Integration Flow**:
+```
+CompositionState.NeedsAdjustment(message)
+    ↓
+parseDirection(message)
+    ↓
+Direction enum (UP, DOWN, LEFT, RIGHT, UP_LEFT, etc.)
+    ↓
+drawArrow[Direction]() functions
+    ↓
+Animated arrow overlay on screen
+```
+
+**Example Scenarios**:
+1. Subject centered → "Move Right" → Right arrow appears
+2. Subject at bottom-left → "Move Up and Right" → Up + Right arrows appear
+3. Poor headroom → "Move Down (More Headroom)" → Down arrow appears
+4. Too close to edge → "Move Away From Edge" → No arrows (ambiguous direction)
+
+### Changed
+
+**CameraScreen.kt**:
+- Added `DirectionalIndicator` import
+- Integrated DirectionalIndicator overlay after CompositionHint
+- Updated version: 1.5.0 → 2.0.0-beta02
+- Added modification note for Phase 4
+
+### Version Bump
+- versionCode: 19 → 20
+- versionName: 2.0.0-beta01 → 2.0.0-beta02
+
+### Files Changed
+- New: `presentation/camera/components/overlay/DirectionalIndicator.kt` (~270 lines)
+- Modified: `presentation/camera/CameraScreen.kt` (+6 lines)
+- Modified: `app/build.gradle.kts` (version bump)
+- Modified: `CHANGELOG.md` (this file)
+
+### Testing Results
+- ✅ Build successful (35s)
+- ✅ No compilation errors
+- ✅ DirectionalIndicator component created
+- ✅ Integration with CameraScreen complete
+
+### Impact on User Experience
+
+**Before Phase 4**:
+- Users see text hint: "Move Up and Right"
+- Must interpret text and translate to physical movement
+- Requires reading and understanding photography terms
+
+**After Phase 4**:
+- Users see animated arrows pointing up and right
+- Instant visual understanding of required movement
+- More intuitive and accessible for non-photographers
+- Arrows pulse to draw attention without being intrusive
+
+**Accessibility Benefits**:
+- Visual guidance reduces cognitive load
+- Arrows complement text hints (not replace)
+- Suitable for users with varying photography knowledge
+- Pulsing animation helps users notice guidance quickly
+
+### Next Steps (v2.0 Roadmap)
+
+**Phase 6: Instrumented Tests** (Optional)
+- CameraViewModelTest (UI state management)
+- Integration tests with actual Camera preview
+- Test detection result flow end-to-end
+
+**Phase 7: Performance Optimization** (Optional)
+- Profile composition analysis performance
+- Optimize animation rendering
+- Reduce allocation in hot paths
+
+**v2.0.0 Stable Release** (Target)
+- Complete all alpha/beta testing
+- User acceptance testing with real users
+- Production deployment
+
+### Notes
+- This is a **beta** release with enhanced visual guidance
+- All Phase 1-5 features remain stable and tested
+- Phase 4 focuses on UX improvements (non-breaking)
+- Directional arrows are a simplified implementation (no AR overlays or complex animations)
+- Ready for user testing and feedback on visual guidance effectiveness
+
+---
+
 ## [2.0.0-beta01] - 2025-11-30
 
 ### 🧪 Complete Unit Test Suite (Phase 5)
