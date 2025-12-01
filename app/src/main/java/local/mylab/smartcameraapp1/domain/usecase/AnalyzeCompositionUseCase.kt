@@ -3,7 +3,7 @@
  * Description: Domain layer use case for analyzing photo composition using photography rules
  * Author: Claude Code
  * Date: 2025-11-27
- * Version: 2.0.0-alpha03
+ * Version: 2.1.1
  *
  * Features:
  * - Rule of Thirds analysis (30% weight)
@@ -11,12 +11,14 @@
  * - Edge distance validation (25% weight)
  * - Multi-subject support (20% weight)
  * - Weighted scoring system
- * - Directional composition suggestions
+ * - Professional Chinese suggestions (v2.1.1)
+ * - Direction vectors for guideline rendering (v2.1.1)
  *
  * Modifications:
  * - 2025-11-27: Initial creation for v2.0 Clean Architecture refactor (Phase 1)
  * - 2025-11-27: Added accurate dimension calculation (Phase 2)
  * - 2025-11-27: Implemented complete composition rules with scoring (Phase 3)
+ * - 2025-12-02: Add Chinese professional suggestions and direction vectors (v2.1.1)
  */
 package local.mylab.smartcameraapp1.domain.usecase
 
@@ -132,8 +134,14 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         return if (analysis.overallScore >= GOOD_COMPOSITION_THRESHOLD) {
             CompositionState.Good
         } else {
-            val suggestion = generateDetailedSuggestion(analysis, faceCenterX, faceCenterY, faceTop, imageWidth, imageHeight)
-            CompositionState.NeedsAdjustment(suggestion)
+            val (message, dirX, dirY) = generateDetailedSuggestion(
+                analysis, faceCenterX, faceCenterY, faceTop, imageWidth, imageHeight
+            )
+            CompositionState.NeedsAdjustment(
+                message = message,
+                directionX = dirX,
+                directionY = dirY
+            )
         }
     }
 
@@ -311,7 +319,14 @@ class AnalyzeCompositionUseCase @Inject constructor() {
     }
 
     /**
-     * Generates detailed suggestion based on analysis results
+     * Generates detailed suggestion with professional Chinese text and direction vectors
+     *
+     * Returns: Triple(message, directionX, directionY)
+     * - message: Professional Chinese composition suggestion
+     * - directionX: -1.0 (left) to 1.0 (right), 0.0 = centered
+     * - directionY: -1.0 (up) to 1.0 (down), 0.0 = centered
+     *
+     * v2.1.1: Changed to Chinese professional suggestions based on scene composition matrix
      */
     private fun generateDetailedSuggestion(
         analysis: CompositionAnalysis,
@@ -320,7 +335,7 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         faceTop: Float,
         imageWidth: Float,
         imageHeight: Float
-    ): String {
+    ): Triple<String, Float, Float> {
         // Find the weakest rule (lowest score)
         val scores = listOf(
             "Rule of Thirds" to analysis.ruleOfThirdsScore,
@@ -329,45 +344,84 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         )
         val weakestRule = scores.minByOrNull { it.second }
 
-        return when (weakestRule?.first) {
+        // Calculate direction vectors for guideline rendering
+        val leftThird = imageWidth / 3f
+        val rightThird = imageWidth * 2f / 3f
+        val topThird = imageHeight / 3f
+        val bottomThird = imageHeight * 2f / 3f
+
+        var directionX = 0f
+        var directionY = 0f
+        var message = "調整構圖"
+
+        when (weakestRule?.first) {
             "Rule of Thirds" -> {
-                // Provide directional guidance
-                val leftThird = imageWidth / 3f
-                val rightThird = imageWidth * 2f / 3f
-                val topThird = imageHeight / 3f
-                val bottomThird = imageHeight * 2f / 3f
-
-                val horizontal = when {
-                    faceCenterX < leftThird -> "Move Right"
-                    faceCenterX > rightThird -> "Move Left"
-                    else -> null
+                // Determine optimal direction to nearest third line
+                directionX = when {
+                    faceCenterX < leftThird -> -0.5f  // Move camera right (subject appears to move left)
+                    faceCenterX > rightThird -> 0.5f  // Move camera left (subject appears to move right)
+                    else -> 0f
                 }
-                val vertical = when {
-                    faceCenterY < topThird -> "Move Down"
-                    faceCenterY > bottomThird -> "Move Up"
-                    else -> null
+                directionY = when {
+                    faceCenterY < topThird -> -0.5f  // Move camera down (subject appears to move up)
+                    faceCenterY > bottomThird -> 0.5f  // Move camera up (subject appears to move down)
+                    else -> 0f
                 }
 
-                when {
-                    horizontal != null && vertical != null -> "$vertical and $horizontal"
-                    horizontal != null -> horizontal
-                    vertical != null -> vertical
-                    else -> "Center Subject"
+                // Professional Chinese suggestions based on scene matrix
+                message = when {
+                    directionY < 0 && directionX == 0f -> "請上移，使眼睛位於上三分線"
+                    directionY > 0 && directionX == 0f -> "請下移，使主體位於下三分線"
+                    directionX < 0 && directionY == 0f -> "請左移，將主體移至左三分線"
+                    directionX > 0 && directionY == 0f -> "請右移，將主體移至右三分線"
+                    directionY < 0 && directionX < 0 -> "請向左上移動，對齊三分交點"
+                    directionY < 0 && directionX > 0 -> "請向右上移動，對齊三分交點"
+                    directionY > 0 && directionX < 0 -> "請向左下移動，對齊三分交點"
+                    directionY > 0 && directionX > 0 -> "請向右下移動，對齊三分交點"
+                    else -> "將主體移至三分交點更吸睛"
                 }
             }
             "Headroom" -> {
                 val headroomRatio = faceTop / imageHeight
                 when {
-                    headroomRatio < IDEAL_HEADROOM_MIN -> "Move Down (More Headroom)"
-                    headroomRatio > IDEAL_HEADROOM_MAX -> "Move Up (Less Headroom)"
-                    else -> "Adjust Headroom"
+                    headroomRatio < IDEAL_HEADROOM_MIN -> {
+                        message = "頭部空間略少，可微微下移手機"
+                        directionY = 0.3f  // Move camera up slightly
+                    }
+                    headroomRatio > IDEAL_HEADROOM_MAX -> {
+                        message = "頭部空間略多，可微微上提手機"
+                        directionY = -0.3f  // Move camera down slightly
+                    }
+                    else -> {
+                        message = "調整頭部空間"
+                        directionY = 0f
+                    }
                 }
             }
             "Edge Distance" -> {
-                "Move Away From Edge"
+                message = "主體太靠近邊緣，請調整位置"
+                // Calculate direction away from edge
+                val leftDist = faceCenterX
+                val rightDist = imageWidth - faceCenterX
+                val topDist = faceCenterY
+                val bottomDist = imageHeight - faceCenterY
+
+                val minDist = minOf(leftDist, rightDist, topDist, bottomDist)
+                when (minDist) {
+                    leftDist -> directionX = -0.3f  // Too close to left edge
+                    rightDist -> directionX = 0.3f  // Too close to right edge
+                    topDist -> directionY = -0.3f  // Too close to top edge
+                    bottomDist -> directionY = 0.3f  // Too close to bottom edge
+                }
             }
-            else -> "Adjust Position"
+            else -> {
+                message = "調整構圖位置"
+                directionX = 0f
+                directionY = 0f
+            }
         }
+
+        return Triple(message, directionX, directionY)
     }
 
     /**

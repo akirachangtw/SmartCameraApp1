@@ -5,6 +5,109 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-12-02
+
+### 🎨 Directional Guidance Redesign - Text-First Approach
+
+This release **completely redesigns** the directional composition guidance system based on user feedback from v2.1.0 testing. The new design focuses on **professional Chinese text suggestions** as the primary guidance method, with simplified directional arrows as supplementary visual aids.
+
+### ✨ What Changed
+
+#### 1. Professional Chinese Composition Suggestions
+**From English**: "Move Up and Move Left"
+**To Chinese**: "請上移，使眼睛位於上三分線" (Portrait), "地平線偏低，可稍向下壓構圖" (Landscape)
+
+- Aligned with smart_camera_app_development_plan_v_2.md scene composition matrix
+- Scene-specific suggestions:
+  - **Portrait**: Eye positioning on upper third line, headroom guidance
+  - **Landscape**: Horizon positioning, foreground layer suggestions
+  - **Street photography**: Rule of Thirds alignment
+- Text is now the **primary guidance** (not secondary)
+
+#### 2. Directional Arrow Redesign
+**Removed**: Target circles with pulsing animation (too complex)
+**Added**: Simple directional arrows from subject center
+
+- Arrow origin: Detected subject center (face center)
+- Arrow direction: Points toward optimal camera movement
+- Arrow length: Dynamic (150-250dp based on deviation magnitude)
+- Color: Amber #FFC107 (consistent with existing design)
+- Animation: Subtle fade in/out (0.5-0.8 alpha, 800ms cycle)
+- **No target circles**: Simplified for clarity
+
+#### 3. Composition Hint Localization
+- "Good Composition ✓" → "良好構圖 ✓"
+- "No Subject Detected" → "未偵測到主體"
+- Enhanced alpha (0.9) for better visibility
+- Background now more prominent for readability
+
+#### 4. Direction Vector System
+**New**: `CompositionState.NeedsAdjustment` now includes direction vectors
+
+```kotlin
+data class NeedsAdjustment(
+    val message: String,           // Chinese suggestion text
+    val directionX: Float = 0f,    // -1.0 (left) to 1.0 (right)
+    val directionY: Float = 0f     // -1.0 (up) to 1.0 (down)
+)
+```
+
+- Vectors drive arrow rendering in DirectionalIndicator
+- Calculated in `AnalyzeCompositionUseCase`
+- Supports 8 directions + magnitude
+
+### 🔧 Technical Changes
+
+**Modified Files**:
+- `CompositionState.kt`: Added `directionX/Y` fields to `NeedsAdjustment`
+- `AnalyzeCompositionUseCase.kt`: Complete rewrite of `generateDetailedSuggestion()` method
+  - Returns `Triple(message, directionX, directionY)`
+  - Chinese professional suggestions based on scene type
+  - Direction vectors for arrow rendering
+- `DirectionalIndicator.kt`: Complete rewrite
+  - Removed target circle logic (251 → 172 lines)
+  - New: `drawDirectionalArrow()` function
+  - Arrow from subject center pointing to optimal direction
+  - Gradient fade effect for elegance
+- `CompositionHint.kt`: Updated to Chinese text
+- `CameraScreen.kt`: Updated to pass subject center coordinates to DirectionalIndicator
+
+### 📊 Design Rationale
+
+**Why This Change?**
+
+Based on user testing screenshots from v2.1.0:
+1. **Previous arrows were confusing**: "Move Up and Left" when subject was already top-left
+2. **Target circles were distracting**: Too many visual elements competing for attention
+3. **Text guidance was secondary**: Should be primary (more precise than arrows)
+
+**New Design Principles**:
+- **Text-first**: Professional suggestions are main guidance
+- **Arrows are supplementary**: Just show direction, not target position
+- **Simplified visuals**: Remove circles, reduce visual clutter
+- **Scene-aware**: Different suggestions for portrait/landscape/street photography
+
+### 🎯 User Experience Improvements
+
+- **Clearer guidance**: Chinese text is more precise than English directional terms
+- **Less visual noise**: No pulsing circles, simpler arrow design
+- **Professional feel**: Suggestions reference photography terminology ("三分線", "頭部空間")
+- **Scene awareness**: Messages adapt to shooting scenario
+
+### 🐛 Bug Fixes
+
+- Fixed inverted direction logic (camera movement vs subject positioning)
+- Corrected arrow orientation for portrait vs landscape modes
+- Fixed direction calculations for Rule of Thirds positioning
+
+### 📝 Version Information
+
+- Version Code: 22 → 22 (no increment, same build)
+- Version Name: 2.1.0 → 2.1.1
+- Build: SUCCESS (45s)
+
+---
+
 ## [2.1.0] - 2025-12-01
 
 ### 🎉 V1.0 Blueprint Completion - LevelIndicator & Settings

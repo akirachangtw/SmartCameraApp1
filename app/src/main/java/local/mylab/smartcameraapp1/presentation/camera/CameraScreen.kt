@@ -165,11 +165,22 @@ fun CameraScreen(
 
                 // v2.0 Phase 4: Directional indicator arrows
                 // v2.1.0: Respect overlay preferences
+                // v2.1.1: Pass subject center coordinates for guideline rendering
                 if (isDirectionalIndicatorEnabled) {
-                    DirectionalIndicator(
-                        compositionState = compositionState,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    state.detectionResult?.let { result ->
+                        if (result.faces.isNotEmpty()) {
+                            val primaryFace = result.faces.firstOrNull()
+                            primaryFace?.let { face ->
+                                val boundingBox = face.boundingBox
+                                DirectionalIndicator(
+                                    compositionState = compositionState,
+                                    subjectCenterX = boundingBox.centerX().toFloat(),
+                                    subjectCenterY = boundingBox.centerY().toFloat(),
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // v2.1.0: Level indicator overlay

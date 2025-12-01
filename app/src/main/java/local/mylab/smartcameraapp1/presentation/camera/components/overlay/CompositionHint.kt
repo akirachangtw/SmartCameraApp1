@@ -3,15 +3,17 @@
  * Description: Displays composition analysis hints to guide user
  * Author: Claude Code
  * Date: 2025-11-25
- * Version: 1.5.0
+ * Version: 2.1.1
  *
  * Features:
  * - Real-time composition feedback
- * - Simple text-based hints
- * - Color-coded feedback (green for good, yellow for needs adjustment)
+ * - Professional Chinese text hints (v2.1.1)
+ * - Color-coded feedback (green for good, amber for needs adjustment)
+ * - Enhanced visibility with semi-transparent background
  *
  * Modifications:
  * - 2025-11-25: Initial creation for v1.5.0 prototype
+ * - 2025-12-02: Update to Chinese professional suggestions (v2.1.1)
  */
 package local.mylab.smartcameraapp1.presentation.camera.components.overlay
 
@@ -33,7 +35,11 @@ import local.mylab.smartcameraapp1.presentation.camera.model.CompositionState
  * Composition hint overlay composable
  *
  * Displays real-time feedback about the current composition based on
- * Rule of Thirds analysis. Provides simple, actionable guidance to users.
+ * multi-rule weighted scoring system. Provides professional Chinese
+ * suggestions aligned with the scene composition matrix.
+ *
+ * v2.1.1: Text-first design approach - hints are the primary guidance,
+ * with directional arrows as supplementary visual aids.
  *
  * @param compositionState Current composition analysis state
  * @param modifier Modifier for the hint container
@@ -45,13 +51,13 @@ fun CompositionHint(
 ) {
     val (hintText, backgroundColor) = when (compositionState) {
         is CompositionState.Good -> {
-            "Good Composition ✓" to Color(0xFF4CAF50).copy(alpha = 0.8f) // Green
+            "良好構圖 ✓" to Color(0xFF4CAF50).copy(alpha = 0.9f) // Green
         }
         is CompositionState.NeedsAdjustment -> {
-            compositionState.message to Color(0xFFFFC107).copy(alpha = 0.8f) // Amber
+            compositionState.message to Color(0xFFFFC107).copy(alpha = 0.9f) // Amber
         }
         is CompositionState.NoSubject -> {
-            "No Subject Detected" to Color(0xFF9E9E9E).copy(alpha = 0.8f) // Gray
+            "未偵測到主體" to Color(0xFF9E9E9E).copy(alpha = 0.8f) // Gray
         }
     }
 

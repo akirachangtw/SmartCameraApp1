@@ -1,18 +1,19 @@
 /**
  * ClassName: DirectionalIndicator
- * Description: Visual directional arrows to guide composition adjustments
+ * Description: Directional guideline overlay to guide composition adjustments
  * Author: Claude Code
  * Date: 2025-11-30
- * Version: 2.0.0-beta02
+ * Version: 2.1.1
  *
  * Features:
- * - Animated directional arrows based on composition suggestions
- * - Supports 8 directions (Up, Down, Left, Right, and combinations)
- * - Smooth fade-in/fade-out animations
- * - Only shown when composition needs adjustment
+ * - Directional guideline from subject to optimal position
+ * - Animated arrow with gradient fade effect
+ * - Based on professional Chinese composition suggestions
+ * - Replaces previous circular target design with simpler arrows
  *
  * Modifications:
  * - 2025-11-30: Initial creation for v2.0 Phase 4 (Visual Enhancements)
+ * - 2025-12-02: Complete rewrite for guideline-based design (v2.1.1)
  */
 package local.mylab.smartcameraapp1.presentation.camera.components.overlay
 
@@ -22,12 +23,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -36,216 +34,138 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import local.mylab.smartcameraapp1.presentation.camera.model.CompositionState
+import kotlin.math.sqrt
 
 /**
  * Directional indicator overlay composable
  *
- * Displays animated arrows pointing in the direction the user should move
- * the camera/subject to improve composition. Arrows appear only when
- * composition needs adjustment.
+ * Displays an animated directional arrow from the subject center pointing
+ * toward the optimal composition direction based on professional analysis.
+ *
+ * Design principles (v2.1.1):
+ * - No target circles (removed for simplicity)
+ * - Directional guideline with animated arrow
+ * - Text-first approach (guidelines are supplementary)
+ * - Gradient fade effect for elegance
  *
  * @param compositionState Current composition analysis state
+ * @param subjectCenterX X coordinate of detected subject center
+ * @param subjectCenterY Y coordinate of detected subject center
  * @param modifier Modifier for the indicator container
  */
 @Composable
 fun DirectionalIndicator(
     compositionState: CompositionState,
+    subjectCenterX: Float,
+    subjectCenterY: Float,
     modifier: Modifier = Modifier
 ) {
     // Only show indicators when composition needs adjustment
     if (compositionState !is CompositionState.NeedsAdjustment) return
 
-    val direction = parseDirection(compositionState.message)
-    if (direction == Direction.NONE) return
+    val directionX = compositionState.directionX
+    val directionY = compositionState.directionY
 
-    // Pulsing animation for the arrows
-    val infiniteTransition = rememberInfiniteTransition(label = "arrow_pulse")
+    // Don't draw if no clear direction
+    if (directionX == 0f && directionY == 0f) return
+
+    // Pulsing animation for the arrow (subtle fade in/out)
+    val infiniteTransition = rememberInfiniteTransition(label = "arrow_fade")
     val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1.0f,
+        initialValue = 0.5f,
+        targetValue = 0.8f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000),
+            animation = tween(800),
             repeatMode = RepeatMode.Reverse
         ),
         label = "arrow_alpha"
     )
 
-    Box(modifier = modifier.fillMaxSize()) {
-        // Draw arrows based on direction
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val arrowColor = Color(0xFFFFC107).copy(alpha = alpha) // Amber
-            val strokeWidth = 4.dp.toPx()
-
-            when (direction) {
-                Direction.UP -> drawArrowUp(arrowColor, strokeWidth)
-                Direction.DOWN -> drawArrowDown(arrowColor, strokeWidth)
-                Direction.LEFT -> drawArrowLeft(arrowColor, strokeWidth)
-                Direction.RIGHT -> drawArrowRight(arrowColor, strokeWidth)
-                Direction.UP_LEFT -> {
-                    drawArrowUp(arrowColor, strokeWidth)
-                    drawArrowLeft(arrowColor, strokeWidth)
-                }
-                Direction.UP_RIGHT -> {
-                    drawArrowUp(arrowColor, strokeWidth)
-                    drawArrowRight(arrowColor, strokeWidth)
-                }
-                Direction.DOWN_LEFT -> {
-                    drawArrowDown(arrowColor, strokeWidth)
-                    drawArrowLeft(arrowColor, strokeWidth)
-                }
-                Direction.DOWN_RIGHT -> {
-                    drawArrowDown(arrowColor, strokeWidth)
-                    drawArrowRight(arrowColor, strokeWidth)
-                }
-                Direction.NONE -> {} // No arrows
-            }
-        }
+    Canvas(modifier = modifier.fillMaxSize()) {
+        drawDirectionalArrow(
+            subjectX = subjectCenterX,
+            subjectY = subjectCenterY,
+            directionX = directionX,
+            directionY = directionY,
+            alpha = alpha
+        )
     }
 }
 
 /**
- * Direction enum representing possible movement directions
- */
-private enum class Direction {
-    NONE,
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
-    UP_LEFT,
-    UP_RIGHT,
-    DOWN_LEFT,
-    DOWN_RIGHT
-}
-
-/**
- * Parses composition suggestion message to determine arrow direction
+ * Draws a directional arrow from subject position pointing toward optimal direction
  *
- * Examples:
- * - "Move Up" → UP
- * - "Move Down and Right" → DOWN_RIGHT
- * - "Move Left" → LEFT
- * - "Move Away From Edge" → NONE (no specific direction)
+ * Arrow design:
+ * - Origin: Subject center
+ * - Direction: Based on composition analysis vector
+ * - Length: Dynamic based on direction magnitude (150-250dp)
+ * - Color: Amber #FFC107 (consistent with existing design)
+ * - Style: Gradient fade from origin to tip
+ *
+ * @param subjectX Subject center X coordinate
+ * @param subjectY Subject center Y coordinate
+ * @param directionX Direction vector X (-1.0 to 1.0)
+ * @param directionY Direction vector Y (-1.0 to 1.0)
+ * @param alpha Current animation alpha value
  */
-private fun parseDirection(message: String): Direction {
-    val hasUp = message.contains("Up", ignoreCase = true)
-    val hasDown = message.contains("Down", ignoreCase = true)
-    val hasLeft = message.contains("Left", ignoreCase = true)
-    val hasRight = message.contains("Right", ignoreCase = true)
+private fun DrawScope.drawDirectionalArrow(
+    subjectX: Float,
+    subjectY: Float,
+    directionX: Float,
+    directionY: Float,
+    alpha: Float
+) {
+    // Calculate arrow length based on direction magnitude
+    val magnitude = sqrt(directionX * directionX + directionY * directionY)
+    if (magnitude < 0.1f) return  // Skip if direction too small
 
-    return when {
-        hasUp && hasLeft -> Direction.UP_LEFT
-        hasUp && hasRight -> Direction.UP_RIGHT
-        hasDown && hasLeft -> Direction.DOWN_LEFT
-        hasDown && hasRight -> Direction.DOWN_RIGHT
-        hasUp -> Direction.UP
-        hasDown -> Direction.DOWN
-        hasLeft -> Direction.LEFT
-        hasRight -> Direction.RIGHT
-        else -> Direction.NONE
-    }
-}
+    // Normalize direction
+    val normX = directionX / magnitude
+    val normY = directionY / magnitude
 
-/**
- * Draws an upward-pointing arrow at the top center of the screen
- */
-private fun DrawScope.drawArrowUp(color: Color, strokeWidth: Float) {
-    val centerX = size.width / 2f
-    val topY = size.height * 0.15f // 15% from top
-    val arrowSize = 60.dp.toPx()
+    // Arrow properties
+    val baseLength = 180.dp.toPx()
+    val arrowLength = baseLength * magnitude.coerceIn(0.5f, 1.5f)
+    val arrowHeadSize = 30.dp.toPx()
+    val strokeWidth = 4.dp.toPx()
 
-    val path = Path().apply {
-        // Arrow pointing up
-        moveTo(centerX, topY)
-        lineTo(centerX - arrowSize / 2, topY + arrowSize)
-        moveTo(centerX, topY)
-        lineTo(centerX + arrowSize / 2, topY + arrowSize)
-        // Arrow stem
-        moveTo(centerX, topY + arrowSize * 0.3f)
-        lineTo(centerX, topY + arrowSize * 1.2f)
-    }
+    // Calculate end point
+    val endX = subjectX + (normX * arrowLength)
+    val endY = subjectY + (normY * arrowLength)
 
-    drawPath(
-        path = path,
-        color = color,
-        style = Stroke(width = strokeWidth)
+    // Arrow color (Amber with animated alpha)
+    val arrowColor = Color(0xFFFFC107).copy(alpha = alpha)
+
+    // Draw arrow line
+    drawLine(
+        color = arrowColor,
+        start = Offset(subjectX, subjectY),
+        end = Offset(endX, endY),
+        strokeWidth = strokeWidth
     )
-}
 
-/**
- * Draws a downward-pointing arrow at the bottom center of the screen
- */
-private fun DrawScope.drawArrowDown(color: Color, strokeWidth: Float) {
-    val centerX = size.width / 2f
-    val bottomY = size.height * 0.85f // 15% from bottom
-    val arrowSize = 60.dp.toPx()
-
+    // Draw arrow head (triangle at end)
     val path = Path().apply {
-        // Arrow pointing down
-        moveTo(centerX, bottomY)
-        lineTo(centerX - arrowSize / 2, bottomY - arrowSize)
-        moveTo(centerX, bottomY)
-        lineTo(centerX + arrowSize / 2, bottomY - arrowSize)
-        // Arrow stem
-        moveTo(centerX, bottomY - arrowSize * 0.3f)
-        lineTo(centerX, bottomY - arrowSize * 1.2f)
+        // Arrow tip
+        moveTo(endX, endY)
+
+        // Left wing
+        val leftWingX = endX - (normX * arrowHeadSize + normY * arrowHeadSize * 0.4f)
+        val leftWingY = endY - (normY * arrowHeadSize - normX * arrowHeadSize * 0.4f)
+        lineTo(leftWingX, leftWingY)
+
+        // Back to tip
+        moveTo(endX, endY)
+
+        // Right wing
+        val rightWingX = endX - (normX * arrowHeadSize - normY * arrowHeadSize * 0.4f)
+        val rightWingY = endY - (normY * arrowHeadSize + normX * arrowHeadSize * 0.4f)
+        lineTo(rightWingX, rightWingY)
     }
 
     drawPath(
         path = path,
-        color = color,
-        style = Stroke(width = strokeWidth)
-    )
-}
-
-/**
- * Draws a leftward-pointing arrow at the left center of the screen
- */
-private fun DrawScope.drawArrowLeft(color: Color, strokeWidth: Float) {
-    val leftX = size.width * 0.15f // 15% from left
-    val centerY = size.height / 2f
-    val arrowSize = 60.dp.toPx()
-
-    val path = Path().apply {
-        // Arrow pointing left
-        moveTo(leftX, centerY)
-        lineTo(leftX + arrowSize, centerY - arrowSize / 2)
-        moveTo(leftX, centerY)
-        lineTo(leftX + arrowSize, centerY + arrowSize / 2)
-        // Arrow stem
-        moveTo(leftX + arrowSize * 0.3f, centerY)
-        lineTo(leftX + arrowSize * 1.2f, centerY)
-    }
-
-    drawPath(
-        path = path,
-        color = color,
-        style = Stroke(width = strokeWidth)
-    )
-}
-
-/**
- * Draws a rightward-pointing arrow at the right center of the screen
- */
-private fun DrawScope.drawArrowRight(color: Color, strokeWidth: Float) {
-    val rightX = size.width * 0.85f // 15% from right
-    val centerY = size.height / 2f
-    val arrowSize = 60.dp.toPx()
-
-    val path = Path().apply {
-        // Arrow pointing right
-        moveTo(rightX, centerY)
-        lineTo(rightX - arrowSize, centerY - arrowSize / 2)
-        moveTo(rightX, centerY)
-        lineTo(rightX - arrowSize, centerY + arrowSize / 2)
-        // Arrow stem
-        moveTo(rightX - arrowSize * 0.3f, centerY)
-        lineTo(rightX - arrowSize * 1.2f, centerY)
-    }
-
-    drawPath(
-        path = path,
-        color = color,
+        color = arrowColor,
         style = Stroke(width = strokeWidth)
     )
 }
