@@ -3,19 +3,24 @@
  * Description: Hilt dependency injection module for application-level dependencies
  * Author: Claude Code
  * Date: 2025-11-17
- * Version: 1.1.0
+ * Version: 2.1.0
  *
  * Modifications:
  * - 2025-11-17: Add BackgroundExecutor for ML Kit processing
+ * - 2025-12-01: Add DeviceSensorManager provider for LevelIndicator feature
  */
 package local.mylab.smartcameraapp1.di
 
+import android.content.Context
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import local.mylab.smartcameraapp1.data.preferences.OverlayPreferences
 import local.mylab.smartcameraapp1.data.repository.CameraRepositoryImpl
+import local.mylab.smartcameraapp1.data.sensor.DeviceSensorManager
 import local.mylab.smartcameraapp1.domain.repository.CameraRepository
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
@@ -56,6 +61,32 @@ abstract class AppModule {
                     priority = Thread.NORM_PRIORITY
                 }
             }
+        }
+
+        /**
+         * 提供 DeviceSensorManager 單例 (v2.1.0)
+         *
+         * 用於 LevelIndicator 功能的設備方向追蹤
+         */
+        @Provides
+        @Singleton
+        fun provideDeviceSensorManager(
+            @ApplicationContext context: Context
+        ): DeviceSensorManager {
+            return DeviceSensorManager(context)
+        }
+
+        /**
+         * 提供 OverlayPreferences 單例 (v2.1.0)
+         *
+         * 用於設定畫面的覆蓋層偏好設定管理
+         */
+        @Provides
+        @Singleton
+        fun provideOverlayPreferences(
+            @ApplicationContext context: Context
+        ): OverlayPreferences {
+            return OverlayPreferences(context)
         }
     }
 }

@@ -3,7 +3,7 @@
  * Description: Main camera screen with ML Kit detection and composition guidance
  * Author: Claude Code
  * Date: 2025-11-17
- * Version: 2.0.0-beta02
+ * Version: 2.1.0
  *
  * Modifications:
  * - 2025-11-17: Added ML Kit detection result text overlay
@@ -11,6 +11,7 @@
  * - 2025-11-23: Simplified to use MlKitAnalyzer with VIEW_REFERENCED coordinates (v1.4.0)
  * - 2025-11-25: Added smart composition guide with Rule of Thirds grid (v1.5.0)
  * - 2025-11-30: Added directional indicator arrows for composition guidance (v2.0 Phase 4)
+ * - 2025-12-01: Added LevelIndicator overlay with sensor integration (v2.1.0)
  */
 package local.mylab.smartcameraapp1.presentation.camera
 
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,6 +66,7 @@ import local.mylab.smartcameraapp1.presentation.camera.components.overlay.Compos
 import local.mylab.smartcameraapp1.presentation.camera.components.overlay.DetectionOverlay
 import local.mylab.smartcameraapp1.presentation.camera.components.overlay.DirectionalIndicator
 import local.mylab.smartcameraapp1.presentation.camera.components.overlay.GridOverlay
+import local.mylab.smartcameraapp1.presentation.camera.components.overlay.LevelIndicator
 
 /**
  * 相機畫面 - 拍照功能
@@ -77,11 +80,21 @@ import local.mylab.smartcameraapp1.presentation.camera.components.overlay.GridOv
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun CameraScreen(
+    onNavigateToSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: CameraViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val compositionState by viewModel.compositionState.collectAsState() // v1.5.0
+    val orientationState by viewModel.orientationState.collectAsState() // v2.1.0
+
+    // Overlay visibility preferences (v2.1.0)
+    val isGridEnabled by viewModel.isGridEnabled.collectAsState(initial = true)
+    val isCompositionHintEnabled by viewModel.isCompositionHintEnabled.collectAsState(initial = true)
+    val isDetectionOverlayEnabled by viewModel.isDetectionOverlayEnabled.collectAsState(initial = true)
+    val isLevelIndicatorEnabled by viewModel.isLevelIndicatorEnabled.collectAsState(initial = true)
+    val isDirectionalIndicatorEnabled by viewModel.isDirectionalIndicatorEnabled.collectAsState(initial = true)
+
     val snackbarHostState = remember { SnackbarHostState() }
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
@@ -122,32 +135,55 @@ fun CameraScreen(
 
                 // ML Kit 偵測邊界框覆蓋層
                 // v1.4.0: 座標已經在 View 空間，無需傳遞尺寸資訊
-                state.detectionResult?.let { result ->
-                    DetectionOverlay(
-                        detectionResult = result,
+                // v2.1.0: Respect overlay preferences
+                if (isDetectionOverlayEnabled) {
+                    state.detectionResult?.let { result ->
+                        DetectionOverlay(
+                            detectionResult = result,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                // v1.5.0: Rule of Thirds grid overlay
+                // v2.1.0: Respect overlay preferences
+                GridOverlay(
+                    modifier = Modifier.fillMaxSize(),
+                    visible = isGridEnabled
+                )
+
+                // v1.5.0: Composition hint overlay
+                // v2.1.0: Respect overlay preferences
+                if (isCompositionHintEnabled) {
+                    CompositionHint(
+                        compositionState = compositionState,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 56.dp) // Below flash button
+                    )
+                }
+
+                // v2.0 Phase 4: Directional indicator arrows
+                // v2.1.0: Respect overlay preferences
+                if (isDirectionalIndicatorEnabled) {
+                    DirectionalIndicator(
+                        compositionState = compositionState,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
 
-                // v1.5.0: Rule of Thirds grid overlay
-                GridOverlay(
-                    modifier = Modifier.fillMaxSize(),
-                    visible = true
-                )
-
-                // v1.5.0: Composition hint overlay
-                CompositionHint(
-                    compositionState = compositionState,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 56.dp) // Below flash button
-                )
-
-                // v2.0 Phase 4: Directional indicator arrows
-                DirectionalIndicator(
-                    compositionState = compositionState,
-                    modifier = Modifier.fillMaxSize()
-                )
+                // v2.1.0: Level indicator overlay
+                if (isLevelIndicatorEnabled) {
+                    orientationState?.let { orientation ->
+                        LevelIndicator(
+                            roll = orientation.roll,
+                            visible = true,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 120.dp) // Above camera controls
+                        )
+                    }
+                }
 
                 // 簡易計數顯示（可選，保留用於調試）
                 state.detectionResult?.let { result ->
@@ -167,14 +203,27 @@ fun CameraScreen(
                     )
                 }
 
-                // 頂部控制欄（閃光燈）
+                // 頂部控制欄（閃光燈、設定）
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.TopCenter)
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    // 設定按鈕 (v2.1.0)
+                    IconButton(
+                        onClick = onNavigateToSettings
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "設定",
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
+                    // 閃光燈按鈕
                     IconButton(
                         onClick = { viewModel.onEvent(CameraUiEvent.ToggleFlash) }
                     ) {

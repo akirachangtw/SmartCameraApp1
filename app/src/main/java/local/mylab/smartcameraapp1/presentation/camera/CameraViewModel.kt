@@ -5,6 +5,7 @@ import androidx.camera.core.ImageCapture
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,6 +13,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import local.mylab.smartcameraapp1.data.preferences.OverlayPreferences
+import local.mylab.smartcameraapp1.data.sensor.DeviceSensorManager
+import local.mylab.smartcameraapp1.data.sensor.OrientationData
 import local.mylab.smartcameraapp1.domain.model.CaptureResult
 import local.mylab.smartcameraapp1.domain.model.DetectionResult
 import local.mylab.smartcameraapp1.domain.repository.CameraRepository
@@ -22,7 +26,9 @@ import javax.inject.Inject
 @HiltViewModel
 class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
-    private val analyzeCompositionUseCase: AnalyzeCompositionUseCase
+    private val analyzeCompositionUseCase: AnalyzeCompositionUseCase,
+    private val sensorManager: DeviceSensorManager,
+    private val overlayPreferences: OverlayPreferences
 ) : ViewModel() {
 
     companion object {
@@ -36,6 +42,17 @@ class CameraViewModel @Inject constructor(
     private val _compositionState = MutableStateFlow<CompositionState>(CompositionState.NoSubject)
     val compositionState: StateFlow<CompositionState> = _compositionState.asStateFlow()
 
+    // Device orientation state (v2.1.0)
+    private val _orientationState = MutableStateFlow<OrientationData?>(null)
+    val orientationState: StateFlow<OrientationData?> = _orientationState.asStateFlow()
+
+    // Overlay visibility preferences (v2.1.0)
+    val isGridEnabled: Flow<Boolean> = overlayPreferences.isGridEnabled
+    val isCompositionHintEnabled: Flow<Boolean> = overlayPreferences.isCompositionHintEnabled
+    val isDetectionOverlayEnabled: Flow<Boolean> = overlayPreferences.isDetectionOverlayEnabled
+    val isLevelIndicatorEnabled: Flow<Boolean> = overlayPreferences.isLevelIndicatorEnabled
+    val isDirectionalIndicatorEnabled: Flow<Boolean> = overlayPreferences.isDirectionalIndicatorEnabled
+
     // Preview dimensions (v2.0 Phase 2)
     private var previewWidth: Int? = null
     private var previewHeight: Int? = null
@@ -44,9 +61,33 @@ class CameraViewModel @Inject constructor(
         // 訂閱偵測結果
         observeDetectionResults()
 
+        // 訂閱感測器方向資料 (v2.1.0)
+        observeOrientation()
+
         // ML 偵測需手動啟動（透過 CameraUiEvent.StartAnalysis）
         // 或根據需求自動啟動
         startAnalysis()
+    }
+
+    /**
+     * Observes device orientation from sensors (v2.1.0)
+     *
+     * Starts orientation tracking and updates the orientation state.
+     * Only tracks if sensors are available.
+     */
+    private fun observeOrientation() {
+        if (!sensorManager.areSensorsAvailable()) {
+            Log.w(TAG, "Orientation sensors not available - LevelIndicator will be disabled")
+            return
+        }
+
+        sensorManager.startOrientationTracking()
+            .onEach { orientation ->
+                _orientationState.value = orientation
+            }
+            .launchIn(viewModelScope)
+
+        Log.i(TAG, "Orientation tracking initialized")
     }
 
     fun getCameraController() = cameraRepository.getCameraController()

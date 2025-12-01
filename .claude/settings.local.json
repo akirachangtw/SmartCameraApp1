@@ -8,7 +8,14 @@
       "Bash(./gradlew assembleDebug:*)",
       "Bash(Select-String -Pattern \"(BUILD|FAILED|error|warning)\")",
       "Bash(Select-Object -First 50)",
-      "Bash(gradlew.bat assembleDebug:*)"
+      "Bash(gradlew.bat assembleDebug:*)",
+      "Bash(./gradlew test:*)",
+      "Bash(./gradlew testDebugUnitTest:*)",
+      "Bash(cat:*)",
+      "Bash(Select-String -Pattern \"(BUILD|FAILED|tests completed|error|warning)\")",
+      "Bash(Select-Object -First 20)",
+      "Bash(git tag:*)",
+      "Bash(.gradlew.bat assembleDebug)"
     ],
     "deny": [],
     "ask": []
