@@ -8,14 +8,11 @@ import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
-import androidx.camera.mlkit.vision.MlKitAnalyzer
-import androidx.camera.view.CameraController.COORDINATE_SYSTEM_VIEW_REFERENCED
 import androidx.camera.view.LifecycleCameraController
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
-import com.google.mlkit.vision.objects.DetectedObject
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.ObjectDetector
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
@@ -26,9 +23,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import local.mylab.smartcameraapp1.data.source.camera.SmartCameraAnalyzer
 import local.mylab.smartcameraapp1.domain.model.CaptureResult
 import local.mylab.smartcameraapp1.domain.model.DetectionResult
 import local.mylab.smartcameraapp1.domain.repository.CameraRepository
+import local.mylab.smartcameraapp1.domain.usecase.AnalyzeLightingUseCase
+import local.mylab.smartcameraapp1.presentation.camera.model.LightingState
 import local.mylab.smartcameraapp1.util.Constants
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -38,7 +38,8 @@ import kotlin.coroutines.resume
 
 @Singleton
 class CameraRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val analyzeLightingUseCase: AnalyzeLightingUseCase
 ) : CameraRepository {
 
     companion object {
@@ -53,21 +54,28 @@ class CameraRepositoryImpl @Inject constructor(
     private val _detectionResults = MutableStateFlow<DetectionResult?>(null)
     override val detectionResults: StateFlow<DetectionResult?> = _detectionResults.asStateFlow()
 
+    // 光影分析結果狀態流 (v2.2.0)
+    private val _lightingResults = MutableStateFlow<LightingState>(LightingState.Normal)
+    val lightingResults: StateFlow<LightingState> = _lightingResults.asStateFlow()
+
     // 分析是否已啟動
     private var isAnalysisStarted = false
+
+    // Custom analyzer instance (v2.2.0)
+    private var smartAnalyzer: SmartCameraAnalyzer? = null
 
     // ML Kit 偵測器（延遲初始化）
     private val faceDetector: FaceDetector by lazy {
         val options = FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
             .setMinFaceSize(MIN_FACE_SIZE)
             .enableTracking()
             .build()
 
         FaceDetection.getClient(options).also {
-            Log.i(TAG, "Face detector initialized")
+            Log.i(TAG, "Face detector initialized with LANDMARK_MODE_ALL for v2.3.0 eye position analysis")
         }
     }
 
@@ -218,6 +226,58 @@ class CameraRepositoryImpl @Inject constructor(
         return _cameraController.imageCaptureFlashMode
     }
 
+    /**
+     * 啟用 HDR 模式（透過曝光補償）
+     *
+     * v2.3.0: 逆光場景自動 HDR
+     *
+     * 注意：CameraX 沒有直接 HDR 控制，使用曝光補償作為替代
+     */
+    override fun enableHDRMode() {
+        try {
+            val cameraControl = _cameraController.cameraControl
+            if (cameraControl != null) {
+                // 設定曝光補償 +1 stop
+                cameraControl.setExposureCompensationIndex(1)
+                Log.i(TAG, "HDR mode enabled (exposure compensation +1)")
+            } else {
+                Log.w(TAG, "Cannot enable HDR: CameraControl not available")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to enable HDR mode", e)
+        }
+    }
+
+    /**
+     * 停用 HDR 模式（重設曝光補償）
+     *
+     * v2.3.0: 逆光場景自動 HDR
+     */
+    override fun disableHDRMode() {
+        try {
+            val cameraControl = _cameraController.cameraControl
+            if (cameraControl != null) {
+                // 重設曝光補償為 0
+                cameraControl.setExposureCompensationIndex(0)
+                Log.i(TAG, "HDR mode disabled (exposure compensation 0)")
+            } else {
+                Log.w(TAG, "Cannot disable HDR: CameraControl not available")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to disable HDR mode", e)
+        }
+    }
+
+    /**
+     * 檢查是否應啟用自動 HDR
+     */
+    override fun shouldEnableAutoHDR(lightingState: LightingState): Boolean {
+        return when (lightingState) {
+            is LightingState.HighContrast -> lightingState.analysis.shouldUseHDR
+            else -> false
+        }
+    }
+
     override fun startImageAnalysis() {
         if (isAnalysisStarted) {
             Log.d(TAG, "Image analysis already started")
@@ -225,48 +285,30 @@ class CameraRepositoryImpl @Inject constructor(
         }
 
         try {
-            // 使用官方 MlKitAnalyzer 並配置為 VIEW_REFERENCED 座標系統
-            // 這樣 ML Kit 會自動將座標轉換到 PreviewView 空間，無需手動轉換
-            val mlKitAnalyzer = MlKitAnalyzer(
-                listOf(faceDetector, objectDetector),
-                COORDINATE_SYSTEM_VIEW_REFERENCED,
-                ContextCompat.getMainExecutor(context)
-            ) { result: MlKitAnalyzer.Result ->
-                // 從結果中提取人臉與物件
-                val faces = result.getValue(faceDetector) ?: emptyList()
-                val objects = result.getValue(objectDetector) ?: emptyList()
+            // v2.2.0: Use custom SmartCameraAnalyzer for integrated ML Kit + Lighting analysis
+            smartAnalyzer = SmartCameraAnalyzer(
+                faceDetector = faceDetector,
+                objectDetector = objectDetector,
+                analyzeLightingUseCase = analyzeLightingUseCase,
+                onDetectionResult = { detectionResult ->
+                    // Update detection state on main thread
+                    _detectionResults.value = detectionResult
+                },
+                onLightingResult = { lightingState ->
+                    // Update lighting state on main thread
+                    _lightingResults.value = lightingState
+                },
+                minObjectConfidence = MIN_OBJECT_CONFIDENCE
+            )
 
-                // 過濾低信心度物件
-                val filteredObjects = objects.filter { obj ->
-                    val confidence = obj.labels.firstOrNull()?.confidence ?: 0f
-                    confidence >= MIN_OBJECT_CONFIDENCE
-                }
-
-                // 更新偵測結果
-                // 注意：座標已經在 View 空間，無需儲存影像尺寸或旋轉資訊
-                _detectionResults.value = DetectionResult(
-                    faces = faces,
-                    objects = filteredObjects,
-                    imageWidth = 0,  // 不再需要
-                    imageHeight = 0,  // 不再需要
-                    rotationDegrees = 0,  // 不再需要
-                    timestamp = System.currentTimeMillis()
-                )
-
-                Log.d(
-                    TAG,
-                    "Detection updated: ${faces.size} faces, ${filteredObjects.size} objects (${objects.size - filteredObjects.size} filtered)"
-                )
-            }
-
-            // 將 MlKitAnalyzer 附加到相機控制器
+            // Attach analyzer to camera controller
             _cameraController.setImageAnalysisAnalyzer(
                 ContextCompat.getMainExecutor(context),
-                mlKitAnalyzer
+                smartAnalyzer!!
             )
 
             isAnalysisStarted = true
-            Log.i(TAG, "Image analysis started with MlKitAnalyzer (VIEW_REFERENCED coordinates)")
+            Log.i(TAG, "Image analysis started with SmartCameraAnalyzer (ML Kit + Lighting)")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start image analysis", e)
         }
@@ -279,13 +321,19 @@ class CameraRepositoryImpl @Inject constructor(
         }
 
         try {
+            // Cleanup analyzer resources (v2.2.0)
+            smartAnalyzer?.cleanup()
+            smartAnalyzer = null
+
             // 清除分析器
             _cameraController.clearImageAnalysisAnalyzer()
             _detectionResults.value = null
+            _lightingResults.value = LightingState.Normal
             isAnalysisStarted = false
             Log.i(TAG, "Image analysis stopped")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to stop image analysis", e)
         }
     }
+
 }

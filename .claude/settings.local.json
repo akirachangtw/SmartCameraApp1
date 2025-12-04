@@ -15,7 +15,15 @@
       "Bash(Select-String -Pattern \"(BUILD|FAILED|tests completed|error|warning)\")",
       "Bash(Select-Object -First 20)",
       "Bash(git tag:*)",
-      "Bash(.gradlew.bat assembleDebug)"
+      "Bash(.gradlew.bat assembleDebug)",
+      "Bash(dir:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(where:*)",
+      "Bash(./gradlew.bat assembleDebug:*)",
+      "Bash(./gradlew.bat test:*)",
+      "Bash(Select-String -Pattern \"(BUILD|tests completed|FAILED)\")",
+      "Bash(Select-Object -First 10)"
     ],
     "deny": [],
     "ask": []

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -20,13 +21,16 @@ import local.mylab.smartcameraapp1.domain.model.CaptureResult
 import local.mylab.smartcameraapp1.domain.model.DetectionResult
 import local.mylab.smartcameraapp1.domain.repository.CameraRepository
 import local.mylab.smartcameraapp1.domain.usecase.AnalyzeCompositionUseCase
+import local.mylab.smartcameraapp1.domain.usecase.AnalyzeLightingUseCase
 import local.mylab.smartcameraapp1.presentation.camera.model.CompositionState
+import local.mylab.smartcameraapp1.presentation.camera.model.LightingState
 import javax.inject.Inject
 
 @HiltViewModel
 class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
     private val analyzeCompositionUseCase: AnalyzeCompositionUseCase,
+    private val analyzeLightingUseCase: AnalyzeLightingUseCase,
     private val sensorManager: DeviceSensorManager,
     private val overlayPreferences: OverlayPreferences
 ) : ViewModel() {
@@ -42,6 +46,14 @@ class CameraViewModel @Inject constructor(
     private val _compositionState = MutableStateFlow<CompositionState>(CompositionState.NoSubject)
     val compositionState: StateFlow<CompositionState> = _compositionState.asStateFlow()
 
+    // Lighting analysis state (v2.2.0)
+    private val _lightingState = MutableStateFlow<LightingState>(LightingState.Normal)
+    val lightingState: StateFlow<LightingState> = _lightingState.asStateFlow()
+
+    // Auto HDR state (v2.3.0)
+    private val _isAutoHDRActive = MutableStateFlow(false)
+    val isAutoHDRActive: StateFlow<Boolean> = _isAutoHDRActive.asStateFlow()
+
     // Device orientation state (v2.1.0)
     private val _orientationState = MutableStateFlow<OrientationData?>(null)
     val orientationState: StateFlow<OrientationData?> = _orientationState.asStateFlow()
@@ -52,14 +64,24 @@ class CameraViewModel @Inject constructor(
     val isDetectionOverlayEnabled: Flow<Boolean> = overlayPreferences.isDetectionOverlayEnabled
     val isLevelIndicatorEnabled: Flow<Boolean> = overlayPreferences.isLevelIndicatorEnabled
     val isDirectionalIndicatorEnabled: Flow<Boolean> = overlayPreferences.isDirectionalIndicatorEnabled
+    val isAutoHDREnabled: Flow<Boolean> = overlayPreferences.isAutoHDREnabled  // v2.3.0
 
     // Preview dimensions (v2.0 Phase 2)
     private var previewWidth: Int? = null
     private var previewHeight: Int? = null
 
+    // Detection stabilization (v2.2.1) - prevent flickering
+    private var consecutiveFaceDetections = 0
+    private var consecutiveNoFaceDetections = 0
+    private val MIN_DETECTIONS_TO_SHOW = 3  // Need 3 consecutive detections to show
+    private val MIN_NO_DETECTIONS_TO_HIDE = 5  // Need 5 consecutive empty frames to hide
+
     init {
         // 訂閱偵測結果
         observeDetectionResults()
+
+        // 訂閱光影分析結果 (v2.2.0)
+        observeLightingResults()
 
         // 訂閱感測器方向資料 (v2.1.0)
         observeOrientation()
@@ -67,6 +89,58 @@ class CameraViewModel @Inject constructor(
         // ML 偵測需手動啟動（透過 CameraUiEvent.StartAnalysis）
         // 或根據需求自動啟動
         startAnalysis()
+    }
+
+    /**
+     * Observes lighting analysis results from repository (v2.2.0)
+     *
+     * Subscribes to lighting state updates from SmartCameraAnalyzer
+     */
+    private fun observeLightingResults() {
+        // Cast to implementation to access lightingResults property
+        val repositoryImpl = cameraRepository as? local.mylab.smartcameraapp1.data.repository.CameraRepositoryImpl
+
+        repositoryImpl?.lightingResults
+            ?.onEach { lightingState ->
+                _lightingState.value = lightingState
+                Log.d(TAG, "Lighting state updated: ${lightingState.javaClass.simpleName}")
+
+                // v2.3.0: Auto HDR handling
+                handleAutoHDR(repositoryImpl, lightingState)
+            }
+            ?.launchIn(viewModelScope)
+            ?: Log.w(TAG, "Could not observe lighting results - repository is not CameraRepositoryImpl")
+    }
+
+    /**
+     * 處理自動 HDR 模式
+     * v2.3.0: 逆光場景自動 HDR
+     */
+    private fun handleAutoHDR(
+        repository: local.mylab.smartcameraapp1.data.repository.CameraRepositoryImpl,
+        lightingState: LightingState
+    ) {
+        viewModelScope.launch {
+            overlayPreferences.isAutoHDREnabled.first().let { autoHDREnabled ->
+                if (autoHDREnabled) {
+                    val shouldEnable = repository.shouldEnableAutoHDR(lightingState)
+
+                    if (shouldEnable && !_isAutoHDRActive.value) {
+                        repository.enableHDRMode()
+                        _isAutoHDRActive.value = true
+                        Log.i(TAG, "Auto HDR activated")
+                    } else if (!shouldEnable && _isAutoHDRActive.value) {
+                        repository.disableHDRMode()
+                        _isAutoHDRActive.value = false
+                        Log.i(TAG, "Auto HDR deactivated")
+                    }
+                } else if (_isAutoHDRActive.value) {
+                    repository.disableHDRMode()
+                    _isAutoHDRActive.value = false
+                    Log.i(TAG, "Auto HDR disabled via settings")
+                }
+            }
+        }
     }
 
     /**
@@ -199,15 +273,42 @@ class CameraViewModel @Inject constructor(
         cameraRepository.detectionResults
             .onEach { result ->
                 if (result != null) {
-                    _state.update { it.copy(detectionResult = result) }
+                    // v2.2.1: Stabilization logic to prevent flickering overlays
+                    val hasFaces = result.faces.isNotEmpty()
 
-                    // Perform composition analysis (v1.5.0)
-                    analyzeComposition(result)
+                    if (hasFaces) {
+                        consecutiveFaceDetections++
+                        consecutiveNoFaceDetections = 0
 
-                    Log.i(
-                        TAG,
-                        "Detection result updated: ${result.faces.size} faces, ${result.objects.size} objects"
-                    )
+                        // Only update state if we have enough consecutive detections
+                        // or if we already have a stable detection
+                        if (consecutiveFaceDetections >= MIN_DETECTIONS_TO_SHOW ||
+                            _state.value.detectionResult?.faces?.isNotEmpty() == true) {
+                            _state.update { it.copy(detectionResult = result) }
+
+                            // Perform composition analysis (v1.5.0)
+                            analyzeComposition(result)
+
+                            Log.i(
+                                TAG,
+                                "Detection result updated: ${result.faces.size} faces, ${result.objects.size} objects"
+                            )
+                        }
+                    } else {
+                        consecutiveNoFaceDetections++
+                        consecutiveFaceDetections = 0
+
+                        // Only clear if we have enough consecutive empty frames
+                        if (consecutiveNoFaceDetections >= MIN_NO_DETECTIONS_TO_HIDE) {
+                            _state.update { it.copy(detectionResult = result) }
+                            _compositionState.value = CompositionState.NoSubject
+
+                            Log.i(TAG, "Detection cleared: No stable face detected")
+                        }
+                    }
+
+                    // v2.2.0: Lighting analysis is now handled automatically in SmartCameraAnalyzer
+                    // Results are observed via observeLightingResults()
                 }
             }
             .launchIn(viewModelScope)
@@ -232,4 +333,5 @@ class CameraViewModel @Inject constructor(
             previewHeight = previewHeight
         )
     }
+
 }

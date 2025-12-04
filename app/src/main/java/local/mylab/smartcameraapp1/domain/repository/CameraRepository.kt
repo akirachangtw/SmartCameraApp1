@@ -5,6 +5,7 @@ import androidx.camera.view.LifecycleCameraController
 import kotlinx.coroutines.flow.StateFlow
 import local.mylab.smartcameraapp1.domain.model.CaptureResult
 import local.mylab.smartcameraapp1.domain.model.DetectionResult
+import local.mylab.smartcameraapp1.presentation.camera.model.LightingState
 
 interface CameraRepository {
     /**
@@ -51,4 +52,22 @@ interface CameraRepository {
      * 偵測結果的狀態流
      */
     val detectionResults: StateFlow<DetectionResult?>
+
+    /**
+     * 啟用 HDR 模式（透過曝光補償）
+     * v2.3.0: 逆光場景自動 HDR
+     */
+    fun enableHDRMode()
+
+    /**
+     * 停用 HDR 模式（重設曝光補償）
+     * v2.3.0: 逆光場景自動 HDR
+     */
+    fun disableHDRMode()
+
+    /**
+     * 檢查是否應啟用自動 HDR
+     * v2.3.0: 逆光場景自動 HDR
+     */
+    fun shouldEnableAutoHDR(lightingState: LightingState): Boolean
 }

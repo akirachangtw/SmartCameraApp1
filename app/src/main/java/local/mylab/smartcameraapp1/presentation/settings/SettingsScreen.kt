@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Recycling
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -74,6 +75,7 @@ fun SettingsScreen(
     val isDetectionOverlayEnabled by viewModel.isDetectionOverlayEnabled.collectAsState(initial = true)
     val isLevelIndicatorEnabled by viewModel.isLevelIndicatorEnabled.collectAsState(initial = true)
     val isDirectionalIndicatorEnabled by viewModel.isDirectionalIndicatorEnabled.collectAsState(initial = true)
+    val isAutoHDREnabled by viewModel.isAutoHDREnabled.collectAsState(initial = true)
 
     val scope = rememberCoroutineScope()
 
@@ -194,6 +196,21 @@ fun SettingsScreen(
                 onCheckedChange = { enabled ->
                     scope.launch {
                         viewModel.setDirectionalIndicatorEnabled(enabled)
+                    }
+                }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // Auto HDR Toggle (v2.3.0)
+            SettingsSwitchItem(
+                icon = Icons.Default.Star,
+                title = "自動 HDR",
+                description = "逆光場景自動調整曝光補償",
+                checked = isAutoHDREnabled,
+                onCheckedChange = { enabled ->
+                    scope.launch {
+                        viewModel.setAutoHDREnabled(enabled)
                     }
                 }
             )

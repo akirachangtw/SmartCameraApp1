@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>選項 2：目標圓圈 + 引導線</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #1a1a1a;
+            font-family: 'Roboto', sans-serif;
+        }
+        .phone-frame {
+            width: 360px;
+            height: 640px;
+            background: #2a2a2a;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        canvas {
+            display: block;
+        }
+        .title {
+            position: absolute;
+            top: -50px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .description {
+            position: absolute;
+            bottom: -80px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #aaa;
+            font-size: 14px;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="title">選項 2：目標圓圈 + 引導線</div>
+        <canvas id="canvas" width="360" height="640"></canvas>
+        <div class="description">
+            虛線連接主體中心與目標位置<br>
+            更明確的視覺引導方向
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let pulsePhase = 0;
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(0, 0, 360, 640);
+
+            // Draw grid lines (九宮格) - subtle
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+
+            // Vertical lines
+            ctx.beginPath();
+            ctx.moveTo(120, 0);
+            ctx.lineTo(120, 640);
+            ctx.moveTo(240, 0);
+            ctx.lineTo(240, 640);
+            ctx.stroke();
+
+            // Horizontal lines
+            ctx.beginPath();
+            ctx.moveTo(0, 213);
+            ctx.lineTo(360, 213);
+            ctx.moveTo(0, 427);
+            ctx.lineTo(360, 427);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+
+            // Face position
+            const faceX = 300;
+            const faceY = 330;
+
+            // Target position
+            const targetX = 120;
+            const targetY = 213;
+
+            // Draw guideline (dashed line from face to target)
+            ctx.strokeStyle = 'rgba(76, 175, 80, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 10]);
+            ctx.beginPath();
+            ctx.moveTo(faceX, faceY);
+            ctx.lineTo(targetX, targetY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw face detection box
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(260, 280, 80, 100);
+
+            // Face center indicator
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.arc(faceX, faceY, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Target position circle
+            // Outer circle (static)
+            ctx.strokeStyle = 'rgba(76, 175, 80, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(targetX, targetY, 40, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Inner circle (pulsing)
+            const pulseAlpha = 0.4 + 0.6 * Math.abs(Math.sin(pulsePhase));
+            const pulseScale = 1 + 0.3 * Math.abs(Math.sin(pulsePhase));
+            ctx.fillStyle = `rgba(76, 175, 80, ${pulseAlpha})`;
+            ctx.beginPath();
+            ctx.arc(targetX, targetY, 20 * pulseScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Center dot
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.arc(targetX, targetY, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Top UI elements
+            ctx.fillStyle = 'rgba(255, 193, 7, 0.9)';
+            ctx.font = 'bold 16px Roboto';
+            ctx.fillText('需要調整', 20, 30);
+
+            // Level indicator
+            ctx.strokeStyle = 'rgba(255, 167, 38, 0.8)';
+            ctx.lineWidth = 2;
+            const levelY = 40;
+            const rollAngle = -7;
+
+            ctx.save();
+            ctx.translate(320, levelY);
+            ctx.rotate((rollAngle * Math.PI) / 180);
+            ctx.beginPath();
+            ctx.moveTo(-30, 0);
+            ctx.lineTo(30, 0);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = 'rgba(255, 167, 38, 0.8)';
+            ctx.font = '12px Roboto';
+            ctx.fillText(`${rollAngle.toFixed(1)}°`, 295, 55);
+
+            pulsePhase += 0.05;
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

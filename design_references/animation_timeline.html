@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>動畫時間軸展示</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background: #1a1a1a;
+            font-family: 'Roboto', sans-serif;
+            color: white;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .timeline {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .frame {
+            text-align: center;
+        }
+        .frame canvas {
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        .label {
+            margin-top: 15px;
+            font-size: 16px;
+            color: #aaa;
+        }
+        .specs {
+            max-width: 800px;
+            margin: 60px auto;
+            padding: 30px;
+            background: #2a2a2a;
+            border-radius: 10px;
+            line-height: 1.8;
+        }
+        .specs h2 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+        .specs code {
+            background: #1a1a1a;
+            padding: 2px 8px;
+            border-radius: 3px;
+            color: #FFC107;
+        }
+    </style>
+</head>
+<body>
+    <h1>脈衝動畫時間軸（1 秒循環）</h1>
+
+    <div class="timeline">
+        <div class="frame">
+            <canvas id="frame1" width="200" height="200"></canvas>
+            <div class="label">開始 (0.0s)<br>Alpha: 0.4 | Scale: 1.0</div>
+        </div>
+        <div class="frame">
+            <canvas id="frame2" width="200" height="200"></canvas>
+            <div class="label">中間 (0.5s)<br>Alpha: 1.0 | Scale: 1.3</div>
+        </div>
+        <div class="frame">
+            <canvas id="frame3" width="200" height="200"></canvas>
+            <div class="label">結束 (1.0s)<br>Alpha: 0.4 | Scale: 1.0</div>
+        </div>
+    </div>
+
+    <div class="specs">
+        <h2>📋 動畫技術規格</h2>
+
+        <p><strong>循環週期：</strong> <code>1000ms</code> (1秒)</p>
+
+        <p><strong>動畫模式：</strong> <code>RepeatMode.Reverse</code></p>
+
+        <p><strong>緩動函數：</strong> <code>tween(1000)</code> - 線性插值</p>
+
+        <p><strong>內圈脈衝參數：</strong></p>
+        <ul style="list-style: none; padding-left: 0;">
+            <li>• Alpha 範圍: <code>0.4f → 1.0f → 0.4f</code></li>
+            <li>• Scale 範圍: <code>1.0 → 1.3 → 1.0</code></li>
+            <li>• 基礎半徑: <code>20.dp</code></li>
+            <li>• 顏色: <code>#4CAF50</code> (Material Green 500)</li>
+        </ul>
+
+        <p><strong>外圈靜態參數：</strong></p>
+        <ul style="list-style: none; padding-left: 0;">
+            <li>• Alpha: <code>0.6f</code> (固定)</li>
+            <li>• 半徑: <code>40.dp</code> (固定)</li>
+            <li>• 線寬: <code>3.dp</code></li>
+            <li>• 顏色: <code>#4CAF50</code></li>
+        </ul>
+
+        <p><strong>Compose 實作參考：</strong></p>
+        <pre style="background: #1a1a1a; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>val infiniteTransition = rememberInfiniteTransition()
+val pulseAlpha by infiniteTransition.animateFloat(
+    initialValue = 0.4f,
+    targetValue = 1.0f,
+    animationSpec = infiniteRepeatable(
+        animation = tween(1000),
+        repeatMode = RepeatMode.Reverse
+    )
+)
+
+val pulseScale by infiniteTransition.animateFloat(
+    initialValue = 1.0f,
+    targetValue = 1.3f,
+    animationSpec = infiniteRepeatable(
+        animation = tween(1000),
+        repeatMode = RepeatMode.Reverse
+    )
+)</code></pre>
+    </div>
+
+    <script>
+        function drawFrame(canvasId, phase) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const centerX = 100;
+            const centerY = 100;
+
+            // Background
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(0, 0, 200, 200);
+
+            // Calculate animation values
+            const pulseAlpha = 0.4 + 0.6 * Math.abs(Math.sin(phase * Math.PI));
+            const pulseScale = 1.0 + 0.3 * Math.abs(Math.sin(phase * Math.PI));
+
+            // Outer circle (static)
+            ctx.strokeStyle = 'rgba(76, 175, 80, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 40, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Inner circle (pulsing)
+            ctx.fillStyle = `rgba(76, 175, 80, ${pulseAlpha})`;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 20 * pulseScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Center dot
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Grid lines for reference
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(centerX, 0);
+            ctx.lineTo(centerX, 200);
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(200, centerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Draw three frames
+        drawFrame('frame1', 0.0);   // Start
+        drawFrame('frame2', 0.5);   // Middle (peak)
+        drawFrame('frame3', 1.0);   // End
+    </script>
+</body>
+</html>

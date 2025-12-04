@@ -26,9 +26,10 @@ fun CameraPreview(
     AndroidView(
         factory = { context ->
             PreviewView(context).apply {
-                // Set scale type to FIT_CENTER to maintain aspect ratio
-                // This ensures MlKitAnalyzer's VIEW_REFERENCED coordinates work correctly
-                scaleType = PreviewView.ScaleType.FIT_CENTER
+                // v2.2.1: Changed to FILL_CENTER to fill screen without black bars
+                // This prevents overlays from extending beyond preview area
+                // VIEW_REFERENCED coordinates still work correctly with this scale type
+                scaleType = PreviewView.ScaleType.FILL_CENTER
 
                 this.controller = controller
                 controller.bindToLifecycle(lifecycleOwner)

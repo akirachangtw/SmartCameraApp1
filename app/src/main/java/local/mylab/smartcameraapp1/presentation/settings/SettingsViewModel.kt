@@ -55,6 +55,12 @@ class SettingsViewModel @Inject constructor(
     val isDirectionalIndicatorEnabled: Flow<Boolean> = overlayPreferences.isDirectionalIndicatorEnabled
 
     /**
+     * Flow emitting auto HDR state
+     * v2.3.0: Auto HDR for backlit scenes
+     */
+    val isAutoHDREnabled: Flow<Boolean> = overlayPreferences.isAutoHDREnabled
+
+    /**
      * Sets grid overlay visibility
      */
     suspend fun setGridEnabled(enabled: Boolean) {
@@ -87,6 +93,14 @@ class SettingsViewModel @Inject constructor(
      */
     suspend fun setDirectionalIndicatorEnabled(enabled: Boolean) {
         overlayPreferences.setDirectionalIndicatorEnabled(enabled)
+    }
+
+    /**
+     * Sets auto HDR mode
+     * v2.3.0: Auto HDR for backlit scenes
+     */
+    suspend fun setAutoHDREnabled(enabled: Boolean) {
+        overlayPreferences.setAutoHDREnabled(enabled)
     }
 
     /**

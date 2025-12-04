@@ -58,6 +58,7 @@ class OverlayPreferences(private val context: Context) {
         private val KEY_DETECTION_OVERLAY_ENABLED = booleanPreferencesKey("detection_overlay_enabled")
         private val KEY_LEVEL_INDICATOR_ENABLED = booleanPreferencesKey("level_indicator_enabled")
         private val KEY_DIRECTIONAL_INDICATOR_ENABLED = booleanPreferencesKey("directional_indicator_enabled")
+        private val KEY_AUTO_HDR_ENABLED = booleanPreferencesKey("auto_hdr_enabled")  // v2.3.0
 
         // Default values
         private const val DEFAULT_ENABLED = true
@@ -144,6 +145,23 @@ class OverlayPreferences(private val context: Context) {
         }
 
     /**
+     * Flow emitting auto HDR state
+     * Default: true (enabled)
+     * v2.3.0: Auto HDR for backlit scenes
+     */
+    val isAutoHDREnabled: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_AUTO_HDR_ENABLED] ?: DEFAULT_ENABLED
+        }
+
+    /**
      * Sets grid overlay visibility
      *
      * @param enabled true to show grid, false to hide
@@ -195,6 +213,18 @@ class OverlayPreferences(private val context: Context) {
     suspend fun setDirectionalIndicatorEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_DIRECTIONAL_INDICATOR_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Sets auto HDR mode
+     *
+     * @param enabled true to enable auto HDR, false to disable
+     * v2.3.0: Auto HDR for backlit scenes
+     */
+    suspend fun setAutoHDREnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_AUTO_HDR_ENABLED] = enabled
         }
     }
 

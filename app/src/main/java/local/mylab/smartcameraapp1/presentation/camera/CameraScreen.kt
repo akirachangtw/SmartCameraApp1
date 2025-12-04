@@ -63,9 +63,9 @@ import com.google.accompanist.permissions.shouldShowRationale
 import local.mylab.smartcameraapp1.presentation.camera.components.CameraPreview
 import local.mylab.smartcameraapp1.presentation.camera.components.PermissionRequestScreen
 import local.mylab.smartcameraapp1.presentation.camera.components.overlay.CompositionHint
-import local.mylab.smartcameraapp1.presentation.camera.components.overlay.DetectionOverlay
-import local.mylab.smartcameraapp1.presentation.camera.components.overlay.DirectionalIndicator
+// v2.2.2: Removed DetectionOverlay and DirectionalIndicator - visual clutter
 import local.mylab.smartcameraapp1.presentation.camera.components.overlay.GridOverlay
+import local.mylab.smartcameraapp1.presentation.camera.components.overlay.HDRWarningOverlay
 import local.mylab.smartcameraapp1.presentation.camera.components.overlay.LevelIndicator
 
 /**
@@ -86,6 +86,7 @@ fun CameraScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val compositionState by viewModel.compositionState.collectAsState() // v1.5.0
+    val lightingState by viewModel.lightingState.collectAsState() // v2.2.0
     val orientationState by viewModel.orientationState.collectAsState() // v2.1.0
 
     // Overlay visibility preferences (v2.1.0)
@@ -133,23 +134,20 @@ fun CameraScreen(
                     }
                 )
 
-                // ML Kit 偵測邊界框覆蓋層
-                // v1.4.0: 座標已經在 View 空間，無需傳遞尺寸資訊
-                // v2.1.0: Respect overlay preferences
-                if (isDetectionOverlayEnabled) {
-                    state.detectionResult?.let { result ->
-                        DetectionOverlay(
-                            detectionResult = result,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                }
+                // v2.2.2: DetectionOverlay removed - visual clutter, not professional
+                // User feedback: Green face boxes and blue object labels are distracting
 
                 // v1.5.0: Rule of Thirds grid overlay
                 // v2.1.0: Respect overlay preferences
                 GridOverlay(
                     modifier = Modifier.fillMaxSize(),
                     visible = isGridEnabled
+                )
+
+                // v2.2.0: HDR/Lighting warning overlay (highest priority - shows on top)
+                HDRWarningOverlay(
+                    lightingState = lightingState,
+                    modifier = Modifier.fillMaxSize()
                 )
 
                 // v1.5.0: Composition hint overlay
@@ -159,29 +157,13 @@ fun CameraScreen(
                         compositionState = compositionState,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = 56.dp) // Below flash button
+                            .padding(top = 56.dp) // Below HDR warning
                     )
                 }
 
-                // v2.0 Phase 4: Directional indicator arrows
-                // v2.1.0: Respect overlay preferences
-                // v2.1.1: Pass subject center coordinates for guideline rendering
-                if (isDirectionalIndicatorEnabled) {
-                    state.detectionResult?.let { result ->
-                        if (result.faces.isNotEmpty()) {
-                            val primaryFace = result.faces.firstOrNull()
-                            primaryFace?.let { face ->
-                                val boundingBox = face.boundingBox
-                                DirectionalIndicator(
-                                    compositionState = compositionState,
-                                    subjectCenterX = boundingBox.centerX().toFloat(),
-                                    subjectCenterY = boundingBox.centerY().toFloat(),
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                        }
-                    }
-                }
+                // v2.2.2: DirectionalIndicator removed - arrows point to wrong locations
+                // User feedback: Cannot find correct composition points by following arrows
+                // Solution: Text-based CompositionHint is clearer and more accurate
 
                 // v2.1.0: Level indicator overlay
                 if (isLevelIndicatorEnabled) {
