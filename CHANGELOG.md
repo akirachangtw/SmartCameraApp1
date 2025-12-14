@@ -5,6 +5,100 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2025-12-14
+
+### 🔄 重大變更 - Package Name 專業化重構
+
+#### Package Name 完整更新
+**舊名稱**: `local.mylab.smartcameraapp1`
+**新名稱**: `com.akirachang.ai.photographer` ⭐
+
+#### 變更理由
+- ✅ 使用專業的反向域名格式（Reverse Domain Name Notation）
+- ✅ 採用個人品牌名稱（Akira Chang）
+- ✅ 符合 Android 命名規範與最佳實踐
+- ✅ 準備公開發布到 Google Play Store
+- ✅ 提升應用專業度和品牌識別度
+- ✅ 支援未來個人品牌應用系列擴展
+
+#### 影響範圍
+**程式碼變更**：
+- 修改 49 個源代碼和測試文件的 package 聲明
+- 更新 `build.gradle.kts` 的 namespace 和 applicationId
+- 更新 `AndroidManifest.xml`（自動繼承 namespace）
+- 修正測試文件中的硬編碼 package 名稱
+- 重構完整目錄結構：`app/src/main/java/local/mylab/smartcameraapp1/` → `app/src/main/java/com/akirachang/ai/photographer/`
+
+**配置變更**：
+```kotlin
+// build.gradle.kts
+namespace = "com.akirachang.ai.photographer"
+applicationId = "com.akirachang.ai.photographer"
+
+// Product Flavors
+// Emulator: com.akirachang.ai.photographer.emulator
+// Device: com.akirachang.ai.photographer
+```
+
+**統計數據**：
+- 主源代碼：46 個文件
+- 單元測試：2 個文件
+- 儀器測試：1 個文件
+- 配置文件：2 個文件
+- 總計：51 個文件重構
+
+#### ⚠️ 重要注意事項（Breaking Changes）
+
+**不相容更新**：
+- 此版本與舊版本的 applicationId 不同
+- Android 系統將其視為全新應用
+- **用戶必須卸載舊版本（`local.mylab.smartcameraapp1`）才能安裝新版本**
+- 所有應用數據（SharedPreferences、內部存儲）將無法自動遷移
+
+**開發與測試**：
+- 開發時需要卸載舊版本 App
+- 清理模擬器/實機上的舊 App Data
+- 測試時確保使用新的 package name
+
+**版本識別**：
+```
+舊版本：local.mylab.smartcameraapp1 (v2.4.0)
+新版本：com.akirachang.ai.photographer (v2.5.0)
+```
+
+#### 測試狀態
+- ✅ **建置成功**: 36s, APK 大小 92.66 MB
+- ✅ **編譯通過**: Kotlin 編譯無錯誤
+- ✅ **Hilt DI**: 依賴注入配置正常
+- ✅ **Product Flavors**: Emulator 與 Device 版本正常
+- ⏳ **單元測試**: 待執行驗證
+- ⏳ **儀器測試**: 待執行驗證
+
+#### 技術細節
+
+**命名結構分析**：
+```
+com                    - 商業域名（Commercial）
+└── akirachang         - 個人品牌識別（Akira Chang）
+    └── ai             - 應用技術分類（Artificial Intelligence）
+        └── photographer - 應用功能（攝影師）
+```
+
+**優勢**：
+- 語義清晰：明確表達「Akira Chang 的 AI 攝影師應用」
+- 簡潔易記：32 字符，3 層結構
+- SEO 友好：包含關鍵字 "ai" 和 "photographer"
+- 國際化：個人姓名作為識別碼，國際通用
+- 可擴展：未來可開發 `com.akirachang.ai.videoeditor` 等系列應用
+
+**符合規範**：
+- ✅ Android Package Naming Convention
+- ✅ Google Play Store Guidelines
+- ✅ Semantic Versioning (v2.5.0 - Minor version bump)
+- ✅ Keep a Changelog Format
+
+---
+
 ## [2.4.0] - 2025-12-14
 
 ### ✨ 新功能 - 模擬器優先開發環境與視覺測試系統

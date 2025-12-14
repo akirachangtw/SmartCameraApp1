@@ -50,7 +50,9 @@
       "Bash(Test-Path \"d:\\MyDocuments\\DevSources\\AndroidStudioProjects\\SmartCameraApp1\\others\\v2.4.6-Testing\\screenshots\")",
       "Bash(./gradlew.bat:*)",
       "Bash(Select-String -Pattern \"emulator|device\" -Context 0,1)",
-      "Bash(Select-String \".apk\")"
+      "Bash(Select-String \".apk\")",
+      "Bash(ls:*)",
+      "Bash(aapt dump:*)"
     ],
     "deny": [],
     "ask": []

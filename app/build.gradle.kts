@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "local.mylab.smartcameraapp1"
+    namespace = "com.akirachang.ai.photographer"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "local.mylab.smartcameraapp1"
+        applicationId = "com.akirachang.ai.photographer"
         minSdk = 24
         targetSdk = 36
         versionCode = 34
