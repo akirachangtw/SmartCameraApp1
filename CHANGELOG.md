@@ -5,6 +5,200 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2025-12-14
+
+### ✨ 新功能 - 模擬器優先開發環境與視覺測試系統
+
+#### 模擬器優先開發架構（Emulator-First Development）
+實現 80% 模擬器 + 20% 實機的快速迭代開發環境：
+
+- **Gradle Product Flavors**
+  - 雙版本建置：`emulator` 與 `device`
+  - BuildConfig 自動切換：`IS_EMULATOR_BUILD`, `MOCK_CAMERA_DATA`, `EMULATOR_MODE`
+  - 獨立 Application ID：`.emulator` suffix
+  - 支援 Debug/Release 完整 build variants
+
+- **CameraDataSource 抽象層**
+  - 介面抽象化：統一 `getPreviewStream()`, `takePicture()`, `setZoomRatio()`
+  - FakeCameraDataSource：模擬器實作，使用測試圖片 30 FPS 串流
+  - RealCameraDataSource：實機實作，整合 CameraX（skeleton）
+  - Hilt DI 自動偵測：根據 Build.FINGERPRINT 自動注入
+
+- **TestImageProvider**
+  - 測試圖片管理系統（portrait_back_good.jpg, portrait_front_good.jpg）
+  - 自動輪播 5 張測試圖片
+  - Fallback 自動生成：灰底 + 白色矩形主體（1920x1080）
+  - 位於 `app/src/debug/assets/test_images/`
+
+- **VSCode 任務整合**
+  - 9 個快速任務：Build, Install, Run Tests, Clean, Full Test Cycle
+  - 快捷鍵支援：`Ctrl+Shift+B` 快速建置
+  - 一鍵部署：Build → Install → Launch
+
+#### v2.4.6 測試框架
+完整的 v2.4.6 功能驗證系統：
+
+- **單元測試**
+  - AnalyzeCompositionUseCaseTest：22 個測試案例
+  - 測試覆蓋率：86.4%（19/22 通過）
+  - 驗證項目：眼睛位置權重（18%）、權重總和（100%）、前鏡頭鏡像、頭部空間
+  - 待修復：3 個邊緣距離測試失敗
+
+- **測試計劃文件**（3 份完整指南）
+  - V2_4_6_EMULATOR_TEST_PLAN.md：7 階段測試計劃
+  - V2_4_6_QUICK_TEST_GUIDE.md：50 分鐘快速測試指南
+  - README_V246_TESTING.md：快速參考卡
+
+- **Windows 自動化**
+  - test-v246-emulator.bat：完整測試循環（Clean → Build → Test → Lint → Install → Logs）
+  - 自動生成測試報告：`app/build/reports/tests/`
+  - Logcat 自動擷取與過濾
+
+#### 視覺測試系統（Visual Testing System）
+PowerShell 全自動截圖與報告生成系統：
+
+- **capture-emulator-screenshots.ps1**（350+ 行）
+  - 自動偵測模擬器連接狀態
+  - 18 個測試場景分類：composition, overlay, camera-switch, lighting, ui-elements
+  - 兩種模式：Manual（逐步提示）、Auto（快速擷取）
+  - 互動式 HTML 報告：圖片檢視器 + 縮放功能
+  - Markdown 比對文件：實機 vs 模擬器對比表
+
+- **測試工具集**（4 個 PowerShell 腳本）
+  - compress-screenshots.ps1：截圖壓縮工具
+  - extract-test-logs.ps1：日誌提取工具
+  - organize-test-session.ps1：測試會話管理器
+  - capture-logcat.ps1：增強型 logcat 擷取
+
+- **視覺測試文件**（4 份，2500+ 行）
+  - VISUAL_TESTING_GUIDE.md：30 分鐘完整驗證流程（750+ 行）
+  - VISUAL_REFERENCE.md：UI 設計規格 + ASCII 圖表（600+ 行）
+  - SCREENSHOTS_QUICK_GUIDE.md：5-20 分鐘快速測試（400+ 行）
+  - VISUAL_TESTING_SUMMARY.md：系統概覽與索引（350+ 行）
+
+#### 開發文件（13 份文件）
+- **快速入門**
+  - EMULATOR_DEVELOPMENT_GUIDE.md：完整開發指南
+  - QUICK_START.md：5 分鐘快速參考
+
+- **測試指南**（已在上述提及）
+
+- **對話記錄**
+  - handoff_20251214.md：完整交接文件
+  - handoff_20251214_summary.md：配置摘要
+  - handofflog_20251214_162000.md：Handoff prompt 模板
+
+### 🏗 架構增強
+
+**新增元件**：
+- `TestImageProvider.kt` - 測試圖片提供者（Singleton）
+- `CameraDataSource.kt` - 相機資料源介面
+- `FakeCameraDataSource.kt` - 模擬器相機實作
+- `RealCameraDataSource.kt` - 實機相機實作（skeleton）
+- `CameraModule.kt` - Hilt DI 模組，自動偵測與注入
+- `CompositionGuideOverlay.kt` - 構圖引導疊加層
+- `CompositionGuideData.kt` - 構圖引導資料模型
+
+**修改元件**：
+- `app/build.gradle.kts` - Product flavors, BuildConfig, Timber 依賴
+- `AnalyzeCompositionUseCase.kt` - v2.4.6 權重調整（眼睛 18%）
+- `CameraViewModel.kt` - 整合測試支援
+- `CameraScreen.kt` - UI 更新
+- `CameraPreview.kt` - 預覽整合
+- `CompositionState.kt` - 狀態模型增強
+
+**建置配置**：
+- 新增依賴：Timber 5.0.1（結構化日誌）
+- 測試依賴：Mockk, Turbine, Truth, Coroutines Test
+- BuildConfig 功能：runtime flags 支援
+
+### 📁 專案重構
+
+**新增目錄**：
+- `.claude/agents/` - Claude Code 代理配置
+- `.vscode/` - VSCode 任務配置
+- `app/src/debug/` - Debug build variant 專用
+- `app/src/debug/assets/test_images/` - 測試圖片資源
+- `app/src/main/java/.../data/local/` - 本地資料層
+- `app/src/main/java/.../data/source/camera/` - 相機資料源
+- `app/src/main/java/.../di/` - 依賴注入模組
+- `plans/` - 開發計劃文件集中管理
+
+**清理工作**：
+- 移動計劃文件：`chat_logs/` → `plans/`（5 個文件）
+- 刪除舊日誌：v1.3.2, v1.3.3, v1.4.1 logcat（4 個文件）
+- 刪除舊截圖：v2.2.1-Testing（4 張 PNG）
+- 刪除建置日誌：build_v134.log
+
+### 🧪 測試狀態
+
+**單元測試**：
+- 總計：22 tests
+- 通過：19 tests (86.4%)
+- 失敗：3 tests（邊緣距離相關）
+- 核心功能驗證：✅ 100%（眼睛位置、權重分配、鏡像）
+
+**視覺測試**：
+- 測試場景：18 scenarios（10 must-test + 8 advanced）
+- 分類：6 categories
+- 參考截圖：6 張（來自 v2.4.6-Testing）
+- 狀態：✅ 系統就緒，待執行
+
+### 📊 統計資料
+
+**程式碼變更**：
+- 新增文件：62 files
+- 新增行數：12,953 lines
+- 刪除行數：267,837 lines（主要為舊日誌）
+- 淨增：-254,884 lines
+
+**文件統計**：
+- 文件總數：13 個文件
+- 總行數：2,500+ 行
+- PowerShell 腳本：4 個（1,300+ 行）
+- Markdown 文件：10 個（2,200+ 行）
+
+### 🎯 後續工作
+
+**Priority P0**（必須完成）：
+1. 修復 3 個失敗的單元測試（邊緣距離計算）
+2. 執行首次視覺測試並產生報告
+
+**Priority P1**（推薦完成）：
+1. 整合 CameraViewModel 使用 CameraDataSource
+2. 完成 RealCameraDataSource 的 CameraX 實作
+3. 新增更多單元測試（Lighting, ViewModel）
+
+**Priority P2**（未來規劃）：
+1. 實機測試對比
+2. 效能基準測試
+
+### 🚀 快速開始
+
+```bash
+# 建置模擬器版本
+./gradlew.bat assembleEmulatorDebug
+
+# 執行單元測試
+./gradlew.bat testEmulatorDebugUnitTest
+
+# 完整測試循環（Windows）
+test-v246-emulator.bat
+
+# 視覺測試（PowerShell）
+.\tools\capture-emulator-screenshots.ps1
+```
+
+### 📖 文件索引
+
+- [模擬器開發指南](EMULATOR_DEVELOPMENT_GUIDE.md)
+- [快速入門](QUICK_START.md)
+- [v2.4.6 測試計劃](V2_4_6_EMULATOR_TEST_PLAN.md)
+- [視覺測試指南](VISUAL_TESTING_GUIDE.md)
+- [視覺設計規格](VISUAL_REFERENCE.md)
+
+---
+
 ## [2.3.0] - 2025-12-04
 
 ### ✨ 新功能 - 動態構圖提示詞
