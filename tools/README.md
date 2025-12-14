@@ -16,6 +16,8 @@ PowerShell automation scripts for SmartCameraApp1 development, testing, and debu
 
 ## 🚀 Scripts Overview
 
+### Core Deployment Tools
+
 ### 1. `install-apk.ps1`
 Installs SmartCameraApp1 APK to connected device.
 
@@ -93,6 +95,261 @@ cd tools
    ↓
 5. Press Ctrl+C to save and exit
 ```
+
+---
+
+### Test Data Optimization Tools (⭐ NEW - v1.1.0)
+
+These tools help optimize test data for Claude Code analysis, solving the **413 Request Too Large** error.
+
+#### Problem
+When analyzing test data with Claude Code, referencing `@others\v2.4.6-Testing\` with multiple PNG screenshots (~15 MB total) causes a 413 error due to Claude API request size limits (5-10 MB).
+
+#### Solution
+Three automated tools compress and organize test data:
+- **compress-screenshots.ps1** - Compress PNG → JPEG (reduce 85-90% size)
+- **extract-test-logs.ps1** - Extract log summaries (reduce 90% size)
+- **organize-test-session.ps1** - One-click test data organization
+
+---
+
+### 4. `compress-screenshots.ps1` ⭐ NEW
+Batch compress test screenshots to reduce file size.
+
+**Usage**:
+```powershell
+cd tools
+.\compress-screenshots.ps1 -InputDir "..\others\v2.4.6-Testing"
+```
+
+**What it does**:
+1. ✅ PNG → JPEG conversion (quality 85%)
+2. ✅ Auto-resize images (max width 1920px, maintains aspect ratio)
+3. ✅ Backup originals to `originals/` subdirectory
+4. ✅ Display compression statistics
+
+**Parameters**:
+- `-Quality` (default: 85) - JPEG quality (1-100)
+- `-MaxWidth` (default: 1920) - Maximum width in pixels
+- `-SkipBackup` - Don't keep original files (use with caution!)
+
+**Examples**:
+```powershell
+# High quality compression (90%)
+.\compress-screenshots.ps1 -Quality 90
+
+# Aggressive compression (quality 75, resize to 1280px)
+.\compress-screenshots.ps1 -Quality 75 -MaxWidth 1280
+```
+
+**Output**:
+```
+[✓] Compressed: 前鏡頭_20251213-170234.png
+    Original: 2.3 MB → Compressed: 320 KB (86.1% reduction)
+    Dimensions: 1080x2405 (unchanged)
+[✓] Backed up originals to: originals/
+```
+
+---
+
+### 5. `extract-test-logs.ps1` ⭐ NEW
+Extract key information from logcat files to generate summaries.
+
+**Usage**:
+```powershell
+cd tools
+.\extract-test-logs.ps1 -LogFile "..\others\v2.4.6-Testing\v2.4.6_logcat_20251213_170123.txt"
+```
+
+**What it does**:
+1. ✅ Filter ERROR/FATAL/Exception messages
+2. ✅ Keep 4 core tag logs
+3. ✅ Extract composition analysis events
+4. ✅ Generate statistics (face detection count, errors, time range)
+5. ✅ Output concise summary file (target <50 KB)
+
+**Filtering Rules**:
+**Keeps**:
+- ERROR, FATAL, Exception messages
+- `Detected X faces` - Face detection events
+- `Final message:` - Composition suggestions
+- `HDR mode` - HDR state changes
+- `GuideData:` - Guide data
+- `Eye position` - Eye position analysis
+- `Composition score` - Composition scores
+
+**Removes**:
+- Repeated DEBUG messages
+- Preview size updates (too frequent)
+- System framework logs
+
+**Examples**:
+```powershell
+# Generate summary in same directory
+.\extract-test-logs.ps1 -LogFile "v2.4.6_logcat_20251213_170123.txt"
+
+# Output to specific directory
+.\extract-test-logs.ps1 -LogFile "v2.4.6_logcat_20251213_170123.txt" `
+                        -OutputDir "others\v2.4.6-Testing\logs"
+```
+
+**Output**:
+```
+========================================
+SmartCameraApp1 Test Log Summary
+========================================
+Source: v2.4.6_logcat_20251213_170123.txt
+Generated: 2025-12-13 18:30:15
+
+--- SESSION STATISTICS ---
+Total log lines: 3733
+Filtered lines: 287
+Reduction: 92.3%
+Face detections: 156
+Errors: 0
+Time range: 12-13 17:00:10 - 12-13 17:03:45
+
+[✓] Log summary saved: summary_v2.4.6_logcat_20251213_170123.txt
+    Original: 486 KB → Summary: 42 KB (91.4% reduction)
+```
+
+---
+
+### 6. `organize-test-session.ps1` (⭐ Recommended) ⭐ NEW
+One-click organization of all test session data.
+
+**Usage**:
+```powershell
+cd tools
+.\organize-test-session.ps1 -SourceDir "..\others\v2.4.6-Testing"
+```
+
+**What it does**:
+1. ✅ Create standardized directory structure (`optimized/` and `originals/`)
+2. ✅ Move original files to `originals/` subdirectory
+3. ✅ Auto-compress screenshots to JPEG (calls compress-screenshots.ps1)
+4. ✅ Auto-generate log summaries (calls extract-test-logs.ps1)
+5. ✅ Output optimized files to `optimized/` for Claude Code analysis
+
+**Directory Structure**:
+```
+others/v2.4.6-Testing/
+├── optimized/                                  (optimized files for analysis)
+│   ├── 前鏡頭_20251213-170234.jpg             (JPEG screenshots)
+│   ├── 前鏡頭_20251213-170257.jpg
+│   ├── 後鏡頭Screenshot_20251213-170034.jpg
+│   ├── summary_v2.4.6_logcat_20251213_170010.txt  (log summaries)
+│   └── summary_v2.4.6_logcat_20251213_170123.txt
+└── originals/                                  (original backup files)
+    ├── 前鏡頭_20251213-170234.png             (PNG screenshots)
+    ├── 前鏡頭_20251213-170257.png
+    ├── 後鏡頭Screenshot_20251213-170034.png
+    ├── v2.4.6_logcat_20251213_170010.txt      (full logcat)
+    └── v2.4.6_logcat_20251213_170123.txt
+```
+
+**Parameters**:
+- `-Version` (default: auto-extract from build.gradle.kts) - App version
+- `-SkipCompression` - Skip screenshot compression
+- `-SkipLogExtraction` - Skip log summary generation
+
+**Examples**:
+```powershell
+# Full organization (recommended)
+.\organize-test-session.ps1 -SourceDir "others\v2.4.6-Testing"
+
+# Only organize structure, don't optimize
+.\organize-test-session.ps1 -SkipCompression -SkipLogExtraction
+```
+
+---
+
+### 📋 Complete Testing Workflow (Updated)
+
+#### Method 1: Traditional Workflow (Manual Optimization)
+```powershell
+# Step 1: Deploy + capture logs
+cd tools
+.\deploy-and-log.ps1
+
+# Step 2: Test the app
+# (Use app on device, it will auto-screenshot)
+
+# Step 3: Ctrl+C to stop log capture
+
+# Step 4: Copy screenshots from device
+# Device path: Pictures/SmartCamera/*.png
+
+# Step 5: Organize test data
+.\organize-test-session.ps1 -SourceDir "..\others\v2.4.6-Testing"
+
+# Step 6: Analyze with Claude Code
+# Reference: @others/v2.4.6-Testing/optimized/
+```
+
+#### Method 2: Quick Workflow (Recommended)
+```powershell
+# One-click deploy + test + optimize
+cd tools
+
+# 1. Deploy and test
+.\deploy-and-log.ps1
+# (Test complete, press Ctrl+C)
+
+# 2. Manually copy screenshots to test directory
+
+# 3. One-click optimize
+.\organize-test-session.ps1
+```
+
+---
+
+### 💾 File Size Comparison
+
+#### Before Optimization (Cannot Analyze)
+```
+others/v2.4.6-Testing/
+├── 前鏡頭_20251213-170234.png     2.2 MB
+├── 前鏡頭_20251213-170257.png     2.3 MB
+├── 前鏡頭_20251213-170308.png     2.1 MB
+├── 後鏡頭_20251213-170034.png     2.4 MB
+├── 後鏡頭_20251213-170145.png     2.3 MB
+├── 後鏡頭_20251213-170206.png     2.6 MB
+├── v2.4.6_logcat_*.txt (1)        52 KB
+└── v2.4.6_logcat_*.txt (2)       486 KB
+----------------------------------------
+Total:                            ~15 MB  ❌ Exceeds Claude API limit
+```
+
+#### After Optimization (Ready for Analysis)
+```
+others/v2.4.6-Testing/
+├── optimized/
+│   ├── 前鏡頭_20251213-170234.jpg   280 KB
+│   ├── 前鏡頭_20251213-170257.jpg   320 KB
+│   ├── 前鏡頭_20251213-170308.jpg   270 KB
+│   ├── 後鏡頭_20251213-170034.jpg   350 KB
+│   ├── 後鏡頭_20251213-170145.jpg   310 KB
+│   ├── 後鏡頭_20251213-170206.jpg   380 KB
+│   ├── summary_*.txt (1)             5 KB
+│   └── summary_*.txt (2)            38 KB
+└── originals/
+    └── [original files backed up]
+----------------------------------------
+Total (optimized/):                 ~2.0 MB  ✅ Fits Claude API requirement
+Reduction:                               87%
+```
+
+---
+
+### 🎓 Tool Selection Guide
+
+| Need | Use Tool |
+|------|----------|
+| Only compress screenshots | `compress-screenshots.ps1` |
+| Only generate log summaries | `extract-test-logs.ps1` |
+| Full test data organization | `organize-test-session.ps1` ⭐ |
+| One-click deploy + test | `deploy-and-log.ps1` |
 
 ---
 
@@ -254,6 +511,13 @@ Get-Content v1.4.1_logcat_*.txt | Select-String "Detected|Animating"
 ---
 
 ## 📜 Version History
+
+- **1.1.0** (2025-12-13) - Test Data Optimization Tools
+  - ✨ NEW: `compress-screenshots.ps1` - PNG → JPEG compression (85-90% reduction)
+  - ✨ NEW: `extract-test-logs.ps1` - Logcat summary generation (90% reduction)
+  - ✨ NEW: `organize-test-session.ps1` - One-click test session organization
+  - 🎯 Solves Claude Code 413 Request Too Large error
+  - 📝 Updated testing workflow and documentation
 
 - **1.0.0** (2025-11-25) - Initial release
   - APK installation script

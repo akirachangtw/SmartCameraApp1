@@ -3,30 +3,39 @@
  * Description: Domain layer use case for analyzing photo composition using photography rules
  * Author: Claude Code
  * Date: 2025-11-27
- * Version: 2.1.1
+ * Version: 2.4.0
  *
  * Features:
- * - Rule of Thirds analysis (30% weight)
- * - Headroom checking (25% weight)
- * - Edge distance validation (25% weight)
- * - Multi-subject support (20% weight)
+ * - Rule of Thirds analysis (25% weight)
+ * - Headroom checking (20% weight)
+ * - Edge distance validation (20% weight)
+ * - Multi-subject support (10% weight)
+ * - Eye position analysis (25% weight) - v2.3.0
  * - Weighted scoring system
  * - Professional Chinese suggestions (v2.1.1)
- * - Direction vectors for guideline rendering (v2.1.1)
+ * - Front camera mirror coordinate handling (v2.3.1)
+ * - Visual composition guide frame (v2.4.0)
  *
  * Modifications:
  * - 2025-11-27: Initial creation for v2.0 Clean Architecture refactor (Phase 1)
  * - 2025-11-27: Added accurate dimension calculation (Phase 2)
  * - 2025-11-27: Implemented complete composition rules with scoring (Phase 3)
  * - 2025-12-02: Add Chinese professional suggestions and direction vectors (v2.1.1)
+ * - 2025-12-04: Add eye position analysis for portrait composition (v2.3.0)
+ * - 2025-12-05: Fix front camera mirror coordinate issue - X coordinates now properly mirrored (v2.3.1)
+ * - 2025-12-08: Add visual composition guide frame for easier alignment (v2.4.0)
  */
 package local.mylab.smartcameraapp1.domain.usecase
 
+import android.graphics.PointF
 import android.util.Log
+import androidx.compose.ui.geometry.Rect
 import local.mylab.smartcameraapp1.domain.model.DetectionResult
+import local.mylab.smartcameraapp1.presentation.camera.model.CompositionGuideData
 import local.mylab.smartcameraapp1.presentation.camera.model.CompositionState
 import javax.inject.Inject
 import kotlin.math.abs
+import kotlin.math.max
 
 /**
  * Use case for analyzing camera composition based on photography rules
@@ -57,11 +66,13 @@ class AnalyzeCompositionUseCase @Inject constructor() {
 
         // Rule weights (must sum to 1.0)
         // v2.3.0: Added eye position weight, adjusted other weights
-        private const val WEIGHT_EYE_POSITION = 0.25f      // 新增：眼睛位置
-        private const val WEIGHT_RULE_OF_THIRDS = 0.25f    // 從 0.30 降為 0.25
-        private const val WEIGHT_HEADROOM = 0.20f          // 從 0.25 降為 0.20
-        private const val WEIGHT_EDGE_DISTANCE = 0.20f     // 從 0.25 降為 0.20
-        private const val WEIGHT_SUBJECT_DETECTION = 0.10f // 從 0.20 降為 0.10
+        // v2.4.6: 降低眼睛位置權重，避免過度影響整體評分
+        private const val WEIGHT_EYE_POSITION = 0.18f      // 從 0.25f 降為 0.18f
+        private const val WEIGHT_RULE_OF_THIRDS = 0.25f    // 保持不變
+        private const val WEIGHT_HEADROOM = 0.22f          // 從 0.20f 增為 0.22f（補眼睛減少的部分）
+        private const val WEIGHT_EDGE_DISTANCE = 0.25f     // 從 0.20f 增為 0.25f（補眼睛減少的部分）
+        private const val WEIGHT_SUBJECT_DETECTION = 0.10f // 保持不變
+        // 總和 = 0.18 + 0.25 + 0.22 + 0.25 + 0.10 = 1.00
 
         // Headroom configuration (percentage of image height)
         private const val IDEAL_HEADROOM_MIN = 0.05f  // 5%
@@ -72,20 +83,65 @@ class AnalyzeCompositionUseCase @Inject constructor() {
     }
 
     /**
+     * Transforms ML Kit image-space coordinates into PreviewView/Compose view-space coordinates.
+     *
+     * CameraPreview uses PreviewView.ScaleType.FILL_CENTER (center-crop), so we must apply:
+     * - scale = max(viewW/imgW, viewH/imgH)
+     * - offset to center the scaled image
+     * - optional mirror for front camera (preview is mirrored for user)
+     */
+    private data class ViewTransform(
+        val viewWidth: Float,
+        val viewHeight: Float,
+        val imageWidth: Float,
+        val imageHeight: Float,
+        val mirrorX: Boolean
+    ) {
+        private val scale: Float = max(viewWidth / imageWidth, viewHeight / imageHeight)
+        private val offsetX: Float = (viewWidth - (imageWidth * scale)) / 2f
+        private val offsetY: Float = (viewHeight - (imageHeight * scale)) / 2f
+
+        fun mapPoint(point: PointF): PointF {
+            val x = (point.x * scale) + offsetX
+            val y = (point.y * scale) + offsetY
+            val mappedX = if (mirrorX) viewWidth - x else x
+            return PointF(mappedX, y)
+        }
+
+        fun mapRect(rect: android.graphics.Rect): Rect {
+            val topLeft = mapPoint(PointF(rect.left.toFloat(), rect.top.toFloat()))
+            val bottomRight = mapPoint(PointF(rect.right.toFloat(), rect.bottom.toFloat()))
+
+            val left = minOf(topLeft.x, bottomRight.x)
+            val right = maxOf(topLeft.x, bottomRight.x)
+            val top = minOf(topLeft.y, bottomRight.y)
+            val bottom = maxOf(topLeft.y, bottomRight.y)
+
+            return Rect(left = left, top = top, right = right, bottom = bottom)
+        }
+    }
+
+    /**
      * Analyzes composition of detected subjects in the frame
      *
      * Phase 3: Complete multi-rule analysis with weighted scoring system.
      * Analyzes Rule of Thirds, headroom, edge distance, and subject count.
      *
+     * v2.3.1: Added isFrontCamera parameter for proper mirror coordinate handling.
+     * Front camera preview is mirrored, but ML Kit returns original (non-mirrored) coordinates.
+     * This causes left/right direction guidance to be inverted without correction.
+     *
      * @param detectionResult Current ML Kit detection result
      * @param previewWidth Width of the preview view in pixels
      * @param previewHeight Height of the preview view in pixels
+     * @param isFrontCamera True if using front camera (requires X coordinate mirroring)
      * @return CompositionState indicating composition quality and suggestions
      */
     operator fun invoke(
         detectionResult: DetectionResult,
         previewWidth: Int? = null,
-        previewHeight: Int? = null
+        previewHeight: Int? = null,
+        isFrontCamera: Boolean = false
     ): CompositionState {
         val faces = detectionResult.faces
 
@@ -98,26 +154,49 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         val primaryFace = selectPrimarySubject(faces)
         val boundingBox = primaryFace.boundingBox
 
-        // Calculate subject metrics
-        val faceCenterX = boundingBox.centerX().toFloat()
-        val faceCenterY = boundingBox.centerY().toFloat()
-        val faceTop = boundingBox.top.toFloat()
-        val faceLeft = boundingBox.left.toFloat()
-        val faceRight = boundingBox.right.toFloat()
-        val faceBottom = boundingBox.bottom.toFloat()
-
-        // Get image dimensions
-        val imageWidth: Float
-        val imageHeight: Float
-
-        if (previewWidth != null && previewHeight != null) {
-            imageWidth = previewWidth.toFloat()
-            imageHeight = previewHeight.toFloat()
+        // Determine ML Kit coordinate space dimensions.
+        // InputImage is created with rotationDegrees, so ML Kit outputs coordinates in the rotated (upright) space.
+        val rotatedImageWidth: Float
+        val rotatedImageHeight: Float
+        if (detectionResult.rotationDegrees % 180 == 0) {
+            rotatedImageWidth = detectionResult.imageWidth.toFloat()
+            rotatedImageHeight = detectionResult.imageHeight.toFloat()
         } else {
-            imageWidth = boundingBox.right * 1.5f
-            imageHeight = boundingBox.bottom * 1.5f
-            Log.w(TAG, "Preview dimensions not provided, using estimation (less accurate)")
+            rotatedImageWidth = detectionResult.imageHeight.toFloat()
+            rotatedImageHeight = detectionResult.imageWidth.toFloat()
         }
+
+        // Compose/Preview view dimensions.
+        // If not available, fall back to rotated image dimensions (less accurate for UI overlays).
+        val viewWidth = previewWidth?.toFloat() ?: rotatedImageWidth
+        val viewHeight = previewHeight?.toFloat() ?: rotatedImageHeight
+        if (previewWidth == null || previewHeight == null) {
+            Log.w(TAG, "Preview dimensions not provided, falling back to image size (overlays may be inaccurate)")
+        }
+
+        val viewTransform = ViewTransform(
+            viewWidth = viewWidth,
+            viewHeight = viewHeight,
+            imageWidth = rotatedImageWidth,
+            imageHeight = rotatedImageHeight,
+            mirrorX = isFrontCamera
+        )
+
+        val faceRect = viewTransform.mapRect(boundingBox)
+        val eyeAnalysis = EyePositionAnalysis.create(
+            face = primaryFace,
+            imageHeight = viewHeight,
+            mapPoint = viewTransform::mapPoint
+        )
+
+        // Calculate subject metrics
+        val faceCenterX = (faceRect.left + faceRect.right) / 2f
+        val faceLeft = faceRect.left
+        val faceRight = faceRect.right
+
+        val faceCenterY = (faceRect.top + faceRect.bottom) / 2f
+        val faceTop = faceRect.top
+        val faceBottom = faceRect.bottom
 
         // Phase 3: Perform multi-rule analysis
         val analysis = performCompositionAnalysis(
@@ -128,22 +207,33 @@ class AnalyzeCompositionUseCase @Inject constructor() {
             faceLeft = faceLeft,
             faceRight = faceRight,
             faceBottom = faceBottom,
-            imageWidth = imageWidth,
-            imageHeight = imageHeight,
-            faceCount = faces.size
+            imageWidth = viewWidth,
+            imageHeight = viewHeight,
+            faceCount = faces.size,
+            eyeAnalysis = eyeAnalysis
+        )
+
+        // v2.4.0: Calculate visual composition guide frame in view space.
+        val guideData = calculateGuideData(
+            faceBoundingBox = faceRect,
+            eyeAnalysis = analysis.eyeAnalysis,
+            imageWidth = viewWidth,
+            imageHeight = viewHeight
         )
 
         // Determine composition state based on overall score
         return if (analysis.overallScore >= GOOD_COMPOSITION_THRESHOLD) {
-            CompositionState.Good
+            CompositionState.Good(guideData = guideData)
         } else {
             val (message, dirX, dirY) = generateDetailedSuggestion(
-                analysis, faceCenterX, faceCenterY, faceTop, faceLeft, faceRight, imageWidth, imageHeight
+                analysis, faceCenterX, faceCenterY, faceTop, faceLeft, faceRight, viewWidth, viewHeight
             )
+
             CompositionState.NeedsAdjustment(
                 message = message,
                 directionX = dirX,
-                directionY = dirY
+                directionY = dirY,
+                guideData = guideData
             )
         }
     }
@@ -176,15 +266,10 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         faceBottom: Float,
         imageWidth: Float,
         imageHeight: Float,
-        faceCount: Int
+        faceCount: Int,
+        eyeAnalysis: EyePositionAnalysis?
     ): CompositionAnalysis {
         // Rule 0: Eye Position Analysis (v2.3.0) - 人像攝影最高優先級
-        val eyeAnalysis = if (faceCount > 0) {
-            EyePositionAnalysis.create(face, imageHeight)
-        } else {
-            null
-        }
-
         val eyePositionScore = if (eyeAnalysis?.hasEyeLandmarks == true && eyeAnalysis.needsAdjustment) {
             // 根據偏差計算分數
             val normalizedDeviation = kotlin.math.abs(eyeAnalysis.deviationFromIdeal) / imageHeight
@@ -341,21 +426,18 @@ class AnalyzeCompositionUseCase @Inject constructor() {
     }
 
     /**
-     * Generates detailed suggestion with professional Chinese text and direction vectors
-     *
-     * Returns: Triple(message, directionX, directionY)
-     * - message: Professional Chinese composition suggestion
-     * - directionX: -1.0 (left) to 1.0 (right), 0.0 = centered
-     * - directionY: -1.0 (up) to 1.0 (down), 0.0 = centered
-     *
-     * v2.1.1: Changed to Chinese professional suggestions based on scene composition matrix
-     */
-    /**
      * 生成專業中文建議
      *
      * v2.1.1: 改為中文專業建議
      * v2.2.2: 移除方向箭頭，directionX/Y 保持為 0
      * v2.3.0: 優先級系統、眼睛位置引導、改進邊界訊息
+     * v2.3.1: 全面重寫提示詞系統，更精細的構圖引導
+     *
+     * 優先級順序（高到低）：
+     * 1. 邊界警告（防止裁切）
+     * 2. 眼睛位置（人像攝影關鍵）
+     * 3. 頭部空間（構圖平衡）
+     * 4. 三分法則（美學建議）
      */
     private fun generateDetailedSuggestion(
         analysis: CompositionAnalysis,
@@ -369,8 +451,21 @@ class AnalyzeCompositionUseCase @Inject constructor() {
     ): Triple<String, Float, Float> {
         val issues = mutableListOf<CompositionIssue>()
 
-        // 問題 1: 邊界警告（最高優先級）
-        if (analysis.edgeDistanceScore < 0.7f) {
+        // 計算關鍵位置參數
+        val leftThird = imageWidth / 3f
+        val rightThird = imageWidth * 2f / 3f
+        val topThird = imageHeight / 3f
+        val bottomThird = imageHeight * 2f / 3f
+        val centerX = imageWidth / 2f
+        val headroomRatio = faceTop / imageHeight
+
+        // Debug log 所有分數
+        Log.d(TAG, "Scores - edge:${analysis.edgeDistanceScore} eye:${analysis.eyePositionScore} " +
+              "headroom:${analysis.headroomScore} thirds:${analysis.ruleOfThirdsScore} overall:${analysis.overallScore}")
+
+        // 問題 1: 邊界警告（最高優先級 - 防止裁切）
+        // v2.3.2: 降低閾值到 0.5f，只在真正接近邊界時才警告
+        if (analysis.edgeDistanceScore < 0.5f) {
             val edgeMessage = generateEdgeBoundaryMessage(
                 faceLeft, faceRight, faceTop, faceCenterY, imageWidth, imageHeight
             )
@@ -381,13 +476,10 @@ class AnalyzeCompositionUseCase @Inject constructor() {
             ))
         }
 
-        // 問題 2: 眼睛位置（高優先級）- v2.3.0
+        // 問題 2: 眼睛位置（高優先級 - 人像攝影關鍵）
         analysis.eyeAnalysis?.let { eyeAnalysis ->
             if (eyeAnalysis.hasEyeLandmarks && eyeAnalysis.needsAdjustment) {
-                val eyeMessage = when {
-                    eyeAnalysis.isAboveIdeal -> "向下降低鏡頭，使眼睛對齊上三分線"
-                    else -> "向上抬高鏡頭，使眼睛位於上三分線"
-                }
+                val eyeMessage = generateEyePositionMessage(eyeAnalysis)
                 issues.add(CompositionIssue(
                     priority = CompositionIssuePriority.EYE_POSITION,
                     score = analysis.eyePositionScore,
@@ -396,14 +488,10 @@ class AnalyzeCompositionUseCase @Inject constructor() {
             }
         }
 
-        // 問題 3: 頭部空間（中優先級）
-        if (analysis.headroomScore < 0.7f) {
-            val headroomRatio = faceTop / imageHeight
-            val headroomMessage = when {
-                headroomRatio < IDEAL_HEADROOM_MIN -> "頭部空間略少，可微微下移手機"
-                headroomRatio > IDEAL_HEADROOM_MAX -> "頭部空間過多，可微微上提手機"
-                else -> "調整頭部空間"
-            }
+        // 問題 3: 頭部空間（中優先級 - 構圖平衡）
+        // v2.3.2: 降低閾值到 0.6f
+        if (analysis.headroomScore < 0.6f) {
+            val headroomMessage = generateHeadroomMessage(headroomRatio)
             issues.add(CompositionIssue(
                 priority = CompositionIssuePriority.HEADROOM,
                 score = analysis.headroomScore,
@@ -411,28 +499,118 @@ class AnalyzeCompositionUseCase @Inject constructor() {
             ))
         }
 
-        // 問題 4: 三分法則（最低優先級）
-        if (analysis.ruleOfThirdsScore < 0.7f) {
-            val ruleOfThirdsMessage = generateRuleOfThirdsMessage(
-                faceCenterX, faceCenterY, imageWidth, imageHeight
+        // 問題 4: 水平位置 - 臉部偏離三分交點（低優先級 - 美學建議）
+        // v2.3.2: 降低閾值到 0.6f
+        if (analysis.ruleOfThirdsScore < 0.6f) {
+            val horizontalMessage = generateHorizontalPositionMessage(
+                faceCenterX, centerX, leftThird, rightThird
             )
+            if (horizontalMessage != null) {
+                issues.add(CompositionIssue(
+                    priority = CompositionIssuePriority.RULE_OF_THIRDS,
+                    score = analysis.ruleOfThirdsScore,
+                    message = horizontalMessage
+                ))
+            }
+        }
+
+        // 問題 5: 垂直位置 - 主體過高或過低（低優先級）
+        val verticalMessage = generateVerticalPositionMessage(
+            faceCenterY, topThird, bottomThird, imageHeight
+        )
+        if (verticalMessage != null && analysis.ruleOfThirdsScore < 0.6f) {
             issues.add(CompositionIssue(
                 priority = CompositionIssuePriority.RULE_OF_THIRDS,
                 score = analysis.ruleOfThirdsScore,
-                message = ruleOfThirdsMessage
+                message = verticalMessage
             ))
         }
 
-        // 返回最高優先級問題，或 fallback 訊息
-        val message = issues.maxByOrNull { it.priority.priority }?.message ?: "調整構圖位置"
+        // 返回最高優先級問題，或「構圖良好」
+        val message = issues.maxByOrNull { it.priority.priority }?.message ?: "構圖良好"
+
+        Log.d(TAG, "Final message: $message (${issues.size} issues found)")
 
         // v2.2.2: 方向箭頭已移除，保持為 0
         return Triple(message, 0f, 0f)
     }
 
     /**
+     * 生成眼睛位置提示訊息
+     * v2.3.1: 更精細的眼睛位置引導
+     * v2.4.2: 配合灰色引導框，精準引導眼睛對準
+     * v2.4.3: 統一訊息，灰色框本身就是視覺引導
+     */
+    private fun generateEyePositionMessage(eyeAnalysis: EyePositionAnalysis): String {
+        return "請將眼睛對準灰色框中央"
+    }
+
+    /**
+     * 生成頭部空間提示訊息
+     * v2.3.1: 更精細的頭部空間引導
+     */
+    private fun generateHeadroomMessage(headroomRatio: Float): String {
+        return when {
+            // 頭部空間過少（可能被裁切）
+            headroomRatio < 0.02f -> "頭部略被切到，請提高相機"
+            headroomRatio < IDEAL_HEADROOM_MIN -> "調整角度避免裁切額頭"
+            // 頭部空間過多
+            headroomRatio > 0.25f -> "頭部空間偏多，請稍微下壓相機"
+            headroomRatio > IDEAL_HEADROOM_MAX -> "適度減少上方空間會使人像更平衡"
+            else -> "調整頭部空間"
+        }
+    }
+
+    /**
+     * 生成水平位置提示訊息
+     * v2.3.1: 針對三分交點的水平引導
+     */
+    private fun generateHorizontalPositionMessage(
+        faceCenterX: Float,
+        centerX: Float,
+        leftThird: Float,
+        rightThird: Float
+    ): String? {
+        // 計算容差範圍（中央區域）
+        val centerTolerance = (rightThird - leftThird) * 0.3f
+        val isNearCenter = faceCenterX > (centerX - centerTolerance) &&
+                           faceCenterX < (centerX + centerTolerance)
+
+        return when {
+            // 臉部在中央，建議移向三分交點
+            isNearCenter -> "人物略偏中央，可向左或右調整以強化視覺焦點"
+            // 臉部偏左太多（超出左三分線）
+            faceCenterX < leftThird * 0.7f -> "將人物向右輕移，使臉位於三分交點"
+            // 臉部偏右太多（超出右三分線）
+            faceCenterX > rightThird * 1.3f -> "將人物向左輕移，使臉位於三分交點"
+            else -> null  // 已在三分線附近，無需調整
+        }
+    }
+
+    /**
+     * 生成垂直位置提示訊息
+     * v2.3.1: 針對主體過高或過低的引導
+     */
+    private fun generateVerticalPositionMessage(
+        faceCenterY: Float,
+        topThird: Float,
+        bottomThird: Float,
+        imageHeight: Float
+    ): String? {
+        return when {
+            // 主體靠太高（接近畫面頂端）
+            faceCenterY < topThird * 0.6f -> "人物太高，略微調低相機"
+            // 主體靠太低（位於畫面下方）
+            faceCenterY > bottomThird * 1.2f -> "人物位置偏低，可抬高相機"
+            faceCenterY > imageHeight * 0.7f -> "將主體移向畫面上半部更佳"
+            else -> null
+        }
+    }
+
+    /**
      * 生成邊界特定訊息
-     * v2.3.0: 方向性邊界警告
+     * v2.3.1: 更友善的邊界警告
+     * v2.3.2: 添加 debug log，修正邊界判斷邏輯
      */
     private fun generateEdgeBoundaryMessage(
         faceLeft: Float,
@@ -447,50 +625,32 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         val topDist = faceTop
         val bottomDist = imageHeight - faceCenterY
 
+        // Debug log 座標資訊
+        Log.d(TAG, "Edge distances - L:$leftDist R:$rightDist T:$topDist B:$bottomDist | " +
+              "faceLeft:$faceLeft faceRight:$faceRight imageWidth:$imageWidth")
+
         val minDist = minOf(leftDist, rightDist, topDist, bottomDist)
+        val minEdge = imageWidth * MIN_EDGE_DISTANCE
 
-        return when (minDist) {
-            leftDist -> "人物太靠左側，請將人物向右移動"
-            rightDist -> "人物太靠右側，請將人物向左移動"
-            topDist -> "人物太靠上方，請向下調整"
-            bottomDist -> "人物太靠下方，請向上調整"
-            else -> "主體太靠近邊緣，請調整位置"
-        }
-    }
-
-    /**
-     * 生成三分法則訊息
-     * v2.3.0: 簡化方向引導
-     */
-    private fun generateRuleOfThirdsMessage(
-        faceCenterX: Float,
-        faceCenterY: Float,
-        imageWidth: Float,
-        imageHeight: Float
-    ): String {
-        val leftThird = imageWidth / 3f
-        val rightThird = imageWidth * 2f / 3f
-        val topThird = imageHeight / 3f
-        val bottomThird = imageHeight * 2f / 3f
-
-        val horizontalSuggestion = when {
-            faceCenterX < leftThird -> "請右移"
-            faceCenterX > rightThird -> "請左移"
-            else -> null
-        }
-
-        val verticalSuggestion = when {
-            faceCenterY < topThird -> "請下移"
-            faceCenterY > bottomThird -> "請上移"
-            else -> null
-        }
-
+        // 判斷哪個邊最接近，並根據嚴重程度給出不同訊息
         return when {
-            horizontalSuggestion != null && verticalSuggestion != null ->
-                "${verticalSuggestion}並${horizontalSuggestion}，對齊三分交點"
-            horizontalSuggestion != null -> "${horizontalSuggestion}，將主體移至三分線"
-            verticalSuggestion != null -> "${verticalSuggestion}，使主體位於三分線"
-            else -> "將主體移至三分交點更吸睛"
+            minDist == leftDist -> {
+                if (leftDist < minEdge * 0.5f) "臉部快超出左邊界，請向右移動"
+                else "人物略靠左側，可向右微調"
+            }
+            minDist == rightDist -> {
+                if (rightDist < minEdge * 0.5f) "臉部快超出右邊界，請向左移動"
+                else "人物略靠右側，可向左微調"
+            }
+            minDist == topDist -> {
+                if (topDist < minEdge * 0.5f) "頭部快超出上邊界，請下移相機"
+                else "人物略靠上方，請稍微下移"
+            }
+            minDist == bottomDist -> {
+                if (bottomDist < minEdge * 0.5f) "主體快超出下邊界，請上移相機"
+                else "人物略靠下方，請稍微上移"
+            }
+            else -> "請調整位置避免主體被裁切"
         }
     }
 
@@ -570,15 +730,16 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         val needsAdjustment: Boolean,        // 是否需要調整
         val isAboveIdeal: Boolean            // 是否高於理想位置
     ) {
-        companion object {
-            private const val EYE_POSITION_TOLERANCE_RATIO = 0.08f  // 容差 8%
+         companion object {
+             private const val EYE_POSITION_TOLERANCE_RATIO = 0.08f  // 容差 8%
 
-            fun create(
-                face: com.google.mlkit.vision.face.Face,
-                imageHeight: Float
-            ): EyePositionAnalysis {
-                val leftEye = face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_EYE)
-                val rightEye = face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_EYE)
+             fun create(
+                 face: com.google.mlkit.vision.face.Face,
+                 imageHeight: Float,
+                 mapPoint: (PointF) -> PointF = { it }
+             ): EyePositionAnalysis {
+                 val leftEye = face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_EYE)
+                 val rightEye = face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_EYE)
 
                 // 檢查是否有眼睛座標
                 if (leftEye == null || rightEye == null) {
@@ -590,10 +751,12 @@ class AnalyzeCompositionUseCase @Inject constructor() {
                         needsAdjustment = false,
                         isAboveIdeal = false
                     )
-                }
+                 }
 
-                // 計算左右眼平均 Y 座標
-                val avgEyeY = (leftEye.position.y + rightEye.position.y) / 2f
+                 // 計算左右眼平均 Y 座標
+                 val leftPos = mapPoint(leftEye.position)
+                 val rightPos = mapPoint(rightEye.position)
+                 val avgEyeY = (leftPos.y + rightPos.y) / 2f
 
                 // 上三分線（理想眼睛位置）
                 val upperThird = imageHeight / 3f
@@ -612,9 +775,9 @@ class AnalyzeCompositionUseCase @Inject constructor() {
                     needsAdjustment = kotlin.math.abs(deviation) > tolerance,
                     isAboveIdeal = avgEyeY < upperThird
                 )
-            }
-        }
-    }
+             }
+         }
+     }
 
     /**
      * 構圖問題優先級
@@ -637,6 +800,154 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         val score: Float,
         val message: String
     )
+
+    /**
+     * 計算構圖引導框框資料
+     * v2.4.0: 視覺引導功能 - 顯示人臉應該移動到的目標位置
+     *
+     * @param faceBoundingBox 當前人臉邊界框
+     * @param eyeAnalysis 眼睛位置分析結果
+     * @param imageWidth 畫面寬度
+     * @param imageHeight 畫面高度
+     * @param isFrontCamera 是否為前置鏡頭
+     * @return CompositionGuideData 或 null（如果不需要顯示引導框）
+     */
+    private fun calculateGuideData(
+        faceBoundingBox: Rect,
+        eyeAnalysis: EyePositionAnalysis?,
+        imageWidth: Float,
+        imageHeight: Float,
+    ): CompositionGuideData? {
+        // 如果沒有眼睛 landmark，使用臉部框估算眼睛位置
+        val currentEyeY: Float
+        val upperThirdLine = imageHeight / 3f
+        // v2.4.6: 放寬容差以改善用戶體驗 - 實際測試中偏差常達500-600px
+        val tolerance = imageHeight * 0.15f  // 從 0.08f 增為 0.15f (~360px for 2405px)
+
+        if (eyeAnalysis?.hasEyeLandmarks == true) {
+            currentEyeY = eyeAnalysis.averageEyeY
+        } else {
+            // 估算眼睛位置 ≈ 臉部頂端 + 35% 臉部高度
+            currentEyeY = faceBoundingBox.top + faceBoundingBox.height * 0.35f
+        }
+
+        // 計算眼睛需要移動的距離
+        val eyeOffsetY = upperThirdLine - currentEyeY
+
+        Log.d(TAG, "GuideData calc - eyeY:$currentEyeY upperThird:$upperThirdLine offset:$eyeOffsetY tolerance:$tolerance")
+
+        // 檢查人臉大小是否適合顯示引導框
+        val faceArea = faceBoundingBox.width * faceBoundingBox.height
+        val imageArea = imageWidth * imageHeight
+        val faceRatio = faceArea / imageArea
+
+        Log.d(TAG, "GuideData: faceRatio=$faceRatio (area=$faceArea, imageArea=$imageArea)")
+
+        // 人臉過小 (<0.1%) 或過大 (>60%) 不顯示引導框
+        // v2.4.1: 降低最小閾值從 5% 到 0.1%，以適應遠距離人像場景
+        if (faceRatio < 0.001f || faceRatio > 0.60f) {
+            Log.d(TAG, "GuideData: returning null - face ratio out of range (faceRatio=$faceRatio)")
+            return null
+        }
+
+        // 計算目標框框位置（將當前框框向上/下偏移）
+        val targetTop = (faceBoundingBox.top + eyeOffsetY).coerceIn(0f, imageHeight - faceBoundingBox.height)
+        val targetBottom = targetTop + faceBoundingBox.height
+
+        // v2.4.3: 計算水平目標位置（左三分線或右三分線）
+        val leftThird = imageWidth / 3f
+        val rightThird = imageWidth * 2f / 3f
+        // v2.4.6: 與垂直容差保持一致性
+        val horizontalTolerance = imageWidth * 0.15f  // 從 0.08f 增為 0.15f
+
+        val currentLeft = faceBoundingBox.left
+        val currentRight = faceBoundingBox.right
+
+        // 計算當前臉部中心 X 座標
+        val faceCenterX = (currentLeft + currentRight) / 2f
+
+        // v2.4.6: 修正水平引導邏輯倒反 - 人臉偏左應引導向右三分線，反之亦然
+        // 攝影美學：偏離中心的人臉應引導回構圖平衡點
+        val targetCenterX = if (faceCenterX < imageWidth / 2f) {
+            rightThird  // 臉部在左半邊，目標是右三分線（引導向中心）
+        } else {
+            leftThird   // 臉部在右半邊，目標是左三分線（引導向中心）
+        }
+
+        // 計算水平偏移
+        val horizontalOffset = targetCenterX - faceCenterX
+        val faceWidth = currentRight - currentLeft
+
+        Log.d(TAG, "GuideData horizontal - faceCenterX:$faceCenterX targetCenterX:$targetCenterX offsetX:$horizontalOffset tolerance:$horizontalTolerance")
+
+        // v2.4.3+: 同時檢查垂直和水平對齊，都在容差內視為對齊（顯示綠框）
+        val verticalAligned = abs(eyeOffsetY) <= tolerance
+        val horizontalAligned = abs(horizontalOffset) <= horizontalTolerance
+
+        // 目標框框水平位置
+        val targetLeft = (targetCenterX - faceWidth / 2f).coerceIn(0f, imageWidth - faceWidth)
+        val targetRight = targetLeft + faceWidth
+
+        val targetRect = Rect(
+            left = targetLeft,
+            top = targetTop,
+            right = targetRight,
+            bottom = targetBottom
+        )
+
+        val currentRect = faceBoundingBox
+
+        // 計算垂直對齊進度
+        val verticalAlignmentProgress = calculateAlignmentProgress(
+            current = currentEyeY,
+            target = upperThirdLine,
+            tolerance = tolerance
+        )
+
+        // v2.4.3: 計算水平對齊進度
+        val horizontalAlignmentProgress = calculateAlignmentProgress(
+            current = faceCenterX,
+            target = targetCenterX,
+            tolerance = horizontalTolerance
+        )
+
+        // 綜合對齊進度（垂直和水平的平均）
+        val isFullyAligned = verticalAligned && horizontalAligned
+        val overallAlignmentProgress = if (isFullyAligned) {
+            1f
+        } else {
+            (verticalAlignmentProgress + horizontalAlignmentProgress) / 2f
+        }
+
+        Log.d(TAG, "GuideData: targetRect=$targetRect, vProgress=$verticalAlignmentProgress, hProgress=$horizontalAlignmentProgress, overall=$overallAlignmentProgress")
+
+        return CompositionGuideData(
+            targetRect = targetRect,
+            currentRect = currentRect,
+            isAligned = isFullyAligned,
+            alignmentProgress = overallAlignmentProgress
+        )
+    }
+
+    /**
+     * 計算對齊進度
+     * v2.4.0: 用於視覺引導框顏色漸變
+     *
+     * @param currentEyeY 當前眼睛 Y 座標
+     * @param targetEyeY 目標眼睛 Y 座標（上三分線）
+     * @param tolerance 容差範圍
+     * @return 0.0（遠離）到 1.0（完美對齊）
+     */
+    private fun calculateAlignmentProgress(
+        current: Float,
+        target: Float,
+        tolerance: Float
+    ): Float {
+        val distance = abs(current - target)
+        // 使用更大的範圍來計算進度（2倍容差）
+        val maxDistance = tolerance * 2f
+        return (1f - (distance / maxDistance)).coerceIn(0f, 1f)
+    }
 
     /**
      * Analyzes composition based on Rule of Thirds (Legacy method - kept for compatibility)

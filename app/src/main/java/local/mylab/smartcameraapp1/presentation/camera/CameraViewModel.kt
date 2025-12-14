@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import local.mylab.smartcameraapp1.data.preferences.OverlayPreferences
 import local.mylab.smartcameraapp1.data.sensor.DeviceSensorManager
 import local.mylab.smartcameraapp1.data.sensor.OrientationData
+import androidx.camera.core.CameraSelector
 import local.mylab.smartcameraapp1.domain.model.CaptureResult
 import local.mylab.smartcameraapp1.domain.model.DetectionResult
 import local.mylab.smartcameraapp1.domain.repository.CameraRepository
@@ -321,16 +322,20 @@ class CameraViewModel @Inject constructor(
      * following Clean Architecture principles.
      *
      * Phase 2: Now passes actual preview dimensions for accurate analysis.
+     * v2.3.1: Now passes camera direction for proper mirror coordinate handling.
      *
      * @param detectionResult Current ML Kit detection result
      */
     private fun analyzeComposition(detectionResult: DetectionResult) {
         // Delegate to UseCase (Clean Architecture)
         // Phase 2: Pass actual preview dimensions if available
+        // v2.3.1: Pass camera direction for front camera mirror correction
+        val isFrontCamera = _state.value.cameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
         _compositionState.value = analyzeCompositionUseCase(
             detectionResult = detectionResult,
             previewWidth = previewWidth,
-            previewHeight = previewHeight
+            previewHeight = previewHeight,
+            isFrontCamera = isFrontCamera
         )
     }
 

@@ -3,7 +3,7 @@
  * Description: Main camera screen with ML Kit detection and composition guidance
  * Author: Claude Code
  * Date: 2025-11-17
- * Version: 2.1.0
+ * Version: 2.4.0
  *
  * Modifications:
  * - 2025-11-17: Added ML Kit detection result text overlay
@@ -12,6 +12,7 @@
  * - 2025-11-25: Added smart composition guide with Rule of Thirds grid (v1.5.0)
  * - 2025-11-30: Added directional indicator arrows for composition guidance (v2.0 Phase 4)
  * - 2025-12-01: Added LevelIndicator overlay with sensor integration (v2.1.0)
+ * - 2025-12-08: Added CompositionGuideOverlay for visual composition guidance (v2.4.0)
  */
 package local.mylab.smartcameraapp1.presentation.camera
 
@@ -62,11 +63,13 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import local.mylab.smartcameraapp1.presentation.camera.components.CameraPreview
 import local.mylab.smartcameraapp1.presentation.camera.components.PermissionRequestScreen
+import local.mylab.smartcameraapp1.presentation.camera.components.overlay.CompositionGuideOverlay
 import local.mylab.smartcameraapp1.presentation.camera.components.overlay.CompositionHint
 // v2.2.2: Removed DetectionOverlay and DirectionalIndicator - visual clutter
 import local.mylab.smartcameraapp1.presentation.camera.components.overlay.GridOverlay
 import local.mylab.smartcameraapp1.presentation.camera.components.overlay.HDRWarningOverlay
 import local.mylab.smartcameraapp1.presentation.camera.components.overlay.LevelIndicator
+import local.mylab.smartcameraapp1.presentation.camera.model.CompositionState
 
 /**
  * 相機畫面 - 拍照功能
@@ -142,6 +145,18 @@ fun CameraScreen(
                 GridOverlay(
                     modifier = Modifier.fillMaxSize(),
                     visible = isGridEnabled
+                )
+
+                // v2.4.0: Visual composition guide frame
+                // Shows target position where face should move to
+                val guideData = when (val currentState = compositionState) {
+                    is CompositionState.Good -> currentState.guideData
+                    is CompositionState.NeedsAdjustment -> currentState.guideData
+                    else -> null
+                }
+                CompositionGuideOverlay(
+                    guideData = guideData,
+                    modifier = Modifier.fillMaxSize()
                 )
 
                 // v2.2.0: HDR/Lighting warning overlay (highest priority - shows on top)

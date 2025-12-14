@@ -3,8 +3,25 @@
 # ============================================================================
 # Description: One-click deployment and logcat capture for SmartCameraApp1
 # Author: Claude Code
-# Version: 1.0.0
-# Date: 2025-11-25
+# Version: 1.0.1
+# Date: 2025-12-06
+# ============================================================================
+#
+# USAGE (choose one of these methods):
+#
+#   Method 1 - Direct execution (if execution policy allows):
+#     cd tools
+#     .\deploy-and-log.ps1
+#
+#   Method 2 - Bypass execution policy (recommended for first-time users):
+#     cd tools
+#     powershell -ExecutionPolicy Bypass -File .\deploy-and-log.ps1
+#
+#   Method 3 - Set execution policy permanently:
+#     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+#     cd tools
+#     .\deploy-and-log.ps1
+#
 # ============================================================================
 
 # Enable strict error handling

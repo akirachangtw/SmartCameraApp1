@@ -1,0 +1,97 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🚀 Build Emulator Debug",
+      "type": "shell",
+      "command": "${workspaceFolder}/gradlew.bat",
+      "args": ["assembleEmulatorDebug"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "📱 Install to Emulator",
+      "type": "shell",
+      "command": "${workspaceFolder}/gradlew.bat",
+      "args": ["installEmulatorDebug"],
+      "group": "build",
+      "dependsOn": ["🚀 Build Emulator Debug"],
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🧪 Run Unit Tests",
+      "type": "shell",
+      "command": "${workspaceFolder}/gradlew.bat",
+      "args": ["testEmulatorDebugUnitTest"],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🔍 Run Lint",
+      "type": "shell",
+      "command": "${workspaceFolder}/gradlew.bat",
+      "args": ["lintEmulatorDebug"],
+      "group": "test"
+    },
+    {
+      "label": "🧹 Clean Build",
+      "type": "shell",
+      "command": "${workspaceFolder}/gradlew.bat",
+      "args": ["clean"],
+      "group": "build"
+    },
+    {
+      "label": "📊 Generate Test Report",
+      "type": "shell",
+      "command": "${workspaceFolder}/gradlew.bat",
+      "args": ["testEmulatorDebugUnitTest", "--tests", "*"],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🎯 Full Test Cycle",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "🧹 Clean Build",
+        "🚀 Build Emulator Debug",
+        "🧪 Run Unit Tests",
+        "🔍 Run Lint"
+      ],
+      "group": "test"
+    },
+    {
+      "label": "🚀 Build Device Debug",
+      "type": "shell",
+      "command": "${workspaceFolder}/gradlew.bat",
+      "args": ["assembleDeviceDebug"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "📱 Install to Device",
+      "type": "shell",
+      "command": "${workspaceFolder}/gradlew.bat",
+      "args": ["installDeviceDebug"],
+      "group": "build",
+      "dependsOn": ["🚀 Build Device Debug"],
+      "presentation": {
+        "reveal": "always"
+      }
+    }
+  ]
+}

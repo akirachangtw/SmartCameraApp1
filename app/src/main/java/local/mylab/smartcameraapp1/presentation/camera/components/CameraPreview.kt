@@ -1,8 +1,14 @@
 package local.mylab.smartcameraapp1.presentation.camera.components
 
+import android.view.ViewTreeObserver
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
@@ -14,6 +20,7 @@ import androidx.compose.ui.viewinterop.AndroidView
  * MlKitAnalyzer with VIEW_REFERENCED handles coordinate transformation automatically
  *
  * v2.0 Phase 2: Added onSizeChanged callback for composition analysis accuracy
+ * v2.3.1: Fixed size callback - use ViewTreeObserver for reliable size detection
  */
 @Composable
 fun CameraPreview(
@@ -22,6 +29,24 @@ fun CameraPreview(
     onSizeChanged: ((Int, Int) -> Unit)? = null
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    var previewViewRef by remember { mutableStateOf<PreviewView?>(null) }
+
+    // v2.3.1: Use DisposableEffect to properly track size changes
+    DisposableEffect(previewViewRef) {
+        val view = previewViewRef ?: return@DisposableEffect onDispose { }
+
+        val listener = ViewTreeObserver.OnGlobalLayoutListener {
+            if (view.width > 0 && view.height > 0) {
+                onSizeChanged?.invoke(view.width, view.height)
+            }
+        }
+
+        view.viewTreeObserver.addOnGlobalLayoutListener(listener)
+
+        onDispose {
+            view.viewTreeObserver.removeOnGlobalLayoutListener(listener)
+        }
+    }
 
     AndroidView(
         factory = { context ->
@@ -33,12 +58,11 @@ fun CameraPreview(
 
                 this.controller = controller
                 controller.bindToLifecycle(lifecycleOwner)
+
+                // v2.3.1: Store reference for size tracking
+                previewViewRef = this
             }
         },
-        modifier = modifier,
-        update = { previewView ->
-            // Phase 2: Report size changes for accurate composition analysis
-            onSizeChanged?.invoke(previewView.width, previewView.height)
-        }
+        modifier = modifier
     )
 }
