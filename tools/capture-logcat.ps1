@@ -13,7 +13,7 @@ $ErrorActionPreference = "Stop"
 # ============================================================================
 # Configuration
 # ============================================================================
-$PACKAGE_NAME = "local.mylab.smartcameraapp1"
+$PACKAGE_NAME = "com.akirachang.ai.photographer"
 $LOG_TAGS = @("CameraRepositoryImpl", "DetectionOverlay", "CameraViewModel", "AnalyzeCompositionUseCase")
 $OUTPUT_DIR = "."
 $TIMESTAMP = Get-Date -Format "yyyyMMdd_HHmmss"

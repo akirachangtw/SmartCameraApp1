@@ -152,7 +152,7 @@ function Start-AutoTest {
 
     # 1. 啟動應用
     Write-ColorOutput "🚀 啟動應用..." "Cyan"
-    adb shell am start -n local.mylab.smartcameraapp1.emulator/.MainActivity
+    adb shell am start -n com.akirachang.ai.photographer.emulator/.MainActivity
     Start-Sleep -Seconds 3
 
     Capture-Screenshot -Name "01_應用啟動" -Category "ui-elements"

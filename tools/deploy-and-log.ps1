@@ -34,7 +34,7 @@ $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PROJECT_ROOT = Split-Path -Parent $SCRIPT_DIR
 $INSTALL_SCRIPT = Join-Path $SCRIPT_DIR "install-apk.ps1"
 $LOGCAT_SCRIPT = Join-Path $SCRIPT_DIR "capture-logcat.ps1"
-$PACKAGE_NAME = "local.mylab.smartcameraapp1"
+$PACKAGE_NAME = "com.akirachang.ai.photographer"
 
 # ============================================================================
 # Color Output Functions

@@ -90,7 +90,7 @@ REM 步驟 6: 啟動應用並收集日誌（如果有模擬器）
 adb devices | findstr "emulator" > nul
 if not errorlevel 1 (
     echo [6/6] 啟動應用並收集日誌...
-    adb shell am start -n local.mylab.smartcameraapp1.emulator/.MainActivity
+    adb shell am start -n com.akirachang.ai.photographer.emulator/.MainActivity
 
     echo 📝 開始收集日誌（按 Ctrl+C 停止）...
     echo 日誌將儲存到: %LOG_FILE%

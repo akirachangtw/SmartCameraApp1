@@ -224,6 +224,61 @@ cd tools
 .\organize-test-session.ps1 -SourceDir "..\others\v2.4.6-Testing"
 ```
 
+---
+
+### 7. `validate-screenshot.ps1` ⭐ NEW
+Validate screenshot images before uploading to Claude API.
+
+**Usage**:
+```powershell
+cd tools
+.\validate-screenshot.ps1 -ImagePath "..\test_screenshot.png"
+```
+
+**What it does**:
+1. ✅ Check file size (max 5 MB for Claude API)
+2. ✅ Verify image format (PNG, JPG, JPEG, WebP)
+3. ✅ Detect corrupted images
+4. ✅ Check file header integrity
+5. ✅ Warn about non-ASCII characters in path
+6. ✅ Verify image dimensions
+
+**When to use**:
+- Before analyzing screenshots with Claude Code
+- After capturing screenshots via `adb screencap`
+- Troubleshooting "API Error 400: Could not process image"
+
+**Auto-fix mode**:
+```powershell
+# Automatically compress oversized images
+.\validate-screenshot.ps1 -ImagePath "large_image.png" -AutoFix
+```
+
+**Common Issues Detected**:
+- ❌ File too large (>5 MB) → Auto-compress to JPEG
+- ❌ Corrupted PNG header → Suggests re-capturing
+- ⚠️  Non-ASCII filename (中文) → Suggests renaming
+- ⚠️  Unusual dimensions → Warns about potential issues
+
+**Output**:
+```
+✅ All validations passed! Image is safe to upload.
+
+OR
+
+❌ Found 2 issues:
+   - File too large: 8.2 MB (limit: 5 MB)
+   - Path contains non-ASCII characters
+
+💡 Fix suggestions:
+   → Run compression: .\compress-screenshots.ps1 -InputDir "screenshots"
+   → Rename to ASCII filename
+```
+
+---
+
+**organize-test-session.ps1 details**:
+
 **What it does**:
 1. ✅ Create standardized directory structure (`optimized/` and `originals/`)
 2. ✅ Move original files to `originals/` subdirectory
@@ -346,10 +401,12 @@ Reduction:                               87%
 
 | Need | Use Tool |
 |------|----------|
+| Validate screenshot before analysis | `validate-screenshot.ps1` ⭐ |
 | Only compress screenshots | `compress-screenshots.ps1` |
 | Only generate log summaries | `extract-test-logs.ps1` |
 | Full test data organization | `organize-test-session.ps1` ⭐ |
 | One-click deploy + test | `deploy-and-log.ps1` |
+| Fix "Could not process image" error | `validate-screenshot.ps1` with `-AutoFix` |
 
 ---
 
@@ -426,7 +483,7 @@ v1.4.1_logcat_20251125_153045.txt
 SmartCameraApp1 Logcat Capture
 ========================================
 Timestamp: 20251125_153045
-Package: local.mylab.smartcameraapp1
+Package: com.akirachang.ai.photographer
 Filter Tags: CameraRepositoryImpl, DetectionOverlay, CameraViewModel
 ========================================
 ```

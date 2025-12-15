@@ -338,7 +338,7 @@ echo "📱 安裝到模擬器..."
 
 # 5. 啟動應用並收集日誌
 echo "📝 啟動應用並收集日誌..."
-adb shell am start -n local.mylab.smartcameraapp1.emulator/.MainActivity
+adb shell am start -n com.akirachang.ai.photographer.emulator/.MainActivity
 adb logcat -c
 adb logcat | grep -E "(AnalyzeComposition|CameraModule|FakeCameraDataSource)" > v2.4.6_emulator_test.log &
 
