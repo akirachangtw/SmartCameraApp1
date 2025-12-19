@@ -52,7 +52,22 @@
       "Bash(Select-String -Pattern \"emulator|device\" -Context 0,1)",
       "Bash(Select-String \".apk\")",
       "Bash(ls:*)",
-      "Bash(aapt dump:*)"
+      "Bash(aapt dump:*)",
+      "Bash(adb:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -Command \"Start-Process ''C:\\Users\\Administrator\\AppData\\Local\\Android\\Sdk\\emulator\\emulator.exe'' -ArgumentList ''-avd'', ''Medium_Phone_API_36.1'', ''-gpu'', ''host'' -WindowStyle Normal\")",
+      "Bash(Select-Object FullName, Length, LastWriteTime)",
+      "Bash(.gradlew.bat installEmulatorDebug)",
+      "Bash(Select-String -Pattern \"(BUILD|FAILED|SUCCESS|INSTALL|error)\")",
+      "Bash(Select-Object -First 30)",
+      "Bash(.gradlew.bat clean)",
+      "Bash(file:*)",
+      "Bash(identify:*)",
+      "Bash(git rm:*)",
+      "Bash(Select-String -Pattern \"(error|warning|BUILD)\")",
+      "Bash(Select-String \"\\(BUILD|FAILED|error|warning|CameraState|CameraViewModel\\)\")",
+      "Bash(gradlew.bat clean:*)",
+      "Bash(tee:*)"
     ],
     "deny": [],
     "ask": []

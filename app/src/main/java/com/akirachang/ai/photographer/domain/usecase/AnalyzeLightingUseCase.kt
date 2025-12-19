@@ -20,6 +20,7 @@
  */
 package com.akirachang.ai.photographer.domain.usecase
 
+import android.graphics.Bitmap
 import android.graphics.Rect
 import android.util.Log
 import androidx.camera.core.ImageProxy
@@ -208,5 +209,75 @@ class AnalyzeLightingUseCase @Inject constructor(
         }
 
         return null
+    }
+
+    /**
+     * Analyze lighting from Bitmap without subject context (v2.5.1 Phase 7)
+     *
+     * Used when no faces/objects detected, provides basic exposure analysis
+     *
+     * @param bitmap Bitmap from unified camera preview stream
+     * @return LightingState for UI presentation
+     */
+    operator fun invoke(bitmap: Bitmap): LightingState {
+        try {
+            // Calculate histogram
+            val histogram = histogramCalculator.calculate(bitmap)
+
+            // Analyze exposure
+            val analysis = exposureDetector.analyze(histogram)
+
+            Log.d(TAG, "Lighting analysis from Bitmap: score=${analysis.exposureScore}, " +
+                    "backlit=${analysis.isBacklit}, overexp=${analysis.isOverexposed}, " +
+                    "lowlight=${analysis.isLowLight}")
+
+            // Classify state
+            return classifyLightingState(analysis)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error analyzing lighting from Bitmap", e)
+            return LightingState.Normal
+        }
+    }
+
+    /**
+     * Analyze lighting with subject context for backlight detection (v2.5.1 Phase 7)
+     *
+     * Used when face/object detected, enables accurate backlight detection
+     *
+     * @param bitmap Bitmap from unified camera preview stream
+     * @param detectionResult Detection result with subject bounding boxes
+     * @return LightingState with backlight detection
+     */
+    fun analyzeWithSubject(
+        bitmap: Bitmap,
+        detectionResult: DetectionResult
+    ): LightingState {
+        try {
+            // Calculate full-frame histogram
+            val histogram = histogramCalculator.calculate(bitmap)
+
+            // Get primary subject bounding box
+            val subjectBox = getPrimarySubjectBox(detectionResult) ?: run {
+                // No valid subject, fall back to basic analysis
+                return invoke(bitmap)
+            }
+
+            // Analyze with subject context
+            val analysis = exposureDetector.analyzeWithSubject(
+                bitmap = bitmap,
+                histogram = histogram,
+                subjectBox = subjectBox
+            )
+
+            Log.d(TAG, "Lighting with subject (Bitmap): score=${analysis.exposureScore}, " +
+                    "backlit=${analysis.isBacklit}, HDR=${analysis.shouldUseHDR}")
+
+            return classifyLightingState(analysis)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error analyzing lighting with subject (Bitmap)", e)
+            return LightingState.Normal
+        }
     }
 }

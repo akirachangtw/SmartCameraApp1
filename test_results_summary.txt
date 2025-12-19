@@ -1,0 +1,17 @@
+12-19 10:37:55.960 I/TestImageCycle( 5108): === Loading Test Image ===
+12-19 10:37:55.960 I/TestImageCycle( 5108): Index: 1 / 5
+12-19 10:37:55.960 I/TestImageCycle( 5108): Name: portrait_bad_headroom.jpg
+12-19 10:37:56.008 I/TestImageCycle( 5108): ✓ Loaded: portrait_bad_headroom.jpg (1080x1920)
+12-19 10:37:56.008 D/TestImageCycle( 5108):   Expected: Headroom 0.4-0.6 → Overall 0.4-0.6
+12-19 10:37:59.714 D/CameraViewModel( 5108): Lighting state updated: Normal
+12-19 10:38:03.013 I/TestImageCycle( 5108): === Loading Test Image ===
+12-19 10:38:03.013 I/TestImageCycle( 5108): Index: 2 / 5
+12-19 10:38:03.013 I/TestImageCycle( 5108): Name: portrait_off_center.jpg
+12-19 10:38:03.044 I/TestImageCycle( 5108): ✓ Loaded: portrait_off_center.jpg (1080x1920)
+12-19 10:38:03.044 D/TestImageCycle( 5108):   Expected: Thirds 0.5-0.7 → Overall 0.5-0.7
+12-19 10:38:07.460 D/CameraViewModel( 5108): Lighting state updated: Normal
+12-19 10:38:10.047 I/TestImageCycle( 5108): === Loading Test Image ===
+12-19 10:38:10.047 I/TestImageCycle( 5108): Index: 3 / 5
+12-19 10:38:10.047 I/TestImageCycle( 5108): Name: landscape_symmetry.jpg
+12-19 10:38:10.126 I/TestImageCycle( 5108): ✓ Loaded: landscape_symmetry.jpg (1920x1080)
+12-19 10:38:10.126 D/TestImageCycle( 5108):   Expected: No faces → May not trigger composition analysis

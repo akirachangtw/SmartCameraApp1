@@ -1,68 +1,55 @@
 package com.akirachang.ai.photographer.presentation.camera.components
 
-import android.view.ViewTreeObserver
-import androidx.camera.view.LifecycleCameraController
-import androidx.camera.view.PreviewView
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 
 /**
  * Camera Preview composable
  *
- * v1.4.0: Simplified - no longer needs size tracking callback since
- * MlKitAnalyzer with VIEW_REFERENCED handles coordinate transformation automatically
+ * v2.5.1: Refactored to support unified camera input abstraction
+ * - Accepts Bitmap for both test images (emulator) and live camera (device)
+ * - Removes direct dependency on CameraX PreviewView
+ * - Enables proper test image display in emulator builds
  *
- * v2.0 Phase 2: Added onSizeChanged callback for composition analysis accuracy
  * v2.3.1: Fixed size callback - use ViewTreeObserver for reliable size detection
+ * v2.0 Phase 2: Added onSizeChanged callback for composition analysis accuracy
  */
 @Composable
 fun CameraPreview(
-    controller: LifecycleCameraController,
+    previewBitmap: Bitmap?,
     modifier: Modifier = Modifier,
     onSizeChanged: ((Int, Int) -> Unit)? = null
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var previewViewRef by remember { mutableStateOf<PreviewView?>(null) }
-
-    // v2.3.1: Use DisposableEffect to properly track size changes
-    DisposableEffect(previewViewRef) {
-        val view = previewViewRef ?: return@DisposableEffect onDispose { }
-
-        val listener = ViewTreeObserver.OnGlobalLayoutListener {
-            if (view.width > 0 && view.height > 0) {
-                onSizeChanged?.invoke(view.width, view.height)
-            }
-        }
-
-        view.viewTreeObserver.addOnGlobalLayoutListener(listener)
-
-        onDispose {
-            view.viewTreeObserver.removeOnGlobalLayoutListener(listener)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .onSizeChanged { size ->
+                if (size.width > 0 && size.height > 0) {
+                    onSizeChanged?.invoke(size.width, size.height)
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        if (previewBitmap != null) {
+            Image(
+                bitmap = previewBitmap.asImageBitmap(),
+                contentDescription = "Camera preview",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            // Loading state - waiting for first frame
+            CircularProgressIndicator()
         }
     }
-
-    AndroidView(
-        factory = { context ->
-            PreviewView(context).apply {
-                // v2.2.1: Changed to FILL_CENTER to fill screen without black bars
-                // This prevents overlays from extending beyond preview area
-                // VIEW_REFERENCED coordinates still work correctly with this scale type
-                scaleType = PreviewView.ScaleType.FILL_CENTER
-
-                this.controller = controller
-                controller.bindToLifecycle(lifecycleOwner)
-
-                // v2.3.1: Store reference for size tracking
-                previewViewRef = this
-            }
-        },
-        modifier = modifier
-    )
 }
+

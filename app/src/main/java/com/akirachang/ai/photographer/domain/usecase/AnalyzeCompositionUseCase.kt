@@ -83,6 +83,48 @@ class AnalyzeCompositionUseCase @Inject constructor() {
     }
 
     /**
+     * Safely perform division with NaN/Infinity guards (v2.5.3)
+     *
+     * Prevents NaN propagation in composition calculations by validating:
+     * - Denominator is non-zero
+     * - Neither numerator nor denominator is NaN
+     * - Result is finite (not Infinity)
+     *
+     * @param numerator Dividend value
+     * @param denominator Divisor value
+     * @param defaultValue Fallback value if division is invalid (default: 0f)
+     * @return Result of division or defaultValue if invalid
+     */
+    private fun safeDivide(
+        numerator: Float,
+        denominator: Float,
+        defaultValue: Float = 0f
+    ): Float {
+        // Check for zero denominator
+        if (denominator == 0f) {
+            Log.w(TAG, "safeDivide: Zero denominator ($numerator / 0), returning $defaultValue")
+            return defaultValue
+        }
+
+        // Check for NaN inputs
+        if (numerator.isNaN() || denominator.isNaN()) {
+            Log.w(TAG, "safeDivide: NaN input detected (num=$numerator, den=$denominator), returning $defaultValue")
+            return defaultValue
+        }
+
+        // Perform division
+        val result = numerator / denominator
+
+        // Check result validity
+        return if (result.isNaN() || result.isInfinite()) {
+            Log.w(TAG, "safeDivide: Invalid result (NaN/Infinite) from ($numerator / $denominator), returning $defaultValue")
+            defaultValue
+        } else {
+            result
+        }
+    }
+
+    /**
      * Transforms ML Kit image-space coordinates into PreviewView/Compose view-space coordinates.
      *
      * CameraPreview uses PreviewView.ScaleType.FILL_CENTER (center-crop), so we must apply:
@@ -154,6 +196,13 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         val primaryFace = selectPrimarySubject(faces)
         val boundingBox = primaryFace.boundingBox
 
+        // v2.5.3: Validate bounding box before proceeding
+        if (boundingBox.isEmpty || boundingBox.width() <= 0 || boundingBox.height() <= 0) {
+            Log.e(TAG, "Invalid bounding box: $boundingBox (width=${boundingBox.width()}, height=${boundingBox.height()})")
+            return CompositionState.NoSubject
+        }
+        Log.d(TAG, "Valid bounding box: $boundingBox (${boundingBox.width()}x${boundingBox.height()})")
+
         // Determine ML Kit coordinate space dimensions.
         // InputImage is created with rotationDegrees, so ML Kit outputs coordinates in the rotated (upright) space.
         val rotatedImageWidth: Float
@@ -164,6 +213,12 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         } else {
             rotatedImageWidth = detectionResult.imageHeight.toFloat()
             rotatedImageHeight = detectionResult.imageWidth.toFloat()
+        }
+
+        // v2.5.3: Validate image dimensions are non-zero
+        if (rotatedImageWidth <= 0f || rotatedImageHeight <= 0f) {
+            Log.e(TAG, "Invalid image dimensions: ${rotatedImageWidth}x${rotatedImageHeight}")
+            return CompositionState.NoSubject
         }
 
         // Compose/Preview view dimensions.
@@ -194,9 +249,22 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         val faceLeft = faceRect.left
         val faceRight = faceRect.right
 
+        // v2.5.3: Validate calculated center is valid
+        if (faceCenterX.isNaN() || faceCenterX.isInfinite()) {
+            Log.e(TAG, "Invalid faceCenterX: left=${faceRect.left}, right=${faceRect.right}")
+            return CompositionState.NoSubject
+        }
+
         val faceCenterY = (faceRect.top + faceRect.bottom) / 2f
         val faceTop = faceRect.top
         val faceBottom = faceRect.bottom
+
+        if (faceCenterY.isNaN() || faceCenterY.isInfinite()) {
+            Log.e(TAG, "Invalid faceCenterY: top=${faceRect.top}, bottom=${faceRect.bottom}")
+            return CompositionState.NoSubject
+        }
+
+        Log.d(TAG, "Face center: (${faceCenterX.toInt()}, ${faceCenterY.toInt()})")
 
         // Phase 3: Perform multi-rule analysis
         val analysis = performCompositionAnalysis(
@@ -304,6 +372,24 @@ class AnalyzeCompositionUseCase @Inject constructor() {
             edgeDistanceScore * WEIGHT_EDGE_DISTANCE +
             subjectDetectionScore * WEIGHT_SUBJECT_DETECTION
 
+        // v2.5.3: Validate all scores for NaN/Infinity
+        val hasNaN = listOf(
+            eyePositionScore, ruleOfThirdsScore, headroomScore,
+            edgeDistanceScore, subjectDetectionScore, overallScore
+        ).any { it.isNaN() || it.isInfinite() }
+
+        if (hasNaN) {
+            Log.e("ScoreValidation", "❌ NaN/Infinite detected!")
+            Log.e("ScoreValidation", "  Eye: $eyePositionScore")
+            Log.e("ScoreValidation", "  Thirds: $ruleOfThirdsScore")
+            Log.e("ScoreValidation", "  Headroom: $headroomScore")
+            Log.e("ScoreValidation", "  Edge: $edgeDistanceScore")
+            Log.e("ScoreValidation", "  Subject: $subjectDetectionScore")
+            Log.e("ScoreValidation", "  Overall: $overallScore")
+        } else {
+            Log.i("ScoreValidation", "✓ All scores valid (Overall: ${"%.2f".format(overallScore)})")
+        }
+
         return CompositionAnalysis(
             ruleOfThirdsScore = ruleOfThirdsScore,
             headroomScore = headroomScore,
@@ -317,6 +403,7 @@ class AnalyzeCompositionUseCase @Inject constructor() {
 
     /**
      * Analyzes Rule of Thirds and returns a score (0.0 - 1.0)
+     * v2.5.3: Added dimension validation and safe division to prevent NaN
      */
     private fun analyzeRuleOfThirdsScore(
         faceCenterX: Float,
@@ -324,11 +411,23 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         imageWidth: Float,
         imageHeight: Float
     ): Float {
+        // v2.5.3: Validate inputs
+        if (imageWidth <= 0f || imageHeight <= 0f) {
+            Log.w(TAG, "Invalid dimensions for Rule of Thirds: ${imageWidth}x${imageHeight}")
+            return 0f
+        }
+
         val leftThird = imageWidth / 3f
         val rightThird = imageWidth * 2f / 3f
         val topThird = imageHeight / 3f
         val bottomThird = imageHeight * 2f / 3f
         val tolerance = imageWidth * 0.1f
+
+        // v2.5.3: Guard against zero tolerance
+        if (tolerance == 0f) {
+            Log.w(TAG, "Tolerance is zero, cannot calculate Rule of Thirds")
+            return 0f
+        }
 
         // Calculate distances to nearest third lines
         val horizontalDistance = minOf(
@@ -342,11 +441,14 @@ class AnalyzeCompositionUseCase @Inject constructor() {
 
         // Score based on proximity to intersection points
         // Perfect alignment = 1.0, far from lines = 0.0
-        val horizontalScore = (1f - (horizontalDistance / tolerance).coerceIn(0f, 1f))
-        val verticalScore = (1f - (verticalDistance / tolerance).coerceIn(0f, 1f))
+        // v2.5.3: Use safe division
+        val horizontalScore = 1f - safeDivide(horizontalDistance, tolerance, 1f).coerceIn(0f, 1f)
+        val verticalScore = 1f - safeDivide(verticalDistance, tolerance, 1f).coerceIn(0f, 1f)
 
-        // Both dimensions must align well for good score
-        return (horizontalScore + verticalScore) / 2f
+        val finalScore = (horizontalScore + verticalScore) / 2f
+
+        Log.d(TAG, "Rule of Thirds: H=${"%.2f".format(horizontalScore)}, V=${"%.2f".format(verticalScore)}, Final=${"%.2f".format(finalScore)}")
+        return finalScore
     }
 
     /**
@@ -932,9 +1034,10 @@ class AnalyzeCompositionUseCase @Inject constructor() {
     /**
      * 計算對齊進度
      * v2.4.0: 用於視覺引導框顏色漸變
+     * v2.5.3: Added tolerance validation and safe division to prevent NaN
      *
-     * @param currentEyeY 當前眼睛 Y 座標
-     * @param targetEyeY 目標眼睛 Y 座標（上三分線）
+     * @param current 當前座標值
+     * @param target 目標座標值
      * @param tolerance 容差範圍
      * @return 0.0（遠離）到 1.0（完美對齊）
      */
@@ -943,10 +1046,26 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         target: Float,
         tolerance: Float
     ): Float {
+        // v2.5.3: Validate inputs
+        if (tolerance <= 0f) {
+            Log.w(TAG, "calculateAlignmentProgress: Invalid tolerance ($tolerance)")
+            return 0f
+        }
+
+        if (current.isNaN() || target.isNaN()) {
+            Log.w(TAG, "calculateAlignmentProgress: NaN detected (current=$current, target=$target)")
+            return 0f
+        }
+
         val distance = abs(current - target)
-        // 使用更大的範圍來計算進度（2倍容差）
         val maxDistance = tolerance * 2f
-        return (1f - (distance / maxDistance)).coerceIn(0f, 1f)
+
+        // v2.5.3: Use safe division
+        val progress = safeDivide(distance, maxDistance, 1f)
+        val finalProgress = (1f - progress).coerceIn(0f, 1f)
+
+        Log.d(TAG, "Alignment progress: distance=${"%.1f".format(distance)}, progress=${"%.2f".format(finalProgress)}")
+        return finalProgress
     }
 
     /**

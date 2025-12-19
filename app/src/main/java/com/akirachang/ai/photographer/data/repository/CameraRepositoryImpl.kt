@@ -23,13 +23,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import android.graphics.Bitmap
+import com.akirachang.ai.photographer.data.source.camera.CameraInputSource
 import com.akirachang.ai.photographer.data.source.camera.SmartCameraAnalyzer
+import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.domain.model.CaptureResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.domain.repository.CameraRepository
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 import com.akirachang.ai.photographer.util.Constants
+import kotlinx.coroutines.flow.Flow
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
@@ -39,7 +43,8 @@ import kotlin.coroutines.resume
 @Singleton
 class CameraRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val analyzeLightingUseCase: AnalyzeLightingUseCase
+    private val analyzeLightingUseCase: AnalyzeLightingUseCase,
+    private val cameraInputSource: CameraInputSource
 ) : CameraRepository {
 
     companion object {
@@ -101,7 +106,17 @@ class CameraRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getCameraController(): LifecycleCameraController = _cameraController
+    /**
+     * 獲取相機預覽流（統一介面）
+     * v2.5.1: Camera Input 抽象層整合
+     *
+     * 委派給 CameraInputSource，自動根據環境提供測試圖片或實機相機預覽
+     */
+    override fun getPreviewStream(): Flow<Bitmap> {
+        Log.d(TAG, "getPreviewStream: Delegating to CameraInputSource")
+        return cameraInputSource.getPreviewStream()
+    }
+
 
     /**
      * 拍攝照片並儲存到 MediaStore
@@ -214,9 +229,31 @@ class CameraRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getCurrentCameraSelector(): CameraSelector {
-        return _cameraController.cameraSelector
+    /**
+     * Get current camera lens (platform-agnostic)
+     *
+     * v2.5.1: Returns CameraLens instead of exposing CameraSelector
+     */
+    override fun getCurrentCamera(): CameraLens {
+        return when (_cameraController.cameraSelector) {
+            CameraSelector.DEFAULT_FRONT_CAMERA -> CameraLens.FRONT
+            else -> CameraLens.BACK
+        }
     }
+
+    /**
+     * Select camera lens (front or back)
+     *
+     * v2.5.1: Uses platform-agnostic CameraLens
+     */
+    override fun selectCamera(lens: CameraLens) {
+        _cameraController.cameraSelector = when (lens) {
+            CameraLens.FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
+            CameraLens.BACK -> CameraSelector.DEFAULT_BACK_CAMERA
+        }
+        Log.d(TAG, "Camera switched to: $lens")
+    }
+
 
     override fun setFlashMode(flashMode: Int) {
         _cameraController.imageCaptureFlashMode = flashMode
@@ -335,5 +372,55 @@ class CameraRepositoryImpl @Inject constructor(
             Log.e(TAG, "Failed to stop image analysis", e)
         }
     }
+
+    /**
+     * 使用 ML Kit 進行人臉偵測
+     * v2.5.1 Phase 7: Bitmap-based analysis
+     */
+    override suspend fun detectFaces(image: com.google.mlkit.vision.common.InputImage): List<com.google.mlkit.vision.face.Face> =
+        withContext(Dispatchers.IO) {
+            suspendCancellableCoroutine { continuation ->
+                faceDetector.process(image)
+                    .addOnSuccessListener { faces ->
+                        if (continuation.isActive) {
+                            continuation.resume(faces)
+                        }
+                    }
+                    .addOnFailureListener { exception ->
+                        Log.e(TAG, "Face detection failed", exception)
+                        if (continuation.isActive) {
+                            continuation.resume(emptyList())
+                        }
+                    }
+            }
+        }
+
+    /**
+     * 使用 ML Kit 進行物件偵測
+     * v2.5.1 Phase 7: Bitmap-based analysis
+     */
+    override suspend fun detectObjects(image: com.google.mlkit.vision.common.InputImage): List<com.google.mlkit.vision.objects.DetectedObject> =
+        withContext(Dispatchers.IO) {
+            suspendCancellableCoroutine { continuation ->
+                objectDetector.process(image)
+                    .addOnSuccessListener { objects ->
+                        // Filter by confidence
+                        val filteredObjects = objects.filter { obj ->
+                            obj.trackingId != null &&
+                            obj.labels.any { it.confidence >= MIN_OBJECT_CONFIDENCE }
+                        }
+
+                        if (continuation.isActive) {
+                            continuation.resume(filteredObjects)
+                        }
+                    }
+                    .addOnFailureListener { exception ->
+                        Log.e(TAG, "Object detection failed", exception)
+                        if (continuation.isActive) {
+                            continuation.resume(emptyList())
+                        }
+                    }
+            }
+        }
 
 }

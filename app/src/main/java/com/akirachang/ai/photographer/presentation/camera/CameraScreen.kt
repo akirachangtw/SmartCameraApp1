@@ -128,9 +128,11 @@ fun CameraScreen(
                     .padding(paddingValues)
             ) {
                 // 相機預覽
+                // v2.5.1: Refactored to use Bitmap preview from CameraInputSource
                 // v2.0 Phase 2: Pass size callback for accurate composition analysis
+                val previewBitmap by viewModel.previewBitmap.collectAsState()
                 CameraPreview(
-                    controller = viewModel.getCameraController(),
+                    previewBitmap = previewBitmap,
                     modifier = Modifier.fillMaxSize(),
                     onSizeChanged = { width, height ->
                         viewModel.updatePreviewSize(width, height)

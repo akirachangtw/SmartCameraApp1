@@ -3,6 +3,7 @@ package com.akirachang.ai.photographer.data.local
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,6 +19,9 @@ import javax.inject.Singleton
 class TestImageProvider @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    companion object {
+        private const val TAG = "TestImageProvider"
+    }
 
     private val testImages = listOf(
         "portrait_good_composition.jpg",
@@ -31,19 +35,65 @@ class TestImageProvider @Inject constructor(
 
     /**
      * 從 assets 載入測試圖片
+     * v2.5.3: Enhanced logging with expected score information
      */
     suspend fun getNextTestImage(): Bitmap? = withContext(Dispatchers.IO) {
-        try {
-            val imageName = testImages[currentIndex]
-            currentIndex = (currentIndex + 1) % testImages.size
+        val imageName = testImages[currentIndex]
 
-            context.assets.open("test_images/$imageName").use { inputStream ->
+        // v2.5.3: Structured logging for test identification
+        Log.i("TestImageCycle", "=== Loading Test Image ===")
+        Log.i("TestImageCycle", "Index: $currentIndex / ${testImages.size}")
+        Log.i("TestImageCycle", "Name: $imageName")
+
+        try {
+            Log.d(TAG, "Attempting to open: test_images/$imageName")
+
+            val bitmap = context.assets.open("test_images/$imageName").use { inputStream ->
                 BitmapFactory.decodeStream(inputStream)
             }
+
+            if (bitmap != null) {
+                Log.i("TestImageCycle", "✓ Loaded: $imageName (${bitmap.width}x${bitmap.height})")
+
+                // v2.5.3: Log expected scores for validation
+                logExpectedScores(imageName)
+
+                currentIndex = (currentIndex + 1) % testImages.size
+                bitmap
+            } else {
+                Log.e("TestImageCycle", "BitmapFactory returned null for: $imageName")
+                Timber.e("Failed to decode bitmap: $imageName")
+                currentIndex = (currentIndex + 1) % testImages.size
+                createFallbackTestImage()
+            }
         } catch (e: Exception) {
+            Log.e("TestImageCycle", "Failed to load: $imageName", e)
             Timber.e(e, "Failed to load test image")
-            // 如果測試圖片不存在，創建一個簡單的測試圖片
+            currentIndex = (currentIndex + 1) % testImages.size
             createFallbackTestImage()
+        }
+    }
+
+    /**
+     * v2.5.3: Log expected composition scores for test validation
+     */
+    private fun logExpectedScores(imageName: String) {
+        when (imageName) {
+            "portrait_good_composition.jpg" -> {
+                Log.d("TestImageCycle", "  Expected: Eye≥0.9, Headroom≥0.9, Thirds≥0.8 → Overall≥0.75")
+            }
+            "portrait_bad_headroom.jpg" -> {
+                Log.d("TestImageCycle", "  Expected: Headroom 0.4-0.6 → Overall 0.4-0.6")
+            }
+            "portrait_off_center.jpg" -> {
+                Log.d("TestImageCycle", "  Expected: Thirds 0.5-0.7 → Overall 0.5-0.7")
+            }
+            "landscape_symmetry.jpg" -> {
+                Log.d("TestImageCycle", "  Expected: No faces → May not trigger composition analysis")
+            }
+            "landscape_rule_of_thirds.jpg" -> {
+                Log.d("TestImageCycle", "  Expected: No faces → May not trigger composition analysis")
+            }
         }
     }
 
@@ -51,11 +101,25 @@ class TestImageProvider @Inject constructor(
      * 載入特定測試圖片
      */
     suspend fun getTestImage(name: String): Bitmap? = withContext(Dispatchers.IO) {
+        Log.i(TAG, "Loading specific test image: $name")
+
         try {
-            context.assets.open("test_images/$name").use { inputStream ->
+            Log.d(TAG, "Attempting to open: test_images/$name")
+
+            val bitmap = context.assets.open("test_images/$name").use { inputStream ->
                 BitmapFactory.decodeStream(inputStream)
             }
+
+            if (bitmap != null) {
+                Log.i(TAG, "Successfully loaded specific image: $name (${bitmap.width}x${bitmap.height})")
+                bitmap
+            } else {
+                Log.e(TAG, "BitmapFactory.decodeStream() returned null for: $name")
+                Timber.e("Failed to decode bitmap: $name")
+                createFallbackTestImage()
+            }
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to load test image: $name", e)
             Timber.e(e, "Failed to load test image: $name")
             createFallbackTestImage()
         }
@@ -72,6 +136,8 @@ class TestImageProvider @Inject constructor(
     private fun createFallbackTestImage(): Bitmap {
         val width = 1920
         val height = 1080
+        Log.w(TAG, "Creating fallback test image: ${width}x${height}")
+
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
 
         // 填充灰色背景
@@ -93,6 +159,7 @@ class TestImageProvider @Inject constructor(
         )
 
         Timber.d("Created fallback test image: ${width}x${height}")
+        Log.i(TAG, "Fallback test image created successfully")
         return bitmap
     }
 }
