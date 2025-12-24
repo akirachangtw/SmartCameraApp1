@@ -67,12 +67,17 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         // Rule weights (must sum to 1.0)
         // v2.3.0: Added eye position weight, adjusted other weights
         // v2.4.6: 降低眼睛位置權重，避免過度影響整體評分
+        // v2.6.0: Split edge distance into edge + fill-the-frame
         private const val WEIGHT_EYE_POSITION = 0.18f      // 從 0.25f 降為 0.18f
         private const val WEIGHT_RULE_OF_THIRDS = 0.25f    // 保持不變
         private const val WEIGHT_HEADROOM = 0.22f          // 從 0.20f 增為 0.22f（補眼睛減少的部分）
-        private const val WEIGHT_EDGE_DISTANCE = 0.25f     // 從 0.20f 增為 0.25f（補眼睛減少的部分）
+        private const val WEIGHT_EDGE_DISTANCE = 0.25f     // 保持不變 (內部拆分為 edge 60% + fill 40%)
         private const val WEIGHT_SUBJECT_DETECTION = 0.10f // 保持不變
         // 總和 = 0.18 + 0.25 + 0.22 + 0.25 + 0.10 = 1.00
+
+        // Edge distance sub-weights (v2.6.0 - must sum to 1.0)
+        private const val SUB_WEIGHT_EDGE = 0.60f          // Edge distance: 60% of WEIGHT_EDGE_DISTANCE
+        private const val SUB_WEIGHT_FILL_FRAME = 0.40f    // Fill-the-frame: 40% of WEIGHT_EDGE_DISTANCE
 
         // Headroom configuration (percentage of image height)
         private const val IDEAL_HEADROOM_MIN = 0.05f  // 5%
@@ -80,6 +85,12 @@ class AnalyzeCompositionUseCase @Inject constructor() {
 
         // Edge distance configuration (percentage of image width)
         private const val MIN_EDGE_DISTANCE = 0.05f  // 5%
+
+        // Fill-the-frame configuration (v2.6.0 - percentage of image area)
+        private const val FILL_FRAME_MIN = 0.30f  // 30% - minimum subject area
+        private const val FILL_FRAME_IDEAL_MIN = 0.40f  // 40% - ideal minimum
+        private const val FILL_FRAME_IDEAL_MAX = 0.70f  // 70% - ideal maximum
+        private const val FILL_FRAME_MAX = 0.85f  // 85% - maximum before too tight
     }
 
     /**
@@ -186,12 +197,47 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         isFrontCamera: Boolean = false
     ): CompositionState {
         val faces = detectionResult.faces
+        val objects = detectionResult.objects
 
-        // No subject detected
-        if (faces.isEmpty()) {
-            return CompositionState.NoSubject
+        // v2.5.4: Priority-based composition analysis
+        // Priority 1: Face composition (existing logic for portraits)
+        if (faces.isNotEmpty()) {
+            return analyzeFaceComposition(
+                faces = faces,
+                detectionResult = detectionResult,
+                previewWidth = previewWidth,
+                previewHeight = previewHeight,
+                isFrontCamera = isFrontCamera
+            )
         }
 
+        // Priority 2: Object composition (new - for landscape images)
+        if (objects.isNotEmpty()) {
+            return analyzeObjectComposition(
+                objects = objects,
+                detectionResult = detectionResult,
+                previewWidth = previewWidth,
+                previewHeight = previewHeight
+            )
+        }
+
+        // No subject detected
+        return CompositionState.NoSubject
+    }
+
+    /**
+     * Analyze composition using face detection (for portrait images)
+     * Maintains all v2.5.3 logic without changes
+     *
+     * v2.5.4: Extracted from invoke() to support object-based composition
+     */
+    private fun analyzeFaceComposition(
+        faces: List<com.google.mlkit.vision.face.Face>,
+        detectionResult: DetectionResult,
+        previewWidth: Int?,
+        previewHeight: Int?,
+        isFrontCamera: Boolean
+    ): CompositionState {
         // Phase 3: Select primary subject (largest face if multiple detected)
         val primaryFace = selectPrimarySubject(faces)
         val boundingBox = primaryFace.boundingBox
@@ -289,6 +335,14 @@ class AnalyzeCompositionUseCase @Inject constructor() {
             imageHeight = viewHeight
         )
 
+        // v2.6.0: Generate fill-the-frame suggestion
+        val (fillFrameIssue, fillFrameSuggestion) = generateFillFrameSuggestion(
+            subjectWidth = faceRect.width,
+            subjectHeight = faceRect.height,
+            imageWidth = viewWidth,
+            imageHeight = viewHeight
+        )
+
         // Determine composition state based on overall score
         return if (analysis.overallScore >= GOOD_COMPOSITION_THRESHOLD) {
             CompositionState.Good(guideData = guideData)
@@ -301,7 +355,9 @@ class AnalyzeCompositionUseCase @Inject constructor() {
                 message = message,
                 directionX = dirX,
                 directionY = dirY,
-                guideData = guideData
+                guideData = guideData,
+                fillFrameIssue = fillFrameIssue,
+                fillFrameSuggestion = fillFrameSuggestion
             )
         }
     }
@@ -356,26 +412,42 @@ class AnalyzeCompositionUseCase @Inject constructor() {
             faceTop, imageHeight
         )
 
-        // Rule 3: Edge Distance (25% weight)
+        // Rule 3: Edge Distance & Fill-the-frame (25% weight total)
+        // v2.6.0: Split into edge (60%) and fill-the-frame (40%) sub-scores
         val edgeDistanceScore = analyzeEdgeDistanceScore(
             faceLeft, faceRight, faceTop, faceBottom, imageWidth, imageHeight
         )
 
+        // Calculate face dimensions for fill-the-frame analysis
+        val faceWidth = faceRight - faceLeft
+        val faceHeight = faceBottom - faceTop
+
+        val fillFrameScore = analyzeFillFrameScore(
+            subjectWidth = faceWidth,
+            subjectHeight = faceHeight,
+            imageWidth = imageWidth,
+            imageHeight = imageHeight
+        )
+
+        // Combined edge score: edge (60%) + fill (40%)
+        val combinedEdgeScore = edgeDistanceScore * SUB_WEIGHT_EDGE + fillFrameScore * SUB_WEIGHT_FILL_FRAME
+
         // Rule 4: Subject Detection (10% weight)
         val subjectDetectionScore = analyzeSubjectDetectionScore(faceCount)
 
-        // Calculate weighted overall score (v2.3.0: includes eye position)
+        // Calculate weighted overall score (v2.3.0: includes eye position, v2.6.0: includes fill-the-frame)
         val overallScore =
             eyePositionScore * WEIGHT_EYE_POSITION +
             ruleOfThirdsScore * WEIGHT_RULE_OF_THIRDS +
             headroomScore * WEIGHT_HEADROOM +
-            edgeDistanceScore * WEIGHT_EDGE_DISTANCE +
+            combinedEdgeScore * WEIGHT_EDGE_DISTANCE +
             subjectDetectionScore * WEIGHT_SUBJECT_DETECTION
 
-        // v2.5.3: Validate all scores for NaN/Infinity
+        // v2.6.0: Validate all scores for NaN/Infinity (including fill-frame)
         val hasNaN = listOf(
             eyePositionScore, ruleOfThirdsScore, headroomScore,
-            edgeDistanceScore, subjectDetectionScore, overallScore
+            edgeDistanceScore, fillFrameScore, combinedEdgeScore,
+            subjectDetectionScore, overallScore
         ).any { it.isNaN() || it.isInfinite() }
 
         if (hasNaN) {
@@ -384,10 +456,12 @@ class AnalyzeCompositionUseCase @Inject constructor() {
             Log.e("ScoreValidation", "  Thirds: $ruleOfThirdsScore")
             Log.e("ScoreValidation", "  Headroom: $headroomScore")
             Log.e("ScoreValidation", "  Edge: $edgeDistanceScore")
+            Log.e("ScoreValidation", "  Fill: $fillFrameScore")
+            Log.e("ScoreValidation", "  Combined Edge: $combinedEdgeScore")
             Log.e("ScoreValidation", "  Subject: $subjectDetectionScore")
             Log.e("ScoreValidation", "  Overall: $overallScore")
         } else {
-            Log.i("ScoreValidation", "✓ All scores valid (Overall: ${"%.2f".format(overallScore)})")
+            Log.i("ScoreValidation", "✓ All scores valid (Overall: ${"%.2f".format(overallScore)}, Fill: ${"%.2f".format(fillFrameScore)})")
         }
 
         return CompositionAnalysis(
@@ -510,6 +584,133 @@ class AnalyzeCompositionUseCase @Inject constructor() {
 
         // Score based on minimum margin
         return (minMargin / minRequired).coerceIn(0f, 1f)
+    }
+
+    /**
+     * Analyzes fill-the-frame composition and returns a score (0.0 - 1.0)
+     *
+     * v2.6.0: Fill-the-frame composition analysis
+     *
+     * Evaluates how much of the frame the subject occupies:
+     * - Too little (< 30%): Subject too small, wasted space
+     * - Ideal (40-70%): Perfect fill, balanced composition
+     * - Too much (> 85%): Subject too large, cramped feeling
+     *
+     * Scoring:
+     * - 1.0: Subject area in ideal range (40-70%)
+     * - 0.7-1.0: Acceptable range (30-85%)
+     * - < 0.7: Poor fill (too small or too large)
+     *
+     * @param subjectWidth Width of subject bounding box
+     * @param subjectHeight Height of subject bounding box
+     * @param imageWidth Total image width
+     * @param imageHeight Total image height
+     * @return Fill-the-frame score (0.0-1.0)
+     */
+    private fun analyzeFillFrameScore(
+        subjectWidth: Float,
+        subjectHeight: Float,
+        imageWidth: Float,
+        imageHeight: Float
+    ): Float {
+        // Calculate subject area ratio (subject area / image area)
+        val subjectArea = subjectWidth * subjectHeight
+        val imageArea = imageWidth * imageHeight
+        val areaRatio = safeDivide(subjectArea, imageArea, 0f)
+
+        // Validate ratio
+        if (areaRatio <= 0f || areaRatio > 1f) {
+            Log.w(TAG, "Invalid area ratio: $areaRatio (subject: $subjectArea, image: $imageArea)")
+            return 0.5f // Neutral score for invalid data
+        }
+
+        // Score based on fill ratio
+        val score = when {
+            // Ideal range: 40-70% (perfect fill)
+            areaRatio >= FILL_FRAME_IDEAL_MIN && areaRatio <= FILL_FRAME_IDEAL_MAX -> {
+                1.0f // Perfect score
+            }
+
+            // Acceptable low range: 30-40% (subject a bit small)
+            areaRatio >= FILL_FRAME_MIN && areaRatio < FILL_FRAME_IDEAL_MIN -> {
+                // Linear interpolation: 0.7 at 30%, 1.0 at 40%
+                0.7f + (areaRatio - FILL_FRAME_MIN) / (FILL_FRAME_IDEAL_MIN - FILL_FRAME_MIN) * 0.3f
+            }
+
+            // Acceptable high range: 70-85% (subject a bit large)
+            areaRatio > FILL_FRAME_IDEAL_MAX && areaRatio <= FILL_FRAME_MAX -> {
+                // Linear interpolation: 1.0 at 70%, 0.7 at 85%
+                1.0f - (areaRatio - FILL_FRAME_IDEAL_MAX) / (FILL_FRAME_MAX - FILL_FRAME_IDEAL_MAX) * 0.3f
+            }
+
+            // Too small: < 30% (subject too far/small)
+            areaRatio < FILL_FRAME_MIN -> {
+                // Linear decrease: 0.7 at 30%, 0.0 at 0%
+                (areaRatio / FILL_FRAME_MIN) * 0.7f
+            }
+
+            // Too large: > 85% (subject too close/large)
+            areaRatio > FILL_FRAME_MAX -> {
+                // Linear decrease: 0.7 at 85%, 0.0 at 100%
+                0.7f - ((areaRatio - FILL_FRAME_MAX) / (1.0f - FILL_FRAME_MAX)) * 0.7f
+            }
+
+            else -> 0.5f // Fallback (should not reach here)
+        }
+
+        Log.d(TAG, "Fill-the-frame: ratio=${"%.2f".format(areaRatio * 100)}%, score=${"%.2f".format(score)}")
+        return score.coerceIn(0f, 1f)
+    }
+
+    /**
+     * Generate fill-the-frame suggestion based on subject area ratio
+     *
+     * v2.6.0: Provides Traditional Chinese suggestions for fill-frame adjustment
+     *
+     * @param subjectWidth Width of subject bounding box
+     * @param subjectHeight Height of subject bounding box
+     * @param imageWidth Image width
+     * @param imageHeight Image height
+     * @return Pair of (hasIssue: Boolean, suggestion: String)
+     */
+    private fun generateFillFrameSuggestion(
+        subjectWidth: Float,
+        subjectHeight: Float,
+        imageWidth: Float,
+        imageHeight: Float
+    ): Pair<Boolean, String> {
+        val subjectArea = subjectWidth * subjectHeight
+        val imageArea = imageWidth * imageHeight
+        val areaRatio = safeDivide(subjectArea, imageArea, 0f)
+
+        return when {
+            // Too small: < 30% → move closer
+            areaRatio < FILL_FRAME_MIN -> {
+                true to "主體過小，建議靠近拍攝"
+            }
+
+            // Acceptable low: 30-40% → slightly small but ok
+            areaRatio >= FILL_FRAME_MIN && areaRatio < FILL_FRAME_IDEAL_MIN -> {
+                true to "主體稍小，可以再靠近一點"
+            }
+
+            // Ideal: 40-70% → perfect
+            areaRatio >= FILL_FRAME_IDEAL_MIN && areaRatio <= FILL_FRAME_IDEAL_MAX -> {
+                false to ""
+            }
+
+            // Acceptable high: 70-85% → slightly large but ok
+            areaRatio > FILL_FRAME_IDEAL_MAX && areaRatio <= FILL_FRAME_MAX -> {
+                true to "主體稍大，可以退後一點"
+            }
+
+            // Too large: > 85% → move back
+            areaRatio > FILL_FRAME_MAX -> {
+                true to "主體過大，建議退後拍攝"
+            }
+
+            else -> false to ""
+        }
     }
 
     /**
@@ -1224,5 +1425,250 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         CENTER,
         BOTTOM_THIRD,
         TOO_LOW
+    }
+
+    // ==================== v2.5.4: Object-Based Composition Analysis ====================
+
+    /**
+     * Analyze composition using object detection (for landscape images without faces)
+     *
+     * v2.5.4: New functionality for landscape photography
+     * Uses ML Kit Object Detection to analyze composition of non-portrait scenes
+     *
+     * Scoring algorithm:
+     * - Rule of Thirds: 40% weight (vs 30% for faces)
+     * - Edge Distance: 35% weight (vs 25% for faces)
+     * - Symmetry: 25% weight (new - landscape-specific)
+     * - Overall score multiplied by 0.85 (object bbox less accurate than face landmarks)
+     *
+     * @param objects List of detected objects (already filtered by confidence >= 0.5)
+     * @param detectionResult Full detection result with image dimensions
+     * @param previewWidth Width of the preview view in pixels
+     * @param previewHeight Height of the preview view in pixels
+     * @return CompositionState indicating composition quality and suggestions
+     */
+    private fun analyzeObjectComposition(
+        objects: List<com.google.mlkit.vision.objects.DetectedObject>,
+        detectionResult: DetectionResult,
+        previewWidth: Int?,
+        previewHeight: Int?
+    ): CompositionState {
+        // 1. Select primary object (largest by area)
+        val primaryObject = objects.maxByOrNull {
+            it.boundingBox.width() * it.boundingBox.height()
+        } ?: return CompositionState.NoSubject
+
+        val boundingBox = primaryObject.boundingBox
+
+        // 2. Validate bounding box
+        if (boundingBox.isEmpty || boundingBox.width() <= 0 || boundingBox.height() <= 0) {
+            Log.e(TAG, "analyzeObjectComposition: Invalid object bounding box: $boundingBox")
+            return CompositionState.NoSubject
+        }
+
+        Log.d(TAG, "analyzeObjectComposition: Primary object bbox=$boundingBox (${boundingBox.width()}x${boundingBox.height()})")
+
+        // 3. Determine image dimensions (same logic as face analysis)
+        val rotatedImageWidth: Float
+        val rotatedImageHeight: Float
+
+        if (detectionResult.rotationDegrees == 90 || detectionResult.rotationDegrees == 270) {
+            // Rotation is 90° or 270°: dimensions are swapped
+            rotatedImageWidth = detectionResult.imageHeight.toFloat()
+            rotatedImageHeight = detectionResult.imageWidth.toFloat()
+        } else {
+            // Rotation is 0° or 180°: dimensions remain same
+            rotatedImageWidth = detectionResult.imageWidth.toFloat()
+            rotatedImageHeight = detectionResult.imageHeight.toFloat()
+        }
+
+        // v2.5.3: Validate image dimensions
+        if (rotatedImageWidth <= 0f || rotatedImageHeight <= 0f) {
+            Log.e(TAG, "analyzeObjectComposition: Invalid image dimensions: ${rotatedImageWidth}x${rotatedImageHeight}")
+            return CompositionState.NoSubject
+        }
+
+        Log.d(TAG, "analyzeObjectComposition: Image dimensions ${rotatedImageWidth}x${rotatedImageHeight} (rotation=${detectionResult.rotationDegrees}°)")
+
+        // 4. Calculate object center coordinates
+        val objectCenterX = boundingBox.exactCenterX()
+        val objectCenterY = boundingBox.exactCenterY()
+
+        // v2.5.3: NaN/Infinity validation
+        if (objectCenterX.isNaN() || objectCenterX.isInfinite() ||
+            objectCenterY.isNaN() || objectCenterY.isInfinite()) {
+            Log.e(TAG, "analyzeObjectComposition: Invalid object center: ($objectCenterX, $objectCenterY)")
+            return CompositionState.NoSubject
+        }
+
+        Log.d(TAG, "analyzeObjectComposition: Object center at (%.1f, %.1f)".format(objectCenterX, objectCenterY))
+
+        // 5. Rule of Thirds analysis (reuse existing function)
+        val ruleOfThirdsScore = analyzeRuleOfThirdsScore(
+            faceCenterX = objectCenterX,
+            faceCenterY = objectCenterY,
+            imageWidth = rotatedImageWidth,
+            imageHeight = rotatedImageHeight
+        )
+
+        // 6. Edge Distance analysis (reuse existing function)
+        val edgeDistanceScore = analyzeEdgeDistanceScore(
+            faceLeft = boundingBox.left.toFloat(),
+            faceRight = boundingBox.right.toFloat(),
+            faceTop = boundingBox.top.toFloat(),
+            faceBottom = boundingBox.bottom.toFloat(),
+            imageWidth = rotatedImageWidth,
+            imageHeight = rotatedImageHeight
+        )
+
+        // 6.5. Fill-the-frame analysis (v2.6.0)
+        val fillFrameScore = analyzeFillFrameScore(
+            subjectWidth = boundingBox.width().toFloat(),
+            subjectHeight = boundingBox.height().toFloat(),
+            imageWidth = rotatedImageWidth,
+            imageHeight = rotatedImageHeight
+        )
+
+        // Combined edge score: edge (60%) + fill (40%)
+        val combinedEdgeScore = edgeDistanceScore * SUB_WEIGHT_EDGE + fillFrameScore * SUB_WEIGHT_FILL_FRAME
+
+        // 7. Symmetry analysis (new - landscape-specific)
+        val symmetryScore = calculateSymmetryScore(
+            centerX = objectCenterX,
+            imageWidth = rotatedImageWidth
+        )
+
+        // 8. Calculate weighted overall score (v2.6.0: uses combinedEdgeScore)
+        val rawScore = ruleOfThirdsScore * 0.40f + combinedEdgeScore * 0.35f + symmetryScore * 0.25f
+
+        // Apply confidence discount for object detection (less accurate than face landmarks)
+        val overallScore = rawScore * 0.85f
+
+        // 9. Validate scores (prevent NaN propagation) - v2.6.0: includes fill-frame
+        val scores = listOf(ruleOfThirdsScore, edgeDistanceScore, fillFrameScore, combinedEdgeScore, symmetryScore, overallScore)
+        if (scores.any { it.isNaN() || it.isInfinite() }) {
+            Log.e(TAG, "analyzeObjectComposition: NaN/Infinite detected in scores - thirds:$ruleOfThirdsScore, edge:$edgeDistanceScore, fill:$fillFrameScore, combined:$combinedEdgeScore, symmetry:$symmetryScore, overall:$overallScore")
+            return CompositionState.NoSubject
+        }
+
+        Log.i(TAG, "Object Scores - thirds:%.2f edge:%.2f fill:%.2f combined:%.2f symmetry:%.2f overall:%.2f".format(
+            ruleOfThirdsScore, edgeDistanceScore, fillFrameScore, combinedEdgeScore, symmetryScore, overallScore
+        ))
+
+        // 9.5. Generate fill-the-frame suggestion (v2.6.0)
+        val (fillFrameIssue, fillFrameSuggestion) = generateFillFrameSuggestion(
+            subjectWidth = boundingBox.width().toFloat(),
+            subjectHeight = boundingBox.height().toFloat(),
+            imageWidth = rotatedImageWidth,
+            imageHeight = rotatedImageHeight
+        )
+
+        // 10. Determine composition state (more lenient thresholds for objects)
+        return when {
+            overallScore >= 0.65f -> {
+                Log.i(TAG, "✓ All scores valid (Overall: %.2f)".format(overallScore))
+                CompositionState.Good(
+                    guideData = null  // v2.5.4: Guide data not yet implemented for objects
+                )
+            }
+            overallScore >= 0.40f -> {
+                val (directionX, directionY) = calculateObjectAdjustmentDirection(
+                    currentX = objectCenterX,
+                    currentY = objectCenterY,
+                    imageWidth = rotatedImageWidth,
+                    imageHeight = rotatedImageHeight
+                )
+                CompositionState.NeedsAdjustment(
+                    message = "Adjust object position for better composition",
+                    directionX = directionX,
+                    directionY = directionY,
+                    guideData = null,
+                    fillFrameIssue = fillFrameIssue,
+                    fillFrameSuggestion = fillFrameSuggestion
+                )
+            }
+            else -> CompositionState.NoSubject
+        }
+    }
+
+    /**
+     * Calculate symmetry score for landscape composition
+     *
+     * v2.5.4: New scoring function for landscape photography
+     * Checks if the object is positioned at the horizontal center of the frame
+     * Higher score when object is centered (good for symmetrical compositions)
+     *
+     * @param centerX Object center X coordinate
+     * @param imageWidth Image width
+     * @return Symmetry score (0.0 to 1.0)
+     */
+    private fun calculateSymmetryScore(
+        centerX: Float,
+        imageWidth: Float
+    ): Float {
+        // Calculate image center using safe division
+        val imageCenterX = safeDivide(imageWidth, 2f, imageWidth / 2f)
+
+        // Calculate deviation from center
+        val deviationFromCenter = abs(centerX - imageCenterX)
+        val maxDeviation = safeDivide(imageWidth, 2f, imageWidth / 2f)
+
+        // Normalize deviation (0 = centered, 1 = at edge)
+        val normalizedDeviation = safeDivide(deviationFromCenter, maxDeviation, 1f)
+
+        // Convert to score (1 = centered, 0 = at edge)
+        val score = (1f - normalizedDeviation).coerceIn(0f, 1f)
+
+        Log.d(TAG, "Symmetry: deviation=%.1f, score=%.2f".format(deviationFromCenter, score))
+        return score
+    }
+
+    /**
+     * Calculate adjustment direction vector for object composition
+     *
+     * v2.5.4: Guides user to move camera for better object composition
+     * Calculates direction to nearest Rule of Thirds intersection point
+     *
+     * @param currentX Current object center X
+     * @param currentY Current object center Y
+     * @param imageWidth Image width
+     * @param imageHeight Image height
+     * @return Pair of (directionX, directionY) normalized to [-1, 1]
+     */
+    private fun calculateObjectAdjustmentDirection(
+        currentX: Float,
+        currentY: Float,
+        imageWidth: Float,
+        imageHeight: Float
+    ): Pair<Float, Float> {
+        // Calculate third positions using safe division
+        val thirdX = safeDivide(imageWidth, 3f, imageWidth / 3f)
+        val thirdY = safeDivide(imageHeight, 3f, imageHeight / 3f)
+
+        val leftThird = thirdX
+        val rightThird = imageWidth - thirdX
+        val topThird = thirdY
+        val bottomThird = imageHeight - thirdY
+
+        // Find nearest third intersection point (horizontal)
+        val targetX = when {
+            abs(currentX - leftThird) < abs(currentX - rightThird) -> leftThird
+            else -> rightThird
+        }
+
+        // Find nearest third intersection point (vertical)
+        val targetY = when {
+            abs(currentY - topThird) < abs(currentY - bottomThird) -> topThird
+            else -> bottomThird
+        }
+
+        // Calculate direction vector (normalized)
+        val directionX = safeDivide(targetX - currentX, imageWidth, 0f).coerceIn(-1f, 1f)
+        val directionY = safeDivide(targetY - currentY, imageHeight, 0f).coerceIn(-1f, 1f)
+
+        Log.d(TAG, "Object adjustment direction: (%.2f, %.2f) -> target (%.0f, %.0f)".format(
+            directionX, directionY, targetX, targetY
+        ))
+        return Pair(directionX, directionY)
     }
 }

@@ -310,7 +310,8 @@ class CameraRepositoryImpl @Inject constructor(
      */
     override fun shouldEnableAutoHDR(lightingState: LightingState): Boolean {
         return when (lightingState) {
-            is LightingState.HighContrast -> lightingState.analysis.shouldUseHDR
+            is LightingState.HighContrast -> true  // High contrast detected → enable HDR
+            is LightingState.Backlight -> true     // Backlight detected → enable HDR
             else -> false
         }
     }

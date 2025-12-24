@@ -3,22 +3,26 @@
  * Description: Displays composition analysis hints to guide user
  * Author: Claude Code
  * Date: 2025-11-25
- * Version: 2.1.1
+ * Version: 2.6.0
  *
  * Features:
  * - Real-time composition feedback
  * - Professional Chinese text hints (v2.1.1)
  * - Color-coded feedback (green for good, amber for needs adjustment)
  * - Enhanced visibility with semi-transparent background
+ * - Fill-the-frame suggestions (v2.6.0)
  *
  * Modifications:
  * - 2025-11-25: Initial creation for v1.5.0 prototype
  * - 2025-12-02: Update to Chinese professional suggestions (v2.1.1)
+ * - 2025-12-20: Add fill-the-frame suggestion display (v2.6.0)
  */
 package com.akirachang.ai.photographer.presentation.camera.components.overlay
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -49,33 +53,75 @@ fun CompositionHint(
     compositionState: CompositionState,
     modifier: Modifier = Modifier
 ) {
-    val (hintText, backgroundColor) = when (compositionState) {
+    when (compositionState) {
         is CompositionState.Good -> {
-            "良好構圖 ✓" to Color(0xFF4CAF50).copy(alpha = 0.9f) // Green
+            Box(
+                modifier = modifier
+                    .background(
+                        color = Color(0xFF4CAF50).copy(alpha = 0.9f), // Green
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "良好構圖 ✓",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
         is CompositionState.NeedsAdjustment -> {
-            compositionState.message to Color(0xFFFFC107).copy(alpha = 0.9f) // Amber
+            // v2.6.0: Show both composition message and fill-frame suggestion
+            Column(
+                modifier = modifier
+                    .background(
+                        color = Color(0xFFFFC107).copy(alpha = 0.9f), // Amber
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Main composition message
+                Text(
+                    text = compositionState.message,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                // Fill-frame suggestion (if present)
+                if (compositionState.fillFrameIssue && compositionState.fillFrameSuggestion.isNotEmpty()) {
+                    Text(
+                        text = compositionState.fillFrameSuggestion,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
         is CompositionState.NoSubject -> {
-            "未偵測到主體" to Color(0xFF9E9E9E).copy(alpha = 0.8f) // Gray
+            Box(
+                modifier = modifier
+                    .background(
+                        color = Color(0xFF9E9E9E).copy(alpha = 0.8f), // Gray
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "未偵測到主體",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
-    }
-
-    Box(
-        modifier = modifier
-            .background(
-                color = backgroundColor,
-                shape = RoundedCornerShape(8.dp)
-            )
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Text(
-            text = hintText,
-            color = Color.White,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.bodyMedium
-        )
     }
 }
 
