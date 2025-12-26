@@ -136,8 +136,8 @@ class AnalyzeLightingUseCase @Inject constructor(
      *
      * Priority order (highest to lowest):
      * 1. Backlight (most critical - affects subject visibility)
-     * 2. High contrast (needs HDR)
-     * 3. Overexposure (highlight clipping)
+     * 2. Overexposure (highlight clipping - specific exposure issue)
+     * 3. High contrast (needs HDR - general scene characteristic)
      * 4. Underexposure (low light)
      * 5. Normal
      *
@@ -162,7 +162,15 @@ class AnalyzeLightingUseCase @Inject constructor(
                 )
             }
 
-            // High contrast (not backlit but needs HDR)
+            // Overexposure - priority 2 (more specific than high contrast)
+            analysis.isOverexposed -> {
+                LightingState.Overexposed(
+                    highlightRatio = analysis.highlightRatio,
+                    avgLuminance = analysis.avgLuminance
+                )
+            }
+
+            // High contrast (not backlit, not overexposed, but needs HDR)
             analysis.isHighContrast -> {
                 // Calculate contrast ratio from dynamic range
                 val minLevel = 127.5f - (analysis.dynamicRange / 2f)
@@ -174,14 +182,6 @@ class AnalyzeLightingUseCase @Inject constructor(
                     dynamicRange = analysis.dynamicRange,
                     highlightRatio = analysis.highlightRatio,
                     shadowRatio = analysis.shadowRatio
-                )
-            }
-
-            // Overexposure
-            analysis.isOverexposed -> {
-                LightingState.Overexposed(
-                    highlightRatio = analysis.highlightRatio,
-                    avgLuminance = analysis.avgLuminance
                 )
             }
 
