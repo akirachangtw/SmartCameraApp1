@@ -1,0 +1,109 @@
+# SmartCameraApp Lighting Analysis Test Images
+# Format: "filename", "prompt", "aspect_ratio", "mime_type", "key_features"
+#
+# Key Features - Technical Specifications for Lighting Tests:
+# Based on AnalyzeLightingUseCase.kt detection criteria:
+#
+# Normal Lighting:
+#   - Highlights < 15% of pixels
+#   - Average luminance >= 20% (51/255)
+#   - Dynamic range < 180
+#
+# Overexposure:
+#   - Highlight ratio (240-255 luminance) > 15% of pixels
+#   - Blown out details in bright areas
+#
+# Underexposure:
+#   - Average luminance < 20% (51/255)
+#   - Dark shadows dominate the image
+#
+# High Contrast:
+#   - Highlights > 10% AND Shadows > 10%
+#   - OR Dynamic range > 180
+#   - Mixed bright and dark regions
+#
+# Backlight (Highest Priority):
+#   - Subject luminance < 30% (76/255)
+#   - Background luminance > 70% (178/255)
+#   - OR Significant luminance difference > 80
+#   - Subject appears as silhouette
+
+# ==========================================
+# 1. Normal Lighting Tests
+# ==========================================
+
+"light_normal_baseline.jpg", "Professional portrait photo, young Asian woman, well-lit with soft natural lighting, even exposure, no harsh shadows, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights <15%; average luminance 40-60%; dynamic range <180; balanced histogram"
+
+"light_normal_indoor.jpg", "Indoor portrait photo, person in well-lit room, soft window light, even skin tones, no overexposure, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights <12%; average luminance 35-55%; balanced exposure; soft shadows <10%"
+
+# ==========================================
+# 2. Overexposure Tests
+# ==========================================
+
+"light_overexposed_severe.jpg", "Outdoor portrait photo, bright sunny day, very bright background, washed out highlights, overexposed sky, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlight ratio >15%; average luminance >70%; detail loss in highlights; blown out sky areas"
+
+"light_overexposed_moderate.jpg", "Portrait photo, bright outdoor setting, slightly overexposed, bright background, loss of detail in bright areas, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlight ratio 15-20%; average luminance 65-75%; some blown highlights; reduced detail in bright regions"
+
+"light_overexposed_extreme.jpg", "Portrait photo, extremely bright sunlight, severe overexposure, white sky, washed out colors, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlight ratio >40%; average luminance >85%; extreme detail loss; most pixels in highlight range 240-255"
+
+# ==========================================
+# 3. Underexposure Tests
+# ==========================================
+
+"light_underexposed_indoor.jpg", "Portrait photo in dimly lit room, low light conditions, dark shadows, underexposed subject, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "average luminance <20%; shadow ratio >30%; dark histogram; limited detail in shadows"
+
+"light_underexposed_twilight.jpg", "Portrait photo at twilight, very low ambient light, dark subject, minimal illumination, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "average luminance <15%; shadow ratio >40%; predominantly dark pixels; underexposed subject and background"
+
+"light_underexposed_night.jpg", "Night portrait photo, minimal lighting, very dark scene, heavy underexposure, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "average luminance <10%; shadow ratio >50%; most pixels <30 luminance; extreme underexposure"
+
+# ==========================================
+# 4. High Contrast Tests
+# ==========================================
+
+"light_high_contrast_window.jpg", "Portrait photo, person near window, strong directional light, bright window and dark interior, high contrast scene, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights >10%; shadows >10%; dynamic range >180; mixed bright and dark regions; strong luminance variation"
+
+"light_high_contrast_sunset.jpg", "Portrait photo at sunset, person against sunset sky, dramatic lighting, high contrast between subject and background, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights >15%; shadows >15%; dynamic range >200; sunset creating strong contrast; mixed exposure zones"
+
+"light_high_contrast_spotlight.jpg", "Portrait photo with spotlight, strong directional light, harsh shadows, high contrast lighting, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights >12%; shadows >12%; dynamic range >190; spotlight creating dramatic contrast; deep shadows"
+
+# ==========================================
+# 5. Backlight Tests (Highest Priority)
+# ==========================================
+
+"light_backlight_severe.jpg", "Portrait photo, person silhouetted against bright window, severe backlight, bright background with dark subject, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "subject luminance <30%; background luminance >70%; luminance difference >80; severe backlight condition; subject appears as silhouette"
+
+"light_backlight_moderate.jpg", "Portrait photo, person against bright background, moderate backlight, subject darker than background, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "subject luminance 25-35%; background luminance 65-75%; luminance difference 40-50; moderate backlight; visible subject details"
+
+"light_backlight_window.jpg", "Indoor portrait photo, person standing in front of bright window, strong backlight from window, dark subject with bright background, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "subject luminance <25%; background luminance >75%; luminance difference >85; window creating strong backlight; subject face underexposed"
+
+"light_backlight_sunset.jpg", "Portrait photo against sunset, person silhouetted against bright sunset sky, extreme backlight, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "subject luminance <20%; background luminance >80%; luminance difference >90; sunset creating extreme backlight; subject in deep shadow"
+
+"light_backlight_outdoor.jpg", "Outdoor portrait photo, person against bright sky, backlight condition, subject darker than background, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "subject luminance <28%; background luminance >72%; luminance difference >80; outdoor backlight; bright sky behind subject"
+
+# ==========================================
+# 6. Edge Cases & Mixed Conditions
+# ==========================================
+
+"light_mixed_indoor_outdoor.jpg", "Portrait photo, person at doorway between dark interior and bright outdoor, mixed lighting zones, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights >10%; shadows >10%; dynamic range >200; indoor-outdoor transition; complex lighting mixture"
+
+"light_partial_backlight.jpg", "Portrait photo, person partially backlit, mixed lighting, some backlight with some front light, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "subject luminance 30-40%; background luminance 60-70%; partial backlight; mixed lighting directions"
+
+"light_golden_hour.jpg", "Portrait photo during golden hour, warm natural light, good exposure, beautiful lighting, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights <15%; average luminance 45-55%; warm color temperature; golden hour characteristics; balanced exposure"
+
+# ==========================================
+# 7. Histogram-Specific Tests
+# ==========================================
+
+"light_histogram_bimodal.jpg", "Portrait photo with bimodal histogram, clear separation between bright and dark areas, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "bimodal histogram distribution; two distinct luminance peaks; clear bright/dark separation; highlights and shadows both prominent"
+
+"light_histogram_right_skewed.jpg", "Portrait photo with right-skewed histogram, predominantly bright pixels, overexposure tendency, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "histogram skewed right; most pixels >128 luminance; bright overall tone; limited dark pixels"
+
+"light_histogram_left_skewed.jpg", "Portrait photo with left-skewed histogram, predominantly dark pixels, underexposure tendency, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "histogram skewed left; most pixels <128 luminance; dark overall tone; limited bright pixels"
+
+# ==========================================
+# 8. Validation Reference Images
+# ==========================================
+
+"light_reference_18_gray.jpg", "Portrait photo with 18% gray card visible, reference exposure, neutral lighting, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "18% gray reference; middle luminance ~118; balanced exposure; neutral reference point"
+
+"light_reference_dynamic_range_chart.jpg", "Portrait photo with dynamic range chart visible, showing full tonal range, testing exposure latitude, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "dynamic range test chart visible; multiple luminance zones; full tonal range representation; calibration reference"

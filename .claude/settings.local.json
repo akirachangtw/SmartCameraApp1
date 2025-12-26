@@ -67,7 +67,12 @@
       "Bash(Select-String -Pattern \"(error|warning|BUILD)\")",
       "Bash(Select-String \"\\(BUILD|FAILED|error|warning|CameraState|CameraViewModel\\)\")",
       "Bash(gradlew.bat clean:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(git push:*)",
+      "Bash(Select-String \"\\(BUILD|FAILED|tests completed|safeDivide\\)\")",
+      "Bash(.gradlew.bat test:*)",
+      "Bash(more:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []
