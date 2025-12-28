@@ -72,7 +72,12 @@
       "Bash(Select-String \"\\(BUILD|FAILED|tests completed|safeDivide\\)\")",
       "Bash(.gradlew.bat test:*)",
       "Bash(more:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(.gradlew.bat checkPythonEnv)",
+      "Bash(del hdr_overexposed_*.jpg)",
+      "Bash(gradlew.bat:*)",
+      "Bash(del appsrcdebugassetstest_imageshdr_overexposed_*.jpg)",
+      "Bash(.gradlew.bat updateTestImages)"
     ],
     "deny": [],
     "ask": []
