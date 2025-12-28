@@ -1,12 +1,13 @@
 """
 Script Name: generate_assets.py
-Description: Batch generate test images using Google Gemini Imagen 3 API
+Description: Batch generate test images using Google Gemini Imagen 4 API
 Author: SmartCameraApp Team
 Date: 2025-12-26
-Version: 2.0.0
+Version: 2.1.0
 
 Modifications:
-- 2025-12-26: Refactored to English, added logging, improved code structure
+- 2025-12-26 v2.1.0: Added Gradle integration support (metadata generation, env var config)
+- 2025-12-26 v2.0.0: Refactored to English, added logging, improved code structure
 """
 
 import os
@@ -15,7 +16,9 @@ import time
 import argparse
 import logging
 import csv
-from typing import List, Tuple, Optional
+import json
+from datetime import datetime
+from typing import List, Tuple, Optional, Dict, Any
 from google import genai
 from google.genai import types
 from google.api_core import exceptions
@@ -52,7 +55,11 @@ class GeneratorConfig:
     NUMBER_OF_IMAGES = 1
 
     # File Handling
-    SKIP_EXISTING_FILES = False  # Set to True to skip existing files
+    # Gradle integration: Read from environment variable, default to True for incremental builds
+    SKIP_EXISTING_FILES = os.environ.get("SKIP_EXISTING_FILES", "true").lower() == "true"
+
+    # Metadata output (for Gradle validation)
+    METADATA_FILE = "image-generation-metadata.json"
 
 
 # ==========================================
@@ -187,6 +194,47 @@ def parse_input_file(file_path: str) -> List[Tuple[str, str, str, str, str]]:
 
     logger.info(f"Successfully parsed {len(task_list)} tasks from {file_path}")
     return task_list
+
+
+def generate_metadata(
+    task_list: List[Tuple[str, str, str, str, str]],
+    success_count: int,
+    failure_count: int,
+    successful_images: List[str]
+) -> None:
+    """
+    Generate metadata JSON file for Gradle validation
+
+    Args:
+        task_list: Original list of generation tasks
+        success_count: Number of successful generations
+        failure_count: Number of failed generations
+        successful_images: List of successfully generated filenames
+    """
+    metadata: Dict[str, Any] = {
+        "generated_at": datetime.now().isoformat(),
+        "generator_version": "2.1.0",
+        "total_tasks": len(task_list),
+        "successful": success_count,
+        "failed": failure_count,
+        "skip_existing_enabled": GeneratorConfig.SKIP_EXISTING_FILES,
+        "images": successful_images,
+        "configuration": {
+            "model": GeneratorConfig.IMAGE_MODEL,
+            "default_aspect_ratio": GeneratorConfig.ASPECT_RATIO,
+            "default_mime_type": GeneratorConfig.OUTPUT_MIME_TYPE,
+            "cooldown_seconds": GeneratorConfig.COOLDOWN_SECONDS
+        }
+    }
+
+    metadata_path = os.path.join(GeneratorConfig.OUTPUT_DIR, GeneratorConfig.METADATA_FILE)
+
+    try:
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+        logger.info(f"Metadata written to: {metadata_path}")
+    except Exception as error:
+        logger.warning(f"Failed to write metadata file: {error}")
 
 
 def generate_image_safe(
@@ -383,12 +431,14 @@ Notes:
     # Execute tasks
     success_count = 0
     failure_count = 0
+    successful_images = []
 
     for index, (filename, prompt, aspect_ratio, mime_type, key_features) in enumerate(task_list, 1):
         logger.info(f"Task {index}/{len(task_list)}: {filename}")
 
         if generate_image_safe(client, filename, prompt, aspect_ratio, mime_type, key_features):
             success_count += 1
+            successful_images.append(filename)
         else:
             failure_count += 1
 
@@ -400,6 +450,9 @@ Notes:
     logger.info(f"Successful: {success_count}/{len(task_list)}")
     logger.info(f"Failed: {failure_count}/{len(task_list)}")
     logger.info("=" * 60)
+
+    # Generate metadata file for Gradle integration
+    generate_metadata(task_list, success_count, failure_count, successful_images)
 
     # Exit with appropriate code
     sys.exit(0 if failure_count == 0 else 1)
