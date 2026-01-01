@@ -26,8 +26,10 @@ interface CameraRepository {
 
     /**
      * 切換前後鏡頭
+     *
+     * v2.6.1: Changed to suspend function to allow async camera rebinding
      */
-    fun switchCamera()
+    suspend fun switchCamera()
 
     /**
      * 獲取當前鏡頭
@@ -98,4 +100,10 @@ interface CameraRepository {
      * v2.5.1 Phase 7: Bitmap-based analysis
      */
     suspend fun detectObjects(image: com.google.mlkit.vision.common.InputImage): List<com.google.mlkit.vision.objects.DetectedObject>
+
+    /**
+     * 綁定相機到生命週期
+     * v2.6.1: Required for LiveCameraSource to start camera
+     */
+    fun bindToLifecycle(lifecycleOwner: androidx.lifecycle.LifecycleOwner)
 }

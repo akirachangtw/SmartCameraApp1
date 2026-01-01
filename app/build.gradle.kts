@@ -14,7 +14,7 @@ android {
         applicationId = "com.akirachang.ai.photographer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 37
+        versionCode = 38
         versionName = "2.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -26,9 +26,9 @@ android {
             isShrinkResources = false
             isDebuggable = true
 
-            // 模擬器專用構建標記
-            buildConfigField("Boolean", "EMULATOR_MODE", "true")
-            buildConfigField("Boolean", "USE_TEST_IMAGES", "true")
+            // v2.6.1: Let flavor decide emulator mode, not buildType
+            buildConfigField("Boolean", "EMULATOR_MODE", "false")
+            buildConfigField("Boolean", "USE_TEST_IMAGES", "false")
             buildConfigField("Boolean", "ENABLE_PERFORMANCE_LOGGING", "false")
         }
 

@@ -121,107 +121,121 @@ class CameraRepositoryImpl @Inject constructor(
     /**
      * 拍攝照片並儲存到 MediaStore
      *
+     * v2.6.1 修復: 委派給 CameraInputSource 以支援 StaticImageSource 和 LiveCameraSource
+     *
      * 注意：使用 MediaStore API 儲存照片不需要 READ_MEDIA_* 或 WRITE_EXTERNAL_STORAGE 權限
      * - Android 10+ (API 29+) 使用 Scoped Storage，應用可以直接寫入 MediaStore
      * - 只需要 CAMERA 權限即可拍照和儲存
      * - READ_MEDIA_* 權限只在需要讀取其他應用的照片時才需要（例如：顯示圖庫）
      */
-    override suspend fun takePicture(): CaptureResult = withContext(Dispatchers.Main) {
+    override suspend fun takePicture(): CaptureResult = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Starting photo capture...")
+            Log.d(TAG, "Starting photo capture via CameraInputSource...")
 
-            suspendCancellableCoroutine<CaptureResult> { continuation ->
-                try {
-                    val name = SimpleDateFormat(Constants.FILENAME_FORMAT, Locale.getDefault())
-                        .format(System.currentTimeMillis())
-                    Log.d(TAG, "Photo filename: $name")
+            // Step 1: 委派給 CameraInputSource 獲取 Bitmap
+            val bitmapResult = cameraInputSource.takePicture()
 
-                    val contentValues = ContentValues().apply {
-                        put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-                        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-                        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/${Constants.PHOTOS_DIRECTORY}")
-                        }
-                    }
-
-                    val outputOptions = ImageCapture.OutputFileOptions
-                        .Builder(
-                            context.contentResolver,
-                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                            contentValues
-                        )
-                        .build()
-
-                    // 使用 ContextCompat.getMainExecutor 以獲得更好的相容性
-                    val executor = ContextCompat.getMainExecutor(context)
-
-                    Log.d(TAG, "Initiating camera capture...")
-                    _cameraController.takePicture(
-                        outputOptions,
-                        executor,
-                        object : ImageCapture.OnImageSavedCallback {
-                            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                                try {
-                                    val savedUri = output.savedUri
-                                    if (savedUri != null) {
-                                        Log.d(TAG, "Photo saved successfully: $savedUri")
-                                        if (continuation.isActive) {
-                                            continuation.resume(CaptureResult.Success(savedUri))
-                                        }
-                                    } else {
-                                        Log.e(TAG, "Photo saved but URI is null")
-                                        if (continuation.isActive) {
-                                            continuation.resume(
-                                                CaptureResult.Error(
-                                                    Exception("照片保存失敗：無法獲取保存位置")
-                                                )
-                                            )
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "Error in onImageSaved callback", e)
-                                    if (continuation.isActive) {
-                                        continuation.resume(CaptureResult.Error(e))
-                                    }
-                                }
-                            }
-
-                            override fun onError(exception: ImageCaptureException) {
-                                Log.e(TAG, "Photo capture failed: ${exception.message}", exception)
-                                if (continuation.isActive) {
-                                    continuation.resume(
-                                        CaptureResult.Error(
-                                            Exception("拍照失敗：${exception.message}", exception)
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    )
-
-                    // 設置取消監聽器
-                    continuation.invokeOnCancellation {
-                        Log.w(TAG, "Photo capture was cancelled")
-                    }
-
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error setting up photo capture", e)
-                    if (continuation.isActive) {
-                        continuation.resume(
-                            CaptureResult.Error(
-                                Exception("設置拍照失敗：${e.message}", e)
-                            )
-                        )
-                    }
-                }
+            if (bitmapResult.isFailure) {
+                val error = bitmapResult.exceptionOrNull() ?: Exception("Unknown error")
+                Log.e(TAG, "Failed to capture bitmap: ${error.message}", error)
+                return@withContext CaptureResult.Error(
+                    Exception("拍照失敗：${error.message}", error)
+                )
             }
+
+            val bitmap = bitmapResult.getOrNull()
+            if (bitmap == null) {
+                Log.e(TAG, "Bitmap is null despite successful result")
+                return@withContext CaptureResult.Error(
+                    Exception("拍照失敗：無法獲取圖片數據")
+                )
+            }
+
+            Log.i(TAG, "Bitmap captured successfully: ${bitmap.width}x${bitmap.height}")
+
+            // Step 2: 保存 Bitmap 到 MediaStore
+            return@withContext saveBitmapToMediaStore(bitmap)
+
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error in takePicture", e)
             CaptureResult.Error(Exception("拍照過程發生錯誤：${e.message}", e))
         }
     }
 
-    override fun switchCamera() {
+    /**
+     * 保存 Bitmap 到 MediaStore
+     *
+     * @param bitmap The bitmap to save
+     * @return CaptureResult with saved URI or error
+     */
+    private suspend fun saveBitmapToMediaStore(bitmap: Bitmap): CaptureResult = withContext(Dispatchers.IO) {
+        try {
+            val name = SimpleDateFormat(Constants.FILENAME_FORMAT, Locale.getDefault())
+                .format(System.currentTimeMillis())
+            Log.d(TAG, "Saving bitmap to MediaStore with filename: $name")
+
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/${Constants.PHOTOS_DIRECTORY}")
+                }
+            }
+
+            val uri = context.contentResolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                contentValues
+            )
+
+            if (uri == null) {
+                Log.e(TAG, "Failed to create MediaStore entry")
+                return@withContext CaptureResult.Error(
+                    Exception("照片保存失敗：無法創建儲存位置")
+                )
+            }
+
+            Log.d(TAG, "MediaStore URI created: $uri")
+
+            // Write bitmap to MediaStore URI
+            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                val success = bitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
+                if (!success) {
+                    Log.e(TAG, "Failed to compress bitmap to JPEG")
+                    return@withContext CaptureResult.Error(
+                        Exception("照片保存失敗：壓縮圖片時發生錯誤")
+                    )
+                }
+                outputStream.flush()
+                Log.i(TAG, "Photo saved successfully to: $uri")
+                return@withContext CaptureResult.Success(uri)
+            } ?: run {
+                Log.e(TAG, "Failed to open output stream for URI: $uri")
+                return@withContext CaptureResult.Error(
+                    Exception("照片保存失敗：無法寫入儲存位置")
+                )
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving bitmap to MediaStore", e)
+            return@withContext CaptureResult.Error(
+                Exception("照片保存過程發生錯誤：${e.message}", e)
+            )
+        }
+    }
+
+    /**
+     * Switch camera between front and back
+     *
+     * v2.6.1: Changed to suspend function and delegates to CameraInputSource
+     * MUST execute on Main thread to satisfy CameraX requirements
+     */
+    override suspend fun switchCamera() = withContext(Dispatchers.Main) {
+        // Delegate to CameraInputSource (LiveCameraSource or StaticImageSource)
+        // This will handle camera rebinding on Main thread
+        Log.d(TAG, "Delegating camera switch to CameraInputSource")
+        cameraInputSource.switchCamera()
+
+        // Update legacy CameraController for compatibility
         _cameraController.cameraSelector = if (_cameraController.cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
             CameraSelector.DEFAULT_FRONT_CAMERA
         } else {
@@ -423,5 +437,22 @@ class CameraRepositoryImpl @Inject constructor(
                     }
             }
         }
+
+    /**
+     * 綁定相機到生命週期
+     * v2.6.1: Delegates to LiveCameraSource if available
+     */
+    override fun bindToLifecycle(lifecycleOwner: androidx.lifecycle.LifecycleOwner) {
+        val liveCameraSource = cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource
+        if (liveCameraSource != null) {
+            // 實機：使用 LiveCameraSource 綁定（管理預覽 + 拍照）
+            liveCameraSource.bindToLifecycle(lifecycleOwner)
+            Log.i(TAG, "Camera bound to lifecycle via LiveCameraSource (real device)")
+        } else {
+            // 模擬器：StaticImageSource 提供預覽，但 LifecycleCameraController 仍需綁定以支持拍照
+            _cameraController.bindToLifecycle(lifecycleOwner)
+            Log.i(TAG, "LifecycleCameraController bound to lifecycle (emulator with StaticImageSource)")
+        }
+    }
 
 }

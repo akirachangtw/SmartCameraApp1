@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
 import com.akirachang.ai.photographer.data.sensor.DeviceSensorManager
 import com.akirachang.ai.photographer.data.sensor.OrientationData
@@ -142,11 +144,19 @@ class CameraViewModel @Inject constructor(
     /**
      * 處理自動 HDR 模式
      * v2.3.0: 逆光場景自動 HDR
+     * v2.6.1: Only applies in AUTO mode - manual ON/OFF modes bypass this logic
      */
     private fun handleAutoHDR(
         repository: com.akirachang.ai.photographer.data.repository.CameraRepositoryImpl,
         lightingState: LightingState
     ) {
+        // v2.6.1: Skip auto HDR if in manual mode (ON or OFF)
+        val currentHDRMode = _state.value.hdrMode
+        if (!currentHDRMode.isAuto) {
+            Log.d(TAG, "Auto HDR skipped - manual mode active: ${currentHDRMode.displayName}")
+            return
+        }
+
         viewModelScope.launch {
             overlayPreferences.isAutoHDREnabled.first().let { autoHDREnabled ->
                 if (autoHDREnabled) {
@@ -197,6 +207,7 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.CapturePhoto -> capturePhoto()
             is CameraUiEvent.SwitchCamera -> switchCamera()
             is CameraUiEvent.ToggleFlash -> toggleFlash()
+            is CameraUiEvent.ToggleHDR -> toggleHDR()  // v2.6.1
             is CameraUiEvent.StartAnalysis -> startAnalysis()
             is CameraUiEvent.StopAnalysis -> stopAnalysis()
             is CameraUiEvent.ShowError -> showError(event.message)
@@ -250,9 +261,13 @@ class CameraViewModel @Inject constructor(
      * Now uses platform-agnostic CameraLens enum instead of CameraSelector
      */
     private fun switchCamera() {
-        cameraRepository.switchCamera()
-        _state.update {
-            it.copy(currentCamera = cameraRepository.getCurrentCamera())
+        // v2.6.1 Fix: Execute camera switching asynchronously
+        // switchCamera() internally handles Main thread requirement for CameraX
+        viewModelScope.launch {
+            cameraRepository.switchCamera()
+            _state.update {
+                it.copy(currentCamera = cameraRepository.getCurrentCamera())
+            }
         }
     }
 
@@ -264,6 +279,61 @@ class CameraViewModel @Inject constructor(
         }
         cameraRepository.setFlashMode(newFlashMode)
         _state.update { it.copy(flashMode = newFlashMode) }
+    }
+
+    /**
+     * Toggle HDR mode (v2.6.1)
+     *
+     * Cycles through: AUTO → ON → OFF → AUTO
+     *
+     * Behavior by mode:
+     * - AUTO: Enable auto HDR based on lighting analysis (existing behavior)
+     * - ON: Force enable HDR, disable auto HDR logic
+     * - OFF: Force disable HDR, disable auto HDR logic
+     */
+    private fun toggleHDR() {
+        val newMode = _state.value.hdrMode.next()
+        _state.update { it.copy(hdrMode = newMode) }
+
+        // Apply HDR mode immediately
+        applyHDRMode(newMode)
+
+        Log.i(TAG, "HDR mode changed: ${newMode.displayName}")
+    }
+
+    /**
+     * Apply HDR mode to camera (v2.6.1)
+     *
+     * @param mode Target HDR mode
+     */
+    private fun applyHDRMode(mode: com.akirachang.ai.photographer.presentation.camera.model.HDRMode) {
+        val repository = cameraRepository as? com.akirachang.ai.photographer.data.repository.CameraRepositoryImpl
+        if (repository == null) {
+            Log.w(TAG, "Cannot apply HDR mode - repository is not CameraRepositoryImpl")
+            return
+        }
+
+        when (mode) {
+            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> {
+                // Re-enable auto HDR logic
+                // Let handleAutoHDR() manage HDR based on lighting state
+                val currentLighting = _lightingState.value
+                handleAutoHDR(repository, currentLighting)
+                Log.i(TAG, "HDR mode: AUTO - Re-evaluating based on lighting state")
+            }
+            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> {
+                // Force enable HDR
+                repository.enableHDRMode()
+                _isAutoHDRActive.value = true  // Update state for UI consistency
+                Log.i(TAG, "HDR mode: ON - Force enabled")
+            }
+            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> {
+                // Force disable HDR
+                repository.disableHDRMode()
+                _isAutoHDRActive.value = false  // Update state for UI consistency
+                Log.i(TAG, "HDR mode: OFF - Force disabled")
+            }
+        }
     }
 
     private fun showError(message: String) {
@@ -479,6 +549,16 @@ class CameraViewModel @Inject constructor(
             previewHeight = previewHeight,
             isFrontCamera = isFrontCamera
         )
+    }
+
+    /**
+     * Bind camera to lifecycle
+     * v2.6.1: Required for LiveCameraSource to start real camera
+     */
+    fun bindCameraToLifecycle(lifecycleOwner: androidx.lifecycle.LifecycleOwner) {
+        Log.i(TAG, "bindCameraToLifecycle: Binding camera to lifecycle")
+        cameraRepository.bindToLifecycle(lifecycleOwner)
+        Log.i(TAG, "bindCameraToLifecycle: Camera bound successfully")
     }
 
 }

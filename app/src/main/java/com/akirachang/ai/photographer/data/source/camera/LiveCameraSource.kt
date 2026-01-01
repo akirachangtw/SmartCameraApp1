@@ -3,13 +3,21 @@ package com.akirachang.ai.photographer.data.source.camera
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.SurfaceTexture
+import android.util.Log
+import android.util.Size
+import android.view.Surface
+import androidx.camera.core.Camera
+import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
-import androidx.camera.view.LifecycleCameraController
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -23,7 +31,10 @@ import kotlin.coroutines.resume
 /**
  * Live Camera Source for Real Device
  *
- * Uses CameraX LifecycleCameraController for actual camera operations.
+ * v2.6.1: Migrated from LifecycleCameraController to ProcessCameraProvider
+ *
+ * Uses ProcessCameraProvider with Preview + ImageAnalysis + ImageCapture UseCases.
+ * Preview UseCase is REQUIRED for camera to start on real devices.
  * Converts ImageProxy from ImageAnalysis to Bitmap flow for unified interface.
  */
 @Singleton
@@ -31,16 +42,61 @@ class LiveCameraSource @Inject constructor(
     @ApplicationContext private val context: Context
 ) : CameraInputSource {
 
-    private val _cameraController: LifecycleCameraController by lazy {
-        LifecycleCameraController(context).apply {
-            setEnabledUseCases(
-                LifecycleCameraController.IMAGE_CAPTURE or
-                LifecycleCameraController.IMAGE_ANALYSIS
-            )
-        }
+    companion object {
+        private const val TAG = "LiveCameraSource"
     }
 
+    // v2.6.1: Custom SurfaceProvider for Preview UseCase
+    // Preview UseCase is mandatory - without it, camera won't start on real devices
+    // Reference: chat_logs/CameraX_StaticImage_TestMode_Fix.md lines 37-54
+    //
+    // Using SurfaceTexture approach instead of PreviewView to avoid WindowManager token issues
+    private var previewSurfaceTexture: SurfaceTexture? = null
+    private var previewSurface: Surface? = null
+
+    private val customSurfaceProvider = Preview.SurfaceProvider { request ->
+        Log.d(TAG, "SurfaceProvider requested: ${request.resolution.width}x${request.resolution.height}")
+
+        // Create SurfaceTexture with requested resolution
+        val surfaceTexture = SurfaceTexture(0).apply {
+            setDefaultBufferSize(
+                request.resolution.width,
+                request.resolution.height
+            )
+        }
+        previewSurfaceTexture = surfaceTexture
+
+        // Create Surface from SurfaceTexture
+        val surface = Surface(surfaceTexture)
+        previewSurface = surface
+
+        // Provide the surface to CameraX
+        request.provideSurface(surface, ContextCompat.getMainExecutor(context)) {
+            // Cleanup when surface is no longer needed
+            Log.d(TAG, "Surface no longer needed, cleaning up")
+            surface.release()
+            surfaceTexture.release()
+            previewSurface = null
+            previewSurfaceTexture = null
+        }
+
+        Log.i(TAG, "✅ Custom Surface provided to Preview UseCase")
+    }
+
+    // ProcessCameraProvider and UseCases
+    private lateinit var cameraProvider: ProcessCameraProvider
+    private lateinit var camera: Camera
+    private lateinit var preview: Preview
+    private lateinit var imageAnalysis: ImageAnalysis
+    private lateinit var imageCapture: ImageCapture
+
+    private var cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+    private var currentLifecycleOwner: LifecycleOwner? = null
     private var isPreviewActive = false
+
+    // v2.6.1: Persistent analyzer for preview stream
+    // Must be reattached after every camera rebind (e.g., switchCamera)
+    private var previewStreamAnalyzer: ImageAnalysis.Analyzer? = null
 
     /**
      * Get live camera preview stream as Bitmap flow
@@ -49,30 +105,65 @@ class LiveCameraSource @Inject constructor(
      * Preview continues until stopPreview() is called.
      */
     override fun getPreviewStream(): Flow<Bitmap> = callbackFlow {
+        Log.d(TAG, "getPreviewStream: Creating ImageAnalysis analyzer")
         Timber.d("LiveCameraSource: Starting live camera preview stream")
 
         val analyzer = ImageAnalysis.Analyzer { imageProxy ->
             try {
-                val bitmap = imageProxy.toBitmap()
-                trySend(bitmap)
+                // Convert ImageProxy to Bitmap
+                val rawBitmap = imageProxy.toBitmap()
+
+                // Get rotation from ImageProxy metadata
+                val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+
+                // Check if using front camera (needs mirroring for selfie view)
+                val isFrontCamera = cameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
+
+                // Rotate and mirror bitmap if needed to match display orientation
+                val bitmap = if (rotationDegrees != 0 || isFrontCamera) {
+                    rotateBitmap(rawBitmap, rotationDegrees, isFrontCamera)
+                } else {
+                    rawBitmap
+                }
+
+                val sendResult = trySend(bitmap)
+                if (sendResult.isSuccess) {
+                    Log.v(TAG, "Preview frame sent: ${bitmap.width}x${bitmap.height}, rotation: $rotationDegrees°")
+                } else {
+                    Log.w(TAG, "Failed to send preview frame - channel might be closed")
+                }
             } catch (e: Exception) {
-                Timber.e(e, "LiveCameraSource: Failed to convert ImageProxy to Bitmap")
+                Log.e(TAG, "Failed to convert ImageProxy to Bitmap", e)
+                Timber.e(e, "LiveCameraSource: Failed to process preview frame")
             } finally {
                 imageProxy.close()
             }
         }
 
-        _cameraController.setImageAnalysisAnalyzer(
-            ContextCompat.getMainExecutor(context),
-            analyzer
-        )
+        // v2.6.1: Store analyzer persistently for rebind scenarios
+        previewStreamAnalyzer = analyzer
+
+        // If camera is already initialized, set analyzer immediately
+        if (::imageAnalysis.isInitialized) {
+            imageAnalysis.setAnalyzer(
+                ContextCompat.getMainExecutor(context),
+                analyzer
+            )
+            Log.i(TAG, "✅ Preview stream analyzer set immediately - waiting for frames")
+        } else {
+            Log.i(TAG, "Preview stream analyzer stored - will be set after camera binds")
+        }
 
         isPreviewActive = true
         Timber.i("LiveCameraSource: Preview stream active")
 
         awaitClose {
+            Log.d(TAG, "Preview stream closing")
             Timber.d("LiveCameraSource: Preview stream closed")
-            _cameraController.clearImageAnalysisAnalyzer()
+            if (::imageAnalysis.isInitialized) {
+                imageAnalysis.clearAnalyzer()
+            }
+            previewStreamAnalyzer = null  // v2.6.1: Clear persistent analyzer
             isPreviewActive = false
         }
     }
@@ -86,26 +177,38 @@ class LiveCameraSource @Inject constructor(
      * @return Result containing the captured Bitmap or error
      */
     override suspend fun takePicture(): Result<Bitmap> = suspendCancellableCoroutine { continuation ->
+        Log.d(TAG, "takePicture: Capturing image with ImageCapture")
         Timber.d("LiveCameraSource: Taking picture with real camera")
 
-        _cameraController.takePicture(
+        // Check if camera is initialized
+        if (!::imageCapture.isInitialized) {
+            Log.e(TAG, "ImageCapture not initialized - camera not ready")
+            continuation.resume(Result.failure(IllegalStateException("Camera not initialized")))
+            return@suspendCancellableCoroutine
+        }
+
+        imageCapture.takePicture(
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageCapturedCallback() {
                 override fun onCaptureSuccess(image: ImageProxy) {
-                    Timber.d("LiveCameraSource: Image captured successfully (${image.width}x${image.height})")
+                    Log.i(TAG, "Image captured successfully (${image.width}x${image.height})")
+                    Timber.d("LiveCameraSource: Image captured successfully")
                     try {
                         val bitmap = image.toBitmap()
-                        Timber.i("LiveCameraSource: Bitmap created from captured image: ${bitmap.width}x${bitmap.height}")
-                        image.close()
+                        Log.i(TAG, "Bitmap created from captured image: ${bitmap.width}x${bitmap.height}")
+                        Timber.i("LiveCameraSource: Bitmap created: ${bitmap.width}x${bitmap.height}")
                         continuation.resume(Result.success(bitmap))
                     } catch (e: Exception) {
-                        Timber.e(e, "LiveCameraSource: Failed to convert captured ImageProxy to Bitmap")
-                        image.close()
+                        Log.e(TAG, "Failed to convert captured ImageProxy to Bitmap", e)
+                        Timber.e(e, "LiveCameraSource: Failed to convert image")
                         continuation.resume(Result.failure(e))
+                    } finally {
+                        image.close()
                     }
                 }
 
                 override fun onError(exception: ImageCaptureException) {
+                    Log.e(TAG, "Image capture failed", exception)
                     Timber.e(exception, "LiveCameraSource: Failed to capture image")
                     continuation.resume(
                         Result.failure(
@@ -117,6 +220,7 @@ class LiveCameraSource @Inject constructor(
         )
 
         continuation.invokeOnCancellation {
+            Log.w(TAG, "takePicture() was cancelled")
             Timber.w("LiveCameraSource: takePicture() was cancelled")
         }
     }
@@ -124,7 +228,10 @@ class LiveCameraSource @Inject constructor(
     override fun stopPreview() {
         Timber.d("LiveCameraSource: Stopping live preview")
         if (isPreviewActive) {
-            _cameraController.clearImageAnalysisAnalyzer()
+            if (::imageAnalysis.isInitialized) {
+                imageAnalysis.clearAnalyzer()
+            }
+            previewStreamAnalyzer = null  // v2.6.1: Clear persistent analyzer
             isPreviewActive = false
             Timber.i("LiveCameraSource: Preview stopped")
         }
@@ -132,57 +239,283 @@ class LiveCameraSource @Inject constructor(
 
     override suspend fun setZoomRatio(ratio: Float): Result<Unit> {
         return try {
-            val cameraInfo = _cameraController.cameraInfo
-            val cameraControl = _cameraController.cameraControl
+            if (!::camera.isInitialized) {
+                Log.w(TAG, "Camera not initialized - cannot set zoom")
+                return Result.failure(IllegalStateException("Camera not initialized"))
+            }
 
-            if (cameraInfo != null && cameraControl != null) {
-                val zoomState = cameraInfo.zoomState.value
-                if (zoomState != null) {
-                    val clampedRatio = ratio.coerceIn(
-                        zoomState.minZoomRatio,
-                        zoomState.maxZoomRatio
-                    )
-                    cameraControl.setZoomRatio(clampedRatio)
-                    Timber.d("LiveCameraSource: Zoom ratio set to $clampedRatio")
-                    Result.success(Unit)
-                } else {
-                    Timber.w("LiveCameraSource: Zoom state not available")
-                    Result.failure(Exception("Zoom state not available"))
-                }
+            val cameraInfo = camera.cameraInfo
+            val cameraControl = camera.cameraControl
+
+            val zoomState = cameraInfo.zoomState.value
+            if (zoomState != null) {
+                val clampedRatio = ratio.coerceIn(
+                    zoomState.minZoomRatio,
+                    zoomState.maxZoomRatio
+                )
+                cameraControl.setZoomRatio(clampedRatio)
+                Log.d(TAG, "Zoom ratio set to $clampedRatio")
+                Timber.d("LiveCameraSource: Zoom ratio set to $clampedRatio")
+                Result.success(Unit)
             } else {
-                Timber.w("LiveCameraSource: Camera not ready")
-                Result.failure(Exception("Camera not ready"))
+                Log.w(TAG, "Zoom state not available")
+                Timber.w("LiveCameraSource: Zoom state not available")
+                Result.failure(Exception("Zoom state not available"))
             }
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to set zoom ratio", e)
             Timber.e(e, "LiveCameraSource: Failed to set zoom ratio")
             Result.failure(e)
         }
     }
 
     /**
-     * Bind the camera to a lifecycle owner
+     * Bind camera to lifecycle using ProcessCameraProvider
      *
-     * This must be called from the UI layer to properly manage camera lifecycle.
+     * v2.6.1: Properly binds Preview + ImageAnalysis + ImageCapture UseCases
+     * Preview UseCase is MANDATORY for camera to start on real devices
+     * Reference: chat_logs/CameraX_StaticImage_TestMode_Fix.md
      */
     fun bindToLifecycle(lifecycleOwner: LifecycleOwner) {
         try {
-            _cameraController.bindToLifecycle(lifecycleOwner)
-            Timber.i("LiveCameraSource: Camera bound to lifecycle")
+            currentLifecycleOwner = lifecycleOwner
+            Log.i(TAG, "bindToLifecycle: Initializing ProcessCameraProvider")
+
+            val cameraProviderFuture: ListenableFuture<ProcessCameraProvider> =
+                ProcessCameraProvider.getInstance(context)
+
+            cameraProviderFuture.addListener({
+                try {
+                    cameraProvider = cameraProviderFuture.get()
+                    Log.d(TAG, "ProcessCameraProvider obtained successfully")
+
+                    // 1. Build Preview UseCase with SurfaceProvider
+                    preview = Preview.Builder()
+                        .setTargetResolution(Size(640, 480))
+                        .build()
+                        .apply {
+                            // ✅ CRITICAL: Attach custom SurfaceProvider
+                            // This gives CameraX a valid Surface to render preview
+                            setSurfaceProvider(customSurfaceProvider)
+                            Log.i(TAG, "✅ Preview UseCase created with custom SurfaceProvider")
+                        }
+
+                    // 2. Build ImageAnalysis UseCase (for Bitmap stream to UI)
+                    imageAnalysis = ImageAnalysis.Builder()
+                        .setTargetResolution(Size(640, 480))
+                        .setTargetRotation(Surface.ROTATION_0)  // Set target rotation for proper orientation
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                        .apply {
+                            Log.i(TAG, "✅ ImageAnalysis UseCase created with ROTATION_0")
+                        }
+
+                    // 3. Build ImageCapture UseCase (for photo capture)
+                    imageCapture = ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                        .setTargetRotation(Surface.ROTATION_0)
+                        .build()
+                        .apply {
+                            Log.i(TAG, "✅ ImageCapture UseCase created")
+                        }
+
+                    // 4. Unbind all previous UseCases before rebinding
+                    Log.d(TAG, "Rebinding camera - selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}")
+                    try {
+                        cameraProvider.unbindAll()
+                        Log.d(TAG, "Previous UseCases unbound successfully")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to unbind previous UseCases: ${e.message}", e)
+                        // 繼續執行 bind，可能是首次綁定
+                    }
+
+                    // 5. ✅ CRITICAL: Bind all three UseCases together
+                    // Preview MUST be included or camera won't start on real devices
+                    camera = cameraProvider.bindToLifecycle(
+                        lifecycleOwner,
+                        cameraSelector,
+                        preview,        // ✅ REQUIRED: Provides Surface for camera
+                        imageAnalysis,  // ✅ Provides Bitmap stream for UI
+                        imageCapture    // ✅ Provides photo capture capability
+                    )
+
+                    Log.i(TAG, "✅ Camera bound successfully: Preview + ImageAnalysis + ImageCapture")
+                    Log.i(TAG, "Camera should now start on real device")
+                    Timber.i("LiveCameraSource: Camera bound to lifecycle")
+
+                    // v2.6.1 FIX: Reattach analyzer after rebind (critical for switchCamera)
+                    previewStreamAnalyzer?.let { analyzer ->
+                        imageAnalysis.setAnalyzer(
+                            ContextCompat.getMainExecutor(context),
+                            analyzer
+                        )
+                        Log.i(TAG, "✅ Preview stream analyzer reattached after rebind - frames should flow")
+                    } ?: Log.w(TAG, "⚠️ No previewStreamAnalyzer to attach")
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to bind camera UseCases", e)
+                    Timber.e(e, "LiveCameraSource: Failed to bind camera to lifecycle")
+                }
+            }, ContextCompat.getMainExecutor(context))
+
         } catch (e: Exception) {
-            Timber.e(e, "LiveCameraSource: Failed to bind camera to lifecycle")
+            Log.e(TAG, "Failed to get ProcessCameraProvider", e)
+            Timber.e(e, "LiveCameraSource: Failed to initialize camera")
         }
     }
 
     /**
-     * Unbind the camera from the current lifecycle
+     * Unbind camera from lifecycle and release resources
      */
     fun unbind() {
         try {
-            _cameraController.unbind()
-            Timber.i("LiveCameraSource: Camera unbound from lifecycle")
+            if (::cameraProvider.isInitialized) {
+                cameraProvider.unbindAll()
+                Log.i(TAG, "Camera unbound from lifecycle")
+                Timber.i("LiveCameraSource: Camera unbound from lifecycle")
+            }
+            currentLifecycleOwner = null
+
+            // Release SurfaceTexture resources
+            previewSurface?.release()
+            previewSurfaceTexture?.release()
+            previewSurface = null
+            previewSurfaceTexture = null
+            Log.d(TAG, "Preview Surface resources released")
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to unbind camera", e)
             Timber.e(e, "LiveCameraSource: Failed to unbind camera")
         }
+    }
+
+    /**
+     * Switch between front and back camera
+     *
+     * v2.6.1: Changed to suspend function and executes on Main thread
+     * to prevent "Not in application's main thread" error
+     */
+    override suspend fun switchCamera() {
+        cameraSelector = if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
+            CameraSelector.DEFAULT_FRONT_CAMERA
+        } else {
+            CameraSelector.DEFAULT_BACK_CAMERA
+        }
+
+        Log.i(TAG, "Camera selector switched to: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}")
+
+        // Re-bind camera with new selector on Main thread
+        // CameraX operations MUST run on main thread
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+            currentLifecycleOwner?.let { bindToLifecycle(it) }
+        }
+    }
+
+    /**
+     * Get current camera selector
+     */
+    fun getCurrentCameraSelector(): CameraSelector = cameraSelector
+
+    /**
+     * Set camera selector (front or back)
+     */
+    fun setCameraSelector(selector: CameraSelector) {
+        if (cameraSelector != selector) {
+            cameraSelector = selector
+            Log.i(TAG, "Camera selector changed - rebinding camera")
+            currentLifecycleOwner?.let { bindToLifecycle(it) }
+        }
+    }
+
+    /**
+     * Set exposure compensation (for HDR mode simulation)
+     */
+    fun setExposureCompensation(value: Int) {
+        if (::camera.isInitialized) {
+            try {
+                camera.cameraControl.setExposureCompensationIndex(value)
+                Log.i(TAG, "Exposure compensation set to $value")
+                Timber.d("LiveCameraSource: Exposure compensation set to $value")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to set exposure compensation", e)
+                Timber.e(e, "LiveCameraSource: Failed to set exposure")
+            }
+        } else {
+            Log.w(TAG, "Camera not initialized - cannot set exposure compensation")
+        }
+    }
+
+    /**
+     * Set flash mode for image capture
+     */
+    fun setFlashMode(@ImageCapture.FlashMode flashMode: Int) {
+        if (::imageCapture.isInitialized) {
+            imageCapture.flashMode = flashMode
+            Log.i(TAG, "Flash mode set to $flashMode")
+            Timber.d("LiveCameraSource: Flash mode set to $flashMode")
+        } else {
+            Log.w(TAG, "ImageCapture not initialized - cannot set flash mode")
+        }
+    }
+
+    /**
+     * Get current flash mode
+     */
+    fun getFlashMode(): Int {
+        return if (::imageCapture.isInitialized) {
+            imageCapture.flashMode
+        } else {
+            ImageCapture.FLASH_MODE_AUTO
+        }
+    }
+
+    /**
+     * Rotate and optionally mirror a bitmap
+     *
+     * v2.6.1: Added mirror parameter for front camera selfie view
+     *
+     * @param source Source bitmap to transform
+     * @param degrees Rotation angle (0, 90, 180, 270)
+     * @param mirror Whether to mirror horizontally (for front camera)
+     * @return Transformed bitmap
+     */
+    private fun rotateBitmap(source: Bitmap, degrees: Int, mirror: Boolean = false): Bitmap {
+        if (degrees == 0 && !mirror) return source
+
+        val matrix = android.graphics.Matrix()
+
+        // For front camera: rotate first, then mirror
+        // This prevents upside-down issue
+        if (degrees != 0) {
+            matrix.postRotate(degrees.toFloat())
+        }
+
+        // Apply mirroring after rotation (for front camera)
+        if (mirror) {
+            matrix.postScale(-1f, 1f)
+        }
+
+        val transformed = Bitmap.createBitmap(
+            source,
+            0,
+            0,
+            source.width,
+            source.height,
+            matrix,
+            true
+        )
+
+        // Recycle the source bitmap if it's different from the transformed one
+        if (transformed != source) {
+            source.recycle()
+        }
+
+        val operation = when {
+            mirror && degrees != 0 -> "rotated $degrees° and mirrored"
+            mirror -> "mirrored"
+            else -> "rotated $degrees°"
+        }
+        Log.d(TAG, "Transformed bitmap from ${source.width}x${source.height} ($operation) to ${transformed.width}x${transformed.height}")
+        return transformed
     }
 
     // v2.5.2 Phase 7: getCameraController() removed - all camera operations now abstracted

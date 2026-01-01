@@ -40,4 +40,14 @@ interface CameraInputSource {
      * @return Result indicating success or failure
      */
     suspend fun setZoomRatio(ratio: Float): Result<Unit>
+
+    /**
+     * Switch between front and back camera
+     *
+     * For LiveCameraSource: Actually switches the physical camera
+     * For StaticImageSource: No-op (test images don't have front/back distinction)
+     *
+     * v2.6.1: Changed to suspend function to allow async camera rebinding
+     */
+    suspend fun switchCamera()
 }

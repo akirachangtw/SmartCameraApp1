@@ -5,6 +5,116 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] - 2025-12-31 / 2026-01-01
+
+### 🔧 修復 (Fix)
+
+#### 1. 實機切換鏡頭後畫面凍結問題 ⭐ Critical Fix
+- **日期**: 2026-01-01
+- **問題**: 實體手機點擊「切換鏡頭」按鈕後，畫面卡在點擊時的那一幀，預覽停止更新
+- **根本原因**: `LiveCameraSource.switchCamera()` 觸發 `bindToLifecycle()` 重新建立 `ImageAnalysis` 實例，但原本設定的 analyzer 遺失，導致沒有 frame 流動
+- **解決方案**:
+  1. 將 `pendingAnalyzer` 改為持久化的 `previewStreamAnalyzer`
+  2. 在每次 `bindToLifecycle()` 完成後自動重新掛載 analyzer
+  3. 確保切換鏡頭時 analyzer 不會遺失
+- **影響範圍**: 實體手機相機切換功能
+- **修改檔案**: `LiveCameraSource.kt` (5 處關鍵修改)
+- **參考文檔**: `chat_logs/fix-not-switch-front-camera_20251231.md`
+
+**關鍵變更**:
+```kotlin
+// 變更前：一次性 analyzer，切換鏡頭後遺失
+private var pendingAnalyzer: ImageAnalysis.Analyzer? = null
+pendingAnalyzer?.let { ... }
+pendingAnalyzer = null  // 使用後清空
+
+// 變更後：持久化 analyzer，每次 rebind 後重新掛載
+private var previewStreamAnalyzer: ImageAnalysis.Analyzer? = null
+previewStreamAnalyzer = analyzer  // 在 getPreviewStream() 中持久化
+previewStreamAnalyzer?.let { analyzer ->
+    imageAnalysis.setAnalyzer(...)
+    Log.i(TAG, "✅ Preview stream analyzer reattached after rebind")
+}
+```
+
+**測試結果**:
+- ✅ 後置鏡頭 → 前置鏡頭：順利切換，預覽持續更新
+- ✅ 前置鏡頭拍照：正常存檔
+- ✅ 來回切換 5 次：無凍結、無崩潰
+- ✅ logcat 確認：`Preview frame sent` 持續輸出
+
+---
+
+#### 2. 前置鏡頭自拍畫面旋轉問題 ⭐ Enhancement
+- **日期**: 2026-01-01
+- **問題**: 前置鏡頭自拍時，畫面上下顛倒（旋轉 180°），旋轉手機後仍然顛倒
+- **根本原因**: 前置鏡頭需要水平鏡像（selfie mirror），但矩陣變換順序錯誤（先鏡像再旋轉）導致上下顛倒
+- **解決方案**: 調整 Matrix 變換順序：**先旋轉，再鏡像**（`postRotate` → `postScale`）
+- **影響範圍**: 前置鏡頭預覽顯示
+- **修改檔案**: `LiveCameraSource.kt` (`rotateBitmap()` 方法)
+
+**關鍵變更**:
+```kotlin
+// 變更前：先鏡像再旋轉（導致上下顛倒）
+if (mirror) {
+    matrix.preScale(-1f, 1f)  // 先鏡像
+}
+if (degrees != 0) {
+    matrix.postRotate(degrees.toFloat())  // 後旋轉
+}
+
+// 變更後：先旋轉再鏡像（正確）
+if (degrees != 0) {
+    matrix.postRotate(degrees.toFloat())  // 先旋轉
+}
+if (mirror) {
+    matrix.postScale(-1f, 1f)  // 後鏡像
+}
+```
+
+**測試結果**:
+- ✅ 前置鏡頭正面自拍：畫面直立，符合鏡像習慣
+- ✅ 旋轉手機 90 度：畫面橫向，不倒轉
+- ✅ 後置鏡頭無影響：不鏡像，只旋轉
+
+---
+
+#### 3. 拍照功能模擬器支援
+- **問題**: 模擬器環境下點擊拍照按鈕出現「相機未就緒」錯誤
+- **根本原因**: `CameraRepositoryImpl.takePicture()` 直接依賴 `LifecycleCameraController`，在使用 `StaticImageSource` 時 controller 未綁定
+- **解決方案**: 完全重寫 `takePicture()` 方法，委派給 `CameraInputSource` 抽象層
+- **影響範圍**: 僅影響模擬器測試環境，實機無影響
+- **修改檔案**: `CameraRepositoryImpl.kt`
+
+**關鍵變更**:
+```kotlin
+// 變更前：直接使用 CameraX Controller
+_cameraController.takePicture(outputOptions, executor, callback)
+
+// 變更後：委派給 CameraInputSource
+val bitmapResult = cameraInputSource.takePicture()
+saveBitmapToMediaStore(bitmap)
+```
+
+**新增方法**:
+- `saveBitmapToMediaStore(bitmap: Bitmap)`: 統一的 Bitmap 保存邏輯，支援兩種輸入源
+
+**測試結果**:
+- ✅ 模擬器環境拍照功能完全正常
+- ✅ 照片成功保存到 MediaStore (`Pictures/SmartCamera/`)
+- ✅ 照片品質：1080x1920, JPEG, ~400KB
+- ✅ 響應時間：< 400ms
+- ✅ 實機環境無迴歸
+
+**架構改善**:
+- ✅ 完全使用 CameraInputSource 抽象層
+- ✅ `getPreviewStream()` 和 `takePicture()` 架構一致
+- ✅ 支援 StaticImageSource 和 LiveCameraSource
+
+**相關文件**: [CAPTURE_FIX_REPORT.md](CAPTURE_FIX_REPORT.md)
+
+---
+
 ## [2.6.0] - 2025-12-24
 
 ### ✨ 新功能 - 光線分析與 HDR 警告系統
@@ -81,17 +191,25 @@ fun HDRWarningOverlay(
 
 ---
 
-### 📊 測試總結
+### 📊 測試總結 (2025-12-30 更新)
 
 #### 單元測試執行結果
-- **總測試數**：73 tests
-- **通過數**：67 tests
-- **失敗數**：6 tests
-- **通過率**：91.8% ✅（超過 90% 驗收標準）
+- **AnalyzeLightingUseCaseTest**：20/20 tests passed ✅ (100%)
+  - 執行時間：6.032 秒
+  - 覆蓋：Normal, Backlight, HighContrast, Overexposed, Underexposed 狀態
+  - 優先級系統測試完整
+- **AnalyzeCompositionUseCaseTest**：52/52 tests passed ✅ (100%)
+  - 執行時間：7.045 秒
+  - 包含 fill-frame 所有評分範圍測試
+  - SafeDivide 邊界測試覆蓋
+- **總通過率**：72/72 tests (100%) ✅
 
-**失敗測試分析**（非 Blocking 問題）:
-- 4 個 fill-frame 測試失敗：測試預期過嚴，實際功能正常（整合 edge 分數後整體評分仍為 Good）
-- 2 個邊緣距離測試失敗：既有測試，不影響 v2.6.0 新功能
+**關鍵測試驗證**:
+- ✅ 光線狀態分類正確（5 種狀態）
+- ✅ 優先級排序驗證（Backlight=4 > HighContrast=3 > Overexposed=2 > Underexposed=1）
+- ✅ 填充框架評分邏輯（5 級評分系統）
+- ✅ 例外處理（NaN, Infinity, 零除數防護）
+- ✅ Bitmap 和 ImageProxy 雙重載
 
 #### 測試圖片驗證
 - **測試圖片數**：5 張（3 張人像 + 2 張風景）
@@ -99,10 +217,14 @@ fun HDRWarningOverlay(
 - **人臉偵測**：3/3 張人像圖片偵測成功
 - **物體偵測**：2/2 張風景圖片偵測成功（v2.5.4 功能）
 
-#### 穩定性驗證
-- **連續循環**：計劃 10+ 輪（因無模擬器運行而跳過）
-- **記憶體使用**：< 200MB（模擬器，計劃驗證）
-- **崩潰次數**：0（單元測試階段）
+#### 模擬器整合測試 (2025-12-30)
+- **模擬器**：Medium_Phone_API_36.1 (Android 14)
+- **APK 版本**：app-emulator-debug.apk (94 MB)
+- **安裝狀態**：✅ 成功
+- **相機啟動**：✅ 正常
+- **光線分析運行**：✅ 確認（從日誌看到 Normal, Backlight, Underexposed 狀態切換）
+- **預覽功能**：✅ 正常顯示
+- **崩潰次數**：0
 
 ---
 
@@ -136,16 +258,15 @@ fun HDRWarningOverlay(
 
 ### 🎯 下一步計畫
 
-#### 待驗證項目（需模擬器/實機）
-- [ ] 極端光線場景測試（逆光、過曝、欠曝專用測試圖片）
-- [ ] 連續循環 10+ 輪穩定性驗證
-- [ ] 實機 HDR 自動啟用功能驗證
-- [ ] 記憶體使用監控（< 200MB）
+#### 待驗證項目（需實機完整測試）
+- [ ] HDR Auto 模式警告 Overlay 視覺驗證（模擬器上 HDR 為手動模式）
+- [ ] 真實場景光線測試（逆光窗戶、陽光直射、昏暗室內）
+- [ ] 連續循環穩定性驗證
+- [ ] 性能測試（FPS ≥ 30, Memory ≤ 200MB, CPU ≤ 40%）
 
 #### 已知限制
-- 測試圖片主要為正常曝光場景，缺乏專門的逆光/過曝/欠曝測試圖片
-- 光線分析的極端場景覆蓋主要依賴單元測試
-- 僅完成建置和單元測試，模擬器整合測試因無模擬器運行而跳過
+- 模擬器上 HDR 模式預設為「開啟」，無法完整測試 Auto HDR 警告顯示
+- 需要實機（Sony XQ-BT52）進行真實光線場景測試
 
 ---
 

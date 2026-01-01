@@ -71,4 +71,10 @@ class StaticImageSource @Inject constructor(
         Timber.d("StaticImageSource: Zoom ratio set to $ratio (no-op for static images)")
         return Result.success(Unit)
     }
+
+    override suspend fun switchCamera() {
+        Log.i(TAG, "switchCamera() called - no-op for static images")
+        Timber.d("StaticImageSource: Camera switch requested (no-op for test images)")
+        // 模擬器使用測試圖片，沒有前後鏡頭區別，所以是空實現
+    }
 }
