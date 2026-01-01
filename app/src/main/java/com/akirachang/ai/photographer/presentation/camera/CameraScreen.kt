@@ -34,6 +34,9 @@ import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -102,6 +105,12 @@ fun CameraScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
+    // v2.6.1: Bind camera to lifecycle for LiveCameraSource
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        viewModel.bindCameraToLifecycle(lifecycleOwner)
+    }
+
     // 顯示錯誤訊息
     LaunchedEffect(state.error) {
         state.error?.let { error ->
@@ -162,8 +171,10 @@ fun CameraScreen(
                 )
 
                 // v2.2.0: HDR/Lighting warning overlay (highest priority - shows on top)
+                // v2.6.1: Only show in AUTO mode
                 HDRWarningOverlay(
                     lightingState = lightingState,
+                    hdrMode = state.hdrMode,  // v2.6.1: Pass HDR mode to control visibility
                     modifier = Modifier.fillMaxSize()
                 )
 
@@ -245,6 +256,26 @@ fun CameraScreen(
                             },
                             contentDescription = "閃光燈",
                             tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
+                    // HDR 按鈕 (v2.6.1)
+                    IconButton(
+                        onClick = { viewModel.onEvent(CameraUiEvent.ToggleHDR) }
+                    ) {
+                        Icon(
+                            imageVector = when (state.hdrMode) {
+                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Icons.Default.WbSunny  // HDR ON - 太陽圖示
+                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Icons.Default.BrightnessHigh  // HDR OFF - 亮度圖示（劃線）
+                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> Icons.Default.AutoAwesome  // AUTO - 星星圖示
+                            },
+                            contentDescription = "HDR 模式: ${state.hdrMode.displayName}",
+                            tint = when (state.hdrMode) {
+                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Color(0xFFFFA726)  // 橙色 - 強制開啟
+                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Color(0xFF757575)  // 灰色 - 停用
+                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> Color.White  // 白色 - 自動模式
+                            },
                             modifier = Modifier.size(32.dp)
                         )
                     }

@@ -50,11 +50,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
+import com.akirachang.ai.photographer.presentation.camera.model.HDRMode
 
 /**
  * Overlay displaying HDR and lighting warnings
  *
  * v2.6.0: Updated to support new LightingState structure
+ * v2.6.1: Added HDR mode control - only shows warnings in AUTO mode
  *
  * Shows color-coded warnings for:
  * - Backlight (Red-Orange) → HDR + Fill light recommended (Priority 4)
@@ -63,15 +65,21 @@ import com.akirachang.ai.photographer.presentation.camera.model.LightingState
  * - Underexposure (Yellow) → Increase exposure/light (Priority 1)
  *
  * @param lightingState Current lighting analysis state from AnalyzeLightingUseCase
+ * @param hdrMode Current HDR mode (AUTO/ON/OFF) - v2.6.1
  * @param modifier Modifier for layout customization
  */
 @Composable
 fun HDRWarningOverlay(
     lightingState: LightingState,
+    hdrMode: HDRMode = HDRMode.AUTO,  // v2.6.1: Default to AUTO for backward compatibility
     modifier: Modifier = Modifier
 ) {
+    // v2.6.1: Only show warnings in AUTO mode
+    // In ON/OFF modes, user has manually overridden HDR, so warnings are not needed
+    val shouldShowWarning = hdrMode.isAuto && lightingState.requiresWarning()
+
     AnimatedVisibility(
-        visible = lightingState.requiresWarning(),
+        visible = shouldShowWarning,
         enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
         exit = fadeOut() + slideOutVertically(targetOffsetY = { -it }),
         modifier = modifier
