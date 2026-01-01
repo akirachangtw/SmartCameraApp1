@@ -1,0 +1,128 @@
+name: "🐛 Camera/Preview Bug Report"
+description: 相機/預覽/影像分析/模式切換相關問題
+title: "[Bug/Camera] "
+labels: ["bug", "camera", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📸 Camera Pipeline Bug Report
+
+        > **工作流級別**: Level 1 (規劃檢視) → 填寫此 Issue 即完成 Level 1
+        >
+        > 如觸發 Level 2 條件(見下方檢查清單),需進行可行性評估後才能實作
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 問題描述 (What happened)
+      description: 請描述實際觀察到的行為
+      placeholder: 例如：切換到前鏡頭後 Preview 顯示黑畫面
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 預期行為 (What expected)
+      description: 請描述預期正確行為
+      placeholder: 例如：應該顯示前鏡頭的即時預覽畫面
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: 測試裝置
+      description: 實體裝置型號或模擬器配置
+      placeholder: 例如：Pixel 6 / Medium_Phone_API_36
+    validations:
+      required: true
+
+  - type: input
+    id: android-version
+    attributes:
+      label: Android 版本
+      placeholder: 例如：Android 13 / API 33
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App 版本 / Commit
+      placeholder: 例如：v2.6.0 (Build 38) / commit abc1234
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: mode
+    attributes:
+      label: 測試模式
+      options:
+        - label: Live Camera (實時相機)
+        - label: Static Image (測試圖片)
+
+  - type: textarea
+    id: reproduce-steps
+    attributes:
+      label: 重現步驟 (Steps to reproduce)
+      description: 如何重現這個問題？
+      placeholder: |
+        1. 啟動 App
+        2. 點擊切換鏡頭按鈕
+        3. 觀察到 Preview 黑畫面
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: symptoms
+    attributes:
+      label: 現象分類
+      options:
+        - label: Preview 無畫面 / 黑畫面
+        - label: ImageAnalysis 無資料
+        - label: 模式切換後異常
+        - label: 僅模擬器正常，實機異常
+
+  - type: checkboxes
+    id: level2-triggers
+    attributes:
+      label: ⚠️ Level 2 升級條件檢查
+      description: 如勾選任一項，必須先完成 Level 2 可行性評估
+      options:
+        - label: 涉及 CameraX / Preview / ImageAnalysis
+        - label: 涉及模擬器 vs 實體裝置差異
+        - label: 涉及 FPS / Memory / CPU / GPU
+        - label: 涉及模式切換 (Live / Static / Debug)
+        - label: 修改兩個以上檔案
+        - label: 非純 UI / 文案調整
+
+  - type: dropdown
+    id: level2-conclusion
+    attributes:
+      label: Level 2 結論 (可行性評估後填寫)
+      options:
+        - 尚未評估
+        - 可行 → 可進入 Level 3 實作
+        - 需調整 → 見下方說明
+        - 不可行 → 見下方說明
+    validations:
+      required: false
+
+  - type: textarea
+    id: level2-notes
+    attributes:
+      label: Level 2 評估說明 (如需調整/不可行)
+      placeholder: 請說明調整方案或不可行原因
+
+  - type: textarea
+    id: logcat
+    attributes:
+      label: Logcat / 截圖 / 影片
+      description: 請貼上相關的 Logcat 訊息或上傳截圖
+      placeholder: |
+        可使用以下指令過濾 Logcat:
+        adb logcat -d | Select-String "CameraViewModel|CameraRepository|AnalyzeCompositionUseCase"

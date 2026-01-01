@@ -1,0 +1,100 @@
+name: "✨ Composition/Guidance Feature Request"
+description: 構圖/Overlay/提示文字相關功能需求
+title: "[Feature/Composition] "
+labels: ["enhancement", "composition"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ✨ Composition Feature Request
+
+        > **工作流級別**: Level 1 (規劃檢視) → 填寫此 Issue 即完成 Level 1
+        >
+        > 如觸發 Level 2 條件(見下方檢查清單)，需進行可行性評估後才能實作
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: 功能目標 (Goal)
+      description: 請描述此功能想解決的問題
+      placeholder: 例如：希望在人像模式下，能自動檢測並提示頭部空間是否適當
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: scenario
+    attributes:
+      label: 使用場景 (Scenario)
+      options:
+        - label: 人像
+        - label: 風景
+        - label: 夜景
+        - label: 街拍 / 建築
+
+  - type: checkboxes
+    id: composition-type
+    attributes:
+      label: 涉及構圖或引導 (Composition Type)
+      options:
+        - label: 三分法
+        - label: 頭部空間
+        - label: 對稱
+        - label: 引導線
+        - label: 填滿構圖
+        - label: AI 提示文字
+
+  - type: checkboxes
+    id: impact-scope
+    attributes:
+      label: 影響範圍 (Impact Scope)
+      options:
+        - label: Overlay UI
+        - label: 分析邏輯
+        - label: 效能（FPS / 延遲）
+        - label: 相機管線
+
+  - type: checkboxes
+    id: level2-triggers
+    attributes:
+      label: ⚠️ Level 2 升級條件檢查
+      description: 如勾選任一項，必須先完成 Level 2 可行性評估
+      options:
+        - label: 涉及 CameraX / Preview / ImageAnalysis
+        - label: 涉及模擬器 vs 實體裝置差異
+        - label: 涉及 FPS / Memory / CPU / GPU
+        - label: 涉及模式切換 (Live / Static / Debug)
+        - label: 修改兩個以上檔案
+        - label: 非純 UI / 文案調整
+
+  - type: dropdown
+    id: level2-conclusion
+    attributes:
+      label: Level 2 結論 (可行性評估後填寫)
+      options:
+        - 尚未評估
+        - 可行 → 可進入 Level 3 實作
+        - 需調整 → 見下方說明
+        - 不可行 → 見下方說明
+    validations:
+      required: false
+
+  - type: textarea
+    id: level2-notes
+    attributes:
+      label: Level 2 評估說明 (如需調整/不可行)
+      placeholder: 請說明調整方案或不可行原因
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 驗收條件 (Acceptance Criteria)
+      description: 此功能完成後應滿足的條件
+      placeholder: |
+        - [ ] UI 提示正確
+        - [ ] 不影響既有構圖邏輯
+        - [ ] 實體裝置驗證通過（型號: _______）
+        - [ ] FPS 無明顯下降（≥ ______ fps）
+    validations:
+      required: true
