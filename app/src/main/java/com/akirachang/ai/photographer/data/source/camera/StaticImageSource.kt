@@ -77,4 +77,16 @@ class StaticImageSource @Inject constructor(
         Timber.d("StaticImageSource: Camera switch requested (no-op for test images)")
         // 模擬器使用測試圖片，沒有前後鏡頭區別，所以是空實現
     }
+
+    override fun enableHDR(): Result<Unit> {
+        Log.i(TAG, "enableHDR() called - no-op for static images")
+        Timber.d("StaticImageSource: HDR enable requested (no actual effect on test images)")
+        return Result.success(Unit)
+    }
+
+    override fun disableHDR(): Result<Unit> {
+        Log.i(TAG, "disableHDR() called - no-op for static images")
+        Timber.d("StaticImageSource: HDR disable requested (no actual effect on test images)")
+        return Result.success(Unit)
+    }
 }

@@ -98,6 +98,10 @@ class LiveCameraSource @Inject constructor(
     // Must be reattached after every camera rebind (e.g., switchCamera)
     private var previewStreamAnalyzer: ImageAnalysis.Analyzer? = null
 
+    // v2.6.2: Pending exposure index for HDR control
+    // Must be reapplied after every camera rebind (e.g., switchCamera)
+    private var pendingExposureIndex: Int? = null
+
     /**
      * Get live camera preview stream as Bitmap flow
      *
@@ -352,6 +356,12 @@ class LiveCameraSource @Inject constructor(
                         Log.i(TAG, "✅ Preview stream analyzer reattached after rebind - frames should flow")
                     } ?: Log.w(TAG, "⚠️ No previewStreamAnalyzer to attach")
 
+                    // v2.6.2 FIX: Reapply pending exposure compensation after rebind (critical for HDR persistence)
+                    pendingExposureIndex?.let { exposureValue ->
+                        camera.cameraControl.setExposureCompensationIndex(exposureValue)
+                        Log.i(TAG, "✅ Pending HDR exposure compensation reapplied: $exposureValue")
+                    } ?: Log.d(TAG, "No pending HDR exposure compensation to apply")
+
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to bind camera UseCases", e)
                     Timber.e(e, "LiveCameraSource: Failed to bind camera to lifecycle")
@@ -516,6 +526,76 @@ class LiveCameraSource @Inject constructor(
         }
         Log.d(TAG, "Transformed bitmap from ${source.width}x${source.height} ($operation) to ${transformed.width}x${transformed.height}")
         return transformed
+    }
+
+    /**
+     * Enable HDR mode via exposure compensation
+     *
+     * v2.6.2: Implements CameraInputSource.enableHDR()
+     *
+     * Uses persistent queueing mechanism similar to previewStreamAnalyzer:
+     * - If camera is initialized: apply immediately and store for rebind
+     * - If camera not initialized: queue for later application
+     * - Automatically reapplied after camera rebind (e.g., switchCamera)
+     *
+     * @return Result indicating success or failure
+     */
+    override fun enableHDR(): Result<Unit> {
+        return try {
+            if (::camera.isInitialized) {
+                // Camera is ready: apply immediately
+                val exposureState = camera.cameraInfo.exposureState
+                val range = exposureState.exposureCompensationRange
+                val targetValue = 1.coerceIn(range.lower, range.upper)
+
+                camera.cameraControl.setExposureCompensationIndex(targetValue)
+                pendingExposureIndex = targetValue  // Store for rebind scenarios
+
+                Log.i(TAG, "HDR enabled: exposure compensation set to $targetValue (range: ${range.lower}..${range.upper})")
+                Result.success(Unit)
+            } else {
+                // Camera not ready: queue for later application
+                pendingExposureIndex = 1
+                Log.i(TAG, "HDR enable queued: will be applied after camera binds")
+                Result.success(Unit)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to enable HDR", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Disable HDR mode by resetting exposure compensation
+     *
+     * v2.6.2: Implements CameraInputSource.disableHDR()
+     *
+     * Uses persistent queueing mechanism similar to previewStreamAnalyzer:
+     * - If camera is initialized: apply immediately and store for rebind
+     * - If camera not initialized: queue for later application
+     * - Automatically reapplied after camera rebind (e.g., switchCamera)
+     *
+     * @return Result indicating success or failure
+     */
+    override fun disableHDR(): Result<Unit> {
+        return try {
+            if (::camera.isInitialized) {
+                // Camera is ready: apply immediately
+                camera.cameraControl.setExposureCompensationIndex(0)
+                pendingExposureIndex = 0  // Store for rebind scenarios
+
+                Log.i(TAG, "HDR disabled: exposure compensation reset to 0")
+                Result.success(Unit)
+            } else {
+                // Camera not ready: queue for later application
+                pendingExposureIndex = 0
+                Log.i(TAG, "HDR disable queued: will be applied after camera binds")
+                Result.success(Unit)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to disable HDR", e)
+            Result.failure(e)
+        }
     }
 
     // v2.5.2 Phase 7: getCameraController() removed - all camera operations now abstracted

@@ -50,4 +50,26 @@ interface CameraInputSource {
      * v2.6.1: Changed to suspend function to allow async camera rebinding
      */
     suspend fun switchCamera()
+
+    /**
+     * Enable HDR mode (via exposure compensation)
+     *
+     * v2.6.2: Camera Input abstraction for HDR control
+     * For LiveCameraSource: Sets exposure compensation to +1
+     * For StaticImageSource: No-op (test images don't have HDR control)
+     *
+     * @return Result indicating success or failure
+     */
+    fun enableHDR(): Result<Unit>
+
+    /**
+     * Disable HDR mode (reset exposure compensation)
+     *
+     * v2.6.2: Camera Input abstraction for HDR control
+     * For LiveCameraSource: Resets exposure compensation to 0
+     * For StaticImageSource: No-op (test images don't have HDR control)
+     *
+     * @return Result indicating success or failure
+     */
+    fun disableHDR(): Result<Unit>
 }

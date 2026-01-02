@@ -281,21 +281,15 @@ class CameraRepositoryImpl @Inject constructor(
      * 啟用 HDR 模式（透過曝光補償）
      *
      * v2.3.0: 逆光場景自動 HDR
+     * v2.6.2: Delegates to CameraInputSource for proper CameraControl access
      *
      * 注意：CameraX 沒有直接 HDR 控制，使用曝光補償作為替代
      */
     override fun enableHDRMode() {
-        try {
-            val cameraControl = _cameraController.cameraControl
-            if (cameraControl != null) {
-                // 設定曝光補償 +1 stop
-                cameraControl.setExposureCompensationIndex(1)
-                Log.i(TAG, "HDR mode enabled (exposure compensation +1)")
-            } else {
-                Log.w(TAG, "Cannot enable HDR: CameraControl not available")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to enable HDR mode", e)
+        Log.d(TAG, "Delegating HDR enable to CameraInputSource")
+        val result = cameraInputSource.enableHDR()
+        if (result.isFailure) {
+            Log.e(TAG, "Failed to enable HDR via CameraInputSource: ${result.exceptionOrNull()?.message}")
         }
     }
 
@@ -303,19 +297,13 @@ class CameraRepositoryImpl @Inject constructor(
      * 停用 HDR 模式（重設曝光補償）
      *
      * v2.3.0: 逆光場景自動 HDR
+     * v2.6.2: Delegates to CameraInputSource for proper CameraControl access
      */
     override fun disableHDRMode() {
-        try {
-            val cameraControl = _cameraController.cameraControl
-            if (cameraControl != null) {
-                // 重設曝光補償為 0
-                cameraControl.setExposureCompensationIndex(0)
-                Log.i(TAG, "HDR mode disabled (exposure compensation 0)")
-            } else {
-                Log.w(TAG, "Cannot disable HDR: CameraControl not available")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to disable HDR mode", e)
+        Log.d(TAG, "Delegating HDR disable to CameraInputSource")
+        val result = cameraInputSource.disableHDR()
+        if (result.isFailure) {
+            Log.e(TAG, "Failed to disable HDR via CameraInputSource: ${result.exceptionOrNull()?.message}")
         }
     }
 
