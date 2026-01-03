@@ -6,9 +6,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import com.akirachang.ai.photographer.BuildConfig
-import com.akirachang.ai.photographer.data.source.camera.CameraDataSource
-import com.akirachang.ai.photographer.data.source.camera.FakeCameraDataSource
-import com.akirachang.ai.photographer.data.source.camera.RealCameraDataSource
+import com.akirachang.ai.photographer.data.source.camera.CameraInputSource
+import com.akirachang.ai.photographer.data.source.camera.StaticImageSource
+import com.akirachang.ai.photographer.data.source.camera.LiveCameraSource
 import timber.log.Timber
 import javax.inject.Singleton
 
@@ -21,26 +21,26 @@ object CameraModule {
      */
     @Provides
     @Singleton
-    fun provideCameraDataSource(
-        fakeCameraDataSource: FakeCameraDataSource,
-        realCameraDataSource: RealCameraDataSource
-    ): CameraDataSource {
+    fun provideCameraInputSource(
+        staticImageSource: StaticImageSource,
+        liveCameraSource: LiveCameraSource
+    ): CameraInputSource {
         val isEmulator = isRunningOnEmulator()
         val useEmulatorMode = BuildConfig.EMULATOR_MODE || BuildConfig.IS_EMULATOR_BUILD
 
         return when {
             useEmulatorMode || isEmulator -> {
-                Timber.d("🎮 Using FakeCameraDataSource (Emulator Mode)")
+                Timber.d("🎮 Using StaticImageSource (Test Images)")
                 Timber.d("  - BuildConfig.EMULATOR_MODE: ${BuildConfig.EMULATOR_MODE}")
                 Timber.d("  - BuildConfig.IS_EMULATOR_BUILD: ${BuildConfig.IS_EMULATOR_BUILD}")
                 Timber.d("  - isRunningOnEmulator(): $isEmulator")
-                fakeCameraDataSource
+                staticImageSource
             }
             else -> {
-                Timber.d("📱 Using RealCameraDataSource (Device Mode)")
+                Timber.d("📱 Using LiveCameraSource (CameraX)")
                 Timber.d("  - BuildConfig.EMULATOR_MODE: ${BuildConfig.EMULATOR_MODE}")
                 Timber.d("  - BuildConfig.IS_EMULATOR_BUILD: ${BuildConfig.IS_EMULATOR_BUILD}")
-                realCameraDataSource
+                liveCameraSource
             }
         }
     }

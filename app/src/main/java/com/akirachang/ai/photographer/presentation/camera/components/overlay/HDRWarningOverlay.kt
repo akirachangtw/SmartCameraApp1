@@ -2,16 +2,24 @@
  * ClassName: HDRWarningOverlay
  * Description: Visual overlay for HDR and lighting warnings
  * Author: Claude Code
- * Date: 2025-12-02
- * Version: 2.2.0
+ * Date: 2025-12-20
+ * Version: 2.6.0
  *
  * Features:
  * - HDR recommendation badge
- * - Backlight warning
+ * - Backlight warning (v2.6.0 - separated state)
+ * - High contrast warning
  * - Overexposure alert
- * - Low light indicator
+ * - Underexposure indicator (v2.6.0 - renamed from LowLight)
  * - Color-coded by severity
- * - Animated entrance
+ * - Animated entrance/exit
+ * - Priority-based display
+ *
+ * v2.6.0 Changes:
+ * - Added dedicated Backlight state UI (highest priority)
+ * - Renamed LowLight to Underexposed
+ * - Updated to use new LightingState structure with detailed metrics
+ * - Improved warning messages using getRecommendation()
  */
 package com.akirachang.ai.photographer.presentation.camera.components.overlay
 
@@ -42,25 +50,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
+import com.akirachang.ai.photographer.presentation.camera.model.HDRMode
 
 /**
  * Overlay displaying HDR and lighting warnings
  *
- * Shows color-coded warnings for:
- * - High contrast/backlight (Orange) → HDR recommended
- * - Overexposure (Red) → Reduce exposure
- * - Low light (Yellow) → Increase exposure/light
+ * v2.6.0: Updated to support new LightingState structure
+ * v2.6.1: Added HDR mode control - only shows warnings in AUTO mode
  *
- * @param lightingState Current lighting analysis state
+ * Shows color-coded warnings for:
+ * - Backlight (Red-Orange) → HDR + Fill light recommended (Priority 4)
+ * - High contrast (Orange) → HDR recommended (Priority 3)
+ * - Overexposure (Red) → Reduce exposure (Priority 2)
+ * - Underexposure (Yellow) → Increase exposure/light (Priority 1)
+ *
+ * @param lightingState Current lighting analysis state from AnalyzeLightingUseCase
+ * @param hdrMode Current HDR mode (AUTO/ON/OFF) - v2.6.1
  * @param modifier Modifier for layout customization
  */
 @Composable
 fun HDRWarningOverlay(
     lightingState: LightingState,
+    hdrMode: HDRMode = HDRMode.AUTO,  // v2.6.1: Default to AUTO for backward compatibility
     modifier: Modifier = Modifier
 ) {
+    // v2.6.1: Only show warnings in AUTO mode
+    // In ON/OFF modes, user has manually overridden HDR, so warnings are not needed
+    val shouldShowWarning = hdrMode.isAuto && lightingState.requiresWarning()
+
     AnimatedVisibility(
-        visible = lightingState != LightingState.Normal,
+        visible = shouldShowWarning,
         enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
         exit = fadeOut() + slideOutVertically(targetOffsetY = { -it }),
         modifier = modifier
@@ -72,10 +91,19 @@ fun HDRWarningOverlay(
             contentAlignment = Alignment.TopCenter
         ) {
             when (lightingState) {
+                is LightingState.Backlight -> {
+                    WarningBadge(
+                        icon = Icons.Default.WbSunny,
+                        message = lightingState.getRecommendation(),
+                        backgroundColor = Color(0xFFFF5722), // Deep Orange (highest severity)
+                        iconTint = Color.White
+                    )
+                }
+
                 is LightingState.HighContrast -> {
                     WarningBadge(
                         icon = Icons.Default.WbSunny,
-                        message = lightingState.message,
+                        message = lightingState.getRecommendation(),
                         backgroundColor = Color(0xFFFF9800), // Orange
                         iconTint = Color.White
                     )
@@ -84,23 +112,23 @@ fun HDRWarningOverlay(
                 is LightingState.Overexposed -> {
                     WarningBadge(
                         icon = Icons.Default.Warning,
-                        message = lightingState.message,
+                        message = lightingState.getRecommendation(),
                         backgroundColor = Color(0xFFF44336), // Red
                         iconTint = Color.White
                     )
                 }
 
-                is LightingState.LowLight -> {
+                is LightingState.Underexposed -> {
                     WarningBadge(
                         icon = Icons.Default.Lightbulb,
-                        message = lightingState.message,
-                        backgroundColor = Color(0xFFFFC107), // Amber
+                        message = lightingState.getRecommendation(),
+                        backgroundColor = Color(0xFFFFC107), // Amber/Yellow
                         iconTint = Color.White
                     )
                 }
 
                 LightingState.Normal -> {
-                    // No warning
+                    // No warning - should not reach here due to requiresWarning() check
                 }
             }
         }

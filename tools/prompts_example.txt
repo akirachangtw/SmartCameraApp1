@@ -1,0 +1,63 @@
+# SmartCameraApp Test Image Generation - Example Prompts
+# This file demonstrates the flexible format for image generation
+#
+# Format Options:
+# 1. "filename.jpg", "prompt" - Uses defaults (3:4, image/jpeg)
+# 2. "filename.jpg", "prompt", "aspect_ratio" - Custom aspect ratio
+# 3. "filename.jpg", "prompt", "aspect_ratio", "mime_type" - Full control
+#
+# Valid aspect ratios: 1:1, 3:4, 4:3, 9:16, 16:9
+# Valid MIME types: image/jpeg, image/png
+
+# ==========================================
+# Format 1: Basic (uses default 3:4 portrait, JPEG)
+# ==========================================
+
+"portrait_basic.jpg", "Professional portrait photo, young Asian woman, natural smile, positioned at top-left third intersection, headroom 10%, minimal background, soft lighting, photorealistic"
+
+"portrait_headroom.jpg", "Portrait photo, person's head too close to top edge, only 2% headroom, positioned at center horizontally, plain background, photorealistic"
+
+# ==========================================
+# Format 2: Custom Aspect Ratio
+# ==========================================
+
+"landscape_16_9.jpg", "Beautiful landscape photo with mountains and sunset, golden hour lighting, rule of thirds composition, photorealistic", "16:9"
+
+"square_product.jpg", "Product photography, smartphone on clean white background, centered composition, professional studio lighting, photorealistic", "1:1"
+
+"portrait_9_16.jpg", "Full body portrait, young woman standing, positioned at left third, urban background, natural lighting, photorealistic", "9:16"
+
+# ==========================================
+# Format 3: Full Control (Aspect Ratio + MIME Type)
+# ==========================================
+
+"portrait_high_quality.png", "High quality portrait photo, young man, positioned at right third intersection, headroom 10%, natural background, soft lighting, photorealistic", "3:4", "image/png"
+
+"landscape_wide.jpg", "Wide landscape photo, mountain range at sunset, dramatic clouds, rule of thirds composition, photorealistic", "16:9", "image/jpeg"
+
+"square_food.png", "Overhead food photography, colorful salad bowl, centered composition, natural lighting, photorealistic", "1:1", "image/png"
+
+# ==========================================
+# Mixed Examples for SmartCameraApp Testing
+# ==========================================
+
+# Composition Tests - Various aspect ratios
+"comp_portrait_3_4.jpg", "Portrait photo, person at top-left third intersection, ideal headroom, soft lighting, photorealistic", "3:4"
+
+"comp_portrait_9_16.jpg", "Full length portrait, person at right third, good margins, natural background, photorealistic", "9:16"
+
+"comp_landscape_16_9.jpg", "Landscape photo, mountain at left third, sky at upper third, golden hour, photorealistic", "16:9"
+
+# Lighting Tests - Default portrait format
+"light_backlight_severe.jpg", "Portrait photo with severe backlight, bright window behind person, silhouette effect, photorealistic"
+
+"light_normal.jpg", "Portrait photo with good natural lighting, soft shadows, even exposure, photorealistic"
+
+"light_high_contrast.jpg", "Portrait photo, strong directional light creating high contrast, bright highlights and deep shadows, photorealistic"
+
+# Edge Cases - Testing different formats
+"test_square_jpeg.jpg", "Portrait photo, centered composition for testing, photorealistic", "1:1", "image/jpeg"
+
+"test_square_png.png", "Portrait photo, centered composition for testing, photorealistic", "1:1", "image/png"
+
+"test_wide_landscape.jpg", "Ultra wide landscape photo, dramatic sky, rule of thirds, photorealistic", "16:9", "image/jpeg"

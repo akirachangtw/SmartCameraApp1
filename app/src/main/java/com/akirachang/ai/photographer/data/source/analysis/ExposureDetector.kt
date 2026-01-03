@@ -20,6 +20,7 @@
  */
 package com.akirachang.ai.photographer.data.source.analysis
 
+import android.graphics.Bitmap
 import android.graphics.Rect
 import android.util.Log
 import androidx.camera.core.ImageProxy
@@ -159,6 +160,46 @@ class ExposureDetector @Inject constructor(
                                overallContrast > 120f
 
         return strictBacklight || moderateBacklight
+    }
+
+    /**
+     * Analyze exposure with subject bounding box for backlight detection (v2.5.1 Phase 7)
+     *
+     * @param bitmap Bitmap from camera preview stream
+     * @param histogram Full-frame histogram
+     * @param subjectBox Subject bounding box from face/object detection
+     * @return ExposureAnalysis with backlight detection
+     */
+    fun analyzeWithSubject(
+        bitmap: Bitmap,
+        histogram: Histogram,
+        subjectBox: Rect
+    ): ExposureAnalysis {
+        // Get base analysis
+        val baseAnalysis = analyze(histogram, subjectBox)
+
+        // Calculate subject region histogram for backlight detection
+        val subjectHistogram = histogramCalculator.calculateROI(
+            bitmap,
+            roiX = subjectBox.left,
+            roiY = subjectBox.top,
+            roiWidth = subjectBox.width(),
+            roiHeight = subjectBox.height()
+        )
+
+        val subjectAvgLuminance = subjectHistogram.avgLuminance
+        val backgroundAvgLuminance = histogram.avgLuminance // Full frame includes background
+
+        // Backlight detection: Subject dark AND (background bright OR high contrast)
+        val isBacklit = detectBacklight(
+            subjectLuminance = subjectAvgLuminance,
+            backgroundLuminance = backgroundAvgLuminance,
+            overallContrast = baseAnalysis.dynamicRange
+        )
+
+        Log.d(TAG, "Backlight check (Bitmap): subject=$subjectAvgLuminance, bg=$backgroundAvgLuminance, backlit=$isBacklit")
+
+        return baseAnalysis.copy(isBacklit = isBacklit)
     }
 
     /**

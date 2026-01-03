@@ -1,5 +1,6 @@
 package com.akirachang.ai.photographer.presentation.camera
 
+import android.graphics.Bitmap
 import android.util.Log
 import androidx.camera.core.ImageCapture
 import androidx.lifecycle.ViewModel
@@ -7,17 +8,24 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
 import com.akirachang.ai.photographer.data.sensor.DeviceSensorManager
 import com.akirachang.ai.photographer.data.sensor.OrientationData
-import androidx.camera.core.CameraSelector
+// v2.5.2 Phase 7: Removed CameraSelector import - using CameraLens instead
 import com.akirachang.ai.photographer.domain.model.CaptureResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.domain.repository.CameraRepository
@@ -77,19 +85,39 @@ class CameraViewModel @Inject constructor(
     private val MIN_DETECTIONS_TO_SHOW = 3  // Need 3 consecutive detections to show
     private val MIN_NO_DETECTIONS_TO_HIDE = 5  // Need 5 consecutive empty frames to hide
 
+    /**
+     * Camera preview bitmap stream (v2.5.1)
+     *
+     * Provides unified preview regardless of camera source:
+     * - Emulator: Test images from StaticImageSource
+     * - Device: Live camera from LiveCameraSource
+     *
+     * IMPORTANT: Must be initialized BEFORE init block to be accessible in observePreviewForAnalysis()
+     */
+    val previewBitmap: StateFlow<Bitmap?> = cameraRepository.getPreviewStream()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
     init {
-        // 訂閱偵測結果
-        observeDetectionResults()
+        // v2.5.1: Analyze preview bitmap stream directly (Phase 7)
+        // This replaces the old ImageProxy-based analysis
+        observePreviewForAnalysis()
+
+        // 訂閱偵測結果 (deprecated - will be removed once bitmap analysis is stable)
+        // observeDetectionResults()
 
         // 訂閱光影分析結果 (v2.2.0)
-        observeLightingResults()
+        // observeLightingResults()
 
         // 訂閱感測器方向資料 (v2.1.0)
         observeOrientation()
 
         // ML 偵測需手動啟動（透過 CameraUiEvent.StartAnalysis）
         // 或根據需求自動啟動
-        startAnalysis()
+        // startAnalysis()  // Deprecated - now using bitmap-based analysis
     }
 
     /**
@@ -116,11 +144,19 @@ class CameraViewModel @Inject constructor(
     /**
      * 處理自動 HDR 模式
      * v2.3.0: 逆光場景自動 HDR
+     * v2.6.1: Only applies in AUTO mode - manual ON/OFF modes bypass this logic
      */
     private fun handleAutoHDR(
         repository: com.akirachang.ai.photographer.data.repository.CameraRepositoryImpl,
         lightingState: LightingState
     ) {
+        // v2.6.1: Skip auto HDR if in manual mode (ON or OFF)
+        val currentHDRMode = _state.value.hdrMode
+        if (!currentHDRMode.isAuto) {
+            Log.d(TAG, "Auto HDR skipped - manual mode active: ${currentHDRMode.displayName}")
+            return
+        }
+
         viewModelScope.launch {
             overlayPreferences.isAutoHDREnabled.first().let { autoHDREnabled ->
                 if (autoHDREnabled) {
@@ -165,13 +201,13 @@ class CameraViewModel @Inject constructor(
         Log.i(TAG, "Orientation tracking initialized")
     }
 
-    fun getCameraController() = cameraRepository.getCameraController()
 
     fun onEvent(event: CameraUiEvent) {
         when (event) {
             is CameraUiEvent.CapturePhoto -> capturePhoto()
             is CameraUiEvent.SwitchCamera -> switchCamera()
             is CameraUiEvent.ToggleFlash -> toggleFlash()
+            is CameraUiEvent.ToggleHDR -> toggleHDR()  // v2.6.1
             is CameraUiEvent.StartAnalysis -> startAnalysis()
             is CameraUiEvent.StopAnalysis -> stopAnalysis()
             is CameraUiEvent.ShowError -> showError(event.message)
@@ -219,10 +255,19 @@ class CameraViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Switch camera between front and back (v2.5.2 Phase 7)
+     *
+     * Now uses platform-agnostic CameraLens enum instead of CameraSelector
+     */
     private fun switchCamera() {
-        cameraRepository.switchCamera()
-        _state.update {
-            it.copy(cameraSelector = cameraRepository.getCurrentCameraSelector())
+        // v2.6.1 Fix: Execute camera switching asynchronously
+        // switchCamera() internally handles Main thread requirement for CameraX
+        viewModelScope.launch {
+            cameraRepository.switchCamera()
+            _state.update {
+                it.copy(currentCamera = cameraRepository.getCurrentCamera())
+            }
         }
     }
 
@@ -234,6 +279,61 @@ class CameraViewModel @Inject constructor(
         }
         cameraRepository.setFlashMode(newFlashMode)
         _state.update { it.copy(flashMode = newFlashMode) }
+    }
+
+    /**
+     * Toggle HDR mode (v2.6.1)
+     *
+     * Cycles through: AUTO → ON → OFF → AUTO
+     *
+     * Behavior by mode:
+     * - AUTO: Enable auto HDR based on lighting analysis (existing behavior)
+     * - ON: Force enable HDR, disable auto HDR logic
+     * - OFF: Force disable HDR, disable auto HDR logic
+     */
+    private fun toggleHDR() {
+        val newMode = _state.value.hdrMode.next()
+        _state.update { it.copy(hdrMode = newMode) }
+
+        // Apply HDR mode immediately
+        applyHDRMode(newMode)
+
+        Log.i(TAG, "HDR mode changed: ${newMode.displayName}")
+    }
+
+    /**
+     * Apply HDR mode to camera (v2.6.1)
+     *
+     * @param mode Target HDR mode
+     */
+    private fun applyHDRMode(mode: com.akirachang.ai.photographer.presentation.camera.model.HDRMode) {
+        val repository = cameraRepository as? com.akirachang.ai.photographer.data.repository.CameraRepositoryImpl
+        if (repository == null) {
+            Log.w(TAG, "Cannot apply HDR mode - repository is not CameraRepositoryImpl")
+            return
+        }
+
+        when (mode) {
+            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> {
+                // Re-enable auto HDR logic
+                // Let handleAutoHDR() manage HDR based on lighting state
+                val currentLighting = _lightingState.value
+                handleAutoHDR(repository, currentLighting)
+                Log.i(TAG, "HDR mode: AUTO - Re-evaluating based on lighting state")
+            }
+            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> {
+                // Force enable HDR
+                repository.enableHDRMode()
+                _isAutoHDRActive.value = true  // Update state for UI consistency
+                Log.i(TAG, "HDR mode: ON - Force enabled")
+            }
+            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> {
+                // Force disable HDR
+                repository.disableHDRMode()
+                _isAutoHDRActive.value = false  // Update state for UI consistency
+                Log.i(TAG, "HDR mode: OFF - Force disabled")
+            }
+        }
     }
 
     private fun showError(message: String) {
@@ -316,6 +416,117 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
+     * Observes preview bitmap stream for ML Kit analysis (v2.5.1 Phase 7)
+     *
+     * Replaces the old ImageProxy-based analysis with unified Bitmap analysis.
+     * This enables test images and live camera to use the same analysis pipeline.
+     */
+    @OptIn(FlowPreview::class)
+    private fun observePreviewForAnalysis() {
+        previewBitmap
+            .filterNotNull()
+            // Throttle analysis to avoid processing every frame
+            // Process approximately every 100ms (10 FPS)
+            .sample(100)
+            .onEach { bitmap ->
+                try {
+                    // Convert Bitmap to ML Kit InputImage
+                    val inputImage = com.google.mlkit.vision.common.InputImage.fromBitmap(
+                        bitmap,
+                        0  // Rotation: 0 degrees (bitmap already correctly oriented)
+                    )
+
+                    // Create detection result by analyzing the bitmap
+                    val detectionResult = analyzeImageWithMLKit(inputImage)
+
+                    // Update detection state with stabilization logic
+                    if (detectionResult != null) {
+                        val hasFaces = detectionResult.faces.isNotEmpty()
+
+                        if (hasFaces) {
+                            consecutiveFaceDetections++
+                            consecutiveNoFaceDetections = 0
+
+                            // Only update state if we have enough consecutive detections
+                            if (consecutiveFaceDetections >= MIN_DETECTIONS_TO_SHOW ||
+                                _state.value.detectionResult?.faces?.isNotEmpty() == true) {
+                                _state.update { it.copy(detectionResult = detectionResult) }
+
+                                // Perform composition analysis
+                                analyzeComposition(detectionResult)
+
+                                Log.i(
+                                    TAG,
+                                    "Detection result updated: ${detectionResult.faces.size} faces, ${detectionResult.objects.size} objects"
+                                )
+                            }
+                        } else {
+                            consecutiveNoFaceDetections++
+                            consecutiveFaceDetections = 0
+
+                            // Only clear if we have enough consecutive empty frames
+                            if (consecutiveNoFaceDetections >= MIN_NO_DETECTIONS_TO_HIDE) {
+                                _state.update { it.copy(detectionResult = detectionResult) }
+                                _compositionState.value = CompositionState.NoSubject
+
+                                Log.i(TAG, "Detection cleared: No stable face detected")
+                            }
+                        }
+
+                        // Analyze lighting (v2.2.0) - Use Bitmap-based analysis with subject context
+                        val lightingState = if (detectionResult.faces.isNotEmpty() || detectionResult.objects.isNotEmpty()) {
+                            analyzeLightingUseCase.analyzeWithSubject(bitmap, detectionResult)
+                        } else {
+                            analyzeLightingUseCase(bitmap)
+                        }
+                        _lightingState.value = lightingState
+                        Log.d(TAG, "Lighting state updated: ${lightingState.javaClass.simpleName}")
+
+                        // Handle Auto HDR (v2.3.0)
+                        val repositoryImpl = cameraRepository as? com.akirachang.ai.photographer.data.repository.CameraRepositoryImpl
+                        if (repositoryImpl != null) {
+                            handleAutoHDR(repositoryImpl, lightingState)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to analyze preview bitmap", e)
+                }
+                // Note: InputImage doesn't require explicit cleanup - it's a lightweight wrapper
+                // Memory management handled by ML Kit detectors' lifecycle
+            }
+            .launchIn(viewModelScope)
+
+        Log.i(TAG, "Preview bitmap analysis initialized (v2.5.1 Phase 7)")
+    }
+
+    /**
+     * Analyzes InputImage with ML Kit face and object detection
+     *
+     * @param inputImage ML Kit InputImage from Bitmap
+     * @return DetectionResult with faces and objects
+     */
+    private suspend fun analyzeImageWithMLKit(inputImage: com.google.mlkit.vision.common.InputImage): DetectionResult? {
+        return try {
+            // Perform face and object detection through repository
+            val faces = cameraRepository.detectFaces(inputImage)
+            val objects = cameraRepository.detectObjects(inputImage)
+
+            // Convert to domain model
+            // v2.5.3: Fix - Add image dimensions and rotation for composition analysis
+            DetectionResult(
+                faces = faces,
+                objects = objects,
+                imageWidth = inputImage.width,
+                imageHeight = inputImage.height,
+                rotationDegrees = inputImage.rotationDegrees
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "ML Kit analysis failed", e)
+            null
+        }
+    }
+
+    /**
      * Analyzes composition using domain layer UseCase
      *
      * This delegates the composition analysis logic to AnalyzeCompositionUseCase,
@@ -323,20 +534,31 @@ class CameraViewModel @Inject constructor(
      *
      * Phase 2: Now passes actual preview dimensions for accurate analysis.
      * v2.3.1: Now passes camera direction for proper mirror coordinate handling.
+     * v2.5.2 Phase 7: Uses CameraLens instead of CameraSelector
      *
      * @param detectionResult Current ML Kit detection result
      */
     private fun analyzeComposition(detectionResult: DetectionResult) {
         // Delegate to UseCase (Clean Architecture)
         // Phase 2: Pass actual preview dimensions if available
-        // v2.3.1: Pass camera direction for front camera mirror correction
-        val isFrontCamera = _state.value.cameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
+        // v2.5.2 Phase 7: Use CameraLens for front camera detection
+        val isFrontCamera = _state.value.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT
         _compositionState.value = analyzeCompositionUseCase(
             detectionResult = detectionResult,
             previewWidth = previewWidth,
             previewHeight = previewHeight,
             isFrontCamera = isFrontCamera
         )
+    }
+
+    /**
+     * Bind camera to lifecycle
+     * v2.6.1: Required for LiveCameraSource to start real camera
+     */
+    fun bindCameraToLifecycle(lifecycleOwner: androidx.lifecycle.LifecycleOwner) {
+        Log.i(TAG, "bindCameraToLifecycle: Binding camera to lifecycle")
+        cameraRepository.bindToLifecycle(lifecycleOwner)
+        Log.i(TAG, "bindCameraToLifecycle: Camera bound successfully")
     }
 
 }

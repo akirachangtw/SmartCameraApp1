@@ -17,3 +17,19 @@ local.properties
 # External markdown files (outside project directory)
 ../*.md
 ../.git-wsl
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Kotlin compiler
+.kotlin/
+
+# VS Code settings
+.vscode/
+
+# Test image generation metadata (runtime generated)
+app/src/debug/assets/test_images/image-generation-metadata.json
+
+# Temporary files
+nul
+*.tmp

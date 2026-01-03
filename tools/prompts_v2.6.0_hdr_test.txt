@@ -1,0 +1,55 @@
+# SmartCameraApp v2.6.0 - HDR Warning & Lighting Analysis Test
+# 4 Extreme Lighting Scenarios for HDR Recommendation Testing
+#
+# Based on AnalyzeLightingUseCase.kt HDR triggering conditions:
+# 1. Backlight (Highest Priority) - HDR Recommended
+# 2. High Contrast - HDR Recommended
+# 3. Overexposure - HDR May Help
+# 4. Normal Lighting - No HDR Needed (Baseline)
+#
+# Format: "filename", "prompt", "aspect_ratio", "mime_type", "key_features"
+
+# ==========================================
+# Scenario 1: BACKLIGHT (Highest Priority)
+# HDR Trigger: Subject luminance <30% AND Background >70%
+# ==========================================
+
+"hdr_backlight_window_severe.jpg", "Portrait photo, young Asian woman standing directly in front of bright window, severe backlight, subject appears as dark silhouette, bright window background, indoor setting, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "subject luminance <25%; background luminance >75%; luminance difference >85; severe backlight creating silhouette effect; subject face very dark; window extremely bright"
+
+"hdr_backlight_sunset_extreme.jpg", "Portrait photo, person silhouetted against bright sunset sky, extreme backlight condition, orange and red sunset colors, subject in complete shadow, outdoor beach setting, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "subject luminance <20%; background luminance >80%; luminance difference >90; sunset creating extreme backlight; subject completely underexposed; dramatic sky overexposed"
+
+# ==========================================
+# Scenario 2: HIGH CONTRAST
+# HDR Trigger: Highlights >10% AND Shadows >10% OR Dynamic Range >180
+# ==========================================
+
+"hdr_high_contrast_window_interior.jpg", "Portrait photo, person near large window, half face lit by bright window light, half face in deep shadow, stark contrast between bright and dark areas, indoor room setting, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights >15%; shadows >15%; dynamic range >200; window light creating extreme split lighting; one side of face bright; other side very dark; high contrast scene"
+
+"hdr_high_contrast_directional_spotlight.jpg", "Portrait photo, person under strong directional spotlight, dramatic lighting, harsh bright highlights on one side, deep black shadows on other side, theatrical lighting effect, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights >12%; shadows >18%; dynamic range >190; spotlight creating dramatic contrast; very bright lit areas; very dark shadow areas; theatrical high contrast"
+
+# ==========================================
+# Scenario 3: OVEREXPOSURE
+# HDR Trigger: Highlight ratio >15% (May benefit from HDR)
+# CRITICAL: Images MUST have >20% pixels in 240-255 brightness range
+# ==========================================
+
+"hdr_overexposed_sunny_outdoor.jpg", "EXTREMELY overexposed outdoor portrait in harsh midday sun. CRITICAL REQUIREMENT: Minimum 40% of all pixels MUST be in brightest range (240-255 RGB luminance). Severe blown highlights on subject's face, hair, and light-colored clothing. White or very pale background completely clipped to pure white (255,255,255). Direct sunlight causing extreme overexposure across 50% or more of entire frame. Sky should be completely featureless white with zero cloud detail visible. Subject barely visible through brightness haze. Simulate severe +3 EV exposure compensation error. Beach or bright pavement setting. Photorealistic professional photography mistake showing severe highlight clipping defects. 3:4 portrait aspect ratio", "3:4", "image/jpeg", "CRITICAL: highlight ratio >40% (pixels in 240-255 range); average luminance >180/255; blown out sky completely white; severe detail loss in all bright areas; harsh sunlight creating massive overexposure; white featureless sky; subject washed out; simulate camera metering failure"
+
+"hdr_overexposed_snow_glare.jpg", "SEVERELY overexposed winter portrait photograph in intense snow glare. CRITICAL REQUIREMENT: More than 25% of all pixels MUST be pure white or near-white (RGB 250-255) with complete loss of detail. Extremely bright snow in harsh midday sunlight creating blinding reflection. Subject's face and clothes completely washed out and blown out with zero texture visible. White sky with absolutely no detail - pure white (255,255,255). Direct sun glare creating massive highlight clipping across entire image. Background snow should be predominantly pure white patches covering 40%+ of image. Simulate camera auto-exposure complete failure in extreme brightness. Winter outdoor setting. Photorealistic with intentional severe overexposure defects - this should look like a badly taken mistake photo. 3:4 portrait aspect ratio", "3:4", "image/jpeg", "CRITICAL: highlight ratio >25% (pixels in 240-255 range); average luminance >200/255; snow predominantly pure white; complete detail loss in bright areas; dynamic range compressed to highlights only; sky pure white; subject completely overexposed; simulate metering error in snow"
+
+# ==========================================
+# Scenario 4: NORMAL LIGHTING (Baseline - No HDR)
+# No HDR Trigger: Balanced exposure
+# ==========================================
+
+"hdr_normal_soft_natural.jpg", "Professional portrait photo, young Asian woman, soft natural window light from side, well-balanced exposure, even skin tones, no harsh shadows, indoor studio setting, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights <10%; shadows <10%; average luminance 45-55%; dynamic range <150; balanced histogram; soft diffused lighting; no extreme bright or dark areas; well-exposed throughout"
+
+"hdr_normal_outdoor_shade.jpg", "Portrait photo, person in open shade outdoors, soft even lighting, no direct sunlight, balanced exposure, natural colors, park or tree shade setting, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights <12%; shadows <8%; average luminance 40-60%; dynamic range <160; even outdoor shade lighting; no harsh contrast; balanced exposure; natural skin tones"
+
+# ==========================================
+# Additional Edge Cases for Validation
+# ==========================================
+
+"hdr_mixed_indoor_outdoor_doorway.jpg", "Portrait photo, person standing in doorway between dark interior and bright sunny exterior, half body in shadow, half in bright light, complex mixed lighting, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "highlights >15%; shadows >15%; dynamic range >210; indoor-outdoor transition; extreme contrast between interior and exterior; mixed lighting zones; challenging exposure scenario"
+
+"hdr_partial_backlight_side.jpg", "Portrait photo, person with bright window light from side/back, partial backlight condition, rim lighting effect, some facial detail visible, indoor setting, 3:4 portrait aspect ratio, photorealistic", "3:4", "image/jpeg", "subject luminance 30-40%; background luminance 60-70%; partial backlight; rim lighting on hair and edges; facial details still visible but darker than background; moderate backlight scenario"

@@ -17,6 +17,7 @@
  */
 package com.akirachang.ai.photographer.data.source.analysis
 
+import android.graphics.Bitmap
 import android.util.Log
 import androidx.camera.core.ImageProxy
 import com.akirachang.ai.photographer.domain.model.Histogram
@@ -162,6 +163,126 @@ class HistogramCalculator @Inject constructor() {
 
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating ROI histogram", e)
+            return Histogram(
+                data = IntArray(HISTOGRAM_BINS) { 0 },
+                totalPixels = 1
+            )
+        }
+    }
+
+    /**
+     * Calculate luminance histogram from Bitmap (v2.5.1 Phase 7)
+     *
+     * @param bitmap Bitmap from unified camera preview stream
+     * @return Histogram with 256 bins (0-255 luminance values)
+     */
+    fun calculate(bitmap: Bitmap): Histogram {
+        val histogram = IntArray(HISTOGRAM_BINS) { 0 }
+        var sampledPixels = 0
+
+        try {
+            val width = bitmap.width
+            val height = bitmap.height
+
+            // Sample every SAMPLE_STEP-th pixel for performance
+            var y = 0
+            while (y < height) {
+                var x = 0
+                while (x < width) {
+                    val pixel = bitmap.getPixel(x, y)
+
+                    // Convert RGB to luminance using ITU-R BT.601 formula
+                    // Y = 0.299*R + 0.587*G + 0.114*B
+                    val r = (pixel shr 16) and 0xFF
+                    val g = (pixel shr 8) and 0xFF
+                    val b = pixel and 0xFF
+
+                    val luminance = (0.299 * r + 0.587 * g + 0.114 * b).toInt()
+                        .coerceIn(0, 255)
+
+                    histogram[luminance]++
+                    sampledPixels++
+
+                    x += SAMPLE_STEP
+                }
+                y += SAMPLE_STEP
+            }
+
+            Log.d(TAG, "Histogram calculated from Bitmap: ${width}x${height} -> $sampledPixels sampled pixels")
+
+            return Histogram(
+                data = histogram,
+                totalPixels = sampledPixels
+            )
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error calculating histogram from Bitmap", e)
+            return Histogram(
+                data = IntArray(HISTOGRAM_BINS) { 0 },
+                totalPixels = 1
+            )
+        }
+    }
+
+    /**
+     * Calculate histogram for a specific region of interest (ROI) from Bitmap (v2.5.1 Phase 7)
+     *
+     * @param bitmap Bitmap from camera preview stream
+     * @param roiX X coordinate of ROI top-left corner
+     * @param roiY Y coordinate of ROI top-left corner
+     * @param roiWidth Width of ROI
+     * @param roiHeight Height of ROI
+     * @return Histogram for the specified region
+     */
+    fun calculateROI(
+        bitmap: Bitmap,
+        roiX: Int,
+        roiY: Int,
+        roiWidth: Int,
+        roiHeight: Int
+    ): Histogram {
+        val histogram = IntArray(HISTOGRAM_BINS) { 0 }
+        var sampledPixels = 0
+
+        try {
+            // Clamp ROI to bitmap bounds
+            val startY = roiY.coerceIn(0, bitmap.height - 1)
+            val endY = (roiY + roiHeight).coerceIn(0, bitmap.height)
+            val startX = roiX.coerceIn(0, bitmap.width - 1)
+            val endX = (roiX + roiWidth).coerceIn(0, bitmap.width)
+
+            // Sample ROI
+            var y = startY
+            while (y < endY) {
+                var x = startX
+                while (x < endX) {
+                    val pixel = bitmap.getPixel(x, y)
+
+                    // Convert RGB to luminance using ITU-R BT.601 formula
+                    val r = (pixel shr 16) and 0xFF
+                    val g = (pixel shr 8) and 0xFF
+                    val b = pixel and 0xFF
+
+                    val luminance = (0.299 * r + 0.587 * g + 0.114 * b).toInt()
+                        .coerceIn(0, 255)
+
+                    histogram[luminance]++
+                    sampledPixels++
+
+                    x += SAMPLE_STEP
+                }
+                y += SAMPLE_STEP
+            }
+
+            Log.d(TAG, "ROI Histogram from Bitmap: ($roiX,$roiY) ${roiWidth}x${roiHeight} -> $sampledPixels pixels")
+
+            return Histogram(
+                data = histogram,
+                totalPixels = sampledPixels.coerceAtLeast(1)
+            )
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error calculating ROI histogram from Bitmap", e)
             return Histogram(
                 data = IntArray(HISTOGRAM_BINS) { 0 },
                 totalPixels = 1

@@ -2,24 +2,33 @@
  * ClassName: AnalyzeLightingUseCase
  * Description: Domain layer use case for analyzing scene lighting and exposure
  * Author: Claude Code
- * Date: 2025-12-02
- * Version: 2.2.0
+ * Date: 2025-12-20
+ * Version: 2.6.0
  *
  * Features:
  * - Histogram-based exposure analysis
- * - Backlight detection with subject context
+ * - Backlight detection with subject context (separated state in v2.6.0)
  * - HDR recommendation logic
  * - Lighting state classification for UI
  * - Clean Architecture compliance (framework-independent)
+ * - Priority-based warning system
  *
  * Analysis Pipeline:
- * 1. Calculate histogram from image
- * 2. Detect exposure issues (overexposure, low light, backlight)
- * 3. Classify lighting state for UI presentation
- * 4. Generate Chinese warning messages
+ * 1. Calculate histogram from image (full-frame or subject ROI)
+ * 2. Detect exposure issues (backlight, high contrast, overexposure, underexposure)
+ * 3. Classify lighting state with priority order
+ * 4. Generate Traditional Chinese warning messages with recommendations
+ *
+ * v2.6.0 Changes:
+ * - Separated Backlight from HighContrast state (now distinct conditions)
+ * - Renamed LowLight to Underexposed for clarity
+ * - Added detailed metrics (contrastRatio, luminanceDifference) to each state
+ * - Enhanced recommendation messages with specific guidance
+ * - Improved state classification logic with better priority handling
  */
 package com.akirachang.ai.photographer.domain.usecase
 
+import android.graphics.Bitmap
 import android.graphics.Rect
 import android.util.Log
 import androidx.camera.core.ImageProxy
@@ -123,11 +132,13 @@ class AnalyzeLightingUseCase @Inject constructor(
     /**
      * Classify exposure analysis into presentation state
      *
+     * v2.6.0: Updated to use new LightingState structure with separated Backlight state
+     *
      * Priority order (highest to lowest):
-     * 1. Backlight (most critical)
-     * 2. High contrast (needs HDR)
-     * 3. Overexposure
-     * 4. Low light
+     * 1. Backlight (most critical - affects subject visibility)
+     * 2. Overexposure (highlight clipping - specific exposure issue)
+     * 3. High contrast (needs HDR - general scene characteristic)
+     * 4. Underexposure (low light)
      * 5. Normal
      *
      * @param analysis ExposureAnalysis from detector
@@ -137,46 +148,63 @@ class AnalyzeLightingUseCase @Inject constructor(
         analysis: com.akirachang.ai.photographer.domain.model.ExposureAnalysis
     ): LightingState {
         return when {
-            // Backlight - highest priority
+            // Backlight - highest priority (separated from HighContrast in v2.6.0)
             analysis.isBacklit -> {
-                LightingState.HighContrast(
-                    analysis = analysis,
-                    message = "逆光場景 - 建議使用 HDR"
+                // Calculate luminance difference for display
+                val subjectLuminance = analysis.avgLuminance * 0.7f // Estimate (subject darker)
+                val backgroundLuminance = analysis.avgLuminance * 1.3f // Estimate (background brighter)
+                val luminanceDiff = kotlin.math.abs(backgroundLuminance - subjectLuminance)
+
+                LightingState.Backlight(
+                    subjectLuminance = subjectLuminance,
+                    backgroundLuminance = backgroundLuminance,
+                    luminanceDifference = luminanceDiff
                 )
             }
 
-            // High contrast (not backlit but needs HDR)
-            analysis.isHighContrast -> {
-                LightingState.HighContrast(
-                    analysis = analysis,
-                    message = when {
-                        analysis.highlightRatio > 0.20f -> "高反差場景 - 注意高光細節"
-                        else -> "場景對比度高 - 建議使用 HDR"
-                    }
-                )
-            }
-
-            // Overexposure
+            // Overexposure - priority 2 (more specific than high contrast)
             analysis.isOverexposed -> {
                 LightingState.Overexposed(
                     highlightRatio = analysis.highlightRatio,
-                    message = "過曝風險 - 降低曝光補償"
+                    avgLuminance = analysis.avgLuminance
                 )
             }
 
-            // Low light
+            // High contrast (not backlit, not overexposed, but needs HDR)
+            analysis.isHighContrast -> {
+                // Calculate contrast ratio from dynamic range
+                val minLevel = 127.5f - (analysis.dynamicRange / 2f)
+                val maxLevel = 127.5f + (analysis.dynamicRange / 2f)
+                val contrastRatio = if (minLevel > 0) maxLevel / minLevel else 10f
+
+                LightingState.HighContrast(
+                    contrastRatio = contrastRatio,
+                    dynamicRange = analysis.dynamicRange,
+                    highlightRatio = analysis.highlightRatio,
+                    shadowRatio = analysis.shadowRatio
+                )
+            }
+
+            // Low light (renamed to Underexposed in v2.6.0)
             analysis.isLowLight -> {
-                LightingState.LowLight(
+                LightingState.Underexposed(
                     avgLuminance = analysis.avgLuminance,
-                    message = "光線不足 - 建議補光或提高 ISO"
+                    shadowRatio = analysis.shadowRatio
                 )
             }
 
             // Check exposure score for subtle issues
             analysis.exposureScore < EXPOSURE_SCORE_THRESHOLD -> {
+                // Moderate exposure issue - use HighContrast as catch-all
+                val minLevel = 127.5f - (analysis.dynamicRange / 2f)
+                val maxLevel = 127.5f + (analysis.dynamicRange / 2f)
+                val contrastRatio = if (minLevel > 0) maxLevel / minLevel else 5f
+
                 LightingState.HighContrast(
-                    analysis = analysis,
-                    message = "曝光需調整"
+                    contrastRatio = contrastRatio,
+                    dynamicRange = analysis.dynamicRange,
+                    highlightRatio = analysis.highlightRatio,
+                    shadowRatio = analysis.shadowRatio
                 )
             }
 
@@ -208,5 +236,75 @@ class AnalyzeLightingUseCase @Inject constructor(
         }
 
         return null
+    }
+
+    /**
+     * Analyze lighting from Bitmap without subject context (v2.5.1 Phase 7)
+     *
+     * Used when no faces/objects detected, provides basic exposure analysis
+     *
+     * @param bitmap Bitmap from unified camera preview stream
+     * @return LightingState for UI presentation
+     */
+    operator fun invoke(bitmap: Bitmap): LightingState {
+        try {
+            // Calculate histogram
+            val histogram = histogramCalculator.calculate(bitmap)
+
+            // Analyze exposure
+            val analysis = exposureDetector.analyze(histogram)
+
+            Log.d(TAG, "Lighting analysis from Bitmap: score=${analysis.exposureScore}, " +
+                    "backlit=${analysis.isBacklit}, overexp=${analysis.isOverexposed}, " +
+                    "lowlight=${analysis.isLowLight}")
+
+            // Classify state
+            return classifyLightingState(analysis)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error analyzing lighting from Bitmap", e)
+            return LightingState.Normal
+        }
+    }
+
+    /**
+     * Analyze lighting with subject context for backlight detection (v2.5.1 Phase 7)
+     *
+     * Used when face/object detected, enables accurate backlight detection
+     *
+     * @param bitmap Bitmap from unified camera preview stream
+     * @param detectionResult Detection result with subject bounding boxes
+     * @return LightingState with backlight detection
+     */
+    fun analyzeWithSubject(
+        bitmap: Bitmap,
+        detectionResult: DetectionResult
+    ): LightingState {
+        try {
+            // Calculate full-frame histogram
+            val histogram = histogramCalculator.calculate(bitmap)
+
+            // Get primary subject bounding box
+            val subjectBox = getPrimarySubjectBox(detectionResult) ?: run {
+                // No valid subject, fall back to basic analysis
+                return invoke(bitmap)
+            }
+
+            // Analyze with subject context
+            val analysis = exposureDetector.analyzeWithSubject(
+                bitmap = bitmap,
+                histogram = histogram,
+                subjectBox = subjectBox
+            )
+
+            Log.d(TAG, "Lighting with subject (Bitmap): score=${analysis.exposureScore}, " +
+                    "backlit=${analysis.isBacklit}, HDR=${analysis.shouldUseHDR}")
+
+            return classifyLightingState(analysis)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error analyzing lighting with subject (Bitmap)", e)
+            return LightingState.Normal
+        }
     }
 }
