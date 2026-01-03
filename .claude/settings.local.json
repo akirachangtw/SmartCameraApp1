@@ -77,7 +77,11 @@
       "Bash(del hdr_overexposed_*.jpg)",
       "Bash(gradlew.bat:*)",
       "Bash(del appsrcdebugassetstest_imageshdr_overexposed_*.jpg)",
-      "Bash(.gradlew.bat updateTestImages)"
+      "Bash(.gradlew.bat updateTestImages)",
+      "Bash(git branch:*)",
+      "Bash(mkdir:*)",
+      "Bash(move:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []
