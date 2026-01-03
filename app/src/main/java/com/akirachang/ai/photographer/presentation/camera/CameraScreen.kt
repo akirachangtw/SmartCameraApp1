@@ -70,9 +70,11 @@ import com.akirachang.ai.photographer.presentation.camera.components.overlay.Com
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.CompositionHint
 // v2.2.2: Removed DetectionOverlay and DirectionalIndicator - visual clutter
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.GridOverlay
+import com.akirachang.ai.photographer.presentation.camera.components.overlay.GuidelineOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.HDRWarningOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.LevelIndicator
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
+import com.akirachang.ai.photographer.domain.config.FeatureFlags
 
 /**
  * 相機畫面 - 拍照功能
@@ -167,6 +169,12 @@ fun CameraScreen(
                 }
                 CompositionGuideOverlay(
                     guideData = guideData,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // v2.7.0 Phase 2: Guideline Overlay (Rule of Thirds)
+                GuidelineOverlay(
+                    enabled = FeatureFlags.enableGuidelineOverlay,
                     modifier = Modifier.fillMaxSize()
                 )
 

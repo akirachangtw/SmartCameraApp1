@@ -30,6 +30,11 @@ android {
             buildConfigField("Boolean", "EMULATOR_MODE", "false")
             buildConfigField("Boolean", "USE_TEST_IMAGES", "false")
             buildConfigField("Boolean", "ENABLE_PERFORMANCE_LOGGING", "false")
+
+            // v2.7.0 Phase 2: Guideline Overlay Feature Flags
+            buildConfigField("Boolean", "ENABLE_GUIDELINE_OVERLAY", "false")
+            buildConfigField("Boolean", "ENABLE_OPENCV_ANALYSIS", "false")
+            buildConfigField("Boolean", "ENABLE_OPENCV_GUIDELINE_BINDING", "false")
         }
 
         release {
@@ -43,6 +48,11 @@ android {
             buildConfigField("Boolean", "EMULATOR_MODE", "false")
             buildConfigField("Boolean", "USE_TEST_IMAGES", "false")
             buildConfigField("Boolean", "ENABLE_PERFORMANCE_LOGGING", "true")
+
+            // v2.7.0 Phase 2: Guideline Overlay Feature Flags (disabled in release)
+            buildConfigField("Boolean", "ENABLE_GUIDELINE_OVERLAY", "false")
+            buildConfigField("Boolean", "ENABLE_OPENCV_ANALYSIS", "false")
+            buildConfigField("Boolean", "ENABLE_OPENCV_GUIDELINE_BINDING", "false")
         }
     }
 
