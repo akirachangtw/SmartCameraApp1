@@ -81,7 +81,8 @@
       "Bash(git branch:*)",
       "Bash(mkdir:*)",
       "Bash(move:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(.gradlew.bat assembleEmulatorDebug)"
     ],
     "deny": [],
     "ask": []

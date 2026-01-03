@@ -18,6 +18,11 @@ android {
         versionName = "2.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // v2.7.0 Phase 2: OpenCV ABI filters
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        }
     }
 
     buildTypes {
@@ -90,6 +95,10 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        // v2.7.0 Phase 2: OpenCV JNI libs packaging
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 
     testOptions {
@@ -146,6 +155,11 @@ dependencies {
     // === ML Kit ===
     implementation(libs.mlkit.objectDetection)
     implementation(libs.mlkit.faceDetection)
+
+    // === OpenCV (v2.7.0 Phase 2) ===
+    // TODO Sprint 2: OpenCV needs manual setup - download SDK from opencv.org
+    // Temporarily commented out until manual SDK is added to libs/
+    // implementation("org.opencv:opencv-android:4.8.0")
 
     // === 測試 ===
     testImplementation(libs.junit)
