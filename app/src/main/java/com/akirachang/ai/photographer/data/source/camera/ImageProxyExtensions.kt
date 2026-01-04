@@ -2,9 +2,8 @@ package com.akirachang.ai.photographer.data.source.camera
 
 import android.annotation.SuppressLint
 import androidx.camera.core.ImageProxy
-// TODO Sprint 2: Restore after OpenCV SDK is manually added
-// import org.opencv.core.CvType
-// import org.opencv.core.Mat
+import org.opencv.core.CvType
+import org.opencv.core.Mat
 
 /**
  * ImageProxy Extensions for OpenCV
@@ -29,10 +28,7 @@ import androidx.camera.core.ImageProxy
  *
  * @return Mat in CV_8UC1 format (single-channel grayscale)
  * @throws IllegalStateException if image format is not YUV_420_888
- *
- * TODO Sprint 2: Uncomment after OpenCV SDK is manually added to project
  */
-/*
 @SuppressLint("UnsafeOptInUsageError")
 fun ImageProxy.toGrayMat(): Mat {
     // Verify format
@@ -66,7 +62,6 @@ fun ImageProxy.toGrayMat(): Mat {
 
     return mat
 }
-*/
 
 /**
  * Convert ImageProxy (YUV_420_888) to OpenCV Mat (BGR color)
@@ -79,10 +74,7 @@ fun ImageProxy.toGrayMat(): Mat {
  *
  * @return Mat in CV_8UC3 format (BGR color)
  * @throws NotImplementedError Always (not yet implemented)
- *
- * TODO Sprint 2: Uncomment after OpenCV SDK is manually added to project
  */
-/*
 @SuppressLint("UnsafeOptInUsageError")
 fun ImageProxy.toBgrMat(): Mat {
     throw NotImplementedError(
@@ -90,4 +82,3 @@ fun ImageProxy.toBgrMat(): Mat {
         "Use toGrayMat() for grayscale analysis."
     )
 }
-*/

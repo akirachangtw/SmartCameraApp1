@@ -157,9 +157,7 @@ dependencies {
     implementation(libs.mlkit.faceDetection)
 
     // === OpenCV (v2.7.0 Phase 2) ===
-    // TODO Sprint 2: OpenCV needs manual setup - download SDK from opencv.org
-    // Temporarily commented out until manual SDK is added to libs/
-    // implementation("org.opencv:opencv-android:4.8.0")
+    implementation(project(":opencv"))  // OpenCV 4.13.0 as Gradle module
 
     // === 測試 ===
     testImplementation(libs.junit)

@@ -3,13 +3,12 @@ package com.akirachang.ai.photographer
 import android.app.Application
 import android.util.Log
 import dagger.hilt.android.HiltAndroidApp
-// TODO Sprint 2: Restore after OpenCV SDK is manually added
-// import org.opencv.android.OpenCVLoader
+import org.opencv.android.OpenCVLoader
 
 /**
  * Smart Camera Application
  *
- * v2.7.0 Phase 2: Added OpenCV initialization (temporarily disabled)
+ * v2.7.0 Phase 2: Added OpenCV 4.13.0 initialization
  */
 @HiltAndroidApp
 class SmartCameraApplication : Application() {
@@ -21,8 +20,8 @@ class SmartCameraApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // v2.7.0 Phase 2: Initialize OpenCV (temporarily disabled until SDK added)
-        // initializeOpenCV()
+        // v2.7.0 Phase 2: Initialize OpenCV
+        initializeOpenCV()
     }
 
     /**
@@ -30,10 +29,7 @@ class SmartCameraApplication : Application() {
      *
      * Uses OpenCVLoader.initDebug() for development builds.
      * For production, consider using OpenCVLoader.initAsync() with callback.
-     *
-     * TODO Sprint 2: Uncomment after OpenCV SDK is manually added to project
      */
-    /*
     private fun initializeOpenCV() {
         try {
             if (OpenCVLoader.initDebug()) {
@@ -46,5 +42,4 @@ class SmartCameraApplication : Application() {
             Log.e(TAG, "❌ OpenCV initialization exception: ${e.message}", e)
         }
     }
-    */
 }

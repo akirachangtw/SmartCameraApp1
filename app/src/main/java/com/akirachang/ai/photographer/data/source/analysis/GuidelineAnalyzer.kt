@@ -3,13 +3,12 @@ package com.akirachang.ai.photographer.data.source.analysis
 import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-// TODO Sprint 2: Restore after OpenCV SDK is manually added
-// import com.akirachang.ai.photographer.data.source.camera.toGrayMat
+import com.akirachang.ai.photographer.data.source.camera.toGrayMat
 
 /**
  * Guideline Analyzer - OpenCV-based composition guideline analyzer
  *
- * v2.7.0 Phase 2 Sprint 2: Performance measurement version (temporarily disabled)
+ * v2.7.0 Phase 2 Sprint 2: Performance measurement version
  *
  * This is the initial version that focuses on performance validation:
  * - Converts ImageProxy → Mat
@@ -18,9 +17,6 @@ import androidx.camera.core.ImageProxy
  * - Does NOT perform actual OpenCV analysis yet (Sprint 3)
  *
  * Purpose: Establish performance baseline before implementing full analysis
- *
- * TODO Sprint 2: This class is ready but depends on OpenCV SDK being manually added.
- * Currently returns immediately to allow compilation.
  */
 class GuidelineAnalyzer : ImageAnalysis.Analyzer {
 
@@ -33,15 +29,6 @@ class GuidelineAnalyzer : ImageAnalysis.Analyzer {
     private val performanceStats = mutableListOf<Long>()
 
     override fun analyze(image: ImageProxy) {
-        // TODO Sprint 2: Uncomment after OpenCV SDK is manually added
-        try {
-            // Placeholder: Just close the image for now
-            Log.v(TAG, "GuidelineAnalyzer: OpenCV not available yet, skipping frame analysis")
-        } finally {
-            image.close()
-        }
-
-        /*
         val startTime = System.nanoTime()
 
         try {
@@ -74,7 +61,6 @@ class GuidelineAnalyzer : ImageAnalysis.Analyzer {
             reportPerformanceStats()
             performanceStats.clear()
         }
-        */
     }
 
     /**
