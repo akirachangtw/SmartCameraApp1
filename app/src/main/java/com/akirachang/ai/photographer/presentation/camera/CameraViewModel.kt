@@ -28,11 +28,13 @@ import com.akirachang.ai.photographer.data.sensor.OrientationData
 // v2.5.2 Phase 7: Removed CameraSelector import - using CameraLens instead
 import com.akirachang.ai.photographer.domain.model.CaptureResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
+import com.akirachang.ai.photographer.domain.model.GuidelineAnalysisResult
 import com.akirachang.ai.photographer.domain.repository.CameraRepository
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeCompositionUseCase
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
+import com.akirachang.ai.photographer.data.source.analysis.GuidelineAnalyzer
 import javax.inject.Inject
 
 @HiltViewModel
@@ -75,6 +77,10 @@ class CameraViewModel @Inject constructor(
     val isDirectionalIndicatorEnabled: Flow<Boolean> = overlayPreferences.isDirectionalIndicatorEnabled
     val isAutoHDREnabled: Flow<Boolean> = overlayPreferences.isAutoHDREnabled  // v2.3.0
 
+    // Guideline analysis results (v2.7.0 Phase 2 Sprint 4)
+    private val _guidelineResults = MutableStateFlow<GuidelineAnalysisResult?>(null)
+    val guidelineResults: StateFlow<GuidelineAnalysisResult?> = _guidelineResults.asStateFlow()
+
     // Preview dimensions (v2.0 Phase 2)
     private var previewWidth: Int? = null
     private var previewHeight: Int? = null
@@ -101,10 +107,18 @@ class CameraViewModel @Inject constructor(
             initialValue = null
         )
 
+    // GuidelineAnalyzer instance (v2.7.0 Phase 2 Sprint 4)
+    // Created once and reused to avoid performance overhead
+    // Note: Callback is unused because we use synchronous analyzeBitmap() instead
+    private val guidelineAnalyzer = GuidelineAnalyzer { /* unused callback */ }
+
     init {
         // v2.5.1: Analyze preview bitmap stream directly (Phase 7)
         // This replaces the old ImageProxy-based analysis
         observePreviewForAnalysis()
+
+        // v2.7.0 Phase 2 Sprint 4: Observe preview for guideline analysis (OpenCV)
+        observePreviewForGuidelineAnalysis()
 
         // 訂閱偵測結果 (deprecated - will be removed once bitmap analysis is stable)
         // observeDetectionResults()
@@ -559,6 +573,50 @@ class CameraViewModel @Inject constructor(
         Log.i(TAG, "bindCameraToLifecycle: Binding camera to lifecycle")
         cameraRepository.bindToLifecycle(lifecycleOwner)
         Log.i(TAG, "bindCameraToLifecycle: Camera bound successfully")
+    }
+
+    /**
+     * Observes preview bitmap stream for OpenCV guideline analysis (v2.7.0 Phase 2 Sprint 4)
+     *
+     * Samples previewBitmap at 10 FPS (100ms intervals) and performs OpenCV Hough Line Transform
+     * to detect composition guideline lines. Results are exposed via guidelineResults StateFlow.
+     *
+     * Performance considerations:
+     * - Runs on Dispatchers.Default (background thread) to avoid blocking UI
+     * - Sampling at 10 FPS reduces overhead compared to 30 FPS camera stream
+     * - OpenCV analysis target: <15ms average, <30ms P95
+     *
+     * Feature flag: Can be disabled in future via FeatureFlags.enableOpenCvGuidelineBinding
+     */
+    @OptIn(FlowPreview::class)
+    private fun observePreviewForGuidelineAnalysis() {
+        previewBitmap
+            .filterNotNull()
+            // Throttle analysis to 10 FPS (same as ML Kit analysis)
+            .sample(100)
+            .onEach { bitmap ->
+                try {
+                    // Perform OpenCV analysis on background thread
+                    val result = withContext(Dispatchers.Default) {
+                        guidelineAnalyzer.analyzeBitmap(bitmap)
+                    }
+
+                    // Update state (StateFlow updates automatically switch to Main thread)
+                    _guidelineResults.value = result
+
+                    Log.v(
+                        TAG,
+                        "Guideline analysis: ${result.lines.size} lines detected in ${result.processingTimeMs}ms"
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to analyze guidelines", e)
+                    // Clear results on error
+                    _guidelineResults.value = null
+                }
+            }
+            .launchIn(viewModelScope)
+
+        Log.i(TAG, "Guideline analysis initialized (v2.7.0 Phase 2 Sprint 4)")
     }
 
 }

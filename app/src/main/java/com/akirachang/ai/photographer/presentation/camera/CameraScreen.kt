@@ -96,6 +96,7 @@ fun CameraScreen(
     val compositionState by viewModel.compositionState.collectAsState() // v1.5.0
     val lightingState by viewModel.lightingState.collectAsState() // v2.2.0
     val orientationState by viewModel.orientationState.collectAsState() // v2.1.0
+    val guidelineResults by viewModel.guidelineResults.collectAsState() // v2.7.0 Phase 2 Sprint 4
 
     // Overlay visibility preferences (v2.1.0)
     val isGridEnabled by viewModel.isGridEnabled.collectAsState(initial = true)
@@ -172,9 +173,12 @@ fun CameraScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // v2.7.0 Phase 2: Guideline Overlay (Rule of Thirds)
+                // v2.7.0 Phase 2 Sprint 3+4: Guideline Overlay (OpenCV-driven)
+                // Shows detected composition guideline lines from Hough Line Transform
+                // Falls back to rule of thirds grid when no lines detected
                 GuidelineOverlay(
                     enabled = FeatureFlags.enableGuidelineOverlay,
+                    analysisResult = guidelineResults,
                     modifier = Modifier.fillMaxSize()
                 )
 

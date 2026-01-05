@@ -1,5 +1,6 @@
 package com.akirachang.ai.photographer.data.source.analysis
 
+import android.graphics.Bitmap
 import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -217,6 +218,50 @@ class GuidelineAnalyzer(
                 strength = strength,
                 type = GuidelineAnalysisResult.LineType.GENERAL
             )
+        }
+    }
+
+    /**
+     * Analyze Bitmap for guideline lines (ViewModel integration)
+     *
+     * v2.7.0 Phase 2 Sprint 4
+     *
+     * Provides synchronous Bitmap analysis for ViewModel-layer integration.
+     * Used when previewBitmap StateFlow is available instead of ImageProxy.
+     *
+     * Note: This method is synchronous and should be called on a background thread
+     * (e.g., Dispatchers.Default). The caller is responsible for thread management.
+     *
+     * @param bitmap Input bitmap (typically from previewBitmap StateFlow)
+     * @return GuidelineAnalysisResult with detected lines
+     */
+    fun analyzeBitmap(bitmap: Bitmap): GuidelineAnalysisResult {
+        val startTime = System.nanoTime()
+
+        return try {
+            // Convert Bitmap to OpenCV Mat (grayscale)
+            val grayMat = bitmap.toGrayMat()
+
+            // Detect guideline lines
+            val result = detectGuidelineLines(
+                grayMat = grayMat,
+                frameWidth = bitmap.width,
+                frameHeight = bitmap.height
+            )
+
+            // Release Mat to avoid memory leak
+            grayMat.release()
+
+            // Calculate processing time
+            val elapsedMillis = (System.nanoTime() - startTime) / 1_000_000
+
+            // Add processing time to result
+            result.copy(processingTimeMs = elapsedMillis)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Bitmap analysis failed", e)
+            // Return empty result on error
+            GuidelineAnalysisResult.EMPTY
         }
     }
 

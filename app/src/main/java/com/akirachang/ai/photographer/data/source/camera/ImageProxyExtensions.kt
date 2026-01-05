@@ -1,16 +1,20 @@
 package com.akirachang.ai.photographer.data.source.camera
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import androidx.camera.core.ImageProxy
+import org.opencv.android.Utils
 import org.opencv.core.CvType
 import org.opencv.core.Mat
+import org.opencv.imgproc.Imgproc
 
 /**
- * ImageProxy Extensions for OpenCV
+ * ImageProxy & Bitmap Extensions for OpenCV
  *
- * v2.7.0 Phase 2 Sprint 2
+ * v2.7.0 Phase 2 Sprint 2: ImageProxy → Mat conversion
+ * v2.7.0 Phase 2 Sprint 4: Bitmap → Mat conversion
  *
- * Provides conversion functions from CameraX ImageProxy to OpenCV Mat format.
+ * Provides conversion functions from CameraX ImageProxy and Android Bitmap to OpenCV Mat format.
  * Optimized for performance with minimal memory allocation.
  */
 
@@ -81,4 +85,34 @@ fun ImageProxy.toBgrMat(): Mat {
         "BGR conversion not implemented in v2.7.0 Phase 2. " +
         "Use toGrayMat() for grayscale analysis."
     )
+}
+
+/**
+ * Convert Android Bitmap to OpenCV Mat (grayscale)
+ *
+ * v2.7.0 Phase 2 Sprint 4
+ *
+ * Converts Android Bitmap (typically ARGB_8888) to grayscale Mat for OpenCV processing.
+ * Used for ViewModel-layer integration where previewBitmap is already in Bitmap format.
+ *
+ * Performance characteristics:
+ * - Single color conversion (RGBA → Gray)
+ * - Suitable for 10fps sampling (100ms intervals)
+ * - More overhead than ImageProxy.toGrayMat() but necessary for Bitmap input
+ *
+ * @return Mat in CV_8UC1 format (single-channel grayscale)
+ */
+fun Bitmap.toGrayMat(): Mat {
+    // Create Mat from Bitmap (RGBA format)
+    val rgbaMat = Mat()
+    Utils.bitmapToMat(this, rgbaMat)
+
+    // Convert RGBA to Grayscale
+    val grayMat = Mat()
+    Imgproc.cvtColor(rgbaMat, grayMat, Imgproc.COLOR_RGBA2GRAY)
+
+    // Release intermediate Mat
+    rgbaMat.release()
+
+    return grayMat
 }
