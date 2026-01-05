@@ -46,13 +46,13 @@ class GuidelineAnalyzer(
         // Hough Line Transform parameters
         private const val HOUGH_RHO = 1.0              // Distance resolution (pixels)
         private const val HOUGH_THETA = Math.PI / 180  // Angle resolution (1 degree)
-        private const val HOUGH_THRESHOLD = 50         // Minimum votes to consider a line
-        private const val HOUGH_MIN_LINE_LENGTH = 50.0 // Minimum line length (pixels)
+        private const val HOUGH_THRESHOLD = 70         // Minimum votes to consider a line (v2.7.0 Sprint 5: 50→70, +40%)
+        private const val HOUGH_MIN_LINE_LENGTH = 80.0 // Minimum line length (pixels) (v2.7.0 Sprint 5: 50.0→80.0, +60%)
         private const val HOUGH_MAX_LINE_GAP = 10.0    // Maximum gap between line segments
 
         // Line filtering
-        private const val MAX_LINES = 10               // Maximum lines to return
-        private const val MIN_LINE_STRENGTH = 0.3f     // Minimum strength threshold
+        private const val MAX_LINES = 6                // Maximum lines to return (v2.7.0 Sprint 5: 10→6, -40%)
+        private const val MIN_LINE_STRENGTH = 0.5f     // Minimum strength threshold (v2.7.0 Sprint 5: 0.3→0.5, +67%)
     }
 
     private var frameCount = 0L
