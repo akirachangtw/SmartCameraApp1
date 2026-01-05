@@ -1,0 +1,89 @@
+# SmartCameraApp v2.7.0 OpenCV Guideline Detection Test Images
+# Purpose: Test Hough Line Transform detection for composition guidelines
+# Target: GuidelineAnalyzer.kt + GuidelineOverlay.kt
+# Generated: 2026-01-05
+
+# Format: "filename.jpg", "prompt", "aspect_ratio", "mime_type", "key_features"
+# Aspect Ratio: 3:4 (portrait) for consistent testing
+# Key Features: Technical specifications for line detection validation
+
+# ============================================================================
+# 1. ARCHITECTURAL LINES (Vertical/Horizontal) - 4 images
+# Expected: Strong vertical lines (angle 75-105°), horizontal lines (angle 0-15°)
+# ============================================================================
+
+"guideline_arch_building_facade.jpg", "Modern office building facade, strong vertical lines, grid pattern windows, symmetric architecture, clean geometric lines, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "vertical lines: 8-12 strong edges (building columns, window frames); horizontal lines: 4-6 (floor separations); line strength >0.7; minimal background clutter"
+
+"guideline_arch_indoor_corridor.jpg", "Long indoor corridor with perspective, parallel walls, ceiling lights in row, vanishing point visible, symmetric hallway, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "vertical lines: 4-6 (wall edges, door frames); horizontal lines: 2-4 (ceiling/floor lines); strong perspective convergence; line strength >0.6"
+
+"guideline_arch_staircase.jpg", "Architectural staircase, diagonal handrails, step edges visible, geometric pattern, modern design, clean lines, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "diagonal lines: 6-8 (handrails, step edges at 30-60° angle); vertical lines: 2-4 (side walls); line strength >0.5; strong diagonal composition"
+
+"guideline_arch_window_grid.jpg", "Large window with grid pattern, multiple panes, clear geometry, indoor view looking out, architectural detail, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "vertical lines: 6-10 (window frame divisions); horizontal lines: 4-8 (frame crossbars); grid intersection points; line strength >0.7; high contrast"
+
+# ============================================================================
+# 2. ROAD PERSPECTIVE (Leading Lines) - 3 images
+# Expected: Diagonal converging lines (angle 30-60°), perspective effect
+# ============================================================================
+
+"guideline_road_highway_perspective.jpg", "Empty highway with clear lane markings, road converging to vanishing point, painted lines visible, perspective view, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "diagonal lines: 4-6 (road edges, lane markings converging at 35-50° angle); strong perspective; line strength >0.6; clear vanishing point"
+
+"guideline_road_crosswalk_zebra.jpg", "Pedestrian crosswalk zebra crossing, parallel white stripes on asphalt, street view, urban setting, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "horizontal lines: 8-12 (crosswalk stripes at regular intervals); parallel pattern; line strength >0.7; high contrast black/white"
+
+"guideline_road_railway_tracks.jpg", "Railway tracks extending to horizon, parallel rails, wooden sleepers, perspective view, vanishing point, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "diagonal lines: 4 main (2 rails converging at 40-55° angle); horizontal lines: 10+ (sleepers); strong leading lines; line strength >0.6"
+
+# ============================================================================
+# 3. INDOOR GEOMETRIC (Mixed Lines) - 2 images
+# Expected: Mix of vertical, horizontal, and diagonal lines
+# ============================================================================
+
+"guideline_indoor_room_corner.jpg", "Room corner with walls meeting at angle, picture frames on wall, furniture edges visible, indoor residential setting, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "vertical lines: 4-6 (wall corners, door frames); horizontal lines: 3-5 (furniture edges, frames); line strength >0.4; natural indoor lighting"
+
+"guideline_indoor_bookshelf.jpg", "Bookshelf with multiple shelves, book spines creating vertical lines, horizontal shelf edges, organized library, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "vertical lines: 12-20 (book spines); horizontal lines: 5-8 (shelf edges); grid-like pattern; line strength >0.5; varied line lengths"
+
+# ============================================================================
+# 4. SYMMETRY DETECTION - 2 images
+# Expected: Strong center vertical line for symmetry axis
+# ============================================================================
+
+"guideline_symmetry_bridge.jpg", "Symmetric bridge architecture, central axis visible, mirrored left and right sides, architectural symmetry, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "vertical lines: 1 central symmetry axis + 4-6 symmetric pairs; horizontal lines: 2-4; perfect left-right mirror; line strength >0.7"
+
+"guideline_symmetry_building_entrance.jpg", "Building entrance with symmetric design, centered doorway, matching windows on both sides, architectural symmetry, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "vertical lines: 1 central axis + 6-8 symmetric vertical lines; horizontal lines: 3-5; centered composition; line strength >0.6"
+
+# ============================================================================
+# 5. EDGE CASES & CHALLENGES - 3 images
+# Testing robustness and filtering capabilities
+# ============================================================================
+
+"guideline_edge_complex_urban.jpg", "Busy urban street scene with buildings, power lines, street signs, multiple overlapping lines, complex composition, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "vertical lines: 10-15 (buildings, poles); horizontal lines: 5-8 (wires, signs); diagonal lines: 3-5 (cables); mixed strengths 0.3-0.8; test noise filtering"
+
+"guideline_edge_low_contrast_fog.jpg", "Foggy street with building silhouettes, reduced contrast, subtle edges, atmospheric haze, muted lines, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "vertical lines: 4-6 (building edges with low contrast); horizontal lines: 2-3; line strength 0.2-0.5; test Canny threshold sensitivity"
+
+"guideline_edge_night_lights.jpg", "Night city scene with illuminated building edges, light trails from cars, neon signs, high contrast lighting, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "vertical lines: 6-10 (illuminated building edges); diagonal lines: 4-6 (light trails); line strength >0.5; test high contrast detection"
+
+# ============================================================================
+# 6. MINIMAL LINES (Normal/Control) - 1 image
+# Expected: Few or no strong lines detected (should show fallback grid)
+# ============================================================================
+
+"guideline_normal_natural_landscape.jpg", "Natural landscape with rolling hills, trees, clouds, organic shapes, minimal geometric lines, photorealistic, 3:4 portrait", "3:4", "image/jpeg", "vertical lines: 0-2 (tree trunks, weak); horizontal lines: 0-1 (horizon, weak); line strength <0.3; should trigger fallback to rule of thirds grid"
+
+# ============================================================================
+# TOTAL: 15 test images
+# Estimated generation time: ~450 seconds (~7.5 minutes)
+# API cooldown: 30 seconds/image
+# ============================================================================
+
+# Test Coverage Summary:
+# - Architectural Lines (Vertical/Horizontal): 4 images
+# - Road Perspective (Leading Lines): 3 images
+# - Indoor Geometric (Mixed): 2 images
+# - Symmetry Detection: 2 images
+# - Edge Cases (Complex/Low Contrast/Night): 3 images
+# - Minimal Lines (Control): 1 image
+#
+# Detection Targets:
+# - Vertical lines: angle 75-105° (isVertical = true)
+# - Horizontal lines: angle 0-15° or 165-180° (isHorizontal = true)
+# - Diagonal lines: angle 30-60° (isDiagonal = true)
+# - Line strength: 0.3-1.0 (based on length/diagonal ratio)
+# - Max lines: 10 (strongest filtered)
