@@ -58,6 +58,23 @@ object FeatureFlags {
         get() = BuildConfig.ENABLE_OPENCV_GUIDELINE_BINDING
 
     /**
+     * Use ImageProxy direct path for guideline analysis (v2.8.0 Phase 2)
+     *
+     * When enabled, GuidelineAnalyzer receives ImageProxy directly from ImageAnalysis
+     * instead of processing previewBitmap Flow. This bypasses Bitmap.toGrayMat() conversion
+     * and uses ImageProxy.toGrayMat() instead, saving ~25ms per frame.
+     *
+     * Performance impact:
+     * - Old path: ImageProxy → Bitmap → RGBA Mat → Gray Mat (60ms)
+     * - New path: ImageProxy → Gray Mat (10ms, direct Y plane extraction)
+     *
+     * Requires: enableOpenCvAnalysis = true
+     * Default: false (rollout after Phase 2 validation)
+     */
+    val useImageProxyGuidelinePipeline: Boolean
+        get() = BuildConfig.USE_IMAGEPROXY_GUIDELINE_PIPELINE
+
+    /**
      * Check if all guideline features are fully enabled
      */
     val isGuidelineFullyEnabled: Boolean

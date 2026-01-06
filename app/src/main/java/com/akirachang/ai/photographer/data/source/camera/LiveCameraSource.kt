@@ -17,12 +17,15 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.akirachang.ai.photographer.data.source.analysis.GuidelineAnalyzer
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -107,6 +110,9 @@ class LiveCameraSource @Inject constructor(
     private var lastFpsReportTime = System.currentTimeMillis()
     private var droppedFrameCount = 0L
     private val fpsReportInterval = 30 // Report every 30 frames
+
+    // v2.8.0 Phase 1: Mutex to prevent race conditions during camera switching
+    private val bindMutex = Mutex()
 
     /**
      * Get live camera preview stream as Bitmap flow
@@ -197,6 +203,8 @@ class LiveCameraSource @Inject constructor(
         awaitClose {
             Log.d(TAG, "Preview stream closing")
             Timber.d("LiveCameraSource: Preview stream closed")
+            // v2.8.0 Phase 1: Stop GuidelineAnalyzer before clearing
+            (previewStreamAnalyzer as? GuidelineAnalyzer)?.stop()
             if (::imageAnalysis.isInitialized) {
                 imageAnalysis.clearAnalyzer()
             }
@@ -265,6 +273,8 @@ class LiveCameraSource @Inject constructor(
     override fun stopPreview() {
         Timber.d("LiveCameraSource: Stopping live preview")
         if (isPreviewActive) {
+            // v2.8.0 Phase 1: Stop GuidelineAnalyzer before clearing
+            (previewStreamAnalyzer as? GuidelineAnalyzer)?.stop()
             if (::imageAnalysis.isInitialized) {
                 imageAnalysis.clearAnalyzer()
             }
@@ -359,6 +369,8 @@ class LiveCameraSource @Inject constructor(
                     // 4. Unbind all previous UseCases before rebinding
                     Log.d(TAG, "Rebinding camera - selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}")
                     try {
+                        // v2.8.0 Phase 1: Stop GuidelineAnalyzer before unbinding
+                        (previewStreamAnalyzer as? GuidelineAnalyzer)?.stop()
                         cameraProvider.unbindAll()
                         Log.d(TAG, "Previous UseCases unbound successfully")
                     } catch (e: Exception) {
@@ -436,20 +448,24 @@ class LiveCameraSource @Inject constructor(
      *
      * v2.6.1: Changed to suspend function and executes on Main thread
      * to prevent "Not in application's main thread" error
+     *
+     * v2.8.0 Phase 1: Added Mutex to prevent race conditions during fast consecutive calls
      */
     override suspend fun switchCamera() {
-        cameraSelector = if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
-            CameraSelector.DEFAULT_FRONT_CAMERA
-        } else {
-            CameraSelector.DEFAULT_BACK_CAMERA
-        }
+        bindMutex.withLock {
+            cameraSelector = if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
+                CameraSelector.DEFAULT_FRONT_CAMERA
+            } else {
+                CameraSelector.DEFAULT_BACK_CAMERA
+            }
 
-        Log.i(TAG, "Camera selector switched to: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}")
+            Log.i(TAG, "Camera selector switched to: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}")
 
-        // Re-bind camera with new selector on Main thread
-        // CameraX operations MUST run on main thread
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-            currentLifecycleOwner?.let { bindToLifecycle(it) }
+            // Re-bind camera with new selector on Main thread
+            // CameraX operations MUST run on main thread
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                currentLifecycleOwner?.let { bindToLifecycle(it) }
+            }
         }
     }
 

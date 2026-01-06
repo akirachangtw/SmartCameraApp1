@@ -9,6 +9,7 @@ import com.akirachang.ai.photographer.data.source.camera.toGrayMat
 import com.akirachang.ai.photographer.domain.model.GuidelineAnalysisResult
 import org.opencv.core.Mat
 import org.opencv.imgproc.Imgproc
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
 
@@ -58,7 +59,25 @@ class GuidelineAnalyzer(
     private var frameCount = 0L
     private val performanceStats = mutableListOf<Long>()
 
+    // v2.8.0 Phase 1: Stop mechanism to prevent processing during camera switching
+    private val isRunning = AtomicBoolean(true)
+
+    /**
+     * Stop the analyzer
+     *
+     * v2.8.0 Phase 1: Called before camera rebind to prevent race conditions
+     */
+    fun stop() {
+        isRunning.set(false)
+        Log.i(TAG, "GuidelineAnalyzer stopped (frameCount: $frameCount)")
+    }
+
     override fun analyze(image: ImageProxy) {
+        // v2.8.0 Phase 1: Check if analyzer is still running
+        if (!isRunning.get()) {
+            image.close()
+            return
+        }
         val startTime = System.nanoTime()
 
         try {

@@ -40,6 +40,9 @@ android {
             buildConfigField("Boolean", "ENABLE_GUIDELINE_OVERLAY", "false")
             buildConfigField("Boolean", "ENABLE_OPENCV_ANALYSIS", "false")
             buildConfigField("Boolean", "ENABLE_OPENCV_GUIDELINE_BINDING", "false")
+
+            // v2.8.0 Phase 2: ImageProxy Direct Path (default: false for safe rollback)
+            buildConfigField("Boolean", "USE_IMAGEPROXY_GUIDELINE_PIPELINE", "false")
         }
 
         release {
@@ -58,6 +61,9 @@ android {
             buildConfigField("Boolean", "ENABLE_GUIDELINE_OVERLAY", "false")
             buildConfigField("Boolean", "ENABLE_OPENCV_ANALYSIS", "false")
             buildConfigField("Boolean", "ENABLE_OPENCV_GUIDELINE_BINDING", "false")
+
+            // v2.8.0 Phase 2: ImageProxy Direct Path (default: false for safe rollback)
+            buildConfigField("Boolean", "USE_IMAGEPROXY_GUIDELINE_PIPELINE", "false")
         }
     }
 
