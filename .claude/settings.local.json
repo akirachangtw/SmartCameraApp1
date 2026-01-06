@@ -83,7 +83,19 @@
       "Bash(move:*)",
       "Bash(git restore:*)",
       "Bash(.gradlew.bat assembleEmulatorDebug)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(python tools/hybrid_flow.py --level L1:*)",
+      "Bash(python tools/hybrid_flow.py --level L2:*)",
+      "Bash(python tools/hybrid_flow.py --level PR:*)",
+      "Bash(python tools\\hybrid_flow.py --level L1:*)",
+      "Bash(python tools\\hybrid_flow.py --level L2:*)",
+      "Bash(python tools\\hybrid_flow.py --level PR:*)",
+      "Bash(Test-Path \"tools\\\\hybrid_flow.py\")",
+      "Bash(Test-Path \"tmp\")",
+      "Bash(Select-String \"\\(BUILD|FAILED|error|warning\\)\")",
+      "Bash(start \"\" \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\emulator\\\\emulator.exe\" -avd Medium_Phone_API_36.1 -gpu host)",
+      "Bash(.\\\\gradlew.bat assembleDeviceDebug:*)",
+      "Bash(device=Model, android=APIxx, params=preset\"\n\nRelease Artifacts:\n- Release notes with device tier recommendations\n- Performance benchmarks \\(Pixel 9a: 90.7ms ✅, Sony XQ-BT52: 113.9ms ⚠️\\)\n- 3-level feature flag rollback strategy documented\n\nAcceptance Status:\n- Flagship devices: ✅ Meets performance target \\(< 100ms avg\\)\n- Mid-range devices: ⚠️ Borderline acceptable \\(113.9ms avg\\)\n- Target audience: Mid-to-high-end devices \\(SD 7+ Gen 2+\\)\n\nFiles Changed:\n- app/build.gradle.kts: Version bump to 2.7.0 \\(versionCode 39\\)\n- GuidelineAnalysisResult.kt: Added deviceModel, androidVersion, paramsPreset fields\n- GuidelineAnalyzer.kt: Enhanced performance logging with device context\n- docs/RELEASE_NOTES_v2.7.0.md: Comprehensive release documentation\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "deny": [],
     "ask": []

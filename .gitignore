@@ -42,5 +42,14 @@ nul
 others/v2.6.2-Testing/
 output/
 
-# Temporary downloads
+# Temporary files directory (See tmp/README.md for details)
+# Stores: test outputs, logcat dumps, debug sessions, downloads, build artifacts
+# Safe to delete anytime - not backed up
 tmp/
+
+# ⚠️ IMPORTANT: DO NOT add these critical files to .gitignore
+# tools/hybrid_flow.py - Required for development workflow
+# tools/hybrid_flow-tasks.json - Required for VSCode Tasks
+# tools/HYBRID_FLOW_CLAUDE_USAGE.md - Documentation
+# .claude/settings.local.json - Already ignored (line 26)
+# See tools/.gitkeep_critical_files for details

@@ -19,6 +19,54 @@ Feature branch: `feature/camera-input-abstraction`
 
 ---
 
+## ⚠️ Critical Project Files - DO NOT DELETE
+
+### Workflow Automation Tools
+- **`tools/hybrid_flow.py`** 🔴 CRITICAL
+  - Purpose: L1/L2/PR planning document generation
+  - Integration: Claude Code (`.claude/settings.local.json`), VSCode Tasks
+  - Documentation: `tools/HYBRID_FLOW_CLAUDE_USAGE.md`
+
+- **`tools/hybrid_flow-tasks.json`** 🔴 CRITICAL
+  - Purpose: VSCode Tasks configuration
+  - Used by: VSCode Task Runner (Ctrl+Shift+P → "Run Task")
+
+**Deletion Impact**: Breaks automated development workflow!
+**Protection Details**: See `tools/.gitkeep_critical_files`
+
+---
+
+## 📂 Project Directory Structure
+
+### Critical Directories (Versioned)
+- **`app/`** - Android application source code
+- **`tools/`** - Development automation scripts
+- **`docs/`** - Project documentation
+- **`.claude/`** - Claude Code configuration
+
+### Temporary Directories (Not Versioned)
+- **`tmp/`** 📁 Temporary files directory
+  - Purpose: Test outputs, logcat dumps, debug sessions, downloads
+  - Status: Fully ignored by git (`.gitignore`)
+  - Safe to delete anytime
+  - Documentation: `tmp/README.md`
+
+- **`output/`** - Test session archives
+- **`others/`** - Historical testing data (some versions ignored)
+
+### Storage Guidelines
+| What | Where | Versioned |
+|------|-------|-----------|
+| Test outputs | `tmp/test_outputs/` | ❌ No |
+| Logcat dumps | `tmp/logcat_dumps/` | ❌ No |
+| Debug screenshots | `tmp/screenshots_temp/` | ❌ No |
+| Important test results | `others/vX.X.X-Testing/` | ❌ No (ignored) |
+| Test images (committed) | `app/src/debug/assets/test_images/` | ✅ Yes |
+| Documentation | `docs/` | ✅ Yes |
+| Tools/Scripts | `tools/` | ✅ Yes |
+
+---
+
 # Android APP 開發規範
 
 ## 語言規範

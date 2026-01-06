@@ -2,6 +2,25 @@
 
 PowerShell automation scripts for SmartCameraApp1 development, testing, and debugging.
 
+## ⚠️ Critical Files - DO NOT DELETE
+
+The following files are essential for the development workflow:
+
+### `hybrid_flow.py` 🔴 **CRITICAL**
+- **Purpose**: Automated L1/L2/PR planning document generation
+- **Integrated with**: Claude Code workflow, VSCode Tasks
+- **Used by**: `.claude/settings.local.json`, `hybrid_flow-tasks.json`
+- **Dependencies**: Python 3.x, Google Gemini API (optional)
+- **Documentation**: See [HYBRID_FLOW_CLAUDE_USAGE.md](HYBRID_FLOW_CLAUDE_USAGE.md)
+
+### `hybrid_flow-tasks.json` 🔴 **CRITICAL**
+- **Purpose**: VSCode Tasks configuration for hybrid_flow.py
+- **Used by**: VSCode Tasks Runner (Ctrl+Shift+P → "Run Task")
+
+**⚠️ Deleting these files will break the development planning process!**
+
+---
+
 ## 📋 Prerequisites
 
 ### Required Software
