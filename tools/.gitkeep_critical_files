@@ -1,0 +1,53 @@
+# Critical Files Protection
+
+⚠️  The following files in this directory are CRITICAL and must NOT be deleted:
+
+## Python Scripts
+- `hybrid_flow.py` - Development workflow automation (L1/L2/PR planning)
+  - Integrated with Claude Code (`.claude/settings.local.json`)
+  - Integrated with VSCode Tasks (`hybrid_flow-tasks.json`)
+  - Required for: Level 1/2 planning, PR notes generation
+
+## Configuration Files
+- `hybrid_flow-tasks.json` - VSCode Tasks configuration
+  - Required for: VSCode Task Runner integration
+  - Used by: Ctrl+Shift+P → "Run Task" → "Hybrid: L1/L2/PR"
+
+## Documentation
+- `HYBRID_FLOW_CLAUDE_USAGE.md` - Usage guide for Claude Code integration
+- `README.md` - Tools directory documentation
+
+## Asset Generation Scripts
+- `generate_assets.py` - Test image generation with Google Gemini API
+- `test_generate_assets.py` - Test suite for generate_assets.py
+
+---
+
+## Why These Files Are Critical
+
+### Developer Workflow Integration
+1. **Claude Code**: Can directly execute `hybrid_flow.py` during conversations
+2. **VSCode Tasks**: Provides GUI for running L1/L2/PR generation
+3. **Development Planning**: Core tool for Hybrid Workflow (ChatGPT + Claude Code)
+
+### Deletion Impact
+❌ Breaking Claude Code workflow automation
+❌ Breaking VSCode Tasks integration
+❌ Loss of automated planning documentation
+❌ Manual recreation of L1/L2/PR documents required
+
+---
+
+## Protection Checklist
+
+Before cleaning up files in `tools/`, verify:
+- [ ] File is NOT listed above
+- [ ] File is NOT imported by any Python script
+- [ ] File is NOT referenced in `.claude/settings.local.json`
+- [ ] File is NOT referenced in `hybrid_flow-tasks.json`
+- [ ] File has NOT been used in recent development sessions
+
+---
+
+**Last Updated**: 2026-01-04
+**Maintainer**: SmartCameraApp1 Development Team
