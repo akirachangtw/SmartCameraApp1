@@ -268,10 +268,13 @@ class GuidelineAnalyzer(
     /**
      * Report performance statistics
      *
+     * v2.7.0 Sprint 5: Enhanced logging with device/android/params info
+     *
      * Logs:
      * - Average processing time
      * - P95 processing time (95th percentile)
      * - Min/Max processing time
+     * - Device model, Android version, parameters preset
      */
     private fun reportPerformanceStats() {
         if (performanceStats.isEmpty()) return
@@ -283,13 +286,17 @@ class GuidelineAnalyzer(
         val min = sorted.first()
         val max = sorted.last()
 
+        // v2.7.0 Sprint 5: Include device/android/params in log
         Log.i(
             TAG,
             "Performance ($STATS_INTERVAL frames): " +
             "avg=${avg.toInt()}ms, " +
             "P95=${p95}ms, " +
             "min=${min}ms, " +
-            "max=${max}ms"
+            "max=${max}ms | " +
+            "device=${android.os.Build.MODEL}, " +
+            "android=API${android.os.Build.VERSION.SDK_INT}, " +
+            "params=sprint5_optimized"
         )
 
         // Warning if performance is below target

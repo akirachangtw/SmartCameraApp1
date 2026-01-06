@@ -1,11 +1,12 @@
 package com.akirachang.ai.photographer.domain.model
 
+import android.os.Build
 import androidx.compose.ui.geometry.Offset
 
 /**
  * Guideline Analysis Result
  *
- * v2.7.0 Phase 2 Sprint 3
+ * v2.7.0 Phase 2 Sprint 3-5
  *
  * Contains detected composition guideline lines from OpenCV Hough Line Transform.
  * These lines can be used to assist photographers with composition techniques like:
@@ -37,7 +38,31 @@ data class GuidelineAnalysisResult(
      *
      * Original dimensions of the analyzed frame, used for debugging.
      */
-    val frameDimensions: Pair<Int, Int> = Pair(0, 0)
+    val frameDimensions: Pair<Int, Int> = Pair(0, 0),
+
+    /**
+     * Device model identifier
+     *
+     * v2.7.0 Sprint 5: Enhanced performance tracking
+     * Example: "Pixel 9a", "Sony XQ-BT52"
+     */
+    val deviceModel: String = Build.MODEL,
+
+    /**
+     * Android API level
+     *
+     * v2.7.0 Sprint 5: Enhanced performance tracking
+     * Example: 36 (Android 16), 33 (Android 13)
+     */
+    val androidVersion: Int = Build.VERSION.SDK_INT,
+
+    /**
+     * OpenCV parameter preset identifier
+     *
+     * v2.7.0 Sprint 5: Track which parameter set was used
+     * Example: "sprint5_optimized", "default", "aggressive"
+     */
+    val paramsPreset: String = "sprint5_optimized"
 ) {
     /**
      * Represents a detected line segment
