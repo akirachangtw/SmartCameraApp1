@@ -102,6 +102,12 @@ class LiveCameraSource @Inject constructor(
     // Must be reapplied after every camera rebind (e.g., switchCamera)
     private var pendingExposureIndex: Int? = null
 
+    // v2.8.0 Phase 0: Performance monitoring (FPS tracking)
+    private var frameCount = 0L
+    private var lastFpsReportTime = System.currentTimeMillis()
+    private var droppedFrameCount = 0L
+    private val fpsReportInterval = 30 // Report every 30 frames
+
     /**
      * Get live camera preview stream as Bitmap flow
      *
@@ -114,6 +120,9 @@ class LiveCameraSource @Inject constructor(
 
         val analyzer = ImageAnalysis.Analyzer { imageProxy ->
             try {
+                // v2.8.0 Phase 0: FPS tracking
+                frameCount++
+
                 // Convert ImageProxy to Bitmap
                 val rawBitmap = imageProxy.toBitmap()
 
@@ -134,7 +143,31 @@ class LiveCameraSource @Inject constructor(
                 if (sendResult.isSuccess) {
                     Log.v(TAG, "Preview frame sent: ${bitmap.width}x${bitmap.height}, rotation: $rotationDegrees°")
                 } else {
+                    // v2.8.0 Phase 0: Count dropped frames
+                    droppedFrameCount++
                     Log.w(TAG, "Failed to send preview frame - channel might be closed")
+                }
+
+                // v2.8.0 Phase 0: Report FPS + Memory every N frames
+                if (frameCount % fpsReportInterval == 0L) {
+                    val currentTime = System.currentTimeMillis()
+                    val elapsed = currentTime - lastFpsReportTime
+                    if (elapsed > 0) {
+                        val fps = (fpsReportInterval * 1000f) / elapsed
+                        val dropRate = (droppedFrameCount * 100f) / frameCount
+
+                        // Memory monitoring
+                        val memoryInfo = android.os.Debug.MemoryInfo()
+                        android.os.Debug.getMemoryInfo(memoryInfo)
+                        val nativeMB = memoryInfo.nativePss / 1024  // KB to MB
+                        val javaMB = memoryInfo.dalvikPss / 1024    // KB to MB
+                        val totalMB = memoryInfo.totalPss / 1024    // KB to MB
+
+                        Log.i(TAG, "Performance: FPS=${"%.1f".format(fps)}, " +
+                                   "Dropped=${droppedFrameCount}/$frameCount (${"%.1f".format(dropRate)}%), " +
+                                   "Memory: Native=${nativeMB}MB, Java=${javaMB}MB, Total=${totalMB}MB")
+                    }
+                    lastFpsReportTime = currentTime
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to convert ImageProxy to Bitmap", e)
