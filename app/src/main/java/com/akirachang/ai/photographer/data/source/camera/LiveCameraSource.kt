@@ -17,7 +17,11 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.akirachang.ai.photographer.BuildConfig
 import com.akirachang.ai.photographer.data.source.analysis.GuidelineAnalyzer
+import com.akirachang.ai.photographer.util.BitmapPool
+import com.akirachang.ai.photographer.util.RenderScriptYuvConverter
+import com.akirachang.ai.photographer.util.YuvConverter
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
@@ -30,6 +34,14 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
+import java.util.concurrent.Executors
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.RectF
+import kotlin.math.ceil
 
 /**
  * Live Camera Source for Real Device
@@ -42,7 +54,8 @@ import kotlin.coroutines.resume
  */
 @Singleton
 class LiveCameraSource @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val renderScriptYuvConverter: RenderScriptYuvConverter
 ) : CameraInputSource {
 
     companion object {
@@ -114,6 +127,26 @@ class LiveCameraSource @Inject constructor(
     // v2.8.0 Phase 1: Mutex to prevent race conditions during camera switching
     private val bindMutex = Mutex()
 
+    // v2.8.1: Move analyzer work off UI thread
+    private val analysisExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "LiveCameraSourceAnalyzer").apply { isDaemon = true }
+    }
+
+    // v2.8.1: Bitmap reuse to reduce per-frame allocations
+    private val bitmapPool = BitmapPool(maxEntriesPerKey = 4)
+    private val inFlightPreviewBuffers = ArrayDeque<BitmapPool.BitmapBuffer>(4)
+
+    // v2.8.1 Phase B-1: Integer-based YUV converter (2-3x faster than float math)
+    private val yuvConverter = YuvConverter()
+
+    // v2.8.2 Phase C: Prefer RenderScript, fallback to CPU on failure
+    private var useRenderScript = BuildConfig.ENABLE_RENDERSCRIPT.also {
+        Log.d(TAG, "[v2.8.2 Init] BuildConfig.ENABLE_RENDERSCRIPT=$it, useRenderScript=$it")
+    }
+
+    // v2.8.3 Phase D: Reusable Paint object to avoid per-frame allocation
+    private val transformPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+
     /**
      * Get live camera preview stream as Bitmap flow
      *
@@ -129,8 +162,44 @@ class LiveCameraSource @Inject constructor(
                 // v2.8.0 Phase 0: FPS tracking
                 frameCount++
 
+                // v2.8.1 Phase A1: Diagnostic logging (every 120 frames = ~4 seconds at 30fps)
+                if (frameCount % 120 == 1L) {
+                    val thread = Thread.currentThread()
+                    Log.i(TAG, "[v2.8.1 Diagnostic] Thread=${thread.name}, Priority=${thread.priority}, " +
+                               "Frame=$frameCount, PoolSize=${bitmapPool.getCurrentPoolSize()}")
+                }
+
                 // Convert ImageProxy to Bitmap
-                val rawBitmap = imageProxy.toBitmap()
+                val startYuv = System.nanoTime()
+                val rawBuffer = bitmapPool.acquire(imageProxy.width, imageProxy.height, Bitmap.Config.ARGB_8888)
+                var yuvMode = "CPU"
+                if (frameCount % 30 == 1L) {
+                    Log.d(TAG, "[v2.8.2 Debug] useRenderScript=$useRenderScript, BuildConfig=${BuildConfig.ENABLE_RENDERSCRIPT}")
+                }
+                try {
+                    if (useRenderScript) {
+                        if (frameCount % 30 == 1L) {
+                            Log.d(TAG, "[v2.8.2 Debug] About to call RenderScript convert")
+                        }
+                        renderScriptYuvConverter.convert(imageProxy, rawBuffer.bitmap)
+                        yuvMode = "RS"
+                    } else {
+                        if (frameCount % 30 == 1L) {
+                            Log.d(TAG, "[v2.8.2 Debug] Using CPU converter instead")
+                        }
+                        yuvConverter.convertToBitmapBuffer(imageProxy, rawBuffer)
+                    }
+                } catch (e: Exception) {
+                    if (useRenderScript) {
+                        useRenderScript = false
+                        Log.w(TAG, "[v2.8.2] RenderScript failed; fallback to CPU converter", e)
+                        yuvConverter.convertToBitmapBuffer(imageProxy, rawBuffer)
+                        yuvMode = "CPU"
+                    } else {
+                        throw e
+                    }
+                }
+                val yuvTime = (System.nanoTime() - startYuv) / 1_000_000.0
 
                 // Get rotation from ImageProxy metadata
                 val rotationDegrees = imageProxy.imageInfo.rotationDegrees
@@ -139,19 +208,51 @@ class LiveCameraSource @Inject constructor(
                 val isFrontCamera = cameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
 
                 // Rotate and mirror bitmap if needed to match display orientation
-                val bitmap = if (rotationDegrees != 0 || isFrontCamera) {
-                    rotateBitmap(rawBitmap, rotationDegrees, isFrontCamera)
+                val startTransform = System.nanoTime()
+                val outputBuffer = if (rotationDegrees != 0 || isFrontCamera) {
+                    transformBitmap(rawBuffer, rotationDegrees, isFrontCamera)
                 } else {
-                    rawBitmap
+                    rawBuffer
+                }
+                val transformTime = (System.nanoTime() - startTransform) / 1_000_000.0
+
+                // v2.8.2 Phase C: Timing log (every 30 frames = ~1 second at 30fps)
+                if (frameCount % 30 == 0L) {
+                    Log.d(
+                        TAG,
+                        "[v2.8.2 Timing] YUV=${"%.1f".format(yuvTime)}ms($yuvMode), " +
+                            "Transform=${"%.1f".format(transformTime)}ms, " +
+                            "InFlight=${inFlightPreviewBuffers.size}"
+                    )
+                    // v2.8.2 Phase D: Enhanced diagnostics
+                    Log.d(
+                        TAG,
+                        "[v2.8.2 Transform] In=${rawBuffer.bitmap.width}x${rawBuffer.bitmap.height}, " +
+                            "Out=${outputBuffer.bitmap.width}x${outputBuffer.bitmap.height}, " +
+                            "Rot=${rotationDegrees}°, Mirror=$isFrontCamera, " +
+                            "PoolKeys=${bitmapPool.getKeyCount()}"
+                    )
                 }
 
-                val sendResult = trySend(bitmap)
+                if (outputBuffer !== rawBuffer) {
+                    bitmapPool.release(rawBuffer)
+                }
+
+                val sendResult = trySend(outputBuffer.bitmap)
                 if (sendResult.isSuccess) {
-                    Log.v(TAG, "Preview frame sent: ${bitmap.width}x${bitmap.height}, rotation: $rotationDegrees°")
+                    Log.v(
+                        TAG,
+                        "Preview frame sent: ${outputBuffer.bitmap.width}x${outputBuffer.bitmap.height}, rotation: $rotationDegrees°"
+                    )
+                    inFlightPreviewBuffers.addLast(outputBuffer)
+                    while (inFlightPreviewBuffers.size > 3) {
+                        bitmapPool.release(inFlightPreviewBuffers.removeFirst())
+                    }
                 } else {
                     // v2.8.0 Phase 0: Count dropped frames
                     droppedFrameCount++
                     Log.w(TAG, "Failed to send preview frame - channel might be closed")
+                    bitmapPool.release(outputBuffer)
                 }
 
                 // v2.8.0 Phase 0: Report FPS + Memory every N frames
@@ -189,7 +290,7 @@ class LiveCameraSource @Inject constructor(
         // If camera is already initialized, set analyzer immediately
         if (::imageAnalysis.isInitialized) {
             imageAnalysis.setAnalyzer(
-                ContextCompat.getMainExecutor(context),
+                analysisExecutor,
                 analyzer
             )
             Log.i(TAG, "✅ Preview stream analyzer set immediately - waiting for frames")
@@ -209,6 +310,9 @@ class LiveCameraSource @Inject constructor(
                 imageAnalysis.clearAnalyzer()
             }
             previewStreamAnalyzer = null  // v2.6.1: Clear persistent analyzer
+            while (inFlightPreviewBuffers.isNotEmpty()) {
+                bitmapPool.release(inFlightPreviewBuffers.removeFirst())
+            }
             isPreviewActive = false
         }
     }
@@ -395,7 +499,7 @@ class LiveCameraSource @Inject constructor(
                     // v2.6.1 FIX: Reattach analyzer after rebind (critical for switchCamera)
                     previewStreamAnalyzer?.let { analyzer ->
                         imageAnalysis.setAnalyzer(
-                            ContextCompat.getMainExecutor(context),
+                            analysisExecutor,
                             analyzer
                         )
                         Log.i(TAG, "✅ Preview stream analyzer reattached after rebind - frames should flow")
@@ -437,6 +541,11 @@ class LiveCameraSource @Inject constructor(
             previewSurface = null
             previewSurfaceTexture = null
             Log.d(TAG, "Preview Surface resources released")
+
+            if (BuildConfig.ENABLE_RENDERSCRIPT) {
+                renderScriptYuvConverter.destroy()
+                useRenderScript = true
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to unbind camera", e)
             Timber.e(e, "LiveCameraSource: Failed to unbind camera")
@@ -531,50 +640,53 @@ class LiveCameraSource @Inject constructor(
      * Rotate and optionally mirror a bitmap
      *
      * v2.6.1: Added mirror parameter for front camera selfie view
+     * v2.8.3 Phase D: Minimal optimization - reuse Paint, skip CLEAR
      *
      * @param source Source bitmap to transform
      * @param degrees Rotation angle (0, 90, 180, 270)
      * @param mirror Whether to mirror horizontally (for front camera)
      * @return Transformed bitmap
      */
-    private fun rotateBitmap(source: Bitmap, degrees: Int, mirror: Boolean = false): Bitmap {
+    private fun transformBitmap(
+        source: BitmapPool.BitmapBuffer,
+        degrees: Int,
+        mirror: Boolean = false
+    ): BitmapPool.BitmapBuffer {
         if (degrees == 0 && !mirror) return source
 
-        val matrix = android.graphics.Matrix()
+        // v2.8.3 Phase D: Preserve original logic, only optimize allocations
+        // Step 0 diagnostics: bottleneck is Canvas operations
+        // Conservative approach: minimal changes to avoid regression
 
-        // For front camera: rotate first, then mirror
-        // This prevents upside-down issue
+        val baseMatrix = Matrix()
         if (degrees != 0) {
-            matrix.postRotate(degrees.toFloat())
+            baseMatrix.postRotate(degrees.toFloat())
         }
-
-        // Apply mirroring after rotation (for front camera)
         if (mirror) {
-            matrix.postScale(-1f, 1f)
+            baseMatrix.postScale(-1f, 1f)
         }
 
-        val transformed = Bitmap.createBitmap(
-            source,
-            0,
-            0,
-            source.width,
-            source.height,
-            matrix,
-            true
-        )
+        val srcRect = RectF(0f, 0f, source.bitmap.width.toFloat(), source.bitmap.height.toFloat())
+        val dstRect = RectF(srcRect)
+        baseMatrix.mapRect(dstRect)
 
-        // Recycle the source bitmap if it's different from the transformed one
-        if (transformed != source) {
-            source.recycle()
+        val translateMatrix = Matrix(baseMatrix).apply {
+            postTranslate(-dstRect.left, -dstRect.top)
         }
 
-        val operation = when {
-            mirror && degrees != 0 -> "rotated $degrees° and mirrored"
-            mirror -> "mirrored"
-            else -> "rotated $degrees°"
-        }
-        Log.d(TAG, "Transformed bitmap from ${source.width}x${source.height} ($operation) to ${transformed.width}x${transformed.height}")
-        return transformed
+        val outWidth = ceil(dstRect.width()).toInt().coerceAtLeast(1)
+        val outHeight = ceil(dstRect.height()).toInt().coerceAtLeast(1)
+        val out = bitmapPool.acquire(outWidth, outHeight, Bitmap.Config.ARGB_8888)
+
+        val canvas = Canvas(out.bitmap)
+
+        // v2.8.3 Phase D: Restore drawColor(CLEAR) - removing it caused regression
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+
+        // v2.8.3 Phase D: Reuse Paint object (avoid per-frame allocation)
+        canvas.drawBitmap(source.bitmap, translateMatrix, transformPaint)
+
+        return out
     }
 
     /**
@@ -714,6 +826,14 @@ private fun ImageProxy.toBitmap(): Bitmap {
 
     bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
     return bitmap
+}
+
+@SuppressLint("UnsafeOptInUsageError")
+private fun ImageProxy.toBitmap(pool: BitmapPool, converter: YuvConverter): BitmapPool.BitmapBuffer {
+    // v2.8.1 Phase B-1: Use integer-based YUV converter (2-3x faster)
+    val buffer = pool.acquire(width, height, Bitmap.Config.ARGB_8888)
+    converter.convertToBitmapBuffer(this, buffer)
+    return buffer
 }
 
 /**
