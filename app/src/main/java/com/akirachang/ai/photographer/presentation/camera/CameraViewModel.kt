@@ -107,6 +107,19 @@ class CameraViewModel @Inject constructor(
             initialValue = null
         )
 
+    /**
+     * FPS performance metrics stream (v2.8.4 Quick Win)
+     *
+     * Real-time frame rate monitoring for performance validation.
+     * Null when camera is not active or metrics not available.
+     */
+    val currentFps: StateFlow<Float?> = cameraRepository.getFpsStream()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
     // GuidelineAnalyzer instance (v2.7.0 Phase 2 Sprint 4)
     // Created once and reused to avoid performance overhead
     // Note: Callback is unused because we use synchronous analyzeBitmap() instead
@@ -444,16 +457,26 @@ class CameraViewModel @Inject constructor(
             .sample(100)
             .onEach { bitmap ->
                 try {
+                    // v2.8.4: End-to-end profiling
+                    val e2eStart = System.nanoTime()
+
                     // Convert Bitmap to ML Kit InputImage
+                    val convertStart = System.nanoTime()
                     val inputImage = com.google.mlkit.vision.common.InputImage.fromBitmap(
                         bitmap,
                         0  // Rotation: 0 degrees (bitmap already correctly oriented)
                     )
+                    val convertTime = (System.nanoTime() - convertStart) / 1_000_000.0
 
                     // Create detection result by analyzing the bitmap
+                    val mlkitStart = System.nanoTime()
                     val detectionResult = analyzeImageWithMLKit(inputImage)
+                    val mlkitTime = (System.nanoTime() - mlkitStart) / 1_000_000.0
 
                     // Update detection state with stabilization logic
+                    var compositionTime = 0.0
+                    var lightingTime = 0.0
+
                     if (detectionResult != null) {
                         val hasFaces = detectionResult.faces.isNotEmpty()
 
@@ -467,7 +490,9 @@ class CameraViewModel @Inject constructor(
                                 _state.update { it.copy(detectionResult = detectionResult) }
 
                                 // Perform composition analysis
+                                val compStart = System.nanoTime()
                                 analyzeComposition(detectionResult)
+                                compositionTime = (System.nanoTime() - compStart) / 1_000_000.0
 
                                 Log.i(
                                     TAG,
@@ -488,11 +513,13 @@ class CameraViewModel @Inject constructor(
                         }
 
                         // Analyze lighting (v2.2.0) - Use Bitmap-based analysis with subject context
+                        val lightStart = System.nanoTime()
                         val lightingState = if (detectionResult.faces.isNotEmpty() || detectionResult.objects.isNotEmpty()) {
                             analyzeLightingUseCase.analyzeWithSubject(bitmap, detectionResult)
                         } else {
                             analyzeLightingUseCase(bitmap)
                         }
+                        lightingTime = (System.nanoTime() - lightStart) / 1_000_000.0
                         _lightingState.value = lightingState
                         Log.d(TAG, "Lighting state updated: ${lightingState.javaClass.simpleName}")
 
@@ -502,6 +529,14 @@ class CameraViewModel @Inject constructor(
                             handleAutoHDR(repositoryImpl, lightingState)
                         }
                     }
+
+                    // v2.8.4: End-to-end profiling summary
+                    val e2eTotal = (System.nanoTime() - e2eStart) / 1_000_000.0
+                    Log.i(TAG, "[v2.8.4 E2E] Total=${"%.1f".format(e2eTotal)}ms " +
+                               "(Convert=${"%.1f".format(convertTime)}ms, " +
+                               "MLKit=${"%.1f".format(mlkitTime)}ms, " +
+                               "Composition=${"%.1f".format(compositionTime)}ms, " +
+                               "Lighting=${"%.1f".format(lightingTime)}ms)")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to analyze preview bitmap", e)
                 }
@@ -596,17 +631,25 @@ class CameraViewModel @Inject constructor(
             .sample(100)
             .onEach { bitmap ->
                 try {
+                    // v2.8.4: Profiling for guideline analysis
+                    val guidelineStart = System.nanoTime()
+
                     // Perform OpenCV analysis on background thread
                     val result = withContext(Dispatchers.Default) {
                         guidelineAnalyzer.analyzeBitmap(bitmap)
                     }
 
+                    val guidelineTotal = (System.nanoTime() - guidelineStart) / 1_000_000.0
+
                     // Update state (StateFlow updates automatically switch to Main thread)
                     _guidelineResults.value = result
 
-                    Log.v(
+                    // v2.8.4: Enhanced logging with total time (includes thread switching overhead)
+                    Log.i(
                         TAG,
-                        "Guideline analysis: ${result.lines.size} lines detected in ${result.processingTimeMs}ms"
+                        "[v2.8.4 Guideline] Lines=${result.lines.size}, " +
+                        "OpenCV=${"%.1f".format(result.processingTimeMs)}ms, " +
+                        "Total=${"%.1f".format(guidelineTotal)}ms"
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to analyze guidelines", e)

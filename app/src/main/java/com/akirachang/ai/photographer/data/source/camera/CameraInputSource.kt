@@ -2,6 +2,7 @@ package com.akirachang.ai.photographer.data.source.camera
 
 import android.graphics.Bitmap
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Camera Input Source Interface
@@ -20,6 +21,14 @@ interface CameraInputSource {
      * @return Flow that emits preview frames as Bitmap
      */
     fun getPreviewStream(): Flow<Bitmap>
+
+    /**
+     * Get FPS performance metrics stream
+     *
+     * v2.8.4: Performance monitoring for Quick Win validation
+     * @return StateFlow that emits current FPS, or null if not available
+     */
+    fun getFpsStream(): StateFlow<Float?> = kotlinx.coroutines.flow.MutableStateFlow(null)
 
     /**
      * Capture a photo

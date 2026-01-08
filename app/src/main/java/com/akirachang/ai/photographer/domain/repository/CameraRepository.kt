@@ -19,6 +19,13 @@ interface CameraRepository {
      */
     fun getPreviewStream(): Flow<Bitmap>
 
+    /**
+     * 獲取 FPS 效能指標流（v2.8.4 Quick Win）
+     *
+     * 提供即時 FPS 監控用於效能驗證
+     * Null 當相機未啟動或指標不可用
+     */
+    fun getFpsStream(): StateFlow<Float?>
 
     /**
      * 拍攝照片

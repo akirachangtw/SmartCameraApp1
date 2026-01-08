@@ -5,6 +5,325 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.4] - 2026-01-08
+
+### ⚡ 效能優化 (Performance)
+
+#### Quick Win: BitmapPool 優化達成 27.2 FPS ⭐ Target Achieved
+- **日期**: 2026-01-08
+- **目標**: 提升相機管道 FPS 從 19-20 至 ≥26 FPS
+- **成果**: **27.2 FPS 平均值** (良好光線條件) ✅ **超越目標 4.6%**
+
+**關鍵優化: BitmapPool Key Explosion 修復**
+- **問題**: `transformBitmap()` 使用 `ceil(mapRect())` 計算輸出尺寸,造成浮點誤差
+  - 預期: 720x720 → 實際: 721x720, 719x720, 722x720, 等等
+  - 結果: Pool keys 從 2 爆增至 10+,命中率降至 <50%
+- **解決方案**: 使用固定整數尺寸計算
+  ```kotlin
+  val (outWidth, outHeight) = when (degrees) {
+      90, 270 -> srcHeight to srcWidth  // Swap for portrait
+      else -> srcWidth to srcHeight      // Keep for landscape
+  }
+  ```
+- **成效**:
+  - Pool Keys: 10+ → **1** (90% 減少) ✅
+  - Pool Hit Rate: <50% → **99%** (+49 百分點) ✅
+  - Transform 時間: 16ms → 18.3ms 平均 (P95: 40ms → 34.5ms, 改善 14%)
+
+**FPS 效能提升**:
+| 指標 | v2.8.3 | v2.8.4 | 改善 | 狀態 |
+|------|--------|--------|------|------|
+| **FPS (良好光線)** | 19-20 | **27.2** | **+36%** | ✅ 顯著改善 |
+| **FPS (低光線)** | - | 16.7 | - | ⚠️ 硬體限制 |
+| **YUV Conversion** | ~5ms | 4.6ms | -8% | ✅ 微幅改善 |
+| **Transform (avg)** | 16ms | 18.3ms | +14% | ⚠️ 微幅退步 |
+| **Transform (P95)** | 40ms | 34.5ms | **-14%** | ✅ 穩定性改善 |
+
+**重要發現: 光線狀態影響 FPS**
+- **良好光線** (桌燈開啟): 27-29 FPS ✅ 達標
+- **低光線** (桌燈關閉): 16-17 FPS ⚠️ 相機自動降速
+- **原因**: 相機硬體在低光線下自動增加曝光時間以改善畫質
+- **結論**: 這是**正常相機行為**,非軟體效能問題
+
+**新增功能: FPS 即時監控**
+- 實作 FPS overlay UI 元件 (僅 Debug 版本顯示)
+- 新增 FPS StateFlow 貫穿整個架構層
+- 顏色編碼: 綠色 (≥26), 黃色 (20-25), 紅色 (<20)
+
+**新增功能: 端到端效能分析**
+- 在 `CameraViewModel` 加入 E2E 計時器
+- 元件分解: Convert (~0ms), ML Kit (~120ms), Composition (~5ms), Lighting (~28ms)
+- **關鍵發現**: ML Kit 120ms 不影響相機 FPS,因管道解耦 (分析 10 FPS vs 相機 27 FPS)
+
+**修改檔案** (8 files, ~250 lines):
+1. `LiveCameraSource.kt`:
+   - 修復 `transformBitmap()` 使用整數尺寸 (lines 650-723)
+   - 新增 FPS StateFlow for UI 監控 (lines 130-132, 163, 281-282)
+   - 加強 v2.8.4 診斷日誌與 pool 狀態
+2. `BitmapPool.kt`:
+   - 新增 `getHitRate()` 方法 (lines 118-122)
+3. `CameraInputSource.kt`:
+   - 新增 `getFpsStream()` interface method (line 30)
+4. `CameraRepository.kt`:
+   - 新增 `getFpsStream()` to repository interface (lines 22-28)
+5. `CameraRepositoryImpl.kt`:
+   - 實作 `getFpsStream()` delegation (lines 125-132)
+6. `CameraViewModel.kt`:
+   - 新增 E2E profiling in analysis pipelines (lines 460-539)
+   - 暴露 FPS StateFlow 至 UI 層 (lines 110-121)
+7. `CameraScreen.kt`:
+   - 新增 FPS overlay 顯示 (lines 224-232, line 102)
+8. `FPSOverlay.kt` (新檔案):
+   - 即時 FPS 監控 Compose 元件
+
+**驗證測試結果**:
+
+**Final Validation (3 分鐘,良好光線)** ✅:
+- 日期: 2026-01-08 20:12-20:15
+- 裝置: Sony XQ-BT52 (Snapdragon 7+ Gen 2)
+- 光線: 桌燈開啟 (良好光線條件)
+- 樣本數: 17 FPS 讀數
+
+| 指標 | 數值 | 目標 | 狀態 |
+|------|------|------|------|
+| **平均 FPS** | **27.2** | ≥26 | ✅ **達標** (+4.6%) |
+| **最低 FPS** | 25.3 | - | ✅ 高於目標 |
+| **最高 FPS** | 29.0 | - | ✅ 優秀 |
+| **P95 FPS** | 29.0 | - | ✅ 優秀 |
+| **Pool Keys** | **1** | ≤2 | ✅ **超越** |
+| **Pool Hit Rate** | **99%** | >90% | ✅ **超越** |
+
+**建議**:
+- ✅ **已準備正式發布**: FPS 目標達成,BitmapPool 優化成功
+- 🚫 **不需 Plan B** (RenderScript YUV+Transform fusion): 目標已達成,額外複雜度不值得
+- 📝 **測試注意事項**: 測試時需確保良好光線條件 (桌燈或自然光)
+
+**文件**:
+- `docs/V2.8.4_SUCCESS_REPORT.md`: 完整成功報告
+- `docs/V2.8.4_FINAL_RESULTS.md`: 技術深入分析
+- `docs/V2.8.4_QUICK_WIN_RESULTS.md`: 初始測試結果
+
+---
+
+## [2.8.0] - 2026-01-06
+
+### ⚡ 效能優化 (Performance)
+
+#### Phase 0+1+2: Performance Monitoring + Stability Fixes
+
+**日期**: 2026-01-06
+**版本號**: versionCode 40
+
+**Phase 0: FPS/Memory/Drop Frame Monitoring**
+
+新增即時效能監控機制:
+- FPS 統計 (平均值、最小值、最大值、P95)
+- Memory PSS 追蹤 (Native Heap, Java Heap, Total PSS)
+- Drop Frame 統計 (dropped frames, drop rate)
+- 長期穩定性測試工具
+
+**Phase 1: Stability Fixes**
+
+核心穩定性修復:
+1. **LiveCameraSource.switchCamera()**: 加入 Mutex 防止競態條件
+2. **GuidelineAnalyzer**: 加入 stop 機制防止處理過期 frame
+3. **clearAnalyzer()**: 確保 analyzer 停止後才清除
+
+**測試結果** (Phase 1):
+
+**Sony XQ-BT52 (Snapdragon 7+ Gen 2)**:
+| 指標 | 結果 | 目標 | 狀態 |
+|------|------|------|------|
+| Average FPS | 24.0 | ≥20 | ✅ PASS |
+| Drop Rate | 0.00% | 0% | ✅ Perfect |
+| Memory (PSS) | 384MB | <500MB | ✅ Good |
+| Stability | 無崩潰 | 無崩潰 | ✅ Perfect |
+| Test Duration | 3:00 | - | - |
+
+**Pixel 9a (Tensor G4, Android 16)**:
+| 指標 | 結果 | 目標 | 狀態 |
+|------|------|------|------|
+| Average FPS | 26.6 | ≥20 | ✅ PASS |
+| Drop Rate | 0.00% | 0% | ✅ Perfect |
+| Memory (PSS) | 502MB | <500MB | ⚠️ Slightly over |
+| Stability | 無崩潰 | 無崩潰 | ✅ Perfect |
+| Test Duration | 3:21 | - | - |
+
+**Known Issues**:
+1. FPS 退化 vs Phase 0 (28.8 → 24.0, -16.7%) - 列入 v2.8.1 調查
+2. Pixel 9a Memory Growth (+79MB) - 需長期監控
+
+**修改檔案**:
+- 效能監控工具和測試腳本
+- LiveCameraSource.kt: Mutex + stop mechanism
+- GuidelineAnalyzer.kt: Stop flag
+
+**文件**:
+- `docs/V2.8.0_PHASE0_BASELINE_REPORT.md`
+- `docs/V2.8.0_PHASE1_STABILITY_TEST.md`
+
+**結論**: ✅ **Phase 1 通過,準備 Release**
+- 穩定性目標 100% 達成
+- 兩款測試裝置皆無崩潰
+- Drop rate 完美 (0%)
+
+---
+
+## [2.7.0] - 2026-01-05
+
+### ✨ 新功能 (Feature)
+
+#### OpenCV Guideline Detection + Parameter Optimization
+
+**日期**: 2026-01-05
+**主要功能**: OpenCV-based guideline detection with Hough Transform
+
+**Sprint 4: Real Device Integration**
+
+實作 OpenCV guideline detection:
+- Hough Transform 線條檢測
+- 實機測試 (Sony XQ-BT52)
+- 多裝置效能比較
+
+**Sprint 5: Parameter Optimization**
+
+優化 OpenCV 參數:
+- `HOUGH_THRESHOLD`: 50 → 70 (+40%)
+- `HOUGH_MIN_LINE_LENGTH`: 50.0 → 80.0 (+60%)
+- `MAX_LINES`: 10 → 6 (-40%)
+- `MIN_LINE_STRENGTH`: 0.3 → 0.5 (+67%)
+
+**測試結果**:
+
+**效能改善** (Sony XQ-BT52):
+| 指標 | Sprint 4 | Sprint 5 | 改善 | 狀態 |
+|------|----------|----------|------|------|
+| **Average** | 132.8ms | 113.9ms | **-14.3%** | ⚠️ Below expectation |
+| **P95** | 227ms | 157ms | **-30.8%** | ✅ Good |
+| **Line Count** | 10 lines | 6 lines | **-40%** | ✅ Expected |
+| **< 100ms frames** | 29% | 36% | **+7%** | ✅ Improvement |
+
+**多裝置比較**:
+- 模擬器 (Android 14): ~200ms 平均
+- Sony XQ-BT52 (實機): 113.9ms 平均 ✅
+
+**關鍵發現**:
+- Parameter optimization 改善有限 (14.3%)
+- Camera pipeline overhead (~60-70ms) 成為主要瓶頸
+- 建議: 繼續 Priority 2 (Bypass Bitmap Conversion)
+
+**修改檔案**:
+- `GuidelineAnalyzer.kt`: OpenCV Hough Transform 參數優化
+
+**文件** (9 份完整測試報告):
+- `docs/V2.7.0_EMULATOR_TEST_REPORT.md`
+- `docs/V2.7.0_REAL_DEVICE_TEST_REPORT.md`
+- `docs/V2.7.0_PERFORMANCE_COMPARISON.md`
+- `docs/V2.7.0_DEVICE_COMPARISON_REPORT.md`
+- `docs/V2.7.0_SPRINT3_COMPLETE.md`
+- `docs/V2.7.0_SPRINT4_COMPLETE.md`
+- `docs/V2.7.0_SPRINT4_INTEGRATION_GUIDE.md`
+- `docs/V2.7.0_SPRINT4_TEST_SUMMARY.md`
+- `docs/V2.7.0_SPRINT5_OPTIMIZATION_REPORT.md`
+
+**結論**: ⚠️ **部分成功,建議繼續架構優化**
+- OpenCV 整合成功
+- Parameter optimization 改善有限
+- 需要更根本的架構優化 (v2.8.x 系列)
+
+---
+
+## 🔧 內部開發版本 (Internal Development Versions)
+
+以下版本為內部開發和測試用途,未對外正式發布:
+
+### v2.8.1 - Performance Analysis (內部版本)
+**日期**: 2026-01-07
+**性質**: 診斷分析階段
+
+**主要工作**:
+- Phase A: Diagnostic testing (FPS 退化診斷)
+- Phase B1: Performance baseline analysis (效能基準線建立)
+- 可行性報告: 識別 UI Thread 阻塞 + 記憶體分配問題
+
+**關鍵發現**:
+1. 🔴 **UI Thread 阻塞**: Analyzer 使用 MainExecutor (假設性問題)
+2. 🟠 **每幀記憶體分配**: Bitmap.createBitmap() 每幀執行
+3. 🟡 **重複 Analyzer 配置**: 架構混亂
+
+**文件**:
+- `docs/V2.8.1_PERFORMANCE_TEST_RESULTS.md`
+- `docs/V2.8.1_PHASE_A_DIAGNOSTIC_RESULTS.md`
+- `docs/V2.8.1_PHASE_B1_RESULTS.md`
+- `docs/plan/v2.8.1_feasibility_report_result.md`
+- `docs/V2.8.1_ISSUES_RESOLUTION_ANALYSIS.md`
+
+**狀態**: ⚠️ 僅分析階段,未進入實作
+**後續**: 問題已在 v2.8.4 解決
+
+---
+
+### v2.8.2 - RenderScript Fusion Planning (內部版本)
+**日期**: 2026-01-07
+**性質**: 規劃階段 (Plan B)
+
+**主要工作**:
+- RenderScript YUV+Transform fusion 可行性研究
+- L1/L2 規劃文件
+- 技術可行性評估
+
+**可行性評估**:
+- ✅ 技術可行性: RenderScript fusion 技術上可行
+- ⚠️ 風險評估: 高複雜度,需 4-8 小時開發
+- ✅ 預期效益: YUV+Transform 合併可達 7-10ms
+
+**文件** (完整 L1/L2 規劃):
+- `docs/plan/v2.8.2_renderscript_feasibility.md`
+- `docs/plan/v2.8.2_renderscript_feasibility_consolidated.md`
+- `docs/plan/v2.8.2_renderscript_plan.md`
+- `docs/plan/v2.8.2_Transform_Pipeline_Optimization.md`
+- `docs/plan/v2.8.2_transform_pipeline_fps_L1.md`
+- `docs/plan/v2.8.2_transform_pipeline_fps_L2.md`
+
+**狀態**: ⚠️ 規劃完成,但未實作
+**後續**: v2.8.4 Quick Win 已達標,Plan B 不需要
+
+---
+
+### v2.8.3 - Transform Optimization (內部實驗版本)
+**日期**: 2026-01-07
+**性質**: 實驗性實作
+**版本號**: versionCode 42
+
+**主要變更**:
+- Phase D: Transform optimization with Paint reuse
+- RenderScript YUV converter with NV21 fast path
+- CPU fallback with integer YUV→RGB conversion
+- BitmapPool enhanced statistics tracking
+
+**測試結果**:
+| 指標 | 結果 | 目標 | 狀態 |
+|------|------|------|------|
+| Transform Time | 15.8ms | <15ms | ⚠️ 接近 |
+| YUV Conversion | 5.4ms | - | ✅ Good |
+| FPS | 19-20 | ≥26 | ❌ **未達標** |
+
+**關鍵問題**: BitmapPool key explosion (後由 Traycer 分析發現)
+- Pool keys: 10+ (721, 719, 722 等不同尺寸)
+- Hit rate: <50%
+- 原因: `ceil(mapRect())` 浮點誤差
+
+**修改檔案**:
+- `LiveCameraSource.kt`: Paint 重用, RenderScript YUV
+- `BitmapPool.kt`: Enhanced statistics
+- `RenderScriptYuvConverter.kt`: NEW
+- `YuvConverter.kt`: NEW
+
+**狀態**: ⚠️ 實驗性,FPS 未達標
+**後續**: 問題在 v2.8.4 解決 (BitmapPool fix)
+
+---
+
 ## [2.6.2] - 2026-01-02 / 2026-01-03
 
 ### 🔧 修復 (Fix)

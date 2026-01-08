@@ -69,12 +69,14 @@ import com.akirachang.ai.photographer.presentation.camera.components.PermissionR
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.CompositionGuideOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.CompositionHint
 // v2.2.2: Removed DetectionOverlay and DirectionalIndicator - visual clutter
+import com.akirachang.ai.photographer.presentation.camera.components.overlay.FPSOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.GridOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.GuidelineOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.HDRWarningOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.LevelIndicator
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
+import com.akirachang.ai.photographer.BuildConfig
 
 /**
  * 相機畫面 - 拍照功能
@@ -97,6 +99,7 @@ fun CameraScreen(
     val lightingState by viewModel.lightingState.collectAsState() // v2.2.0
     val orientationState by viewModel.orientationState.collectAsState() // v2.1.0
     val guidelineResults by viewModel.guidelineResults.collectAsState() // v2.7.0 Phase 2 Sprint 4
+    val currentFps by viewModel.currentFps.collectAsState() // v2.8.4 Quick Win
 
     // Overlay visibility preferences (v2.1.0)
     val isGridEnabled by viewModel.isGridEnabled.collectAsState(initial = true)
@@ -217,6 +220,16 @@ fun CameraScreen(
                         )
                     }
                 }
+
+                // v2.8.4 Quick Win: FPS performance monitor
+                // Only visible in debug builds for performance validation
+                FPSOverlay(
+                    fps = currentFps,
+                    visible = BuildConfig.DEBUG,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 16.dp, bottom = 16.dp)
+                )
 
                 // 簡易計數顯示（可選，保留用於調試）
                 state.detectionResult?.let { result ->
