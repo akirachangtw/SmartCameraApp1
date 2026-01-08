@@ -14,11 +14,12 @@ android {
         applicationId = "com.akirachang.ai.photographer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 42
-        versionName = "2.8.3"
+        versionCode = 43
+        versionName = "2.8.4"
 
         // v2.8.2 Phase C: RenderScript GPU YUV conversion (support mode for API 31+)
         // v2.8.3 Phase D: Transform fast path optimizations
+        // v2.8.4 Plan B: RenderScript fused YUV+Transform kernel
         buildConfigField("Boolean", "ENABLE_RENDERSCRIPT", "true")
         renderscriptTargetApi = 21
         renderscriptSupportModeEnabled = true
@@ -49,6 +50,9 @@ android {
 
             // v2.8.0 Phase 2: ImageProxy Direct Path (default: false for safe rollback)
             buildConfigField("Boolean", "USE_IMAGEPROXY_GUIDELINE_PIPELINE", "false")
+
+            // v2.8.4 Plan B: Fused YUV+Transform RenderScript kernel (default: true for testing)
+            buildConfigField("Boolean", "ENABLE_FUSED_TRANSFORM", "true")
         }
 
         release {
@@ -70,6 +74,9 @@ android {
 
             // v2.8.0 Phase 2: ImageProxy Direct Path (default: false for safe rollback)
             buildConfigField("Boolean", "USE_IMAGEPROXY_GUIDELINE_PIPELINE", "false")
+
+            // v2.8.4 Plan B: Fused YUV+Transform RenderScript kernel (default: false for safe release)
+            buildConfigField("Boolean", "ENABLE_FUSED_TRANSFORM", "false")
         }
     }
 
