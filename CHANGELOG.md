@@ -5,6 +5,104 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.4] - 2026-01-08
+
+### ⚡ 效能優化 (Performance)
+
+#### Quick Win: BitmapPool 優化達成 27.2 FPS ⭐ Target Achieved
+- **日期**: 2026-01-08
+- **目標**: 提升相機管道 FPS 從 19-20 至 ≥26 FPS
+- **成果**: **27.2 FPS 平均值** (良好光線條件) ✅ **超越目標 4.6%**
+
+**關鍵優化: BitmapPool Key Explosion 修復**
+- **問題**: `transformBitmap()` 使用 `ceil(mapRect())` 計算輸出尺寸,造成浮點誤差
+  - 預期: 720x720 → 實際: 721x720, 719x720, 722x720, 等等
+  - 結果: Pool keys 從 2 爆增至 10+,命中率降至 <50%
+- **解決方案**: 使用固定整數尺寸計算
+  ```kotlin
+  val (outWidth, outHeight) = when (degrees) {
+      90, 270 -> srcHeight to srcWidth  // Swap for portrait
+      else -> srcWidth to srcHeight      // Keep for landscape
+  }
+  ```
+- **成效**:
+  - Pool Keys: 10+ → **1** (90% 減少) ✅
+  - Pool Hit Rate: <50% → **99%** (+49 百分點) ✅
+  - Transform 時間: 16ms → 18.3ms 平均 (P95: 40ms → 34.5ms, 改善 14%)
+
+**FPS 效能提升**:
+| 指標 | v2.8.3 | v2.8.4 | 改善 | 狀態 |
+|------|--------|--------|------|------|
+| **FPS (良好光線)** | 19-20 | **27.2** | **+36%** | ✅ 顯著改善 |
+| **FPS (低光線)** | - | 16.7 | - | ⚠️ 硬體限制 |
+| **YUV Conversion** | ~5ms | 4.6ms | -8% | ✅ 微幅改善 |
+| **Transform (avg)** | 16ms | 18.3ms | +14% | ⚠️ 微幅退步 |
+| **Transform (P95)** | 40ms | 34.5ms | **-14%** | ✅ 穩定性改善 |
+
+**重要發現: 光線狀態影響 FPS**
+- **良好光線** (桌燈開啟): 27-29 FPS ✅ 達標
+- **低光線** (桌燈關閉): 16-17 FPS ⚠️ 相機自動降速
+- **原因**: 相機硬體在低光線下自動增加曝光時間以改善畫質
+- **結論**: 這是**正常相機行為**,非軟體效能問題
+
+**新增功能: FPS 即時監控**
+- 實作 FPS overlay UI 元件 (僅 Debug 版本顯示)
+- 新增 FPS StateFlow 貫穿整個架構層
+- 顏色編碼: 綠色 (≥26), 黃色 (20-25), 紅色 (<20)
+
+**新增功能: 端到端效能分析**
+- 在 `CameraViewModel` 加入 E2E 計時器
+- 元件分解: Convert (~0ms), ML Kit (~120ms), Composition (~5ms), Lighting (~28ms)
+- **關鍵發現**: ML Kit 120ms 不影響相機 FPS,因管道解耦 (分析 10 FPS vs 相機 27 FPS)
+
+**修改檔案** (8 files, ~250 lines):
+1. `LiveCameraSource.kt`:
+   - 修復 `transformBitmap()` 使用整數尺寸 (lines 650-723)
+   - 新增 FPS StateFlow for UI 監控 (lines 130-132, 163, 281-282)
+   - 加強 v2.8.4 診斷日誌與 pool 狀態
+2. `BitmapPool.kt`:
+   - 新增 `getHitRate()` 方法 (lines 118-122)
+3. `CameraInputSource.kt`:
+   - 新增 `getFpsStream()` interface method (line 30)
+4. `CameraRepository.kt`:
+   - 新增 `getFpsStream()` to repository interface (lines 22-28)
+5. `CameraRepositoryImpl.kt`:
+   - 實作 `getFpsStream()` delegation (lines 125-132)
+6. `CameraViewModel.kt`:
+   - 新增 E2E profiling in analysis pipelines (lines 460-539)
+   - 暴露 FPS StateFlow 至 UI 層 (lines 110-121)
+7. `CameraScreen.kt`:
+   - 新增 FPS overlay 顯示 (lines 224-232, line 102)
+8. `FPSOverlay.kt` (新檔案):
+   - 即時 FPS 監控 Compose 元件
+
+**驗證測試結果**:
+
+**Final Validation (3 分鐘,良好光線)** ✅:
+- 日期: 2026-01-08 20:12-20:15
+- 裝置: Sony XQ-BT52 (Snapdragon 7+ Gen 2)
+- 光線: 桌燈開啟 (良好光線條件)
+- 樣本數: 17 FPS 讀數
+
+| 指標 | 數值 | 目標 | 狀態 |
+|------|------|------|------|
+| **平均 FPS** | **27.2** | ≥26 | ✅ **達標** (+4.6%) |
+| **最低 FPS** | 25.3 | - | ✅ 高於目標 |
+| **最高 FPS** | 29.0 | - | ✅ 優秀 |
+| **P95 FPS** | 29.0 | - | ✅ 優秀 |
+| **Pool Keys** | **1** | ≤2 | ✅ **超越** |
+| **Pool Hit Rate** | **99%** | >90% | ✅ **超越** |
+
+**建議**:
+- ✅ **已準備正式發布**: FPS 目標達成,BitmapPool 優化成功
+- 🚫 **不需 Plan B** (RenderScript YUV+Transform fusion): 目標已達成,額外複雜度不值得
+- 📝 **測試注意事項**: 測試時需確保良好光線條件 (桌燈或自然光)
+
+**文件**:
+- `docs/V2.8.4_SUCCESS_REPORT.md`: 完整成功報告
+- `docs/V2.8.4_FINAL_RESULTS.md`: 技術深入分析
+- `docs/V2.8.4_QUICK_WIN_RESULTS.md`: 初始測試結果
+
 ## [2.6.2] - 2026-01-02 / 2026-01-03
 
 ### 🔧 修復 (Fix)

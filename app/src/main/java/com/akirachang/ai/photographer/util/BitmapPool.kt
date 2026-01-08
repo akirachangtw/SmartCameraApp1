@@ -114,4 +114,10 @@ class BitmapPool(
     // v2.8.2 Phase D: Get key statistics for external monitoring
     fun getKeyCount(): Int = pools.keys.size
     fun getCreatedCount(): Int = createdCount
+
+    // v2.8.4 Quick Win: Get hit rate for pool effectiveness monitoring
+    fun getHitRate(): Int {
+        val total = hits + misses
+        return if (total > 0) (hits * 100) / total else 0
+    }
 }

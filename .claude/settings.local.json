@@ -95,7 +95,19 @@
       "Bash(Select-String \"\\(BUILD|FAILED|error|warning\\)\")",
       "Bash(start \"\" \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\emulator\\\\emulator.exe\" -avd Medium_Phone_API_36.1 -gpu host)",
       "Bash(.\\\\gradlew.bat assembleDeviceDebug:*)",
-      "Bash(device=Model, android=APIxx, params=preset\"\n\nRelease Artifacts:\n- Release notes with device tier recommendations\n- Performance benchmarks \\(Pixel 9a: 90.7ms ✅, Sony XQ-BT52: 113.9ms ⚠️\\)\n- 3-level feature flag rollback strategy documented\n\nAcceptance Status:\n- Flagship devices: ✅ Meets performance target \\(< 100ms avg\\)\n- Mid-range devices: ⚠️ Borderline acceptable \\(113.9ms avg\\)\n- Target audience: Mid-to-high-end devices \\(SD 7+ Gen 2+\\)\n\nFiles Changed:\n- app/build.gradle.kts: Version bump to 2.7.0 \\(versionCode 39\\)\n- GuidelineAnalysisResult.kt: Added deviceModel, androidVersion, paramsPreset fields\n- GuidelineAnalyzer.kt: Enhanced performance logging with device context\n- docs/RELEASE_NOTES_v2.7.0.md: Comprehensive release documentation\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(device=Model, android=APIxx, params=preset\"\n\nRelease Artifacts:\n- Release notes with device tier recommendations\n- Performance benchmarks \\(Pixel 9a: 90.7ms ✅, Sony XQ-BT52: 113.9ms ⚠️\\)\n- 3-level feature flag rollback strategy documented\n\nAcceptance Status:\n- Flagship devices: ✅ Meets performance target \\(< 100ms avg\\)\n- Mid-range devices: ⚠️ Borderline acceptable \\(113.9ms avg\\)\n- Target audience: Mid-to-high-end devices \\(SD 7+ Gen 2+\\)\n\nFiles Changed:\n- app/build.gradle.kts: Version bump to 2.7.0 \\(versionCode 39\\)\n- GuidelineAnalysisResult.kt: Added deviceModel, androidVersion, paramsPreset fields\n- GuidelineAnalyzer.kt: Enhanced performance logging with device context\n- docs/RELEASE_NOTES_v2.7.0.md: Comprehensive release documentation\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(.gradlew.bat assembleDeviceDebug)",
+      "Bash(Select-String \"\\(BUILD|FAILED|error|warning|v2\\\\.8\\\\.1\\)\")",
+      "Bash(Select-String \"\\(BUILD|FAILED|error|warning|v2\\\\.8\\\\.2\\)\")",
+      "Bash(Start-Sleep -Seconds 5)",
+      "Bash(Select-String \"v2.8.2\")",
+      "Bash(Select-Object -Last 10)",
+      "Bash(d:\\\\MyDocuments\\\\DevSources\\\\AndroidStudioProjects\\\\SmartCameraApp1\\\\gradlew.bat:*)",
+      "Bash(emulator -list-avds:*)",
+      "Bash(\"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\emulator\\\\emulator.exe\" -list-avds)",
+      "Bash(start \"\" \"C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\emulator\\\\emulator.exe\" -avd Pixel_5 -gpu host)",
+      "Bash(Select-String \"\\(BUILD|FAILED|error|warning|v2\\\\.8\\\\.3\\)\")",
+      "Bash(Select-String \"\\\\\\(BUILD|FAILED|error|warning|v2\\\\.8\\\\.4\\\\\\)\")"
     ],
     "deny": [],
     "ask": []

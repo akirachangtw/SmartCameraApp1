@@ -122,6 +122,14 @@ class CameraRepositoryImpl @Inject constructor(
         return cameraInputSource.getPreviewStream()
     }
 
+    /**
+     * 獲取 FPS 效能指標流（v2.8.4 Quick Win）
+     *
+     * 委派給 CameraInputSource，提供即時 FPS 監控
+     */
+    override fun getFpsStream(): StateFlow<Float?> {
+        return cameraInputSource.getFpsStream()
+    }
 
     /**
      * 拍攝照片並儲存到 MediaStore
