@@ -14,12 +14,13 @@ android {
         applicationId = "com.akirachang.ai.photographer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 43
-        versionName = "2.8.4"
+        versionCode = 51
+        versionName = "2.9.0-beta5"
 
         // v2.8.2 Phase C: RenderScript GPU YUV conversion (support mode for API 31+)
         // v2.8.3 Phase D: Transform fast path optimizations
         // v2.8.4 Plan B: RenderScript fused YUV+Transform kernel
+        // v2.8.5: Pixel 9a memory mitigation (reduced resolution & throttle)
         buildConfigField("Boolean", "ENABLE_RENDERSCRIPT", "true")
         renderscriptTargetApi = 21
         renderscriptSupportModeEnabled = true
@@ -53,6 +54,9 @@ android {
 
             // v2.8.4 Plan B: Fused YUV+Transform RenderScript kernel (default: true for testing)
             buildConfigField("Boolean", "ENABLE_FUSED_TRANSFORM", "true")
+
+            // v2.8.6 Phase 2: PreviewView migration for Graphics memory fix
+            buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "false")  // DISABLED for v2.8.5 Baseline test
         }
 
         release {
@@ -77,6 +81,9 @@ android {
 
             // v2.8.4 Plan B: Fused YUV+Transform RenderScript kernel (default: false for safe release)
             buildConfigField("Boolean", "ENABLE_FUSED_TRANSFORM", "false")
+
+            // v2.8.6 Phase 2: PreviewView migration for Graphics memory fix (disabled in release for now)
+            buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "false")
         }
     }
 

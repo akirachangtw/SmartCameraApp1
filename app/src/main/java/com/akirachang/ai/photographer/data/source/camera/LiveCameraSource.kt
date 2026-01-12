@@ -3,7 +3,9 @@ package com.akirachang.ai.photographer.data.source.camera
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Build
 import android.graphics.SurfaceTexture
+import android.os.PowerManager
 import android.util.Log
 import android.util.Size
 import android.view.Surface
@@ -65,7 +67,29 @@ class LiveCameraSource @Inject constructor(
         private const val TAG = "LiveCameraSource"
     }
 
-    // v2.6.1: Custom SurfaceProvider for Preview UseCase
+    // v2.9.0-alpha Phase 0: Thermal monitoring
+    private val powerManager: PowerManager? by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        } else {
+            null
+        }
+    }
+
+    private var lastThermalStatus: Int? = null
+    private var thermalThrottlingStartTime: Long? = null
+
+    // v2.8.6 Phase 0: SurfaceTexture lifecycle tracking for Graphics memory investigation
+    private var surfaceTextureCreateCount = 0
+    private var surfaceTextureReleaseCount = 0
+
+    // v2.8.6 Phase 2: External surface provider for PreviewView integration
+    private var externalSurfaceProvider: Preview.SurfaceProvider? = null
+
+    // v2.9.0-beta3: Track selected resolution for diagnostics
+    private var selectedResolution: Size? = null
+
+    // v2.6.1: Custom SurfaceProvider for Preview UseCase (Fallback when no PreviewView)
     // Preview UseCase is mandatory - without it, camera won't start on real devices
     // Reference: chat_logs/CameraX_StaticImage_TestMode_Fix.md lines 37-54
     //
@@ -73,8 +97,19 @@ class LiveCameraSource @Inject constructor(
     private var previewSurfaceTexture: SurfaceTexture? = null
     private var previewSurface: Surface? = null
 
-    private val customSurfaceProvider = Preview.SurfaceProvider { request ->
-        Log.d(TAG, "SurfaceProvider requested: ${request.resolution.width}x${request.resolution.height}")
+    private val fallbackSurfaceProvider = Preview.SurfaceProvider { request ->
+        Log.d(TAG, "[Fallback] SurfaceProvider requested: ${request.resolution.width}x${request.resolution.height}")
+
+        // v2.9.0-beta4: Log warning if Preview resolution doesn't match expected
+        selectedResolution?.let { expected ->
+            val withinFilter = request.resolution.width <= 800 && request.resolution.height <= 800
+            if (request.resolution.width != expected.width || request.resolution.height != expected.height) {
+                Log.w(TAG, "[v2.9.0-beta4] Preview resolution mismatch! " +
+                          "Requested=${request.resolution.width}x${request.resolution.height}, " +
+                          "Expected=${expected.width}x${expected.height}, " +
+                          "WithinFilter(<= 800px): $withinFilter")
+            }
+        }
 
         // Create SurfaceTexture with requested resolution
         val surfaceTexture = SurfaceTexture(0).apply {
@@ -84,6 +119,14 @@ class LiveCameraSource @Inject constructor(
             )
         }
         previewSurfaceTexture = surfaceTexture
+
+        // v2.8.6 Phase 0: Track SurfaceTexture creation
+        surfaceTextureCreateCount++
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "[SurfaceTexture] Created #$surfaceTextureCreateCount | " +
+                    "HashCode: ${System.identityHashCode(surfaceTexture)} | " +
+                    "Leaked: ${surfaceTextureCreateCount - surfaceTextureReleaseCount}")
+        }
 
         // Create Surface from SurfaceTexture
         val surface = Surface(surfaceTexture)
@@ -97,6 +140,14 @@ class LiveCameraSource @Inject constructor(
             surfaceTexture.release()
             previewSurface = null
             previewSurfaceTexture = null
+
+            // v2.8.6 Phase 0: Track SurfaceTexture release
+            surfaceTextureReleaseCount++
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[SurfaceTexture] Released #$surfaceTextureReleaseCount | " +
+                        "HashCode: ${System.identityHashCode(surfaceTexture)} | " +
+                        "Leaked: ${surfaceTextureCreateCount - surfaceTextureReleaseCount}")
+            }
         }
 
         Log.i(TAG, "✅ Custom Surface provided to Preview UseCase")
@@ -176,6 +227,17 @@ class LiveCameraSource @Inject constructor(
             try {
                 // v2.8.0 Phase 0: FPS tracking
                 frameCount++
+
+                // v2.9.0-beta4: Log actual ImageProxy size on first frame (resolution verification)
+                if (frameCount == 1L) {
+                    val expected = selectedResolution
+                    val actual = Size(imageProxy.width, imageProxy.height)
+                    val match = expected?.let { it.width == actual.width && it.height == actual.height } ?: false
+                    val withinFilter = actual.width <= 800 && actual.height <= 800
+                    Log.i(TAG, "[v2.9.0-beta4 Resolution] ImageProxy actual size: ${actual.width}x${actual.height}, " +
+                              "Expected: ${expected?.width}x${expected?.height}, " +
+                              "Match: $match, WithinFilter(<= 800px): $withinFilter")
+                }
 
                 // v2.8.1 Phase A1: Diagnostic logging (every 120 frames = ~4 seconds at 30fps)
                 if (frameCount % 120 == 1L) {
@@ -288,9 +350,36 @@ class LiveCameraSource @Inject constructor(
                         val javaMB = memoryInfo.dalvikPss / 1024    // KB to MB
                         val totalMB = memoryInfo.totalPss / 1024    // KB to MB
 
+                        // v2.9.0-alpha Phase 0: Monitor thermal status
+                        val thermalInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && powerManager != null) {
+                            val thermalStatus = powerManager!!.currentThermalStatus
+                            val thermalStatusName = getThermalStatusName(thermalStatus)
+
+                            // Track thermal throttling events
+                            // Track thermal throttling events (MODERATE or higher = throttling)
+                            val throttlingThreshold = PowerManager.THERMAL_STATUS_MODERATE
+                            if (thermalStatus != lastThermalStatus) {
+                                if (thermalStatus >= throttlingThreshold && (lastThermalStatus == null || lastThermalStatus!! < throttlingThreshold)) {
+                                    // Throttling started
+                                    thermalThrottlingStartTime = currentTime
+                                    Log.w(TAG, "⚠️ Thermal throttling started: $thermalStatusName (FPS: ${"%.1f".format(fps)})")
+                                } else if (lastThermalStatus != null && lastThermalStatus!! >= throttlingThreshold && thermalStatus < throttlingThreshold) {
+                                    // Throttling ended
+                                    val throttlingDuration = thermalThrottlingStartTime?.let { (currentTime - it) / 1000 } ?: 0
+                                    Log.i(TAG, "✅ Thermal throttling ended: $thermalStatusName (Duration: ${throttlingDuration}s, FPS: ${"%.1f".format(fps)})")
+                                    thermalThrottlingStartTime = null
+                                }
+                                lastThermalStatus = thermalStatus
+                            }
+
+                            ", Thermal=$thermalStatusName"
+                        } else {
+                            ""
+                        }
+
                         Log.i(TAG, "Performance: FPS=${"%.1f".format(fps)}, " +
                                    "Dropped=${droppedFrameCount}/$frameCount (${"%.1f".format(dropRate)}%), " +
-                                   "Memory: Native=${nativeMB}MB, Java=${javaMB}MB, Total=${totalMB}MB")
+                                   "Memory: Native=${nativeMB}MB, Java=${javaMB}MB, Total=${totalMB}MB$thermalInfo")
                     }
                     lastFpsReportTime = currentTime
                 }
@@ -458,25 +547,69 @@ class LiveCameraSource @Inject constructor(
                     cameraProvider = cameraProviderFuture.get()
                     Log.d(TAG, "ProcessCameraProvider obtained successfully")
 
+                    // v2.9.0-beta5: Smart Resolution Selection
+                    // Automatically detect hardware capabilities and select optimal resolution
+                    val cameraInfo = cameraProvider.getCameraInfo(cameraSelector)
+                    val supportedSizes = getSupportedResolutions(cameraInfo)
+
+                    // Detect device capabilities and select optimal target
+                    val (targetResolution, maxFilterWidth, maxFilterHeight) = selectDeviceOptimalResolution(supportedSizes)
+
+                    Log.i(TAG, "[v2.9.0-beta5] Smart Resolution: target=${targetResolution.width}x${targetResolution.height}, " +
+                              "filter≤${maxFilterWidth}x${maxFilterHeight}")
+
+                    // Build ResolutionSelector with device-specific filter
+                    val resolutionSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                        .setResolutionStrategy(
+                            androidx.camera.core.resolutionselector.ResolutionStrategy(
+                                targetResolution,
+                                androidx.camera.core.resolutionselector.ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
+                            )
+                        )
+                        .setResolutionFilter { sizes, _ ->
+                            val beforeCount = sizes.size
+                            val filtered = sizes.filter { size ->
+                                size.width <= maxFilterWidth && size.height <= maxFilterHeight
+                            }
+                            Log.i(TAG, "[v2.9.0-beta5 Filter] Before: $beforeCount sizes, After: ${filtered.size} sizes")
+                            if (filtered.isNotEmpty()) {
+                                Log.i(TAG, "[v2.9.0-beta5 Filter] Allowed: ${filtered.joinToString { "${it.width}x${it.height}" }}")
+                            }
+                            filtered
+                        }
+                        .build()
+
+                    // Store target for diagnostic logging
+                    selectedResolution = targetResolution
+
+                    Log.i(TAG, "[v2.9.0-beta4] Using ResolutionSelector with target=${targetResolution.width}x${targetResolution.height}, filter=<= 800px")
+
+                    // One-time diagnostic: log all supported resolutions
+                    logSupportedResolutions(cameraInfo)
+
                     // 1. Build Preview UseCase with SurfaceProvider
+                    // v2.9.0-beta4: Use ResolutionSelector instead of setTargetResolution
                     preview = Preview.Builder()
-                        .setTargetResolution(Size(640, 480))
+                        .setResolutionSelector(resolutionSelector)
                         .build()
                         .apply {
-                            // ✅ CRITICAL: Attach custom SurfaceProvider
-                            // This gives CameraX a valid Surface to render preview
-                            setSurfaceProvider(customSurfaceProvider)
-                            Log.i(TAG, "✅ Preview UseCase created with custom SurfaceProvider")
+                            // ✅ CRITICAL: Attach SurfaceProvider (external or fallback)
+                            val provider = externalSurfaceProvider ?: fallbackSurfaceProvider
+                            val providerType = if (externalSurfaceProvider != null) "PreviewView (native)" else "Fallback SurfaceTexture"
+
+                            setSurfaceProvider(provider)
+                            Log.i(TAG, "✅ Preview UseCase created with $providerType + ResolutionSelector")
                         }
 
                     // 2. Build ImageAnalysis UseCase (for Bitmap stream to UI)
+                    // v2.9.0-beta4: Use ResolutionSelector instead of setTargetResolution
                     imageAnalysis = ImageAnalysis.Builder()
-                        .setTargetResolution(Size(640, 480))
+                        .setResolutionSelector(resolutionSelector)
                         .setTargetRotation(Surface.ROTATION_0)  // Set target rotation for proper orientation
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
                         .apply {
-                            Log.i(TAG, "✅ ImageAnalysis UseCase created with ROTATION_0")
+                            Log.i(TAG, "✅ ImageAnalysis UseCase created with ROTATION_0 + ResolutionSelector")
                         }
 
                     // 3. Build ImageCapture UseCase (for photo capture)
@@ -655,6 +788,117 @@ class LiveCameraSource @Inject constructor(
     }
 
     /**
+     * Query supported resolutions from CameraX
+     *
+     * v2.9.0-beta3: Helper to get available camera resolutions
+     *
+     * @param cameraInfo CameraInfo from CameraProvider
+     * @return List of supported Size objects
+     */
+    private fun getSupportedResolutions(cameraInfo: androidx.camera.core.CameraInfo): List<Size> {
+        return try {
+            // Try to get supported resolutions from CameraInfo
+            // Note: This may require Camera2Interop or CameraX experimental APIs
+            val characteristics = androidx.camera.camera2.interop.Camera2CameraInfo.from(cameraInfo)
+                .getCameraCharacteristic(android.hardware.camera2.CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+
+            val sizes = characteristics?.getOutputSizes(android.graphics.ImageFormat.YUV_420_888)?.toList() ?: emptyList()
+
+            if (sizes.isNotEmpty()) {
+                Log.d(TAG, "[v2.9.0-beta3] Found ${sizes.size} supported YUV_420_888 resolutions")
+            } else {
+                Log.w(TAG, "[v2.9.0-beta3] No supported resolutions found, will use CameraX defaults")
+            }
+
+            sizes
+        } catch (e: Exception) {
+            Log.w(TAG, "[v2.9.0-beta3] Failed to query supported resolutions: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Select optimal resolution from supported list
+     *
+     * v2.9.0-beta3: Smart resolution selection to avoid 1080p fallback
+     *
+     * Strategy:
+     * 1. Filter resolutions >= target size (both width and height)
+     * 2. Sort by pixel count (ascending)
+     * 3. Return smallest valid resolution
+     * 4. Fallback to target if none found (let CameraX handle)
+     *
+     * @param supportedSizes List of supported resolutions
+     * @param targetSize Target resolution (default: 480x360)
+     * @return Optimal resolution
+     */
+    private fun selectOptimalResolution(
+        supportedSizes: List<Size>,
+        targetSize: Size = Size(480, 360)
+    ): Size {
+        if (supportedSizes.isEmpty()) {
+            Log.i(TAG, "[v2.9.0-beta3] No supported sizes provided, using target: ${targetSize.width}x${targetSize.height}")
+            return targetSize
+        }
+
+        // Filter: width >= target.width AND height >= target.height
+        val validSizes = supportedSizes.filter { size ->
+            size.width >= targetSize.width && size.height >= targetSize.height
+        }
+
+        if (validSizes.isEmpty()) {
+            Log.w(TAG, "[v2.9.0-beta3] No resolution >= ${targetSize.width}x${targetSize.height}, using target as fallback")
+            return targetSize
+        }
+
+        // Sort by pixel count (ascending), then return first (smallest valid)
+        val optimal = validSizes.minByOrNull { size ->
+            size.width * size.height
+        } ?: targetSize
+
+        val pixelCount = optimal.width * optimal.height
+        Log.i(TAG, "[v2.9.0-beta3] Selected resolution: ${optimal.width}x${optimal.height} " +
+                "(${pixelCount} pixels, ${validSizes.size} valid options)")
+
+        return optimal
+    }
+
+    /**
+     * Log all supported resolutions for diagnostics
+     *
+     * v2.9.0-beta3: One-time diagnostic log
+     *
+     * @param cameraInfo CameraInfo from CameraProvider
+     */
+    private fun logSupportedResolutions(cameraInfo: androidx.camera.core.CameraInfo) {
+        try {
+            val characteristics = androidx.camera.camera2.interop.Camera2CameraInfo.from(cameraInfo)
+                .getCameraCharacteristic(android.hardware.camera2.CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+
+            val yuvSizes = characteristics?.getOutputSizes(android.graphics.ImageFormat.YUV_420_888)
+
+            if (yuvSizes != null && yuvSizes.isNotEmpty()) {
+                val sortedSizes = yuvSizes.sortedBy { it.width * it.height }
+                val sizeList = sortedSizes.joinToString(", ") { "${it.width}x${it.height}" }
+
+                Log.d(TAG, "[v2.9.0-beta3 Supported Resolutions] YUV_420_888 (${yuvSizes.size} total):")
+                Log.d(TAG, "[v2.9.0-beta3] $sizeList")
+
+                // Log pixel counts for reference
+                sortedSizes.take(5).forEach { size ->
+                    val pixels = size.width * size.height
+                    val megapixels = pixels / 1_000_000.0
+                    Log.d(TAG, "[v2.9.0-beta3] - ${size.width}x${size.height} = ${String.format("%.2f", megapixels)}MP")
+                }
+            } else {
+                Log.w(TAG, "[v2.9.0-beta3] No YUV_420_888 resolutions found in characteristics")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "[v2.9.0-beta3] Failed to log supported resolutions: ${e.message}")
+        }
+    }
+
+    /**
      * Rotate and optionally mirror a bitmap
      *
      * v2.6.1: Added mirror parameter for front camera selfie view
@@ -811,120 +1055,87 @@ class LiveCameraSource @Inject constructor(
     }
 
     // v2.5.2 Phase 7: getCameraController() removed - all camera operations now abstracted
-}
 
-/**
- * Extension function to convert ImageProxy to Bitmap
- *
- * Optimized direct YUV → RGB conversion without JPEG intermediate step.
- *
- * Performance improvements (v2.5.1 Priority 3):
- * - Before: YUV → NV21 → JPEG → ByteArray → Bitmap (~180 MB/s at 30 FPS)
- * - After: YUV → RGB pixels → Bitmap (~60 MB/s at 30 FPS, 3x reduction)
- * - Memory savings: ~50% less temporary allocations
- * - Speed improvement: ~2-3x faster
- *
- * Uses ITU-R BT.601 conversion formula:
- * - R = Y + 1.402 * (V - 128)
- * - G = Y - 0.344 * (U - 128) - 0.714 * (V - 128)
- * - B = Y + 1.772 * (U - 128)
- */
-@SuppressLint("UnsafeOptInUsageError")
-private fun ImageProxy.toBitmap(): Bitmap {
-    val yPlane = planes[0]
-    val uPlane = planes[1]
-    val vPlane = planes[2]
+    /**
+     * Set PreviewView surface provider for native preview
+     * v2.8.6 Phase 2: PreviewView migration for Graphics memory fix
+     */
+    override fun setPreviewSurfaceProvider(surfaceProvider: Preview.SurfaceProvider?) {
+        externalSurfaceProvider = surfaceProvider
+        Log.i(TAG, "[Phase 2] External surface provider ${if (surfaceProvider != null) "set" else "cleared"}")
 
-    val yBuffer = yPlane.buffer
-    val uBuffer = uPlane.buffer
-    val vBuffer = vPlane.buffer
-
-    // Reset buffer positions
-    yBuffer.rewind()
-    uBuffer.rewind()
-    vBuffer.rewind()
-
-    val yRowStride = yPlane.rowStride
-    val uvRowStride = uPlane.rowStride
-    val uvPixelStride = uPlane.pixelStride
-
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-    val pixels = IntArray(width * height)
-
-    var pixelIndex = 0
-    for (y in 0 until height) {
-        val yRowOffset = y * yRowStride
-        val uvRowOffset = (y / 2) * uvRowStride
-
-        for (x in 0 until width) {
-            // Get Y value
-            val yValue = (yBuffer.get(yRowOffset + x).toInt() and 0xFF)
-
-            // Get UV values (subsampled 2x2)
-            val uvPixelIndex = uvRowOffset + (x / 2) * uvPixelStride
-            val uValue = (uBuffer.get(uvPixelIndex).toInt() and 0xFF) - 128
-            val vValue = (vBuffer.get(uvPixelIndex).toInt() and 0xFF) - 128
-
-            // YUV → RGB conversion (ITU-R BT.601)
-            val r = (yValue + 1.402f * vValue).toInt().coerceIn(0, 255)
-            val g = (yValue - 0.344f * uValue - 0.714f * vValue).toInt().coerceIn(0, 255)
-            val b = (yValue + 1.772f * uValue).toInt().coerceIn(0, 255)
-
-            // Pack ARGB into int (0xAARRGGBB)
-            pixels[pixelIndex++] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+        // If camera already bound, rebind to apply new provider
+        if (::cameraProvider.isInitialized && currentLifecycleOwner != null) {
+            Log.i(TAG, "[Phase 2] Camera rebind triggered to apply new surface provider")
+            // Trigger immediate rebinding to connect PreviewView
+            currentLifecycleOwner?.let { owner ->
+                bindToLifecycle(owner)
+            }
         }
     }
 
-    bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
-    return bitmap
-}
+    /**
+     * Check if native preview is supported
+     * v2.8.6 Phase 2: PreviewView migration
+     */
+    override fun supportsNativePreview(): Boolean = true
 
-@SuppressLint("UnsafeOptInUsageError")
-private fun ImageProxy.toBitmap(pool: BitmapPool, converter: YuvConverter): BitmapPool.BitmapBuffer {
-    // v2.8.1 Phase B-1: Use integer-based YUV converter (2-3x faster)
-    val buffer = pool.acquire(width, height, Bitmap.Config.ARGB_8888)
-    converter.convertToBitmapBuffer(this, buffer)
-    return buffer
-}
+    /**
+     * Smart Resolution Selection - v2.9.0-beta5
+     */
+    private fun selectDeviceOptimalResolution(supportedSizes: List<Size>): Triple<Size, Int, Int> {
+        val manufacturer = android.os.Build.MANUFACTURER
+        val model = android.os.Build.MODEL
+        Log.i(TAG, "[v2.9.0-beta5] Device: $manufacturer $model, ${supportedSizes.size} resolutions")
+        val acceptableResolutions = supportedSizes.filter { s ->
+            s.width <= 1280 && s.height <= 720 && s.width >= 480 && s.height >= 360
+        }.sortedBy { it.width * it.height }
+        if (acceptableResolutions.isNotEmpty()) {
+            Log.i(TAG, "[v2.9.0-beta5] Acceptable: ${acceptableResolutions.joinToString { "${it.width}x${it.height}" }}")
+        }
+        if (manufacturer.equals("Google", ignoreCase = true) && model.contains("Pixel", ignoreCase = true)) {
+            val has800x600 = acceptableResolutions.any { it.width == 800 && it.height == 600 }
+            return if (has800x600) {
+                Log.i(TAG, "[v2.9.0-beta5] Pixel: 800x600")
+                Triple(Size(800, 600), 1280, 720)
+            } else {
+                Log.i(TAG, "[v2.9.0-beta5] Pixel: 640x480 fallback")
+                Triple(Size(640, 480), 800, 600)
+            }
+        }
+        if (manufacturer.equals("Sony", ignoreCase = true)) {
+            Log.i(TAG, "[v2.9.0-beta5] Sony: 640x480")
+            return Triple(Size(640, 480), 800, 600)
+        }
+        if (acceptableResolutions.isNotEmpty()) {
+            val optimal = acceptableResolutions.lastOrNull { s -> s.width <= 800 && s.height <= 600 }
+            if (optimal != null) {
+                Log.i(TAG, "[v2.9.0-beta5] Generic: ${optimal.width}x${optimal.height}")
+                return Triple(optimal, 800, 600)
+            }
+        }
+        Log.w(TAG, "[v2.9.0-beta5] Fallback: 640x480")
+        return Triple(Size(640, 480), 800, 600)
+    }
 
-/**
- * Legacy JPEG-based conversion (kept for reference)
- *
- * @deprecated Use direct YUV → RGB conversion above for better performance
- */
-@Suppress("unused")
-@SuppressLint("UnsafeOptInUsageError")
-private fun ImageProxy.toBitmapLegacy(): Bitmap {
-    val yBuffer = planes[0].buffer
-    val uBuffer = planes[1].buffer
-    val vBuffer = planes[2].buffer
-
-    val ySize = yBuffer.remaining()
-    val uSize = uBuffer.remaining()
-    val vSize = vBuffer.remaining()
-
-    val nv21 = ByteArray(ySize + uSize + vSize)
-
-    yBuffer.get(nv21, 0, ySize)
-    vBuffer.get(nv21, ySize, vSize)
-    uBuffer.get(nv21, ySize + vSize, uSize)
-
-    val yuvImage = android.graphics.YuvImage(
-        nv21,
-        android.graphics.ImageFormat.NV21,
-        width,
-        height,
-        null
-    )
-
-    val out = java.io.ByteArrayOutputStream()
-    yuvImage.compressToJpeg(
-        android.graphics.Rect(0, 0, width, height),
-        100,
-        out
-    )
-    val imageBytes = out.toByteArray()
-
-    return android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-        ?: throw IllegalStateException("Failed to decode bitmap from ImageProxy")
+    /**
+     * Convert thermal status to human-readable name
+     * v2.9.0-alpha Phase 0: Thermal monitoring
+     */
+    private fun getThermalStatusName(status: Int): String {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            when (status) {
+                PowerManager.THERMAL_STATUS_NONE -> "NONE"
+                PowerManager.THERMAL_STATUS_LIGHT -> "LIGHT"
+                PowerManager.THERMAL_STATUS_MODERATE -> "MODERATE"
+                PowerManager.THERMAL_STATUS_SEVERE -> "SEVERE"
+                PowerManager.THERMAL_STATUS_CRITICAL -> "CRITICAL"
+                PowerManager.THERMAL_STATUS_EMERGENCY -> "EMERGENCY"
+                PowerManager.THERMAL_STATUS_SHUTDOWN -> "SHUTDOWN"
+                else -> "UNKNOWN($status)"
+            }
+        } else {
+            "N/A"
+        }
+    }
 }

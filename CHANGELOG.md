@@ -5,6 +5,407 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0-beta5] - 2026-01-12
+
+### ✨ 新功能 (New Features)
+
+#### Smart Resolution Selection - Automatic Device-Specific Optimization
+
+**核心目標 (Core Goal)**:
+- **單一 APK 自動適配所有裝置**: 根據硬體能力自動選擇最佳解析度
+- **無需使用者設定**: 裝置偵測與解析度選擇完全自動化
+- **針對裝置優化**: 每種裝置獲得最佳效能與 AI 準確度平衡
+
+**新功能**:
+
+1. **`selectDeviceOptimalResolution()` 函數** (LiveCameraSource.kt:1086-1119)
+   ```kotlin
+   private fun selectDeviceOptimalResolution(supportedSizes: List<Size>): Triple<Size, Int, Int>
+   ```
+   - 自動偵測裝置製造商與型號
+   - 查詢相機支援的解析度列表
+   - 根據裝置特性選擇最佳目標解析度與過濾範圍
+   - 回傳 (targetResolution, maxFilterWidth, maxFilterHeight)
+
+2. **裝置偵測策略**:
+   - **Google Pixel 系列**: 優先選擇 800x600（AI 準確度最佳）
+     - 若支援 800x600 → target=800x600, filter≤1280x720
+     - 若不支援 → fallback 到 640x480, filter≤800x600
+
+   - **Sony 系列**: 使用 640x480（硬體限制已確認）
+     - target=640x480, filter≤800x600
+     - 原因: Sony XQ-BT52 在 4:3 比例下僅支援 640x480
+
+   - **通用裝置**: 自動偵測最佳解析度
+     - 從支援列表中選擇最大但 ≤800x600 的解析度
+     - 確保 480x360 ≤ resolution ≤ 1280x720
+
+   - **Fallback**: 若無符合條件的解析度 → 640x480
+
+3. **增強診斷日誌**:
+   ```
+   [v2.9.0-beta5] Device: {manufacturer} {model}, {count} resolutions
+   [v2.9.0-beta5] Acceptable: {list}
+   [v2.9.0-beta5] {Strategy}: {selected}
+   [v2.9.0-beta5] Smart Resolution: target=...x..., filter≤...x...
+   [v2.9.0-beta5 Filter] Before: X sizes, After: Y sizes
+   [v2.9.0-beta5 Filter] Allowed: {list}
+   ```
+
+### 🔧 修復 (Fixes)
+
+1. **新增遺失的 `getThermalStatusName()` 函數** (LiveCameraSource.kt:1125-1140)
+   - 將 PowerManager 熱狀態整數轉換為可讀名稱
+   - 修復 v2.9.0-alpha Phase 0 未完成的熱監控功能
+
+### 📊 測試結果 (Test Results)
+
+#### Sony XQ-BT52 驗證 ✅
+- **裝置偵測**: ✅ 正確識別為 Sony XQ-BT52
+- **支援解析度**: 21 個（來自 Camera2 API）
+- **可接受解析度**: 4 個（640x480, 720x480, 720x720, 1280x720）
+- **策略套用**: ✅ Sony 策略 → 640x480
+- **過濾結果**: 21 → 6 個解析度（≤800x600）
+- **最終選擇**: 640x480 ✅
+- **Graphics 記憶體**: ~46 MB @ T0（與 beta4 Plan B 相同）
+- **FPS**: 28-30 FPS
+
+#### Pixel 9a 預期行為 ⏳
+- **裝置偵測**: 應識別為 Google Pixel 9a
+- **策略套用**: Pixel 策略 → 800x600
+- **過濾結果**: 800x600 應在支援列表中
+- **Graphics 記憶體**: ~107 MB @ T0（與 beta4 Plan D 相同）
+- **FPS**: 27-29 FPS
+- **AI 準確度**: 優於 640x480，適合遠距離與多人場景
+
+### 📈 效能比較 (Performance Comparison)
+
+| 版本 | 配置方式 | Sony 解析度 | Pixel 解析度 |
+|------|----------|-------------|--------------|
+| **v2.9.0-beta4** | 手動測試後寫死 | 640x480 (Plan B) | 800x600 (Plan D) |
+| **v2.9.0-beta5** | 自動偵測選擇 | 640x480 (Auto) | 800x600 (Auto, 待測) |
+
+**優勢**:
+- ✅ 單一 APK 適用所有裝置
+- ✅ 無需手動為每個裝置測試與配置
+- ✅ 新裝置自動處理，無需程式碼更新
+- ✅ 使用者無需任何設定
+
+### 🔄 向後相容性 (Backward Compatibility)
+
+- ✅ 與 v2.9.0-beta4 測試結果完全相同
+- ✅ Sony: 640x480（相同）
+- ✅ Pixel: 800x600（預期相同，待測）
+- ✅ Graphics 記憶體與 FPS 保持一致
+
+### 📚 相關文件 (Related Documentation)
+
+- **實作報告**: [V2.9.0-BETA5_SMART_RESOLUTION_IMPLEMENTATION.md](docs/V2.9.0-BETA5_SMART_RESOLUTION_IMPLEMENTATION.md)
+- **beta4 Sony 測試**: [V2.9.0-BETA4_SONY_MULTI_RESOLUTION_TEST_REPORT.md](docs/V2.9.0-BETA4_SONY_MULTI_RESOLUTION_TEST_REPORT.md)
+- **beta4 Pixel 對比**: [V2.9.0-BETA4_PIXEL9A_VS_SONY_COMPARISON.md](docs/V2.9.0-BETA4_PIXEL9A_VS_SONY_COMPARISON.md)
+- **Google Camera 對比**: [V2.9.0-BETA4_GOOGLE_CAMERA_COMPARISON.md](docs/V2.9.0-BETA4_GOOGLE_CAMERA_COMPARISON.md)
+
+### ⏭️ 下一步 (Next Steps)
+
+1. ⏳ 在 Pixel 9a 上測試 v2.9.0-beta5
+2. ✅ 驗證自動選擇 800x600
+3. ✅ 確認 Graphics ~107 MB, FPS 27-29
+4. ✅ 更新 git tag
+5. ✅ 考慮升級為 v2.9.0-rc1 (Release Candidate)
+
+---
+
+## [2.9.0-beta3] - 2026-01-12
+
+### 🔧 修復 (Fixes)
+
+#### Graphics Memory Fix - Smart CameraX Resolution Selection
+
+**問題根源 (Root Cause)**:
+- **v2.9.0-beta2 發現**: Graphics 記憶體 216.1 MB（vs v2.8.6: 64 MB，+238%）
+- **根本原因**: CameraX `setTargetResolution(480, 360)` fallback 到 1080x1080
+- **影響**: 每個 Bitmap 4.4 MB（vs 0.66 MB for 480x360）= 6.75x 記憶體用量
+- **CameraX 行為**: 480x360 不在 Pixel 9a 支援列表，自動選擇最接近的 1080x1080
+
+**Phase 1 修復方案 - 智能解析度選擇**:
+
+1. **查詢支援解析度**
+   ```kotlin
+   @ExperimentalCameraFilter
+   private fun getSupportedResolutions(cameraInfo: CameraInfo): List<Size> {
+       val characteristics = Camera2CameraInfo.from(cameraInfo)
+           .getCameraCharacteristic(SCALER_STREAM_CONFIGURATION_MAP)
+       return characteristics?.getOutputSizes(YUV_420_888)?.toList() ?: emptyList()
+   }
+   ```
+
+2. **選擇最佳解析度**
+   ```kotlin
+   private fun selectOptimalResolution(
+       supportedSizes: List<Size>,
+       targetSize: Size = Size(480, 360)
+   ): Size {
+       // 1. Filter: width >= 480 AND height >= 360
+       // 2. Sort by: pixel count (ascending)
+       // 3. Return: smallest valid size (e.g., 640x480 or 720p)
+   }
+   ```
+
+3. **增強診斷日誌**
+   - ImageAnalysis: 第一幀記錄實際 vs 預期解析度
+   - SurfaceProvider: 警告解析度不匹配
+
+**預期效果**:
+- ✅ Graphics 記憶體: 216 MB → **< 120 MB** (-44%)
+- ✅ 實際解析度: 640x480 或 720p（不是 1080x1080）
+- ✅ FPS: 維持 22-28（初期），15-20（熱節流後）
+- ✅ BitmapPool Hit Rate: > 90%（不變）
+
+**修改檔案**:
+- `LiveCameraSource.kt`:
+  - 新增 `getSupportedResolutions()`, `selectOptimalResolution()`, `logSupportedResolutions()`
+  - 修改 `bindToLifecycle()` 使用智能解析度選擇
+  - 增加診斷日誌（ImageAnalysis + SurfaceProvider）
+- `build.gradle.kts`: versionCode 48 → 49
+
+**相關文件**:
+- 測試報告: `tmp/v2.9.0_beta2_pixel9a_10min_test_MANUAL.md`
+- 實作計畫: `.claude/plans/drifting-bouncing-finch.md`
+- FPS 分析: `docs/plan/v2.9.0-beta2_pixel9a_fps_drop_*.md`
+
+---
+
+## [2.9.0-beta2] - 2026-01-11
+
+### 🔧 修復 (Fixes)
+
+#### Emergency Rollback from beta1 - FPS Recovery
+
+**beta1 失敗原因**:
+- **災難性 FPS 下降**: FPS 8-10（vs 預期 25-28）
+- **根本原因**: BitmapPool 正規化 + CameraX 1080x1080 fallback 導致尺寸不匹配
+- **連鎖失敗**: RenderScript `require()` 檢查失敗 → CPU fallback (89-96ms YUV 轉換)
+
+**緊急修復**:
+1. **完全回滾 BitmapPool 正規化** - 恢復精確尺寸匹配策略
+2. **調整目標解析度** - 360x360 → 480x360（更標準的縱橫比）
+3. **保留 v2.8.4 Quick Win** - BitmapPool 重用機制（已驗證穩定）
+
+**測試結果**:
+- ✅ FPS 恢復: 20-25（可接受）
+- ✅ BitmapPool Hit Rate: 99%
+- ⚠️ Graphics 記憶體: 216.1 MB（高於預期，但功能正常）
+- ⚠️ 實際解析度: 仍為 1080x1080（CameraX fallback 未解決）
+
+**修改檔案**:
+- `BitmapPool.kt`: 回滾所有 beta1 變更
+- `LiveCameraSource.kt`: 解析度 360x360 → 480x360
+- `build.gradle.kts`: versionCode 47 → 48
+
+**決策**:
+- beta2 作為穩定過渡版本（FPS 正常，記憶體可接受）
+- beta3 將實作解析度選擇修復
+
+---
+
+## [2.9.0-beta1] - 2026-01-11 ⚠️ **FAILED VERSION - DO NOT USE**
+
+### 🔧 修復 (Fixes)
+
+#### Graphics Memory Leak Fix - BitmapPool Dynamic Key Normalization
+
+**問題根源 (Root Cause)**:
+- **v2.9.0-alpha 退化**: 降低解析度 480x480 → 360x360 後，Graphics 記憶體從 63.8 MB 暴增至 224.3 MB
+- **根本原因**: BitmapPool 使用精確尺寸作為 Key（360x360 ≠ 480x480）
+- **洩漏機制**: 解析度改變後，Pool 無法重用 Bitmap，導致持續分配新記憶體
+- **洩漏速度**: T0→T1 (2分鐘) 暴增 +91.7 MB (+81%)
+
+**Phase 0 靜態審查發現**:
+1. **BitmapPool Key 精確匹配問題**
+   - Key 定義: `Key(width: Int, height: Int, config: Config)`
+   - 360x360 與 480x480 產生不同 Key → Pool Miss
+   - 每幀都建立新 Bitmap (~1.5 MB × 25 FPS)
+
+2. **Bitmap 生命週期正常**
+   - acquire/release 邏輯正確（無洩漏路徑）
+   - Surface 管理正常（Create/Release 平衡）
+   - RenderScript Allocation 正確銷毀
+
+**Phase 1 修復方案 - 動態 Key 正規化**:
+
+1. **實作 16px 邊界對齊**
+   ```kotlin
+   private fun normalizeKey(width: Int, height: Int, config: Bitmap.Config): Key {
+       val roundedWidth = ((width + 15) / 16) * 16
+       val roundedHeight = ((height + 15) / 16) * 16
+       return Key(roundedWidth, roundedHeight, config)
+   }
+   ```
+
+2. **修改 acquire() 邏輯**
+   - 使用正規化 Key 查找 Pool
+   - 分配正規化大小的 Bitmap（輕微超額分配可接受）
+   - 範例: 請求 360x360 → 分配 368x368 → Pool 可重用
+
+3. **修改 release() 邏輯**
+   - 使用正規化 Key 歸還 Bitmap
+   - 確保 acquire/release 使用相同 Key 邏輯
+
+**預期效果**:
+- ✅ Graphics 記憶體: 224 MB → **70-80 MB** (-65%)
+- ✅ BitmapPool Hit Rate: < 20% → **> 75%**
+- ✅ Pool Key 數量: 維持 2-4 個（穩定）
+- ✅ FPS: 無影響（維持 25-28 FPS）
+- ✅ 記憶體略增: ~5-10%（16px 對齊超額分配）
+
+**技術優勢**:
+- ✅ GPU 友善: 16px 對齊符合 GPU Texture 記憶體要求
+- ✅ 高重用率: 相近解析度可共用 Pool（360→368, 480→480）
+- ✅ 低風險: 只修改 `BitmapPool.kt` 一個檔案
+- ✅ 向後相容: 不影響現有功能
+- ✅ 未來友善: 支援任意解析度動態切換
+
+**修改檔案**:
+- `BitmapPool.kt`: 新增 `normalizeKey()` + 修改 `acquire()`/`release()`
+
+**相關文件**:
+- 靜態審查: Phase 0 程式碼審查（本次對話）
+- 根因分析: `docs/plan/graphics_memory_leak_v2.9.0-traycer_L2.md`
+- 可行性評估: `docs/plan/graphics_memory_leak_v2.9.0_L2.md`
+- 測試報告: `tmp/v2.9.0_alpha_pixel9a_retest.md`
+
+---
+
+## [2.8.6] - 2026-01-11
+
+### 🚀 重大改進 (Major Improvements)
+
+#### Graphics Memory Leak Fix - PreviewView Migration
+
+**問題根源 (Root Cause)**:
+- **Phase 0 發現**: Compose `Image(bitmap.asImageBitmap())` 每幀創建 GPU texture
+- Graphics 記憶體洩漏: 39 MB → 215 MB (+436%) / 10 分鐘
+- Bitmap 重用正常 (0% churn, 4 個實例)，問題在 GPU texture upload
+- 洩漏大小: **127 MB** (215 - 88 MB)
+
+**Phase 2 解決方案 - PreviewView Migration**:
+
+1. **雙路徑架構 (Dual-Path Architecture)**
+   - **顯示路徑**: PreviewView 原生 GPU 渲染（修復記憶體洩漏）
+     - CameraX Preview → PreviewView.surfaceProvider
+     - 直接 GPU 渲染 (SurfaceView/TextureView)
+     - 無 CPU bitmap 轉換，無 Compose texture upload
+   - **AI 分析路徑**: Bitmap 流（維持不變）
+     - CameraX ImageAnalysis → YUV→RGB Bitmap (BitmapPool)
+     - ML Kit 人臉偵測 + OpenCV 構圖分析
+     - Bitmap 重用 (0% churn)
+
+2. **實作細節**
+   - 新增 `CameraInputSource.setPreviewSurfaceProvider()` 介面
+   - 新增 `CameraInputSource.supportsNativePreview()` 裝置檢測
+   - `LiveCameraSource` 雙路徑 SurfaceProvider（外部優先，否則 fallback）
+   - `CameraPreview` 完全重寫支援條件渲染
+   - 功能旗標 `USE_PREVIEWVIEW_DISPLAY` 安全啟用/關閉
+   - Debug 模式顯示綠色/黃色指標（PreviewView/Bitmap）
+
+3. **測試結果 (Pixel 9a)**
+   - ✅ Graphics 記憶體: **80-90 MB 穩定** (vs 215 MB baseline)
+   - ✅ **節省 134.5 MB (-62%)** Graphics 記憶體
+   - ✅ 無持續成長（10 分鐘內穩定）
+   - ✅ AI 偵測正常（ML Kit + OpenCV）
+   - ✅ 預覽品質不變（全畫質）
+   - ✅ 零功能退化
+
+**效能對比**:
+
+| 指標 | Baseline (v2.8.5) | Phase 2 (v2.8.6) | 改善 |
+|------|-------------------|------------------|------|
+| Graphics 記憶體 (10 分鐘) | 215 MB 🔴 | 80.5 MB ✅ | **-134.5 MB (-62%)** 🎉 |
+| 記憶體成長模式 | 持續成長 | 穩定 | **已修復** ✅ |
+| 預覽 FPS | ~30 FPS | ~30 FPS | 無變化 ✅ |
+| AI 分析 | 正常 | 正常 | 無退化 ✅ |
+| 預覽品質 | 全畫質 | 全畫質 | 無降低 ✅ |
+
+**影響範圍**:
+- ✅ 實機 (LiveCameraSource): 使用 PreviewView 原生渲染
+- ✅ 模擬器 (StaticImageSource): 自動 fallback 到 Bitmap 渲染
+- ✅ 可快速回滾 (功能旗標 `USE_PREVIEWVIEW_DISPLAY = false`)
+- ✅ 向下相容（不支援 PreviewView 的裝置自動 fallback）
+
+**相關文件**:
+- Phase 0 測試: `tmp/baseline_test_analysis.md`, `tmp/testA_analysis.md`
+- Phase 2 計劃: `.claude/plans/soft-juggling-pie.md`
+- Phase 2 測試: `tmp/phase2_previewview_test_results.md`
+- 實作記錄: `chat_logs/v2.8.6_phase2_previewview_migration.md`
+
+**修改檔案**:
+- `app/build.gradle.kts`: 新增功能旗標 `USE_PREVIEWVIEW_DISPLAY`
+- `CameraInputSource.kt`: 新增 PreviewView 介面方法
+- `LiveCameraSource.kt`: 雙路徑 SurfaceProvider 實作
+- `CameraRepository.kt`, `CameraRepositoryImpl.kt`: 委派層
+- `CameraViewModel.kt`: ViewModel 整合方法
+- `CameraPreview.kt`: 完全重寫（雙路徑渲染）
+- `CameraScreen.kt`: PreviewView 連接
+
+---
+
+## [2.8.5] - 2026-01-09
+
+### 🔧 修復 (Fixes)
+
+#### Pixel 9a 記憶體優化 (緊急止血)
+
+**問題背景**:
+- Pixel 9a 實機在 v2.8.4 出現嚴重記憶體洩漏: +210.85 MB / 10 分鐘
+- Native Heap 異常成長 +14.71 MB
+- 相同 Android 16 的模擬器和 Sony 實機正常
+- 推測為 Pixel 9a 的 CameraX HAL / Tensor G4 TPU / Mali GPU 驅動問題
+
+**緩解措施** (v2.8.5 Hotfix):
+1. **降低 ML Kit 分析頻率** (僅 Pixel 9a)
+   - Throttle 間隔: 100ms (10 FPS) → **500ms (2 FPS)**
+   - 目的: 減少 Tensor G4 TPU 呼叫,降低 Native buffer 累積
+   - 影響: AI 分析延遲增加,但預覽流暢度不受影響
+
+2. **降低相機解析度** (僅 Pixel 9a)
+   - ImageAnalysis 解析度: 640x480 → **480x480**
+   - Preview 解析度: 640x480 → **480x480**
+   - 目的: 減少 buffer 大小,降低記憶體壓力
+   - 影響: AI 偵測精度略降,但仍足夠實用
+
+3. **使用者警告提示** (僅 Pixel 9a)
+   - 啟動時顯示記憶體優化模式通知
+   - 說明已降頻/降解析度
+   - 建議遇問題時重啟 App
+
+**預期效果**:
+- 記憶體成長: +210 MB → **+80-100 MB** / 10 分鐘 (**-52-62%**)
+- Growth Rate: +20.67 MB/min → **+8-10 MB/min** (**-51-61%**)
+- Native Heap: +14.71 MB → **+6-8 MB** (**-45-59%**)
+
+**影響範圍**:
+- ✅ 僅影響 Pixel 9a 裝置 (`Build.MODEL == "Pixel 9a"`)
+- ✅ 其他裝置維持原配置 (模擬器, Sony 等)
+- ✅ 可快速回滾 (移除裝置檢測條件)
+
+**相關文件**:
+- 測試報告: `docs/V2.8.4_MEMORY_TEST_REPORT_THREE_PLATFORMS.md`
+- L1/L2 規劃: `docs/plan/pixel9a_memory_leak_L1.md`, `docs/plan/pixel9a_memory_leak_L2.md`
+- 可行性審查: `docs/V2.8.4_PIXEL_MITIGATION_FEASIBILITY_REVIEW.md`
+
+**已知限制**:
+- ⚠️ 治標不治本,根本問題仍在硬體/驅動層
+- ⚠️ Pixel 9a 使用者體驗降級 (AI 延遲, 解析度降低)
+- 📊 後續將進行 Native Memory Profiler 深度分析
+
+**Modified Files**:
+- `app/src/main/java/com/akirachang/ai/photographer/data/source/camera/SmartCameraAnalyzer.kt`
+- `app/src/main/java/com/akirachang/ai/photographer/data/source/camera/LiveCameraSource.kt`
+- `app/src/main/java/com/akirachang/ai/photographer/presentation/camera/CameraViewModel.kt`
+- `app/build.gradle.kts` (versionCode 43 → 44, versionName "2.8.4" → "2.8.5")
+
+---
+
 ## [2.8.4] - 2026-01-08
 
 ### ⚡ 效能優化 (Performance)
