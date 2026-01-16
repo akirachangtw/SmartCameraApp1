@@ -8,7 +8,9 @@ import android.graphics.SurfaceTexture
 import android.os.PowerManager
 import android.util.Log
 import android.util.Size
+import android.view.OrientationEventListener
 import android.view.Surface
+import android.view.WindowManager
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -204,6 +206,11 @@ class LiveCameraSource @Inject constructor(
 
     // v2.8.3 Phase D: Reusable Paint object to avoid per-frame allocation
     private val transformPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+
+    // v2.9.6 Phase 1: Orientation tracking for dynamic rotation
+    private var orientationListener: OrientationEventListener? = null
+    private var currentRotation: Int = Surface.ROTATION_0
+    private var orientationListenerTriggered = false  // v2.9.6 Phase 1 Fix: Track if listener is working
 
     /**
      * Get FPS performance metrics stream
@@ -528,6 +535,69 @@ class LiveCameraSource @Inject constructor(
     }
 
     /**
+     * Initialize orientation listener for dynamic rotation tracking
+     *
+     * v2.9.6 Phase 1: Monitor device physical orientation and update target rotation
+     */
+    private fun initOrientationListener() {
+        // v2.9.6 Phase 1 Fix: Read current device orientation before enabling listener
+        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+        val display = windowManager?.defaultDisplay
+        currentRotation = display?.rotation ?: Surface.ROTATION_0
+        Log.i(TAG, "Initial device rotation: $currentRotation")
+
+        orientationListener = object : OrientationEventListener(context) {
+            override fun onOrientationChanged(orientation: Int) {
+                if (orientation == ORIENTATION_UNKNOWN) return
+
+                // v2.9.6 Phase 1 Fix: Mark listener as triggered
+                if (!orientationListenerTriggered) {
+                    orientationListenerTriggered = true
+                    Log.i(TAG, "OrientationEventListener first trigger confirmed")
+                }
+
+                val rotation = when (orientation) {
+                    in 45..134 -> Surface.ROTATION_270   // Landscape left
+                    in 135..224 -> Surface.ROTATION_180  // Upside down
+                    in 225..314 -> Surface.ROTATION_90   // Landscape right
+                    else -> Surface.ROTATION_0           // Portrait
+                }
+
+                if (rotation != currentRotation) {
+                    currentRotation = rotation
+                    updateTargetRotation(rotation)
+                    Log.d(TAG, "Orientation changed: $orientation° → rotation=$rotation")
+                }
+            }
+        }
+
+        if (orientationListener?.canDetectOrientation() == true) {
+            orientationListener?.enable()
+            Log.i(TAG, "OrientationEventListener enabled")
+        } else {
+            Log.w(TAG, "OrientationEventListener cannot detect orientation")
+        }
+    }
+
+    /**
+     * Update target rotation for all UseCases
+     *
+     * v2.9.6 Phase 1: Dynamically adjust rotation as device orientation changes
+     */
+    private fun updateTargetRotation(rotation: Int) {
+        if (::preview.isInitialized) {
+            preview.targetRotation = rotation
+        }
+        if (::imageAnalysis.isInitialized) {
+            imageAnalysis.targetRotation = rotation
+        }
+        if (::imageCapture.isInitialized) {
+            imageCapture.targetRotation = rotation
+            Log.d(TAG, "ImageCapture targetRotation updated: $rotation")
+        }
+    }
+
+    /**
      * Bind camera to lifecycle using ProcessCameraProvider
      *
      * v2.6.1: Properly binds Preview + ImageAnalysis + ImageCapture UseCases
@@ -613,12 +683,13 @@ class LiveCameraSource @Inject constructor(
                         }
 
                     // 3. Build ImageCapture UseCase (for photo capture)
+                    // v2.9.6 Phase 1: targetRotation now dynamically updated by OrientationEventListener
                     imageCapture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                        .setTargetRotation(Surface.ROTATION_0)
+                        // targetRotation will be set dynamically via updateTargetRotation()
                         .build()
                         .apply {
-                            Log.i(TAG, "✅ ImageCapture UseCase created")
+                            Log.i(TAG, "✅ ImageCapture UseCase created (dynamic rotation)")
                         }
 
                     // 4. Unbind all previous UseCases before rebinding
@@ -644,8 +715,20 @@ class LiveCameraSource @Inject constructor(
                     )
 
                     Log.i(TAG, "✅ Camera bound successfully: Preview + ImageAnalysis + ImageCapture")
+
+                    // v2.9.6 Phase 1 Fix: Log sensor orientation for debugging
+                    val sensorRotation = camera.cameraInfo.sensorRotationDegrees
+                    Log.i(TAG, "Camera sensor orientation: $sensorRotation°")
+
                     Log.i(TAG, "Camera should now start on real device")
                     Timber.i("LiveCameraSource: Camera bound to lifecycle")
+
+                    // v2.9.6 Phase 1: Initialize orientation listener for dynamic rotation
+                    initOrientationListener()
+
+                    // v2.9.6 Phase 1 Fix: Set initial targetRotation IMMEDIATELY after reading current rotation
+                    updateTargetRotation(currentRotation)
+                    Log.i(TAG, "Initial targetRotation set to: $currentRotation")
 
                     // v2.6.1 FIX: Reattach analyzer after rebind (critical for switchCamera)
                     previewStreamAnalyzer?.let { analyzer ->
@@ -697,10 +780,24 @@ class LiveCameraSource @Inject constructor(
                 renderScriptYuvConverter.destroy()
                 useRenderScript = true
             }
+
+            // v2.9.6 Phase 1: Cleanup orientation listener
+            cleanup()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to unbind camera", e)
             Timber.e(e, "LiveCameraSource: Failed to unbind camera")
         }
+    }
+
+    /**
+     * Cleanup resources when camera is no longer needed
+     *
+     * v2.9.6 Phase 1: Release orientation listener
+     */
+    fun cleanup() {
+        orientationListener?.disable()
+        orientationListener = null
+        Log.d(TAG, "OrientationEventListener disabled and cleaned up")
     }
 
     /**
