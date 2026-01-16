@@ -226,6 +226,160 @@
         "reveal": "always",
         "panel": "dedicated"
       }
+    },
+    {
+      "label": "🧪 Phase 1: Connect Device",
+      "type": "shell",
+      "command": "adb",
+      "args": ["devices", "-l"],
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "🧪 Phase 1: Start App",
+      "type": "shell",
+      "command": "adb",
+      "args": [
+        "shell",
+        "am",
+        "start",
+        "-n",
+        "com.akirachang.ai.photographer/.MainActivity"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🧪 Phase 1: Clear Logcat",
+      "type": "shell",
+      "command": "adb",
+      "args": ["logcat", "-c"],
+      "problemMatcher": []
+    },
+    {
+      "label": "🧪 Phase 1: Monitor Logcat",
+      "type": "shell",
+      "command": "adb",
+      "args": ["logcat", "-s", "LiveCameraSource:*"],
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "🧪 Phase 1: Pull Photos",
+      "type": "shell",
+      "command": "adb",
+      "args": ["pull", "/sdcard/DCIM/SmartCamera/", "tmp/phase1_photos/"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🧪 Phase 1: Analyze EXIF",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/analyze_exif.py", "tmp/phase1_photos/"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🧪 Phase 1: Capture Portrait (0°)",
+      "type": "shell",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "adb shell settings put system user_rotation 0 && timeout /t 1 > nul && adb shell input tap 540 2100"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🧪 Phase 1: Capture Landscape Left (270°)",
+      "type": "shell",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "adb shell settings put system user_rotation 3 && timeout /t 2 > nul && adb shell input tap 540 2100"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🧪 Phase 1: Capture Landscape Right (90°)",
+      "type": "shell",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "adb shell settings put system user_rotation 1 && timeout /t 2 > nul && adb shell input tap 540 2100"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🧪 Phase 1: Reset Orientation",
+      "type": "shell",
+      "command": "adb",
+      "args": ["shell", "settings", "put", "system", "user_rotation", "0"],
+      "problemMatcher": []
+    },
+    {
+      "label": "🧪 Phase 1: Full Test Sequence",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "🧪 Phase 1: Connect Device",
+        "🧪 Phase 1: Clear Logcat",
+        "🧪 Phase 1: Start App",
+        "🧪 Phase 1: Monitor Logcat"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "🧪 Phase 1: Capture All Orientations",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "🧪 Phase 1: Capture Portrait (0°)",
+        "🧪 Phase 1: Capture Landscape Left (270°)",
+        "🧪 Phase 1: Capture Landscape Right (90°)",
+        "🧪 Phase 1: Reset Orientation"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🧪 Phase 1: Complete Test & Analysis",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "🧪 Phase 1: Pull Photos",
+        "🧪 Phase 1: Analyze EXIF"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always"
+      }
     }
   ],
   "inputs": [
