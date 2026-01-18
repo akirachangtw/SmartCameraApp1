@@ -1,0 +1,13 @@
+# Image Optimizer Tool Dependencies
+# Python 圖片優化工具所需的依賴套件
+
+# Pillow - Python Imaging Library (PIL Fork)
+# 用於圖片讀取、縮放、格式轉換與壓縮
+Pillow>=10.0.0
+
+# tkinter 是 Python 內建套件，不需要額外安裝
+# 如果缺少 tkinter，請安裝對應的系統套件：
+# - Ubuntu/Debian: sudo apt-get install python3-tk
+# - Fedora: sudo dnf install python3-tkinter
+# - macOS: tkinter 已包含在 Python 安裝中
+# - Windows: tkinter 已包含在 Python 安裝中

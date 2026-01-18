@@ -825,7 +825,7 @@ class TestHandoffApp:
 
         # Git Add
         self.write_log("Adding files...", "Info")
-        returncode, stdout, stderr = self.run_command(["git", "add", "docs/test_handoff/"])
+        returncode, stdout, stderr = self.run_command(["git", "add", "."])
         if self.handle_git_error("git add", returncode, stderr):
             self.status_var.set("失敗")
             return
