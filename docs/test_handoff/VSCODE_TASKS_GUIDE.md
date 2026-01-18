@@ -29,7 +29,7 @@ VSCode Tasks 將測試交接流程標準化為 4 個一鍵操作：
 
 ## 🎯 可用的 Tasks
 
-### 1. 📤 Test Handoff: Home NB (Push)
+### 1. 📤 Test Handoff: 1. Home NB (Push)
 
 **用途**: Home NB 完成測試文檔後，推送到 GitHub
 
@@ -65,12 +65,12 @@ To https://github.com/akirachangtw/SmartCameraApp1.git
 
 ✅ Test handoff pushed successfully!
 
-📋 Next step: Switch to Work NB and run "📥 Test Handoff: Work NB (Pull)"
+📋 Next step: Switch to Work NB and run "📥 Test Handoff: 2. Work NB (Pull)"
 ```
 
 ---
 
-### 2. 📥 Test Handoff: Work NB (Pull)
+### 2. 📥 Test Handoff: 2. Work NB (Pull)
 
 **用途**: Work NB 拉取最新測試文檔並準備執行
 
@@ -106,12 +106,12 @@ v2.9.6_phase1_work_nb_execution.md
   1. Open Claude Code Chat
   2. Run: 引用 @docs/test_handoff/v2.9.6_phase1_work_nb_execution.md
   3. Ask Claude to execute tests and generate report
-  4. After testing, run "📤 Test Handoff: Work NB (Push)"
+  4. After testing, run "📤 Test Handoff: 3. Work NB (Push)"
 ```
 
 ---
 
-### 3. 📤 Test Handoff: Work NB (Push)
+### 3. 📤 Test Handoff: 3. Work NB (Push)
 
 **用途**: Work NB 完成測試後，提交測試報告
 
@@ -149,12 +149,12 @@ To https://github.com/akirachangtw/SmartCameraApp1.git
 
 ✅ Test results pushed successfully!
 
-📋 Next step: Switch to Home NB and run "📥 Test Handoff: Home NB (Pull)"
+📋 Next step: Switch to Home NB and run "📥 Test Handoff: 4. Home NB (Pull)"
 ```
 
 ---
 
-### 4. 📥 Test Handoff: Home NB (Pull)
+### 4. 📥 Test Handoff: 4. Home NB (Pull)
 
 **用途**: Home NB 拉取測試結果並檢視報告
 
@@ -215,7 +215,7 @@ Opening latest report: v2.9.6_phase1_pixel9a_20260116_173045.md
 2. **執行 Push Task**:
    - 按 `Ctrl+Shift+P`
    - 輸入 "Run Task"
-   - 選擇 "📤 Test Handoff: Home NB (Push)"
+   - 選擇 "📤 Test Handoff: 1. Home NB (Push)"
    - 輸入參數:
      - Topic: `v2.9.6_phase1`
      - Device: `Pixel 9a`
@@ -230,7 +230,7 @@ Opening latest report: v2.9.6_phase1_pixel9a_20260116_173045.md
 1. **執行 Pull Task**:
    - 切換到 Work NB
    - 按 `Ctrl+Shift+P` → "Run Task"
-   - 選擇 "📥 Test Handoff: Work NB (Pull)"
+   - 選擇 "📥 Test Handoff: 2. Work NB (Pull)"
 
 2. **在 Claude Code 中執行測試**:
    - 打開 Claude Code Chat
@@ -248,7 +248,7 @@ Opening latest report: v2.9.6_phase1_pixel9a_20260116_173045.md
 
 4. **執行 Push Task**:
    - 按 `Ctrl+Shift+P` → "Run Task"
-   - 選擇 "📤 Test Handoff: Work NB (Push)"
+   - 選擇 "📤 Test Handoff: 3. Work NB (Push)"
    - 輸入測試結果: `PASS` 或 `FAIL`
 
 ---
@@ -258,7 +258,7 @@ Opening latest report: v2.9.6_phase1_pixel9a_20260116_173045.md
 1. **執行 Pull Task**:
    - 切換回 Home NB
    - 按 `Ctrl+Shift+P` → "Run Task"
-   - 選擇 "📥 Test Handoff: Home NB (Pull)"
+   - 選擇 "📥 Test Handoff: 4. Home NB (Pull)"
 
 2. **檢視測試報告**:
    - Task 會自動打開最新的測試報告
