@@ -1,7 +1,13 @@
-# VSCode Tasks 測試交接指南
+# VSCode Tasks 測試交接指南 (LEGACY - 已棄用)
 
-**文檔版本**: 1.0
+> ⚠️ **已棄用 (DEPRECATED)**
+> 本文檔描述的 VSCode Tasks 方案已被 **Python GUI 工具** 取代。
+> 新方案解決了 PowerShell 引號轉義問題，提供更強大的錯誤處理和配置管理。
+> **請參考**: [PYTHON_GUI_GUIDE.md](PYTHON_GUI_GUIDE.md)
+
+**文檔版本**: 1.0 (LEGACY)
 **建立日期**: 2026-01-16
+**棄用日期**: 2026-01-18
 **適用專案**: SmartCameraApp1 v2.9.6+
 
 ---
