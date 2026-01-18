@@ -1,4 +1,4 @@
-{
+﻿{
   "version": "2.0.0",
   "tasks": [
     {
@@ -380,6 +380,79 @@
       "presentation": {
         "reveal": "always"
       }
+    },
+    {
+      "label": "📤 Test Handoff: 1. Home NB (Push)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "Write-Host '📤 Test Handoff: 1. Home NB (Push)' -ForegroundColor Cyan; Write-Host ''; Write-Host 'Step 1: Checking git status...' -ForegroundColor Yellow; git status --short; Write-Host ''; Write-Host 'Step 2: Adding test handoff files...' -ForegroundColor Yellow; git add docs/test_handoff/; Write-Host ''; Write-Host 'Step 3: Committing...' -ForegroundColor Yellow; git commit -m '[Docs] Test handoff: ${input:testHandoffTopic}' -m 'Test Device: ${input:testHandoffDevice}' -m 'Test Objective: ${input:testHandoffObjective}' -m '' -m 'Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>'; Write-Host ''; Write-Host 'Step 4: Pushing to GitHub...' -ForegroundColor Yellow; git push github main; Write-Host ''; Write-Host '✅ Test handoff pushed successfully!' -ForegroundColor Green; Write-Host ''; Write-Host '📋 Next step: Switch to Work NB and run \\"📥 Test Handoff: 2. Work NB (Pull)\\"' -ForegroundColor Cyan"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "showReuseMessage": false
+      }
+    },
+    {
+      "label": "📥 Test Handoff: 2. Work NB (Pull)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "Write-Host '📥 Test Handoff: 2. Work NB (Pull)' -ForegroundColor Cyan; Write-Host ''; Write-Host 'Step 1: Pulling latest from GitHub...' -ForegroundColor Yellow; git pull origin main; Write-Host ''; Write-Host 'Step 2: Listing available test handoff docs...' -ForegroundColor Yellow; Get-ChildItem docs/test_handoff/*.md | Select-Object Name; Write-Host ''; Write-Host '✅ Test handoff pulled successfully!' -ForegroundColor Green; Write-Host ''; Write-Host '📋 Next steps:' -ForegroundColor Cyan; Write-Host '  1. Open Claude Code Chat' -ForegroundColor White; Write-Host '  2. Run: 引用 @docs/test_handoff/v2.9.6_phase1_work_nb_execution.md' -ForegroundColor White; Write-Host '  3. Ask Claude to execute tests and generate report' -ForegroundColor White; Write-Host '  4. After testing, run \\"📤 Test Handoff: 3. Work NB (Push)\\"' -ForegroundColor Cyan"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "showReuseMessage": false
+      }
+    },
+    {
+      "label": "📤 Test Handoff: 3. Work NB (Push)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "Write-Host '📤 Test Handoff: 3. Work NB (Push)' -ForegroundColor Cyan; Write-Host ''; Write-Host 'Step 1: Checking git status...' -ForegroundColor Yellow; git status --short; Write-Host ''; Write-Host 'Step 2: Adding test results...' -ForegroundColor Yellow; git add docs/test_results/; Write-Host ''; Write-Host 'Step 3: Committing test results...' -ForegroundColor Yellow; $testResult = Read-Host 'Enter test result (PASS/FAIL)'; git commit -m '[Test] ${input:testHandoffTopic}: Test results - ' + $testResult -m 'Device: ${input:testHandoffDevice}' -m 'Tester: Claude Code (Work NB)' -m 'Date: ' + (Get-Date -Format 'yyyy-MM-dd') -m '' -m 'Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>'; Write-Host ''; Write-Host 'Step 4: Pushing to GitHub...' -ForegroundColor Yellow; git push origin main; Write-Host ''; Write-Host '✅ Test results pushed successfully!' -ForegroundColor Green; Write-Host ''; Write-Host '📋 Next step: Switch to Home NB and run \\"📥 Test Handoff: 4. Home NB (Pull)\\"' -ForegroundColor Cyan"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "showReuseMessage": false
+      }
+    },
+    {
+      "label": "📥 Test Handoff: 4. Home NB (Pull)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "Write-Host '📥 Test Handoff: 4. Home NB (Pull)' -ForegroundColor Cyan; Write-Host ''; Write-Host 'Step 1: Pulling latest from GitHub...' -ForegroundColor Yellow; git pull origin main; Write-Host ''; Write-Host 'Step 2: Listing test results...' -ForegroundColor Yellow; $reports = Get-ChildItem docs/test_results/*.md -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 5; if ($reports) { Write-Host 'Recent test reports:' -ForegroundColor Green; $reports | ForEach-Object { Write-Host \"  - $($_.Name) ($($_.LastWriteTime))\" }; Write-Host ''; $latest = $reports[0].FullName; Write-Host \"Opening latest report: $($reports[0].Name)\" -ForegroundColor Yellow; code $latest } else { Write-Host 'No test reports found.' -ForegroundColor Yellow }; Write-Host ''; Write-Host '✅ Test handoff cycle completed!' -ForegroundColor Green"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "showReuseMessage": false
+      }
+    },
+    {
+      "label": "🔄 Test Handoff: Full Cycle (Home)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "📤 Test Handoff: 1. Home NB (Push)",
+        "📥 Test Handoff: 4. Home NB (Pull)"
+      ],
+      "problemMatcher": []
     }
   ],
   "inputs": [
@@ -406,6 +479,24 @@
       "type": "promptString",
       "description": "輸入 Issue/計畫檔路徑（L2 建議填 L1 產出，如 docs/plan/<topic>_L1.md）",
       "default": "docs/plan/camera_control_not_available_L1.md"
+    },
+    {
+      "id": "testHandoffTopic",
+      "type": "promptString",
+      "description": "輸入測試任務名稱（例如：v2.9.6_phase1）",
+      "default": "v2.9.6_phase1"
+    },
+    {
+      "id": "testHandoffDevice",
+      "type": "promptString",
+      "description": "輸入測試裝置名稱（例如：Pixel 9a, Sony XQ-BT52）",
+      "default": "Pixel 9a"
+    },
+    {
+      "id": "testHandoffObjective",
+      "type": "promptString",
+      "description": "輸入測試目標描述",
+      "default": "Verify OrientationEventListener fix and photo EXIF orientation"
     }
   ]
 }
