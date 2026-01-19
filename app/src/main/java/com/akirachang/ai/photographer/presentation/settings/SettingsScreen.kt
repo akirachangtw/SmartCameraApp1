@@ -10,6 +10,7 @@
  */
 package com.akirachang.ai.photographer.presentation.settings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.GridOn
@@ -26,11 +29,15 @@ import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -40,7 +47,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -110,6 +120,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             // Section: Overlay Settings
             Text(
@@ -228,7 +239,162 @@ fun SettingsScreen(
             ) {
                 Text("Reset to Defaults")
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // v2.9.5: Camera Diagnostics Section
+            CameraDiagnosticsSection(
+                viewModel = viewModel,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
+    }
+}
+
+/**
+ * Camera Diagnostics Section
+ * v2.9.5: Display camera capability detection results for testing/debugging
+ *
+ * @param viewModel SettingsViewModel instance
+ * @param modifier Modifier for this composable
+ */
+@Composable
+private fun CameraDiagnosticsSection(
+    viewModel: SettingsViewModel,
+    modifier: Modifier = Modifier
+) {
+    var diagnosticInfo by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    val scope = rememberCoroutineScope()
+
+    // Load diagnostic info initially
+    if (diagnosticInfo.isEmpty()) {
+        diagnosticInfo = viewModel.getCameraDiagnosticInfo()
+    }
+
+    Column(modifier = modifier) {
+        // Section Header
+        Text(
+            text = "Camera Diagnostics (v2.9.5)",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Text(
+            text = "Hardware capability detection results for resolution selection",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        // Diagnostic Info Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Device Information
+                Text(
+                    text = "Device Information",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                DiagnosticInfoRow("Manufacturer", diagnosticInfo["Manufacturer"] ?: "N/A")
+                DiagnosticInfoRow("Model", diagnosticInfo["Model"] ?: "N/A")
+                DiagnosticInfoRow("Android SDK", diagnosticInfo["SDK"] ?: "N/A")
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                // Detection Results
+                Text(
+                    text = "Detection Results",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                DiagnosticInfoRow("Cache Version", diagnosticInfo["Cache Version"] ?: "N/A")
+                DiagnosticInfoRow("App Version", diagnosticInfo["App Version"] ?: "N/A")
+                DiagnosticInfoRow("Supports 800x600", diagnosticInfo["Supports 800x600"] ?: "N/A")
+                DiagnosticInfoRow("Target Resolution", diagnosticInfo["Target Resolution"] ?: "N/A")
+                DiagnosticInfoRow("Filter Max", diagnosticInfo["Filter Max"] ?: "N/A")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Action Buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Re-detect Button
+            Button(
+                onClick = {
+                    scope.launch {
+                        viewModel.reDetectCameraCapabilities()
+                        // Reload diagnostic info after re-detection
+                        kotlinx.coroutines.delay(500)
+                        diagnosticInfo = viewModel.getCameraDiagnosticInfo()
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Re-detect")
+            }
+
+            // Clear Cache Button
+            OutlinedButton(
+                onClick = {
+                    viewModel.clearCameraCapabilityCache()
+                    diagnosticInfo = viewModel.getCameraDiagnosticInfo()
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Clear Cache")
+            }
+        }
+    }
+}
+
+/**
+ * Diagnostic information row
+ * v2.9.5: Display key-value pair for diagnostic info
+ *
+ * @param label Information label
+ * @param value Information value
+ */
+@Composable
+private fun DiagnosticInfoRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 

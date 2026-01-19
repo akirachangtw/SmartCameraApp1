@@ -19,6 +19,7 @@
  */
 package com.akirachang.ai.photographer.data.source.camera
 
+import android.os.Build
 import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -77,7 +78,10 @@ class SmartCameraAnalyzer(
 
     companion object {
         private const val TAG = "SmartCameraAnalyzer"
-        private const val THROTTLE_INTERVAL_MS = 100L // 10 FPS
+
+        // Pixel 9a: Increase throttle to 500ms (2 FPS) to reduce ML Kit TPU memory usage
+        // Other devices: Keep at 100ms (10 FPS) for responsive AI analysis
+        private val THROTTLE_INTERVAL_MS = if (Build.MODEL == "Pixel 9a") 500L else 100L
     }
 
     private val analysisScope = CoroutineScope(Dispatchers.Default + SupervisorJob())

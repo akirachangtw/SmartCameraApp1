@@ -117,6 +117,13 @@ fun CameraScreen(
         viewModel.bindCameraToLifecycle(lifecycleOwner)
     }
 
+    // v2.9.5: Detect camera capabilities after permission granted
+    LaunchedEffect(cameraPermissionState.status.isGranted) {
+        if (cameraPermissionState.status.isGranted) {
+            viewModel.detectCameraCapabilitiesIfNeeded()
+        }
+    }
+
     // 顯示錯誤訊息
     LaunchedEffect(state.error) {
         state.error?.let { error ->
@@ -143,47 +150,74 @@ fun CameraScreen(
                     .padding(paddingValues)
             ) {
                 // 相機預覽
+                // v2.8.6 Phase 2: PreviewView migration with dual-path rendering
                 // v2.5.1: Refactored to use Bitmap preview from CameraInputSource
                 // v2.0 Phase 2: Pass size callback for accurate composition analysis
+                // v2.8.6 Phase 0: A/B Test - Conditionally disable preview
                 val previewBitmap by viewModel.previewBitmap.collectAsState()
-                CameraPreview(
-                    previewBitmap = previewBitmap,
-                    modifier = Modifier.fillMaxSize(),
-                    onSizeChanged = { width, height ->
-                        viewModel.updatePreviewSize(width, height)
+                if (!CameraViewModel.DEBUG_DISABLE_BITMAP_PREVIEW) {
+                    CameraPreview(
+                        previewBitmap = previewBitmap,
+                        supportsNativePreview = viewModel.supportsNativePreview(),
+                        onPreviewViewCreated = { previewView ->
+                            // Connect PreviewView to CameraX Preview UseCase
+                            viewModel.setPreviewSurfaceProvider(previewView.surfaceProvider)
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        onSizeChanged = { width, height ->
+                            viewModel.updatePreviewSize(width, height)
+                        }
+                    )
+                } else {
+                    // Test A: Show black screen instead of bitmap preview
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "A/B Test: Preview Disabled\n(Investigating Graphics Memory)",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
-                )
+                }
 
                 // v2.2.2: DetectionOverlay removed - visual clutter, not professional
                 // User feedback: Green face boxes and blue object labels are distracting
 
-                // v1.5.0: Rule of Thirds grid overlay
-                // v2.1.0: Respect overlay preferences
-                GridOverlay(
-                    modifier = Modifier.fillMaxSize(),
-                    visible = isGridEnabled
-                )
+                // v2.8.6 Phase 0: A/B Test - Conditionally disable overlays (Test B)
+                if (!CameraViewModel.DEBUG_DISABLE_OVERLAYS) {
+                    // v1.5.0: Rule of Thirds grid overlay
+                    // v2.1.0: Respect overlay preferences
+                    GridOverlay(
+                        modifier = Modifier.fillMaxSize(),
+                        visible = isGridEnabled
+                    )
 
-                // v2.4.0: Visual composition guide frame
-                // Shows target position where face should move to
-                val guideData = when (val currentState = compositionState) {
-                    is CompositionState.Good -> currentState.guideData
-                    is CompositionState.NeedsAdjustment -> currentState.guideData
-                    else -> null
+                    // v2.4.0: Visual composition guide frame
+                    // Shows target position where face should move to
+                    val guideData = when (val currentState = compositionState) {
+                        is CompositionState.Good -> currentState.guideData
+                        is CompositionState.NeedsAdjustment -> currentState.guideData
+                        else -> null
+                    }
+                    CompositionGuideOverlay(
+                        guideData = guideData,
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // v2.7.0 Phase 2 Sprint 3+4: Guideline Overlay (OpenCV-driven)
+                    // Shows detected composition guideline lines from Hough Line Transform
+                    // Falls back to rule of thirds grid when no lines detected
+                    GuidelineOverlay(
+                        enabled = FeatureFlags.enableGuidelineOverlay,
+                        analysisResult = guidelineResults,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
-                CompositionGuideOverlay(
-                    guideData = guideData,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                // v2.7.0 Phase 2 Sprint 3+4: Guideline Overlay (OpenCV-driven)
-                // Shows detected composition guideline lines from Hough Line Transform
-                // Falls back to rule of thirds grid when no lines detected
-                GuidelineOverlay(
-                    enabled = FeatureFlags.enableGuidelineOverlay,
-                    analysisResult = guidelineResults,
-                    modifier = Modifier.fillMaxSize()
-                )
 
                 // v2.2.0: HDR/Lighting warning overlay (highest priority - shows on top)
                 // v2.6.1: Only show in AUTO mode

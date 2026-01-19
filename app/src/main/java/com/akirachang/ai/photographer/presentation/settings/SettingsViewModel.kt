@@ -26,7 +26,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val overlayPreferences: OverlayPreferences
+    private val overlayPreferences: OverlayPreferences,
+    private val capabilityDetector: com.akirachang.ai.photographer.data.source.camera.CameraCapabilityDetector
 ) : ViewModel() {
 
     /**
@@ -110,5 +111,31 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             overlayPreferences.resetToDefaults()
         }
+    }
+
+    /**
+     * Get camera capability diagnostic information
+     * v2.9.5: For testing/debugging resolution detection
+     */
+    fun getCameraDiagnosticInfo(): Map<String, String> {
+        return capabilityDetector.getDiagnosticInfo()
+    }
+
+    /**
+     * Re-detect camera capabilities
+     * v2.9.5: For testing/debugging resolution detection
+     */
+    fun reDetectCameraCapabilities() {
+        viewModelScope.launch {
+            capabilityDetector.detectAndCacheCapabilities()
+        }
+    }
+
+    /**
+     * Clear camera capability cache
+     * v2.9.5: For testing/debugging resolution detection
+     */
+    fun clearCameraCapabilityCache() {
+        capabilityDetector.clearCache()
     }
 }

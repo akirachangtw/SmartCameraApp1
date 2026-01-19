@@ -81,4 +81,27 @@ interface CameraInputSource {
      * @return Result indicating success or failure
      */
     fun disableHDR(): Result<Unit>
+
+    /**
+     * Set PreviewView surface provider for native preview rendering
+     *
+     * v2.8.6 Phase 2: PreviewView migration for Graphics memory fix
+     *
+     * For LiveCameraSource: Connects CameraX Preview UseCase to PreviewView
+     * For StaticImageSource: No-op (uses bitmap preview)
+     *
+     * @param surfaceProvider PreviewView's surface provider, or null to clear
+     */
+    fun setPreviewSurfaceProvider(surfaceProvider: androidx.camera.core.Preview.SurfaceProvider?) {
+        // Default no-op for StaticImageSource
+    }
+
+    /**
+     * Check if native preview is supported
+     *
+     * v2.8.6 Phase 2: PreviewView migration
+     *
+     * @return true for LiveCameraSource (supports PreviewView), false for StaticImageSource (bitmap only)
+     */
+    fun supportsNativePreview(): Boolean = false
 }

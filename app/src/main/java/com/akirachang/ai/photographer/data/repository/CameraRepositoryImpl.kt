@@ -456,4 +456,29 @@ class CameraRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Set PreviewView surface provider for native preview rendering
+     *
+     * v2.8.6 Phase 2: PreviewView migration for Graphics memory fix
+     *
+     * Delegates to CameraInputSource implementation:
+     * - LiveCameraSource: Connects to CameraX Preview UseCase
+     * - StaticImageSource: No-op (bitmap-only)
+     */
+    override fun setPreviewSurfaceProvider(surfaceProvider: androidx.camera.core.Preview.SurfaceProvider?) {
+        Log.d(TAG, "Delegating setPreviewSurfaceProvider to CameraInputSource")
+        cameraInputSource.setPreviewSurfaceProvider(surfaceProvider)
+    }
+
+    /**
+     * Check if native preview is supported
+     *
+     * v2.8.6 Phase 2: PreviewView migration
+     *
+     * @return true for LiveCameraSource (real device), false for StaticImageSource (emulator)
+     */
+    override fun supportsNativePreview(): Boolean {
+        return cameraInputSource.supportsNativePreview()
+    }
+
 }

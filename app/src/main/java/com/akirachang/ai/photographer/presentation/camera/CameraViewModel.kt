@@ -1,6 +1,7 @@
 package com.akirachang.ai.photographer.presentation.camera
 
 import android.graphics.Bitmap
+import android.os.Build
 import android.util.Log
 import androidx.camera.core.ImageCapture
 import androidx.lifecycle.ViewModel
@@ -43,11 +44,21 @@ class CameraViewModel @Inject constructor(
     private val analyzeCompositionUseCase: AnalyzeCompositionUseCase,
     private val analyzeLightingUseCase: AnalyzeLightingUseCase,
     private val sensorManager: DeviceSensorManager,
-    private val overlayPreferences: OverlayPreferences
+    private val overlayPreferences: OverlayPreferences,
+    private val capabilityDetector: com.akirachang.ai.photographer.data.source.camera.CameraCapabilityDetector
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "CameraViewModel"
+
+        // Phase 0: A/B Test Flags for Graphics Memory Investigation (v2.8.6)
+        // Phase 0 completed - Test A confirmed root cause, proceeding to Phase 2
+        // Test A: Disable bitmap preview to isolate Graphics memory source
+        // Test B: Disable overlays to check if overlay rendering causes leak
+        // Test C: Disable analysis to check if ML/composition analysis causes leak
+        const val DEBUG_DISABLE_BITMAP_PREVIEW = false  // Test A switch - DISABLED (Phase 0 complete)
+        const val DEBUG_DISABLE_OVERLAYS = false         // Test B switch
+        const val DEBUG_DISABLE_ANALYSIS = false         // Test C switch
     }
 
     private val _state = MutableStateFlow(CameraState())
@@ -145,6 +156,16 @@ class CameraViewModel @Inject constructor(
         // ML 偵測需手動啟動（透過 CameraUiEvent.StartAnalysis）
         // 或根據需求自動啟動
         // startAnalysis()  // Deprecated - now using bitmap-based analysis
+
+        // v2.8.5: Pixel 9a memory mitigation warning
+        if (Build.MODEL == "Pixel 9a") {
+            showError(
+                "Pixel 9a 記憶體優化模式:\n" +
+                "• AI 分析頻率已降低至 2 FPS\n" +
+                "• 相機解析度已調整至 480x480\n" +
+                "• 如遇記憶體問題請重啟 App"
+            )
+        }
     }
 
     /**
@@ -450,6 +471,12 @@ class CameraViewModel @Inject constructor(
      */
     @OptIn(FlowPreview::class)
     private fun observePreviewForAnalysis() {
+        // v2.8.6 Phase 0: A/B Test C - Skip analysis if DEBUG_DISABLE_ANALYSIS is true
+        if (DEBUG_DISABLE_ANALYSIS) {
+            Log.d(TAG, "[A/B Test C] Analysis disabled for Graphics memory investigation")
+            return
+        }
+
         previewBitmap
             .filterNotNull()
             // Throttle analysis to avoid processing every frame
@@ -625,6 +652,12 @@ class CameraViewModel @Inject constructor(
      */
     @OptIn(FlowPreview::class)
     private fun observePreviewForGuidelineAnalysis() {
+        // v2.8.6 Phase 0: A/B Test C - Skip guideline analysis if DEBUG_DISABLE_ANALYSIS is true
+        if (DEBUG_DISABLE_ANALYSIS) {
+            Log.d(TAG, "[A/B Test C] Guideline analysis disabled for Graphics memory investigation")
+            return
+        }
+
         previewBitmap
             .filterNotNull()
             // Throttle analysis to 10 FPS (same as ML Kit analysis)
@@ -648,7 +681,7 @@ class CameraViewModel @Inject constructor(
                     Log.i(
                         TAG,
                         "[v2.8.4 Guideline] Lines=${result.lines.size}, " +
-                        "OpenCV=${"%.1f".format(result.processingTimeMs)}ms, " +
+                        "OpenCV=${result.processingTimeMs}ms, " +
                         "Total=${"%.1f".format(guidelineTotal)}ms"
                     )
                 } catch (e: Exception) {
@@ -660,6 +693,63 @@ class CameraViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         Log.i(TAG, "Guideline analysis initialized (v2.7.0 Phase 2 Sprint 4)")
+    }
+
+    /**
+     * Set PreviewView surface provider for native preview rendering
+     *
+     * v2.8.6 Phase 2: PreviewView migration for Graphics memory fix
+     *
+     * Connects PreviewView to CameraX Preview UseCase via Repository → CameraInputSource
+     *
+     * @param surfaceProvider PreviewView's surface provider, or null to clear
+     */
+    fun setPreviewSurfaceProvider(surfaceProvider: androidx.camera.core.Preview.SurfaceProvider?) {
+        Log.d(TAG, "[Phase 2] setPreviewSurfaceProvider called")
+        cameraRepository.setPreviewSurfaceProvider(surfaceProvider)
+    }
+
+    /**
+     * Check if native preview is supported
+     *
+     * v2.8.6 Phase 2: PreviewView migration
+     *
+     * @return true for real devices (LiveCameraSource), false for emulator (StaticImageSource)
+     */
+    fun supportsNativePreview(): Boolean {
+        return cameraRepository.supportsNativePreview()
+    }
+
+    /**
+     * Detect camera capabilities after permission granted - v2.9.5
+     *
+     * Triggers hardware detection on first launch (cache miss).
+     * Subsequent launches use cached result.
+     */
+    fun detectCameraCapabilitiesIfNeeded() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Check if already cached
+                if (capabilityDetector.isCapabilitiesCached()) {
+                    Log.i(TAG, "[v2.9.5] Capabilities already cached, skipping detection")
+                    return@launch
+                }
+
+                // Perform detection
+                Log.i(TAG, "[v2.9.5] Detecting camera capabilities...")
+                val result = capabilityDetector.detectAndCacheCapabilities()
+
+                result.onSuccess { strategy ->
+                    Log.i(TAG, "[v2.9.5] Detection success: " +
+                              "supports800x600=${strategy.supports800x600}, " +
+                              "target=${strategy.targetResolution.width}x${strategy.targetResolution.height}")
+                }.onFailure { error ->
+                    Log.e(TAG, "[v2.9.5] Detection failed: ${error.message}", error)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "[v2.9.5] Unexpected error during detection: ${e.message}", e)
+            }
+        }
     }
 
 }

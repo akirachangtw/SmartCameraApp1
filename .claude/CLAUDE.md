@@ -67,6 +67,38 @@ Feature branch: `feature/camera-input-abstraction`
 
 ---
 
+## ⚠️ ADB 使用指南 - 重要注意事項
+
+### 截圖指令 - 避免 Claude Code API Crash
+
+**❌ 絕對不要使用以下指令**：
+```bash
+# 這些指令會造成 Claude Code Chat API 異常崩潰
+adb shell screencap -p > file.png
+adb shell screencap -p | <任何重導向操作>
+```
+
+**✅ 正確的截圖方法**（先存手機再 pull）：
+```bash
+# Step 1: 在手機上截圖並存檔
+adb -s DEVICE_ID shell "screencap -p > /sdcard/Download/temp_screen.png"
+
+# Step 2: 拉取圖片到電腦
+adb -s DEVICE_ID pull //sdcard//Download//temp_screen.png tmp/screenshot.png
+
+# Step 3: 刪除手機暫存檔
+adb -s DEVICE_ID shell "rm /sdcard/Download/temp_screen.png"
+```
+
+**問題原因**：
+1. **換行符號轉換**：`adb shell` 會將 Unix (`0x0A`) 轉換為 Windows (`0x0D 0x0A`)，破壞 PNG 二進位結構
+2. **PowerShell 編碼**：`>` 重導向會嘗試以文字編碼處理二進位資料（如 UTF-16），導致完全損壞
+3. **Claude Code API**：損壞的圖片資料會造成 API 請求異常
+
+**詳細說明**：參考 [`plans/adb_screencap_guide.md`](plans/adb_screencap_guide.md)
+
+---
+
 # Android APP 開發規範
 
 ## 語言規範

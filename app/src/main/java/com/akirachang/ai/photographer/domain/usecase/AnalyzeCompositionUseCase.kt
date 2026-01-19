@@ -1188,7 +1188,9 @@ class AnalyzeCompositionUseCase @Inject constructor() {
         val horizontalAligned = abs(horizontalOffset) <= horizontalTolerance
 
         // 目標框框水平位置
-        val targetLeft = (targetCenterX - faceWidth / 2f).coerceIn(0f, imageWidth - faceWidth)
+        // v2.9.5: Fix coerce range error when faceWidth > imageWidth (view space mismatch)
+        val maxLeft = (imageWidth - faceWidth).coerceAtLeast(0f)
+        val targetLeft = (targetCenterX - faceWidth / 2f).coerceIn(0f, maxLeft)
         val targetRight = targetLeft + faceWidth
 
         val targetRect = Rect(

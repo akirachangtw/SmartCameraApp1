@@ -1,11 +1,14 @@
 package com.akirachang.ai.photographer.di
 
+import android.content.Context
 import android.os.Build
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import com.akirachang.ai.photographer.BuildConfig
+import com.akirachang.ai.photographer.data.source.camera.CameraCapabilityDetector
 import com.akirachang.ai.photographer.data.source.camera.CameraInputSource
 import com.akirachang.ai.photographer.data.source.camera.StaticImageSource
 import com.akirachang.ai.photographer.data.source.camera.LiveCameraSource
@@ -15,6 +18,19 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object CameraModule {
+
+    /**
+     * Provide CameraCapabilityDetector - v2.9.5
+     *
+     * Hardware capability detection for dynamic resolution selection.
+     */
+    @Provides
+    @Singleton
+    fun provideCameraCapabilityDetector(
+        @ApplicationContext context: Context
+    ): CameraCapabilityDetector {
+        return CameraCapabilityDetector(context)
+    }
 
     /**
      * 自動判斷是否為模擬器，提供對應的資料源
