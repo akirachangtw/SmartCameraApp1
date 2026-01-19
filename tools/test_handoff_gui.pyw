@@ -236,8 +236,9 @@ class TestHandoffApp:
 
         # Configure root window
         self.root.title("測試交接管理員")
-        self.root.geometry("920x780")
-        self.root.resizable(False, False)
+        self.root.geometry("920x650")
+        self.root.resizable(True, True)
+        self.root.minsize(800, 550)
         self.root.configure(bg=Colors.BACKGROUND)
 
         # Setup GUI
@@ -259,27 +260,27 @@ class TestHandoffApp:
 
     def create_header(self):
         """Create header panel"""
-        header = tk.Frame(self.root, bg=Colors.PRIMARY, height=70)
+        header = tk.Frame(self.root, bg=Colors.PRIMARY, height=50)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
 
         title_label = tk.Label(
             header,
             text="🚀  測試交接管理員",
-            font=("Microsoft JhengHei UI", 18, "bold"),
+            font=("Microsoft JhengHei UI", 14, "bold"),
             fg=Colors.TEXT_LIGHT,
             bg=Colors.PRIMARY
         )
-        title_label.pack(side=tk.LEFT, padx=25, pady=20)
+        title_label.pack(side=tk.LEFT, padx=20, pady=12)
 
         subtitle_label = tk.Label(
             header,
             text="Home NB ↔ Work NB  •  自動化測試交接流程",
-            font=("Microsoft JhengHei UI", 10),
+            font=("Microsoft JhengHei UI", 9),
             fg=Colors.TEXT_LIGHT,
             bg=Colors.PRIMARY
         )
-        subtitle_label.pack(side=tk.LEFT, padx=(0, 25), pady=20)
+        subtitle_label.pack(side=tk.LEFT, padx=(0, 20), pady=12)
 
     def create_input_section(self):
         """Create input section"""
@@ -292,11 +293,11 @@ class TestHandoffApp:
             relief=tk.RIDGE,
             bd=1
         )
-        frame.pack(padx=20, pady=(15, 10), fill=tk.X)
+        frame.pack(padx=15, pady=(8, 5), fill=tk.X)
 
         # Topic
         topic_frame = tk.Frame(frame, bg=Colors.CARD_BG)
-        topic_frame.pack(pady=(10, 5), padx=15, fill=tk.X)
+        topic_frame.pack(pady=(5, 3), padx=10, fill=tk.X)
 
         tk.Label(
             topic_frame,
@@ -317,7 +318,7 @@ class TestHandoffApp:
 
         # Device
         device_frame = tk.Frame(frame, bg=Colors.CARD_BG)
-        device_frame.pack(pady=5, padx=15, fill=tk.X)
+        device_frame.pack(pady=3, padx=10, fill=tk.X)
 
         tk.Label(
             device_frame,
@@ -339,7 +340,7 @@ class TestHandoffApp:
 
         # Objective
         obj_frame = tk.Frame(frame, bg=Colors.CARD_BG)
-        obj_frame.pack(pady=(5, 10), padx=15, fill=tk.X)
+        obj_frame.pack(pady=(3, 8), padx=10, fill=tk.X)
 
         tk.Label(
             obj_frame,
@@ -365,7 +366,7 @@ class TestHandoffApp:
     def create_tabs_section(self):
         """Create tabs section"""
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
+        self.notebook.pack(padx=15, pady=5, fill=tk.BOTH, expand=True)
 
         self.create_step1_tab()
         self.create_step2_tab()
@@ -618,7 +619,7 @@ class TestHandoffApp:
             relief=tk.RIDGE,
             bd=1
         )
-        log_frame.pack(padx=20, pady=(0, 10), fill=tk.BOTH, expand=True)
+        log_frame.pack(padx=15, pady=(0, 5), fill=tk.BOTH, expand=True)
 
         # Log controls
         controls = tk.Frame(log_frame, bg=Colors.CARD_BG)
@@ -648,7 +649,7 @@ class TestHandoffApp:
             font=("Consolas", 9),
             bg="#fafafa",
             relief=tk.FLAT,
-            height=12
+            height=8
         )
         self.log_text.pack(padx=10, pady=(0, 10), fill=tk.BOTH, expand=True)
         self.log_text.config(state=tk.DISABLED)
