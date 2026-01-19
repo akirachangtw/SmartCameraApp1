@@ -851,9 +851,9 @@ class TestHandoffApp:
         self.write_log("=== Task 1: Home NB (Push) ===", "Info")
         self.status_var.set("推送中...")
 
-        # Git Add
+        # Git Add (use -A to add all changes from repo root)
         self.write_log("Adding files...", "Info")
-        returncode, stdout, stderr = self.run_command(["git", "add", "."])
+        returncode, stdout, stderr = self.run_command(["git", "add", "-A"])
         if self.handle_git_error("git add", returncode, stderr):
             self.status_var.set("失敗")
             return
@@ -916,9 +916,9 @@ class TestHandoffApp:
         self.write_log("=== Task 3: Work NB (Push) ===", "Info")
         self.status_var.set("推送中...")
 
-        # Git Add
+        # Git Add (use -A to add all changes from repo root)
         self.write_log("Adding test results...", "Info")
-        returncode, stdout, stderr = self.run_command(["git", "add", "."])
+        returncode, stdout, stderr = self.run_command(["git", "add", "-A"])
         if self.handle_git_error("git add", returncode, stderr):
             self.status_var.set("失敗")
             return
