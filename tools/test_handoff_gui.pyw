@@ -172,6 +172,11 @@ class GitErrorHandler:
             'suggestion': 'Please modify files before committing.',
             'recovery': 'skip'
         },
+        'no changes added to commit': {
+            'user_message': '❌ No changes staged for commit',
+            'suggestion': 'Please stage files using git add before committing.',
+            'recovery': 'skip'
+        },
         'Authentication failed': {
             'user_message': '❌ Git authentication failed',
             'suggestion': 'Run: gh auth login\nOr check your Personal Access Token.',
@@ -711,7 +716,12 @@ class TestHandoffApp:
     def save_log(self):
         """Save log to file"""
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_filename = f"test_handoff_log_{timestamp}.txt"
+
+        # Create tmp directory if it doesn't exist
+        tmp_dir = Path("tmp")
+        tmp_dir.mkdir(exist_ok=True)
+
+        log_filename = tmp_dir / f"test_handoff_log_{timestamp}.txt"
 
         try:
             with open(log_filename, 'w', encoding='utf-8') as f:
@@ -842,7 +852,8 @@ class TestHandoffApp:
         ]
         returncode, stdout, stderr = self.run_command(commit_msg)
         if self.handle_git_error("git commit", returncode, stderr):
-            if 'nothing to commit' not in stderr.lower():
+            # Skip if no changes - allow both error message variants
+            if 'nothing to commit' not in stderr.lower() and 'no changes added to commit' not in stderr.lower():
                 self.status_var.set("失敗")
                 return
 
@@ -889,7 +900,7 @@ class TestHandoffApp:
 
         # Git Add
         self.write_log("Adding test results...", "Info")
-        returncode, stdout, stderr = self.run_command(["git", "add", "docs/test_results/"])
+        returncode, stdout, stderr = self.run_command(["git", "add", "."])
         if self.handle_git_error("git add", returncode, stderr):
             self.status_var.set("失敗")
             return
@@ -907,7 +918,8 @@ class TestHandoffApp:
         ]
         returncode, stdout, stderr = self.run_command(commit_msg)
         if self.handle_git_error("git commit", returncode, stderr):
-            if 'nothing to commit' not in stderr.lower():
+            # Skip if no changes - allow both error message variants
+            if 'nothing to commit' not in stderr.lower() and 'no changes added to commit' not in stderr.lower():
                 self.status_var.set("失敗")
                 return
 
