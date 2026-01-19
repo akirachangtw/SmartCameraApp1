@@ -191,6 +191,23 @@ class GitErrorHandler:
             'user_message': '❌ Merge conflict detected',
             'suggestion': 'Please resolve conflicts manually.',
             'recovery': 'manual'
+        },
+        'would be overwritten by merge': {
+            'user_message': '❌ Local changes conflict with remote updates',
+            'suggestion': (
+                'Local files conflict with remote updates.\n\n'
+                '【Quick Fix - Recommended】\n'
+                '  git stash && git pull origin main\n\n'
+                '【Or Manual Resolution】\n'
+                '1. Check conflicting files in error message\n'
+                '2. For .vscode/tasks.json: git restore .vscode/tasks.json\n'
+                '3. For untracked files: Move or remove them\n'
+                '4. Then retry pull\n\n'
+                '【Nuclear Option - Use with Caution】\n'
+                '  git reset --hard origin/main\n'
+                '  (This discards ALL local changes!)'
+            ),
+            'recovery': 'manual'
         }
     }
 
