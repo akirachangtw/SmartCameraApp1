@@ -138,9 +138,23 @@ Step 2: Listing test handoff documents...
 
 **執行時機**: 在 Work NB 完成測試並生成報告後
 
+> ⚠️ **重要**: 測試產出必須存放至 `docs/test_results/<version>/` 目錄
+>
+> **原因**: `tmp/` 目錄已被 `.gitignore` 忽略，存放於該處的檔案無法提交至 Git。
+
+**測試產出存放規範**:
+```
+docs/test_results/
+└── v2.9.6-Phase1/           # 版本目錄
+    ├── test_report.md       # 測試報告
+    ├── preview_issue_log.md # 問題記錄 (如有)
+    ├── *.jpg                # 測試照片
+    └── logcat_*.txt         # Logcat 記錄
+```
+
 **操作步驟**:
 
-1. 確保測試報告已儲存於 `docs/test_results/` 目錄
+1. 確保測試報告已儲存於 `docs/test_results/<version>/` 目錄
 
 2. 切換到 **3. 📤 Work NB (Push)** 分頁
 
@@ -407,7 +421,17 @@ icacls .vscode
 
 在執行 Push 操作前，先點擊 `🔍 檢查 Git 狀態` 確認變更正確。
 
-### 5. 錯誤處理
+### 5. 測試產出存放位置
+
+> ⚠️ **務必遵守**: Work NB 測試產出必須存放至 `docs/test_results/<version>/` 目錄
+
+| 存放位置 | 是否可提交 | 說明 |
+|---------|-----------|------|
+| `docs/test_results/` | ✅ 可以 | **正確位置** - 所有測試產出應存放於此 |
+| `tmp/` | ❌ 不行 | 已被 `.gitignore` 忽略 |
+| `others/` | ⚠️ 部分 | 部分版本被忽略，不建議使用 |
+
+### 6. 錯誤處理
 
 遇到錯誤時：
 1. 閱讀錯誤訊息和建議
