@@ -145,7 +145,11 @@
       "Bash(powershell -NoProfile -Command \"$content = Get-Content ''.vscode\\\\tasks.json'' -Encoding UTF8 -Raw; $content = $content -replace ''<noreply@anthropic.com>'', ''\\(noreply@anthropic.com\\)''; $content = $content -replace ''\\\\\\\\\\\\\"', '\\\\\"\"'; Set-Content '.vscodetasks.json' -Value $content -Encoding UTF8 -NoNewline\"\")",
       "Bash(powershell -NoProfile -Command \"Get-Content .vscode\\\\tasks.json -Raw | ConvertFrom-Json | Out-Null; if \\($? { Write-Host ''✅ JSON format is valid'' -ForegroundColor Green } else { Write-Host ''❌ JSON format is invalid'' -ForegroundColor Red }\")",
       "Bash(copy:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(ssh:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": []

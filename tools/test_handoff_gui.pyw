@@ -146,15 +146,21 @@ class GitRemoteDetector:
             return {}
 
     def get_remote_for(self, operation: str) -> str:
-        """Get the best remote for a given operation"""
+        """Get the best remote for a given operation
+
+        Remote preference logic:
+        - All operations prefer 'github' remote for cross-machine synchronization
+        - Fallback to 'origin' if 'github' remote not configured
+        - This ensures Home NB <-> Work NB sync through GitHub
+        """
         preference_map = {
             'home_push': ['github', 'origin'],
-            'work_pull': ['origin', 'github'],
-            'work_push': ['origin', 'github'],
-            'home_pull': ['origin', 'github']
+            'work_pull': ['github', 'origin'],
+            'work_push': ['github', 'origin'],
+            'home_pull': ['github', 'origin']
         }
 
-        preferences = preference_map.get(operation, ['origin', 'github'])
+        preferences = preference_map.get(operation, ['github', 'origin'])
         for remote in preferences:
             if remote in self.remotes:
                 return remote
@@ -236,8 +242,9 @@ class TestHandoffApp:
 
         # Configure root window
         self.root.title("測試交接管理員")
-        self.root.geometry("920x780")
-        self.root.resizable(False, False)
+        self.root.geometry("920x650")
+        self.root.resizable(True, True)
+        self.root.minsize(800, 550)
         self.root.configure(bg=Colors.BACKGROUND)
 
         # Setup GUI
@@ -259,27 +266,27 @@ class TestHandoffApp:
 
     def create_header(self):
         """Create header panel"""
-        header = tk.Frame(self.root, bg=Colors.PRIMARY, height=70)
+        header = tk.Frame(self.root, bg=Colors.PRIMARY, height=50)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
 
         title_label = tk.Label(
             header,
             text="🚀  測試交接管理員",
-            font=("Microsoft JhengHei UI", 18, "bold"),
+            font=("Microsoft JhengHei UI", 14, "bold"),
             fg=Colors.TEXT_LIGHT,
             bg=Colors.PRIMARY
         )
-        title_label.pack(side=tk.LEFT, padx=25, pady=20)
+        title_label.pack(side=tk.LEFT, padx=20, pady=12)
 
         subtitle_label = tk.Label(
             header,
             text="Home NB ↔ Work NB  •  自動化測試交接流程",
-            font=("Microsoft JhengHei UI", 10),
+            font=("Microsoft JhengHei UI", 9),
             fg=Colors.TEXT_LIGHT,
             bg=Colors.PRIMARY
         )
-        subtitle_label.pack(side=tk.LEFT, padx=(0, 25), pady=20)
+        subtitle_label.pack(side=tk.LEFT, padx=(0, 20), pady=12)
 
     def create_input_section(self):
         """Create input section"""
@@ -292,11 +299,11 @@ class TestHandoffApp:
             relief=tk.RIDGE,
             bd=1
         )
-        frame.pack(padx=20, pady=(15, 10), fill=tk.X)
+        frame.pack(padx=15, pady=(8, 5), fill=tk.X)
 
         # Topic
         topic_frame = tk.Frame(frame, bg=Colors.CARD_BG)
-        topic_frame.pack(pady=(10, 5), padx=15, fill=tk.X)
+        topic_frame.pack(pady=(5, 3), padx=10, fill=tk.X)
 
         tk.Label(
             topic_frame,
@@ -317,7 +324,7 @@ class TestHandoffApp:
 
         # Device
         device_frame = tk.Frame(frame, bg=Colors.CARD_BG)
-        device_frame.pack(pady=5, padx=15, fill=tk.X)
+        device_frame.pack(pady=3, padx=10, fill=tk.X)
 
         tk.Label(
             device_frame,
@@ -339,7 +346,7 @@ class TestHandoffApp:
 
         # Objective
         obj_frame = tk.Frame(frame, bg=Colors.CARD_BG)
-        obj_frame.pack(pady=(5, 10), padx=15, fill=tk.X)
+        obj_frame.pack(pady=(3, 8), padx=10, fill=tk.X)
 
         tk.Label(
             obj_frame,
@@ -365,7 +372,7 @@ class TestHandoffApp:
     def create_tabs_section(self):
         """Create tabs section"""
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
+        self.notebook.pack(padx=15, pady=5, fill=tk.BOTH, expand=True)
 
         self.create_step1_tab()
         self.create_step2_tab()
@@ -618,7 +625,7 @@ class TestHandoffApp:
             relief=tk.RIDGE,
             bd=1
         )
-        log_frame.pack(padx=20, pady=(0, 10), fill=tk.BOTH, expand=True)
+        log_frame.pack(padx=15, pady=(0, 5), fill=tk.BOTH, expand=True)
 
         # Log controls
         controls = tk.Frame(log_frame, bg=Colors.CARD_BG)
@@ -648,7 +655,7 @@ class TestHandoffApp:
             font=("Consolas", 9),
             bg="#fafafa",
             relief=tk.FLAT,
-            height=12
+            height=8
         )
         self.log_text.pack(padx=10, pady=(0, 10), fill=tk.BOTH, expand=True)
         self.log_text.config(state=tk.DISABLED)
@@ -850,9 +857,9 @@ class TestHandoffApp:
         self.write_log("=== Task 1: Home NB (Push) ===", "Info")
         self.status_var.set("推送中...")
 
-        # Git Add
+        # Git Add (use -A to add all changes from repo root)
         self.write_log("Adding files...", "Info")
-        returncode, stdout, stderr = self.run_command(["git", "add", "."])
+        returncode, stdout, stderr = self.run_command(["git", "add", "-A"])
         if self.handle_git_error("git add", returncode, stderr):
             self.status_var.set("失敗")
             return
@@ -915,9 +922,9 @@ class TestHandoffApp:
         self.write_log("=== Task 3: Work NB (Push) ===", "Info")
         self.status_var.set("推送中...")
 
-        # Git Add
+        # Git Add (use -A to add all changes from repo root)
         self.write_log("Adding test results...", "Info")
-        returncode, stdout, stderr = self.run_command(["git", "add", "."])
+        returncode, stdout, stderr = self.run_command(["git", "add", "-A"])
         if self.handle_git_error("git add", returncode, stderr):
             self.status_var.set("失敗")
             return
