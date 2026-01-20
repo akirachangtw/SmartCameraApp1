@@ -149,18 +149,18 @@ class GitRemoteDetector:
         """Get the best remote for a given operation
 
         Remote preference logic:
-        - Home NB uses 'github' remote (points to GitHub)
-        - Work NB uses 'origin' remote (also points to GitHub)
-        - Both push/pull through GitHub for synchronization
+        - All operations prefer 'github' remote for cross-machine synchronization
+        - Fallback to 'origin' if 'github' remote not configured
+        - This ensures Home NB <-> Work NB sync through GitHub
         """
         preference_map = {
             'home_push': ['github', 'origin'],
-            'work_pull': ['origin', 'github'],
-            'work_push': ['origin', 'github'],
-            'home_pull': ['github', 'origin']  # Home NB should pull from github, not local origin
+            'work_pull': ['github', 'origin'],
+            'work_push': ['github', 'origin'],
+            'home_pull': ['github', 'origin']
         }
 
-        preferences = preference_map.get(operation, ['origin', 'github'])
+        preferences = preference_map.get(operation, ['github', 'origin'])
         for remote in preferences:
             if remote in self.remotes:
                 return remote
