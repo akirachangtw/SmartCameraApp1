@@ -28,11 +28,24 @@ Feature branch: `feature/camera-input-abstraction`
   - Documentation: `tools/HYBRID_FLOW_CLAUDE_USAGE.md`
 
 - **`tools/hybrid_flow-tasks.json`** 🔴 CRITICAL
-  - Purpose: VSCode Tasks configuration
+  - Purpose: VSCode Tasks configuration reference
   - Used by: VSCode Task Runner (Ctrl+Shift+P → "Run Task")
 
+- **`.vscode/tasks.json`** 🔴 CRITICAL
+  - Purpose: Active VSCode Tasks configuration
+  - Protected Tasks: 5 Hybrid Tasks + 1 Test Handoff Task
+  - Protected Inputs: 4 Hybrid Input parameters
+  - Backup: Forced into Git with `git add -f` (normally in .gitignore)
+  - Reference: `tools/hybrid_flow-tasks.json`
+  - Protection Guide: `.vscode/TASKS_PROTECTION.md`
+  - **⚠️ DO NOT DELETE**: Hybrid Tasks (L1/L2/PR) or Test Handoff Manager Task
+
+- **`tools/test_handoff_gui.pyw`** 🔴 CRITICAL
+  - Purpose: Home NB ↔ Work NB test handoff automation GUI
+  - Documentation: `docs/test_handoff/`
+
 **Deletion Impact**: Breaks automated development workflow!
-**Protection Details**: See `tools/.gitkeep_critical_files`
+**Protection Details**: See `tools/.gitkeep_critical_files` and `.vscode/TASKS_PROTECTION.md`
 
 ---
 
