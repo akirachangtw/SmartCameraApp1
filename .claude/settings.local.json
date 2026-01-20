@@ -149,7 +149,9 @@
       "Bash(ssh:*)",
       "Bash(git remote set-url:*)",
       "Bash(git fetch:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(cmd /c \"gradlew.bat assembleDeviceDebug\")",
+      "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")"
     ],
     "deny": [],
     "ask": []

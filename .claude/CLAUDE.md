@@ -57,13 +57,16 @@ Feature branch: `feature/camera-input-abstraction`
 ### Storage Guidelines
 | What | Where | Versioned |
 |------|-------|-----------|
-| Test outputs | `tmp/test_outputs/` | ❌ No |
-| Logcat dumps | `tmp/logcat_dumps/` | ❌ No |
-| Debug screenshots | `tmp/screenshots_temp/` | ❌ No |
-| Important test results | `others/vX.X.X-Testing/` | ❌ No (ignored) |
+| **Work NB 測試產出** | `docs/test_results/<version>/` | ✅ **Yes** |
+| Test outputs (temp) | `tmp/test_outputs/` | ❌ No |
+| Logcat dumps (temp) | `tmp/logcat_dumps/` | ❌ No |
+| Debug screenshots (temp) | `tmp/screenshots_temp/` | ❌ No |
+| Historical test data | `others/vX.X.X-Testing/` | ❌ No (ignored) |
 | Test images (committed) | `app/src/debug/assets/test_images/` | ✅ Yes |
 | Documentation | `docs/` | ✅ Yes |
 | Tools/Scripts | `tools/` | ✅ Yes |
+
+> ⚠️ **重要**: Work NB 測試產出（測試報告、照片、Logcat）必須存放至 `docs/test_results/<version>/` 目錄，才能被 Git 追蹤並提交。`tmp/` 目錄已被 `.gitignore` 忽略。
 
 ---
 
