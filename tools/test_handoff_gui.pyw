@@ -146,12 +146,18 @@ class GitRemoteDetector:
             return {}
 
     def get_remote_for(self, operation: str) -> str:
-        """Get the best remote for a given operation"""
+        """Get the best remote for a given operation
+
+        Remote preference logic:
+        - Home NB uses 'github' remote (points to GitHub)
+        - Work NB uses 'origin' remote (also points to GitHub)
+        - Both push/pull through GitHub for synchronization
+        """
         preference_map = {
             'home_push': ['github', 'origin'],
             'work_pull': ['origin', 'github'],
             'work_push': ['origin', 'github'],
-            'home_pull': ['origin', 'github']
+            'home_pull': ['github', 'origin']  # Home NB should pull from github, not local origin
         }
 
         preferences = preference_map.get(operation, ['origin', 'github'])
