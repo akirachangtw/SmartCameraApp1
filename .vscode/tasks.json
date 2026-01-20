@@ -98,6 +98,98 @@
                 "cwd": "${workspaceFolder}"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "📋 Hybrid: L1 Plan (input_file)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "tools/hybrid_flow.py",
+                "--level",
+                "L1",
+                "--topic",
+                "${input:hybridTopic}",
+                "--input_file",
+                "${input:hybridInputFile}",
+                "--out",
+                "docs/plan",
+                "--repo",
+                "${workspaceFolder}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "📋 Hybrid: L2 Feasibility (inline input)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "tools/hybrid_flow.py",
+                "--level",
+                "L2",
+                "--topic",
+                "${input:hybridTopic}",
+                "--issue",
+                "${input:hybridIssuePath}",
+                "--input",
+                "${input:hybridInput}",
+                "--out",
+                "docs/plan",
+                "--repo",
+                "${workspaceFolder}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "📋 Hybrid: L2 Feasibility (input_file)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "tools/hybrid_flow.py",
+                "--level",
+                "L2",
+                "--topic",
+                "${input:hybridTopic}",
+                "--issue",
+                "${input:hybridIssuePath}",
+                "--input_file",
+                "${input:hybridInputFile}",
+                "--out",
+                "docs/plan",
+                "--repo",
+                "${workspaceFolder}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "📋 Hybrid: PR Notes (inline input)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "tools/hybrid_flow.py",
+                "--level",
+                "PR",
+                "--topic",
+                "${input:hybridTopic}",
+                "--input",
+                "${input:hybridInput}",
+                "--out",
+                "docs/plan",
+                "--repo",
+                "${workspaceFolder}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
         }
     ],
     "inputs": [
@@ -112,6 +204,18 @@
             "type": "promptString",
             "description": "輸入需求/問題描述",
             "default": "實體手機切回 Live 模式後呼叫 setZoomRatio 出現 CameraControl not available"
+        },
+        {
+            "id": "hybridInputFile",
+            "type": "promptString",
+            "description": "輸入 input_file 路徑（例如 logs/logcat.txt 或 notes/issue.md）",
+            "default": "logs/logcat.txt"
+        },
+        {
+            "id": "hybridIssuePath",
+            "type": "promptString",
+            "description": "輸入 Issue/計畫檔路徑（L2 建議填 L1 產出，如 docs/plan/<topic>_L1.md）",
+            "default": "docs/plan/camera_control_not_available_L1.md"
         }
     ]
 }
