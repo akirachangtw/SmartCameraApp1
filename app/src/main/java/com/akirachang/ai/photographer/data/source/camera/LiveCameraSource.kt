@@ -843,6 +843,12 @@ class LiveCameraSource @Inject constructor(
     }
 
     /**
+     * Get current device rotation for EXIF Orientation
+     * v2.9.6 Phase 1: EXIF Orientation support
+     */
+    override fun getCurrentRotation(): Int = currentRotation
+
+    /**
      * Set exposure compensation (for HDR mode simulation)
      */
     fun setExposureCompensation(value: Int) {

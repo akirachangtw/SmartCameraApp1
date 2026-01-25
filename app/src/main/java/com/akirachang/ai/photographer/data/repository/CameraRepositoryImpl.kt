@@ -2,14 +2,17 @@ package com.akirachang.ai.photographer.data.repository
 
 import android.content.ContentValues
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import android.view.Surface
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.view.LifecycleCameraController
 import androidx.core.content.ContextCompat
+import androidx.exifinterface.media.ExifInterface
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
@@ -166,8 +169,12 @@ class CameraRepositoryImpl @Inject constructor(
 
             Log.i(TAG, "Bitmap captured successfully: ${bitmap.width}x${bitmap.height}")
 
+            // v2.9.6 Phase 1: Get rotation for EXIF Orientation
+            val rotation = cameraInputSource.getCurrentRotation()
+            Log.d(TAG, "Current rotation for EXIF: $rotation")
+
             // Step 2: 保存 Bitmap 到 MediaStore
-            return@withContext saveBitmapToMediaStore(bitmap)
+            return@withContext saveBitmapToMediaStore(bitmap, rotation)
 
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error in takePicture", e)
@@ -179,9 +186,10 @@ class CameraRepositoryImpl @Inject constructor(
      * 保存 Bitmap 到 MediaStore
      *
      * @param bitmap The bitmap to save
+     * @param rotation Device rotation for EXIF Orientation
      * @return CaptureResult with saved URI or error
      */
-    private suspend fun saveBitmapToMediaStore(bitmap: Bitmap): CaptureResult = withContext(Dispatchers.IO) {
+    private suspend fun saveBitmapToMediaStore(bitmap: Bitmap, rotation: Int): CaptureResult = withContext(Dispatchers.IO) {
         try {
             val name = SimpleDateFormat(Constants.FILENAME_FORMAT, Locale.getDefault())
                 .format(System.currentTimeMillis())
@@ -220,6 +228,14 @@ class CameraRepositoryImpl @Inject constructor(
                 }
                 outputStream.flush()
                 Log.i(TAG, "Photo saved successfully to: $uri")
+
+                // v2.9.6 Phase 1: Write EXIF Orientation
+                try {
+                    writeExifOrientation(uri, rotation)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to write EXIF Orientation (non-fatal)", e)
+                }
+
                 return@withContext CaptureResult.Success(uri)
             } ?: run {
                 Log.e(TAG, "Failed to open output stream for URI: $uri")
@@ -233,6 +249,32 @@ class CameraRepositoryImpl @Inject constructor(
             return@withContext CaptureResult.Error(
                 Exception("照片保存過程發生錯誤：${e.message}", e)
             )
+        }
+    }
+
+    /**
+     * Write EXIF Orientation to saved JPEG
+     * v2.9.6 Phase 1: EXIF Orientation support
+     */
+    private fun writeExifOrientation(uri: Uri, rotation: Int) {
+        val exifOrientation = when (rotation) {
+            Surface.ROTATION_0 -> ExifInterface.ORIENTATION_NORMAL      // 1
+            Surface.ROTATION_90 -> ExifInterface.ORIENTATION_ROTATE_90  // 6
+            Surface.ROTATION_180 -> ExifInterface.ORIENTATION_ROTATE_180 // 3
+            Surface.ROTATION_270 -> ExifInterface.ORIENTATION_ROTATE_270 // 8
+            else -> ExifInterface.ORIENTATION_NORMAL
+        }
+
+        Log.d(TAG, "Writing EXIF Orientation: rotation=$rotation → exif=$exifOrientation")
+
+        context.contentResolver.openFileDescriptor(uri, "rw")?.use { pfd ->
+            val exif = ExifInterface(pfd.fileDescriptor)
+            exif.setAttribute(ExifInterface.TAG_ORIENTATION, exifOrientation.toString())
+            exif.saveAttributes()
+            Log.i(TAG, "EXIF Orientation written successfully: $exifOrientation")
+        } ?: run {
+            Log.e(TAG, "Failed to open FileDescriptor for EXIF writing")
+            throw Exception("Cannot open file descriptor for URI: $uri")
         }
     }
 

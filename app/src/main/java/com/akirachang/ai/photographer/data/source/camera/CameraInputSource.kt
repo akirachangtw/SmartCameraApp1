@@ -104,4 +104,11 @@ interface CameraInputSource {
      * @return true for LiveCameraSource (supports PreviewView), false for StaticImageSource (bitmap only)
      */
     fun supportsNativePreview(): Boolean = false
+
+    /**
+     * Get current device rotation for EXIF Orientation
+     * v2.9.6 Phase 1: EXIF Orientation support
+     * @return Surface rotation constant (ROTATION_0/90/180/270)
+     */
+    fun getCurrentRotation(): Int = android.view.Surface.ROTATION_0
 }

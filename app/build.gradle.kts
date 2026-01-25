@@ -178,6 +178,9 @@ dependencies {
     // === Logging ===
     implementation("com.jakewharton.timber:timber:5.0.1")
 
+    // === EXIF (v2.9.6 Phase 1) ===
+    implementation(libs.androidx.exifinterface)
+
     // === ML Kit ===
     implementation(libs.mlkit.objectDetection)
     implementation(libs.mlkit.faceDetection)

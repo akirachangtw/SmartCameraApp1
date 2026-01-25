@@ -89,4 +89,10 @@ class StaticImageSource @Inject constructor(
         Timber.d("StaticImageSource: HDR disable requested (no actual effect on test images)")
         return Result.success(Unit)
     }
+
+    /**
+     * Static images always return ROTATION_0
+     * v2.9.6 Phase 1: EXIF Orientation support
+     */
+    override fun getCurrentRotation(): Int = android.view.Surface.ROTATION_0
 }
