@@ -212,6 +212,9 @@ class LiveCameraSource @Inject constructor(
     private var currentRotation: Int = Surface.ROTATION_0
     private var orientationListenerTriggered = false  // v2.9.6 Phase 1 Fix: Track if listener is working
 
+    // v2.9.6 Phase 1 Fix: Store rotation from ImageProxy for EXIF
+    private var lastCaptureRotationDegrees: Int = 0
+
     /**
      * Get FPS performance metrics stream
      *
@@ -456,6 +459,10 @@ class LiveCameraSource @Inject constructor(
                 override fun onCaptureSuccess(image: ImageProxy) {
                     Log.i(TAG, "Image captured successfully (${image.width}x${image.height})")
                     Timber.d("LiveCameraSource: Image captured successfully")
+
+                    // v2.9.6 Phase 1 Fix: Store ImageProxy rotation for EXIF
+                    lastCaptureRotationDegrees = image.imageInfo.rotationDegrees
+
                     try {
                         val bitmap = image.toBitmap()
                         Log.i(TAG, "Bitmap created from captured image: ${bitmap.width}x${bitmap.height}")
@@ -846,7 +853,21 @@ class LiveCameraSource @Inject constructor(
      * Get current device rotation for EXIF Orientation
      * v2.9.6 Phase 1: EXIF Orientation support
      */
-    override fun getCurrentRotation(): Int = currentRotation
+    /**
+     * Get current rotation for EXIF Orientation
+     * v2.9.6 Phase 1 Fix: Use ImageProxy rotation instead of OrientationEventListener
+     * ImageProxy.rotationDegrees already accounts for sensor orientation
+     */
+    override fun getCurrentRotation(): Int {
+        // Convert rotationDegrees (0°, 90°, 180°, 270°) to Surface.ROTATION_* (0, 1, 2, 3)
+        return when (lastCaptureRotationDegrees) {
+            0 -> Surface.ROTATION_0
+            90 -> Surface.ROTATION_90
+            180 -> Surface.ROTATION_180
+            270 -> Surface.ROTATION_270
+            else -> Surface.ROTATION_0
+        }
+    }
 
     /**
      * Set exposure compensation (for HDR mode simulation)
