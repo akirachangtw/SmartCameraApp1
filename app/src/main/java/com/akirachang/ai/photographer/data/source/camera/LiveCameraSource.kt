@@ -294,10 +294,27 @@ class LiveCameraSource @Inject constructor(
                 // Check if using front camera (needs mirroring for selfie view)
                 val isFrontCamera = cameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
 
+                // v2.9.6 Phase 2: Fix preview rotation issue
+                // Problem: When ImageAnalysis targetRotation is dynamically updated (line 607),
+                // rotationDegrees changes unexpectedly (90° → 0° → 180°), causing double rotation.
+                // Solution: Use fixed rotation based on sensor orientation for portrait-locked UI
+                // Back camera: 90° CW (sensor is landscape, rotate to portrait)
+                // Front camera: 270° CW (90° CCW, sensor orientation differs from back)
+                val compensatedRotation = if (isFrontCamera) 270 else 90
+
+                // v2.9.6 Phase 2: Diagnostic log for preview rotation issue
+                if (frameCount % 30 == 0L) {
+                    Log.d(TAG, "[Rotation Debug] currentRotation=$currentRotation, " +
+                        "rotationDegrees=$rotationDegrees, " +
+                        "compensatedRotation=$compensatedRotation, " +
+                        "isFront=$isFrontCamera, " +
+                        "frame=${rawBuffer.bitmap.width}x${rawBuffer.bitmap.height}")
+                }
+
                 // Rotate and mirror bitmap if needed to match display orientation
                 val startTransform = System.nanoTime()
-                val outputBuffer = if (rotationDegrees != 0 || isFrontCamera) {
-                    transformBitmap(rawBuffer, rotationDegrees, isFrontCamera)
+                val outputBuffer = if (compensatedRotation != 0 || isFrontCamera) {
+                    transformBitmap(rawBuffer, compensatedRotation, isFrontCamera)
                 } else {
                     rawBuffer
                 }
