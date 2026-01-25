@@ -1235,13 +1235,14 @@ class LiveCameraSource @Inject constructor(
             Log.i(TAG, "[v2.9.0-beta5] Acceptable: ${acceptableResolutions.joinToString { "${it.width}x${it.height}" }}")
         }
         if (manufacturer.equals("Google", ignoreCase = true) && model.contains("Pixel", ignoreCase = true)) {
-            val has800x600 = acceptableResolutions.any { it.width == 800 && it.height == 600 }
-            return if (has800x600) {
-                Log.i(TAG, "[v2.9.0-beta5] Pixel: 800x600")
-                Triple(Size(800, 600), 1280, 720)
+            // v2.9.6 Phase 2.1: Upgrade to 1280x720 for better preview quality
+            val has1280x720 = acceptableResolutions.any { it.width == 1280 && it.height == 720 }
+            return if (has1280x720) {
+                Log.i(TAG, "[v2.9.6] Pixel: 1280x720 (upgraded for better quality)")
+                Triple(Size(1280, 720), 1920, 1080)
             } else {
-                Log.i(TAG, "[v2.9.0-beta5] Pixel: 640x480 fallback")
-                Triple(Size(640, 480), 800, 600)
+                Log.i(TAG, "[v2.9.6] Pixel: 800x600 fallback")
+                Triple(Size(800, 600), 1280, 720)
             }
         }
         if (manufacturer.equals("Sony", ignoreCase = true)) {

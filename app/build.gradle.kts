@@ -10,12 +10,15 @@ android {
     namespace = "com.akirachang.ai.photographer"
     compileSdk = 36
 
+    // v2.9.6 Phase 2.1: NDK version for 16 KB page size alignment (Android 15+)
+    ndkVersion = "27.0.12077973"
+
     defaultConfig {
         applicationId = "com.akirachang.ai.photographer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 52
-        versionName = "2.9.6-phase1"
+        versionCode = 53
+        versionName = "2.9.6-phase2"
 
         // v2.8.2 Phase C: RenderScript GPU YUV conversion (support mode for API 31+)
         // v2.8.3 Phase D: Transform fast path optimizations
@@ -122,8 +125,9 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
         // v2.7.0 Phase 2: OpenCV JNI libs packaging
+        // v2.9.6 Phase 2.1: Enable 16 KB page alignment for Android 15+
         jniLibs {
-            useLegacyPackaging = true
+            useLegacyPackaging = false  // Changed from true to enable modern packaging
         }
     }
 
