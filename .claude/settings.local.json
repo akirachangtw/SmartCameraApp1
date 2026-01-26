@@ -156,7 +156,8 @@
       "Bash(.gradlew.bat:*)",
       "Bash(./gradlew:*)",
       "Bash(do adb devices:*)",
-      "Bash(.gradlew assembleDebug)"
+      "Bash(.gradlew assembleDebug)",
+      "Bash(tasklist:*)"
     ],
     "deny": [],
     "ask": []
