@@ -151,7 +151,12 @@
       "Bash(git fetch:*)",
       "Bash(git pull:*)",
       "Bash(cmd /c \"gradlew.bat assembleDeviceDebug\")",
-      "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")"
+      "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")",
+      "Bash(powershell:*)",
+      "Bash(.gradlew.bat:*)",
+      "Bash(./gradlew:*)",
+      "Bash(do adb devices:*)",
+      "Bash(.gradlew assembleDebug)"
     ],
     "deny": [],
     "ask": []
