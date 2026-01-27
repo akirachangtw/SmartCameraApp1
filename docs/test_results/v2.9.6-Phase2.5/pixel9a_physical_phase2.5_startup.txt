@@ -1,0 +1,994 @@
+--------- beginning of system
+01-27 21:23:50.548  1830  4970 W ActivityTaskManager: callingPackage for (uid=2000, pid=2728) has no WPC
+01-27 21:23:50.550  1830  4970 V WindowManager: DesktopModeLaunchParamsModifier: phase= 0 task=null activity=null display-area-from-current-params=null display-area-from-default-fallback=DefaultTaskDisplayArea@21286572 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@21286572 task null, skipping
+01-27 21:23:50.550  1830  4970 V WindowManager: TaskLaunchParamsModifier:phase=0 task=null activity=null display-area-from-current-params=null display-area-from-default-fallback=DefaultTaskDisplayArea@21286572 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@21286572
+--------- beginning of main
+01-27 21:23:50.567  1830  4970 V GrammaticalInflectionUtils: AttributionSource: android.content.AttributionSource@42b1e3a3 does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+01-27 21:23:50.570  1830  4970 V WindowManager: DesktopModeLaunchParamsModifier: phase= 0 task=null activity=ActivityRecord{207825962 u0 com.akirachang.ai.photographer/.MainActivity display-area-from-current-params=null display-area-from-default-fallback=DefaultTaskDisplayArea@21286572 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@21286572 task null, skipping
+01-27 21:23:50.570  1830  4970 V WindowManager: TaskLaunchParamsModifier:phase=0 task=null activity=ActivityRecord{207825962 u0 com.akirachang.ai.photographer/.MainActivity t-1} display-area-from-current-params=null display-area-from-default-fallback=DefaultTaskDisplayArea@21286572 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@21286572
+01-27 21:23:50.571  1830  4970 V WindowManager: DesktopModeLaunchParamsModifier: phase= 3 task=null activity=ActivityRecord{207825962 u0 com.akirachang.ai.photographer/.MainActivity t-1} display-area-from-current-params=null display-area-from-default-fallback=DefaultTaskDisplayArea@21286572 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@21286572 task null, skipping
+01-27 21:23:50.571  1830  4970 V WindowManager: TaskLaunchParamsModifier:phase=3 task=null activity=ActivityRecord{207825962 u0 com.akirachang.ai.photographer/.MainActivity t-1} display-area-from-current-params=null display-area-from-default-fallback=DefaultTaskDisplayArea@21286572 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@21286572 non-freeform-task-display-area display-area=DefaultTaskDisplayArea@21286572 skip-bounds-fullscreen
+01-27 21:23:50.580  1830  4970 V WindowManager: DesktopModeLaunchParamsModifier: phase= 3 task=Task{2aca1b #2067 type=standard A=10416:com.akirachang.ai.photographer} activity=ActivityRecord{207825962 u0 com.akirachang.ai.photographer/.MainActivity t-1} display-from-task=0 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@21286572 not entering desktop mode, skipping
+01-27 21:23:50.580  1830  4970 V WindowManager: TaskLaunchParamsModifier:phase=3 task=Task{2aca1b #2067 type=standard A=10416:com.akirachang.ai.photographer} activity=ActivityRecord{207825962 u0 com.akirachang.ai.photographer/.MainActivity t-1} display-from-task=0 display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@21286572 inherit-from-task=fullscreen non-freeform-task-display-area display-area=DefaultTaskDisplayArea@21286572 skip-bounds-fullscreen
+01-27 21:23:50.582   654   721 I libbinder.BpBinder: onLastStrongRef automatically unlinking death recipients for descriptor: '(not cached)'
+01-27 21:23:50.582  1830  4970 I ActivityTaskManager: START u0 {flg=0x10000000 xflg=0x5 cmp=com.akirachang.ai.photographer/.MainActivity} with LAUNCH_MULTIPLE from uid 2000 (com.android.shell) (BAL_ALLOW_PERMISSION) result code=0
+01-27 21:23:50.583  2715  2745 V WindowManagerShell: Transition requested (#1465): android.os.BinderProxy@a373dc6 TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=2067 effectiveUid=10416 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.akirachang.ai.photographer/.MainActivity } baseActivity=ComponentInfo{com.akirachang.ai.photographer/com.akirachang.ai.photographer.MainActivity} topActivity=ComponentInfo{com.akirachang.ai.photographer/com.akirachang.ai.photographer.MainActivity} origActivity=null realActivity=ComponentInfo{com.akirachang.ai.photographer/com.akirachang.ai.photographer.MainActivity} numActivities=1 lastActiveTime=267768034 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.os.BinderProxy@b7bd187} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 152 - 0, 0) topActivityInfo=ActivityInfo{2f988b4 com.akirachang.ai.photographer.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=null capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=503 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false isLeafTask= true eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2424) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { cameraCompatMode=undefinedundefined} topNonResizableActivityAspectRatio=-1.0} topActivityMainWindowFrame=null isAppBubble=false}, pipChange = null, remoteTransition = null, displayChange = null, requestedLocation = null, userChange = null, windowingLayerChange = null, flags = 0, debugId = 1465 }
+01-27 21:23:50.583  2715  2745 D ShellSplitScreen: logExit: no-op, mLoggerSessionId is null
+01-27 21:23:50.583  2715  2745 V ShellDesktopMode: DesktopTasksController: handleRequest request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=2067 effectiveUid=10416 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.akirachang.ai.photographer/.MainActivity } baseActivity=ComponentInfo{com.akirachang.ai.photographer/com.akirachang.ai.photographer.MainActivity} topActivity=ComponentInfo{com.akirachang.ai.photographer/com.akirachang.ai.photographer.MainActivity} origActivity=null realActivity=ComponentInfo{com.akirachang.ai.photographer/com.akirachang.ai.photographer.MainActivity} numActivities=1 lastActiveTime=267768034 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.os.BinderProxy@b7bd187} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 152 - 0, 0) topActivityInfo=ActivityInfo{2f988b4 com.akirachang.ai.photographer.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=null capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=503 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false isLeafTask= true eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2424) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { cameraCompatMode=undefinedundefined} topNonResizableActivityAspectRatio=-1.0} topActivityMainWindowFrame=null isAppBubble=false}, pipChange = null, remoteTransition = null, displayChange = null, requestedLocation = null, userChange = null, windowingLayerChange = null, flags = 0, debugId = 1465 }
+01-27 21:23:50.583  9720  9720 D BaseActivity: Launcher flags updated: [state_started|state_resumed|state_deferred_resumed|state_window_focused] -[state_user_active]
+01-27 21:23:50.583  2715  2745 V ShellDesktopMode: DesktopTasksController: skipping handleRequest reason=triggerTask's display doesn't support desktop mode
+01-27 21:23:50.583  9720  9720 D BaseActivity: Launcher flags updated: [state_started|state_window_focused] -[state_resumed|state_deferred_resumed]
+01-27 21:23:50.583  9720  9720 W SplitSelectStateCtor: Missing session instanceIds
+01-27 21:23:50.583  9720  9720 D StatsLog: LAUNCHER_SPLIT_SELECTION_EXIT_INTERRUPTED
+01-27 21:23:50.584  1830  4970 D CompatChangeReporter: Compat change id reported: 377864165; UID 10416; state: ENABLED
+01-27 21:23:50.584  2715  2745 D WindowManagerShell: setLauncherKeepClearAreaHeight: visible=false, height=495
+01-27 21:23:50.586  1830  2087 V WindowManager: Defer transition id=1465 for TaskFragmentTransaction=android.os.Binder@fa11682
+01-27 21:23:50.587  1830  2087 V WindowManager: deferTransitionReady deferReadyDepth=1 stack=com.android.server.wm.TransitionController.deferTransitionReady:1061 com.android.server.wm.TaskFragmentOrganizerController$TaskFragmentOrganizerState.dispatchTransaction:517 com.android.server.wm.TaskFragmentOrganizerController.dispatchPendingEvents:1259 com.android.server.wm.TaskFragmentOrganizerController.dispatchPendingEvents:1228 com.android.server.wm.RootWindowContainer.performSurfacePlacement:777 
+01-27 21:23:50.587  1830  1883 V GrammaticalInflectionUtils: AttributionSource: android.content.AttributionSource@42b1e3a3 does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+01-27 21:23:50.587  9720  9720 D RecentsView: onTaskDisplayChanged: 2067, new displayId = 0
+01-27 21:23:50.588  9720  9720 D b/417220811: invalidateLoadedTasks - previous requestLoadId: -1
+01-27 21:23:50.588  1830  4970 V WindowManager: Continue transition id=1465 for TaskFragmentTransaction=android.os.Binder@fa11682
+01-27 21:23:50.588  1830  4970 V WindowManager: continueTransitionReady deferReadyDepth=0 stack=com.android.server.wm.TransitionController.continueTransitionReady:1071 com.android.server.wm.TaskFragmentOrganizerController$TaskFragmentOrganizerState.onTransactionFinished:546 com.android.server.wm.TaskFragmentOrganizerController.onTransactionHandled:740 android.window.ITaskFragmentOrganizerController$Stub.onTransact:225 android.os.Binder.execTransactInternal:1473 
+01-27 21:23:50.589  1830  2672 D BackgroundInstallControlService: Package event received: 0
+01-27 21:23:50.589  1830  1883 W ProcessStats: Tracking association SourceState{d88f6f2 system/1000 BFgs #257241} whose proc state 4 is better than process ProcessState{f69b50e com.google.android.tts/10213 pkg=com.google.android.tts} proc state 14 (21 skipped)
+01-27 21:23:50.598  1830  1880 V WindowManager: Sent Transition (#1465) createdAt=01-27 21:23:50.569 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=2067 effectiveUid=10416 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.akirachang.ai.photographer/.MainActivity } baseActivity=ComponentInfo{com.akirachang.ai.photographer/com.akirachang.ai.photographer.MainActivity} topActivity=ComponentInfo{com.akirachang.ai.photographer/com.akirachang.ai.photographer.MainActivity} origActivity=null realActivity=ComponentInfo{com.akirachang.ai.photographer/com.akirachang.ai.photographer.MainActivity} numActivities=1 lastActiveTime=267768034 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{608f985 Task{2aca1b #2067 type=standard A=10416:com.akirachang.ai.photographer}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 152 - 0, 0) topActivityInfo=ActivityInfo{fb6f3da com.akirachang.ai.photographer.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=null capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=503 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false isLeafTask= true eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2424) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { cameraCompatMode=undefinedundefined} topNonResizableActivityAspectRatio=-1.0} topActivityMainWindowFrame=null isAppBubble=false}, pipChange = null, remoteTransition = null, displayChange = null, requestedLocation = null, userChange = null, windowingLayerChange = null, flags = 0, debugId = 1465 }
+01-27 21:23:50.598  1830  1880 V WindowManager:     startWCT=WindowContainerTransaction { changes= {} hops= [] errorCallbackToken=null taskFragmentOrganizer=null }
+01-27 21:23:50.598  1830  1880 V WindowManager:     info={id=1465 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+01-27 21:23:50.598  1830  1880 V WindowManager:         {WCT{RemoteToken{608f985 Task{2aca1b #2067 type=standard A=10416:com.akirachang.ai.photographer}}} m=OPEN f=NONE leash=Surface(name=Task=2067#15491)/@0xd4e18ce sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1 winMode=1 userId=0},
+01-27 21:23:50.598  1830  1880 V WindowManager:         {WCT{RemoteToken{3db3e0d Task{f0ab229 #1 type=home}}} m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1#44)/@0x46a6a3f sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1 winMode=1 userId=0},
+01-27 21:23:50.598  1830  1880 V WindowManager:         {m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{1954706}#55)/@0xd05399 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}
+01-27 21:23:50.598  1830  1880 V WindowManager:     ]}
+01-27 21:23:50.598  2890 15807 D UidImportanceSource: onUidImportanceBlock: uid=10416 importance=400
+01-27 21:23:50.599  2890 15807 D UidImportanceSource: onUidImportanceBlock: packages=[com.akirachang.ai.photographer] importance=400
+01-27 21:23:50.599  2890 15807 D UidImportanceSource: onUidImportanceBlock: packageName=com.akirachang.ai.photographer importance=400
+01-27 21:23:50.599  2715  3349 V WindowManagerShell: onTransitionReady(transaction=7859790308024)
+01-27 21:23:50.599  2890 15807 D BusinessScope: Enqueuing the block
+01-27 21:23:50.599  2715  2745 V WindowManagerShell: onTransitionReady (#1465) android.os.BinderProxy@a373dc6: {id=1465 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+01-27 21:23:50.599  2715  2745 V WindowManagerShell:         {m=OPEN f=NONE leash=Surface(name=Task=2067#15491)/@0xd96358b sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1 winMode=1 userId=0},
+01-27 21:23:50.599  2715  2745 V WindowManagerShell:         {m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1#44)/@0x1c75668 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1 winMode=1 userId=0},
+01-27 21:23:50.599  2715  2745 V WindowManagerShell:         {m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{1954706}#55)/@0xaa3aa81 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}
+01-27 21:23:50.599  2715  2745 V WindowManagerShell:     ]}
+01-27 21:23:50.599  2890  4081 D BusinessScope: Start running the #35405 block
+01-27 21:23:50.599  2715  2745 V ShellDesktopMode: DesktopModeLogger: taskInfo map after processing changes 0
+01-27 21:23:50.599  2890  4081 D BusinessScope: Enqueuing the block
+01-27 21:23:50.599  2715  2745 D ShellDesktopMode: DesktopTaskChangeListener: onTaskMovingToBack for taskId=1, displayId=0 - desktop not supported
+01-27 21:23:50.599  2890  4081 D ImpulseStateSource: Notify clients: 17698
+01-27 21:23:50.599  2890  4081 D BusinessScope: Finish running the #35405 block
+01-27 21:23:50.599  2715  2745 D ShellDesktopMode: DesktopTaskChangeListener: onTaskOpening for taskId=2067, displayId=0 userId=0 currentUserId=0 parentTaskId=-1 isFreeform=false isActive=false
+01-27 21:23:50.599  2715  2745 D ShellDesktopMode: DesktopTaskChangeListener: onTaskOpening for taskId=2067, displayId=0 - desktop not supported
+01-27 21:23:50.599  2715  2745 V WindowManagerShell: Playing animation for (#1465) android.os.BinderProxy@a373dc6@0
+01-27 21:23:50.599  2890  4081 D BusinessScope: Start running the #35406 block
+01-27 21:23:50.599  2715  2745 V ShellRecents: RecentsTransitionHandler.startAnimation: no controller found
+01-27 21:23:50.599  2715  2745 V ShellDesktopMode: DesktopMixedTransitionHandler: No pending desktop transition
+01-27 21:23:50.599  2715  2745 V WindowManagerShell: Transition doesn't have explicit remote, search filters for match for {id=1465 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{m=OPEN f=NONE leash=Surface(name=Task=2067#15491)/@0xd96358b sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1 winMode=1 userId=0},{m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1#44)/@0x1c75668 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1 winMode=1 userId=0},{m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{1954706}#55)/@0xaa3aa81 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}]}
+01-27 21:23:50.599  2890  4081 D BusinessScope: Finish running the #35406 block
+01-27 21:23:50.599  2715  2745 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x0 checks=[{atype=undefined independent=true modes=[CLOSE,TO_BACK] flags=IN_TASK_WITH_EMBEDDED_ACTIVITY mustBeTask=false order=ANY topActivity=null launchCookie=null taskFragmentToken=android.os.BinderProxy@8c5a1f7 windowingMode=undefined isCrossDisplayMove=false}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@f896864, appThread = android.app.IApplicationThread$Stub$Proxy@ca81acd, debugName = overlayBackTransition }}
+01-27 21:23:50.599  2715  2745 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x0 checks=[{atype=dream independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=ANY topActivity=null launchCookie=null windowingMode=undefined isCrossDisplayMove=false},{atype=home independent=true modes=[CLOSE,TO_BACK] flags=NONE mustBeTask=false order=ANY topActivity=null launchCookie=null windowingMode=undefined isCrossDisplayMove=false}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@34c0f82, appThread = android.app.IApplicationThread$Stub$Proxy@4a86693, debugName = LauncherToDream }}
+01-27 21:23:50.599  2715  2745 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity} launchCookie=null windowingMode=undefined isCrossDisplayMove=false},{atype=standard independent=true modes=[CLOSE,TO_BACK] flags=NONE mustBeTask=false order=ANY topActivity=null launchCookie=null windowingMode=undefined isCrossDisplayMove=false},{NOT atype=undefined independent=true modes=[] flags=NONE mustBeTask=true order=ANY topActivity=null launchCookie=null customAnim=true windowingMode=undefined isCrossDisplayMove=false}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@3a6a6d0, appThread = android.app.IApplicationThread$Stub$Proxy@9a896c9, debugName = QuickstepLaunchHome }}
+01-27 21:23:50.599  2715  2745 V WindowManagerShell:  Checking filter Pair{{types=[OPEN,TO_FRONT] flags=0x0] notFlags=0x0 checks=[{atype=standard independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=true order=ANY topActivity=null launchCookie=null windowingMode=freeform isCrossDisplayMove=false}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@d56517d, appThread = null, debugName = DesktopWindowLimitUnminimize }}
+01-27 21:23:50.599  2715  2745 V WindowManagerShell:  Delegate animation for (#1465) to null
+01-27 21:23:50.599  2715  2745 V WindowManagerShell: start default transition animation, info = {id=1465 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{m=OPEN f=NONE leash=Surface(name=Task=2067#15491)/@0xd96358b sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1 winMode=1 userId=0},{m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1#44)/@0x1c75668 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1 winMode=1 userId=0},{m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{1954706}#55)/@0xaa3aa81 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}]}
+01-27 21:23:50.600  1339  1339 D Zygote  : Forked child process 2733
+01-27 21:23:50.601  2715  2745 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@41dcb03 animAttr=0x13 type=OPEN isEntrance=false
+01-27 21:23:50.601  1830  1894 I ActivityManager: Start proc 2733:com.akirachang.ai.photographer/u0a416 for next-top-activity {com.akirachang.ai.photographer/com.akirachang.ai.photographer.MainActivity}
+01-27 21:23:50.601  2715  2745 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@28145f animAttr=0x12 type=OPEN isEntrance=true
+01-27 21:23:50.601  2715  2745 V WindowManagerShell:  animated by com.android.wm.shell.transition.DefaultTransitionHandler@642a660
+01-27 21:23:50.601  2715  2745 V ShellTaskOrganizer: Task appeared taskId=2067 listener=FullscreenTaskListener
+01-27 21:23:50.601  2715  2745 V ShellTaskOrganizer: Fullscreen Task Appeared: #2067
+01-27 21:23:50.601  9720  9720 D b/417220811: invalidateLoadedTasks - previous requestLoadId: -1
+01-27 21:23:50.602  2095  2095 I pixel-thermal: CPU_THROTTLE_SEVERE:0 raw data: CPU_THROTTLE_SEVERE:0 
+01-27 21:23:50.602  2095  2095 I pixel-thermal: VIRTUAL-SKIN:26.9497 raw data: VIRTUAL-SKIN:26949.7 
+01-27 21:23:50.604  2733  2733 W zygote64: Activation of cgroup controller +memory failed in path /sys/fs/cgroup/apps/uid_10416: Invalid argument
+01-27 21:23:50.607  2733  2733 I Zygote  : Process 2733 created for com.akirachang.ai.photographer
+01-27 21:23:50.607  2733  2733 I ai.photographer: Late-enabling -Xcheck:jni
+01-27 21:23:50.623  2733  2733 I ai.photographer: Using CollectorTypeCMC GC.
+01-27 21:23:50.623  9720  9720 D BaseActivity: Launcher flags updated: [state_started] -[state_window_focused]
+01-27 21:23:50.625 15454 15469 I adbd    : jdwp connection from 2733
+01-27 21:23:50.627  2733  2733 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+01-27 21:23:50.634  1830  2672 D BackgroundInstallControlService: Package event received: 0
+01-27 21:23:50.634  1830  2672 D BackgroundInstallControlService: Package event received: 0
+01-27 21:23:50.634  2890 27383 D UidImportanceSource: onUidImportanceBlock: uid=10416 importance=100
+01-27 21:23:50.634  2890 27383 D UidImportanceSource: onUidImportanceBlock: packages=[com.akirachang.ai.photographer] importance=100
+01-27 21:23:50.634  2890 27383 D UidImportanceSource: onUidImportanceBlock: packageName=com.akirachang.ai.photographer importance=100
+01-27 21:23:50.635  2890 27383 D BusinessScope: Enqueuing the block
+01-27 21:23:50.635  2890  3199 D BusinessScope: Start running the #35407 block
+01-27 21:23:50.635  2890  3199 D BusinessScope: Enqueuing the block
+01-27 21:23:50.635  2890  3199 D ImpulseStateSource: Notify clients: 17699
+01-27 21:23:50.635  2890  3199 D BusinessScope: Finish running the #35407 block
+01-27 21:23:50.635  2890  3199 D BusinessScope: Start running the #35408 block
+01-27 21:23:50.635  2890  3199 D BusinessScope: Finish running the #35408 block
+01-27 21:23:50.687  9720  9720 D b/417220811: invalidateLoadedTasks - previous requestLoadId: -1
+01-27 21:23:50.697  2733  2733 D nativeloader: Configuring clns-9 for other apk /system_ext/framework/com.google.android.camerax.extensions.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~g6ZUYMCYUV5BJYMAoYyskQ==/com.akirachang.ai.photographer-wIG844QS2297NJGOVHr2AQ==/lib/arm64:/data/app/~~g6ZUYMCYUV5BJYMAoYyskQ==/com.akirachang.ai.photographer-wIG844QS2297NJGOVHr2AQ==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.akirachang.ai.photographer
+01-27 21:23:50.920  2715  2745 V WindowManagerShell: Transition animation finished (aborted=false), notifying core (#1465) android.os.BinderProxy@a373dc6@0
+01-27 21:23:50.921  1830  1880 V WindowManager: Finish Transition (#1465): created at 01-27 21:23:50.569 collect-started=0.202ms request-sent=13.165ms started=14.277ms ready=26.564ms sent=27.544ms commit=24.49ms finished=351.601ms
+01-27 21:23:50.921  2715  3188 D WallpaperService: onVisibilityChanged(false): com.android.systemui.wallpapers.ImageWallpaper$CanvasEngine@a7c8f0b
+01-27 21:23:50.921  9720  9720 D VRI[NexusLauncherActivity]: visibilityChanged oldVisibility=true newVisibility=false
+01-27 21:23:50.921  2715  2745 V WindowManagerShell: Track 0 became idle
+01-27 21:23:50.921  2715  2745 V WindowManagerShell: All active transition animations finished
+01-27 21:23:50.923 10445 10445 I Finsky  : [2] Memory trim requested to level 40
+01-27 21:23:50.923 10445 10445 I Finsky  : [2] Flushing in-memory image cache
+01-27 21:23:50.924  2077  2077 I Finsky:background: [2] Memory trim requested to level 40
+01-27 21:23:50.936  9720  9720 D NexusLauncherModelDelegate: notifySmartspaceEvent: SmartspaceTargetEvent{mSmartspaceTarget=null, mSmartspaceActionId='null', mEventType=7}
+01-27 21:23:50.937  4326  4860 I AiAiEcho: (REDACTED) %s No tracked ambient data found for ID: %s; for event type: %d, skipping event processing.
+01-27 21:23:50.938  2715  2745 D Bubbles : onLocusVisibilityChanged=Overview|ENABLED visible=false taskId=1
+01-27 21:23:50.938  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.29 1CD->0C d_lux:-1.0 c_lux:7.0/-1.0 c_coeff:0.50/-1.00
+01-27 21:23:50.939  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.00 C:40.74 d_leak:7.8 c_leak:3.0 lux:7.0 leak:3.0
+01-27 21:23:50.990  2733  2733 D nativeloader: Configuring clns-10 for other apk /data/app/~~g6ZUYMCYUV5BJYMAoYyskQ==/com.akirachang.ai.photographer-wIG844QS2297NJGOVHr2AQ==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~g6ZUYMCYUV5BJYMAoYyskQ==/com.akirachang.ai.photographer-wIG844QS2297NJGOVHr2AQ==/lib/arm64:/data/app/~~g6ZUYMCYUV5BJYMAoYyskQ==/com.akirachang.ai.photographer-wIG844QS2297NJGOVHr2AQ==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.akirachang.ai.photographer
+01-27 21:23:50.995  2733  2733 V GraphicsEnvironment: Currently set values for:
+01-27 21:23:50.995  2733  2733 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[com.android.angle, com.google.android.apps.tachyon]
+01-27 21:23:50.995  2733  2733 V GraphicsEnvironment:   angle_gl_driver_selection_values=[angle, native]
+01-27 21:23:50.995  2733  2733 V GraphicsEnvironment: com.akirachang.ai.photographer is not listed in per-application setting
+01-27 21:23:50.995  2733  2733 V GraphicsEnvironment: ANGLE allowlist from config: 
+01-27 21:23:50.995  2733  2733 V GraphicsEnvironment: No special selections for ANGLE, returning default driver choice
+01-27 21:23:50.995  2733  2733 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+01-27 21:23:51.010  2733  2733 D OpenCV/StaticHelper: First attempt to load libs
+01-27 21:23:51.011  2733  2733 D OpenCV/StaticHelper: Trying to load library opencv_java4
+01-27 21:23:51.024  2733  2733 D nativeloader: Load /data/app/~~g6ZUYMCYUV5BJYMAoYyskQ==/com.akirachang.ai.photographer-wIG844QS2297NJGOVHr2AQ==/base.apk!/lib/arm64-v8a/libopencv_java4.so using class loader ns clns-10 (caller=/data/app/~~g6ZUYMCYUV5BJYMAoYyskQ==/com.akirachang.ai.photographer-wIG844QS2297NJGOVHr2AQ==/base.apk!classes2.dex): ok
+01-27 21:23:51.024  2733  2733 D OpenCV/StaticHelper: Library opencv_java4 loaded
+01-27 21:23:51.024  2733  2733 D OpenCV/StaticHelper: First attempt to load libs is OK
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: General configuration for OpenCV 4.13.0 =====================================
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Version control:               4.13.0-dirty
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Platform:
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Timestamp:                   2025-12-31T07:20:19Z
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Host:                        Linux 5.4.0-216-generic x86_64
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Target:                      Android 1 aarch64
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     CMake:                       3.22.1-g37088a8
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     CMake generator:             Ninja
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     CMake build tool:            /opt/android-sdk/cmake/3.22.1/bin/ninja
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Configuration:               Release
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Algorithm Hint:              ALGO_HINT_ACCURATE
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   CPU/HW features:
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Baseline:                    NEON FP16
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:       requested:                 DETECT
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Dispatched code generation:  NEON_DOTPROD NEON_FP16 NEON_BF16
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:       requested:                 NEON_FP16 NEON_BF16 NEON_DOTPROD
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:       NEON_DOTPROD (2 files):    + NEON_DOTPROD
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:       NEON_FP16 (2 files):       + NEON_FP16
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:       NEON_BF16 (0 files):       + NEON_BF16
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   C/C++:
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Built as dynamic libs?:      NO
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     C++ standard:                11
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     C++ Compiler:                /opt/android-sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++  (ver 18.0.3)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     C++ flags (Release):         -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security     -fsigned-char -W -Wall -Wreturn-type -Wnon-virtual-dtor -Waddress -Wsequence-point -Wformat -Wformat-security -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes -Wundef -Winit-self -Wpointer-arith -Wshadow -Wsign-promo -Wuninitialized -Winconsistent-missing-override -Wno-delete-non-virtual-dtor -Wno-unnamed-type-template-args -Wno-comment -Wno-deprecated-enum-enum-conversion -Wno-deprecated-anon-enum-enum-conversion -fdiagnostics-show-option -Qunused-arguments  -fvisibility=hidden -fvisibility-inlines-hidden  -O3 -DNDEBUG   -DNDEBUG
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     C++ flags (Debug):           -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security     -fsigned-char -W -Wall -Wreturn-type -Wnon-virtual-dtor -Waddress -Wsequence-point -Wformat -Wformat-security -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes -Wundef -Winit-self -Wpointer-arith -Wshadow -Wsign-promo -Wuninitialized -Winconsistent-missing-override -Wno-delete-non-virtual-dtor -Wno-unnamed-type-template-args -Wno-comment -Wno-deprecated-enum-enum-conversion -Wno-deprecated-anon-enum-enum-conversion -fdiagnostics-show-option -Qunused-arguments  -fvisibility=hidden -fvisibility-inlines-hidden  -fno-limit-debug-info   -O0 -DDEBUG -D_DEBUG -g
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     C Compiler:                  /opt/android-sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     C flags (Release):           -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security    -fsigned-char -W -Wall -Wreturn-type -Wnon-virtual-dtor -Waddress -Wsequence-point -Wformat -Wformat-security -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes -Wundef -Winit-self -Wpointer-arith -Wshadow -Wsign-promo -Wuninitialized -Winconsistent-missing-override -Wno-delete-non-virtual-dtor -Wno-unnamed-type-template-args -Wno-comment -Wno-deprecated-enum-enum-conversion -Wno-deprecated-anon-enum-enum-conversion -fdiagnostics-show-option -Qunused-arguments  -fvisibility=hidden -fvisibility-inlines-hidden  -O3 -DNDEBUG   -DNDEBUG
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     C flags (Debug):             -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security    -fsigned-char -W -Wall -Wreturn-type -Wnon-virtual-dtor -Waddress -Wsequence-point -Wformat -Wformat-security -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes -Wundef -Winit-self -Wpointer-arith -Wshadow -Wsign-promo -Wuninitialized -Winconsistent-missing-override -Wno-delete-non-virtual-dtor -Wno-unnamed-type-template-args -Wno-comment -Wno-deprecated-enum-enum-conversion -Wno-deprecated-anon-enum-enum-conversion -fdiagnostics-show-option -Qunused-arguments  -fvisibility=hidden -fvisibility-inlines-hidden  -fno-limit-debug-info   -O0 -DDEBUG -D_DEBUG -g
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Linker flags (Release):      -Wl,-z,max-page-size=16384 -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments  -Wl,-z,max-page-size=16384  -Wl,--as-needed -Wl,--no-undefined -Wl,--gc-sections  
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Linker flags (Debug):        -Wl,-z,max-page-size=16384 -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments  -Wl,-z,max-page-size=16384  -Wl,--as-needed -Wl,--no-undefined  
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     ccache:                      YES
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Precompiled headers:         NO
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Extra dependencies:          z dl m log
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     3rdparty dependencies:       libcpufeatures libprotobuf ade tbb ittnotify libjpeg-turbo libwebp libpng libtiff libopenjp2 IlmImf tegra_hal kleidicv_hal kleidicv kleidicv_thread
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   OpenCV modules:
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     To be built:                 calib3d core dnn features2d flann gapi highgui imgcodecs imgproc java ml objdetect photo stitching video videoio
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Disabled:                    world
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Disabled by dependency:      -
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Unavailable:                 python2 python3 ts
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Applications:                -
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Documentation:               NO
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Non-free algorithms:         NO
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Android NDK:                   /opt/android-sdk/ndk/27.2.12479018 (ver 27.2.12479018)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Android ABI:                 arm64-v8a
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     NDK toolchain:               aarch64-linux-android-clang
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     STL type:                    c++_shared
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Native API level:            21
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Android SDK:                   /opt/android-sdk (tools:  build tools: 34.0.0)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   GUI:                           NONE
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Media I/O: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     ZLib:                        z (ver 1.3.0.1)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     JPEG:                        build-libjpeg-turbo (ver 3.1.2-70)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:       SIMD Support Request:      YES
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:       SIMD Support:              YES
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     WEBP:                        build (ver decoder: 0x0210, encoder: 0x0210, demux: 0x0107)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     AVIF:                        NO
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     PNG:                         build (ver 1.6.53)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:       SIMD Support Request:      YES
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:       SIMD Support:              YES (Arm NEON)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     TIFF:                        build (ver 42 - 4.7.1)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     JPEG 2000:                   build (ver 2.5.3)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     OpenEXR:                     build (ver 2.3.0)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     GIF:                         YES
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     HDR:                         YES
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     SUNRASTER:                   YES
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     PXM:                         YES
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     PFM:                         YES
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Video I/O:
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Orbbec:                      NO
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:    MEDIANDK:                     YES
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:    NDK Camera:                   NO
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Parallel framework:            TBB (ver 2022.1 interface 12150)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Trace:                         YES (with Intel ITT(3.25.4))
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Other third-party libraries:
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Custom HAL:                  YES (carotene (ver 0.0.1) KleidiCV (ver 0.7.0))
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Protobuf:                    build (3.19.1)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Flatbuffers:                 builtin/3rdparty (25.9.23)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Python (for build):            /usr/bin/python3
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Java:                          export all functions
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     ant:                         NO
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Java wrappers:               YES (GRADLE)
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:     Java tests:                  NO
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: 
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper:   Install to:                    /home/ci/build/o4a/install
+01-27 21:23:51.025  2733  2733 I OpenCV/StaticHelper: -----------------------------------------------------------------
+01-27 21:23:51.025  2733  2733 I SmartCameraApp: ✅ OpenCV 4.13.0 loaded successfully
+01-27 21:23:51.028  1830  2672 D BackgroundInstallControlService: Package event received: 0
+01-27 21:23:51.028  1830  2672 D BackgroundInstallControlService: Package event received: 0
+01-27 21:23:51.028  2733  2785 I DisplayManager: Choreographer implicitly registered for the refresh rate.
+01-27 21:23:51.028  2095  2095 I pixel-thermal: VIRTUAL-USB-UI:0 raw data: USB-MINUS-CHARGER:-4462 VIRTUAL-USB-UI:0 charging_therm:30348 usb_pwr_therm:25886 
+01-27 21:23:51.028  2095  2095 I pixel-thermal: VIRTUAL-USB-THROTTLING:0 raw data: USB-MINUS-CHARGER:-4462 VIRTUAL-USB-THROTTLING:0 usb_pwr_therm:25886 
+01-27 21:23:51.028  2095  2095 I pixel-thermal: VIRTUAL-SKIN-CHARGE-WLC:27.9753 raw data: VIRTUAL-SKIN-CHARGE-WLC:27975.3 charging_therm:30348 soc_therm:31082 usb_pwr_therm:25886 
+01-27 21:23:51.028  2095  2095 I pixel-thermal: quiet_therm:28.7 raw data: quiet_therm:28700 
+01-27 21:23:51.028  2095  2095 I pixel-thermal: VIRTUAL-SKIN-CHARGE:27.1561 raw data: VIRTUAL-SKIN-CHARGE:27156.1 VIRTUAL-SKIN-CHARGE-SUB-0:26274.5 VIRTUAL-SKIN-CHARGE-SUB-1:27156.1 btmspkr_therm:25909 charging_therm:30348 disp_therm:26097 north_therm:28700 quiet_therm:28700 rfpa_therm:28789 soc_therm:31082 usb_pwr_therm:25886 
+01-27 21:23:51.028  2095  2095 I pixel-thermal: usb_pwr_therm:25.886 raw data: usb_pwr_therm:25886 
+01-27 21:23:51.028  2095  2095 I pixel-thermal: VIRTUAL-SKIN-SPEAKER-MODEL: model_input: [26000.00 25909.00 30348.00 26097.00 28700.00 28700.00 28789.00 31082.00 25886.00 ]
+01-27 21:23:51.028  2095  2095 I pixel-thermal: Ignoring stale previous samples for VIRTUAL-SKIN-SPEAKER-MODEL
+01-27 21:23:51.029  2095  2095 I native  : I0000 00:00:1769520231.028976    2095 thermal_tflite_wrapper.cc:261] ThermalTfliteInvoke
+01-27 21:23:51.029  2095  2095 I pixel-thermal: VIRTUAL-SKIN-SPEAKER-MODEL: model_output: [26376.2 ]
+01-27 21:23:51.029  2095  2095 I pixel-thermal: VIRTUAL-SKIN-SPEAKER-MODEL: predicted_value: [26376.2 ]
+01-27 21:23:51.029  2095  2095 I pixel-thermal: cellular-emergency:26.9497 raw data: VIRTUAL-SKIN:26949.7 cellular-emergency:26949.7 
+01-27 21:23:51.029  2095  2095 I pixel-thermal: VIRTUAL-SKIN-SPEAKER:26.3762 raw data: VIRTUAL-SKIN-SPEAKER:26376.2 VIRTUAL-SKIN-SPEAKER-MODEL:26376.2 
+01-27 21:23:51.029  2095  2095 I pixel-thermal: VIRTUAL-SKIN-ODPM-MODEL: model_input: [28789.00 28700.00 30348.00 25886.00 25909.00 26097.00 28700.00 31082.00 26000.00 160.45 1.42 10.94 18.10 1.50 18.79 ]
+01-27 21:23:51.029  2095  2095 I pixel-thermal: Ignoring stale previous samples for VIRTUAL-SKIN-ODPM-MODEL
+01-27 21:23:51.029  2095  2095 I native  : I0000 00:00:1769520231.029098    2095 thermal_tflite_wrapper.cc:261] ThermalTfliteInvoke
+01-27 21:23:51.029  2095  2095 I pixel-thermal: VIRTUAL-SKIN-ODPM-MODEL: model_output: [26373.7 ]
+01-27 21:23:51.029  2095  2095 I pixel-thermal: VIRTUAL-SKIN-ODPM-MODEL: predicted_value: [26373.7 ]
+01-27 21:23:51.029  2095  2095 I pixel-thermal: btmspkr_therm:25.909 raw data: btmspkr_therm:25909 
+01-27 21:23:51.029  2095  2095 I pixel-thermal: CPU_THROTTLE_SEVERE:0 raw data: CPU_THROTTLE_SEVERE:0 
+01-27 21:23:51.029  2095  2095 I pixel-thermal: VIRTUAL-SKIN:26.9497 raw data: VIRTUAL-SKIN:26949.7 
+01-27 21:23:51.029  2095  2095 I pixel-thermal: CPU_THROTTLE_SEVERE:0 raw data: CPU_THROTTLE_SEVERE:0 
+01-27 21:23:51.029  2095  2095 I pixel-thermal: VIRTUAL-SKIN-DISPLAY:26.9497 raw data: VIRTUAL-SKIN:26949.7 VIRTUAL-SKIN-DISPLAY:26949.7 
+01-27 21:23:51.029  2095  2095 I pixel-thermal: soc:1 raw data: soc:1 
+01-27 21:23:51.029  2095  2095 I pixel-thermal: rfpa_therm:28.789 raw data: rfpa_therm:28789 
+01-27 21:23:51.029  2095  2095 I pixel-thermal: battery:26 raw data: battery:26000 
+01-27 21:23:51.029  2095  2095 I pixel-thermal: BCL_AUDIO_BAACL:0 raw data: BCL_AUDIO_BAACL:0 battery:26000 soc:1 
+01-27 21:23:51.029  2733  2785 D vulkan  : searching for layers in '/data/app/~~g6ZUYMCYUV5BJYMAoYyskQ==/com.akirachang.ai.photographer-wIG844QS2297NJGOVHr2AQ==/lib/arm64'
+01-27 21:23:51.030  2733  2785 D vulkan  : searching for layers in '/data/app/~~g6ZUYMCYUV5BJYMAoYyskQ==/com.akirachang.ai.photographer-wIG844QS2297NJGOVHr2AQ==/base.apk!/lib/arm64-v8a'
+01-27 21:23:51.030  2095  2095 I pixel-thermal: north_therm:28.7 raw data: north_therm:28700 
+01-27 21:23:51.030  2095  2095 I pixel-thermal: charging_therm:30.348 raw data: charging_therm:30348 
+01-27 21:23:51.030  2095  2095 I pixel-thermal: disp_therm:26.097 raw data: disp_therm:26097 
+01-27 21:23:51.030  2095  2095 I pixel-thermal: soc_therm:31.082 raw data: soc_therm:31082 
+01-27 21:23:51.033  1830  1881 W AppWarnings: Showing PageSizeMismatchDialog for package com.akirachang.ai.photographer
+01-27 21:23:51.036  2733  2733 D DesktopExperienceFlags: Toggle override initialized to: false
+01-27 21:23:51.036  1830  2357 D IntervalStats: Unable to parse usage stats packages: [254]
+01-27 21:23:51.039  2733  2733 E ashmem  : Pinning is deprecated since Android Q. Please use trim or other methods.
+01-27 21:23:51.042  1830  1881 D WindowOnBackDispatcher: setTopOnBackInvokedCallback (unwrapped): android.app.Dialog$$ExternalSyntheticLambda2@2d48290
+01-27 21:23:51.043  1830  1881 D CoreBackPreview: Window{a20619 u0 android}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.WindowOnBackInvokedDispatcher$OnBackInvokedCallbackWrapper@fa3a789, mPriority=-1, mIsAnimationCallback=false, mOverrideBehavior=0}
+01-27 21:23:51.044  1830  2357 D IntervalStats: Unable to parse usage stats packages: [254]
+01-27 21:23:51.050  2733  2733 D CompatChangeReporter: Compat change id reported: 377864165; UID 10416; state: ENABLED
+01-27 21:23:51.050  2733  2733 D DesktopModeFlags: Toggle override initialized to: OVERRIDE_UNSET
+01-27 21:23:51.051  1830  2357 D IntervalStats: Unable to parse usage stats packages: [254]
+01-27 21:23:51.053  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant]
+01-27 21:23:51.053  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant,en_US]
+01-27 21:23:51.053  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant,en_US]
+01-27 21:23:51.053  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant]
+01-27 21:23:51.053  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant,en_US]
+01-27 21:23:51.055  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant,en_US]
+01-27 21:23:51.055  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant]
+01-27 21:23:51.055  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant,en_US]
+01-27 21:23:51.055  1830  2357 D IntervalStats: Unable to parse usage stats packages: [254]
+01-27 21:23:51.056  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant,en_US]
+01-27 21:23:51.056  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant,en_US]
+01-27 21:23:51.057  1830  2357 D IntervalStats: Unable to parse usage stats packages: [765]
+01-27 21:23:51.059  2733  2733 I ContentCaptureHelper: Setting logging level to OFF
+01-27 21:23:51.059  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant,en_US]
+01-27 21:23:51.061  1830  2357 D IntervalStats: Unable to parse usage stats packages: [765, 769]
+01-27 21:23:51.062  1830  2357 V Configuration: Updating configuration, locales updated from [] to [zh_TW_#Hant,en_US]
+01-27 21:23:51.063  1830  2357 D IntervalStats: Unable to parse usage stats packages: [769, 770, 771, 772]
+01-27 21:23:51.064  1830  2357 D IntervalStats: Unable to parse event packages: [772]
+01-27 21:23:51.092  2733  2733 D WindowOnBackDispatcher: setTopOnBackInvokedCallback (unwrapped): android.app.Activity$$ExternalSyntheticLambda0@2a59e6f
+01-27 21:23:51.092  1830  4695 D CoreBackPreview: Window{47aac3e u0 com.akirachang.ai.photographer/com.akirachang.ai.photographer.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@1c8a0ee, mPriority=-1, mIsAnimationCallback=false, mOverrideBehavior=0}
+01-27 21:23:51.160  2733  2733 I ai.photographer: hiddenapi: Accessing hidden method Landroid/os/SystemProperties;->addChangeCallback(Ljava/lang/Runnable;)V (runtime_flags=0, domain=platform, api=unsupported) from Landroidx/compose/ui/platform/AndroidComposeView$Companion; (domain=app, TargetSdkVersion=36) using reflection: allowed
+01-27 21:23:51.164  2733  2733 E VibratorInfo: Invalid frequency profile received from HAL. resonantFrequencyHz=NaN, frequenciesHz=null, outputAccelerationsGs=null
+01-27 21:23:51.177  2733  2733 D LiveCameraSource: [v2.8.2 Init] BuildConfig.ENABLE_RENDERSCRIPT=true, useRenderScript=true
+01-27 21:23:51.191  2733  2733 D CameraRepositoryImpl: getPreviewStream: Delegating to CameraInputSource
+01-27 21:23:51.197  2733  2733 D LiveCameraSource: getPreviewStream: Creating ImageAnalysis analyzer
+01-27 21:23:51.197  2733  2733 I LiveCameraSource: Preview stream analyzer stored - will be set after camera binds
+01-27 21:23:51.197  2733  2733 I CameraViewModel: Preview bitmap analysis initialized (v2.5.1 Phase 7)
+01-27 21:23:51.198  2733  2733 I CameraViewModel: Guideline analysis initialized (v2.7.0 Phase 2 Sprint 4)
+01-27 21:23:51.199  1378  1378 D usf_sensor_hal: accelerometer: Enter Batch. Period = 66667000, latency = 0.
+01-27 21:23:51.200  1613  1613 D AOC     : A3:MSG: usf_sensor.cc, 2471: USF: Received reconfig sampling request for LSM6DSV Accelerometer.
+01-27 21:23:51.201  1378  1378 D usf_sensor_hal: IMU temperature: Enter Batch. Period = 533334000, latency = 0.
+01-27 21:23:51.202  1613  1613 D AOC     : A3:MSG: usf_sensor.cc, 2471: USF: Received reconfig sampling request for LSM6DSV Temperature.
+01-27 21:23:51.202  1378  2011 D usf_sensor_hal: accelerometer: Enter Flush
+01-27 21:23:51.202  1378  2057 I sensor-suez: Vendor atom [id = 100243] reported.
+01-27 21:23:51.203  1378  2057 I sensor-suez: Vendor atom [id = 100243] reported.
+01-27 21:23:51.203  1378  2011 D usf_sensor_hal: magnetometer: Enter Batch. Period = 66667000, latency = 0.
+01-27 21:23:51.203  1378  2057 I sensor-suez: Vendor atom [id = 100243] reported.
+01-27 21:23:51.203  1378  2011 D usf_sensor_hal: magnetometer: Enter Activate. Enable = 1.
+01-27 21:23:51.210  1378  2057 I sensor-suez: Vendor atom [id = 100245] reported.
+01-27 21:23:51.210  1613  1613 D AOC     : A3:MSG: usf_sensor.cc, 1825: USF: Received start sampling request for MMC5616 Magnetometer (active:2).
+01-27 21:23:51.212  1613  1613 D AOC     : A3:MSG: mmc5616_device.cc, 448: USF: MMC56160: mmc5616_enable_measure odr = 20.
+01-27 21:23:51.220  1378  2011 W usf_sensor_hal: Registry node "/dev/magcc/0" not found.
+01-27 21:23:51.220  1378  2057 I sensor-suez: Vendor atom [id = 100242] reported.
+01-27 21:23:51.220  1378  2057 I sensor-suez: Vendor atom [id = 100243] reported.
+01-27 21:23:51.220  2733  2733 I DeviceSensorManager: Orientation tracking started
+01-27 21:23:51.220  2733  2733 I CameraViewModel: Orientation tracking initialized
+01-27 21:23:51.245  2733  2733 D VRI[MainActivity]: WindowInsets changed: 1080x2424 statusBars:[0,152,0,0] navigationBars:[0,0,0,63] mandatorySystemGestures:[0,184,0,84] 
+01-27 21:23:51.252  2733  2733 I HWUI    : Using FreeType backend (prop=Auto)
+01-27 21:23:51.262  1378  2057 I sensor-suez: Vendor atom [id = 100245] reported.
+01-27 21:23:51.268   654   763 W libbinder.ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10416 pid=2733
+01-27 21:23:51.268   654  3232 W libbinder.ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10416 pid=0
+01-27 21:23:51.268   654   763 D libbinder.PermissionCache: checking android.permission.ACCESS_SURFACE_FLINGER for uid=10416 => denied (127 us)
+01-27 21:23:51.268   654  3232 D libbinder.PermissionCache: checking android.permission.ACCESS_SURFACE_FLINGER for uid=10416 => denied (277 us)
+01-27 21:23:51.268   654   763 W libbinder.ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10416 pid=2733
+01-27 21:23:51.268   654   763 D libbinder.PermissionCache: checking android.permission.ROTATE_SURFACE_FLINGER for uid=10416 => denied (61 us)
+01-27 21:23:51.268   654   763 W libbinder.ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10416 pid=2733
+01-27 21:23:51.268   654   763 D libbinder.PermissionCache: checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10416 => denied (46 us)
+01-27 21:23:51.268   654  3232 W libbinder.ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10416 pid=0
+01-27 21:23:51.268   654  3232 D libbinder.PermissionCache: checking android.permission.ROTATE_SURFACE_FLINGER for uid=10416 => denied (134 us)
+01-27 21:23:51.301  2733  2733 D DeviceSensorManager: Sensor accuracy changed: LSM6DSV Accelerometer, accuracy: 3
+01-27 21:23:51.301  1830  4695 W libbinder.ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10416 pid=0
+01-27 21:23:51.301  1830  4695 D libbinder.PermissionCache: checking android.permission.ACCESS_SURFACE_FLINGER for uid=10416 => denied (176 us)
+01-27 21:23:51.301  1830  4695 W libbinder.ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10416 pid=0
+01-27 21:23:51.301  1830  4695 D libbinder.PermissionCache: checking android.permission.ROTATE_SURFACE_FLINGER for uid=10416 => denied (49 us)
+01-27 21:23:51.301  1830  4695 W libbinder.ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10416 pid=0
+01-27 21:23:51.301  2733  2733 D DeviceSensorManager: Sensor accuracy changed: MMC5616 Magnetometer, accuracy: 3
+01-27 21:23:51.301  1830  4695 D libbinder.PermissionCache: checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10416 => denied (33 us)
+01-27 21:23:51.304  1830  1880 I ActivityTaskManager: Displayed com.akirachang.ai.photographer/.MainActivity for user 0: +756ms
+01-27 21:23:51.304  2733  2733 I CameraViewModel: bindCameraToLifecycle: Binding camera to lifecycle
+01-27 21:23:51.304  2733  2733 I LiveCameraSource: bindToLifecycle: Initializing ProcessCameraProvider
+01-27 21:23:51.307  2733  2733 D QuirkSettingsLoader: QuirkSettings$MetadataHolderService is not found.
+01-27 21:23:51.307  2733  2733 D CameraX : QuirkSettings from app metadata: null
+01-27 21:23:51.307  2733  2733 D CameraX : QuirkSettings by default: QuirkSettings{enabledWhenDeviceHasQuirk=true, forceEnabledQuirks=[], forceDisabledQuirks=[]}
+01-27 21:23:51.309  2733  2733 I CameraRepositoryImpl: Camera bound to lifecycle via LiveCameraSource (real device)
+01-27 21:23:51.309  2733  2733 I CameraViewModel: bindCameraToLifecycle: Camera bound successfully
+01-27 21:23:51.311  2733  2841 D DeviceQuirks: camera2 DeviceQuirks = CaptureSessionShouldUseMrirQuirk
+01-27 21:23:51.311  2733  2841 I CameraManagerGlobal: Connecting to camera service
+01-27 21:23:51.320  9720  9720 D BaseActivity: Launcher flags updated: [] -[state_started]
+01-27 21:23:51.320  9720  9720 D BaseDepthController: setSurface:
+01-27 21:23:51.320  9720  9720 D BaseDepthController: 	mWaitingOnSurfaceValidity: false
+01-27 21:23:51.320  9720  9720 D BaseDepthController: 	mBaseSurface: null
+01-27 21:23:51.320  9720  9720 D BaseDepthController: mSurface is null and mCurrentBlur is: 0
+01-27 21:23:51.320  9720  9720 D LauncherStateManager: StateManager.goToState: fromState: Normal, toState: Normal, partial trace:
+01-27 21:23:51.320  9720  9720 D LauncherStateManager: 	at com.android.launcher3.statemanager.StateManager.moveToRestState(go/retraceme 9a6b77a940ad698555d5d5a48afbac6e139691515c032a6c2cfa474a36c02985:6)
+01-27 21:23:51.320  9720  9720 D LauncherStateManager: 	at com.android.launcher3.statemanager.StateManager.moveToRestState(go/retraceme 9a6b77a940ad698555d5d5a48afbac6e139691515c032a6c2cfa474a36c02985:2)
+01-27 21:23:51.320  9720  9720 D LauncherStateManager: 	at com.android.launcher3.statemanager.StatefulActivity.onStop(go/retraceme 9a6b77a940ad698555d5d5a48afbac6e139691515c032a6c2cfa474a36c02985:32)
+01-27 21:23:51.320  9720  9720 D LauncherStateManager: StateManager.onRepeatStateSetAborted: state: Normal
+01-27 21:23:51.320  9720  9720 D ActivityContext: hideKeyboard
+01-27 21:23:51.320  9720  9720 D ActivityContext: isImeShown: false
+01-27 21:23:51.320  9720  9720 D StatsLog: LAUNCHER_ONSTOP
+01-27 21:23:51.321  9720  9720 D StatsLog: LAUNCHER_GOOGLE_SEARCH_RESTORE_LIST_SIZE_AFTER_ACTIVITY_RESTART
+01-27 21:23:51.323  2890 15807 D UidImportanceSource: onUidImportanceBlock: uid=10223 importance=125
+01-27 21:23:51.324  2890 15807 D UidImportanceSource: onUidImportanceBlock: packages=[com.google.android.apps.nexuslauncher] importance=125
+01-27 21:23:51.324  2890 15807 D UidImportanceSource: onUidImportanceBlock: packageName=com.google.android.apps.nexuslauncher importance=125
+01-27 21:23:51.324  2890 15807 D BusinessScope: Enqueuing the block
+01-27 21:23:51.324  2890  3134 D BusinessScope: Start running the #35409 block
+01-27 21:23:51.324  2890  3134 D BusinessScope: Enqueuing the block
+01-27 21:23:51.324  2890  3134 D ImpulseStateSource: Notify clients: 17700
+01-27 21:23:51.324  2890  3134 D BusinessScope: Finish running the #35409 block
+01-27 21:23:51.324  2890  3134 D BusinessScope: Start running the #35410 block
+01-27 21:23:51.324  2890  3134 D BusinessScope: Finish running the #35410 block
+01-27 21:23:51.327  1830  2672 D BackgroundInstallControlService: Package event received: 0
+01-27 21:23:51.338  2733  2841 D CameraRepository: Added camera: 0
+01-27 21:23:51.341  2733  2841 D CameraQuirks: camera2 CameraQuirks = 
+01-27 21:23:51.346  2733  2841 I Camera2CameraInfo: Device Level: INFO_SUPPORTED_HARDWARE_LEVEL_FULL
+01-27 21:23:51.349  2733  2841 D CameraRepository: Added camera: 1
+01-27 21:23:51.349  2733  2841 D CameraQuirks: camera2 CameraQuirks = 
+01-27 21:23:51.349  2733  2841 I Camera2CameraInfo: Device Level: INFO_SUPPORTED_HARDWARE_LEVEL_FULL
+01-27 21:23:51.350  2733  2841 D CameraValidator: Verifying camera lens facing on tegu, lensFacingInteger: null
+01-27 21:23:51.350  2733  2733 D LiveCameraSource: ProcessCameraProvider obtained successfully
+01-27 21:23:51.351  2733  2733 D LiveCameraSource: [v2.9.0-beta3] Found 29 supported YUV_420_888 resolutions
+01-27 21:23:51.351  2733  2733 I LiveCameraSource: [v2.9.0-beta5] Device: Google Pixel 9a, 29 resolutions
+01-27 21:23:51.352  2733  2733 I LiveCameraSource: [v2.9.0-beta5] Acceptable: 640x360, 640x480, 720x480, 800x600, 1024x576, 1280x720
+01-27 21:23:51.352  2733  2733 I LiveCameraSource: [v2.9.6] Pixel: 1280x720 (upgraded for better quality)
+01-27 21:23:51.352  2733  2733 I LiveCameraSource: [v2.9.0-beta5] Smart Resolution: target=1280x720, filter≤1920x1080
+01-27 21:23:51.352  2733  2733 I LiveCameraSource: [v2.9.0-beta4] Using ResolutionSelector with target=1280x720, filter=<= 800px
+01-27 21:23:51.353  2733  2733 D LiveCameraSource: [v2.9.0-beta3 Supported Resolutions] YUV_420_888 (29 total):
+01-27 21:23:51.353  2733  2733 D LiveCameraSource: [v2.9.0-beta3] 176x144, 320x240, 352x288, 640x360, 640x480, 720x480, 800x600, 1024x576, 1024x768, 1280x720, 1080x1080, 1280x960, 1344x1008, 1440x1080, 1792x1008, 1920x960, 1600x1200, 1920x1080, 1920x1440, 2048x1536, 2560x1280, 1920x1920, 2688x1512, 2560x1920, 3264x1836, 3264x2448, 4000x2000, 3840x2160, 4000x3000
+01-27 21:23:51.353  2733  2733 D LiveCameraSource: [v2.9.0-beta3] - 176x144 = 0.03MP
+01-27 21:23:51.353  2733  2733 D LiveCameraSource: [v2.9.0-beta3] - 320x240 = 0.08MP
+01-27 21:23:51.353  2733  2733 D LiveCameraSource: [v2.9.0-beta3] - 352x288 = 0.10MP
+01-27 21:23:51.353  2733  2733 D LiveCameraSource: [v2.9.0-beta3] - 640x360 = 0.23MP
+01-27 21:23:51.354  2733  2733 D LiveCameraSource: [v2.9.0-beta3] - 640x480 = 0.31MP
+01-27 21:23:51.355  2733  2733 I LiveCameraSource: ✅ Preview UseCase created with Fallback SurfaceTexture + ResolutionSelector
+01-27 21:23:51.356  2733  2757 I ai.photographer: Compiler allocated 5145KB to compile void android.view.ViewRootImpl.performTraversals()
+01-27 21:23:51.357  2733  2733 I LiveCameraSource: ✅ ImageAnalysis UseCase created with ROTATION_0 + ResolutionSelector
+01-27 21:23:51.359  2733  2733 I LiveCameraSource: ✅ ImageCapture UseCase created (dynamic rotation)
+01-27 21:23:51.359  2733  2733 D LiveCameraSource: Rebinding camera - selector: BACK
+01-27 21:23:51.359  2733  2733 D LiveCameraSource: Previous UseCases unbound successfully
+01-27 21:23:51.369  2733  2733 I LiveCameraSource: [v2.9.0-beta5 Filter] Before: 29 sizes, After: 17 sizes
+01-27 21:23:51.369  2733  2733 I LiveCameraSource: [v2.9.0-beta5 Filter] Allowed: 1280x960, 1344x1008, 1440x1080, 1024x768, 800x600, 640x480, 320x240, 352x288, 176x144, 720x480, 1080x1080, 1280x720, 1792x1008, 1920x1080, 1024x576, 640x360, 1920x960
+01-27 21:23:51.371  2733  2733 I LiveCameraSource: [v2.9.0-beta5 Filter] Before: 29 sizes, After: 17 sizes
+01-27 21:23:51.371  2733  2733 I LiveCameraSource: [v2.9.0-beta5 Filter] Allowed: 1280x960, 1344x1008, 1440x1080, 1024x768, 800x600, 640x480, 320x240, 352x288, 176x144, 720x480, 1080x1080, 1280x720, 1792x1008, 1920x1080, 1024x576, 640x360, 1920x960
+01-27 21:23:51.373  2733  2733 D DynamicRangeResolver: Resolved dynamic range for use case androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd3 to no compatible HDR dynamic ranges.
+01-27 21:23:51.373  2733  2733 D DynamicRangeResolver: DynamicRange@bf94dce{encoding=UNSPECIFIED, bitDepth=0}
+01-27 21:23:51.373  2733  2733 D DynamicRangeResolver: ->
+01-27 21:23:51.373  2733  2733 D DynamicRangeResolver: DynamicRange@e1d72c9{encoding=SDR, bitDepth=8}
+01-27 21:23:51.375  2733  2733 D CameraQuirks: camera2 CameraQuirks = 
+01-27 21:23:51.375  2733  2733 D CameraQuirks: camera2 CameraQuirks = 
+01-27 21:23:51.375  2733  2733 D CameraQuirks: camera2 CameraQuirks = 
+01-27 21:23:51.377  2733  2733 D DeferrableSurface: Surface created[total_surfaces=1, used_surfaces=0](androidx.camera.core.processing.SurfaceEdge$SettableSurface@e82110b}
+01-27 21:23:51.378  2733  2733 D DeferrableSurface: Surface created[total_surfaces=2, used_surfaces=0](androidx.camera.core.SurfaceRequest$2@3beb2e7}
+01-27 21:23:51.378  2733  2733 D DeferrableSurface: New surface in use[total_surfaces=2, used_surfaces=1](androidx.camera.core.SurfaceRequest$2@3beb2e7}
+01-27 21:23:51.378  2733  2733 D DeferrableSurface: use count+1, useCount=1 androidx.camera.core.SurfaceRequest$2@3beb2e7
+01-27 21:23:51.380  2733  2733 D DeferrableSurface: Surface created[total_surfaces=3, used_surfaces=1](androidx.camera.core.impl.ImmediateSurface@4b33000}
+01-27 21:23:51.381  2733  2733 D ImageCapture: createPipeline(cameraId: 0, streamSpec: StreamSpec{resolution=4000x3000, dynamicRange=DynamicRange@e1d72c9{encoding=SDR, bitDepth=8}, expectedFrameRateRange=[0, 0], implementationOptions=androidx.camera.camera2.impl.Camera2ImplConfig@f517df, zslDisabled=false})
+01-27 21:23:51.382  2733  2733 D DeviceQuirks: core DeviceQuirks = SurfaceOrderQuirk
+01-27 21:23:51.383  2733  2733 D DeferrableSurface: Surface created[total_surfaces=4, used_surfaces=1](androidx.camera.core.impl.ImmediateSurface@1dd06f5}
+01-27 21:23:51.384  2733  2733 D ImageCapture: onCameraControlReady
+01-27 21:23:51.384  2733  2733 D Camera2CameraControlImp: setFlashMode: mFlashMode = 2
+01-27 21:23:51.384  2733  2733 I LiveCameraSource: ✅ Camera bound successfully: Preview + ImageAnalysis + ImageCapture
+01-27 21:23:51.384  2733  2733 I LiveCameraSource: Camera sensor orientation: 90°
+01-27 21:23:51.384  2733  2733 I LiveCameraSource: Camera should now start on real device
+01-27 21:23:51.384  2733  2733 I LiveCameraSource: Initial device rotation: 0
+01-27 21:23:51.385  1378  2011 D usf_sensor_hal: accelerometer: Enter Flush
+01-27 21:23:51.385  1378  2057 I sensor-suez: Vendor atom [id = 100243] reported.
+01-27 21:23:51.385  2733  2733 I LiveCameraSource: OrientationEventListener enabled
+01-27 21:23:51.385  2733  2733 D LiveCameraSource: ImageCapture targetRotation updated: 0
+01-27 21:23:51.385  2733  2733 I LiveCameraSource: Initial targetRotation set to: 0
+01-27 21:23:51.385  2733  2733 I LiveCameraSource: ✅ Preview stream analyzer reattached after rebind - frames should flow
+01-27 21:23:51.385  2733  2733 D LiveCameraSource: No pending HDR exposure compensation to apply
+01-27 21:23:51.386  2733  2733 D LiveCameraSource: [Fallback] SurfaceProvider requested: 1280x960
+01-27 21:23:51.386  2733  2733 W LiveCameraSource: [v2.9.0-beta4] Preview resolution mismatch! Requested=1280x960, Expected=1280x720, WithinFilter(<= 800px): false
+01-27 21:23:51.386  2733  2733 D LiveCameraSource: [SurfaceTexture] Created #1 | HashCode: 6235990 | Leaked: 1
+01-27 21:23:51.386  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Use case androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085 ACTIVE
+01-27 21:23:51.386  2733  2733 I LiveCameraSource: ✅ Custom Surface provided to Preview UseCase
+01-27 21:23:51.387  2733  2887 D UseCaseAttachState: Active and attached use case: [] for camera: 0
+01-27 21:23:51.389  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Use case androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775 ACTIVE
+01-27 21:23:51.389  2733  2887 D UseCaseAttachState: Active and attached use case: [] for camera: 0
+01-27 21:23:51.391  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Use case androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132 INACTIVE
+01-27 21:23:51.391  2733  2887 D UseCaseAttachState: Active and attached use case: [] for camera: 0
+01-27 21:23:51.393  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Use case androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085 ACTIVE
+01-27 21:23:51.394  2733  2887 D UseCaseAttachState: Active and attached use case: [] for camera: 0
+01-27 21:23:51.395  2733  2887 D UseCaseAttachState: Active and attached use case: [] for camera: 0
+01-27 21:23:51.398  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Use cases [androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132, androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085] now ATTACHED
+01-27 21:23:51.399  2733  2887 D Camera2CameraControlImp: setActive: isActive = true
+01-27 21:23:51.400  2733  2887 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:51.402  2733  2887 D UseCaseAttachState: Active and attached use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775] for camera: 0
+01-27 21:23:51.403  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Resetting Capture Session
+01-27 21:23:51.404  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Skipping Capture Session state check due to current camera state: INITIALIZED and previous session status: false
+01-27 21:23:51.404  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Releasing session in state INITIALIZED
+01-27 21:23:51.404  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to force open the camera.
+01-27 21:23:51.404  2733  2887 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 1, Already Open: false (Previous state: null)] --> SUCCESS
+01-27 21:23:51.405  2733  2887 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:51.405  2733  2887 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:51.405  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:51.405  2733  2887 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:51.405  2733  2887 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:51.405  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:51.405  2733  2887 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:51.405  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:51.405  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: INITIALIZED --> OPENING
+01-27 21:23:51.405  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:51.405  2733  2887 D CameraStateMachine: Publishing new public camera state CameraState{type=OPENING, error=null}
+01-27 21:23:51.406  2733  2887 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:51.410  1549  7187 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:51.410  1549  7187 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:51.410  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:51.411  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:51.411  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:51.411  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@9656c3a activeResuming = true
+01-27 21:23:51.412  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Use case androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775 ACTIVE
+01-27 21:23:51.412  2733  2887 D UseCaseAttachState: Active and attached use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775] for camera: 0
+01-27 21:23:51.413  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Use case androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132 INACTIVE
+01-27 21:23:51.414  2733  2887 D UseCaseAttachState: Active and attached use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775] for camera: 0
+01-27 21:23:51.415  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Use case androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085 ACTIVE
+01-27 21:23:51.415  2733  2887 D UseCaseAttachState: Active and attached use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775] for camera: 0
+01-27 21:23:51.416  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Use case androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132 ACTIVE
+01-27 21:23:51.417  2733  2887 D UseCaseAttachState: Active and attached use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:51.418  2733  2887 D UseCaseAttachState: Active and attached use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:51.450  2733  2733 I LiveCameraSource: OrientationEventListener first trigger confirmed
+01-27 21:23:51.548  1830  2367 D ActivityManager: freezing 2118 com.google.android.documentsui
+01-27 21:23:51.549  1830  2367 D ActivityManager: freezing 17068 com.android.chrome
+01-27 21:23:51.550  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+01-27 21:23:51.550  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+01-27 21:23:51.550  1830  2620 D InetDiagMessage: Destroyed live tcp sockets for uids={10092} in 1ms
+01-27 21:23:51.552  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+01-27 21:23:51.552  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+01-27 21:23:51.552  1830  2620 D InetDiagMessage: Destroyed live tcp sockets for uids={10216} in 1ms
+01-27 21:23:51.578 10867 21178 I FontLog : (REDACTED) Received query %s, URI %s
+01-27 21:23:51.578 10867 21178 I FontLog : (REDACTED) Query [%s] resolved to %s
+01-27 21:23:51.584 10867 21178 I FontLog : (REDACTED) Fetch %s end status %s
+01-27 21:23:51.585 10867 21178 I FontLog : (REDACTED) Pulling font file for id = %d, cache size = %d
+01-27 21:23:51.590 10867 21178 I FontLog : (REDACTED) Pulling font file for id = %d, cache size = %d
+01-27 21:23:51.635 10867 10867 D BoundBrokerSvc: onRebind: Intent { act=com.google.android.gms.libs.gmscorelogger.service.START dat=chimera-action:/... xflg=0x4 cmp=com.google.android.gms/.chimera.PersistentDirectBootAwareApiService }
+01-27 21:23:51.789  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+01-27 21:23:51.790  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+01-27 21:23:51.791  1830  2620 D InetDiagMessage: Destroyed live tcp sockets for uids={10401} in 4ms
+01-27 21:23:51.792  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+01-27 21:23:51.794  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+01-27 21:23:51.794  1830  2620 D InetDiagMessage: Destroyed live tcp sockets for uids={20401} in 4ms
+01-27 21:23:51.949  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.33 0C->1CD d_lux:10.9 c_lux:7.0/-1.0 c_coeff:0.50/-1.00
+01-27 21:23:51.950  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.82 C:40.99 d_leak:7.7 c_leak:2.9 lux:7.7 leak:3.8
+01-27 21:23:52.117  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:23:52.118  2733  2841 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:23:52.118  2733  2841 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:52.118  2733  2841 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:52.118  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:52.118  2733  2841 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:52.118  2733  2841 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:52.118  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:52.118  2733  2841 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:52.119  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@9656c3a
+01-27 21:23:52.119  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:52.119  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:23:52.119  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:52.122  2733  2841 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:52.130  1549 15302 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:52.133  1549 15302 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:52.134  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:52.134  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:52.134  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:52.135  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@91157ea activeResuming = true
+01-27 21:23:52.607  1830  2367 D ActivityManager: freezing 2567 com.google.android.packageinstaller
+01-27 21:23:52.614  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+01-27 21:23:52.615  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+01-27 21:23:52.616  1830  2620 D InetDiagMessage: Destroyed live tcp sockets for uids={10093} in 5ms
+01-27 21:23:52.659  1830  2367 D ActivityManager: freezing 31651 com.google.android.apps.nbu.files
+01-27 21:23:52.665  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+01-27 21:23:52.667  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+01-27 21:23:52.667  1830  2620 D InetDiagMessage: Destroyed live tcp sockets for uids={10182} in 5ms
+01-27 21:23:52.673  1830  2367 D ActivityManager: freezing 15833 com.google.android.gms.supervision
+01-27 21:23:52.680  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+01-27 21:23:52.682  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+01-27 21:23:52.682  1830  2620 D InetDiagMessage: Destroyed live tcp sockets for uids={10142} in 3ms
+01-27 21:23:52.794  1830  2374 W ActivityManager: Background start not allowed: service Intent { flg=0x4 xflg=0x4 cmp=com.easycard.wallet/.nonfc.services.PaymentService (has extras) } to com.easycard.wallet/.nonfc.services.PaymentService from pid=-1 uid=10326 pkg=com.easycard.wallet startFg?=false
+01-27 21:23:52.839  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:23:52.839  2733  2887 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:23:52.839  2733  2887 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:52.839  2733  2887 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:52.839  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:52.839  2733  2887 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:52.839  2733  2887 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:52.839  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:52.839  2733  2887 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:52.840  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@91157ea
+01-27 21:23:52.840  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:52.840  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:23:52.840  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:52.841  2733  2887 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:52.848  1549 15302 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:52.849  1549 15302 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:52.851  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:52.851  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:52.851  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:52.852  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@3f62524 activeResuming = true
+01-27 21:23:52.935 10867  2113 I NetworkScheduler.Stats: (REDACTED) Task %s/%s started execution. cause:%s exec_start_elapsed_seconds: %s
+01-27 21:23:52.943 21209 31716 I PlayGamesServices[GamesSyncAdapter]: Starting sync for 73886dc8
+01-27 21:23:52.946 21209 31716 I PlayGamesServices[GamesSyncAdapter]: Sync duration for 73886dc8: 2
+01-27 21:23:52.969  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.23 1CD->0C d_lux:-1.0 c_lux:5.6/-1.0 c_coeff:0.50/-1.00
+01-27 21:23:52.970  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.00 C:33.00 d_leak:7.7 c_leak:2.9 lux:5.6 leak:2.9
+01-27 21:23:52.973 10867  2523 I NetworkScheduler.Stats: (REDACTED) Task %s/%s started execution. cause:%s exec_start_elapsed_seconds: %s
+01-27 21:23:52.976 21209 31720 I PlayGamesServices[GamesSyncAdapter]: Starting sync for 84bbac3a
+01-27 21:23:52.976 21209  2366 W PlayGamesServices[UiUtils]: AppVersion: Cannot find the installed destination app.
+01-27 21:23:52.977 21209  2366 I GetServiceValidatorImpl: (REDACTED) onGetService() from Client SDK version [%s], Module version [%s], PGA version [%s], Account [%s], Calling package [%s], Game package [%s]
+01-27 21:23:52.977 10867  2523 I NetworkScheduler.Stats: (REDACTED) Task %s/%s finished executing. cause:%s result: %s elapsed_millis: %s uptime_millis: %s exec_start_elapsed_seconds: %s
+01-27 21:23:52.979 21209 31720 I PlayGamesServices[GamesSyncAdapter]: Sync duration for 84bbac3a: 2
+01-27 21:23:52.979 21209  2366 W GetGamesServiceReqFacto: Parsing request with ignored arguments. signInOptionsBundle [Bundle[{com.google.android.gms.signin.internal.serverClientId=null, com.google.android.gms.signin.internal.usePromptModeForAuthCode=true, com.google.android.gms.signin.internal.logSessionId=null, com.google.android.gms.signin.internal.hostedDomain=null, com.google.android.gms.signin.internal.offlineAccessRequested=false, com.google.android.gms.signin.internal.waitForAccessTokenRefresh=false, com.google.android.gms.signin.internal.clientRequestedAccount=Account {name=<<default account>>, type=com.google}, com.google.android.gms.signin.internal.idTokenRequested=false, com.google.android.gms.signin.internal.forceCodeForRefreshToken=false}]], isRetryingSignIn [false], skipWelcomePopup [false], requireGooglePlus [false]
+01-27 21:23:52.981 21209  2366 I GetGamesServiceReqFacto: Replacing request for `games` scope with `games_lite`
+01-27 21:23:52.990 10867  2523 I NetworkScheduler.Stats: (REDACTED) Task %s/%s finished executing. cause:%s result: %s elapsed_millis: %s uptime_millis: %s exec_start_elapsed_seconds: %s
+01-27 21:23:52.997 21209  3029 I SignInPerformer-4: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+01-27 21:23:52.999 21209  3029 I SignInPerformer-4: Successfully brokered first-party unauthenticated GamesService [CONTEXT service_id=1 ]
+01-27 21:23:53.001 21209  3029 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s
+01-27 21:23:53.001 21209  2366 W PlayGamesServices[UiUtils]: AppVersion: Cannot find the installed destination app.
+01-27 21:23:53.002 21209  2366 W PlayGamesServices[UiUtils]: AppVersionName: Cannot find the installed destination app.
+01-27 21:23:53.015 21209  2366 W PlayGamesServices[UiUtils]: AppVersion: Cannot find the installed destination app.
+01-27 21:23:53.015 21209  2366 W PlayGamesServices[UiUtils]: AppVersionName: Cannot find the installed destination app.
+01-27 21:23:53.080  1409  1409 I WifiHAL : Creating message to get link statistics; iface = 47
+01-27 21:23:53.146   646  2519 I keystore2: system/security/keystore2/watchdog/src/lib.rs:371 - Watchdog thread idle -> terminating. Have a great day.
+01-27 21:23:53.175  1409  1506 I WifiHAL : Getting cached scan results, iface handle = 0xb400007c0865cd50
+01-27 21:23:53.175  1409  1506 E WifiHAL : Creating message to get cached scan results
+01-27 21:23:53.179  1409  1506 I WifiHAL : In GetCachedScanResultsCommand::handleResponse
+01-27 21:23:53.217  1830  2620 D ConnectivityService: NetReassign [no changes] [c 3] [a 4] [i 7]
+01-27 21:23:53.555  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:23:53.556  2733  2841 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:23:53.557  2733  2841 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:53.557  2733  2841 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:53.557  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:53.557  2733  2841 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:53.557  2733  2841 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:53.557  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:53.557  2733  2841 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:53.557  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@3f62524
+01-27 21:23:53.557  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:53.557  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:23:53.557  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:53.561  2733  2841 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:53.571  1549  7187 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:53.573  1549  7187 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:53.574  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:53.575  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:53.575  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:53.575  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@cfac8af activeResuming = true
+01-27 21:23:53.997  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.31 0C->1CD d_lux:11.2 c_lux:6.9/-1.0 c_coeff:0.50/-1.00
+01-27 21:23:53.997  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.90 C:40.25 d_leak:7.7 c_leak:2.9 lux:7.3 leak:3.4
+01-27 21:23:54.280  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:23:54.281  2733  2887 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:23:54.281  2733  2887 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:54.281  2733  2887 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:54.281  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:54.281  2733  2887 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:54.281  2733  2887 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:54.281  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:54.281  2733  2887 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:54.282  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@cfac8af
+01-27 21:23:54.282  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:54.282  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:23:54.283  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:54.286  2733  2887 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:54.295  1549  7187 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:54.296  1549  7187 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:54.297  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:54.297  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:54.297  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:54.298  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@8eca0a8 activeResuming = true
+01-27 21:23:54.395  2095  2107 I pixel-thermal: soc_therm:31.461 raw data: soc_therm:31461 
+01-27 21:23:55.002  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:23:55.003  2733  2841 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:23:55.004  2733  2841 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:55.004  2733  2841 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:55.004  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:55.004  2733  2841 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:55.004  2733  2841 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:55.004  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:55.004  2733  2841 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:55.004  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@8eca0a8
+01-27 21:23:55.004  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:55.004  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:23:55.005  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:55.008  2733  2841 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:55.018  1549  7187 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:55.020  1549  7187 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:55.021  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:55.021  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:55.022  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:55.022  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@e2afe43 activeResuming = true
+01-27 21:23:55.028  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.29 1CD->0C d_lux:-1.0 c_lux:6.4/-1.0 c_coeff:0.50/-1.00
+01-27 21:23:55.029  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.00 C:37.50 d_leak:7.7 c_leak:2.9 lux:6.4 leak:2.9
+01-27 21:23:55.537  1830  2367 D ActivityManager: freezing 28189 com.google.android.odad
+01-27 21:23:55.544  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+01-27 21:23:55.548  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+01-27 21:23:55.548  1830  2620 D InetDiagMessage: Destroyed live tcp sockets for uids={10136} in 7ms
+01-27 21:23:55.728  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:23:55.729  2733  2887 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:23:55.730  2733  2887 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:55.730  2733  2887 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:55.730  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:55.730  2733  2887 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:55.730  2733  2887 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:55.730  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:55.730  2733  2887 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:55.730  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@e2afe43
+01-27 21:23:55.731  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:55.731  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:23:55.731  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:55.735  2733  2887 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:55.744  1549  7187 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:55.745  1549  7187 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:55.746  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:55.746  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:55.747  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:55.747  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@ed30b5 activeResuming = true
+01-27 21:23:56.065  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.35 0C->1CD d_lux:11.1 c_lux:7.1/-1.0 c_coeff:0.50/-1.00
+01-27 21:23:56.066  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.70 C:41.24 d_leak:7.7 c_leak:2.9 lux:8.2 leak:4.4
+01-27 21:23:56.204  1409  1506 I WifiHAL : Creating message to get link statistics; iface = 47
+01-27 21:23:56.259  1409  1409 I WifiHAL : Getting cached scan results, iface handle = 0xb400007c0865cd50
+01-27 21:23:56.259  1409  1409 E WifiHAL : Creating message to get cached scan results
+01-27 21:23:56.267  1409  1409 I WifiHAL : In GetCachedScanResultsCommand::handleResponse
+01-27 21:23:56.323  1830  2620 D ConnectivityService: NetReassign [no changes] [c 3] [a 4] [i 9]
+01-27 21:23:56.452  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:23:56.454  2733  2841 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:23:56.455  2733  2841 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:56.455  2733  2841 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:56.455  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:56.455  2733  2841 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:56.455  2733  2841 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:56.455  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:56.455  2733  2841 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:56.455  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@ed30b5
+01-27 21:23:56.455  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:56.455  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:23:56.456  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:56.460  2733  2841 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:56.472  1549  7187 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:56.473  1549  7187 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:56.474  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:56.474  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:56.474  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:56.474  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@4b71a16 activeResuming = true
+01-27 21:23:56.654 21209 21209 D BoundBrokerSvc: onUnbind: Intent { act=com.google.android.gms.backup.GMS_MODULE_RESTORE dat=chimera-action:/... xflg=0x4 cmp=com.google.android.gms/.chimera.GmsInternalBoundBrokerService }
+01-27 21:23:56.785  1830  2367 D ActivityManager: freezing 31110 tw.com.trtc.is.android05
+01-27 21:23:56.793  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+01-27 21:23:56.795  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+01-27 21:23:56.795  1830  2620 D InetDiagMessage: Destroyed live tcp sockets for uids={10401} in 5ms
+01-27 21:23:56.842  2733  3057 D ProfileInstaller: Installing profile for com.akirachang.ai.photographer
+01-27 21:23:57.092  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.23 1CD->0C d_lux:-1.0 c_lux:5.7/-1.0 c_coeff:0.50/-1.00
+01-27 21:23:57.092  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.00 C:33.25 d_leak:7.7 c_leak:2.9 lux:5.7 leak:2.9
+01-27 21:23:57.148 10867  1171 I NearbyMediums: No BLE Fast/GATT advertisements found in the latest cycle.
+01-27 21:23:57.149 10867  1171 I NearbyMediums: Current Tracked Scanning Clients are : {NearbyConnections.EnvironmentMonitor, NearbySharing}
+01-27 21:23:57.181  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:23:57.182  2733  2887 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:23:57.182  2733  2887 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:57.182  2733  2887 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:57.182  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:57.182  2733  2887 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:57.182  2733  2887 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:57.182  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:57.182  2733  2887 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:57.183  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@4b71a16
+01-27 21:23:57.183  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:57.183  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:23:57.183  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:57.187  2733  2887 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:57.199  1549  7187 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:57.200  1549  7187 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:57.201  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:57.201  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:57.201  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:57.202  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@7fee2fa activeResuming = true
+01-27 21:23:57.903  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:23:57.904  2733  2841 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:23:57.905  2733  2841 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:57.905  2733  2841 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:57.905  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:57.905  2733  2841 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:57.905  2733  2841 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:57.905  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:57.905  2733  2841 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:57.905  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@7fee2fa
+01-27 21:23:57.905  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:57.906  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:23:57.906  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:57.910  2733  2841 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:57.922  1549 15302 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:57.924  1549 15302 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:57.925  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:57.925  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:57.925  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:57.925  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@276fc87 activeResuming = true
+01-27 21:23:58.111  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.35 0C->1CD d_lux:10.8 c_lux:7.0/-1.0 c_coeff:0.50/-1.00
+01-27 21:23:58.111  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.70 C:40.99 d_leak:7.7 c_leak:2.9 lux:8.1 leak:4.4
+01-27 21:23:58.628  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:23:58.629  2733  2887 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:23:58.630  2733  2887 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:58.630  2733  2887 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:58.630  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:58.630  2733  2887 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:58.630  2733  2887 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:58.630  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:58.630  2733  2887 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:58.630  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@276fc87
+01-27 21:23:58.630  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:58.630  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:23:58.631  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:58.635  2733  2887 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:58.648  1549 15302 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:58.650  1549 15302 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:58.651  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:58.651  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:58.651  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:58.652  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@3d3169e activeResuming = true
+01-27 21:23:58.689  1366  1366 I android.hardware.health-service.zumapro: Recording a sample at time 267776
+01-27 21:23:59.239  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.29 1CD->0C d_lux:-1.0 c_lux:6.4/-1.0 c_coeff:0.50/-1.00
+01-27 21:23:59.239  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.00 C:37.25 d_leak:7.7 c_leak:2.9 lux:6.4 leak:2.9
+01-27 21:23:59.306  1409  1409 I WifiHAL : Creating message to get link statistics; iface = 47
+01-27 21:23:59.356  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:23:59.356  2733  2841 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:23:59.356  2733  2841 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:23:59.356  2733  2841 D CameraStateRegistry: Camera                                       State                 
+01-27 21:23:59.356  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:59.356  2733  2841 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:23:59.356  2733  2841 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:23:59.356  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:23:59.356  2733  2841 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:23:59.357  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@3d3169e
+01-27 21:23:59.357  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:23:59.357  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:23:59.357  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:59.359  2733  2841 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:23:59.369  1549 15302 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:23:59.372  1549 15302 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:23:59.373  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:23:59.373  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:23:59.373  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:23:59.374  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@e7ce38 activeResuming = true
+01-27 21:23:59.408  1409  1506 I WifiHAL : Getting cached scan results, iface handle = 0xb400007c0865cd50
+01-27 21:23:59.408  1409  1506 E WifiHAL : Creating message to get cached scan results
+01-27 21:23:59.416  1409  1506 I WifiHAL : In GetCachedScanResultsCommand::handleResponse
+01-27 21:23:59.416  1409  1506 E libbinder.IPCThreadState: binder thread pool (1 threads) starved for 109 ms
+01-27 21:23:59.472  1830  2620 D ConnectivityService: NetReassign [no changes] [c 4] [a 3] [i 9]
+01-27 21:23:59.492  2890  3199 D TemperatureStateSource: sequence=13191 actualDelay=10002
+01-27 21:23:59.493  2890  3199 D TemperatureStateSource: Reading temperature: sequence=13192
+01-27 21:23:59.498  2095  2095 I pixel-thermal: VIRTUAL-SKIN-MODEL: model_input: [28634.00 28745.00 30281.00 25979.00 25979.00 26214.00 28723.00 31461.00 ]
+01-27 21:23:59.499  2095  2095 I native  : I0000 00:00:1769520239.499020    2095 thermal_tflite_wrapper.cc:261] ThermalTfliteInvoke
+01-27 21:23:59.499  2095  2095 I pixel-thermal: VIRTUAL-SKIN-MODEL: model_output: [27162.7 ]
+01-27 21:23:59.499  2095  2095 I pixel-thermal: VIRTUAL-SKIN-MODEL: predicted_value: [27162.7 ]
+01-27 21:23:59.499  2095  2095 I pixel-thermal: CPU_THROTTLE_SEVERE:0 raw data: CPU_THROTTLE_SEVERE:0 
+01-27 21:23:59.499  2095  2095 I pixel-thermal: VIRTUAL-SKIN:27.0349 raw data: VIRTUAL-SKIN:27034.9 VIRTUAL-SKIN-LEGACY:27558.2 VIRTUAL-SKIN-LEGACY-MODEL-DIFF:395.49 VIRTUAL-SKIN-LEGACY-SHUTDOWN:0 VIRTUAL-SKIN-MODEL:27162.7 VIRTUAL-SKIN-MODEL-CLAMPED:27162.7 VIRTUAL-SKIN-MODEL-LEGACY-DIFF:-395.49 VIRTUAL-SKIN-MODEL-UPDATED:27034.9 VIRTUAL-SKIN-MODEL-UPPER-CLAMPED:27162.7 VIRTUAL-SKIN-SUB-0:26805.5 VIRTUAL-SKIN-SUB-1:26986.6 VIRTUAL-SKIN-SUB-2:27399.5 VIRTUAL-SKIN-SUB-3:27558.2 VIRTUAL-SKIN-SUB-4:26915.1 VT_LEGACY_WEIGHT:0 VT_MODEL_WEIGHT:1 battery:26100 btmspkr_therm:25979 charging_therm:30281 disp_therm:26214 north_therm:28723 quiet_therm:28745 rfpa_therm:28634 soc_therm:31461 usb_pwr_therm:25979 
+01-27 21:23:59.500  2890  3199 D TemperatureStateSource: getDeviceTemperatures: sequence=13192 deviceTemperatureType=3 temperatureSource=0 temperatures=[27.034935]
+01-27 21:23:59.500  2890  3199 D BusinessScope: Enqueuing the block
+01-27 21:23:59.501  2890  3199 D TemperatureStateSource: sequence=13192 waitTime=10000
+01-27 21:23:59.501  2890  4081 D BusinessScope: Start running the #35411 block
+01-27 21:23:59.504  2095  2095 I pixel-thermal: CPU_THROTTLE_SEVERE:0 raw data: CPU_THROTTLE_SEVERE:0 
+01-27 21:23:59.504  2095  2095 I pixel-thermal: VIRTUAL-SKIN:27.0349 raw data: VIRTUAL-SKIN:27034.9 
+01-27 21:23:59.504  2890  4081 I TemperatureStateSource: temperature was set
+01-27 21:23:59.504  2890  4081 D BusinessScope: Enqueuing the block
+01-27 21:23:59.504  2890  4081 D ImpulseStateSource: Notify clients: 17701
+01-27 21:23:59.504  2890  4081 D BusinessScope: Finish running the #35411 block
+01-27 21:23:59.505  2890  4081 D BusinessScope: Start running the #35412 block
+01-27 21:23:59.506  2890  4081 D BusinessScope: Finish running the #35412 block
+01-27 21:23:59.515  8313 32442 W Turbo.DeviceHealthLeversManagerImpl: applyLeversWithMaintenanceWindow: ignore the same request
+01-27 21:24:00.080  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:24:00.080  2733  2887 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:24:00.080  2733  2887 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:24:00.080  2733  2887 D CameraStateRegistry: Camera                                       State                 
+01-27 21:24:00.080  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:24:00.080  2733  2887 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:24:00.080  2733  2887 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:24:00.080  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:24:00.080  2733  2887 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:24:00.080  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@e7ce38
+01-27 21:24:00.081  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:24:00.081  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:24:00.081  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:24:00.082  2733  2887 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:24:00.090  1549 15302 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:24:00.092  1549 15302 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:24:00.093  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:24:00.093  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:24:00.093  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:24:00.093  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@1e7a4d activeResuming = true
+01-27 21:24:00.253  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.33 0C->1CD d_lux:11.0 c_lux:7.0/-1.0 c_coeff:0.50/-1.00
+01-27 21:24:00.254  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.82 C:40.99 d_leak:7.7 c_leak:2.9 lux:7.7 leak:3.8
+01-27 21:24:00.670  1830  2367 D ActivityManager: freezing 1868 com.android.keychain
+01-27 21:24:00.674  1830  2367 D ActivityManager: freezing 1093 com.android.DeviceAsWebcam
+01-27 21:24:00.798  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:24:00.799  2733  2841 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:24:00.800  2733  2841 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:24:00.800  2733  2841 D CameraStateRegistry: Camera                                       State                 
+01-27 21:24:00.800  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:24:00.800  2733  2841 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:24:00.800  2733  2841 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:24:00.800  2733  2841 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:24:00.800  2733  2841 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:24:00.800  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@1e7a4d
+01-27 21:24:00.800  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:24:00.801  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:24:00.801  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:24:00.804  2733  2841 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:24:00.812  1549 15302 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:24:00.813  1549 15302 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:24:00.814  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:24:00.815  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:24:00.815  2733  2841 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:24:00.815  2733  2841 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting camera re-open in 700ms: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@1ddbd7c activeResuming = true
+01-27 21:24:00.835  2733  2768 W ai.photographer: userfaultfd: MOVE ioctl seems unsupported: Connection timed out
+01-27 21:24:00.924  1830  2367 D ActivityManager: freezing 10445 com.android.vending
+01-27 21:24:00.931  1830  2367 D ActivityManager: freezing 2077 com.android.vending:background
+01-27 21:24:00.937  1830  2367 D ActivityManager: freezing 2450 com.android.vending:instant_app_installer
+01-27 21:24:00.945  1830  2620 D InetDiagMessage: Destroyed 1 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+01-27 21:24:00.947  1830  2620 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+01-27 21:24:00.947  1830  2620 D InetDiagMessage: Destroyed live tcp sockets for uids={10151} in 6ms
+01-27 21:24:01.256  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.25 1CD->0C d_lux:-1.0 c_lux:6.1/-1.0 c_coeff:0.50/-1.00
+01-27 21:24:01.256  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.00 C:35.74 d_leak:7.7 c_leak:2.9 lux:6.1 leak:2.9
+01-27 21:24:01.520  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Attempting to open the camera.
+01-27 21:24:01.521  2733  2887 D CameraStateRegistry: tryOpenCamera(Camera@d7d0817[id=0]) [Available Cameras: 0, Already Open: true (Previous state: OPENING)] --> SUCCESS
+01-27 21:24:01.521  2733  2887 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:24:01.521  2733  2887 D CameraStateRegistry: Camera                                       State                 
+01-27 21:24:01.521  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:24:01.521  2733  2887 D CameraStateRegistry: Camera@d7d0817[id=0]                         OPENING               
+01-27 21:24:01.521  2733  2887 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:24:01.521  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:24:01.521  2733  2887 D CameraStateRegistry: Open count: 1 (Max allowed: 1)
+01-27 21:24:01.522  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Cancelling scheduled re-open: androidx.camera.camera2.internal.Camera2CameraImpl$StateCallback$ScheduledReopen@1ddbd7c
+01-27 21:24:01.522  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Opening camera.
+01-27 21:24:01.522  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> OPENING
+01-27 21:24:01.522  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:24:01.527  2733  2887 D UseCaseAttachState: All use case: [androidx.camera.core.ImageCapture-ffecec36-07a7-425f-97d0-658893bd65ae4667085, androidx.camera.core.Preview-7fa4d53d-1eba-4833-8612-611029db4fd399638775, androidx.camera.core.ImageAnalysis-43ccf345-b03f-4664-b94f-8a7a71ce3b0c134444132] for camera: 0
+01-27 21:24:01.537  1549 15302 I CameraService: CameraService::connect call (PID 2733 "com.akirachang.ai.photographer", camera ID 0) and Camera API version 2
+01-27 21:24:01.539  1549 15302 E CameraService: Permission Denial: can't use the camera pid=2733, uid=10416
+01-27 21:24:01.540  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Unable to open camera due to validateClientPermissionsLocked:1848: Caller "com.akirachang.ai.photographer" (PID 2733, UID 10416) cannot open camera "0" without camera permission
+01-27 21:24:01.540  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: OPENING --> REOPENING
+01-27 21:24:01.540  2733  2887 D CameraStateMachine: New public camera state CameraState{type=OPENING, error=null} from OPENING and null
+01-27 21:24:01.540  2733  2887 E Camera2CameraImpl: Camera reopening attempted for 10000ms without success.
+01-27 21:24:01.540  2733  2887 D Camera2CameraImpl: {Camera@d7d0817[id=0]} Transitioning camera internal state: REOPENING --> PENDING_OPEN
+01-27 21:24:01.541  2733  2887 D CameraStateRegistry: Recalculating open cameras:
+01-27 21:24:01.541  2733  2887 D CameraStateRegistry: Camera                                       State                 
+01-27 21:24:01.541  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:24:01.541  2733  2887 D CameraStateRegistry: Camera@d7d0817[id=0]                         PENDING_OPEN          
+01-27 21:24:01.541  2733  2887 D CameraStateRegistry: Camera@581006e[id=1]                         UNKNOWN               
+01-27 21:24:01.541  2733  2887 D CameraStateRegistry: -------------------------------------------------------------------
+01-27 21:24:01.541  2733  2887 D CameraStateRegistry: Open count: 0 (Max allowed: 1)
+01-27 21:24:01.541  2733  2887 D CameraStateMachine: New public camera state CameraState{type=PENDING_OPEN, error=null} from PENDING_OPEN and null
+01-27 21:24:01.541  2733  2887 D CameraStateMachine: Publishing new public camera state CameraState{type=PENDING_OPEN, error=null}
+01-27 21:24:01.679  1409  1506 I WifiHAL : Creating message to get link statistics; iface = 47
+01-27 21:24:01.743  1409  1409 I WifiHAL : Getting cached scan results, iface handle = 0xb400007c0865cd50
+01-27 21:24:01.743  1409  1409 E WifiHAL : Creating message to get cached scan results
+01-27 21:24:01.751  1409  1409 I WifiHAL : In GetCachedScanResultsCommand::handleResponse
+01-27 21:24:01.780  1360  2180 I bthal.flowcontrol: HciEventPreProcess: HCI Event 0xe Opcode 0xfd59 Length 22 unhandled by ControllerActivityWatcher
+01-27 21:24:02.059  1830  4970 W ActivityManager: Unbind failed: could not find connection for android.os.BinderProxy@c7c3d4
+01-27 21:24:02.060  3037  3037 D SatelliteModemInterface: Binding to com.google.android.satellite
+01-27 21:24:02.063  1830  4970 W ActivityManager: Unable to start service Intent { act=android.telephony.satellite.SatelliteService xflg=0x4 pkg=com.google.android.satellite } U=0: not found
+01-27 21:24:02.063  3037  3037 E SatelliteModemInterface: Error binding to the satellite service. Retrying in 45353 ms.
+01-27 21:24:02.283  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.32 0C->1CD d_lux:10.5 c_lux:6.7/-1.0 c_coeff:0.50/-1.00
+01-27 21:24:02.284  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.86 C:39.25 d_leak:7.7 c_leak:2.9 lux:7.2 leak:3.6
+01-27 21:24:02.455  1409  1409 I WifiHAL : Creating message to get link statistics; iface = 47
+01-27 21:24:02.565  1409  1409 E libbinder.IPCThreadState: binder thread pool (1 threads) starved for 109 ms
+01-27 21:24:02.565  1409  1506 I WifiHAL : Getting cached scan results, iface handle = 0xb400007c0865cd50
+01-27 21:24:02.565  1409  1506 E WifiHAL : Creating message to get cached scan results
+01-27 21:24:02.571  1409  1506 I WifiHAL : In GetCachedScanResultsCommand::handleResponse
+01-27 21:24:02.625  1830  2620 D ConnectivityService: NetReassign [no changes] [c 4] [a 4] [i 7]
+01-27 21:24:03.370  6422 27590 I eggo    : (REDACTED) appOpsListener %s %s
+01-27 21:24:03.371  6422 27590 I eggo    : (REDACTED) Ignoring irrelevant audio permission changes for package %s
+01-27 21:24:03.482  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.29 1CD->0C d_lux:-1.0 c_lux:6.3/-1.0 c_coeff:0.50/-1.00
+01-27 21:24:03.482  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.00 C:36.75 d_leak:7.7 c_leak:2.9 lux:6.3 leak:2.9
+01-27 21:24:03.590  2095  2107 I pixel-thermal: disp_therm:26.167 raw data: disp_therm:26167 
+01-27 21:24:03.591  2095  2107 I pixel-thermal: charging_therm:30.192 raw data: charging_therm:30192 
+01-27 21:24:03.591  2095  2107 I pixel-thermal: north_therm:28.767 raw data: north_therm:28767 
+01-27 21:24:03.592  2095  2107 I pixel-thermal: battery:26.1 raw data: battery:26100 
+01-27 21:24:03.592  2095  2107 I pixel-thermal: rfpa_therm:28.834 raw data: rfpa_therm:28834 
+01-27 21:24:03.593  2095  2107 I pixel-thermal: btmspkr_therm:26.003 raw data: btmspkr_therm:26003 
+01-27 21:24:03.593  2095  2107 I pixel-thermal: usb_pwr_therm:25.979 raw data: usb_pwr_therm:25979 
+01-27 21:24:03.593  2095  2107 I pixel-thermal: quiet_therm:28.723 raw data: quiet_therm:28723 
+01-27 21:24:03.594  2095  2107 I pixel-thermal: Power rails total power: 937.06 mW for 60017 ms
+01-27 21:24:03.594  2095  2107 I pixel-thermal: Power rails [S6M_LLDO1: 55.72 mW] [S4M_VDD_CPUCL0: 162.29 mW] [S3M_VDD_CPUCL2: 61.68 mW] [S1M_VDD_MIF: 40.72 mW] [S5M_VDD_INT: 25.31 mW] [S9M_VDD_CPUCL1_M: 11.29 mW] 
+01-27 21:24:03.594  2095  2107 I pixel-thermal: Power rails [S2M_VDD_CPUCL1: 118.25 mW] [VSYS_PWR_CAMERA: 1.97 mW] [VSYS_PWR_DISPLAY: 141.24 mW] [L21S_VDD2L_MEM: 10.13 mW] [S8M_LLDO2: 51.84 mW] [S3S_LLDO1: 65.32 mW] 
+01-27 21:24:03.594  2095  2107 I pixel-thermal: Power rails [VSYS_PWR_RFFE: 2.37 mW] [VSYS_PWR_WLAN_BT: 65.02 mW] [VSYS_PWR_MODEM: 30.34 mW] [L2S_PLL_MIPI_UFS: 45.03 mW] [S4S_VDD2H_MEM: 25.45 mW] [S9S_VDD_AOC: 9.38 mW] 
+01-27 21:24:03.594  2095  2107 I pixel-thermal: Power rails [S2S_VDD_G3D: 1.27 mW] [S1S_VDD_CAM: 6.06 mW] [S7M_VDD_TPU: 0.00 mW] [L22S_UDFPS: 0.34 mW] [S12S_VDD_AUR: 3.18 mW] [S5S_VDDQ_MEM: 2.84 mW] 
+01-27 21:24:03.594  2095  2107 I pixel-thermal: CDEV log dc_icl state:0 gxp-cooling state:0 thermal-uclamp-4 state:0 thermal-cpufreq-2 state:0 thermal-cpufreq-0 state:0 tpu_cooling state:0 usbc-port state:0 thermal-uclamp-0 state:0 fcc state:0 thermal-cpufreq-1 state:0 thermal-gpufreq-0 state:0 thermal-uclamp-7 state:0 
+01-27 21:24:04.378  6422 27590 I eggo    : (REDACTED) appOpsListener %s %s
+01-27 21:24:04.379  6422 27590 I eggo    : (REDACTED) Ignoring irrelevant audio permission changes for package %s
+01-27 21:24:04.501  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.33 0C->1CD d_lux:11.8 c_lux:7.5/-1.0 c_coeff:0.50/-1.00
+01-27 21:24:04.501  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.82 C:43.99 d_leak:7.7 c_leak:2.9 lux:8.3 leak:3.8
+01-27 21:24:05.513  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.27 1CD->0C d_lux:-1.0 c_lux:5.6/-1.0 c_coeff:0.50/-1.00
+01-27 21:24:05.513  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.00 C:32.49 d_leak:7.7 c_leak:2.9 lux:5.6 leak:2.9
+01-27 21:24:05.610  1409  1506 I WifiHAL : Creating message to get link statistics; iface = 47
+01-27 21:24:05.663  1409  1409 I WifiHAL : Getting cached scan results, iface handle = 0xb400007c0865cd50
+01-27 21:24:05.663  1409  1409 E WifiHAL : Creating message to get cached scan results
+01-27 21:24:05.671  1409  1409 I WifiHAL : In GetCachedScanResultsCommand::handleResponse
+01-27 21:24:05.719  1830  2620 D ConnectivityService: NetReassign [no changes] [c 3] [a 4] [i 8]
+01-27 21:24:05.821  1607  1607 W TracingMuxer: type=1400 audit(0.0:28162): avc:  denied  { write } for  name="traced_producer" dev="tmpfs" ino=1360 scontext=u:r:gxp_logging:s0 tcontext=u:object_r:traced_producer_socket:s0 tclass=sock_file permissive=0
+01-27 21:24:06.332  2496  2507 W rvice:ephemeral: userfaultfd: MOVE ioctl seems unsupported: Connection timed out
+01-27 21:24:06.532  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.31 0C->1CD d_lux:11.6 c_lux:7.4/-1.0 c_coeff:0.50/-1.00
+01-27 21:24:06.532  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.90 C:43.00 d_leak:7.7 c_leak:2.9 lux:7.8 leak:3.4
+01-27 21:24:06.685 10867 10867 D BoundBrokerSvc: onUnbind: Intent { act=com.google.android.gms.libs.gmscorelogger.service.START dat=chimera-action:/... xflg=0x4 cmp=com.google.android.gms/.chimera.PersistentDirectBootAwareApiService }
+01-27 21:24:07.152 10867  1171 I NearbyMediums: No BLE Fast/GATT advertisements found in the latest cycle.
+01-27 21:24:07.152 10867  1171 I NearbyMediums: Current Tracked Scanning Clients are : {NearbyConnections.EnvironmentMonitor, NearbySharing}
+01-27 21:24:07.542  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.29 1CD->0C d_lux:-1.0 c_lux:6.3/-1.0 c_coeff:0.50/-1.00
+01-27 21:24:07.542  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.00 C:37.00 d_leak:7.7 c_leak:2.9 lux:6.3 leak:2.9
+01-27 21:24:08.265  1369  1369 W TracingMuxer: type=1400 audit(0.0:28163): avc:  denied  { write } for  name="traced_producer" dev="tmpfs" ino=1360 scontext=u:r:hal_neuralnetworks_darwinn:s0 tcontext=u:object_r:traced_producer_socket:s0 tclass=sock_file permissive=0
+01-27 21:24:08.573  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.34 0C->1CD d_lux:10.6 c_lux:6.9/-1.0 c_coeff:0.50/-1.00
+01-27 21:24:08.573  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.78 C:40.50 d_leak:7.7 c_leak:2.9 lux:7.7 leak:4.0
+01-27 21:24:08.701  1409  1409 I WifiHAL : Creating message to get link statistics; iface = 47
+01-27 21:24:08.806  1409  1409 E libbinder.IPCThreadState: binder thread pool (1 threads) starved for 105 ms
+01-27 21:24:08.807  1409  1506 I WifiHAL : Getting cached scan results, iface handle = 0xb400007c0865cd50
+01-27 21:24:08.807  1409  1506 E WifiHAL : Creating message to get cached scan results
+01-27 21:24:08.814  1409  1506 I WifiHAL : In GetCachedScanResultsCommand::handleResponse
+01-27 21:24:08.861  1830  2620 D ConnectivityService: NetReassign [no changes] [c 4] [a 3] [i 10]
+01-27 21:24:09.498  2890  4081 D ImpulseConnection: timeout didn't happen: com.google.android.apps.turbo
+01-27 21:24:09.501  2890  3099 D TemperatureStateSource: sequence=13192 actualDelay=10001
+01-27 21:24:09.502  2890  3099 D TemperatureStateSource: Reading temperature: sequence=13193
+01-27 21:24:09.507  2095  2095 I pixel-thermal: VIRTUAL-SKIN-MODEL: model_input: [28678.00 28789.00 29880.00 25886.00 26097.00 26190.00 28723.00 30325.00 ]
+01-27 21:24:09.508  2095  2095 I native  : I0000 00:00:1769520249.508023    2095 thermal_tflite_wrapper.cc:261] ThermalTfliteInvoke
+01-27 21:24:09.508  2095  2095 I pixel-thermal: VIRTUAL-SKIN-MODEL: model_output: [27156.5 ]
+01-27 21:24:09.508  2095  2095 I pixel-thermal: VIRTUAL-SKIN-MODEL: predicted_value: [27156.5 ]
+01-27 21:24:09.509  2095  2095 I pixel-thermal: CPU_THROTTLE_SEVERE:0 raw data: CPU_THROTTLE_SEVERE:0 
+01-27 21:24:09.509  2095  2095 I pixel-thermal: VIRTUAL-SKIN:27.0836 raw data: VIRTUAL-SKIN:27083.6 VIRTUAL-SKIN-LEGACY:27488.7 VIRTUAL-SKIN-LEGACY-MODEL-DIFF:332.234 VIRTUAL-SKIN-LEGACY-SHUTDOWN:0 VIRTUAL-SKIN-MODEL:27156.5 VIRTUAL-SKIN-MODEL-CLAMPED:27156.5 VIRTUAL-SKIN-MODEL-LEGACY-DIFF:-332.234 VIRTUAL-SKIN-MODEL-UPDATED:27083.6 VIRTUAL-SKIN-MODEL-UPPER-CLAMPED:27156.5 VIRTUAL-SKIN-SUB-0:26553.1 VIRTUAL-SKIN-SUB-1:26990.7 VIRTUAL-SKIN-SUB-2:27255 VIRTUAL-SKIN-SUB-3:27488.7 VIRTUAL-SKIN-SUB-4:26899.1 VT_LEGACY_WEIGHT:0 VT_MODEL_WEIGHT:1 battery:26200 btmspkr_therm:26097 charging_therm:29880 disp_therm:26190 north_therm:28723 quiet_therm:28789 rfpa_therm:28678 soc_therm:30325 usb_pwr_therm:25886 
+01-27 21:24:09.509  2890  3099 D TemperatureStateSource: getDeviceTemperatures: sequence=13193 deviceTemperatureType=3 temperatureSource=0 temperatures=[27.083555]
+01-27 21:24:09.509  2890  3099 D BusinessScope: Enqueuing the block
+01-27 21:24:09.510  2890  3099 D TemperatureStateSource: sequence=13193 waitTime=10000
+01-27 21:24:09.510  2890  3134 D BusinessScope: Start running the #35413 block
+01-27 21:24:09.510  2890  3134 D BusinessScope: Enqueuing the block
+01-27 21:24:09.510  2890  3134 D ImpulseStateSource: Notify clients: 17702
+01-27 21:24:09.510  2890  3134 D BusinessScope: Finish running the #35413 block
+01-27 21:24:09.511  2890  3134 D BusinessScope: Start running the #35414 block
+01-27 21:24:09.511  2890  3134 D BusinessScope: Finish running the #35414 block
+01-27 21:24:09.592  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.28 1CD->0C d_lux:-1.0 c_lux:5.9/-1.0 c_coeff:0.50/-1.00
+01-27 21:24:09.592  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.00 C:34.49 d_leak:7.7 c_leak:2.9 lux:5.9 leak:2.9
+01-27 21:24:10.620  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4363: USF: TMD3733: R/C:0.31 0C->1CD d_lux:10.8 c_lux:6.9/-1.0 c_coeff:0.50/-1.00
+01-27 21:24:10.620  1613  1613 D AOC     : A3:MSG: tmd3733_device.cc, 4366: USF: TMD3733:  w:0.90 C:40.25 d_leak:7.7 c_leak:2.9 lux:7.3 leak:3.4
