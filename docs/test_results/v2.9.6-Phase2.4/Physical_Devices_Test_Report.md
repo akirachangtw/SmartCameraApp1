@@ -6,9 +6,9 @@
 |------|------|
 | **測試版本** | v2.9.6-phase2.4 (Build 56) |
 | **測試日期** | 2026-01-27 |
-| **測試裝置** | Google Pixel 9a |
-| **Android 版本** | Android 16 (API 36) |
-| **PAGE_SIZE** | 4096 (4KB) |
+| **測試裝置** | Google Pixel 9a, Sony Xperia 1 III (XQ-BT52) |
+| **Android 版本** | Pixel 9a: Android 16 (API 36) / Sony: Android 12 (API 31) |
+| **PAGE_SIZE** | 兩台皆為 4096 (4KB) |
 | **測試人員** | User + Claude Code |
 | **APK** | `app-device-debug.apk` (現場編譯, Build 56) |
 
@@ -19,10 +19,12 @@
 | Device | Android | Page Size | pageSizeCompat | PageSizeDialog | Functionality | Result |
 |--------|---------|-----------|----------------|----------------|---------------|--------|
 | Pixel 9a | 16 (API 36) | 4096 | ✅ enabled (val=32) | ❌ 仍出現 | ✅ 正常 | **FAIL** |
+| Sony XQ-BT52 | 12 (API 31) | 4096 | ✅ enabled (val=32) | ✅ 無此檢查 | ✅ 正常 | **PASS** |
 
 ### 測試結論
 
-- [x] ❌ **未通過** - `android:pageSizeCompat="enabled"` 未能消除 PageSizeMismatchDialog
+- [x] ❌ **Pixel 9a 未通過** - `android:pageSizeCompat="enabled"` 未能消除 PageSizeMismatchDialog
+- [x] ✅ **Sony 通過** - 跨裝置相容性驗證正常（Android 12 無 16KB 檢查）
 
 ---
 
@@ -60,6 +62,7 @@ E: application (line=53)
 
 ## 裝置資訊
 
+### Pixel 9a
 ```
 Model:          Pixel 9a
 Android:        16
@@ -68,9 +71,20 @@ PAGE_SIZE:      4096
 Device ID:      59131JEBF17244
 ```
 
+### Sony Xperia 1 III
+```
+Model:          XQ-BT52
+Android:        12
+API Level:      31
+PAGE_SIZE:      4096
+Device ID:      HQ616R2713
+```
+
 ---
 
-## 功能驗證（附帶測試）
+## 功能驗證
+
+### Pixel 9a
 
 雖然 pageSizeCompat 未能消除警告，APP 功能在點擊「確定」後完全正常：
 
@@ -98,6 +112,23 @@ Device ID:      59131JEBF17244
 | +5s | 28.7 | 0/750 (0.0%) | 446MB |
 
 > FPS 從啟動初期 ~19 快速穩定至 **~28-29 FPS**，零丟幀，表現優異。
+
+### Sony Xperia 1 III (XQ-BT52)
+
+Android 12 無 PageSizeMismatchDialog 檢查，此為跨裝置相容性驗證：
+
+| 功能項目 | 狀態 | 備註 |
+|---------|------|------|
+| APP 安裝 | ✅ | Streamed Install, Success |
+| APP 啟動 | ✅ | 直接啟動，無警告對話框 |
+| 相機預覽 | ✅ | 用戶確認正常顯示 |
+| CameraViewModel 初始化 | ✅ | Preview + Guideline + Orientation 全部初始化 |
+| OpenCV 載入 | ✅ | OpenCV 4.13.0 正常處理 |
+| FPS 效能 | ✅ | **29.2 → 30.0 FPS** |
+| 丟幀率 | ✅ | 0.0% (完美) |
+| 記憶體 | ✅ | Native=58-69MB, Java=14-27MB, Total=269-292MB |
+| 熱節流 | ✅ | Thermal=NONE |
+| 崩潰/異常 | ✅ | 無 fatal/crash/exception |
 
 ---
 
@@ -155,8 +186,9 @@ Device ID:      59131JEBF17244
 
 | 檔案 | 內容 |
 |------|------|
-| `pixel9a_physical_phase2.4_startup.txt` | 完整啟動 logcat |
-| `16kb-warning.JPG` | PageSizeMismatchDialog 實機截圖 |
+| `pixel9a_physical_phase2.4_startup.txt` | Pixel 9a 完整啟動 logcat |
+| `sony_physical_phase2.4_startup.txt` | Sony XQ-BT52 完整啟動 logcat |
+| `Pixel9a/16kb-warning.JPG` | PageSizeMismatchDialog 實機截圖 |
 
 ---
 
@@ -192,6 +224,6 @@ Device ID:      59131JEBF17244
 
 ---
 
-**報告版本**: 1.0
+**報告版本**: 1.1
 **建立日期**: 2026-01-27
-**最後更新**: 2026-01-27
+**最後更新**: 2026-01-27 (新增 Sony 測試結果)
