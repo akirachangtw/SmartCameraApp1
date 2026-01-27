@@ -51,12 +51,42 @@ E: application (line=53)
 
 ### 結論
 
-`android:pageSizeCompat="enabled"` 屬性已正確編譯入 APK，但 Android 16 系統**仍然顯示** PageSizeMismatchDialog。可能原因：
+`android:pageSizeCompat="enabled"` 屬性已正確編譯入 APK，但 Android 16 系統**仍然顯示** PageSizeMismatchDialog。
 
-1. **pageSizeCompat 僅影響運行時行為**，不影響安裝/啟動時的 ELF 對齊檢查警告
-2. **Android 16 的 AppWarnings 系統**可能在 pageSizeCompat 檢查之前就觸發對話框
-3. **此裝置 PAGE_SIZE=4096**，但 Android 16 仍會前瞻性檢查 16KB 對齊
-4. 上游原生函式庫（OpenCV、ML Kit）的 ELF segment 仍未 16KB 對齊，pageSizeCompat 無法改變此事實
+### 根因分析：模擬器 vs 實體裝置差異
+
+#### 實體 Pixel 9a 需解鎖 Bootloader 才能啟用 16KB 模式
+
+在開發人員選項中嘗試啟用 16KB 支援時，系統顯示「必須解鎖系統啟動載入程式」對話框（見 [`Enable-16KB-Support.png`](Pixel9a/Enable-16KB-Support.png)）：
+
+![Enable 16KB Support](Pixel9a/Enable-16KB-Support.png)
+
+**啟用 16KB 模式的前提條件**：
+1. 解鎖 Bootloader — **會抹除所有使用者資料和設定**
+2. 解鎖後需**兩次重新啟動**才能啟用 16KB 選項
+3. 啟用後可在 4KB / 16KB 之間重啟一次即可切換
+4. 16KB 模式下部分功能會停用，有些 APP 可能無法運作
+5. 返回正常模式需切換回 4KB — **會恢復原廠設定**
+
+參考文件：https://source.android.com/docs/core/architecture/bootloader/locking_unlocking
+
+#### 差異比較
+
+| | 模擬器 Pixel9a-16KB | 實體 Pixel 9a |
+|---|---|---|
+| **Architecture** | x86_64 | arm64-v8a |
+| **PAGE_SIZE** | **16384** (真正 16KB) | **4096** (預設 4KB) |
+| **16KB 環境** | 出廠即 16KB image | 需解鎖 Bootloader 才能切換 |
+| **檢查的 `.so` 路徑** | `lib/x86_64/` | `lib/arm64-v8a/` |
+| **pageSizeCompat 效果** | ✅ 有效抑制警告 | ❌ 無效 |
+
+#### 結論
+
+1. **模擬器是真正的 16KB 環境**（`sdk_gphone16k_x86_64`，PAGE_SIZE=16384），`pageSizeCompat` 在該環境下正確抑制了 PageSizeMismatchDialog
+2. **實體 Pixel 9a 仍運行在 4KB 模式**（PAGE_SIZE=4096），Android 16 顯示的是「前瞻性相容性警告」
+3. **`pageSizeCompat` 設計上是給真正 16KB 設備使用的**，對 4KB 設備上的前瞻性警告無效
+4. **CPU 架構差異**：模擬器使用 x86_64 函式庫，實機使用 arm64-v8a 函式庫 — 完全不同的二進位檔案，對齊狀況不同
+5. 要在實機上驗證真正 16KB 模式需解鎖 Bootloader（**全部資料清除**），不建議在日常使用的手機上操作
 
 ---
 
@@ -189,6 +219,7 @@ Android 12 無 PageSizeMismatchDialog 檢查，此為跨裝置相容性驗證：
 | `pixel9a_physical_phase2.4_startup.txt` | Pixel 9a 完整啟動 logcat |
 | `sony_physical_phase2.4_startup.txt` | Sony XQ-BT52 完整啟動 logcat |
 | `Pixel9a/16kb-warning.JPG` | PageSizeMismatchDialog 實機截圖 |
+| `Pixel9a/Enable-16KB-Support.png` | 開發人員選項 16KB 啟用需解鎖 Bootloader 截圖 |
 
 ---
 
@@ -196,34 +227,38 @@ Android 12 無 PageSizeMismatchDialog 檢查，此為跨裝置相容性驗證：
 
 ### Phase 2.4 pageSizeCompat 方案結論
 
-**`android:pageSizeCompat="enabled"` 在 Pixel 9a (Android 16) 上無效**。此方案不能解決 PageSizeMismatchDialog 問題。
+- **模擬器測試（16KB 環境）**: ✅ `pageSizeCompat="enabled"` **有效**抑制 PageSizeMismatchDialog
+- **實體裝置（4KB 環境）**: ❌ 對 Android 16 前瞻性警告**無效**
+- **根因**: 實體 Pixel 9a 預設運行在 4KB 模式，需解鎖 Bootloader 才能切換至 16KB 模式
 
-### 可能的替代方案
+### 建議方案
 
-1. **等待上游函式庫更新**（推薦）
-   - OpenCV 5.x 可能提供 16KB 對齊的 `.so`
-   - ML Kit 未來版本可能更新原生函式庫
-   - 優先級：低（不影響功能，僅 UX 警告）
+1. **保留 pageSizeCompat（推薦）**
+   - 在真正 16KB 設備上確認有效（模擬器已驗證）
+   - 未來 Pixel 出廠即為 16KB 時將自動生效
+   - 零成本，無副作用
 
-2. **手動重新連結 `.so` 檔案**
-   - 使用 `-Wl,-z,max-page-size=16384` 重新編譯原生函式庫
-   - 風險高，需處理所有第三方 `.so`
-
-3. **接受現狀**
+2. **接受 4KB 設備上的前瞻性警告**
    - 警告對話框不影響 APP 功能
-   - 用戶只需點擊「確定」即可繼續
-   - 未來 Android 版本可能強制要求 16KB 對齊
+   - 用戶點擊「確定」或「不要再顯示」即可
+   - 此為 Android 16 對所有使用原生函式庫的 APP 的通用警告
+
+3. **追蹤上游函式庫更新**
+   - OpenCV 5.x 可能提供 16KB 對齊的 arm64-v8a `.so`
+   - ML Kit 未來版本可能更新原生函式庫
+   - 屆時可徹底消除所有環境的警告
 
 ### 建議優先級
 
 | 行動 | 優先級 | 理由 |
 |------|--------|------|
-| 移除 pageSizeCompat（無效） | 可選 | 保留不影響，移除減少混淆 |
-| 追蹤上游函式庫更新 | 低 | 等 OpenCV/ML Kit 原生支援 |
-| 專注其他功能開發 | 高 | PageSizeDialog 僅為 UX 警告 |
+| 保留 pageSizeCompat | ✅ 建議保留 | 真正 16KB 環境下有效，零成本 |
+| 追蹤上游函式庫更新 | 低 | 等 OpenCV/ML Kit 原生支援 16KB 對齊 |
+| 專注其他功能開發 | 高 | PageSizeDialog 僅為 UX 警告，不影響功能 |
+| 解鎖 Bootloader 測試 16KB | 不建議 | 會清除所有資料，風險過高 |
 
 ---
 
-**報告版本**: 1.1
+**報告版本**: 1.2
 **建立日期**: 2026-01-27
-**最後更新**: 2026-01-27 (新增 Sony 測試結果)
+**最後更新**: 2026-01-27 (新增 16KB 模式需解鎖 Bootloader 分析、模擬器 vs 實機差異根因)
