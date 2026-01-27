@@ -137,11 +137,13 @@ android {
 
     buildTypes {
         debug {
+            // v2.9.6 Phase 2.4: Removed useLegacyPackaging, using pageSizeCompat instead
             packagingOptions {
                 doNotStrip '**/*.so'  // controlled by OpenCV CMake scripts
             }
         }
         release {
+            // v2.9.6 Phase 2.4: Removed useLegacyPackaging, using pageSizeCompat instead
             packagingOptions {
                 doNotStrip '**/*.so'  // controlled by OpenCV CMake scripts
             }
