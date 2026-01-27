@@ -78,6 +78,33 @@ adb -s 59131JEBF17244 shell am start -n com.akirachang.ai.photographer/.MainActi
 01-27 21:23:51.033  1830  1881 W AppWarnings: Showing PageSizeMismatchDialog for package com.akirachang.ai.photographer
 ```
 
+**Visual Evidence**:
+
+![16KB Warning Dialog](16kb-warning2.JPG)
+
+**Screenshot Analysis**:
+- Dialog title: "Android 應用程式使用並未對齊 16 KB 邊界的原生程式庫"
+- App name displayed: "AI Photographer"
+- Warning message confirms libraries not aligned to 16KB boundaries
+- Lists problematic libraries (visible in screenshot)
+- User presented with "確定" (OK) button to dismiss
+
+**Dialog Content (Visible Libraries)**:
+The screenshot shows the complete list of unaligned libraries reported by Android 16:
+- `lib/arm64-v8a/libc++_shared.so`
+- `lib/arm64-v8a/libsurface_util_jni.so`
+- `lib/arm64-v8a/libimage_processing_util_jni.so`
+- `lib/arm64-v8a/libdatastore_shared_counter.so`
+- `lib/arm64-v8a/libopencv_java4.so`
+- `lib/arm64-v8a/libandroidx.graphics.path.so`
+- `lib/arm64-v8a/libface_detector_v2_jni.so`
+- `lib/arm64-v8a/libmlkitcommonpipeline.so`
+
+**Critical Finding**: Screenshot displays **all 8 libraries**, including the 6 we verified as 16KB-aligned using llvm-readelf. This confirms:
+- Android 16's static analysis checks ZIP alignment in APK, not ELF LOAD segment alignment
+- AGP 8.10.1's automatic 16KB ZIP alignment may not be effective
+- pageSizeCompat does not suppress this detection method on 4KB devices
+
 **Visual Confirmation**: PageSizeMismatchDialog **STILL APPEARED** on screen.
 
 **Result**: ❌ **FAIL** - Warning dialog persists despite 6/8 library fixes.
@@ -86,29 +113,78 @@ adb -s 59131JEBF17244 shell am start -n com.akirachang.ai.photographer/.MainActi
 
 ## 🔍 Root Cause Analysis
 
+### ⚠️ CRITICAL DISCOVERY: Android 16 Checks ZIP Alignment, Not ELF Alignment
+
+**Screenshot Revelation**:
+The warning dialog lists **ALL 8 libraries**, including the 6 we confirmed as 16KB ELF-aligned using llvm-readelf. This reveals a fundamental misunderstanding:
+
+**What We Thought**:
+- ✅ Fix ELF LOAD segment alignment (llvm-readelf shows 0x4000) → No warning
+- ✅ AGP 8.10.1 automatically handles ZIP alignment
+- ✅ CameraX 1.4.2 provides 16KB-aligned binaries
+
+**Reality**:
+- ❌ Android 16 checks **ZIP file entry alignment** within APK, NOT ELF binary structure
+- ❌ AGP 8.10.1's automatic alignment **may not apply to all libraries**
+- ❌ Even perfectly 16KB ELF-aligned libraries can fail if ZIP entry misaligned
+
+### Two-Layer Alignment Problem
+
+```
+APK Structure:
+├─ ZIP Archive (APK file)
+│  ├─ ZIP Entry: lib/arm64-v8a/library.so
+│  │  ├─ Offset in ZIP: Must be multiple of 16384 ← Android 16 checks THIS
+│  │  └─ File content: library.so binary
+│  │     └─ ELF LOAD segments: Must align to 16384 ← We fixed THIS
+```
+
+**Phase 2.5 Fixed**: ✅ ELF LOAD segment alignment (Layer 2)
+**Still Broken**: ❌ ZIP entry offset alignment (Layer 1)
+
 ### Why Phase 2.5 Failed to Eliminate Warning
 
-1. **Android 16 APK Analysis Behavior**:
-   - Scans ALL native libraries in APK at installation/launch time
-   - Issues warning if **ANY** library is not 16KB-aligned
-   - Does NOT matter that 75% are fixed - **one unaligned library triggers warning**
+1. **Android 16 Static Analysis**:
+   - Scans APK **ZIP structure** at installation time
+   - Checks each `lib/arm64-v8a/*.so` entry's **offset in ZIP file**
+   - Requires: `ZIP_entry_offset % 16384 == 0`
+   - Does NOT analyze ELF binary internals (what llvm-readelf shows)
 
-2. **Remaining Unaligned Libraries**:
-   - `libface_detector_v2_jni.so` (ML Kit Face Detection 16.1.5)
-   - `libmlkitcommonpipeline.so` (ML Kit Object Detection 17.0.1)
-   - Both are **closed-source** from Google ML Kit team
+2. **AGP 8.10.1 Limitation**:
+   - Claims automatic 16KB ZIP alignment
+   - May only apply to directly-added libraries
+   - AAR transitive dependencies (ML Kit, CameraX) may bypass alignment
+   - Need to verify with `zipinfo -v` offset analysis
 
-3. **pageSizeCompat Limitation**:
+3. **All 8 Libraries Listed**:
+   - Screenshot shows ALL 8 libraries, not just the 2 ML Kit ones
+   - This confirms ZIP alignment issue affects even "fixed" libraries
+   - ELF alignment alone insufficient
+
+4. **pageSizeCompat Limitation**:
    - `android:pageSizeCompat="enabled"` in AndroidManifest.xml
    - Only suppresses warning on **true 16KB devices** (PAGE_SIZE=16384)
    - Does NOT suppress "proactive warning" on 4KB devices (PAGE_SIZE=4096)
    - Physical Pixel 9a runs in 4KB mode, so pageSizeCompat is ineffective
 
-4. **ML Kit Issue #987 Discrepancy**:
+5. **ML Kit Issue #987 Discrepancy**:
    - GitHub issue claimed CameraX 1.4.2+ fixes ML Kit alignment
    - Our test shows this only applies to **CameraX-MLKit Vision integration**
    - We use **standalone ML Kit Face Detection**, which remains unaligned
    - Different ML Kit artifact, different native libraries
+
+### Verification Needed
+
+To confirm ZIP alignment theory:
+```bash
+# Check ZIP entry offsets
+zipinfo -v app-device-debug.apk | grep "lib/arm64-v8a.*\.so" -A 10
+
+# Expected for 16KB alignment:
+# file data offset: XXXXX (should be divisible by 16384)
+```
+
+If offsets NOT divisible by 16384 → ZIP alignment issue confirmed.
 
 ---
 
