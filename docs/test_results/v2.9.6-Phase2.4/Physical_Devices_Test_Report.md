@@ -115,11 +115,48 @@ Device ID:      59131JEBF17244
 
 ## 測試證據
 
+### PageSizeMismatchDialog 截圖
+
+**檔案**: [`16kb-warning.JPG`](Pixel9a/16kb-warning.JPG)
+
+![PageSizeMismatchDialog](Pixel9a/16kb-warning.JPG)
+
+#### 對話框內容解析
+
+**標題**: 「Android 應用程式相容性」
+
+**警告說明**:
+> 當出現這個警告，是因為這個應用程式不支援 16 KB，ELF 對齊格式失敗。
+> 請按照 https://developer.android.com/16kb-page-size 中的步驟操作
+
+**問題函式庫清單** (共 8 個):
+
+| # | 原生函式庫 | 對齊狀態 | 來源 |
+|---|-----------|---------|------|
+| 1 | `lib/arm64-v8a/libc++_shared.so` | 不明錯誤 | C++ 標準庫 |
+| 2 | `lib/arm64-v8a/libsurface_util_jni.so` | 不明錯誤 | CameraX |
+| 3 | `lib/arm64-v8a/libimage_processing_util_jni.so` | 不明錯誤 | CameraX |
+| 4 | `lib/arm64-v8a/libdatastore_shared_counter.so` | 不明錯誤 | Jetpack DataStore |
+| 5 | `lib/arm64-v8a/libopencv_java4.so` | 不明 | OpenCV 4.13.0 |
+| 6 | `lib/arm64-v8a/libandroidx.graphics.path.so` | 不明錯誤 | AndroidX Graphics |
+| 7 | `lib/arm64-v8a/face_detector_v2_jni.so` | **LOAD 區段沒有對齊** | ML Kit |
+| 8 | `lib/arm64-v8a/libmlkitcommonpipeline.so` | **LOAD 區段沒有對齊** | ML Kit |
+
+**對話框按鈕**: 「確定」、「不要再顯示」
+
+#### 截圖分析結論
+
+1. **全部 8 個函式庫均來自第三方/AndroidX 依賴**，非本專案自行編譯的原生程式碼
+2. **ML Kit 的 2 個函式庫**明確標示「LOAD 區段沒有對齊」— 最具體的 ELF alignment 錯誤
+3. 其餘 6 個標示「不明錯誤」— 系統無法判定具體對齊狀態
+4. `pageSizeCompat="enabled"` 無法修正第三方預編譯 `.so` 的 ELF LOAD segment 對齊問題
+
 ### Logcat 紀錄
 
 | 檔案 | 內容 |
 |------|------|
 | `pixel9a_physical_phase2.4_startup.txt` | 完整啟動 logcat |
+| `16kb-warning.JPG` | PageSizeMismatchDialog 實機截圖 |
 
 ---
 
