@@ -286,6 +286,129 @@ adb -s DEVICE_ID shell "rm /sdcard/Download/temp_screen.png"
   2. Repository(推薦)
   3. Model 和 Util(可選)
 
+---
+
+## 跨機器測試工作流 (Home NB ↔ Work NB)
+
+### ⭐ 標準方法：Test Handoff Task (Git 遠端同步)
+
+**❌ 不使用 USB 隨身碟**
+- 避免手動複製 APK 和文檔
+- 避免版本不一致風險
+- 避免大檔案傳輸問題
+
+**✅ 使用 Test Handoff GUI**
+- **工具**: `python tools/test_handoff_gui.pyw`
+- **方法**: Git 遠端同步（GitHub/GitLab）
+- **文檔**: `docs/test_handoff/PYTHON_GUI_GUIDE.md`
+
+### 工作流程
+
+#### 1. Home NB 推送測試文檔
+```bash
+# 啟動 GUI
+python tools/test_handoff_gui.pyw
+
+# 步驟：
+# - 填寫任務資訊（Topic, Device, Objective）
+# - 切換到「1. 📤 Home (Push)」分頁
+# - 點擊「🚀 執行推送 (Commit & Push)」
+```
+
+**推送內容**（通過 Git）:
+- 測試計劃文檔（如 `PIXEL9A_TEST_GUIDE.md`）
+- 模擬器測試報告（如 `EMULATOR_TEST_REPORT_FINAL.md`）
+- 交接摘要（如 `HANDOVER_SUMMARY.md`）
+- 版本號更新（`app/build.gradle.kts`）
+
+**不推送內容**（在 `.gitignore`）:
+- ❌ APK 檔案（應在目標機器重新編譯）
+- ❌ `tmp/` 暫存目錄內容
+
+#### 2. Work NB 拉取並執行測試
+```bash
+# 拉取測試文檔
+git pull origin main
+
+# 編譯 Device 版本 APK（不從 Home NB 傳輸）
+./gradlew assembleDeviceDebug
+
+# 安裝並測試
+adb install app/build/outputs/apk/device/debug/app-device-debug.apk
+```
+
+#### 3. Work NB 推送測試結果
+```bash
+# 存放測試產出至 docs/test_results/<version>/
+# - 測試報告（如 PIXEL9A_TEST_REPORT.md）
+# - Logcat 日誌（*.log）
+# - 截圖（*.png）
+# - 測試照片（如有需要）
+
+# 提交並推送
+git add docs/test_results/<version>/
+git commit -m "[Test] <version>: Pixel 9a 實機測試結果
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+git push
+```
+
+#### 4. Home NB 拉取測試結果
+```bash
+# 使用 Test Handoff GUI 或 Git pull
+git pull origin main
+```
+
+### APK 編譯策略
+
+**原則**: 在目標機器上編譯，不傳輸 APK
+
+**理由**:
+- APK 檔案通常很大（200-300 MB）
+- Git 不適合大型二進位檔案
+- 確保編譯環境一致性
+- 避免 USB 隨身碟傳輸問題
+
+**實作**:
+```bash
+# Home NB - 編譯模擬器版本
+./gradlew assembleEmulatorDebug
+
+# Work NB - 編譯實機版本
+./gradlew assembleDeviceDebug
+```
+
+### 測試文檔結構範例
+
+```
+docs/test_results/<version>/
+├── HANDOVER_SUMMARY.md          # 交接摘要（SSOT 單一真實來源）
+├── EMULATOR_TEST_REPORT_FINAL.md  # 模擬器測試報告
+├── PIXEL9A_TEST_GUIDE.md        # 實機測試指南
+├── PIXEL9A_TEST_REPORT.md       # 實機測試報告（Work NB 產出）
+├── *.log                        # Logcat 日誌
+└── *.png                        # 截圖
+```
+
+### 重要提醒
+
+1. **HANDOVER_SUMMARY.md 為單一真實來源（SSOT）**
+   - 包含完整的交接資訊和工作流說明
+   - 其他文檔應參考連結此檔案，避免重複內容
+
+2. **測試產出必須存放至 `docs/test_results/<version>/`**
+   - ✅ 可被 Git 追蹤並提交
+   - ❌ `tmp/` 目錄已被 `.gitignore` 忽略
+
+3. **使用 Test Handoff GUI 自動化流程**
+   - 自動偵測 Git remote
+   - 自動生成 commit 訊息
+   - 4 步工作流（Home Push → Work Pull → Work Push → Home Pull）
+
+**詳細說明**: 參考 `docs/test_handoff/PYTHON_GUI_GUIDE.md`
+
+---
+
 ## 程式碼品質規則
 
 - 使用 Kotlin Coding Conventions
