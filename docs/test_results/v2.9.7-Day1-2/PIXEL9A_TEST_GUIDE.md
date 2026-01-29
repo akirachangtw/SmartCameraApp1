@@ -27,14 +27,44 @@
 
 ## 🚀 測試前準備
 
-### 1. 編譯 Device 版本 APK
+### 0. 使用 Test Handoff Task 獲取測試文檔 ⭐ **推薦**
+
+**不需要 USB 隨身碟！** 使用 Git 遠端同步獲取測試文檔。
+
+**在 Work NB 上執行**:
+
+1. **啟動 Test Handoff GUI**:
+   ```bash
+   cd <專案目錄>
+   python tools/test_handoff_gui.pyw
+   ```
+
+2. **拉取測試文檔**:
+   - 切換到「2. 📥 Work (Pull)」分頁
+   - 點擊「⬇️ 拉取更新 (Git Pull)」
+   - 測試文檔自動同步完成
+
+3. **獲取的文檔**:
+   ```
+   docs/test_results/v2.9.7-Day1-2/
+   ├── PIXEL9A_TEST_GUIDE.md              (本文檔)
+   ├── EMULATOR_TEST_REPORT_FINAL.md      (模擬器測試報告)
+   ├── HANDOVER_SUMMARY.md                (交接摘要)
+   └── EMULATOR_STABILITY_TEST_PLAN.md    (測試計劃)
+   ```
+
+---
+
+### 1. 在 Work NB 編譯 Device 版本 APK
+
+**不需要從 Home NB 傳輸 APK！** 直接在 Work NB 上編譯最新版本。
 
 ```bash
-# 在 Home NB 上執行
-cd d:\MyDocuments\DevSources\AndroidStudioProjects\SmartCameraApp1
+# 在 Work NB 上執行（已 git pull 後）
+cd <專案目錄>
 
 # 編譯 Device Debug 版本
-./gradlew.bat assembleDeviceDebug
+./gradlew assembleDeviceDebug
 
 # APK 位置
 app/build/outputs/apk/device/debug/app-device-debug.apk
@@ -44,26 +74,10 @@ app/build/outputs/apk/device/debug/app-device-debug.apk
 - versionCode: 59
 - versionName: **2.9.7-Day1-2** (不含 -emulator 後綴)
 
-### 2. 傳輸 APK 到 Work NB
-
-**方法 1：USB 隨身碟**
-```bash
-# 複製 APK 到隨身碟
-copy app\build\outputs\apk\device\debug\app-device-debug.apk E:\
-```
-
-**方法 2：Git 提交**（如果檔案不大）
-```bash
-# 暫存到 tmp/ 目錄（不會被 commit）
-copy app\build\outputs\apk\device\debug\app-device-debug.apk tmp\v2.9.7-Day1-2-device.apk
-```
-
-### 3. 準備測試文檔
-
-**必須傳輸的文檔**:
-- ✅ `EMULATOR_TEST_REPORT_FINAL.md` - 模擬器測試結果
-- ✅ `PIXEL9A_TEST_GUIDE.md` - 本文檔
-- ✅ `EMULATOR_STABILITY_TEST_PLAN.md` - 參考測試計劃
+**優點**:
+- ✅ 避免傳輸 246MB APK
+- ✅ 確保使用最新代碼
+- ✅ 符合 Test Handoff 流程設計
 
 ---
 

@@ -26,35 +26,49 @@
 
 ---
 
-## 📦 需要傳輸到 Work NB 的檔案
+## 📦 交接方式：Test Handoff Task (Git 遠端同步)
 
-### 必要檔案（使用 USB 隨身碟）
+### ✅ 推薦方式：使用 Test Handoff GUI
 
+**不需要 USB 隨身碟！** 使用 Test Handoff Task 通過 Git 遠端同步測試文檔。
+
+**同步內容**（通過 Git）:
 ```
-📁 v2.9.7-Day1-2-Handover/
-├── 📄 v2.9.7-Day1-2-device.apk          (246 MB) ⭐ 必須
-├── 📄 HANDOVER_SUMMARY.md               (本文檔)
-├── 📄 PIXEL9A_TEST_GUIDE.md             (實機測試指南) ⭐ 必須
-├── 📄 EMULATOR_TEST_REPORT_FINAL.md     (模擬器測試報告)
-└── 📄 EMULATOR_STABILITY_TEST_PLAN.md   (參考測試計劃)
+docs/test_results/v2.9.7-Day1-2/
+├── 📄 HANDOVER_SUMMARY.md               (本文檔) ✅ Git 同步
+├── 📄 PIXEL9A_TEST_GUIDE.md             (實機測試指南) ✅ Git 同步
+├── 📄 EMULATOR_TEST_REPORT_FINAL.md     (模擬器測試報告) ✅ Git 同步
+├── 📄 EMULATOR_STABILITY_TEST_PLAN.md   (參考測試計劃) ✅ Git 同步
+└── app/build.gradle.kts                 (版本號更新) ✅ Git 同步
 ```
 
-### 從哪裡複製
+**不需要傳輸**（Work NB 重新編譯）:
+```
+tmp/v2.9.7-Day1-2-device.apk (246 MB) ❌ 不通過 Git
+→ Work NB 執行: ./gradlew assembleDeviceDebug
+```
 
+### 📤 使用 Test Handoff GUI 推送
+
+**啟動 GUI**:
 ```bash
-# 在 Home NB 上執行
-cd d:\MyDocuments\DevSources\AndroidStudioProjects\SmartCameraApp1
-
-# 方法 1：複製到桌面暫存資料夾（推薦）
-mkdir %USERPROFILE%\Desktop\v2.9.7-Day1-2-Handover
-copy tmp\v2.9.7-Day1-2-device.apk %USERPROFILE%\Desktop\v2.9.7-Day1-2-Handover\
-copy docs\test_results\v2.9.7-Day1-2\*.md %USERPROFILE%\Desktop\v2.9.7-Day1-2-Handover\
-
-# 方法 2：直接複製到 USB 隨身碟（假設是 E:）
-mkdir E:\v2.9.7-Day1-2-Handover
-copy tmp\v2.9.7-Day1-2-device.apk E:\v2.9.7-Day1-2-Handover\
-copy docs\test_results\v2.9.7-Day1-2\*.md E:\v2.9.7-Day1-2-Handover\
+python tools/test_handoff_gui.pyw
 ```
+
+**操作步驟**:
+1. **填寫任務資訊**（GUI 頂部）:
+   - Topic: `v2.9.7-Day1-2`
+   - Device: `Pixel 9a`
+   - Objective: `GPS EXIF 功能完整驗證`
+
+2. **推送文檔**:
+   - 切換到「1. 📤 Home (Push)」分頁
+   - 點擊「🚀 執行推送 (Commit & Push)」
+   - 確認推送到 GitHub
+
+3. **推送完成**:
+   - 測試文檔自動推送到 GitHub
+   - Work NB 可透過 Git Pull 獲取
 
 ---
 
