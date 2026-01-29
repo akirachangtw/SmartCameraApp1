@@ -2,7 +2,7 @@
 
 **版本**: v2.9.7-Day1-2 (versionCode: 59)
 **測試日期**: 2026-01-29
-**測試時間**: 15:15 - 15:50
+**測試時間**: 15:15 - 17:44 (含額外 GPS 行為測試)
 **測試設備**: Pixel 9a (16KB page size)
 **Android 版本**: Android 15
 **測試地點**: 台北市內湖區
@@ -89,6 +89,34 @@ D CameraRepositoryImpl: GPS tagging disabled in settings ✅
 D CameraRepositoryImpl: hasLocation=false ✅
 D CameraRepositoryImpl: skipping GPS EXIF tags ✅
 ```
+
+### 額外測試：GPS ON 移動 vs 靜止行為驗證 (17:43)
+
+**測試目的**: 驗證使用者回報的「GPS ON 時移動會延遲，靜止則正常」現象
+
+**測試時間**: 17:43 - 17:44
+**測試方式**: 快速連續拍照 6 張（約 1 分鐘內）
+**GPS 狀態**: ON
+
+| 照片 | 時間 | GPS EXIF | 速度 | 備註 |
+|------|------|----------|------|------|
+| 2026-01-29-17-43-30-974.jpg | 17:43:30 | ✅ 有 | 0.0 km/h | 靜止 |
+| 2026-01-29-17-43-42-422.jpg | 17:43:42 | ✅ 有 | 10.6 km/h | **移動中** ⭐ |
+| 2026-01-29-17-43-50-565.jpg | 17:43:50 | ✅ 有 | 1.1 km/h | 緩慢移動 |
+| 2026-01-29-17-44-00-089.jpg | 17:44:00 | ✅ 有 | 0.0 km/h | 靜止 |
+| 2026-01-29-17-44-17-173.jpg | 17:44:17 | ✅ 有 | 1.9 km/h | 緩慢移動 |
+| 2026-01-29-17-44-45-889.jpg | 17:44:45 | ✅ 有 | 0.0 km/h | 靜止 |
+
+**測試結果**:
+- ✅ **所有 6 張照片均成功寫入 GPS EXIF** (100% 成功率)
+- ✅ GPS 速度資訊正確記錄（0.0 ~ 10.6 km/h）
+- ✅ 快速連續拍照不影響 GPS EXIF 寫入
+- ⚠️ 移動狀態（10.6 km/h）時確實可能造成延遲，但不影響資料完整性
+
+**結論**:
+- GPS EXIF 寫入功能**完全正常**，即使在移動狀態下
+- 使用者回報的延遲屬於 UX 問題（缺少視覺反饋），非功能性問題
+- 建議參考 [ISSUES_FOUND.md](ISSUES_FOUND.md) 問題 2 的修復方案
 
 ---
 
@@ -204,6 +232,23 @@ D CameraRepositoryImpl: skipping GPS EXIF tags ✅
 - ✅ GPS Processing Method (fused)
 - ✅ EXIF Orientation (正確設定為 6)
 
+### EXIF 欄位完整度比對 ⭐ 重要發現
+
+**與 Pixel 9a 內建相機比對結果**（詳見 [EXIF_COMPARISON_REPORT.md](EXIF_COMPARISON_REPORT.md)）:
+
+| 項目 | Pixel 9a 內建 | SmartCameraApp | 評估 |
+|------|---------------|----------------|------|
+| **GPS EXIF 欄位** | 10 個 | **11 個** ✅ | **優於原廠** ⭐ |
+| **總 EXIF 欄位** | 53 個 | 6 個 | 需改進 |
+| **核心識別標籤** (Make/Model/Software) | ✅ 完整 | ❌ 缺少 | 🔴 P0 應新增 |
+| **相機參數標籤** (ISO/快門/光圈) | ✅ 完整 | ❌ 缺少 | 🟡 P1 建議新增 |
+
+**關鍵發現**:
+- ✅ **GPS EXIF 功能優於 Pixel 9a 內建相機**（額外提供速度和定位方法）
+- ⚠️ 缺少核心識別標籤（Make, Model, Software），照片管理軟體無法識別拍攝設備
+- ⚠️ 缺少相機參數（ISO, ExposureTime, FNumber），專業攝影需求未滿足
+- 📋 詳細建議請參考 [EXIF_COMPARISON_REPORT.md](EXIF_COMPARISON_REPORT.md)
+
 ---
 
 ## 📊 測試資料檔案
@@ -215,12 +260,14 @@ D CameraRepositoryImpl: skipping GPS EXIF tags ✅
 - ⚠️ `test6_gps_outdoor.log` - 測試 6 日誌（應用層日誌已被覆蓋）
 
 ### 測試照片
-- ✅ 9 張測試照片（含 4 張戶外 GPS 照片）
+- ✅ 15 張 SmartCameraApp 測試照片（含 10 張 GPS EXIF 照片）
+- ✅ 1 張 Pixel 9a 內建相機參考照片（用於 EXIF 比對）
 - ✅ 照片位於：`docs/test_results/v2.9.7-Day1-2/images/`
 
 ### 分析工具
 - ✅ `tools/analyze_exif.py` - EXIF Orientation 分析工具
 - ✅ `tools/analyze_gps_exif.py` - GPS EXIF 分析工具（本次測試新增）
+- ✅ `tools/compare_exif.py` - EXIF 比對工具（本次測試新增）⭐
 
 ---
 
@@ -283,12 +330,14 @@ D CameraRepositoryImpl: skipping GPS EXIF tags ✅
 - [交接摘要](HANDOVER_SUMMARY.md)
 - [模擬器測試報告](EMULATOR_TEST_REPORT_FINAL.md)
 - [發現的問題](ISSUES_FOUND.md)
+- [EXIF 欄位比對報告](EXIF_COMPARISON_REPORT.md) ⭐ 新增
 - [Roadmap 2.4](../../plans/02.4-smart_camera_app_roadmap.md)
 
 ---
 
-**報告版本**: 1.0
+**報告版本**: 2.0 (新增 GPS 移動測試 + EXIF 比對分析)
 **建立日期**: 2026-01-29
+**更新日期**: 2026-01-29 18:00
 **建立者**: Work NB Test Team
 **審核者**: Claude Code (AI Assistant)
 
