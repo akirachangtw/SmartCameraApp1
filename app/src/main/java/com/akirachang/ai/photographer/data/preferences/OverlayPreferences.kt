@@ -59,9 +59,11 @@ class OverlayPreferences(private val context: Context) {
         private val KEY_LEVEL_INDICATOR_ENABLED = booleanPreferencesKey("level_indicator_enabled")
         private val KEY_DIRECTIONAL_INDICATOR_ENABLED = booleanPreferencesKey("directional_indicator_enabled")
         private val KEY_AUTO_HDR_ENABLED = booleanPreferencesKey("auto_hdr_enabled")  // v2.3.0
+        private val KEY_GPS_TAGGING_ENABLED = booleanPreferencesKey("gps_tagging_enabled")  // v2.9.7 Day 1-2
 
         // Default values
         private const val DEFAULT_ENABLED = true
+        private const val DEFAULT_GPS_ENABLED = false  // Privacy-first: GPS default OFF
     }
 
     /**
@@ -162,6 +164,23 @@ class OverlayPreferences(private val context: Context) {
         }
 
     /**
+     * Flow emitting GPS tagging state
+     * Default: false (disabled for privacy)
+     * v2.9.7 Day 1-2: GPS EXIF tagging
+     */
+    val isGpsTaggingEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_GPS_TAGGING_ENABLED] ?: DEFAULT_GPS_ENABLED
+        }
+
+    /**
      * Sets grid overlay visibility
      *
      * @param enabled true to show grid, false to hide
@@ -225,6 +244,18 @@ class OverlayPreferences(private val context: Context) {
     suspend fun setAutoHDREnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_AUTO_HDR_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Sets GPS tagging mode
+     *
+     * @param enabled true to enable GPS EXIF tagging, false to disable
+     * v2.9.7 Day 1-2: GPS EXIF tagging
+     */
+    suspend fun setGpsTaggingEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_GPS_TAGGING_ENABLED] = enabled
         }
     }
 

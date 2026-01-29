@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Star
@@ -86,6 +87,7 @@ fun SettingsScreen(
     val isLevelIndicatorEnabled by viewModel.isLevelIndicatorEnabled.collectAsState(initial = true)
     val isDirectionalIndicatorEnabled by viewModel.isDirectionalIndicatorEnabled.collectAsState(initial = true)
     val isAutoHDREnabled by viewModel.isAutoHDREnabled.collectAsState(initial = true)
+    val isGpsTaggingEnabled by viewModel.isGpsTaggingEnabled.collectAsState(initial = false)  // v2.9.7 Day 1-2: GPS default OFF
 
     val scope = rememberCoroutineScope()
 
@@ -222,6 +224,21 @@ fun SettingsScreen(
                 onCheckedChange = { enabled ->
                     scope.launch {
                         viewModel.setAutoHDREnabled(enabled)
+                    }
+                }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // GPS Tagging Toggle (v2.9.7 Day 1-2)
+            SettingsSwitchItem(
+                icon = Icons.Default.LocationOn,
+                title = "GPS 位置標記",
+                description = "將拍攝位置（經緯度、海拔）寫入照片 EXIF（需要位置權限，預設關閉保護隱私）",
+                checked = isGpsTaggingEnabled,
+                onCheckedChange = { enabled ->
+                    scope.launch {
+                        viewModel.setGpsTaggingEnabled(enabled)
                     }
                 }
             )

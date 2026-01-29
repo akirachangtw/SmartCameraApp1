@@ -62,6 +62,12 @@ class SettingsViewModel @Inject constructor(
     val isAutoHDREnabled: Flow<Boolean> = overlayPreferences.isAutoHDREnabled
 
     /**
+     * Flow emitting GPS tagging state
+     * v2.9.7 Day 1-2: GPS EXIF tagging
+     */
+    val isGpsTaggingEnabled: Flow<Boolean> = overlayPreferences.isGpsTaggingEnabled
+
+    /**
      * Sets grid overlay visibility
      */
     suspend fun setGridEnabled(enabled: Boolean) {
@@ -102,6 +108,14 @@ class SettingsViewModel @Inject constructor(
      */
     suspend fun setAutoHDREnabled(enabled: Boolean) {
         overlayPreferences.setAutoHDREnabled(enabled)
+    }
+
+    /**
+     * Sets GPS tagging mode
+     * v2.9.7 Day 1-2: GPS EXIF tagging
+     */
+    suspend fun setGpsTaggingEnabled(enabled: Boolean) {
+        overlayPreferences.setGpsTaggingEnabled(enabled)
     }
 
     /**

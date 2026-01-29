@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import android.graphics.Bitmap
+import android.location.Location
+import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
 import com.akirachang.ai.photographer.data.source.camera.CameraInputSource
 import com.akirachang.ai.photographer.data.source.camera.SmartCameraAnalyzer
 import com.akirachang.ai.photographer.domain.model.CameraLens
@@ -37,7 +39,14 @@ import com.akirachang.ai.photographer.domain.repository.CameraRepository
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 import com.akirachang.ai.photographer.util.Constants
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
@@ -48,7 +57,8 @@ import kotlin.coroutines.resume
 class CameraRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val analyzeLightingUseCase: AnalyzeLightingUseCase,
-    private val cameraInputSource: CameraInputSource
+    private val cameraInputSource: CameraInputSource,
+    private val overlayPreferences: OverlayPreferences  // v2.9.7 Day 1-2: GPS settings
 ) : CameraRepository {
 
     companion object {
@@ -57,6 +67,14 @@ class CameraRepositoryImpl @Inject constructor(
         // Filtering thresholds
         private const val MIN_OBJECT_CONFIDENCE = 0.5f
         private const val MIN_FACE_SIZE = 0.10f  // Google ML Kit official default value
+
+        // v2.9.7 Day 1-2: GPS location timeout
+        private const val LOCATION_TIMEOUT_MS = 5000L  // 5 seconds
+    }
+
+    // v2.9.7 Day 1-2: FusedLocationProviderClient for GPS
+    private val fusedLocationClient: FusedLocationProviderClient by lazy {
+        LocationServices.getFusedLocationProviderClient(context)
     }
 
     // 偵測結果狀態流
@@ -229,11 +247,15 @@ class CameraRepositoryImpl @Inject constructor(
                 outputStream.flush()
                 Log.i(TAG, "Photo saved successfully to: $uri")
 
+                // v2.9.7 Day 1-2: Get GPS location before writing EXIF
+                val location = getLastLocation()
+
                 // v2.9.6 Phase 1: Write EXIF Orientation
+                // v2.9.7 Day 1-2: Write EXIF Metadata (Orientation + GPS)
                 try {
-                    writeExifOrientation(uri, rotation)
+                    writeExifMetadata(uri, rotation, location)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to write EXIF Orientation (non-fatal)", e)
+                    Log.e(TAG, "Failed to write EXIF metadata (non-fatal)", e)
                 }
 
                 return@withContext CaptureResult.Success(uri)
@@ -253,10 +275,70 @@ class CameraRepositoryImpl @Inject constructor(
     }
 
     /**
-     * Write EXIF Orientation to saved JPEG
-     * v2.9.6 Phase 1: EXIF Orientation support
+     * Get last known location with timeout
+     * v2.9.7 Day 1-2: GPS location for EXIF tagging
+     *
+     * @return Location if available within timeout, null otherwise
      */
-    private fun writeExifOrientation(uri: Uri, rotation: Int) {
+    private suspend fun getLastLocation(): Location? = withContext(Dispatchers.IO) {
+        try {
+            // Check if GPS tagging is enabled
+            val isGpsEnabled = overlayPreferences.isGpsTaggingEnabled.first()
+            if (!isGpsEnabled) {
+                Log.d(TAG, "GPS tagging disabled in settings")
+                return@withContext null
+            }
+
+            // Check location permission
+            if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                Log.w(TAG, "Location permission not granted")
+                return@withContext null
+            }
+
+            Log.d(TAG, "Requesting current location with ${LOCATION_TIMEOUT_MS}ms timeout...")
+
+            // Request current location with timeout
+            val location = withTimeoutOrNull(LOCATION_TIMEOUT_MS) {
+                val cancellationToken = CancellationTokenSource()
+                try {
+                    fusedLocationClient.getCurrentLocation(
+                        Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                        cancellationToken.token
+                    ).await()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get current location", e)
+                    null
+                }
+            }
+
+            if (location != null) {
+                Log.i(TAG, "Location obtained: lat=${location.latitude}, lon=${location.longitude}, alt=${location.altitude}")
+            } else {
+                Log.w(TAG, "Location not available within timeout")
+            }
+
+            return@withContext location
+
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Security exception when accessing location", e)
+            return@withContext null
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error getting location", e)
+            return@withContext null
+        }
+    }
+
+    /**
+     * Write EXIF metadata (Orientation + GPS) to saved JPEG
+     * v2.9.6 Phase 1: EXIF Orientation support
+     * v2.9.7 Day 1-2: GPS EXIF tagging
+     *
+     * @param uri The URI of the saved image
+     * @param rotation Device rotation for orientation tag
+     * @param location GPS location for GPS tags (nullable)
+     */
+    private fun writeExifMetadata(uri: Uri, rotation: Int, location: Location?) {
         val exifOrientation = when (rotation) {
             Surface.ROTATION_0 -> ExifInterface.ORIENTATION_NORMAL      // 1
             Surface.ROTATION_90 -> ExifInterface.ORIENTATION_ROTATE_90  // 6
@@ -265,13 +347,41 @@ class CameraRepositoryImpl @Inject constructor(
             else -> ExifInterface.ORIENTATION_NORMAL
         }
 
-        Log.d(TAG, "Writing EXIF Orientation: rotation=$rotation → exif=$exifOrientation")
+        Log.d(TAG, "Writing EXIF metadata: rotation=$rotation → exif=$exifOrientation, hasLocation=${location != null}")
 
         context.contentResolver.openFileDescriptor(uri, "rw")?.use { pfd ->
             val exif = ExifInterface(pfd.fileDescriptor)
+
+            // Write orientation
             exif.setAttribute(ExifInterface.TAG_ORIENTATION, exifOrientation.toString())
+            Log.d(TAG, "EXIF Orientation set: $exifOrientation")
+
+            // Write GPS data if available
+            if (location != null) {
+                try {
+                    // Set GPS latitude and longitude
+                    exif.setGpsInfo(location)
+
+                    // Set GPS altitude
+                    if (location.hasAltitude()) {
+                        val altitude = location.altitude
+                        val altitudeRef = if (altitude >= 0) "0" else "1"  // 0 = above sea level, 1 = below
+                        exif.setAttribute(ExifInterface.TAG_GPS_ALTITUDE, "${Math.abs(altitude)}/1")
+                        exif.setAttribute(ExifInterface.TAG_GPS_ALTITUDE_REF, altitudeRef)
+                        Log.d(TAG, "GPS Altitude set: ${altitude}m (ref=$altitudeRef)")
+                    }
+
+                    Log.i(TAG, "GPS EXIF tags written: lat=${location.latitude}, lon=${location.longitude}, alt=${if (location.hasAltitude()) location.altitude else "N/A"}")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to write GPS EXIF tags (non-fatal)", e)
+                }
+            } else {
+                Log.d(TAG, "No GPS location available, skipping GPS EXIF tags")
+            }
+
+            // Save all attributes
             exif.saveAttributes()
-            Log.i(TAG, "EXIF Orientation written successfully: $exifOrientation")
+            Log.i(TAG, "EXIF metadata saved successfully")
         } ?: run {
             Log.e(TAG, "Failed to open FileDescriptor for EXIF writing")
             throw Exception("Cannot open file descriptor for URI: $uri")

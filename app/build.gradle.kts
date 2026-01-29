@@ -17,8 +17,8 @@ android {
         applicationId = "com.akirachang.ai.photographer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 58
-        versionName = "2.9.6-phase2.6.2"
+        versionCode = 59
+        versionName = "2.9.7-Day1-2"
 
         // v2.8.2 Phase C: RenderScript GPU YUV conversion (support mode for API 31+)
         // v2.8.3 Phase D: Transform fast path optimizations
@@ -181,6 +181,9 @@ dependencies {
 
     // === EXIF (v2.9.6 Phase 1) ===
     implementation(libs.androidx.exifinterface)
+
+    // === Location Services (v2.9.7 Day 1-2: GPS EXIF) ===
+    implementation(libs.play.services.location)
 
     // === ML Kit ===
     implementation(libs.mlkit.objectDetection)
