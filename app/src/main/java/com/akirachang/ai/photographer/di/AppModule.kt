@@ -26,6 +26,9 @@ import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import javax.inject.Qualifier
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * 背景執行緒 Executor 限定符
@@ -34,6 +37,14 @@ import javax.inject.Singleton
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class BackgroundExecutor
+
+/**
+ * Application-scoped CoroutineScope 限定符
+ * v2.9.8: 用於非同步 GPS EXIF 寫入，避免阻塞主要儲存流程
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ApplicationScope
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -87,6 +98,19 @@ abstract class AppModule {
             @ApplicationContext context: Context
         ): OverlayPreferences {
             return OverlayPreferences(context)
+        }
+
+        /**
+         * 提供 Application-scoped CoroutineScope (v2.9.8)
+         *
+         * 用於非同步 GPS EXIF 寫入，確保照片保存流程不被阻塞
+         * 使用 SupervisorJob 確保子協程失敗不影響其他協程
+         */
+        @Provides
+        @Singleton
+        @ApplicationScope
+        fun provideApplicationScope(): CoroutineScope {
+            return CoroutineScope(SupervisorJob() + Dispatchers.Default)
         }
     }
 }

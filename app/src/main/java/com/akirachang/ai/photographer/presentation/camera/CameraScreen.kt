@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +56,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -132,12 +134,8 @@ fun CameraScreen(
         }
     }
 
-    // 顯示拍照成功訊息
-    LaunchedEffect(state.lastCapturedImageUri) {
-        state.lastCapturedImageUri?.let {
-            snackbarHostState.showSnackbar("照片已保存")
-        }
-    }
+    // v2.9.8: Removed text message for photo saved - rely on UI visual feedback only
+    // (Button disable + CircularProgressIndicator)
 
     if (cameraPermissionState.status.isGranted) {
         Scaffold(
@@ -361,25 +359,44 @@ fun CameraScreen(
                         )
                     }
 
-                    // 拍照按鈕
-                    FloatingActionButton(
-                        onClick = { viewModel.onEvent(CameraUiEvent.CapturePhoto) },
-                        modifier = Modifier
-                            .size(72.dp)
-                            .border(4.dp, Color.White, CircleShape),
-                        shape = CircleShape,
-                        containerColor = if (state.isCapturing) {
-                            MaterialTheme.colorScheme.secondary
-                        } else {
-                            MaterialTheme.colorScheme.primary
-                        }
+                    // 拍照按鈕 (v2.9.8: 添加視覺反饋 - 禁用 + 進度指示器)
+                    Box(
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "拍照",
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
+                        FloatingActionButton(
+                            onClick = {
+                                // v2.9.8: 只有未拍照時才可點擊（實現禁用效果）
+                                if (!state.isCapturing) {
+                                    viewModel.onEvent(CameraUiEvent.CapturePhoto)
+                                }
+                            },
+                            modifier = Modifier
+                                .size(72.dp)
+                                .border(4.dp, Color.White, CircleShape)
+                                .alpha(if (state.isCapturing) 0.5f else 1.0f),  // v2.9.8: 拍照中降低透明度
+                            shape = CircleShape,
+                            containerColor = if (state.isCapturing) {
+                                MaterialTheme.colorScheme.secondary
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "拍照",
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+                        // v2.9.8: 外圈進度指示器（拍照中顯示）
+                        if (state.isCapturing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(84.dp),  // 比按鈕大一圈 (72 + 12)
+                                color = Color.White,
+                                strokeWidth = 3.dp
+                            )
+                        }
                     }
 
                     // 佔位符（對稱布局）

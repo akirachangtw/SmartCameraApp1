@@ -43,8 +43,10 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
@@ -52,13 +54,15 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
+import com.akirachang.ai.photographer.di.ApplicationScope
 
 @Singleton
 class CameraRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val analyzeLightingUseCase: AnalyzeLightingUseCase,
     private val cameraInputSource: CameraInputSource,
-    private val overlayPreferences: OverlayPreferences  // v2.9.7 Day 1-2: GPS settings
+    private val overlayPreferences: OverlayPreferences,  // v2.9.7 Day 1-2: GPS settings
+    @ApplicationScope private val applicationScope: CoroutineScope  // v2.9.8: Async GPS tagging
 ) : CameraRepository {
 
     companion object {
@@ -69,7 +73,11 @@ class CameraRepositoryImpl @Inject constructor(
         private const val MIN_FACE_SIZE = 0.10f  // Google ML Kit official default value
 
         // v2.9.7 Day 1-2: GPS location timeout
-        private const val LOCATION_TIMEOUT_MS = 5000L  // 5 seconds
+        // v2.9.8: Reduced from 5s to 2s (prioritize cached location)
+        private const val LOCATION_TIMEOUT_MS = 2000L  // 2 seconds
+
+        // v2.9.8: Maximum age for cached location (5 minutes)
+        private const val MAX_LOCATION_AGE_MS = 300_000L  // 5 minutes
     }
 
     // v2.9.7 Day 1-2: FusedLocationProviderClient for GPS
@@ -247,18 +255,26 @@ class CameraRepositoryImpl @Inject constructor(
                 outputStream.flush()
                 Log.i(TAG, "Photo saved successfully to: $uri")
 
-                // v2.9.7 Day 1-2: Get GPS location before writing EXIF
-                val location = getLastLocation()
+                // v2.9.8: Immediately return success result (don't wait for GPS)
+                val successResult = CaptureResult.Success(uri)
 
-                // v2.9.6 Phase 1: Write EXIF Orientation
-                // v2.9.7 Day 1-2: Write EXIF Metadata (Orientation + GPS)
-                try {
-                    writeExifMetadata(uri, rotation, location)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to write EXIF metadata (non-fatal)", e)
+                // v2.9.8: Asynchronously handle GPS tagging in background
+                // This prevents GPS location acquisition (up to 5s) from blocking UI feedback
+                applicationScope.launch(Dispatchers.IO) {
+                    try {
+                        // v2.9.7 Day 1-2: Get GPS location for EXIF
+                        val location = getLastLocation()
+
+                        // v2.9.6 Phase 1: Write EXIF Orientation
+                        // v2.9.7 Day 1-2: Write EXIF Metadata (Orientation + GPS)
+                        writeExifMetadata(uri, rotation, location)
+                        Log.d(TAG, "Async GPS EXIF tagging completed for: $uri")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to write EXIF metadata asynchronously (non-fatal)", e)
+                    }
                 }
 
-                return@withContext CaptureResult.Success(uri)
+                return@withContext successResult
             } ?: run {
                 Log.e(TAG, "Failed to open output stream for URI: $uri")
                 return@withContext CaptureResult.Error(
@@ -296,9 +312,25 @@ class CameraRepositoryImpl @Inject constructor(
                 return@withContext null
             }
 
-            Log.d(TAG, "Requesting current location with ${LOCATION_TIMEOUT_MS}ms timeout...")
+            // v2.9.8: Prioritize cached location to reduce latency
+            // Try to use last known location if it's recent enough (< 5 minutes old)
+            try {
+                val lastKnownLocation = fusedLocationClient.lastLocation.await()
+                if (lastKnownLocation != null && isLocationRecent(lastKnownLocation)) {
+                    Log.i(TAG, "Using cached location (age: ${System.currentTimeMillis() - lastKnownLocation.time}ms): " +
+                            "lat=${lastKnownLocation.latitude}, lon=${lastKnownLocation.longitude}")
+                    return@withContext lastKnownLocation
+                } else if (lastKnownLocation != null) {
+                    Log.d(TAG, "Cached location too old (age: ${System.currentTimeMillis() - lastKnownLocation.time}ms), requesting fresh location...")
+                } else {
+                    Log.d(TAG, "No cached location available, requesting current location...")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to get cached location, falling back to current location", e)
+            }
 
-            // Request current location with timeout
+            // Cached location not available or too old, request current location with timeout
+            Log.d(TAG, "Requesting current location with ${LOCATION_TIMEOUT_MS}ms timeout...")
             val location = withTimeoutOrNull(LOCATION_TIMEOUT_MS) {
                 val cancellationToken = CancellationTokenSource()
                 try {
@@ -327,6 +359,19 @@ class CameraRepositoryImpl @Inject constructor(
             Log.e(TAG, "Unexpected error getting location", e)
             return@withContext null
         }
+    }
+
+    /**
+     * Check if cached location is recent enough to use
+     * v2.9.8: Helper function for cached location validation
+     *
+     * @param location The cached location to check
+     * @param maxAgeMs Maximum age in milliseconds (default: 5 minutes)
+     * @return true if location is recent enough, false otherwise
+     */
+    private fun isLocationRecent(location: Location, maxAgeMs: Long = MAX_LOCATION_AGE_MS): Boolean {
+        val age = System.currentTimeMillis() - location.time
+        return age < maxAgeMs
     }
 
     /**
