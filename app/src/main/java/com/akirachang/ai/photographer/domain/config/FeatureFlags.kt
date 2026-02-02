@@ -75,6 +75,45 @@ object FeatureFlags {
         get() = BuildConfig.USE_IMAGEPROXY_GUIDELINE_PIPELINE
 
     /**
+     * Enable manual focus (Tap-to-Focus)
+     * v2.9.9: Day 1-2 - Tap-to-Focus implementation
+     *
+     * When enabled, users can tap on the preview to trigger autofocus at that point.
+     * Uses CameraX FocusMeteringAction API with 5-second auto-cancel.
+     *
+     * Default: true (enabled for testing)
+     */
+    val enableManualFocus: Boolean
+        get() = true  // v2.9.9: Always enabled (no BuildConfig flag needed for now)
+
+    /**
+     * Enable focus tracking (Traycer)
+     * v2.9.10: Continuous object tracking
+     *
+     * When enabled, tapping on a detected face/object will start continuous tracking.
+     * The focus indicator (white circle) will follow the target as it moves.
+     *
+     * Requires: enableManualFocus = true
+     * Default: true (enabled for testing)
+     */
+    val enableFocusTracking: Boolean
+        get() = true  // v2.9.10: Always enabled (Traycer tracking)
+
+    /**
+     * Enable AE/AF Lock (Traycer v2)
+     * v2.9.9 Day 1-2: Long press to lock exposure and focus
+     *
+     * When enabled, long pressing on the preview will lock AE (auto exposure) and
+     * AF (auto focus) at that point. The lock is persistent until unlocked by tapping.
+     * Displays yellow dashed square indicator at lock point.
+     *
+     * Requires: enableManualFocus = true
+     * Default: true (enabled for testing)
+     */
+    val enableAEAFLock: Boolean
+        get() = true  // v2.9.9 Day 1-2: Always enabled (Traycer v2 AE/AF Lock)
+
+    /**
      * Check if all guideline features are fully enabled
      */
     val isGuidelineFullyEnabled: Boolean

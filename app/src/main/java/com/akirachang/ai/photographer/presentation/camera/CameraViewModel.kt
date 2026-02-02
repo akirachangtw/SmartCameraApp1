@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
 import com.akirachang.ai.photographer.data.sensor.DeviceSensorManager
 import com.akirachang.ai.photographer.data.sensor.OrientationData
@@ -36,6 +37,8 @@ import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 import com.akirachang.ai.photographer.data.source.analysis.GuidelineAnalyzer
+import com.akirachang.ai.photographer.BuildConfig
+import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import javax.inject.Inject
 
 @HiltViewModel
@@ -95,6 +98,10 @@ class CameraViewModel @Inject constructor(
     // Preview dimensions (v2.0 Phase 2)
     private var previewWidth: Int? = null
     private var previewHeight: Int? = null
+
+    // Tracking state management (v2.9.10: Traycer)
+    private var targetLostFrameCount = 0
+    private val TARGET_LOST_THRESHOLD = 10  // Stop tracking after 10 consecutive frames without target
 
     // Detection stabilization (v2.2.1) - prevent flickering
     private var consecutiveFaceDetections = 0
@@ -259,6 +266,9 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.StartAnalysis -> startAnalysis()
             is CameraUiEvent.StopAnalysis -> stopAnalysis()
             is CameraUiEvent.ShowError -> showError(event.message)
+            is CameraUiEvent.FocusOnPoint -> focusOnPoint(event.x, event.y, event.viewWidth, event.viewHeight)  // v2.9.9
+            is CameraUiEvent.LockAEAF -> lockAEAF(event.x, event.y, event.viewWidth, event.viewHeight)  // v2.9.9 Day 1-2
+            is CameraUiEvent.UnlockAEAF -> unlockAEAF()  // v2.9.9 Day 1-2
         }
     }
 
@@ -312,6 +322,23 @@ class CameraViewModel @Inject constructor(
         // v2.6.1 Fix: Execute camera switching asynchronously
         // switchCamera() internally handles Main thread requirement for CameraX
         viewModelScope.launch {
+            // v2.9.10: Clear tracking state before switching camera
+            // v2.9.9 Day 1-2: Clear AE/AF lock state before switching camera
+            _state.update {
+                it.copy(
+                    trackedObjectId = null,
+                    trackedObjectType = null,
+                    focusPoint = null,
+                    isFocusing = false,
+                    focusSuccess = null,
+                    isAEAFLocked = false,
+                    lockPoint = null
+                )
+            }
+
+            // Cancel focus metering if locked
+            cameraRepository.cancelFocusAndMetering()
+
             cameraRepository.switchCamera()
             _state.update {
                 it.copy(currentCamera = cameraRepository.getCurrentCamera())
@@ -392,6 +419,311 @@ class CameraViewModel @Inject constructor(
         _state.update { it.copy(error = null) }
     }
 
+    /**
+     * Find tapped face or object for tracking
+     * v2.9.10: Traycer collision detection
+     *
+     * @param x Tap coordinate X (PreviewView coordinates)
+     * @param y Tap coordinate Y (PreviewView coordinates)
+     * @return Pair<trackingId, type> or null if no target found
+     */
+    private fun findTappedTarget(x: Float, y: Float): Pair<Int, TrackedObjectType>? {
+        val detectionResult = _state.value.detectionResult ?: return null
+
+        // Priority 1: Check faces (more stable tracking)
+        detectionResult.faces.forEachIndexed { index, face ->
+            if (face.boundingBox.contains(x.toInt(), y.toInt())) {
+                val trackingId = face.trackingId ?: (index + 10000)  // Fallback ID: 10000+
+                Log.d(TAG, "Tapped on face: trackingId=$trackingId")
+                return Pair(trackingId, TrackedObjectType.FACE)
+            }
+        }
+
+        // Priority 2: Check objects
+        detectionResult.objects.forEachIndexed { index, obj ->
+            if (obj.boundingBox.contains(x.toInt(), y.toInt())) {
+                val trackingId = obj.trackingId ?: (index + 20000)  // Fallback ID: 20000+
+                Log.d(TAG, "Tapped on object: trackingId=$trackingId")
+                return Pair(trackingId, TrackedObjectType.OBJECT)
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Update tracked object position
+     * v2.9.10: Traycer continuous tracking
+     *
+     * Called after each new DetectionResult to update focus indicator position
+     */
+    private fun updateTrackedObjectPosition(detectionResult: DetectionResult) {
+        val trackedId = _state.value.trackedObjectId ?: return
+        val trackedType = _state.value.trackedObjectType ?: return
+
+        // Find target by type
+        val targetBoundingBox: android.graphics.Rect? = when (trackedType) {
+            TrackedObjectType.FACE -> {
+                detectionResult.faces.firstOrNull { face ->
+                    (face.trackingId ?: -1) == trackedId
+                }?.boundingBox
+            }
+            TrackedObjectType.OBJECT -> {
+                detectionResult.objects.firstOrNull { obj ->
+                    (obj.trackingId ?: -1) == trackedId
+                }?.boundingBox
+            }
+        }
+
+        if (targetBoundingBox != null) {
+            // Target found, update position
+            val centerX = targetBoundingBox.exactCenterX()
+            val centerY = targetBoundingBox.exactCenterY()
+
+            // Prevent excessive updates: only update if position changed > 5 pixels
+            val currentFocusPoint = _state.value.focusPoint
+            val shouldUpdate = currentFocusPoint == null ||
+                kotlin.math.abs(currentFocusPoint.first - centerX) > 5f ||
+                kotlin.math.abs(currentFocusPoint.second - centerY) > 5f
+
+            if (shouldUpdate) {
+                _state.update { it.copy(focusPoint = Pair(centerX, centerY)) }
+                if (BuildConfig.DEBUG) {
+                    Log.v(TAG, "Tracking update: ID=$trackedId, position=($centerX, $centerY)")
+                }
+            }
+
+            // Reset lost frame counter
+            targetLostFrameCount = 0
+
+        } else {
+            // Target not found, increment lost counter
+            targetLostFrameCount++
+
+            if (targetLostFrameCount >= TARGET_LOST_THRESHOLD) {
+                Log.i(TAG, "Tracking lost: ID=$trackedId after $targetLostFrameCount frames")
+                _state.update {
+                    it.copy(
+                        trackedObjectId = null,
+                        trackedObjectType = null,
+                        focusPoint = null,
+                        isFocusing = false,
+                        focusSuccess = null
+                    )
+                }
+                targetLostFrameCount = 0
+            }
+        }
+    }
+
+    /**
+     * Focus on a specific point in the preview
+     * v2.9.9: Tap-to-Focus implementation
+     * v2.9.10: Traycer tracking integration
+     *
+     * @param x X coordinate in pixels
+     * @param y Y coordinate in pixels
+     * @param viewWidth View width in pixels
+     * @param viewHeight View height in pixels
+     */
+    private fun focusOnPoint(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
+        viewModelScope.launch {
+            try {
+                // v2.9.9 Day 1-2: Unlock AE/AF if locked (tap to unlock)
+                if (_state.value.isAEAFLocked) {
+                    unlockAEAF()
+                    Log.i(TAG, "AE/AF unlocked by tap")
+                    return@launch  // Don't start new focus, just unlock
+                }
+
+                // v2.9.10: Find tapped target for tracking
+                val tappedTarget = findTappedTarget(x, y)
+
+                if (tappedTarget != null && FeatureFlags.enableFocusTracking) {
+                    // Tracking mode: Start continuous tracking
+                    val (trackingId, targetType) = tappedTarget
+                    _state.update {
+                        it.copy(
+                            focusPoint = Pair(x, y),
+                            isFocusing = true,
+                            focusSuccess = null,
+                            trackedObjectId = trackingId,
+                            trackedObjectType = targetType
+                        )
+                    }
+                    Log.i(TAG, "Tracking started: ID=$trackingId, type=$targetType")
+
+                } else {
+                    // Static focus mode: Traditional tap-to-focus
+                    _state.update {
+                        it.copy(
+                            focusPoint = Pair(x, y),
+                            isFocusing = true,
+                            focusSuccess = null,
+                            trackedObjectId = null,
+                            trackedObjectType = null
+                        )
+                    }
+                    Log.d(TAG, "Static focus mode at ($x, $y)")
+                }
+
+                // Execute CameraX focus (both modes)
+                val result = cameraRepository.focusOnPoint(x, y, viewWidth, viewHeight)
+
+                if (result.isSuccess) {
+                    _state.update { it.copy(isFocusing = false, focusSuccess = true) }
+                    Log.d(TAG, "Focus successful at ($x, $y)")
+
+                    // Tracking mode: Don't auto-clear (managed by updateTrackedObjectPosition)
+                    // Static mode: Clear after 1 second
+                    if (_state.value.trackedObjectId == null) {
+                        delay(1000)
+                        _state.update { it.copy(focusPoint = null, focusSuccess = null) }
+                    }
+
+                } else {
+                    _state.update { it.copy(isFocusing = false, focusSuccess = false) }
+                    Log.w(TAG, "Focus failed at ($x, $y): ${result.exceptionOrNull()?.message}")
+                    delay(500)
+                    _state.update {
+                        it.copy(
+                            focusPoint = null,
+                            focusSuccess = null,
+                            trackedObjectId = null,
+                            trackedObjectType = null
+                        )
+                    }
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Focus error", e)
+                _state.update {
+                    it.copy(
+                        isFocusing = false,
+                        focusSuccess = false,
+                        trackedObjectId = null,
+                        trackedObjectType = null
+                    )
+                }
+                delay(500)
+                _state.update { it.copy(focusPoint = null, focusSuccess = null) }
+            }
+        }
+    }
+
+    /**
+     * Lock AE/AF at specified point (long press)
+     * v2.9.9 Day 1-2: Traycer v2 AE/AF Lock
+     *
+     * Locks auto exposure and auto focus at the specified point.
+     * Creates a persistent focus metering action without auto-cancel.
+     * Displays yellow square indicator at lock point.
+     */
+    private fun lockAEAF(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
+        viewModelScope.launch {
+            try {
+                Log.i(TAG, "Locking AE/AF at ($x, $y)")
+
+                // Clear tracking state if active (lock mode is exclusive)
+                val wasTracking = _state.value.trackedObjectId != null
+                if (wasTracking) {
+                    _state.update {
+                        it.copy(
+                            trackedObjectId = null,
+                            trackedObjectType = null
+                        )
+                    }
+                    Log.i(TAG, "Tracking cleared for AE/AF lock")
+                }
+
+                // Update state to show lock indicator (yellow square)
+                _state.update {
+                    it.copy(
+                        focusPoint = Pair(x, y),
+                        isFocusing = true,
+                        focusSuccess = null,
+                        lockPoint = Pair(x, y),
+                        isAEAFLocked = false  // Will be set to true after successful lock
+                    )
+                }
+
+                // Execute CameraX lock (persistent focus metering without auto-cancel)
+                val result = cameraRepository.lockAEAF(x, y, viewWidth, viewHeight)
+
+                if (result.isSuccess) {
+                    _state.update {
+                        it.copy(
+                            isFocusing = false,
+                            focusSuccess = true,
+                            isAEAFLocked = true  // Lock successful
+                        )
+                    }
+                    Log.i(TAG, "AE/AF locked successfully at ($x, $y)")
+
+                } else {
+                    _state.update {
+                        it.copy(
+                            isFocusing = false,
+                            focusSuccess = false,
+                            lockPoint = null,
+                            isAEAFLocked = false
+                        )
+                    }
+                    Log.w(TAG, "AE/AF lock failed: ${result.exceptionOrNull()?.message}")
+                    delay(500)
+                    _state.update { it.copy(focusPoint = null, focusSuccess = null) }
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "AE/AF lock error", e)
+                _state.update {
+                    it.copy(
+                        isFocusing = false,
+                        focusSuccess = false,
+                        lockPoint = null,
+                        isAEAFLocked = false
+                    )
+                }
+                delay(500)
+                _state.update { it.copy(focusPoint = null, focusSuccess = null) }
+            }
+        }
+    }
+
+    /**
+     * Unlock AE/AF (return to auto mode)
+     * v2.9.9 Day 1-2: Traycer v2 AE/AF Lock
+     *
+     * Cancels the persistent focus metering action and returns to auto mode.
+     * Clears lock indicator.
+     */
+    private fun unlockAEAF() {
+        viewModelScope.launch {
+            try {
+                Log.i(TAG, "Unlocking AE/AF")
+
+                // Cancel focus metering to return to auto mode
+                cameraRepository.cancelFocusAndMetering()
+
+                // Clear lock state and indicators
+                _state.update {
+                    it.copy(
+                        isAEAFLocked = false,
+                        lockPoint = null,
+                        focusPoint = null,
+                        isFocusing = false,
+                        focusSuccess = null
+                    )
+                }
+
+                Log.i(TAG, "AE/AF unlocked, returned to auto mode")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "AE/AF unlock error", e)
+            }
+        }
+    }
+
     private fun startAnalysis() {
         try {
             cameraRepository.startImageAnalysis()
@@ -409,7 +741,11 @@ class CameraViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     isAnalysisEnabled = false,
-                    detectionResult = null
+                    detectionResult = null,
+                    // v2.9.10: Clear tracking state when stopping analysis
+                    trackedObjectId = null,
+                    trackedObjectType = null,
+                    focusPoint = null
                 )
             }
             Log.i(TAG, "ML Kit analysis stopped")
@@ -516,6 +852,9 @@ class CameraViewModel @Inject constructor(
                                 _state.value.detectionResult?.faces?.isNotEmpty() == true) {
                                 _state.update { it.copy(detectionResult = detectionResult) }
 
+                                // v2.9.10: Update tracked object position (Traycer)
+                                updateTrackedObjectPosition(detectionResult)
+
                                 // Perform composition analysis
                                 val compStart = System.nanoTime()
                                 analyzeComposition(detectionResult)
@@ -533,6 +872,10 @@ class CameraViewModel @Inject constructor(
                             // Only clear if we have enough consecutive empty frames
                             if (consecutiveNoFaceDetections >= MIN_NO_DETECTIONS_TO_HIDE) {
                                 _state.update { it.copy(detectionResult = detectionResult) }
+
+                                // v2.9.10: Update tracking (will clear if target lost)
+                                updateTrackedObjectPosition(detectionResult)
+
                                 _compositionState.value = CompositionState.NoSubject
 
                                 Log.i(TAG, "Detection cleared: No stable face detected")

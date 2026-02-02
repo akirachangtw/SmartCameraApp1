@@ -678,4 +678,44 @@ class CameraRepositoryImpl @Inject constructor(
         return cameraInputSource.supportsNativePreview()
     }
 
+    /**
+     * Focus on a specific point in the preview
+     * v2.9.9: Tap-to-Focus support
+     *
+     * Delegates to CameraInputSource (LiveCameraSource uses FocusMeteringAction, StaticImageSource is no-op)
+     */
+    override suspend fun focusOnPoint(
+        x: Float,
+        y: Float,
+        viewWidth: Int,
+        viewHeight: Int
+    ): Result<Unit> {
+        return cameraInputSource.focusOnPoint(x, y, viewWidth, viewHeight)
+    }
+
+    /**
+     * Lock AE/AF at a specific point (long press)
+     * v2.9.9 Day 1-2: Traycer v2 AE/AF Lock support
+     *
+     * Delegates to CameraInputSource (LiveCameraSource uses persistent FocusMeteringAction, StaticImageSource is no-op)
+     */
+    override suspend fun lockAEAF(
+        x: Float,
+        y: Float,
+        viewWidth: Int,
+        viewHeight: Int
+    ): Result<Unit> {
+        return cameraInputSource.lockAEAF(x, y, viewWidth, viewHeight)
+    }
+
+    /**
+     * Cancel focus and metering (unlock AE/AF)
+     * v2.9.9 Day 1-2: Traycer v2 AE/AF Lock support
+     *
+     * Delegates to CameraInputSource (LiveCameraSource uses cancelFocusAndMetering(), StaticImageSource is no-op)
+     */
+    override suspend fun cancelFocusAndMetering(): Result<Unit> {
+        return cameraInputSource.cancelFocusAndMetering()
+    }
+
 }

@@ -61,6 +61,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.foundation.Canvas
+import androidx.compose.runtime.getValue
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.PathEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -142,10 +156,50 @@ fun CameraScreen(
             modifier = modifier,
             snackbarHost = { SnackbarHost(snackbarHostState) }
         ) { paddingValues ->
+            // v2.9.9: Track preview size for Tap-to-Focus
+            var previewSize by remember { mutableStateOf(IntSize.Zero) }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .onSizeChanged { size ->
+                        previewSize = size
+                    }
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { offset ->
+                                // v2.9.9: Tap-to-Focus - single tap triggers focus
+                                if (FeatureFlags.enableManualFocus &&
+                                    previewSize.width > 0 &&
+                                    previewSize.height > 0) {
+                                    viewModel.onEvent(
+                                        CameraUiEvent.FocusOnPoint(
+                                            x = offset.x,
+                                            y = offset.y,
+                                            viewWidth = previewSize.width,
+                                            viewHeight = previewSize.height
+                                        )
+                                    )
+                                }
+                            },
+                            onLongPress = { offset ->
+                                // v2.9.9 Day 1-2: AE/AF Lock - long press triggers lock
+                                if (FeatureFlags.enableManualFocus &&
+                                    previewSize.width > 0 &&
+                                    previewSize.height > 0) {
+                                    viewModel.onEvent(
+                                        CameraUiEvent.LockAEAF(
+                                            x = offset.x,
+                                            y = offset.y,
+                                            viewWidth = previewSize.width,
+                                            viewHeight = previewSize.height
+                                        )
+                                    )
+                                }
+                            }
+                        )
+                    }
             ) {
                 // 相機預覽
                 // v2.8.6 Phase 2: PreviewView migration with dual-path rendering
@@ -262,6 +316,32 @@ fun CameraScreen(
                         .align(Alignment.BottomEnd)
                         .padding(end = 16.dp, bottom = 16.dp)
                 )
+
+                // v2.9.9: Focus indicator overlay
+                // v2.9.10: Shows white circle in tracking mode, color change in static mode
+                // v2.9.9 Day 1-2: Shows dashed 3-segment arc, yellow square when locked
+                state.focusPoint?.let { (x, y) ->
+                    FocusIndicator(
+                        x = x,
+                        y = y,
+                        isFocusing = state.isFocusing,
+                        focusSuccess = state.focusSuccess,
+                        isTracking = state.trackedObjectId != null,  // v2.9.10: Tracking mode flag
+                        isLocked = state.isAEAFLocked,  // v2.9.9 Day 1-2: Lock mode flag
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                // v2.9.9 Day 1-2: Lock indicator (yellow square frame)
+                state.lockPoint?.let { (x, y) ->
+                    if (state.isAEAFLocked) {
+                        LockIndicator(
+                            x = x,
+                            y = y,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
 
                 // 簡易計數顯示（可選，保留用於調試）
                 state.detectionResult?.let { result ->
@@ -413,6 +493,174 @@ fun CameraScreen(
             } else {
                 "請授予相機權限以使用此功能"
             }
+        )
+    }
+}
+
+/**
+ * Focus Indicator - Shows animated dashed 3-segment arc at focus point
+ * v2.9.9: Tap-to-Focus visual feedback
+ * v2.9.10: Traycer dual-mode rendering (tracking vs static)
+ * v2.9.9 Day 1-2: Traycer v2 professional dashed arc design (3 × 120°)
+ *
+ * @param x X coordinate of focus point
+ * @param y Y coordinate of focus point
+ * @param isFocusing True while focus is in progress
+ * @param focusSuccess True if focus succeeded, false if failed, null if still focusing
+ * @param isTracking True if in tracking mode (Traycer), false for static focus
+ * @param isLocked True if AE/AF is locked (long press)
+ * @param modifier Modifier for the canvas
+ */
+@Composable
+private fun FocusIndicator(
+    x: Float,
+    y: Float,
+    isFocusing: Boolean,
+    focusSuccess: Boolean?,
+    isTracking: Boolean,  // v2.9.10: Tracking mode flag
+    isLocked: Boolean = false,  // v2.9.9 Day 1-2: Lock mode flag
+    modifier: Modifier = Modifier
+) {
+    // v2.9.10: Tracking mode - smooth position transition
+    val animatedX by animateFloatAsState(
+        targetValue = x,
+        animationSpec = if (isTracking) {
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        } else {
+            tween(durationMillis = 0)  // Static mode: no animation
+        },
+        label = "focus_x"
+    )
+
+    val animatedY by animateFloatAsState(
+        targetValue = y,
+        animationSpec = if (isTracking) {
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        } else {
+            tween(durationMillis = 0)
+        },
+        label = "focus_y"
+    )
+
+    // v2.9.10: Tracking mode - no scale animation
+    // v2.9.9 Day 1-2: Lock mode - no scale animation
+    val scale by animateFloatAsState(
+        targetValue = if (isTracking || isLocked) 1.0f else if (isFocusing) 1.2f else 1.0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "focus_scale"
+    )
+
+    // v2.9.10: Tracking mode - fixed alpha 1.0
+    // v2.9.9 Day 1-2: Lock mode - fixed alpha 1.0
+    val alpha by animateFloatAsState(
+        targetValue = if (isTracking || isLocked) 1.0f else if (focusSuccess != null) 0.6f else 1.0f,
+        animationSpec = tween(durationMillis = 500),
+        label = "focus_alpha"
+    )
+
+    // v2.9.9 Day 1-2: Plan B color scheme (white/cyan/yellow)
+    val color = when {
+        isLocked -> Color(0xFFFFEB3B)  // Yellow - locked (AE/AF lock)
+        isTracking -> Color.White  // White - tracking mode
+        focusSuccess == true -> Color.White  // White - static success
+        focusSuccess == false -> Color(0xFFFF5252)  // Red - failed
+        else -> Color(0xFF00E5FF)  // Cyan - focusing (極光藍)
+    }
+
+    Canvas(modifier = modifier) {
+        val radius = 40.dp.toPx() * scale
+        val strokeWidth = 3.dp.toPx()
+
+        // v2.9.9 Day 1-2: Dashed path effect (dash: 8dp, gap: 6dp)
+        val dashEffect = PathEffect.dashPathEffect(
+            floatArrayOf(8.dp.toPx(), 6.dp.toPx()),
+            phase = 0f
+        )
+
+        // v2.9.9 Day 1-2: Draw 3 equal arc segments (120° each)
+        // Segment 1: 0° to 120°
+        drawArc(
+            color = color,
+            startAngle = 0f,
+            sweepAngle = 120f,
+            useCenter = false,
+            topLeft = Offset(animatedX - radius, animatedY - radius),
+            size = Size(radius * 2, radius * 2),
+            alpha = alpha,
+            style = Stroke(width = strokeWidth, pathEffect = dashEffect)
+        )
+
+        // Segment 2: 120° to 240°
+        drawArc(
+            color = color,
+            startAngle = 120f,
+            sweepAngle = 120f,
+            useCenter = false,
+            topLeft = Offset(animatedX - radius, animatedY - radius),
+            size = Size(radius * 2, radius * 2),
+            alpha = alpha,
+            style = Stroke(width = strokeWidth, pathEffect = dashEffect)
+        )
+
+        // Segment 3: 240° to 360°
+        drawArc(
+            color = color,
+            startAngle = 240f,
+            sweepAngle = 120f,
+            useCenter = false,
+            topLeft = Offset(animatedX - radius, animatedY - radius),
+            size = Size(radius * 2, radius * 2),
+            alpha = alpha,
+            style = Stroke(width = strokeWidth, pathEffect = dashEffect)
+        )
+
+        // Draw center dot
+        drawCircle(
+            color = color,
+            radius = 3.dp.toPx(),
+            center = Offset(animatedX, animatedY),
+            alpha = alpha
+        )
+    }
+}
+
+/**
+ * Lock Indicator - Shows yellow dashed square when AE/AF is locked
+ * v2.9.9 Day 1-2: Traycer v2 AE/AF Lock visual feedback
+ *
+ * @param x X coordinate of lock point
+ * @param y Y coordinate of lock point
+ * @param modifier Modifier for the canvas
+ */
+@Composable
+private fun LockIndicator(
+    x: Float,
+    y: Float,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val size = 80.dp.toPx()  // Square size
+        val strokeWidth = 3.dp.toPx()
+        val color = Color(0xFFFFEB3B)  // Yellow
+
+        // v2.9.9 Day 1-2: Dashed path effect (dash: 8dp, gap: 6dp)
+        val dashEffect = PathEffect.dashPathEffect(
+            floatArrayOf(8.dp.toPx(), 6.dp.toPx()),
+            phase = 0f
+        )
+
+        // Draw dashed square frame
+        drawRect(
+            color = color,
+            topLeft = Offset(x - size / 2, y - size / 2),
+            size = Size(size, size),
+            style = Stroke(width = strokeWidth, pathEffect = dashEffect)
         )
     }
 }

@@ -559,6 +559,207 @@ class LiveCameraSource @Inject constructor(
     }
 
     /**
+     * Focus on a specific point in the preview
+     * v2.9.9: Tap-to-Focus implementation using CameraX FocusMeteringAction
+     *
+     * @param x X coordinate in the preview view (0.0 to viewWidth)
+     * @param y Y coordinate in the preview view (0.0 to viewHeight)
+     * @param viewWidth Width of the preview view in pixels
+     * @param viewHeight Height of the preview view in pixels
+     * @return Result indicating success or failure
+     */
+    override suspend fun focusOnPoint(
+        x: Float,
+        y: Float,
+        viewWidth: Int,
+        viewHeight: Int
+    ): Result<Unit> = suspendCancellableCoroutine { continuation ->
+        try {
+            if (!::camera.isInitialized) {
+                Log.w(TAG, "Camera not initialized - cannot focus")
+                continuation.resume(Result.failure(IllegalStateException("Camera not initialized")))
+                return@suspendCancellableCoroutine
+            }
+
+            val cameraControl = camera.cameraControl
+
+            // Create metering point factory for surface-oriented coordinates
+            val factory = androidx.camera.core.SurfaceOrientedMeteringPointFactory(
+                viewWidth.toFloat(),
+                viewHeight.toFloat()
+            )
+
+            // Create focus point at the tapped coordinates
+            val focusPoint = factory.createPoint(x, y)
+
+            // Build focus metering action
+            val action = androidx.camera.core.FocusMeteringAction.Builder(
+                focusPoint,
+                androidx.camera.core.FocusMeteringAction.FLAG_AF
+            ).apply {
+                // Auto-cancel after 5 seconds
+                setAutoCancelDuration(5, java.util.concurrent.TimeUnit.SECONDS)
+            }.build()
+
+            // Start focus and metering
+            val future = cameraControl.startFocusAndMetering(action)
+
+            // v2.9.10: Use addListener for non-blocking coroutine approach (fixes UI freeze)
+            future.addListener({
+                try {
+                    val result = future.get()  // Called in Executor thread, doesn't block main thread
+                    if (result.isFocusSuccessful) {
+                        Log.d(TAG, "Focus successful at ($x, $y)")
+                        Timber.d("LiveCameraSource: Focus successful at ($x, $y)")
+                        continuation.resume(Result.success(Unit))
+                    } else {
+                        Log.w(TAG, "Focus failed at ($x, $y)")
+                        Timber.w("LiveCameraSource: Focus failed at ($x, $y)")
+                        continuation.resume(Result.failure(Exception("Focus failed")))
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Focus error", e)
+                    Timber.e(e, "LiveCameraSource: Focus error")
+                    continuation.resume(Result.failure(e))
+                }
+            }, ContextCompat.getMainExecutor(context))
+
+            // Support coroutine cancellation
+            continuation.invokeOnCancellation {
+                Log.w(TAG, "Focus operation cancelled")
+                // CameraX future auto-cleans, no manual cancellation needed
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to focus on point", e)
+            Timber.e(e, "LiveCameraSource: Failed to focus on point")
+            continuation.resume(Result.failure(e))
+        }
+    }
+
+    /**
+     * Lock AE/AF at a specific point (long press)
+     * v2.9.9 Day 1-2: Traycer v2 AE/AF Lock support
+     *
+     * Creates a persistent focus metering action with FLAG_AF | FLAG_AE without auto-cancel.
+     * Use cancelFocusAndMetering() to unlock and return to auto mode.
+     */
+    override suspend fun lockAEAF(
+        x: Float,
+        y: Float,
+        viewWidth: Int,
+        viewHeight: Int
+    ): Result<Unit> = suspendCancellableCoroutine { continuation ->
+        try {
+            if (!::camera.isInitialized) {
+                Log.w(TAG, "Camera not initialized - cannot lock AE/AF")
+                continuation.resume(Result.failure(IllegalStateException("Camera not initialized")))
+                return@suspendCancellableCoroutine
+            }
+
+            val cameraControl = camera.cameraControl
+
+            // Create metering point factory for surface-oriented coordinates
+            val factory = androidx.camera.core.SurfaceOrientedMeteringPointFactory(
+                viewWidth.toFloat(),
+                viewHeight.toFloat()
+            )
+
+            // Create lock point at the long-pressed coordinates
+            val lockPoint = factory.createPoint(x, y)
+
+            // Build focus metering action with AE and AF lock
+            val action = androidx.camera.core.FocusMeteringAction.Builder(
+                lockPoint,
+                androidx.camera.core.FocusMeteringAction.FLAG_AF or
+                        androidx.camera.core.FocusMeteringAction.FLAG_AE
+            ).apply {
+                // v2.9.9 Day 1-2: NO auto-cancel - persistent lock until manually unlocked
+                // (do not call setAutoCancelDuration)
+            }.build()
+
+            // Start focus and metering (persistent lock)
+            val future = cameraControl.startFocusAndMetering(action)
+
+            // Non-blocking coroutine approach (same as focusOnPoint)
+            future.addListener({
+                try {
+                    val result = future.get()  // Called in Executor thread
+                    if (result.isFocusSuccessful) {
+                        Log.i(TAG, "AE/AF locked successfully at ($x, $y)")
+                        Timber.i("LiveCameraSource: AE/AF locked at ($x, $y)")
+                        continuation.resume(Result.success(Unit))
+                    } else {
+                        Log.w(TAG, "AE/AF lock failed at ($x, $y)")
+                        Timber.w("LiveCameraSource: AE/AF lock failed at ($x, $y)")
+                        continuation.resume(Result.failure(Exception("AE/AF lock failed")))
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "AE/AF lock error", e)
+                    Timber.e(e, "LiveCameraSource: AE/AF lock error")
+                    continuation.resume(Result.failure(e))
+                }
+            }, ContextCompat.getMainExecutor(context))
+
+            // Support coroutine cancellation
+            continuation.invokeOnCancellation {
+                Log.w(TAG, "AE/AF lock operation cancelled")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to lock AE/AF", e)
+            Timber.e(e, "LiveCameraSource: Failed to lock AE/AF")
+            continuation.resume(Result.failure(e))
+        }
+    }
+
+    /**
+     * Cancel focus and metering (unlock AE/AF)
+     * v2.9.9 Day 1-2: Traycer v2 AE/AF Lock support
+     *
+     * Cancels any active focus metering action and returns to auto mode.
+     * Used to unlock AE/AF after lockAEAF().
+     */
+    override suspend fun cancelFocusAndMetering(): Result<Unit> = suspendCancellableCoroutine { continuation ->
+        try {
+            if (!::camera.isInitialized) {
+                Log.w(TAG, "Camera not initialized - cannot cancel focus/metering")
+                continuation.resume(Result.failure(IllegalStateException("Camera not initialized")))
+                return@suspendCancellableCoroutine
+            }
+
+            val cameraControl = camera.cameraControl
+
+            // Cancel any active focus metering action
+            val future = cameraControl.cancelFocusAndMetering()
+
+            // Non-blocking coroutine approach
+            future.addListener({
+                try {
+                    future.get()  // Wait for cancellation to complete
+                    Log.i(TAG, "Focus and metering cancelled - returned to auto mode")
+                    Timber.i("LiveCameraSource: Focus/metering cancelled")
+                    continuation.resume(Result.success(Unit))
+                } catch (e: Exception) {
+                    Log.e(TAG, "Cancel focus/metering error", e)
+                    Timber.e(e, "LiveCameraSource: Cancel focus/metering error")
+                    continuation.resume(Result.failure(e))
+                }
+            }, ContextCompat.getMainExecutor(context))
+
+            // Support coroutine cancellation
+            continuation.invokeOnCancellation {
+                Log.w(TAG, "Cancel focus/metering operation cancelled")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to cancel focus and metering", e)
+            Timber.e(e, "LiveCameraSource: Failed to cancel focus/metering")
+            continuation.resume(Result.failure(e))
+        }
+    }
+
+    /**
      * Initialize orientation listener for dynamic rotation tracking
      *
      * v2.9.6 Phase 1: Monitor device physical orientation and update target rotation
