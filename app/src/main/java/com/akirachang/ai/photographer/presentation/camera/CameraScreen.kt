@@ -320,13 +320,14 @@ fun CameraScreen(
                 // v2.9.9: Focus indicator overlay
                 // v2.9.10: Shows white circle in tracking mode, color change in static mode
                 // v2.9.9 Day 1-2: Shows dashed 3-segment arc, yellow square when locked
+                // v2.x.x Phase 1: Supports both ML Kit tracking and Optical Flow tracking
                 state.focusPoint?.let { (x, y) ->
                     FocusIndicator(
                         x = x,
                         y = y,
                         isFocusing = state.isFocusing,
                         focusSuccess = state.focusSuccess,
-                        isTracking = state.trackedObjectId != null,  // v2.9.10: Tracking mode flag
+                        isTracking = state.trackedObjectId != null || state.trackedPointActive,  // v2.9.10/v2.x.x: ML Kit + Optical Flow tracking
                         isLocked = state.isAEAFLocked,  // v2.9.9 Day 1-2: Lock mode flag
                         isFading = state.focusIndicatorFading,  // v2.9.9 Day 1-2 Optimize: Fade-out animation
                         fadeStartTime = state.focusIndicatorFadeStartTime,  // v2.9.9 Day 1-2 Optimize: Fade start time
