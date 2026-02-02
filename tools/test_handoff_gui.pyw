@@ -875,9 +875,22 @@ class TestHandoffApp:
             "-m", "Co-Authored-By: Claude Sonnet 4.5 (noreply@anthropic.com)"
         ]
         returncode, stdout, stderr = self.run_command(commit_msg)
-        if self.handle_git_error("git commit", returncode, stderr):
-            # Skip if no changes - allow both error message variants
-            if 'nothing to commit' not in stderr.lower() and 'no changes added to commit' not in stderr.lower():
+
+        # Check if "nothing to commit" - might have unpushed commits
+        if returncode != 0 and ('nothing to commit' in stderr.lower() or 'no changes added to commit' in stderr.lower()):
+            self.write_log("No new changes to commit, checking for unpushed commits...", "Info")
+            # Check if there are unpushed commits
+            ret, out, err = self.run_command(["git", "status", "-sb"], show_output=False)
+            if ret == 0 and 'ahead' in out:
+                self.write_log("✓ Found unpushed commits, proceeding to push...", "Success")
+            else:
+                self.write_log("❌ No changes and no unpushed commits", "Error")
+                messagebox.showwarning("注意", "沒有新的變更也沒有未推送的 commits。\n\n請確認是否有檔案需要提交。")
+                self.status_var.set("無變更")
+                return
+        elif returncode != 0:
+            # Other commit errors should be handled normally
+            if self.handle_git_error("git commit", returncode, stderr):
                 self.status_var.set("失敗")
                 return
 
@@ -941,9 +954,22 @@ class TestHandoffApp:
             "-m", "Co-Authored-By: Claude Sonnet 4.5 (noreply@anthropic.com)"
         ]
         returncode, stdout, stderr = self.run_command(commit_msg)
-        if self.handle_git_error("git commit", returncode, stderr):
-            # Skip if no changes - allow both error message variants
-            if 'nothing to commit' not in stderr.lower() and 'no changes added to commit' not in stderr.lower():
+
+        # Check if "nothing to commit" - might have unpushed commits
+        if returncode != 0 and ('nothing to commit' in stderr.lower() or 'no changes added to commit' in stderr.lower()):
+            self.write_log("No new changes to commit, checking for unpushed commits...", "Info")
+            # Check if there are unpushed commits
+            ret, out, err = self.run_command(["git", "status", "-sb"], show_output=False)
+            if ret == 0 and 'ahead' in out:
+                self.write_log("✓ Found unpushed commits, proceeding to push...", "Success")
+            else:
+                self.write_log("❌ No changes and no unpushed commits", "Error")
+                messagebox.showwarning("注意", "沒有新的變更也沒有未推送的 commits。\n\n請確認是否有檔案需要提交。")
+                self.status_var.set("無變更")
+                return
+        elif returncode != 0:
+            # Other commit errors should be handled normally
+            if self.handle_git_error("git commit", returncode, stderr):
                 self.status_var.set("失敗")
                 return
 
