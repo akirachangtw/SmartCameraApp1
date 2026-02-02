@@ -32,7 +32,10 @@ data class CameraState(
     val trackedObjectType: TrackedObjectType? = null,  // FACE or OBJECT, null if not tracking
     // v2.9.9 Day 1-2: Traycer v2 AE/AF Lock state
     val isAEAFLocked: Boolean = false,  // True when AE/AF is locked (long press)
-    val lockPoint: Pair<Float, Float>? = null  // Lock point coordinates for yellow square indicator, null if not locked
+    val lockPoint: Pair<Float, Float>? = null,  // Lock point coordinates for yellow square indicator, null if not locked
+    // v2.9.9 Day 1-2 Optimize: Focus indicator fade-out animation
+    val focusIndicatorFading: Boolean = false,  // True when fading out
+    val focusIndicatorFadeStartTime: Long = 0L  // Timestamp when fade started
 )
 
 sealed class CameraUiEvent {

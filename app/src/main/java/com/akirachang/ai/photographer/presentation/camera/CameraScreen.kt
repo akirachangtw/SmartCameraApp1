@@ -328,20 +328,13 @@ fun CameraScreen(
                         focusSuccess = state.focusSuccess,
                         isTracking = state.trackedObjectId != null,  // v2.9.10: Tracking mode flag
                         isLocked = state.isAEAFLocked,  // v2.9.9 Day 1-2: Lock mode flag
+                        isFading = state.focusIndicatorFading,  // v2.9.9 Day 1-2 Optimize: Fade-out animation
+                        fadeStartTime = state.focusIndicatorFadeStartTime,  // v2.9.9 Day 1-2 Optimize: Fade start time
                         modifier = Modifier.fillMaxSize()
                     )
                 }
 
-                // v2.9.9 Day 1-2: Lock indicator (yellow square frame)
-                state.lockPoint?.let { (x, y) ->
-                    if (state.isAEAFLocked) {
-                        LockIndicator(
-                            x = x,
-                            y = y,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                }
+                // v2.9.9 Day 1-2 Optimize Round 3: Lock indicator removed (use FocusIndicator yellow color instead)
 
                 // 簡易計數顯示（可選，保留用於調試）
                 state.detectionResult?.let { result ->
@@ -519,15 +512,18 @@ private fun FocusIndicator(
     focusSuccess: Boolean?,
     isTracking: Boolean,  // v2.9.10: Tracking mode flag
     isLocked: Boolean = false,  // v2.9.9 Day 1-2: Lock mode flag
+    isFading: Boolean = false,  // v2.9.9 Day 1-2 Optimize: Fade-out animation flag
+    fadeStartTime: Long = 0L,   // v2.9.9 Day 1-2 Optimize: Fade start timestamp
     modifier: Modifier = Modifier
 ) {
     // v2.9.10: Tracking mode - smooth position transition
+    // v2.9.9 Day 1-2 Optimize Round 2: Precision tracking (NoBouncy + Medium stiffness)
     val animatedX by animateFloatAsState(
         targetValue = x,
         animationSpec = if (isTracking) {
             spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
+                dampingRatio = Spring.DampingRatioNoBouncy,  // MediumBouncy → NoBouncy (precise tracking)
+                stiffness = Spring.StiffnessMedium  // StiffnessLow → StiffnessMedium (faster response)
             )
         } else {
             tween(durationMillis = 0)  // Static mode: no animation
@@ -539,8 +535,8 @@ private fun FocusIndicator(
         targetValue = y,
         animationSpec = if (isTracking) {
             spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
+                dampingRatio = Spring.DampingRatioNoBouncy,  // MediumBouncy → NoBouncy (precise tracking)
+                stiffness = Spring.StiffnessMedium  // StiffnessLow → StiffnessMedium (faster response)
             )
         } else {
             tween(durationMillis = 0)
@@ -558,15 +554,20 @@ private fun FocusIndicator(
 
     // v2.9.10: Tracking mode - fixed alpha 1.0
     // v2.9.9 Day 1-2: Lock mode - fixed alpha 1.0
-    // v2.9.9 Day 1-2: Focus failed - alpha 0.6, success - alpha 1.0
+    // v2.9.9 Day 1-2 Optimize: Fade-out animation support
     val alpha by animateFloatAsState(
         targetValue = when {
             isTracking || isLocked -> 1.0f  // Tracking/Lock: alpha 1.0
+            isFading -> 0.4f  // v2.9.9 Day 1-2 Optimize: Fading out to 0.4 (persistent visibility)
             focusSuccess == false -> 0.6f  // Focus failed: alpha 0.6
             focusSuccess == true -> 1.0f  // Focus success: alpha 1.0
             else -> 1.0f  // Focusing: alpha 1.0
         },
-        animationSpec = tween(durationMillis = 500),
+        animationSpec = if (isFading) {
+            tween(durationMillis = 500)  // v2.9.9 Day 1-2 Optimize: 500ms fade-out
+        } else {
+            tween(durationMillis = 500)
+        },
         label = "focus_alpha"
     )
 
@@ -582,50 +583,59 @@ private fun FocusIndicator(
     }
 
     Canvas(modifier = modifier) {
-        val radius = 40.dp.toPx() * scale
-        val strokeWidth = 3.dp.toPx()
+        val radius = 28.dp.toPx() * scale  // v2.9.9 Day 1-2 Optimize Round 2: 32dp → 28dp (Sony Alpha standard)
+        val strokeWidth = 2.5.dp.toPx()  // v2.9.9 Day 1-2 Optimize: 3dp → 2.5dp
 
-        // v2.9.9 Day 1-2: Dashed path effect (dash: 8dp, gap: 6dp)
-        val dashEffect = PathEffect.dashPathEffect(
-            floatArrayOf(8.dp.toPx(), 6.dp.toPx()),
-            phase = 0f
-        )
+        // v2.9.9 Day 1-2 Optimize Round 3: 4-segment solid arc design (reference: circle.png)
+        // Gaps at 0° (right), 90° (bottom), 180° (left), 270° (top)
+        // Each arc: 80°, Each gap: 10°
 
-        // v2.9.9 Day 1-2: Draw 3 equal arc segments (120° each)
-        // Segment 1: 0° to 120°
+        // Segment 1: 5° to 85° (80° arc, right to bottom quadrant)
         drawArc(
             color = color,
-            startAngle = 0f,
-            sweepAngle = 120f,
+            startAngle = 5f,
+            sweepAngle = 80f,
             useCenter = false,
             topLeft = Offset(animatedX - radius, animatedY - radius),
             size = Size(radius * 2, radius * 2),
             alpha = alpha,
-            style = Stroke(width = strokeWidth, pathEffect = dashEffect)
+            style = Stroke(width = strokeWidth)
         )
 
-        // Segment 2: 120° to 240°
+        // Segment 2: 95° to 175° (80° arc, bottom to left quadrant)
         drawArc(
             color = color,
-            startAngle = 120f,
-            sweepAngle = 120f,
+            startAngle = 95f,
+            sweepAngle = 80f,
             useCenter = false,
             topLeft = Offset(animatedX - radius, animatedY - radius),
             size = Size(radius * 2, radius * 2),
             alpha = alpha,
-            style = Stroke(width = strokeWidth, pathEffect = dashEffect)
+            style = Stroke(width = strokeWidth)
         )
 
-        // Segment 3: 240° to 360°
+        // Segment 3: 185° to 265° (80° arc, left to top quadrant)
         drawArc(
             color = color,
-            startAngle = 240f,
-            sweepAngle = 120f,
+            startAngle = 185f,
+            sweepAngle = 80f,
             useCenter = false,
             topLeft = Offset(animatedX - radius, animatedY - radius),
             size = Size(radius * 2, radius * 2),
             alpha = alpha,
-            style = Stroke(width = strokeWidth, pathEffect = dashEffect)
+            style = Stroke(width = strokeWidth)
+        )
+
+        // Segment 4: 275° to 355° (80° arc, top to right quadrant)
+        drawArc(
+            color = color,
+            startAngle = 275f,
+            sweepAngle = 80f,
+            useCenter = false,
+            topLeft = Offset(animatedX - radius, animatedY - radius),
+            size = Size(radius * 2, radius * 2),
+            alpha = alpha,
+            style = Stroke(width = strokeWidth)
         )
 
         // Draw center dot
@@ -653,13 +663,13 @@ private fun LockIndicator(
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier = modifier) {
-        val size = 80.dp.toPx()  // Square size
-        val strokeWidth = 3.dp.toPx()
+        val size = 62.dp.toPx()  // v2.9.9 Day 1-2 Optimize Round 2: 70dp → 62dp (1.1x new circle diameter 28dp)
+        val strokeWidth = 2.5.dp.toPx()  // v2.9.9 Day 1-2 Optimize: Match FocusIndicator strokeWidth
         val color = Color(0xFFFFC107)  // Yellow (#FFC107) - Professional standard
 
-        // v2.9.9 Day 1-2: Dashed path effect (dash: 8dp, gap: 6dp)
+        // v2.9.9 Day 1-2: Dashed path effect (dash: 16dp, gap: 12dp) - Round 2: Increased gap for clarity
         val dashEffect = PathEffect.dashPathEffect(
-            floatArrayOf(8.dp.toPx(), 6.dp.toPx()),
+            floatArrayOf(16.dp.toPx(), 12.dp.toPx()),  // v2.9.9 Day 1-2 Optimize Round 2: 12dp/10dp → 16dp/12dp
             phase = 0f
         )
 

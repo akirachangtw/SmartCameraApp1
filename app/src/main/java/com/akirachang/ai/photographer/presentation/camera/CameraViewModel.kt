@@ -430,24 +430,43 @@ class CameraViewModel @Inject constructor(
     private fun findTappedTarget(x: Float, y: Float): Pair<Int, TrackedObjectType>? {
         val detectionResult = _state.value.detectionResult ?: return null
 
+        // 🔍 DIAGNOSTIC: Log detection result image dimensions
+        Log.d(TAG, "🔍 [Coordinate Debug] DetectionResult: ${detectionResult.imageWidth}x${detectionResult.imageHeight}, rotation=${detectionResult.rotationDegrees}°")
+        Log.d(TAG, "🔍 [Coordinate Debug] Faces: ${detectionResult.faces.size}, Objects: ${detectionResult.objects.size}")
+
+        // Log all face bounding boxes
+        detectionResult.faces.forEachIndexed { index, face ->
+            Log.d(TAG, "🔍 [Coordinate Debug] Face[$index] BoundingBox: ${face.boundingBox}")
+        }
+
+        // Log all object bounding boxes
+        detectionResult.objects.forEachIndexed { index, obj ->
+            Log.d(TAG, "🔍 [Coordinate Debug] Object[$index] BoundingBox: ${obj.boundingBox}")
+        }
+
         // Priority 1: Check faces (more stable tracking)
         detectionResult.faces.forEachIndexed { index, face ->
-            if (face.boundingBox.contains(x.toInt(), y.toInt())) {
+            val contains = face.boundingBox.contains(x.toInt(), y.toInt())
+            Log.d(TAG, "🔍 [Coordinate Debug] Face[$index] contains($x, $y)? $contains")
+            if (contains) {
                 val trackingId = face.trackingId ?: (index + 10000)  // Fallback ID: 10000+
-                Log.d(TAG, "Tapped on face: trackingId=$trackingId")
+                Log.i(TAG, "✅ Tapped on face: trackingId=$trackingId, boundingBox=${face.boundingBox}")
                 return Pair(trackingId, TrackedObjectType.FACE)
             }
         }
 
         // Priority 2: Check objects
         detectionResult.objects.forEachIndexed { index, obj ->
-            if (obj.boundingBox.contains(x.toInt(), y.toInt())) {
+            val contains = obj.boundingBox.contains(x.toInt(), y.toInt())
+            Log.d(TAG, "🔍 [Coordinate Debug] Object[$index] contains($x, $y)? $contains")
+            if (contains) {
                 val trackingId = obj.trackingId ?: (index + 20000)  // Fallback ID: 20000+
-                Log.d(TAG, "Tapped on object: trackingId=$trackingId")
+                Log.i(TAG, "✅ Tapped on object: trackingId=$trackingId, boundingBox=${obj.boundingBox}")
                 return Pair(trackingId, TrackedObjectType.OBJECT)
             }
         }
 
+        Log.d(TAG, "🔍 [Coordinate Debug] No target found at ($x, $y)")
         return null
     }
 
@@ -529,6 +548,9 @@ class CameraViewModel @Inject constructor(
     private fun focusOnPoint(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
         viewModelScope.launch {
             try {
+                // 🔍 DIAGNOSTIC: Log tap coordinates and view size
+                Log.d(TAG, "🔍 [Coordinate Debug] Tap: ($x, $y), View: ${viewWidth}x${viewHeight}")
+
                 // v2.9.9 Day 1-2: Unlock AE/AF if locked (tap to unlock)
                 if (_state.value.isAEAFLocked) {
                     unlockAEAF()
@@ -548,7 +570,8 @@ class CameraViewModel @Inject constructor(
                             isFocusing = true,
                             focusSuccess = null,
                             trackedObjectId = trackingId,
-                            trackedObjectType = targetType
+                            trackedObjectType = targetType,
+                            focusIndicatorFading = false  // Reset fade animation
                         )
                     }
                     Log.i(TAG, "Tracking started: ID=$trackingId, type=$targetType")
@@ -561,7 +584,8 @@ class CameraViewModel @Inject constructor(
                             isFocusing = true,
                             focusSuccess = null,
                             trackedObjectId = null,
-                            trackedObjectType = null
+                            trackedObjectType = null,
+                            focusIndicatorFading = false  // Reset fade animation
                         )
                     }
                     Log.d(TAG, "Static focus mode at ($x, $y)")
@@ -575,10 +599,14 @@ class CameraViewModel @Inject constructor(
                     Log.d(TAG, "Focus successful at ($x, $y)")
 
                     // Tracking mode: Don't auto-clear (managed by updateTrackedObjectPosition)
-                    // Static mode: Clear after 1 second
+                    // Static mode: Keep for 2 seconds, then fade out for 500ms
+                    // v2.9.9 Day 1-2 Optimize: Longer display + smooth fade-out
                     if (_state.value.trackedObjectId == null) {
-                        delay(1000)
-                        _state.update { it.copy(focusPoint = null, focusSuccess = null) }
+                        delay(2000)  // Keep for 2 seconds
+                        _state.update { it.copy(focusIndicatorFading = true, focusIndicatorFadeStartTime = System.currentTimeMillis()) }
+                        delay(500)   // Fade out for 500ms
+                        // v2.9.9 Day 1-2 Optimize: Keep focusPoint visible at alpha 0.7 (persistent until next tap)
+                        // Keep focusIndicatorFading=true to maintain alpha 0.7 (reset on next tap)
                     }
 
                 } else {

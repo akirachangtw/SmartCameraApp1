@@ -101,7 +101,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.renderRuleOfThirdsG
     width: Float,
     height: Float
 ) {
-    val lineColor = Color.White.copy(alpha = 0.5f)
+    val lineColor = Color.White.copy(alpha = 0.4f)
     val strokeWidth = 1.5.dp.toPx()
 
     // Vertical line at 1/3
