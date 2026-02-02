@@ -11,6 +11,7 @@
  * - Exposure detection (backlight, overexposure, low light)
  * - Throttled analysis for performance (10 FPS)
  * - Proper resource management
+ * - v2.x.x Phase 4: Optical flow point tracking integration
  *
  * Architecture:
  * - Replaces MlKitAnalyzer to gain ImageProxy access
@@ -21,6 +22,8 @@ package com.akirachang.ai.photographer.data.source.camera
 
 import android.os.Build
 import android.util.Log
+import androidx.annotation.OptIn
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import com.google.android.gms.tasks.Task
@@ -38,6 +41,10 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
+import com.akirachang.ai.photographer.data.opencv.OpticalFlowTracker
+import com.akirachang.ai.photographer.data.opencv.TrackingResult
+import com.akirachang.ai.photographer.util.CoordinateMapper
+import org.opencv.core.Point
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -91,6 +98,92 @@ class SmartCameraAnalyzer(
     // Cached detection results for lighting analysis
     private var cachedDetectionResult: DetectionResult? = null
 
+    // v2.x.x Phase 4: Optical flow tracking
+    private var opticalFlowTracker: OpticalFlowTracker? = null
+    private var onOpticalFlowResult: ((TrackingResult) -> Unit)? = null
+    private var imageWidth: Int = 0
+    private var imageHeight: Int = 0
+    private var previewWidth: Int = 0
+    private var previewHeight: Int = 0
+
+    /**
+     * Set optical flow tracking result callback
+     * v2.x.x Phase 4: Optical flow point tracking
+     *
+     * @param callback Callback invoked when tracking result is available
+     */
+    fun setOpticalFlowCallback(callback: (TrackingResult) -> Unit) {
+        onOpticalFlowResult = callback
+    }
+
+    /**
+     * Set preview size for coordinate mapping
+     * v2.x.x Phase 4: Required for PreviewView ↔ ImageAnalysis coordinate conversion
+     *
+     * @param width Preview width in pixels
+     * @param height Preview height in pixels
+     */
+    fun setPreviewSize(width: Int, height: Int) {
+        previewWidth = width
+        previewHeight = height
+        Log.d(TAG, "Preview size set: ${width}x${height}")
+    }
+
+    /**
+     * Start optical flow tracking at a specific point
+     * v2.x.x Phase 4: Tap-to-track point feature
+     *
+     * @param x X coordinate in PreviewView (0.0 to previewWidth)
+     * @param y Y coordinate in PreviewView (0.0 to previewHeight)
+     */
+    fun startOpticalFlowTracking(x: Float, y: Float) {
+        if (previewWidth == 0 || previewHeight == 0) {
+            Log.w(TAG, "Cannot start tracking: preview size not set")
+            return
+        }
+
+        if (imageWidth == 0 || imageHeight == 0) {
+            Log.w(TAG, "Cannot start tracking: image size not yet known (wait for first frame)")
+            return
+        }
+
+        // Convert PreviewView coordinates to ImageAnalysis coordinates
+        val imagePoint = CoordinateMapper.previewToImage(
+            x, y,
+            previewWidth, previewHeight,
+            imageWidth, imageHeight
+        )
+
+        // Create tracker if needed
+        if (opticalFlowTracker == null) {
+            opticalFlowTracker = OpticalFlowTracker()
+        }
+
+        // Start tracking
+        opticalFlowTracker?.startTracking(imagePoint, imageWidth, imageHeight)
+        Log.i(TAG, "Optical flow tracking started at preview ($x, $y) -> image (${imagePoint.x}, ${imagePoint.y})")
+    }
+
+    /**
+     * Stop optical flow tracking
+     * v2.x.x Phase 4: Stop tracking and release resources
+     */
+    fun stopOpticalFlowTracking() {
+        opticalFlowTracker?.stopTracking()
+        Log.i(TAG, "Optical flow tracking stopped")
+    }
+
+    /**
+     * Check if optical flow tracking is active
+     * v2.x.x Phase 4: Query tracking state
+     *
+     * @return True if tracking is active, false otherwise
+     */
+    fun isOpticalFlowTracking(): Boolean {
+        return opticalFlowTracker?.isTracking() ?: false
+    }
+
+    @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
         // Throttle analysis to 10 FPS
         val currentTime = System.currentTimeMillis()
@@ -109,6 +202,13 @@ class SmartCameraAnalyzer(
 
         analysisScope.launch {
             try {
+                // v2.x.x Phase 4: Store image dimensions for coordinate mapping
+                if (imageWidth == 0 || imageHeight == 0) {
+                    imageWidth = imageProxy.width
+                    imageHeight = imageProxy.height
+                    Log.d(TAG, "Image size captured: ${imageWidth}x${imageHeight}")
+                }
+
                 // Create InputImage for ML Kit
                 val inputImage = InputImage.fromMediaImage(
                     imageProxy.image!!,
@@ -171,6 +271,50 @@ class SmartCameraAnalyzer(
                             "lighting: ${lightingState.javaClass.simpleName}"
                 )
 
+                // v2.x.x Phase 4: Optical flow tracking (if active)
+                if (isOpticalFlowTracking()) {
+                    try {
+                        // Convert ImageProxy to grayscale Mat
+                        val grayMat = imageProxy.toGrayMat()
+
+                        try {
+                            // Track point
+                            val trackingResult = opticalFlowTracker?.track(grayMat)
+
+                            if (trackingResult != null) {
+                                // Convert tracking result coordinates back to PreviewView coordinates
+                                val (previewX, previewY) = if (trackingResult.isValid) {
+                                    CoordinateMapper.imageToPreview(
+                                        trackingResult.point.x.toFloat(),
+                                        trackingResult.point.y.toFloat(),
+                                        imageWidth, imageHeight,
+                                        previewWidth, previewHeight
+                                    )
+                                } else {
+                                    // Tracking lost - keep previous coordinates or use (0, 0)
+                                    Pair(0f, 0f)
+                                }
+
+                                // Create result with PreviewView coordinates
+                                val previewTrackingResult = TrackingResult(
+                                    point = Point(previewX.toDouble(), previewY.toDouble()),
+                                    quality = trackingResult.quality,
+                                    distance = trackingResult.distance,
+                                    isValid = trackingResult.isValid
+                                )
+
+                                // Invoke callback
+                                onOpticalFlowResult?.invoke(previewTrackingResult)
+                            }
+                        } finally {
+                            // Release Mat to prevent memory leak
+                            grayMat.release()
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Optical flow tracking failed", e)
+                    }
+                }
+
             } catch (e: Exception) {
                 Log.e(TAG, "Analysis error", e)
             } finally {
@@ -186,6 +330,12 @@ class SmartCameraAnalyzer(
      */
     fun cleanup() {
         analysisScope.cancel()
+
+        // v2.x.x Phase 4: Release optical flow tracker
+        stopOpticalFlowTracking()
+        opticalFlowTracker = null
+        onOpticalFlowResult = null
+
         Log.d(TAG, "Analyzer cleaned up")
     }
 }

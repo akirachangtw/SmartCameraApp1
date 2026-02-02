@@ -31,6 +31,8 @@ import android.location.Location
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
 import com.akirachang.ai.photographer.data.source.camera.CameraInputSource
 import com.akirachang.ai.photographer.data.source.camera.SmartCameraAnalyzer
+import com.akirachang.ai.photographer.data.source.ml.ImageAnalyzer
+import com.akirachang.ai.photographer.data.opencv.TrackingResult
 import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.domain.model.CaptureResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
@@ -716,6 +718,60 @@ class CameraRepositoryImpl @Inject constructor(
      */
     override suspend fun cancelFocusAndMetering(): Result<Unit> {
         return cameraInputSource.cancelFocusAndMetering()
+    }
+
+    /**
+     * Set optical flow tracking result callback
+     * v2.x.x Phase 4: Optical flow point tracking
+     *
+     * Delegates to SmartCameraAnalyzer for tracking result updates
+     */
+    override fun setOpticalFlowCallback(callback: (TrackingResult) -> Unit) {
+        smartAnalyzer?.setOpticalFlowCallback(callback)
+            ?: Log.w(TAG, "Cannot set optical flow callback: analyzer not initialized")
+    }
+
+    /**
+     * Set preview size for coordinate mapping
+     * v2.x.x Phase 4: Required for PreviewView ↔ ImageAnalysis coordinate conversion
+     *
+     * Delegates to SmartCameraAnalyzer for coordinate transformation
+     */
+    override fun setPreviewSize(width: Int, height: Int) {
+        smartAnalyzer?.setPreviewSize(width, height)
+            ?: Log.w(TAG, "Cannot set preview size: analyzer not initialized")
+    }
+
+    /**
+     * Start optical flow tracking at a specific point
+     * v2.x.x Phase 4: Tap-to-track point feature
+     *
+     * Delegates to SmartCameraAnalyzer to start tracking
+     */
+    override fun startOpticalFlowTracking(x: Float, y: Float) {
+        smartAnalyzer?.startOpticalFlowTracking(x, y)
+            ?: Log.w(TAG, "Cannot start optical flow tracking: analyzer not initialized")
+    }
+
+    /**
+     * Stop optical flow tracking
+     * v2.x.x Phase 4: Stop tracking and release resources
+     *
+     * Delegates to SmartCameraAnalyzer to stop tracking
+     */
+    override fun stopOpticalFlowTracking() {
+        smartAnalyzer?.stopOpticalFlowTracking()
+            ?: Log.w(TAG, "Cannot stop optical flow tracking: analyzer not initialized")
+    }
+
+    /**
+     * Check if optical flow tracking is active
+     * v2.x.x Phase 4: Query tracking state
+     *
+     * Delegates to SmartCameraAnalyzer to check tracking state
+     */
+    override fun isOpticalFlowTracking(): Boolean {
+        return smartAnalyzer?.isOpticalFlowTracking() ?: false
     }
 
 }
