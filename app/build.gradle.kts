@@ -60,6 +60,9 @@ android {
 
             // v2.8.6 Phase 2: PreviewView migration for Graphics memory fix
             buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "false")  // DISABLED for v2.8.5 Baseline test
+
+            // v2.x.x Phase 1: Optical Flow Point Tracking (default: false, enable after Phase 2-6 validation)
+            buildConfigField("Boolean", "ENABLE_OPTICAL_FLOW_TRACKING", "false")
         }
 
         release {
@@ -87,6 +90,9 @@ android {
 
             // v2.8.6 Phase 2: PreviewView migration for Graphics memory fix (disabled in release for now)
             buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "false")
+
+            // v2.x.x Phase 1: Optical Flow Point Tracking (default: false, disabled in release)
+            buildConfigField("Boolean", "ENABLE_OPTICAL_FLOW_TRACKING", "false")
         }
     }
 

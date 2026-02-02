@@ -114,6 +114,24 @@ object FeatureFlags {
         get() = true  // v2.9.9 Day 1-2: Always enabled (Traycer v2 AE/AF Lock)
 
     /**
+     * Enable optical flow point tracking (v2.x.x Phase 1)
+     *
+     * When enabled, tapping on any point (not just ML Kit detected objects)
+     * will start optical flow tracking using OpenCV Lucas-Kanade algorithm.
+     * The focus indicator will follow the visual feature point as the camera moves.
+     *
+     * Features:
+     * - Arbitrary point tracking (not limited to detected objects)
+     * - Continuous tracking with quality assessment
+     * - Automatic tracking loss detection
+     *
+     * Requires: OpenCV integration (already in project)
+     * Default: false (enable after Phase 2-6 validation)
+     */
+    val enableOpticalFlowTracking: Boolean
+        get() = BuildConfig.ENABLE_OPTICAL_FLOW_TRACKING  // v2.x.x Phase 1: Controlled by BuildConfig (default: false)
+
+    /**
      * Check if all guideline features are fully enabled
      */
     val isGuidelineFullyEnabled: Boolean

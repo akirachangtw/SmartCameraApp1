@@ -13,6 +13,7 @@ import com.akirachang.ai.photographer.presentation.camera.model.HDRMode
  * v2.9.9: Added focus state for Tap-to-Focus
  * v2.9.10: Added tracking state for Traycer object tracking
  * v2.9.9 Day 1-2: Added AE/AF Lock state for Traycer v2
+ * v2.x.x Phase 1: Added Optical Flow Point Tracking state
  */
 data class CameraState(
     val isCapturing: Boolean = false,
@@ -35,7 +36,12 @@ data class CameraState(
     val lockPoint: Pair<Float, Float>? = null,  // Lock point coordinates for yellow square indicator, null if not locked
     // v2.9.9 Day 1-2 Optimize: Focus indicator fade-out animation
     val focusIndicatorFading: Boolean = false,  // True when fading out
-    val focusIndicatorFadeStartTime: Long = 0L  // Timestamp when fade started
+    val focusIndicatorFadeStartTime: Long = 0L,  // Timestamp when fade started
+    // v2.x.x Phase 1: Optical Flow Point Tracking state
+    val trackedPoint: Pair<Float, Float>? = null,  // Tracked point coordinates (ImageAnalysis coordinate system)
+    val trackedPointActive: Boolean = false,       // True when optical flow tracking is active
+    val trackedPointQuality: Float = 0f,           // Tracking quality (0.0-1.0), used for confidence threshold
+    val trackedPointLost: Boolean = false          // True when tracking is lost (quality too low or out of bounds)
 )
 
 sealed class CameraUiEvent {
