@@ -558,18 +558,27 @@ private fun FocusIndicator(
 
     // v2.9.10: Tracking mode - fixed alpha 1.0
     // v2.9.9 Day 1-2: Lock mode - fixed alpha 1.0
+    // v2.9.9 Day 1-2: Focus failed - alpha 0.6, success - alpha 1.0
     val alpha by animateFloatAsState(
-        targetValue = if (isTracking || isLocked) 1.0f else if (focusSuccess != null) 0.6f else 1.0f,
+        targetValue = when {
+            isTracking || isLocked -> 1.0f  // Tracking/Lock: alpha 1.0
+            focusSuccess == false -> 0.6f  // Focus failed: alpha 0.6
+            focusSuccess == true -> 1.0f  // Focus success: alpha 1.0
+            else -> 1.0f  // Focusing: alpha 1.0
+        },
         animationSpec = tween(durationMillis = 500),
         label = "focus_alpha"
     )
 
     // v2.9.9 Day 1-2: Plan B color scheme (white/cyan/yellow)
     // Based on v2.9.9_Day1-2_proud-mapping-boole.md (Line 13-21, 358-363)
+    // Focus failed: Cyan alpha 0.6, Focus success: White alpha 1.0
     val color = when {
         isLocked -> Color(0xFFFFC107)  // Yellow (#FFC107) - AE/AF Lock
+        isTracking -> Color.White  // White (#FFFFFF) - Tracking
+        focusSuccess == false -> Color(0xFF00E5FF)  // Cyan (#00E5FF) - Focus failed (alpha 0.6)
         isFocusing -> Color(0xFF00E5FF)  // Cyan (#00E5FF) - Focusing
-        else -> Color.White  // White (#FFFFFF) - Tracking/Static/Completed
+        else -> Color.White  // White (#FFFFFF) - Focus success/Default
     }
 
     Canvas(modifier = modifier) {
