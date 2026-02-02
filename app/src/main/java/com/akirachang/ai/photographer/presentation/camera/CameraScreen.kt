@@ -565,12 +565,11 @@ private fun FocusIndicator(
     )
 
     // v2.9.9 Day 1-2: Plan B color scheme (white/cyan/yellow)
+    // Based on v2.9.9_Day1-2_proud-mapping-boole.md (Line 13-21, 358-363)
     val color = when {
-        isLocked -> Color(0xFFFFEB3B)  // Yellow - locked (AE/AF lock)
-        isTracking -> Color.White  // White - tracking mode
-        focusSuccess == true -> Color.White  // White - static success
-        focusSuccess == false -> Color(0xFFFF5252)  // Red - failed
-        else -> Color(0xFF00E5FF)  // Cyan - focusing (極光藍)
+        isLocked -> Color(0xFFFFC107)  // Yellow (#FFC107) - AE/AF Lock
+        isFocusing -> Color(0xFF00E5FF)  // Cyan (#00E5FF) - Focusing
+        else -> Color.White  // White (#FFFFFF) - Tracking/Static/Completed
     }
 
     Canvas(modifier = modifier) {
@@ -647,7 +646,7 @@ private fun LockIndicator(
     Canvas(modifier = modifier) {
         val size = 80.dp.toPx()  // Square size
         val strokeWidth = 3.dp.toPx()
-        val color = Color(0xFFFFEB3B)  // Yellow
+        val color = Color(0xFFFFC107)  // Yellow (#FFC107) - Professional standard
 
         // v2.9.9 Day 1-2: Dashed path effect (dash: 8dp, gap: 6dp)
         val dashEffect = PathEffect.dashPathEffect(
