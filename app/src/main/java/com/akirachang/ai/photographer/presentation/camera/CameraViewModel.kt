@@ -605,8 +605,8 @@ class CameraViewModel @Inject constructor(
                         delay(2000)  // Keep for 2 seconds
                         _state.update { it.copy(focusIndicatorFading = true, focusIndicatorFadeStartTime = System.currentTimeMillis()) }
                         delay(500)   // Fade out for 500ms
-                        // v2.9.9 Day 1-2 Optimize: Keep focusPoint visible at alpha 0.7 (persistent until next tap)
-                        // Keep focusIndicatorFading=true to maintain alpha 0.7 (reset on next tap)
+                        // v2.9.9 Day 1-2 Optimize: Keep focusPoint visible at alpha 0.4 (persistent until next tap)
+                        // Keep focusIndicatorFading=true to maintain alpha 0.4 (reset on next tap)
                     }
 
                 } else {
