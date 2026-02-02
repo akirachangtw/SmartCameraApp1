@@ -164,6 +164,9 @@ class CameraViewModel @Inject constructor(
         // 或根據需求自動啟動
         // startAnalysis()  // Deprecated - now using bitmap-based analysis
 
+        // v2.x.x Phase 5: Setup optical flow tracking callback
+        setupOpticalFlowTracking()
+
         // v2.8.5: Pixel 9a memory mitigation warning
         if (Build.MODEL == "Pixel 9a") {
             showError(
@@ -173,6 +176,70 @@ class CameraViewModel @Inject constructor(
                 "• 如遇記憶體問題請重啟 App"
             )
         }
+    }
+
+    /**
+     * Setup optical flow tracking callback
+     * v2.x.x Phase 5: Optical flow point tracking integration
+     *
+     * Sets up the callback to receive tracking results from SmartCameraAnalyzer.
+     * Updates CameraState with tracking point coordinates and quality.
+     */
+    private fun setupOpticalFlowTracking() {
+        if (!FeatureFlags.enableOpticalFlowTracking) {
+            Log.d(TAG, "Optical flow tracking disabled by feature flag")
+            return
+        }
+
+        cameraRepository.setOpticalFlowCallback { trackingResult ->
+            if (trackingResult.isValid) {
+                // Update tracking state with new coordinates
+                _state.update {
+                    it.copy(
+                        focusPoint = Pair(trackingResult.point.x.toFloat(), trackingResult.point.y.toFloat()),
+                        trackedPointActive = true,
+                        trackedPointQuality = trackingResult.quality,
+                        trackedPointLost = false
+                    )
+                }
+                Log.v(TAG, "Optical flow tracking updated: (${trackingResult.point.x}, ${trackingResult.point.y}), quality=${trackingResult.quality}")
+
+            } else {
+                // Tracking lost
+                _state.update {
+                    it.copy(
+                        trackedPointActive = false,
+                        trackedPointLost = true
+                    )
+                }
+                Log.w(TAG, "Optical flow tracking lost")
+
+                // Stop tracking after a short delay
+                viewModelScope.launch {
+                    delay(1000)
+                    stopOpticalFlowTracking()
+                }
+            }
+        }
+        Log.i(TAG, "Optical flow tracking callback registered")
+    }
+
+    /**
+     * Stop optical flow tracking
+     * v2.x.x Phase 5: Stop tracking and clear state
+     */
+    private fun stopOpticalFlowTracking() {
+        cameraRepository.stopOpticalFlowTracking()
+        _state.update {
+            it.copy(
+                trackedPointActive = false,
+                trackedPointQuality = 0f,
+                trackedPointLost = false,
+                focusPoint = null,  // Clear focus indicator
+                focusSuccess = null
+            )
+        }
+        Log.i(TAG, "Optical flow tracking stopped")
     }
 
     /**
@@ -269,6 +336,18 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.FocusOnPoint -> focusOnPoint(event.x, event.y, event.viewWidth, event.viewHeight)  // v2.9.9
             is CameraUiEvent.LockAEAF -> lockAEAF(event.x, event.y, event.viewWidth, event.viewHeight)  // v2.9.9 Day 1-2
             is CameraUiEvent.UnlockAEAF -> unlockAEAF()  // v2.9.9 Day 1-2
+            is CameraUiEvent.SetPreviewSize -> setPreviewSize(event.width, event.height)  // v2.x.x Phase 5
+        }
+    }
+
+    /**
+     * Set preview size for optical flow coordinate mapping
+     * v2.x.x Phase 5: Required for PreviewView ↔ ImageAnalysis coordinate conversion
+     */
+    private fun setPreviewSize(width: Int, height: Int) {
+        if (FeatureFlags.enableOpticalFlowTracking) {
+            cameraRepository.setPreviewSize(width, height)
+            Log.d(TAG, "Preview size set for optical flow: ${width}x${height}")
         }
     }
 
@@ -562,7 +641,7 @@ class CameraViewModel @Inject constructor(
                 val tappedTarget = findTappedTarget(x, y)
 
                 if (tappedTarget != null && FeatureFlags.enableFocusTracking) {
-                    // Tracking mode: Start continuous tracking
+                    // ML Kit Tracking mode: Start continuous tracking
                     val (trackingId, targetType) = tappedTarget
                     _state.update {
                         it.copy(
@@ -574,7 +653,26 @@ class CameraViewModel @Inject constructor(
                             focusIndicatorFading = false  // Reset fade animation
                         )
                     }
-                    Log.i(TAG, "Tracking started: ID=$trackingId, type=$targetType")
+                    Log.i(TAG, "ML Kit tracking started: ID=$trackingId, type=$targetType")
+
+                } else if (tappedTarget == null && FeatureFlags.enableOpticalFlowTracking) {
+                    // v2.x.x Phase 5: Optical Flow tracking mode (tap-to-track arbitrary point)
+                    _state.update {
+                        it.copy(
+                            focusPoint = Pair(x, y),
+                            isFocusing = true,
+                            focusSuccess = null,
+                            trackedObjectId = null,
+                            trackedObjectType = null,
+                            trackedPointActive = true,
+                            trackedPointLost = false,
+                            focusIndicatorFading = false  // Reset fade animation
+                        )
+                    }
+
+                    // Start optical flow tracking
+                    cameraRepository.startOpticalFlowTracking(x, y)
+                    Log.i(TAG, "Optical flow tracking started at ($x, $y)")
 
                 } else {
                     // Static focus mode: Traditional tap-to-focus

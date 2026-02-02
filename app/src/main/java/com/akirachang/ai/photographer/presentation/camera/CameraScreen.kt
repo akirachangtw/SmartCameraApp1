@@ -157,6 +157,7 @@ fun CameraScreen(
             snackbarHost = { SnackbarHost(snackbarHostState) }
         ) { paddingValues ->
             // v2.9.9: Track preview size for Tap-to-Focus
+            // v2.x.x Phase 5: Also used for Optical Flow coordinate mapping
             var previewSize by remember { mutableStateOf(IntSize.Zero) }
 
             Box(
@@ -165,6 +166,10 @@ fun CameraScreen(
                     .padding(paddingValues)
                     .onSizeChanged { size ->
                         previewSize = size
+                        // v2.x.x Phase 5: Notify ViewModel of preview size for optical flow
+                        if (size.width > 0 && size.height > 0) {
+                            viewModel.onEvent(CameraUiEvent.SetPreviewSize(size.width, size.height))
+                        }
                     }
                     .pointerInput(Unit) {
                         detectTapGestures(
