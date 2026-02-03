@@ -74,6 +74,9 @@ class OpticalFlowTracker(
      * @param imageHeight Height of the input image
      */
     fun startTracking(initialPoint: Point, imageWidth: Int, imageHeight: Int) {
+        // Release stale previous frame to ensure clean tracking session on re-tap
+        releasePreviousFrame()
+
         // Calculate downsampling scale
         scaleX = TARGET_WIDTH.toFloat() / imageWidth
         scaleY = TARGET_HEIGHT.toFloat() / imageHeight

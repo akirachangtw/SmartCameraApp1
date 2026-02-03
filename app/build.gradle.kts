@@ -61,8 +61,8 @@ android {
             // v2.8.6 Phase 2: PreviewView migration for Graphics memory fix
             buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "false")  // DISABLED for v2.8.5 Baseline test
 
-            // v2.x.x Phase 1: Optical Flow Point Tracking (default: false, enable after Phase 2-6 validation)
-            buildConfigField("Boolean", "ENABLE_OPTICAL_FLOW_TRACKING", "false")
+            // v2.x.x Phase 1: Optical Flow Point Tracking (enabled for Phase 6 testing)
+            buildConfigField("Boolean", "ENABLE_OPTICAL_FLOW_TRACKING", "true")
         }
 
         release {
@@ -92,7 +92,7 @@ android {
             buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "false")
 
             // v2.x.x Phase 1: Optical Flow Point Tracking (default: false, disabled in release)
-            buildConfigField("Boolean", "ENABLE_OPTICAL_FLOW_TRACKING", "false")
+            buildConfigField("Boolean", "ENABLE_OPTICAL_FLOW_TRACKING", "true")
         }
     }
 
@@ -105,7 +105,8 @@ android {
             versionNameSuffix = "-emulator"
 
             buildConfigField("Boolean", "IS_EMULATOR_BUILD", "true")
-            buildConfigField("Boolean", "MOCK_CAMERA_DATA", "true")
+            // v2.x.x Phase 6: Set to false to use virtual 3D camera on emulator for optical flow testing
+            buildConfigField("Boolean", "MOCK_CAMERA_DATA", "false")
         }
 
         create("device") {

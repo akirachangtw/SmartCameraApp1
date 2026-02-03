@@ -105,6 +105,11 @@ class CameraRepositoryImpl @Inject constructor(
     // Custom analyzer instance (v2.2.0)
     private var smartAnalyzer: SmartCameraAnalyzer? = null
 
+    // v2.x.x Phase 6: Pending optical flow config (applied when smartAnalyzer is initialized)
+    private var pendingOpticalFlowCallback: ((TrackingResult) -> Unit)? = null
+    private var pendingPreviewWidth: Int = 0
+    private var pendingPreviewHeight: Int = 0
+
     // ML Kit 偵測器（延遲初始化）
     private val faceDetector: FaceDetector by lazy {
         val options = FaceDetectorOptions.Builder()
@@ -561,6 +566,19 @@ class CameraRepositoryImpl @Inject constructor(
 
             isAnalysisStarted = true
             Log.i(TAG, "Image analysis started with SmartCameraAnalyzer (ML Kit + Lighting)")
+
+            // v2.x.x Phase 6: Apply pending optical flow config if set before analyzer was ready
+            pendingOpticalFlowCallback?.let {
+                smartAnalyzer!!.setOpticalFlowCallback(it)
+                pendingOpticalFlowCallback = null
+                Log.d(TAG, "Applied pending optical flow callback")
+            }
+            if (pendingPreviewWidth > 0 && pendingPreviewHeight > 0) {
+                smartAnalyzer!!.setPreviewSize(pendingPreviewWidth, pendingPreviewHeight)
+                Log.d(TAG, "Applied pending preview size: ${pendingPreviewWidth}x${pendingPreviewHeight}")
+                pendingPreviewWidth = 0
+                pendingPreviewHeight = 0
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start image analysis", e)
         }
@@ -727,8 +745,12 @@ class CameraRepositoryImpl @Inject constructor(
      * Delegates to SmartCameraAnalyzer for tracking result updates
      */
     override fun setOpticalFlowCallback(callback: (TrackingResult) -> Unit) {
-        smartAnalyzer?.setOpticalFlowCallback(callback)
-            ?: Log.w(TAG, "Cannot set optical flow callback: analyzer not initialized")
+        if (smartAnalyzer != null) {
+            smartAnalyzer!!.setOpticalFlowCallback(callback)
+        } else {
+            pendingOpticalFlowCallback = callback
+            Log.d(TAG, "Optical flow callback pending: analyzer not yet initialized")
+        }
     }
 
     /**
@@ -738,8 +760,13 @@ class CameraRepositoryImpl @Inject constructor(
      * Delegates to SmartCameraAnalyzer for coordinate transformation
      */
     override fun setPreviewSize(width: Int, height: Int) {
-        smartAnalyzer?.setPreviewSize(width, height)
-            ?: Log.w(TAG, "Cannot set preview size: analyzer not initialized")
+        if (smartAnalyzer != null) {
+            smartAnalyzer!!.setPreviewSize(width, height)
+        } else {
+            pendingPreviewWidth = width
+            pendingPreviewHeight = height
+            Log.d(TAG, "Preview size pending: ${width}x${height}, analyzer not yet initialized")
+        }
     }
 
     /**
@@ -749,6 +776,12 @@ class CameraRepositoryImpl @Inject constructor(
      * Delegates to SmartCameraAnalyzer to start tracking
      */
     override fun startOpticalFlowTracking(x: Float, y: Float) {
+        // v2.x.x Phase 6: Lazy init SmartCameraAnalyzer if not yet created
+        // (bitmap-based analysis path does not call startImageAnalysis automatically)
+        if (smartAnalyzer == null) {
+            Log.d(TAG, "Lazy initializing SmartCameraAnalyzer for optical flow tracking")
+            startImageAnalysis()
+        }
         smartAnalyzer?.startOpticalFlowTracking(x, y)
             ?: Log.w(TAG, "Cannot start optical flow tracking: analyzer not initialized")
     }
@@ -772,6 +805,14 @@ class CameraRepositoryImpl @Inject constructor(
      */
     override fun isOpticalFlowTracking(): Boolean {
         return smartAnalyzer?.isOpticalFlowTracking() ?: false
+    }
+
+    /**
+     * Process bitmap frame for optical flow tracking
+     * v2.x.x Phase 6: Bitmap pipeline fallback (emulator - CameraX ImageAnalysis not available)
+     */
+    override fun processOpticalFlowFrame(bitmap: Bitmap) {
+        smartAnalyzer?.trackFromBitmap(bitmap)
     }
 
 }

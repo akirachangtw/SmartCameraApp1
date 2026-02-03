@@ -1,7 +1,6 @@
 package com.akirachang.ai.photographer.di
 
 import android.content.Context
-import android.os.Build
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,7 +32,10 @@ object CameraModule {
     }
 
     /**
-     * 自動判斷是否為模擬器，提供對應的資料源
+     * 根據 MOCK_CAMERA_DATA flag 選擇相機資料源
+     * v2.x.x Phase 6: MOCK_CAMERA_DATA 為唯一開關
+     *   - true  → StaticImageSource (循環測試圖片)
+     *   - false → LiveCameraSource (CameraX 真實/虛擬相機)
      */
     @Provides
     @Singleton
@@ -41,37 +43,13 @@ object CameraModule {
         staticImageSource: StaticImageSource,
         liveCameraSource: LiveCameraSource
     ): CameraInputSource {
-        val isEmulator = isRunningOnEmulator()
-        val useEmulatorMode = BuildConfig.EMULATOR_MODE || BuildConfig.IS_EMULATOR_BUILD
-
-        return when {
-            useEmulatorMode || isEmulator -> {
-                Timber.d("🎮 Using StaticImageSource (Test Images)")
-                Timber.d("  - BuildConfig.EMULATOR_MODE: ${BuildConfig.EMULATOR_MODE}")
-                Timber.d("  - BuildConfig.IS_EMULATOR_BUILD: ${BuildConfig.IS_EMULATOR_BUILD}")
-                Timber.d("  - isRunningOnEmulator(): $isEmulator")
-                staticImageSource
-            }
-            else -> {
-                Timber.d("📱 Using LiveCameraSource (CameraX)")
-                Timber.d("  - BuildConfig.EMULATOR_MODE: ${BuildConfig.EMULATOR_MODE}")
-                Timber.d("  - BuildConfig.IS_EMULATOR_BUILD: ${BuildConfig.IS_EMULATOR_BUILD}")
-                liveCameraSource
-            }
+        return if (BuildConfig.MOCK_CAMERA_DATA) {
+            Timber.d("🎮 Using StaticImageSource (Test Images)")
+            staticImageSource
+        } else {
+            Timber.d("📱 Using LiveCameraSource (CameraX)")
+            liveCameraSource
         }
     }
 
-    /**
-     * 偵測是否在模擬器上運行
-     */
-    private fun isRunningOnEmulator(): Boolean {
-        return (Build.FINGERPRINT.startsWith("generic")
-                || Build.FINGERPRINT.startsWith("unknown")
-                || Build.MODEL.contains("google_sdk")
-                || Build.MODEL.contains("Emulator")
-                || Build.MODEL.contains("Android SDK built for x86")
-                || Build.MANUFACTURER.contains("Genymotion")
-                || Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")
-                || "google_sdk" == Build.PRODUCT)
-    }
 }

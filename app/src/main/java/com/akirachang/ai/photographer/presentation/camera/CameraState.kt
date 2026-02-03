@@ -67,6 +67,8 @@ sealed class CameraUiEvent {
         val viewHeight: Int
     ) : CameraUiEvent()
     object UnlockAEAF : CameraUiEvent()
+    // v2.x.x Phase 5: Optical Flow tracking - set preview size for coordinate mapping
+    data class SetPreviewSize(val width: Int, val height: Int) : CameraUiEvent()
 }
 
 /**
