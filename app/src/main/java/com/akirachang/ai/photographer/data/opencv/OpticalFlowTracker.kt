@@ -44,9 +44,8 @@ class OpticalFlowTracker(
     companion object {
         private const val TAG = "OpticalFlowTracker"
 
-        // Downsampling configuration
-        private const val TARGET_WIDTH = 640  // Downsample to 640px width for tracking
-        private const val TARGET_HEIGHT = 480 // Downsample to 480px height for tracking
+        // Downsampling: longest edge target (aspect ratio preserved dynamically)
+        private const val MAX_DOWNSAMPLE_DIM = 640
 
         // Quality calculation parameters
         private const val MAX_LK_ERROR = 50f  // Maximum acceptable Lucas-Kanade error
@@ -62,7 +61,11 @@ class OpticalFlowTracker(
     private var prevGray: Mat? = null
     private var trackedPoint: Point? = null
 
-    // Downsampling scale factors
+    // Downsampling dimensions (aspect-ratio-preserving, recalculated per session)
+    private var downsampleWidth: Int = 0
+    private var downsampleHeight: Int = 0
+
+    // Downsampling scale factors (downsample coords / original coords)
     private var scaleX: Float = 1f
     private var scaleY: Float = 1f
 
@@ -77,9 +80,13 @@ class OpticalFlowTracker(
         // Release stale previous frame to ensure clean tracking session on re-tap
         releasePreviousFrame()
 
-        // Calculate downsampling scale
-        scaleX = TARGET_WIDTH.toFloat() / imageWidth
-        scaleY = TARGET_HEIGHT.toFloat() / imageHeight
+        // v2.x.x Phase 7: Aspect-ratio-preserving downsample size
+        val scale = minOf(MAX_DOWNSAMPLE_DIM.toFloat() / imageWidth, MAX_DOWNSAMPLE_DIM.toFloat() / imageHeight)
+        downsampleWidth = (imageWidth * scale).toInt()
+        downsampleHeight = (imageHeight * scale).toInt()
+
+        scaleX = downsampleWidth.toFloat() / imageWidth
+        scaleY = downsampleHeight.toFloat() / imageHeight
 
         // Convert point to downsampled coordinates
         trackedPoint = Point(
@@ -88,7 +95,7 @@ class OpticalFlowTracker(
         )
 
         isTracking.set(true)
-        Log.i(TAG, "Started tracking at (${initialPoint.x}, ${initialPoint.y}), scale=($scaleX, $scaleY)")
+        Log.i(TAG, "Started tracking at (${initialPoint.x}, ${initialPoint.y}), downsample=${downsampleWidth}x${downsampleHeight}, scale=($scaleX, $scaleY)")
     }
 
     /**
@@ -245,11 +252,11 @@ class OpticalFlowTracker(
     }
 
     /**
-     * Downsample Mat to target size for efficient tracking
+     * Downsample Mat to aspect-ratio-preserving target size for efficient tracking
      */
     private fun downsampleMat(src: Mat): Mat {
         val dst = Mat()
-        val targetSize = Size(TARGET_WIDTH.toDouble(), TARGET_HEIGHT.toDouble())
+        val targetSize = Size(downsampleWidth.toDouble(), downsampleHeight.toDouble())
         Imgproc.resize(src, dst, targetSize, 0.0, 0.0, Imgproc.INTER_LINEAR)
         return dst
     }

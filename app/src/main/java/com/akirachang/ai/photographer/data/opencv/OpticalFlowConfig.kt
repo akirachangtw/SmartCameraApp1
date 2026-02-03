@@ -20,9 +20,9 @@ data class OpticalFlowConfig(
      * Larger window = more robust to large motion, but slower
      * Smaller window = faster, but may lose tracking with fast motion
      *
-     * Default: Size(21.0, 21.0) - balanced for mobile camera tracking
+     * Default: Size(31.0, 31.0) - handles handheld pan at 28+ FPS
      */
-    val winSize: Size = Size(21.0, 21.0),
+    val winSize: Size = Size(31.0, 31.0),
 
     /**
      * Maximum pyramid level
@@ -30,9 +30,9 @@ data class OpticalFlowConfig(
      * 0 = no pyramid (single scale)
      * Higher levels = more robust to large motion and scale changes
      *
-     * Default: 3 - good balance for 480p tracking
+     * Default: 4 - max trackable motion ~240px/frame at downsample resolution
      */
-    val maxLevel: Int = 3,
+    val maxLevel: Int = 4,
 
     /**
      * Maximum number of iterations per pyramid level
@@ -91,8 +91,8 @@ data class OpticalFlowConfig(
          * High performance configuration - faster but less accurate
          */
         val FAST = OpticalFlowConfig(
-            winSize = Size(15.0, 15.0),
-            maxLevel = 2,
+            winSize = Size(21.0, 21.0),
+            maxLevel = 3,
             maxCount = 20,
             minQuality = 0.4f,
             targetFps = 10
@@ -103,7 +103,7 @@ data class OpticalFlowConfig(
          */
         val ACCURATE = OpticalFlowConfig(
             winSize = Size(31.0, 31.0),
-            maxLevel = 4,
+            maxLevel = 5,
             maxCount = 40,
             minQuality = 0.2f,
             targetFps = 20

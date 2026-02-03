@@ -103,6 +103,12 @@ class CameraViewModel @Inject constructor(
     private var targetLostFrameCount = 0
     private val TARGET_LOST_THRESHOLD = 10  // Stop tracking after 10 consecutive frames without target
 
+    // v2.x.x: Optical flow EMA smoothing to reduce LK noise jitter
+    private var smoothedPointX: Float = 0f
+    private var smoothedPointY: Float = 0f
+    private var isFirstTrackingFrame: Boolean = true
+    private val SMOOTHING_ALPHA: Float = 0.35f  // EMA weight: 0.35 balances noise vs responsiveness
+
     // Detection stabilization (v2.2.1) - prevent flickering
     private var consecutiveFaceDetections = 0
     private var consecutiveNoFaceDetections = 0
@@ -167,6 +173,9 @@ class CameraViewModel @Inject constructor(
         // v2.x.x Phase 5: Setup optical flow tracking callback
         setupOpticalFlowTracking()
 
+        // v2.x.x Phase 7: High-rate optical flow feed (bypass sample(100) throttle)
+        observePreviewForOpticalFlow()
+
         // v2.8.5: Pixel 9a memory mitigation warning
         if (Build.MODEL == "Pixel 9a") {
             showError(
@@ -193,16 +202,29 @@ class CameraViewModel @Inject constructor(
 
         cameraRepository.setOpticalFlowCallback { trackingResult ->
             if (trackingResult.isValid) {
-                // Update tracking state with new coordinates
+                // v2.x.x: EMA smoothing to reduce LK noise jitter
+                val rawX = trackingResult.point.x.toFloat()
+                val rawY = trackingResult.point.y.toFloat()
+                if (isFirstTrackingFrame) {
+                    smoothedPointX = rawX
+                    smoothedPointY = rawY
+                    isFirstTrackingFrame = false
+                } else {
+                    smoothedPointX += SMOOTHING_ALPHA * (rawX - smoothedPointX)
+                    smoothedPointY += SMOOTHING_ALPHA * (rawY - smoothedPointY)
+                }
+
+                // Update tracking state: use smoothed coordinates
+                // Note: Do NOT reset focusIndicatorFading here — fade sequence (Line 722) controls it
                 _state.update {
                     it.copy(
-                        focusPoint = Pair(trackingResult.point.x.toFloat(), trackingResult.point.y.toFloat()),
+                        focusPoint = Pair(smoothedPointX, smoothedPointY),
                         trackedPointActive = true,
                         trackedPointQuality = trackingResult.quality,
                         trackedPointLost = false
                     )
                 }
-                Log.v(TAG, "Optical flow tracking updated: (${trackingResult.point.x}, ${trackingResult.point.y}), quality=${trackingResult.quality}")
+                Log.v(TAG, "Optical flow tracking updated: raw=(${rawX}, ${rawY}), smoothed=(${smoothedPointX}, ${smoothedPointY}), quality=${trackingResult.quality}")
 
             } else {
                 // Tracking lost
@@ -230,16 +252,17 @@ class CameraViewModel @Inject constructor(
      */
     private fun stopOpticalFlowTracking() {
         cameraRepository.stopOpticalFlowTracking()
+        // v2.x.x: Keep focusPoint at last known position with Alpha 0.4 (persistent until next tap)
+        // focusPoint cleared only on next tap (focusOnPoint) or camera switch
         _state.update {
             it.copy(
                 trackedPointActive = false,
                 trackedPointQuality = 0f,
                 trackedPointLost = false,
-                focusPoint = null,  // Clear focus indicator
-                focusSuccess = null
+                focusIndicatorFading = true  // Maintain Alpha 0.4 at last tracked position
             )
         }
-        Log.i(TAG, "Optical flow tracking stopped")
+        Log.i(TAG, "Optical flow tracking stopped — focusPoint retained at last position")
     }
 
     /**
@@ -671,6 +694,7 @@ class CameraViewModel @Inject constructor(
                     }
 
                     // Start optical flow tracking
+                    isFirstTrackingFrame = true  // v2.x.x: Reset EMA smoothing for new tracking target
                     cameraRepository.startOpticalFlowTracking(x, y)
                     Log.i(TAG, "Optical flow tracking started at ($x, $y)")
 
@@ -696,9 +720,9 @@ class CameraViewModel @Inject constructor(
                     _state.update { it.copy(isFocusing = false, focusSuccess = true) }
                     Log.d(TAG, "Focus successful at ($x, $y)")
 
-                    // Tracking mode: Don't auto-clear (managed by updateTrackedObjectPosition)
-                    // Static mode: Keep for 2 seconds, then fade out for 500ms
-                    // v2.9.9 Day 1-2 Optimize: Longer display + smooth fade-out
+                    // Tracking mode (ML Kit): Don't auto-clear (managed by updateTrackedObjectPosition)
+                    // Optical Flow / Static mode: Keep Alpha 1.0 for 2s, then fade to 0.4 (persistent)
+                    // v2.x.x: focusIndicatorFading=true 後保持 Alpha 0.4，直到下次點擊重置
                     if (_state.value.trackedObjectId == null) {
                         delay(2000)  // Keep for 2 seconds
                         _state.update { it.copy(focusIndicatorFading = true, focusIndicatorFadeStartTime = System.currentTimeMillis()) }
@@ -926,6 +950,26 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
+     * High-rate optical flow feed (v2.x.x Phase 7)
+     *
+     * Subscribes to previewBitmap WITHOUT sample() throttle so LK runs at full
+     * camera frame rate (~28 FPS on Pixel 9a).  The heavier ML Kit / guideline
+     * pipeline in observePreviewForAnalysis() stays at 10 FPS via sample(100).
+     */
+    private fun observePreviewForOpticalFlow() {
+        if (!FeatureFlags.enableOpticalFlowTracking) return
+
+        previewBitmap
+            .filterNotNull()
+            .onEach { bitmap ->
+                if (_state.value.trackedPointActive) {
+                    cameraRepository.processOpticalFlowFrame(bitmap)
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /**
      * Observes preview bitmap stream for ML Kit analysis (v2.5.1 Phase 7)
      *
      * Replaces the old ImageProxy-based analysis with unified Bitmap analysis.
@@ -1026,10 +1070,8 @@ class CameraViewModel @Inject constructor(
                         }
                     }
 
-                    // v2.x.x Phase 6: Feed bitmap to optical flow tracker (bitmap pipeline fallback)
-                    if (_state.value.trackedPointActive && FeatureFlags.enableOpticalFlowTracking) {
-                        cameraRepository.processOpticalFlowFrame(bitmap)
-                    }
+                    // v2.x.x Phase 7: Optical flow feed moved to observePreviewForOpticalFlow()
+                    // (runs at full frame rate, independent of this sample(100) throttle)
 
                     // v2.8.4: End-to-end profiling summary
                     val e2eTotal = (System.nanoTime() - e2eStart) / 1_000_000.0
