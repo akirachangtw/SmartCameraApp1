@@ -105,7 +105,8 @@ android {
             versionNameSuffix = "-emulator"
 
             buildConfigField("Boolean", "IS_EMULATOR_BUILD", "true")
-            buildConfigField("Boolean", "MOCK_CAMERA_DATA", "true")
+            // v2.x.x Phase 6: Set to false to use virtual 3D camera on emulator for optical flow testing
+            buildConfigField("Boolean", "MOCK_CAMERA_DATA", "false")
         }
 
         create("device") {
