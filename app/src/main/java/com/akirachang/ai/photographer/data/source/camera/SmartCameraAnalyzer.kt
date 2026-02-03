@@ -44,7 +44,9 @@ import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 import com.akirachang.ai.photographer.data.opencv.OpticalFlowTracker
 import com.akirachang.ai.photographer.data.opencv.TrackingResult
 import com.akirachang.ai.photographer.util.CoordinateMapper
+import org.opencv.core.Mat
 import org.opencv.core.Point
+import android.graphics.Bitmap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -106,6 +108,11 @@ class SmartCameraAnalyzer(
     private var previewWidth: Int = 0
     private var previewHeight: Int = 0
 
+    // v2.x.x Phase 6: Pending tracking start (applied when first frame arrives)
+    private var pendingTrackX: Float = 0f
+    private var pendingTrackY: Float = 0f
+    private var hasPendingTrack: Boolean = false
+
     /**
      * Set optical flow tracking result callback
      * v2.x.x Phase 4: Optical flow point tracking
@@ -143,7 +150,11 @@ class SmartCameraAnalyzer(
         }
 
         if (imageWidth == 0 || imageHeight == 0) {
-            Log.w(TAG, "Cannot start tracking: image size not yet known (wait for first frame)")
+            // v2.x.x Phase 6: Store as pending - applied when first frame sets image size
+            pendingTrackX = x
+            pendingTrackY = y
+            hasPendingTrack = true
+            Log.d(TAG, "Tracking start pending: preview ($x, $y), waiting for first frame")
             return
         }
 
@@ -181,6 +192,68 @@ class SmartCameraAnalyzer(
      */
     fun isOpticalFlowTracking(): Boolean {
         return opticalFlowTracker?.isTracking() ?: false
+    }
+
+    /**
+     * Track optical flow point from a Bitmap frame
+     * v2.x.x Phase 6: Bitmap pipeline fallback for emulator (CameraX ImageAnalysis not available)
+     *
+     * Called from CameraViewModel's bitmap analysis loop when optical flow tracking is active.
+     */
+    fun trackFromBitmap(bitmap: Bitmap) {
+        // Set image dimensions from bitmap if not yet known
+        if (imageWidth == 0 || imageHeight == 0) {
+            imageWidth = bitmap.width
+            imageHeight = bitmap.height
+            Log.d(TAG, "Image size set from bitmap: ${imageWidth}x${imageHeight}")
+        }
+
+        // Apply pending tracking start if exists
+        if (hasPendingTrack) {
+            hasPendingTrack = false
+            val imagePoint = CoordinateMapper.previewToImage(
+                pendingTrackX, pendingTrackY,
+                previewWidth, previewHeight,
+                imageWidth, imageHeight
+            )
+            if (opticalFlowTracker == null) {
+                opticalFlowTracker = OpticalFlowTracker()
+            }
+            opticalFlowTracker?.startTracking(imagePoint, imageWidth, imageHeight)
+            Log.i(TAG, "Applied pending tracking start: preview (${pendingTrackX}, ${pendingTrackY}) -> image (${imagePoint.x}, ${imagePoint.y})")
+        }
+
+        // Skip if not actively tracking
+        if (opticalFlowTracker?.isTracking() != true) return
+
+        // Convert Bitmap to grayscale Mat (uses existing extension function)
+        val grayMat = bitmap.toGrayMat()
+
+        try {
+            val trackingResult = opticalFlowTracker?.track(grayMat) ?: return
+
+            // Convert tracking coordinates back to PreviewView coordinates
+            val (previewX, previewY) = if (trackingResult.isValid) {
+                CoordinateMapper.imageToPreview(
+                    trackingResult.point.x.toFloat(),
+                    trackingResult.point.y.toFloat(),
+                    imageWidth, imageHeight,
+                    previewWidth, previewHeight
+                )
+            } else {
+                Pair(0f, 0f)
+            }
+
+            val previewTrackingResult = TrackingResult(
+                point = Point(previewX.toDouble(), previewY.toDouble()),
+                quality = trackingResult.quality,
+                distance = trackingResult.distance,
+                isValid = trackingResult.isValid
+            )
+            onOpticalFlowResult?.invoke(previewTrackingResult)
+        } finally {
+            grayMat.release()
+        }
     }
 
     @OptIn(ExperimentalGetImage::class)

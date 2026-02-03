@@ -1026,6 +1026,11 @@ class CameraViewModel @Inject constructor(
                         }
                     }
 
+                    // v2.x.x Phase 6: Feed bitmap to optical flow tracker (bitmap pipeline fallback)
+                    if (_state.value.trackedPointActive && FeatureFlags.enableOpticalFlowTracking) {
+                        cameraRepository.processOpticalFlowFrame(bitmap)
+                    }
+
                     // v2.8.4: End-to-end profiling summary
                     val e2eTotal = (System.nanoTime() - e2eStart) / 1_000_000.0
                     Log.i(TAG, "[v2.8.4 E2E] Total=${"%.1f".format(e2eTotal)}ms " +

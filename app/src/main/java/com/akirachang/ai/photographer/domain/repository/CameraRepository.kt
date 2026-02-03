@@ -224,4 +224,15 @@ interface CameraRepository {
      * @return True if tracking is active, false otherwise
      */
     fun isOpticalFlowTracking(): Boolean
+
+    /**
+     * Process a bitmap frame for optical flow tracking
+     * v2.x.x Phase 6: Bitmap pipeline fallback for emulator
+     *
+     * Called from CameraViewModel's bitmap analysis loop when tracking is active
+     * and CameraX ImageAnalysis is not available (emulator mode).
+     *
+     * @param bitmap Current preview frame as Bitmap
+     */
+    fun processOpticalFlowFrame(bitmap: Bitmap)
 }
