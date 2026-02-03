@@ -5,6 +5,8 @@ import org.opencv.core.Mat
 import org.opencv.core.MatOfByte
 import org.opencv.core.MatOfFloat
 import org.opencv.core.MatOfPoint2f
+import org.opencv.core.Core
+import org.opencv.core.CvType
 import org.opencv.core.Point
 import org.opencv.core.Size
 import org.opencv.core.TermCriteria
@@ -51,6 +53,12 @@ class OpticalFlowTracker(
         private const val MAX_LK_ERROR = 50f  // Maximum acceptable Lucas-Kanade error
         private const val ERROR_WEIGHT = 0.7f // Weight of error in quality calculation
         private const val DIST_WEIGHT = 0.3f  // Weight of distance in quality calculation
+
+        // Template matching drift correction parameters
+        private const val TEMPLATE_HALF_SIZE = 32  // Half of template patch (64×64 total, downsample coords)
+        private const val SEARCH_RADIUS = 48       // Search area radius around tracked point
+        private const val CORRECTION_INTERVAL = 10 // Frames between drift corrections (~0.36s at 28 FPS)
+        private const val MIN_MATCH_QUALITY = 0.7f // TM_CCOEFF_NORMED min threshold to accept correction
     }
 
     // State management
@@ -68,6 +76,10 @@ class OpticalFlowTracker(
     // Downsampling scale factors (downsample coords / original coords)
     private var scaleX: Float = 1f
     private var scaleY: Float = 1f
+
+    // Template matching drift correction state
+    private var templatePatch: Mat? = null
+    private var frameCount: Int = 0
 
     /**
      * Start tracking a point
@@ -94,6 +106,10 @@ class OpticalFlowTracker(
             initialPoint.y * scaleY
         )
 
+        // Reset drift correction state
+        releaseTemplate()
+        frameCount = 0
+
         isTracking.set(true)
         Log.i(TAG, "Started tracking at (${initialPoint.x}, ${initialPoint.y}), downsample=${downsampleWidth}x${downsampleHeight}, scale=($scaleX, $scaleY)")
     }
@@ -104,6 +120,7 @@ class OpticalFlowTracker(
     fun stopTracking() {
         isTracking.set(false)
         releasePreviousFrame()
+        releaseTemplate()
         trackedPoint = null
         Log.i(TAG, "Stopped tracking")
     }
@@ -140,9 +157,10 @@ class OpticalFlowTracker(
         val downsampledGray = downsampleMat(currentGray)
 
         try {
-            // First frame - just store it
+            // First frame - store and save initial template for drift correction
             if (prevGray == null) {
                 prevGray = downsampledGray.clone()
+                saveTemplate(downsampledGray)
                 return TrackingResult(
                     point = scalePointToOriginal(trackedPoint!!),
                     quality = 1.0f,
@@ -207,15 +225,25 @@ class OpticalFlowTracker(
                     Log.v(TAG, "Track: quality=${"%.2f".format(quality)}, distance=${"%.1f".format(distance)}px, error=${"%.1f".format(error)}, elapsed=${elapsedMs}ms")
 
                     if (isValid) {
-                        // Update tracked point
+                        // Update tracked point from LK
                         trackedPoint = newPoint
+
+                        // Periodic drift correction via template matching
+                        frameCount++
+                        if (frameCount >= CORRECTION_INTERVAL && templatePatch != null) {
+                            val corrected = correctDrift(downsampledGray)
+                            if (corrected != null) {
+                                trackedPoint = corrected
+                            }
+                            frameCount = 0
+                        }
 
                         // Update previous frame
                         releasePreviousFrame()
                         prevGray = downsampledGray.clone()
 
                         return TrackingResult(
-                            point = scalePointToOriginal(newPoint),
+                            point = scalePointToOriginal(trackedPoint!!),
                             quality = quality,
                             distance = distance,
                             isValid = true
@@ -330,6 +358,100 @@ class OpticalFlowTracker(
         }
 
         return true
+    }
+
+    /**
+     * Save template patch around current tracked point for drift correction.
+     * Skipped if point is too close to frame border to extract a full patch.
+     */
+    private fun saveTemplate(frame: Mat) {
+        val pt = trackedPoint ?: return
+        val x = pt.x.toInt()
+        val y = pt.y.toInt()
+
+        if (x - TEMPLATE_HALF_SIZE < 0 || y - TEMPLATE_HALF_SIZE < 0 ||
+            x + TEMPLATE_HALF_SIZE > frame.width() || y + TEMPLATE_HALF_SIZE > frame.height()) {
+            Log.w(TAG, "Template save skipped: point too close to border (${x}, ${y})")
+            return
+        }
+
+        releaseTemplate()
+        templatePatch = frame.submat(
+            y - TEMPLATE_HALF_SIZE, y + TEMPLATE_HALF_SIZE,
+            x - TEMPLATE_HALF_SIZE, x + TEMPLATE_HALF_SIZE
+        ).clone()
+    }
+
+    /**
+     * Correct tracked point drift using normalized cross-correlation template matching.
+     * Searches a region around the current tracked point, snaps to best match if quality
+     * meets threshold.  Updates the stored template at the corrected position so future
+     * corrections track appearance changes (lighting, angle).
+     *
+     * @return Corrected point if match quality >= MIN_MATCH_QUALITY, null otherwise
+     */
+    private fun correctDrift(frame: Mat): Point? {
+        val template = templatePatch ?: return null
+        val pt = trackedPoint ?: return null
+
+        val x = pt.x.toInt()
+        val y = pt.y.toInt()
+
+        // Search region clamped to frame bounds
+        val searchLeft = maxOf(0, x - SEARCH_RADIUS)
+        val searchTop = maxOf(0, y - SEARCH_RADIUS)
+        val searchRight = minOf(frame.width(), x + SEARCH_RADIUS)
+        val searchBottom = minOf(frame.height(), y + SEARCH_RADIUS)
+
+        // Search region must be strictly larger than template in both dimensions
+        if (searchRight - searchLeft <= template.cols() || searchBottom - searchTop <= template.rows()) {
+            return null
+        }
+
+        val searchRegion = frame.submat(searchTop, searchBottom, searchLeft, searchRight)
+        val resultCols = (searchRight - searchLeft) - template.cols() + 1
+        val resultRows = (searchBottom - searchTop) - template.rows() + 1
+        val result = Mat(resultRows, resultCols, CvType.CV_32F)
+
+        try {
+            Imgproc.matchTemplate(searchRegion, template, result, Imgproc.TM_CCOEFF_NORMED)
+
+            val minMax = Core.minMaxLoc(result)
+            val matchQuality = minMax.maxVal.toFloat()
+
+            if (matchQuality < MIN_MATCH_QUALITY) return null
+
+            val matchLoc = minMax.maxLoc
+            val correctedX = searchLeft + matchLoc.x + template.cols() / 2.0
+            val correctedY = searchTop + matchLoc.y + template.rows() / 2.0
+
+            val drift = calculateDistance(pt, Point(correctedX, correctedY))
+            Log.v(TAG, "Drift correction: drift=${"%.1f".format(drift)}px, quality=${"%.2f".format(matchQuality)}")
+
+            // Update template at corrected position for next correction cycle
+            val newX = correctedX.toInt()
+            val newY = correctedY.toInt()
+            if (newX - TEMPLATE_HALF_SIZE >= 0 && newY - TEMPLATE_HALF_SIZE >= 0 &&
+                newX + TEMPLATE_HALF_SIZE <= frame.width() && newY + TEMPLATE_HALF_SIZE <= frame.height()) {
+                releaseTemplate()
+                templatePatch = frame.submat(
+                    newY - TEMPLATE_HALF_SIZE, newY + TEMPLATE_HALF_SIZE,
+                    newX - TEMPLATE_HALF_SIZE, newX + TEMPLATE_HALF_SIZE
+                ).clone()
+            }
+
+            return Point(correctedX, correctedY)
+        } finally {
+            result.release()
+        }
+    }
+
+    /**
+     * Release template patch Mat to prevent memory leak
+     */
+    private fun releaseTemplate() {
+        templatePatch?.release()
+        templatePatch = null
     }
 
     /**

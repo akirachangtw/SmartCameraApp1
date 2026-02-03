@@ -103,11 +103,8 @@ class CameraViewModel @Inject constructor(
     private var targetLostFrameCount = 0
     private val TARGET_LOST_THRESHOLD = 10  // Stop tracking after 10 consecutive frames without target
 
-    // v2.x.x: Optical flow EMA smoothing to reduce LK noise jitter
-    private var smoothedPointX: Float = 0f
-    private var smoothedPointY: Float = 0f
-    private var isFirstTrackingFrame: Boolean = true
-    private val SMOOTHING_ALPHA: Float = 0.35f  // EMA weight: 0.35 balances noise vs responsiveness
+    // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
+    // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
 
     // Detection stabilization (v2.2.1) - prevent flickering
     private var consecutiveFaceDetections = 0
@@ -202,29 +199,20 @@ class CameraViewModel @Inject constructor(
 
         cameraRepository.setOpticalFlowCallback { trackingResult ->
             if (trackingResult.isValid) {
-                // v2.x.x: EMA smoothing to reduce LK noise jitter
-                val rawX = trackingResult.point.x.toFloat()
-                val rawY = trackingResult.point.y.toFloat()
-                if (isFirstTrackingFrame) {
-                    smoothedPointX = rawX
-                    smoothedPointY = rawY
-                    isFirstTrackingFrame = false
-                } else {
-                    smoothedPointX += SMOOTHING_ALPHA * (rawX - smoothedPointX)
-                    smoothedPointY += SMOOTHING_ALPHA * (rawY - smoothedPointY)
-                }
+                val pointX = trackingResult.point.x.toFloat()
+                val pointY = trackingResult.point.y.toFloat()
 
-                // Update tracking state: use smoothed coordinates
-                // Note: Do NOT reset focusIndicatorFading here — fade sequence (Line 722) controls it
+                // Update tracking state with raw LK coordinates (zero-lag)
+                // Note: Do NOT reset focusIndicatorFading here — fade sequence controls it
                 _state.update {
                     it.copy(
-                        focusPoint = Pair(smoothedPointX, smoothedPointY),
+                        focusPoint = Pair(pointX, pointY),
                         trackedPointActive = true,
                         trackedPointQuality = trackingResult.quality,
                         trackedPointLost = false
                     )
                 }
-                Log.v(TAG, "Optical flow tracking updated: raw=(${rawX}, ${rawY}), smoothed=(${smoothedPointX}, ${smoothedPointY}), quality=${trackingResult.quality}")
+                Log.v(TAG, "Optical flow tracking updated: point=(${pointX}, ${pointY}), quality=${trackingResult.quality}")
 
             } else {
                 // Tracking lost
@@ -694,7 +682,6 @@ class CameraViewModel @Inject constructor(
                     }
 
                     // Start optical flow tracking
-                    isFirstTrackingFrame = true  // v2.x.x: Reset EMA smoothing for new tracking target
                     cameraRepository.startOpticalFlowTracking(x, y)
                     Log.i(TAG, "Optical flow tracking started at ($x, $y)")
 
