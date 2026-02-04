@@ -81,6 +81,9 @@ class OpticalFlowTracker(
     private var templatePatch: Mat? = null
     private var frameCount: Int = 0
 
+    // Phase 7: Last valid tracking result for jitter rejection fallback
+    private var lastValidResult: TrackingResult? = null
+
     /**
      * Start tracking a point
      *
@@ -122,6 +125,7 @@ class OpticalFlowTracker(
         releasePreviousFrame()
         releaseTemplate()
         trackedPoint = null
+        lastValidResult = null
         Log.i(TAG, "Stopped tracking")
     }
 
@@ -224,9 +228,22 @@ class OpticalFlowTracker(
                     val elapsedMs = (System.nanoTime() - startTime) / 1_000_000
                     Log.v(TAG, "Track: quality=${"%.2f".format(quality)}, distance=${"%.1f".format(distance)}px, error=${"%.1f".format(error)}, elapsed=${elapsedMs}ms")
 
+                    // Phase 7: Jitter rejection - detect low-quality large jumps
+                    if (isJitterFrame(quality, distance)) {
+                        Log.w(TAG, "Jitter rejected: quality=${"%.2f".format(quality)}, distance=${"%.1f".format(distance)}px")
+                        // Return last valid result to maintain visual stability
+                        return lastValidResult ?: TrackingResult(
+                            point = scalePointToOriginal(trackedPoint!!),
+                            quality = 1.0f,
+                            distance = 0f,
+                            isValid = true
+                        )
+                    }
+
                     if (isValid) {
-                        // Update tracked point from LK
-                        trackedPoint = newPoint
+                        // Phase 7: Clamp velocity to prevent visual jitter
+                        val clampedPoint = clampVelocity(trackedPoint!!, newPoint, distance)
+                        trackedPoint = clampedPoint
 
                         // Periodic drift correction via template matching
                         frameCount++
@@ -242,12 +259,16 @@ class OpticalFlowTracker(
                         releasePreviousFrame()
                         prevGray = downsampledGray.clone()
 
-                        return TrackingResult(
+                        // Phase 7: Save as last valid result for jitter rejection fallback
+                        val result = TrackingResult(
                             point = scalePointToOriginal(trackedPoint!!),
                             quality = quality,
                             distance = distance,
                             isValid = true
                         )
+                        lastValidResult = result
+
+                        return result
                     } else {
                         // Tracking lost
                         Log.w(TAG, "Tracking lost: quality too low or out of bounds")
@@ -306,6 +327,45 @@ class OpticalFlowTracker(
         val dx = p2.x - p1.x
         val dy = p2.y - p1.y
         return sqrt(dx * dx + dy * dy).toFloat()
+    }
+
+    /**
+     * Phase 7: Clamp point velocity to prevent visual jitter
+     * Limits maximum displacement per frame while preserving movement direction.
+     *
+     * @param oldPoint Previous tracked point
+     * @param newPoint New tracked point from LK
+     * @param distance Pre-calculated distance between points
+     * @return Clamped point if distance exceeds threshold, otherwise newPoint unchanged
+     */
+    private fun clampVelocity(oldPoint: Point, newPoint: Point, distance: Float): Point {
+        if (distance <= config.maxDistancePerFrame) {
+            return newPoint
+        }
+
+        val scale = config.maxDistancePerFrame / distance
+        val dx = newPoint.x - oldPoint.x
+        val dy = newPoint.y - oldPoint.y
+
+        Log.v(TAG, "Velocity clamped: ${"%.1f".format(distance)}px -> ${config.maxDistancePerFrame}px")
+
+        return Point(
+            oldPoint.x + dx * scale,
+            oldPoint.y + dy * scale
+        )
+    }
+
+    /**
+     * Phase 7: Detect jitter frame based on quality and distance thresholds
+     * A jitter frame has low quality combined with large distance - indicates tracking error.
+     *
+     * @param quality Tracking quality from LK calculation
+     * @param distance Movement distance from previous frame
+     * @return true if frame is detected as jitter (should be rejected)
+     */
+    private fun isJitterFrame(quality: Float, distance: Float): Boolean {
+        return quality < config.minQualityForJumpDetection &&
+               distance > config.maxDistanceForJumpDetection
     }
 
     /**

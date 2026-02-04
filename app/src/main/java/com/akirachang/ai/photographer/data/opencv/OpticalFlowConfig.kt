@@ -79,7 +79,35 @@ data class OpticalFlowConfig(
      *
      * Default: 15 FPS - balanced performance/responsiveness
      */
-    val targetFps: Int = 15
+    val targetFps: Int = 15,
+
+    // --- Phase 7: Anti-jitter parameters ---
+
+    /**
+     * Maximum point displacement per frame (pixels, downsampled coordinates)
+     * Used to clamp velocity and prevent visual jitter from large sudden jumps.
+     *
+     * Based on logcat analysis: normal tracking distance < 5px, jitter spikes 30-35px.
+     * Default: 15f - allows normal motion while clamping extreme jumps
+     */
+    val maxDistancePerFrame: Float = 15f,
+
+    /**
+     * Minimum quality threshold for jitter detection
+     * If quality is below this AND distance exceeds maxDistanceForJumpDetection,
+     * the frame is considered a jitter and rejected.
+     *
+     * Default: 0.85f - based on logcat (jitter frames show quality ~0.80)
+     */
+    val minQualityForJumpDetection: Float = 0.85f,
+
+    /**
+     * Maximum distance threshold for jitter detection (pixels, downsampled coordinates)
+     * Combined with minQualityForJumpDetection to identify jitter frames.
+     *
+     * Default: 10f - normal tracking typically < 5px
+     */
+    val maxDistanceForJumpDetection: Float = 10f
 ) {
     companion object {
         /**
