@@ -35,7 +35,7 @@ import kotlin.math.sqrt
  * - RANSAC median aggregation: robust to outlier points
  * - Periodic feature redetection: prevents point-set shrinkage over time
  * - Quality assessment: inlier ratio * LK error-based quality
- * - Phase 7 anti-jitter: velocity clamping + jitter frame rejection
+ * - Phase 7 anti-jitter: velocity clamping
  * - Memory leak prevention with proper Mat resource management
  * - Frame rate throttling to reduce CPU usage
  *
@@ -85,9 +85,6 @@ class OpticalFlowTracker(
     private var scaleX: Float = 1f
     private var scaleY: Float = 1f
 
-    // Phase 7: Last valid tracking result for jitter rejection fallback
-    private var lastValidResult: TrackingResult? = null
-
     /**
      * Start tracking a point
      *
@@ -116,7 +113,6 @@ class OpticalFlowTracker(
         )
 
         redetectionFrameCount = 0
-        lastValidResult = null
         isTracking.set(true)
         Log.i(TAG, "Started multi-point tracking at (${initialPoint.x}, ${initialPoint.y}), downsample=${downsampleWidth}x${downsampleHeight}, scale=($scaleX, $scaleY)")
     }
@@ -129,7 +125,6 @@ class OpticalFlowTracker(
         releasePreviousFrame()
         releaseTrackedPoints()
         trackedCenter = null
-        lastValidResult = null
         Log.i(TAG, "Stopped tracking")
     }
 
@@ -298,17 +293,6 @@ class OpticalFlowTracker(
                 val elapsedMs = (System.nanoTime() - startTime) / 1_000_000
                 Log.v(TAG, "Track: inliers=$inlierCount/valid=$validCount/total=$totalPoints, quality=${"%.2f".format(quality)}, dist=${"%.1f".format(distance)}px, med=(${"%.1f".format(medDx)},${"%.1f".format(medDy)}), elapsed=${elapsedMs}ms")
 
-                // Phase 7: Jitter rejection
-                if (isJitterFrame(quality, distance)) {
-                    Log.w(TAG, "Jitter rejected: quality=${"%.2f".format(quality)}, distance=${"%.1f".format(distance)}px")
-                    return lastValidResult ?: TrackingResult(
-                        point = scalePointToOriginal(trackedCenter!!),
-                        quality = 1.0f,
-                        distance = 0f,
-                        isValid = true
-                    )
-                }
-
                 // --- Validate (bounds, quality, distance) ---
                 val isValid = validateTracking(
                     newCenter,
@@ -338,16 +322,12 @@ class OpticalFlowTracker(
                     releasePreviousFrame()
                     prevGray = downsampledGray.clone()
 
-                    // Phase 7: Save as last valid result for jitter rejection fallback
-                    val result = TrackingResult(
+                    return TrackingResult(
                         point = scalePointToOriginal(trackedCenter!!),
                         quality = quality,
                         distance = distance,
                         isValid = true
                     )
-                    lastValidResult = result
-
-                    return result
                 } else {
                     Log.w(TAG, "Tracking lost: quality too low or out of bounds")
                     stopTracking()
@@ -427,15 +407,6 @@ class OpticalFlowTracker(
             oldPoint.x + dx * scale,
             oldPoint.y + dy * scale
         )
-    }
-
-    /**
-     * Phase 7: Detect jitter frame based on quality and distance thresholds.
-     * A jitter frame has low quality combined with large distance — indicates tracking error.
-     */
-    private fun isJitterFrame(quality: Float, distance: Float): Boolean {
-        return quality < config.minQualityForJumpDetection &&
-               distance > config.maxDistanceForJumpDetection
     }
 
     /**

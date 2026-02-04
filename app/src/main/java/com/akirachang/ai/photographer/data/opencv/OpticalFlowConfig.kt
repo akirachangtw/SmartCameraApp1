@@ -92,23 +92,6 @@ data class OpticalFlowConfig(
      */
     val maxDistancePerFrame: Float = 15f,
 
-    /**
-     * Minimum quality threshold for jitter detection
-     * If quality is below this AND distance exceeds maxDistanceForJumpDetection,
-     * the frame is considered a jitter and rejected.
-     *
-     * Default: 0.85f - based on logcat (jitter frames show quality ~0.80)
-     */
-    val minQualityForJumpDetection: Float = 0.85f,
-
-    /**
-     * Maximum distance threshold for jitter detection (pixels, downsampled coordinates)
-     * Combined with minQualityForJumpDetection to identify jitter frames.
-     *
-     * Default: 10f - normal tracking typically < 5px
-     */
-    val maxDistanceForJumpDetection: Float = 10f,
-
     // --- Multi-point LK tracking parameters ---
 
     /**
