@@ -558,13 +558,14 @@ private fun FocusIndicator(
         label = "focus_scale"
     )
 
-    // v2.9.10: Tracking mode - fixed alpha 1.0
+    // v2.x.x: Fade-out animation — isFading takes priority over isTracking
+    // Allows focus indicator to fade during tracking (Alpha 1.0 → 0.4 after 1s)
     // v2.9.9 Day 1-2: Lock mode - fixed alpha 1.0
-    // v2.9.9 Day 1-2 Optimize: Fade-out animation support
     val alpha by animateFloatAsState(
         targetValue = when {
-            isTracking || isLocked -> 1.0f  // Tracking/Lock: alpha 1.0
-            isFading -> 0.4f  // v2.9.9 Day 1-2 Optimize: Fading out to 0.4 (persistent visibility)
+            isLocked -> 1.0f  // AE/AF Lock: alpha fixed 1.0
+            isFading -> 0.4f  // v2.x.x: Fade-out animation — applies to both static focus and tracking
+            isTracking -> 1.0f  // Tracking mode: alpha 1.0 (until isFading = true)
             focusSuccess == false -> 0.6f  // Focus failed: alpha 0.6
             focusSuccess == true -> 1.0f  // Focus success: alpha 1.0
             else -> 1.0f  // Focusing: alpha 1.0

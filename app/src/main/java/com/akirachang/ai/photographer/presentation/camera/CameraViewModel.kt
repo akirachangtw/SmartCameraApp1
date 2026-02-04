@@ -215,19 +215,28 @@ class CameraViewModel @Inject constructor(
                 Log.v(TAG, "Optical flow tracking updated: point=(${pointX}, ${pointY}), quality=${trackingResult.quality}")
 
             } else {
-                // Tracking lost
+                // Tracking lost — fade out then clear
                 _state.update {
                     it.copy(
                         trackedPointActive = false,
-                        trackedPointLost = true
+                        trackedPointLost = true,
+                        focusIndicatorFading = true  // Fade to Alpha 0.4
                     )
                 }
-                Log.w(TAG, "Optical flow tracking lost")
+                Log.w(TAG, "Optical flow tracking lost — starting fade-out")
 
-                // Stop tracking after a short delay
+                // Clear focus indicator after 1.5 seconds (1s fade hold + 0.5s animation)
                 viewModelScope.launch {
-                    delay(1000)
-                    stopOpticalFlowTracking()
+                    delay(1500)
+                    _state.update {
+                        it.copy(
+                            focusPoint = null,
+                            focusIndicatorFading = false,
+                            trackedPointLost = false
+                        )
+                    }
+                    cameraRepository.stopOpticalFlowTracking()
+                    Log.i(TAG, "Optical flow tracking stopped — focus indicator cleared")
                 }
             }
         }
@@ -235,22 +244,12 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
-     * Stop optical flow tracking
+     * Manual stop optical flow tracking (called from other contexts if needed)
      * v2.x.x Phase 5: Stop tracking and clear state
      */
     private fun stopOpticalFlowTracking() {
         cameraRepository.stopOpticalFlowTracking()
-        // v2.x.x: Keep focusPoint at last known position with Alpha 0.4 (persistent until next tap)
-        // focusPoint cleared only on next tap (focusOnPoint) or camera switch
-        _state.update {
-            it.copy(
-                trackedPointActive = false,
-                trackedPointQuality = 0f,
-                trackedPointLost = false,
-                focusIndicatorFading = true  // Maintain Alpha 0.4 at last tracked position
-            )
-        }
-        Log.i(TAG, "Optical flow tracking stopped — focusPoint retained at last position")
+        Log.i(TAG, "Optical flow tracking stopped (manual)")
     }
 
     /**
@@ -708,13 +707,13 @@ class CameraViewModel @Inject constructor(
                     Log.d(TAG, "Focus successful at ($x, $y)")
 
                     // Tracking mode (ML Kit): Don't auto-clear (managed by updateTrackedObjectPosition)
-                    // Optical Flow / Static mode: Keep Alpha 1.0 for 2s, then fade to 0.4 (persistent)
+                    // Optical Flow / Static mode: Keep Alpha 1.0 for 1s, then fade to 0.4 (persistent)
                     // v2.x.x: focusIndicatorFading=true 後保持 Alpha 0.4，直到下次點擊重置
                     if (_state.value.trackedObjectId == null) {
-                        delay(2000)  // Keep for 2 seconds
+                        delay(1000)  // Keep for 1 second
                         _state.update { it.copy(focusIndicatorFading = true, focusIndicatorFadeStartTime = System.currentTimeMillis()) }
                         delay(500)   // Fade out for 500ms
-                        // v2.9.9 Day 1-2 Optimize: Keep focusPoint visible at alpha 0.4 (persistent until next tap)
+                        // v2.x.x: Keep focusPoint visible at alpha 0.4 (persistent until next tap)
                         // Keep focusIndicatorFading=true to maintain alpha 0.4 (reset on next tap)
                     }
 
