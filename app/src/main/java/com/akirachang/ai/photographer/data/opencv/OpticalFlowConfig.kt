@@ -107,7 +107,66 @@ data class OpticalFlowConfig(
      *
      * Default: 10f - normal tracking typically < 5px
      */
-    val maxDistanceForJumpDetection: Float = 10f
+    val maxDistanceForJumpDetection: Float = 10f,
+
+    // --- Multi-point LK tracking parameters ---
+
+    /**
+     * Maximum number of feature points to detect via goodFeaturesToTrack.
+     * More points = more robust median, but higher LK cost per frame.
+     *
+     * Default: 30 - sufficient for median stability at 640px downsample
+     */
+    val maxFeaturePoints: Int = 30,
+
+    /**
+     * Minimum quality level for goodFeaturesToTrack (0.0-1.0).
+     * Points with response below qualityLevel * maxResponse are discarded by OpenCV.
+     *
+     * Default: 0.01 - permissive; let count / ROI do the filtering
+     */
+    val featureQualityLevel: Double = 0.01,
+
+    /**
+     * Minimum pixel distance between detected features (goodFeaturesToTrack minDistance).
+     * Prevents clustering of features in a single texture patch.
+     *
+     * Default: 10.0 - spreads features across the ROI
+     */
+    val featureMinDistance: Double = 10.0,
+
+    /**
+     * Radius (pixels, downsampled coordinates) of the square ROI around the tracked
+     * center point used for goodFeaturesToTrack detection.
+     *
+     * Default: 80 - covers ~160x160 px area at 640 downsample
+     */
+    val featureROISize: Int = 80,
+
+    /**
+     * Minimum ratio of inlier points (after RANSAC) to valid LK points.
+     * If inlierCount / validCount falls below this, tracking is declared LOST.
+     *
+     * Default: 0.4f - at least 40% of LK-successful points must agree
+     */
+    val minValidPointsRatio: Float = 0.4f,
+
+    /**
+     * RANSAC distance threshold multiplier.
+     * Actual threshold = max(3.0, ransacDistanceThreshold * medianDisplacementMagnitude).
+     * Adaptive: tight for small motions, wider for large motions.
+     *
+     * Default: 0.5f - at 10px median motion the threshold is 5px
+     */
+    val ransacDistanceThreshold: Float = 0.5f,
+
+    /**
+     * Frames between full feature re-detection via goodFeaturesToTrack.
+     * Replenishes point set as LK drops failed points between redetections.
+     *
+     * Default: 15 - at 15 FPS throttle this is ~1 second
+     */
+    val redetectionInterval: Int = 15
 ) {
     companion object {
         /**

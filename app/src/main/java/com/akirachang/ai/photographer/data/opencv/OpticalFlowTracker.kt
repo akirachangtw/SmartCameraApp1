@@ -4,38 +4,45 @@ import android.util.Log
 import org.opencv.core.Mat
 import org.opencv.core.MatOfByte
 import org.opencv.core.MatOfFloat
+import org.opencv.core.MatOfPoint
 import org.opencv.core.MatOfPoint2f
-import org.opencv.core.Core
-import org.opencv.core.CvType
 import org.opencv.core.Point
+import org.opencv.core.Rect
 import org.opencv.core.Size
 import org.opencv.core.TermCriteria
 import org.opencv.imgproc.Imgproc
 import org.opencv.video.Video
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.sqrt
 
 /**
  * Optical Flow Point Tracker
  *
- * v2.x.x Phase 2: Lucas-Kanade sparse optical flow tracking
+ * v2.x.x Phase 8: Multi-point Lucas-Kanade sparse optical flow tracking
  *
- * Tracks arbitrary visual feature points using OpenCV calcOpticalFlowPyrLK().
+ * Tracks visual feature points using OpenCV goodFeaturesToTrack + calcOpticalFlowPyrLK().
+ * Multiple points are tracked simultaneously and aggregated via median displacement
+ * with RANSAC outlier filtering to reduce cumulative drift.
+ *
  * Designed for tap-to-track functionality where users tap any point on the preview
  * and the focus indicator follows that point as the camera moves.
  *
  * Features:
- * - Single point tracking (optimized for performance)
- * - Quality assessment based on LK error and movement distance
- * - Automatic tracking loss detection
+ * - Multi-point tracking: goodFeaturesToTrack ROI detection + parallel LK
+ * - RANSAC median aggregation: robust to outlier points
+ * - Periodic feature redetection: prevents point-set shrinkage over time
+ * - Quality assessment: inlier ratio * LK error-based quality
+ * - Phase 7 anti-jitter: velocity clamping + jitter frame rejection
  * - Memory leak prevention with proper Mat resource management
  * - Frame rate throttling to reduce CPU usage
  *
  * Performance targets:
- * - Processing time: < 20ms per frame (P95)
- * - Memory overhead: < 5 MB during active tracking
- * - CPU usage: < 15% sustained
+ * - Processing time: < 25ms per frame (P95)
+ * - Memory overhead: < 8 MB during active tracking
+ * - CPU usage: < 20% sustained
  *
  * Reference: OpenCV Lucas-Kanade optical flow
  * https://docs.opencv.org/4.x/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
@@ -54,11 +61,8 @@ class OpticalFlowTracker(
         private const val ERROR_WEIGHT = 0.7f // Weight of error in quality calculation
         private const val DIST_WEIGHT = 0.3f  // Weight of distance in quality calculation
 
-        // Template matching drift correction parameters
-        private const val TEMPLATE_HALF_SIZE = 32  // Half of template patch (64×64 total, downsample coords)
-        private const val SEARCH_RADIUS = 48       // Search area radius around tracked point
-        private const val CORRECTION_INTERVAL = 10 // Frames between drift corrections (~0.36s at 28 FPS)
-        private const val MIN_MATCH_QUALITY = 0.7f // TM_CCOEFF_NORMED min threshold to accept correction
+        // RANSAC: minimum displacement deviation threshold regardless of median magnitude
+        private const val MIN_RANSAC_THRESHOLD = 3f
     }
 
     // State management
@@ -67,7 +71,11 @@ class OpticalFlowTracker(
 
     // Previous frame storage
     private var prevGray: Mat? = null
-    private var trackedPoint: Point? = null
+
+    // Multi-point tracking state (all coordinates in downsampled space)
+    private var trackedPoints: MatOfPoint2f? = null   // Current feature point set for LK
+    private var trackedCenter: Point? = null           // Median center point (output target)
+    private var redetectionFrameCount: Int = 0         // Counter for periodic feature redetection
 
     // Downsampling dimensions (aspect-ratio-preserving, recalculated per session)
     private var downsampleWidth: Int = 0
@@ -76,10 +84,6 @@ class OpticalFlowTracker(
     // Downsampling scale factors (downsample coords / original coords)
     private var scaleX: Float = 1f
     private var scaleY: Float = 1f
-
-    // Template matching drift correction state
-    private var templatePatch: Mat? = null
-    private var frameCount: Int = 0
 
     // Phase 7: Last valid tracking result for jitter rejection fallback
     private var lastValidResult: TrackingResult? = null
@@ -92,8 +96,9 @@ class OpticalFlowTracker(
      * @param imageHeight Height of the input image
      */
     fun startTracking(initialPoint: Point, imageWidth: Int, imageHeight: Int) {
-        // Release stale previous frame to ensure clean tracking session on re-tap
+        // Release stale state to ensure clean tracking session on re-tap
         releasePreviousFrame()
+        releaseTrackedPoints()
 
         // v2.x.x Phase 7: Aspect-ratio-preserving downsample size
         val scale = minOf(MAX_DOWNSAMPLE_DIM.toFloat() / imageWidth, MAX_DOWNSAMPLE_DIM.toFloat() / imageHeight)
@@ -103,18 +108,17 @@ class OpticalFlowTracker(
         scaleX = downsampleWidth.toFloat() / imageWidth
         scaleY = downsampleHeight.toFloat() / imageHeight
 
-        // Convert point to downsampled coordinates
-        trackedPoint = Point(
+        // Store initial center in downsampled coordinates.
+        // trackedPoints will be populated on the first frame via detectFeatures().
+        trackedCenter = Point(
             initialPoint.x * scaleX,
             initialPoint.y * scaleY
         )
 
-        // Reset drift correction state
-        releaseTemplate()
-        frameCount = 0
-
+        redetectionFrameCount = 0
+        lastValidResult = null
         isTracking.set(true)
-        Log.i(TAG, "Started tracking at (${initialPoint.x}, ${initialPoint.y}), downsample=${downsampleWidth}x${downsampleHeight}, scale=($scaleX, $scaleY)")
+        Log.i(TAG, "Started multi-point tracking at (${initialPoint.x}, ${initialPoint.y}), downsample=${downsampleWidth}x${downsampleHeight}, scale=($scaleX, $scaleY)")
     }
 
     /**
@@ -123,8 +127,8 @@ class OpticalFlowTracker(
     fun stopTracking() {
         isTracking.set(false)
         releasePreviousFrame()
-        releaseTemplate()
-        trackedPoint = null
+        releaseTrackedPoints()
+        trackedCenter = null
         lastValidResult = null
         Log.i(TAG, "Stopped tracking")
     }
@@ -136,8 +140,7 @@ class OpticalFlowTracker(
      * @return Tracking result with updated point coordinates and quality
      */
     fun track(currentGray: Mat): TrackingResult {
-        // Check if tracking is active
-        if (!isTracking.get() || trackedPoint == null) {
+        if (!isTracking.get() || trackedCenter == null) {
             return TrackingResult.LOST
         }
 
@@ -145,9 +148,8 @@ class OpticalFlowTracker(
         val currentTime = System.currentTimeMillis()
         val timeSinceLastProcess = currentTime - lastProcessTime.get()
         if (timeSinceLastProcess < config.throttleIntervalMs) {
-            // Return previous point without processing
             return TrackingResult(
-                point = scalePointToOriginal(trackedPoint!!),
+                point = scalePointToOriginal(trackedCenter!!),
                 quality = 1.0f,
                 distance = 0f,
                 isValid = true
@@ -161,25 +163,45 @@ class OpticalFlowTracker(
         val downsampledGray = downsampleMat(currentGray)
 
         try {
-            // First frame - store and save initial template for drift correction
+            // First frame — detect features and store as baseline; no LK to run yet
             if (prevGray == null) {
                 prevGray = downsampledGray.clone()
-                saveTemplate(downsampledGray)
+                detectFeatures(downsampledGray, trackedCenter!!)
                 return TrackingResult(
-                    point = scalePointToOriginal(trackedPoint!!),
+                    point = scalePointToOriginal(trackedCenter!!),
                     quality = 1.0f,
                     distance = 0f,
                     isValid = true
                 )
             }
 
-            // Prepare input points
-            val prevPoints = MatOfPoint2f(trackedPoint)
+            // Guard: if point set is empty, attempt redetection before giving up
+            if (trackedPoints == null || trackedPoints!!.rows() == 0) {
+                detectFeatures(downsampledGray, trackedCenter!!)
+                if (trackedPoints == null || trackedPoints!!.rows() == 0) {
+                    Log.w(TAG, "Redetection yielded zero points — tracking lost")
+                    stopTracking()
+                    return TrackingResult.LOST
+                }
+                // New baseline frame established after redetection
+                releasePreviousFrame()
+                prevGray = downsampledGray.clone()
+                redetectionFrameCount = 0
+                return TrackingResult(
+                    point = scalePointToOriginal(trackedCenter!!),
+                    quality = 1.0f,
+                    distance = 0f,
+                    isValid = true
+                )
+            }
+
+            // --- Multi-point LK optical flow ---
+            // Independent copy of tracked points for LK input (must not alias trackedPoints)
+            val prevPoints = MatOfPoint2f(*trackedPoints!!.toArray())
             val nextPoints = MatOfPoint2f()
             val status = MatOfByte()
             val err = MatOfFloat()
 
-            // Create termination criteria
             val criteria = TermCriteria(
                 TermCriteria.COUNT or TermCriteria.EPS,
                 config.maxCount,
@@ -187,103 +209,152 @@ class OpticalFlowTracker(
             )
 
             try {
-                // Calculate optical flow
                 Video.calcOpticalFlowPyrLK(
-                    prevGray,           // Previous frame
-                    downsampledGray,    // Current frame
-                    prevPoints,         // Previous point
-                    nextPoints,         // Output: next point
-                    status,             // Output: status (1 = found, 0 = not found)
-                    err,                // Output: error
-                    config.winSize,     // Search window size
-                    config.maxLevel,    // Pyramid levels
-                    criteria,           // Termination criteria
-                    0,                  // Flags
-                    0.001               // Min eigenvalue threshold
+                    prevGray,
+                    downsampledGray,
+                    prevPoints,
+                    nextPoints,
+                    status,
+                    err,
+                    config.winSize,
+                    config.maxLevel,
+                    criteria,
+                    0,
+                    0.001
                 )
 
-                // Extract results
                 val statusArray = status.toArray()
                 val errorArray = err.toArray()
                 val nextPointArray = nextPoints.toArray()
+                val prevPointArray = prevPoints.toArray()
+                val totalPoints = statusArray.size
 
-                // Check if tracking succeeded
-                if (statusArray.isNotEmpty() && statusArray[0].toInt() == 1) {
-                    val newPoint = nextPointArray[0]
-                    val error = errorArray[0]
-                    val distance = calculateDistance(trackedPoint!!, newPoint)
+                // --- Collect valid (status=1) displacements ---
+                val validDx = mutableListOf<Float>()
+                val validDy = mutableListOf<Float>()
+                val validErrors = mutableListOf<Float>()
+                val validNextPts = mutableListOf<Point>()
 
-                    // Calculate tracking quality
-                    val quality = calculateQuality(error, distance)
+                for (i in 0 until totalPoints) {
+                    if (statusArray[i].toInt() == 1) {
+                        val dx = (nextPointArray[i].x - prevPointArray[i].x).toFloat()
+                        val dy = (nextPointArray[i].y - prevPointArray[i].y).toFloat()
+                        validDx.add(dx)
+                        validDy.add(dy)
+                        validErrors.add(errorArray[i])
+                        validNextPts.add(nextPointArray[i])
+                    }
+                }
 
-                    // Validate tracking result
-                    val isValid = validateTracking(
-                        newPoint,
-                        downsampledGray.width().toFloat(),
-                        downsampledGray.height().toFloat(),
-                        quality,
-                        distance
+                val validCount = validDx.size
+                if (validCount == 0) {
+                    Log.w(TAG, "All $totalPoints points lost LK status")
+                    stopTracking()
+                    return TrackingResult.LOST
+                }
+
+                // --- RANSAC: median displacement + outlier filtering ---
+                val medDx = median(validDx)
+                val medDy = median(validDy)
+                val medianMagnitude = sqrt((medDx * medDx + medDy * medDy).toDouble()).toFloat()
+                val ransacThreshold = max(MIN_RANSAC_THRESHOLD, config.ransacDistanceThreshold * medianMagnitude)
+
+                val inlierNextPts = mutableListOf<Point>()
+                val inlierErrors = mutableListOf<Float>()
+
+                for (i in validDx.indices) {
+                    val devX = abs(validDx[i] - medDx)
+                    val devY = abs(validDy[i] - medDy)
+                    val deviation = sqrt((devX * devX + devY * devY).toDouble()).toFloat()
+                    if (deviation <= ransacThreshold) {
+                        inlierNextPts.add(validNextPts[i])
+                        inlierErrors.add(validErrors[i])
+                    }
+                }
+
+                val inlierCount = inlierNextPts.size
+                val minRequired = max(1, (config.minValidPointsRatio * validCount).toInt())
+
+                if (inlierCount < minRequired) {
+                    Log.w(TAG, "RANSAC: inliers=$inlierCount / valid=$validCount < minRequired=$minRequired")
+                    stopTracking()
+                    return TrackingResult.LOST
+                }
+
+                // --- New center = previous center + median displacement ---
+                val newCenter = Point(
+                    trackedCenter!!.x + medDx,
+                    trackedCenter!!.y + medDy
+                )
+
+                // --- Quality = inlier ratio * LK error-based quality ---
+                val avgInlierError = inlierErrors.sum() / inlierCount
+                val inlierRatio = inlierCount.toFloat() / validCount.toFloat()
+                val baseQuality = calculateQuality(avgInlierError, medianMagnitude)
+                val quality = (inlierRatio * baseQuality).coerceIn(0f, 1f)
+
+                val distance = calculateDistance(trackedCenter!!, newCenter)
+
+                val elapsedMs = (System.nanoTime() - startTime) / 1_000_000
+                Log.v(TAG, "Track: inliers=$inlierCount/valid=$validCount/total=$totalPoints, quality=${"%.2f".format(quality)}, dist=${"%.1f".format(distance)}px, med=(${"%.1f".format(medDx)},${"%.1f".format(medDy)}), elapsed=${elapsedMs}ms")
+
+                // Phase 7: Jitter rejection
+                if (isJitterFrame(quality, distance)) {
+                    Log.w(TAG, "Jitter rejected: quality=${"%.2f".format(quality)}, distance=${"%.1f".format(distance)}px")
+                    return lastValidResult ?: TrackingResult(
+                        point = scalePointToOriginal(trackedCenter!!),
+                        quality = 1.0f,
+                        distance = 0f,
+                        isValid = true
                     )
+                }
 
-                    val elapsedMs = (System.nanoTime() - startTime) / 1_000_000
-                    Log.v(TAG, "Track: quality=${"%.2f".format(quality)}, distance=${"%.1f".format(distance)}px, error=${"%.1f".format(error)}, elapsed=${elapsedMs}ms")
+                // --- Validate (bounds, quality, distance) ---
+                val isValid = validateTracking(
+                    newCenter,
+                    downsampledGray.width().toFloat(),
+                    downsampledGray.height().toFloat(),
+                    quality,
+                    distance
+                )
 
-                    // Phase 7: Jitter rejection - detect low-quality large jumps
-                    if (isJitterFrame(quality, distance)) {
-                        Log.w(TAG, "Jitter rejected: quality=${"%.2f".format(quality)}, distance=${"%.1f".format(distance)}px")
-                        // Return last valid result to maintain visual stability
-                        return lastValidResult ?: TrackingResult(
-                            point = scalePointToOriginal(trackedPoint!!),
-                            quality = 1.0f,
-                            distance = 0f,
-                            isValid = true
-                        )
+                if (isValid) {
+                    // Phase 7: Clamp velocity on center point
+                    val clampedCenter = clampVelocity(trackedCenter!!, newCenter, distance)
+                    trackedCenter = clampedCenter
+
+                    // Update tracked points to inliers only (point set shrinks naturally)
+                    releaseTrackedPoints()
+                    trackedPoints = MatOfPoint2f(*inlierNextPts.toTypedArray())
+
+                    // Periodic feature redetection to replenish point set
+                    redetectionFrameCount++
+                    if (redetectionFrameCount >= config.redetectionInterval) {
+                        detectFeatures(downsampledGray, trackedCenter!!)
+                        redetectionFrameCount = 0
                     }
 
-                    if (isValid) {
-                        // Phase 7: Clamp velocity to prevent visual jitter
-                        val clampedPoint = clampVelocity(trackedPoint!!, newPoint, distance)
-                        trackedPoint = clampedPoint
+                    // Update previous frame
+                    releasePreviousFrame()
+                    prevGray = downsampledGray.clone()
 
-                        // Periodic drift correction via template matching
-                        frameCount++
-                        if (frameCount >= CORRECTION_INTERVAL && templatePatch != null) {
-                            val corrected = correctDrift(downsampledGray)
-                            if (corrected != null) {
-                                trackedPoint = corrected
-                            }
-                            frameCount = 0
-                        }
+                    // Phase 7: Save as last valid result for jitter rejection fallback
+                    val result = TrackingResult(
+                        point = scalePointToOriginal(trackedCenter!!),
+                        quality = quality,
+                        distance = distance,
+                        isValid = true
+                    )
+                    lastValidResult = result
 
-                        // Update previous frame
-                        releasePreviousFrame()
-                        prevGray = downsampledGray.clone()
-
-                        // Phase 7: Save as last valid result for jitter rejection fallback
-                        val result = TrackingResult(
-                            point = scalePointToOriginal(trackedPoint!!),
-                            quality = quality,
-                            distance = distance,
-                            isValid = true
-                        )
-                        lastValidResult = result
-
-                        return result
-                    } else {
-                        // Tracking lost
-                        Log.w(TAG, "Tracking lost: quality too low or out of bounds")
-                        stopTracking()
-                        return TrackingResult.LOST
-                    }
+                    return result
                 } else {
-                    // Optical flow failed
-                    Log.w(TAG, "Optical flow failed: status=${statusArray.firstOrNull()}")
+                    Log.w(TAG, "Tracking lost: quality too low or out of bounds")
                     stopTracking()
                     return TrackingResult.LOST
                 }
 
             } finally {
-                // Release OpenCV matrices
                 prevPoints.release()
                 nextPoints.release()
                 status.release()
@@ -295,10 +366,11 @@ class OpticalFlowTracker(
             stopTracking()
             return TrackingResult.LOST
         } finally {
-            // Release downsampled frame
             downsampledGray.release()
         }
     }
+
+    // ─── Utility: downsampling ────────────────────────────────────────────────
 
     /**
      * Downsample Mat to aspect-ratio-preserving target size for efficient tracking
@@ -320,6 +392,8 @@ class OpticalFlowTracker(
         )
     }
 
+    // ─── Utility: math / quality ──────────────────────────────────────────────
+
     /**
      * Calculate Euclidean distance between two points
      */
@@ -330,7 +404,7 @@ class OpticalFlowTracker(
     }
 
     /**
-     * Phase 7: Clamp point velocity to prevent visual jitter
+     * Phase 7: Clamp point velocity to prevent visual jitter.
      * Limits maximum displacement per frame while preserving movement direction.
      *
      * @param oldPoint Previous tracked point
@@ -356,12 +430,8 @@ class OpticalFlowTracker(
     }
 
     /**
-     * Phase 7: Detect jitter frame based on quality and distance thresholds
-     * A jitter frame has low quality combined with large distance - indicates tracking error.
-     *
-     * @param quality Tracking quality from LK calculation
-     * @param distance Movement distance from previous frame
-     * @return true if frame is detected as jitter (should be rejected)
+     * Phase 7: Detect jitter frame based on quality and distance thresholds.
+     * A jitter frame has low quality combined with large distance — indicates tracking error.
      */
     private fun isJitterFrame(quality: Float, distance: Float): Boolean {
         return quality < config.minQualityForJumpDetection &&
@@ -369,7 +439,7 @@ class OpticalFlowTracker(
     }
 
     /**
-     * Calculate tracking quality (0.0-1.0) based on LK error and movement distance
+     * Calculate tracking quality (0.0-1.0) based on LK error and movement distance.
      *
      * Quality formula:
      * - Error component: 1 - (error / MAX_LK_ERROR)
@@ -377,23 +447,13 @@ class OpticalFlowTracker(
      * - Final quality = ERROR_WEIGHT * errorQuality + DIST_WEIGHT * distanceQuality
      */
     private fun calculateQuality(error: Float, distance: Float): Float {
-        // Error quality (inverse of error, normalized)
         val errorQuality = 1f - (error / MAX_LK_ERROR).coerceIn(0f, 1f)
-
-        // Distance quality (inverse of distance, normalized)
         val distanceQuality = 1f - (distance / config.maxTrackingDistance).coerceIn(0f, 1f)
-
-        // Weighted combination
         return (ERROR_WEIGHT * errorQuality + DIST_WEIGHT * distanceQuality).coerceIn(0f, 1f)
     }
 
     /**
-     * Validate tracking result
-     *
-     * Checks:
-     * 1. Point is within image bounds
-     * 2. Quality is above minimum threshold
-     * 3. Distance is below maximum threshold
+     * Validate tracking result: bounds, quality, distance thresholds.
      */
     private fun validateTracking(
         point: Point,
@@ -402,120 +462,108 @@ class OpticalFlowTracker(
         quality: Float,
         distance: Float
     ): Boolean {
-        // Check bounds
         if (point.x < 0 || point.x >= imageWidth || point.y < 0 || point.y >= imageHeight) {
             return false
         }
-
-        // Check quality threshold
         if (quality < config.minQuality) {
             return false
         }
-
-        // Check distance threshold
         if (distance > config.maxTrackingDistance) {
             return false
         }
-
         return true
     }
 
-    /**
-     * Save template patch around current tracked point for drift correction.
-     * Skipped if point is too close to frame border to extract a full patch.
-     */
-    private fun saveTemplate(frame: Mat) {
-        val pt = trackedPoint ?: return
-        val x = pt.x.toInt()
-        val y = pt.y.toInt()
-
-        if (x - TEMPLATE_HALF_SIZE < 0 || y - TEMPLATE_HALF_SIZE < 0 ||
-            x + TEMPLATE_HALF_SIZE > frame.width() || y + TEMPLATE_HALF_SIZE > frame.height()) {
-            Log.w(TAG, "Template save skipped: point too close to border (${x}, ${y})")
-            return
-        }
-
-        releaseTemplate()
-        templatePatch = frame.submat(
-            y - TEMPLATE_HALF_SIZE, y + TEMPLATE_HALF_SIZE,
-            x - TEMPLATE_HALF_SIZE, x + TEMPLATE_HALF_SIZE
-        ).clone()
-    }
+    // ─── Multi-point: feature detection & RANSAC helpers ─────────────────────
 
     /**
-     * Correct tracked point drift using normalized cross-correlation template matching.
-     * Searches a region around the current tracked point, snaps to best match if quality
-     * meets threshold.  Updates the stored template at the corrected position so future
-     * corrections track appearance changes (lighting, angle).
+     * Detect features around center using goodFeaturesToTrack.
+     * Populates trackedPoints with detected corner points offset to full-frame coordinates.
+     * Falls back to single center point if zero features are detected.
      *
-     * @return Corrected point if match quality >= MIN_MATCH_QUALITY, null otherwise
+     * @param gray  Downsampled grayscale frame (CV_8UC1)
+     * @param center  Current tracked center in downsampled coordinates
      */
-    private fun correctDrift(frame: Mat): Point? {
-        val template = templatePatch ?: return null
-        val pt = trackedPoint ?: return null
+    private fun detectFeatures(gray: Mat, center: Point) {
+        val roi = computeROI(center, gray.width(), gray.height())
+        val roiMat = gray.submat(roi)  // submat is a view — do NOT release
 
-        val x = pt.x.toInt()
-        val y = pt.y.toInt()
-
-        // Search region clamped to frame bounds
-        val searchLeft = maxOf(0, x - SEARCH_RADIUS)
-        val searchTop = maxOf(0, y - SEARCH_RADIUS)
-        val searchRight = minOf(frame.width(), x + SEARCH_RADIUS)
-        val searchBottom = minOf(frame.height(), y + SEARCH_RADIUS)
-
-        // Search region must be strictly larger than template in both dimensions
-        if (searchRight - searchLeft <= template.cols() || searchBottom - searchTop <= template.rows()) {
-            return null
-        }
-
-        val searchRegion = frame.submat(searchTop, searchBottom, searchLeft, searchRight)
-        val resultCols = (searchRight - searchLeft) - template.cols() + 1
-        val resultRows = (searchBottom - searchTop) - template.rows() + 1
-        val result = Mat(resultRows, resultCols, CvType.CV_32F)
-
+        val corners = MatOfPoint()
         try {
-            Imgproc.matchTemplate(searchRegion, template, result, Imgproc.TM_CCOEFF_NORMED)
+            Imgproc.goodFeaturesToTrack(
+                roiMat,
+                corners,
+                config.maxFeaturePoints,
+                config.featureQualityLevel,
+                config.featureMinDistance
+            )
 
-            val minMax = Core.minMaxLoc(result)
-            val matchQuality = minMax.maxVal.toFloat()
-
-            if (matchQuality < MIN_MATCH_QUALITY) return null
-
-            val matchLoc = minMax.maxLoc
-            val correctedX = searchLeft + matchLoc.x + template.cols() / 2.0
-            val correctedY = searchTop + matchLoc.y + template.rows() / 2.0
-
-            val drift = calculateDistance(pt, Point(correctedX, correctedY))
-            Log.v(TAG, "Drift correction: drift=${"%.1f".format(drift)}px, quality=${"%.2f".format(matchQuality)}")
-
-            // Update template at corrected position for next correction cycle
-            val newX = correctedX.toInt()
-            val newY = correctedY.toInt()
-            if (newX - TEMPLATE_HALF_SIZE >= 0 && newY - TEMPLATE_HALF_SIZE >= 0 &&
-                newX + TEMPLATE_HALF_SIZE <= frame.width() && newY + TEMPLATE_HALF_SIZE <= frame.height()) {
-                releaseTemplate()
-                templatePatch = frame.submat(
-                    newY - TEMPLATE_HALF_SIZE, newY + TEMPLATE_HALF_SIZE,
-                    newX - TEMPLATE_HALF_SIZE, newX + TEMPLATE_HALF_SIZE
-                ).clone()
+            if (corners.rows() == 0) {
+                Log.w(TAG, "goodFeaturesToTrack: 0 points in ROI $roi — fallback to center")
+                releaseTrackedPoints()
+                trackedPoints = MatOfPoint2f(center)
+                return
             }
 
-            return Point(correctedX, correctedY)
+            // Convert MatOfPoint (ROI-local integer coords) to MatOfPoint2f (full-frame double coords)
+            val cornersArray = corners.toArray()
+            val pointsArray = Array(cornersArray.size) { i ->
+                Point(
+                    cornersArray[i].x.toDouble() + roi.x,
+                    cornersArray[i].y.toDouble() + roi.y
+                )
+            }
+
+            releaseTrackedPoints()
+            trackedPoints = MatOfPoint2f(*pointsArray)
+            Log.v(TAG, "detectFeatures: ${pointsArray.size} points in ROI $roi")
+
         } finally {
-            result.release()
+            corners.release()
         }
     }
 
     /**
-     * Release template patch Mat to prevent memory leak
+     * Compute square ROI rect around center, clamped to frame bounds.
      */
-    private fun releaseTemplate() {
-        templatePatch?.release()
-        templatePatch = null
+    private fun computeROI(center: Point, frameWidth: Int, frameHeight: Int): Rect {
+        val r = config.featureROISize
+        val cx = center.x.toInt()
+        val cy = center.y.toInt()
+
+        val left   = max(0, cx - r)
+        val top    = max(0, cy - r)
+        val right  = minOf(frameWidth, cx + r)
+        val bottom = minOf(frameHeight, cy + r)
+
+        return Rect(left, top, right - left, bottom - top)
     }
 
     /**
-     * Release previous frame Mat to prevent memory leak
+     * Compute median of a non-empty list of floats.
+     */
+    private fun median(values: List<Float>): Float {
+        val sorted = values.sorted()
+        val mid = sorted.size / 2
+        return if (sorted.size % 2 == 0) {
+            (sorted[mid - 1] + sorted[mid]) / 2f
+        } else {
+            sorted[mid]
+        }
+    }
+
+    // ─── Resource management ──────────────────────────────────────────────────
+
+    /**
+     * Release trackedPoints Mat to prevent memory leak.
+     */
+    private fun releaseTrackedPoints() {
+        trackedPoints?.release()
+        trackedPoints = null
+    }
+
+    /**
+     * Release previous frame Mat to prevent memory leak.
      */
     private fun releasePreviousFrame() {
         prevGray?.release()
