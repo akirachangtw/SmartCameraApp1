@@ -529,7 +529,7 @@ private fun FocusIndicator(
         animationSpec = if (isTracking) {
             spring(
                 dampingRatio = Spring.DampingRatioNoBouncy,  // MediumBouncy → NoBouncy (precise tracking)
-                stiffness = Spring.StiffnessMedium  // StiffnessLow → StiffnessMedium (faster response)
+                stiffness = Spring.StiffnessHigh  // Phase 9B-fix: StiffnessMedium→StiffnessHigh (reduce animation lag ~40%)
             )
         } else {
             tween(durationMillis = 0)  // Static mode: no animation
@@ -542,7 +542,7 @@ private fun FocusIndicator(
         animationSpec = if (isTracking) {
             spring(
                 dampingRatio = Spring.DampingRatioNoBouncy,  // MediumBouncy → NoBouncy (precise tracking)
-                stiffness = Spring.StiffnessMedium  // StiffnessLow → StiffnessMedium (faster response)
+                stiffness = Spring.StiffnessHigh  // Phase 9B-fix: StiffnessMedium→StiffnessHigh (reduce animation lag ~40%)
             )
         } else {
             tween(durationMillis = 0)

@@ -90,7 +90,7 @@ data class OpticalFlowConfig(
      * Based on logcat analysis: normal tracking distance < 5px, jitter spikes 30-35px.
      * Default: 15f - allows normal motion while clamping extreme jumps
      */
-    val maxDistancePerFrame: Float = 15f,
+    val maxDistancePerFrame: Float = 25f,  // Phase 9B-fix: 15f→25f to reduce per-frame jump magnitude
 
     // --- Multi-point LK tracking parameters ---
 
