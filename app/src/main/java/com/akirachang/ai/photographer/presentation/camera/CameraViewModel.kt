@@ -706,11 +706,10 @@ class CameraViewModel @Inject constructor(
                     _state.update { it.copy(isFocusing = false, focusSuccess = true) }
                     Log.d(TAG, "Focus successful at ($x, $y)")
 
-                    // Tracking mode (ML Kit): Don't auto-clear (managed by updateTrackedObjectPosition)
-                    // Optical Flow / Static mode: Keep Alpha 1.0 for 1s, then fade to 0.4 (persistent)
-                    // v2.x.x: focusIndicatorFading=true 後保持 Alpha 0.4，直到下次點擊重置
-                    // Phase 9B-fix: Also check trackedPointActive to avoid false fade during optical flow
-                    if (_state.value.trackedObjectId == null && !_state.value.trackedPointActive) {
+                    // ML Kit tracking: Alpha managed by updateTrackedObjectPosition (skip fade)
+                    // Optical Flow + Static: Alpha 1.0 for 1s → fade 500ms → Alpha 0.4 (persistent)
+                    // focusIndicatorFading=true 後保持 Alpha 0.4，直到下次點擊重置
+                    if (_state.value.trackedObjectId == null) {
                         delay(1000)  // Keep for 1 second
                         _state.update { it.copy(focusIndicatorFading = true, focusIndicatorFadeStartTime = System.currentTimeMillis()) }
                         delay(500)   // Fade out for 500ms

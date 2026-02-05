@@ -85,19 +85,19 @@ CameraViewModel: Optical flow tracking callback registered
 - ✅ 白色虛線圓圈出現在點擊位置
 - ✅ 圓圈穩定跟隨人臉，**無可見跳動或追趕效果**
 - ✅ 移動時圓圈平滑跟隨（無lag + 突然補齊的跳躍）
-- ✅ 追蹤期間 Alpha 保持 1.0（不會突然淡化）
+- ✅ ML Kit 追蹤期間 Alpha 由 ML Kit 獨立管控（保持 1.0）— 不進入標準淡出序列
 
 **Logcat 驗證**:
 ```bash
 grep -E "Track:|Velocity clamped|focusIndicatorFading" docs/test_results/v2.9.9-Phase9B-fix/logcat_phase9bfix.log
 ```
-- 無 `focusIndicatorFading` 在追蹤期間出現（Issue B 驗證）
+- 無 `focusIndicatorFading` 在 ML Kit 追蹤期間出現（ML Kit 獨立管控 Alpha）
 - `Velocity clamped` 出現次數應極少（正常追蹤不需要夾緊）
 
 **通過標準**:
 - [ ] 圓圈穩定跟隨，無可見跳動
-- [ ] 追蹤期間 Alpha 未觸發淡出
-- [ ] Logcat 無追蹤期間的 `focusIndicatorFading` 記錄
+- [ ] ML Kit 追蹤期間 Alpha 由 ML Kit 管控（不觸發標準淡出）
+- [ ] Logcat 無 ML Kit 追蹤期間的 `focusIndicatorFading` 記錄
 
 ---
 
@@ -143,6 +143,7 @@ grep -E "Optical flow failed|tracking lost" docs/test_results/v2.9.9-Phase9B-fix
 - ✅ 圓圈在快速移動中**平滑跟隨**視觉特徵
 - ✅ **無明顯的「延遲後突然追趕」效果**（修正前的symptoms）
 - ✅ 移動停止後圓圈能在目標位置穩定（不繼續飄動）
+- ✅ 約 1 秒後圓圈淡化至 Alpha 0.4，但繼續跟隨目標（Optical Flow 追蹤的正常行為）
 - ✅ 若移動太快導致追蹤失敗，圓圈應干凈消失（非跳躍後消失）
 
 **Root Cause Verification**:
@@ -191,7 +192,7 @@ grep "focusIndicatorFading" docs/test_results/v2.9.9-Phase9B-fix/logcat_phase9bf
 - [ ] 圓圈持續顯示，不完全消失
 - [ ] 下次點擊後重置為 Alpha 1.0
 
-> **注意**: 若前一步驟啟動了 Optical Flow 追蹤（`trackedPointActive=true`），此場景的淡化不會觸發。請確認**靜態對焦**（點擊後追蹤迅速失敗或未啟動 Optical Flow）。
+> **注意**: 淡化序列在 Optical Flow 追蹤和靜態對焦中均會觸發。若點擊到人臉啟動 ML Kit 追蹤，Alpha 由 ML Kit 管控不觸發標準淡化。請確認點擊的是**非人臉物件**來驗證此場景。
 
 ---
 
@@ -272,9 +273,10 @@ adb -s 59131JEBF17244 shell "rm /sdcard/Download/temp_screen.png"
 - 前置鏡頭追蹤時是否觀察到跳動: (是/否)
 - 快速移動後是否觀察到追趕效果: (是/否)
 
-## Issue B 驗證 (Alpha 錯誤淡出)
-- 追蹤期間是否觀察到不當淡化: (是/否)
-- 靜態對焦淡化行為: (正確/異常)
+## Fade-out 行為驗證
+- Optical Flow 追蹤時 1 秒後是否淡化至 Alpha 0.4: (是/否)
+- 靜態對焦時 1 秒後是否淡化至 Alpha 0.4: (是/否)
+- ML Kit 追蹤時是否觸發不當淡化: (是/否)
 
 ## 異常記錄
 （空白表示無異常）

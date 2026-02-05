@@ -14,10 +14,10 @@
 
 修復前置鏡頭使用 Optical Flow 追蹤時「對焦指標圓圈跳動」的兩個問題：
 
-| Issue | 現象 | 根因 |
-|-------|------|------|
-| **Issue A** | 圓圈視覺延遲 + 移動後突然「追趕跳躍」 | `maxDistancePerFrame` 過小（15f）+ Spring 動畫 `StiffnessMedium`（500f）延遲 ~100-300ms |
-| **Issue B** | 追蹤進行中圓圈突然淡化至 Alpha 0.4 | Fade-out guard 未檢查 `trackedPointActive`，Optical Flow 模式下錯誤觸發淡出 |
+| 變更項目 | 說明 |
+|---------|------|
+| **Issue A 修正** | `maxDistancePerFrame` 15f→25f + Spring `StiffnessHigh` — 減少視覺延遲與追趕跳躍 |
+| **Issue B guard 移除** | 淡化至 Alpha 0.4 是 Optical Flow 追蹤中的正確行為，已移除錯誤的 `!trackedPointActive` guard |
 
 ---
 
@@ -39,32 +39,29 @@ stiffness = Spring.StiffnessHigh  // Phase 9B-fix: StiffnessMedium→StiffnessHi
 - `StiffnessMedium`(500f) → `StiffnessHigh`(900f)，動畫延遲減少 ~40%
 - 圓圈更快跟上目標位置，視覺更光滑
 
-### 3. `CameraViewModel.kt` (line 713) — Issue B
+### 3. `CameraViewModel.kt` (line 713) — Issue B guard 移除
 ```kotlin
-if (_state.value.trackedObjectId == null && !_state.value.trackedPointActive) {
+if (_state.value.trackedObjectId == null) {
 ```
-- 淡出序列觸發條件加入 `&& !trackedPointActive`
-- Optical Flow 追蹤活躍時，阻止進入淡出路徑
-- 淡出僅在**靜態對焦**（無任何追蹤活躍）時觸發
+- 移除錯誤添加的 `&& !trackedPointActive` guard
+- ML Kit 追蹤時（`trackedObjectId != null`）由 `updateTrackedObjectPosition` 獨立管控 Alpha
+- Optical Flow 追蹤 + 靜態對焦均執行標準淡出：Alpha 1.0 → 1s → fade → Alpha 0.4
 
 ---
 
 ## 📋 Fade-out 行為規範（唯一真實來源）
 
+**標準規則**（Optical Flow 追蹤 + 靜態對焦均適用）：
+
 ```
-對焦成功
-  │
-  ├── [追蹤活躍] trackedObjectId != null 或 trackedPointActive = true
-  │       → Alpha 1.0 持續保持（由追蹤狀態管控）
-  │
-  └── [靜態對焦] trackedObjectId == null 且 trackedPointActive = false
-          → Alpha 1.0 保持 1 秒
-          → 500ms 淡化動畫
-          → Alpha 0.4 持續顯示（直到下次點擊重置）
+對焦成功 → Alpha 1.0 保持 1 秒 → 500ms 淡化動畫 → Alpha 0.4 持續顯示（直到下次點擊重置）
 ```
 
+**唯一例外 — ML Kit 追蹤**（`trackedObjectId != null`）:
+- Alpha 由 `updateTrackedObjectPosition` 獨立管控，不進入上述淡出序列
+
 **對應代碼路徑**:
-- `CameraViewModel.kt:713` — guard 判斷
+- `CameraViewModel.kt:713` — `if (trackedObjectId == null)` guard
 - `CameraViewModel.kt:714` — `delay(1000)` (1 秒)
 - `CameraViewModel.kt:715` — `focusIndicatorFading = true`
 - `CameraScreen.kt:567` — `isFading -> 0.4f`
