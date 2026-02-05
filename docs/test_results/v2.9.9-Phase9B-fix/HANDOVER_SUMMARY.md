@@ -1,0 +1,104 @@
+# v2.9.9 Phase 9B-fix: Front Camera Focus Indicator Jump — 交接摘要
+
+## 📋 版本資訊
+
+- **功能分支**: `feature/optical-flow-phase5-6`
+- **基礎版本**: v2.9.9 (versionCode: 60)
+- **開發日期**: 2026-02-04 ~ 2026-02-05
+- **交接類型**: Home NB → Work NB (實機測試)
+- **測試設備**: Pixel 9a (Device ID: `59131JEBF17244`)
+
+---
+
+## 🎯 本次交接範圍
+
+修復前置鏡頭使用 Optical Flow 追蹤時「對焦指標圓圈跳動」的兩個問題：
+
+| Issue | 現象 | 根因 |
+|-------|------|------|
+| **Issue A** | 圓圈視覺延遲 + 移動後突然「追趕跳躍」 | `maxDistancePerFrame` 過小（15f）+ Spring 動畫 `StiffnessMedium`（500f）延遲 ~100-300ms |
+| **Issue B** | 追蹤進行中圓圈突然淡化至 Alpha 0.4 | Fade-out guard 未檢查 `trackedPointActive`，Optical Flow 模式下錯誤觸發淡出 |
+
+---
+
+## 🔧 修改檔案 (3 個)
+
+### 1. `OpticalFlowConfig.kt` (line 93) — Issue A
+```kotlin
+val maxDistancePerFrame: Float = 25f  // Phase 9B-fix: 15f→25f
+```
+- 下采樣座標中允許每幀最大位移 15f → 25f
+- Preview 座標換算：25 × 2 × 1.726 ≈ 86 px/frame（仍在可接受範圍）
+- 減少連續幀累積誤差，避免「遲到後一次補齊」的跳躍效果
+
+### 2. `CameraScreen.kt` (lines 532, 545) — Issue A
+```kotlin
+stiffness = Spring.StiffnessHigh  // Phase 9B-fix: StiffnessMedium→StiffnessHigh
+```
+- FocusIndicator `animatedX` / `animatedY` 的 Spring 動畫參數
+- `StiffnessMedium`(500f) → `StiffnessHigh`(900f)，動畫延遲減少 ~40%
+- 圓圈更快跟上目標位置，視覺更光滑
+
+### 3. `CameraViewModel.kt` (line 713) — Issue B
+```kotlin
+if (_state.value.trackedObjectId == null && !_state.value.trackedPointActive) {
+```
+- 淡出序列觸發條件加入 `&& !trackedPointActive`
+- Optical Flow 追蹤活躍時，阻止進入淡出路徑
+- 淡出僅在**靜態對焦**（無任何追蹤活躍）時觸發
+
+---
+
+## 📋 Fade-out 行為規範（唯一真實來源）
+
+```
+對焦成功
+  │
+  ├── [追蹤活躍] trackedObjectId != null 或 trackedPointActive = true
+  │       → Alpha 1.0 持續保持（由追蹤狀態管控）
+  │
+  └── [靜態對焦] trackedObjectId == null 且 trackedPointActive = false
+          → Alpha 1.0 保持 1 秒
+          → 500ms 淡化動畫
+          → Alpha 0.4 持續顯示（直到下次點擊重置）
+```
+
+**對應代碼路徑**:
+- `CameraViewModel.kt:713` — guard 判斷
+- `CameraViewModel.kt:714` — `delay(1000)` (1 秒)
+- `CameraViewModel.kt:715` — `focusIndicatorFading = true`
+- `CameraScreen.kt:567` — `isFading -> 0.4f`
+
+---
+
+## ✅ 測試案例（5 項）
+
+| # | 測試項目 | 預期結果 | 優先度 |
+|---|---------|---------|--------|
+| 1 | 前置鏡頭點擊人臉 | 圓圈穩定跟隨，無可見跳動 | CRITICAL |
+| 2 | 前置鏡頭點擊牆壁（無紋理）| 圓圈穩定，無跳動，tracking lost 後正常消失 | HIGH |
+| 3 | 快速移動鏡頭（前置）| 圓圈平滑跟隨，無明顯延遲或追趕跳躍 | CRITICAL |
+| 4 | 對焦成功後超過 1 秒（無追蹤）| 1 秒後淡化至 Alpha 0.4 並持續顯示 | HIGH |
+| 5 | 後置鏡頭測試 | 無回歸，行為與 Phase 9A 一致 | MEDIUM |
+
+詳細測試步驟參考：[`PIXEL9A_TEST_GUIDE.md`](PIXEL9A_TEST_GUIDE.md)
+
+---
+
+## 📂 測試產出存放位置
+
+所有測試產出請放至本目錄 `docs/test_results/v2.9.9-Phase9B-fix/`：
+
+| 檔案 | 說明 |
+|------|------|
+| `PIXEL9A_TEST_REPORT.md` | 測試報告（Work NB 填寫） |
+| `logcat_phase9bfix.log` | Logcat 日誌 |
+| `screenshot_*.png` | 截圖 |
+
+---
+
+## 🔗 參考文件
+
+- 本文件為單一真實來源 (SSOT)
+- 詳細測試步驟: [`PIXEL9A_TEST_GUIDE.md`](PIXEL9A_TEST_GUIDE.md)
+- 上階段交接摘要: [`../v2.x.x-OpticalFlow/HANDOVER_SUMMARY.md`](../v2.x.x-OpticalFlow/HANDOVER_SUMMARY.md)
