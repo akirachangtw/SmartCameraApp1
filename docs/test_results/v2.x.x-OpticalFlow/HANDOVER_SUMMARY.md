@@ -27,6 +27,10 @@
 | Phase 4 | SmartCameraAnalyzer 整合 (ImageProxy + Bitmap 雙管道) | ✅ 完成 |
 | Phase 5 | CameraViewModel 整合 (tap handler 三模式路由 + 狀態回調) | ✅ 完成 |
 | Phase 6 | 模擬器驗證 (虛擬3D相機 + prevGray bug 修復) | ✅ 完成 |
+| Phase 7 | Focus indicator fade-out animation — Alpha priority + tracking lost | ✅ 完成 |
+| Phase 8 | Multi-point LK optical flow tracking | ✅ 完成 |
+| Phase 9A | isJitterFrame feedback loop removal | ✅ 完成 |
+| Phase 9B-fix | Front camera focus indicator jump (spring stiffness + velocity clamp) | ✅ 本次交接 |
 
 ## 🔧 Phase 6 具體變更（本次交接）
 
@@ -71,6 +75,42 @@
 4. **Pixel 9a 效能** — 注意該設備 ML Kit TPU 記憶體限制（500ms throttle）
 5. **與 Traycer v2 整合** — 確認 ML Kit 追蹤優先於 Optical Flow
 6. **AE/AF Lock 倂存** — 長按鎖定後再點擊是否正確啟動 Optical Flow
+
+---
+
+## 🔧 Phase 9B-fix 測試重點（本次交接 — 前置鏡頭對焦指標跳動修正）
+
+### 變更內容
+
+**Issue A — 視覺延遲 + 跳動**
+- `OpticalFlowConfig.kt`: `maxDistancePerFrame` 15f → **25f**（減少每幀跳動幅度）
+- `CameraScreen.kt` FocusIndicator: spring `StiffnessMedium` → **StiffnessHigh**（動畫延遲減少 ~40%）
+
+**Issue B — Alpha 錯誤淡出**
+- `CameraViewModel.kt`: 淡出 guard 加入 `&& !trackedPointActive`
+- 防止 optical flow 追蹤中錯誤觸發淡出序列
+
+**Fade-out 正確行為（已修正，與代碼一致）：**
+```
+對焦成功 → Alpha 1.0 保持 1 秒 → 500ms 淡化 → Alpha 0.4 持續顯示（下次點擊重置）
+```
+
+### 測試案例
+
+| # | 測試項目 | 預期結果 |
+|---|---------|---------|
+| 1 | 前置鏡頭點擊人臉 | 圓圈穩定跟隨，無可見跳動 |
+| 2 | 前置鏡頭點擊牆壁（無紋理）| 圓圈穩定，無跳動 |
+| 3 | 快速移動鏡頭（前置）| 圓圈平滑跟隨，無明顯延遲 |
+| 4 | 對焦成功後超過 1 秒（無追蹤）| 1 秒後淡化至 Alpha 0.4 並持續顯示 |
+| 5 | 後置鏡頭測試 | 無回歸，行為與之前相同 |
+
+### Logcat 監測
+```bash
+adb -s 59131JEBF17244 logcat -s OpticalFlowTracker:V CameraViewModel:V | grep -E "Velocity clamped|focusIndicatorFading"
+```
+
+---
 
 ## 📝 重要技術背景
 
