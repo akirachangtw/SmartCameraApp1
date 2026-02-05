@@ -39,7 +39,7 @@ stiffness = Spring.StiffnessHigh  // Phase 9B-fix: StiffnessMedium→StiffnessHi
 - `StiffnessMedium`(500f) → `StiffnessHigh`(900f)，動畫延遲減少 ~40%
 - 圓圈更快跟上目標位置，視覺更光滑
 
-### 3. `CameraViewModel.kt` (line 713) — Issue B guard 移除
+### 3. `CameraViewModel.kt` (line 712) — Issue B guard 移除
 ```kotlin
 if (_state.value.trackedObjectId == null) {
 ```
@@ -49,22 +49,10 @@ if (_state.value.trackedObjectId == null) {
 
 ---
 
-## 📋 Fade-out 行為規範（唯一真實來源）
+## 📋 Fade-out 行為規範
 
-**標準規則**（Optical Flow 追蹤 + 靜態對焦均適用）：
-
-```
-對焦成功 → Alpha 1.0 保持 1 秒 → 500ms 淡化動畫 → Alpha 0.4 持續顯示（直到下次點擊重置）
-```
-
-**唯一例外 — ML Kit 追蹤**（`trackedObjectId != null`）:
-- Alpha 由 `updateTrackedObjectPosition` 獨立管控，不進入上述淡出序列
-
-**對應代碼路徑**:
-- `CameraViewModel.kt:713` — `if (trackedObjectId == null)` guard
-- `CameraViewModel.kt:714` — `delay(1000)` (1 秒)
-- `CameraViewModel.kt:715` — `focusIndicatorFading = true`
-- `CameraScreen.kt:567` — `isFading -> 0.4f`
+規範已移至 [`devspec/feature_record_Backlog.md`](../../../devspec/feature_record_Backlog.md) — Optical Flow Tracking section。
+本交接中 Fade-out 相關的預期行為請參考該文件的 ✅ Confirmed 部分。
 
 ---
 
@@ -96,6 +84,6 @@ if (_state.value.trackedObjectId == null) {
 
 ## 🔗 參考文件
 
-- 本文件為單一真實來源 (SSOT)
+- 功能議題唯一入口 (SSOT): [`devspec/feature_record_Backlog.md`](../../../devspec/feature_record_Backlog.md)
 - 詳細測試步驟: [`PIXEL9A_TEST_GUIDE.md`](PIXEL9A_TEST_GUIDE.md)
 - 上階段交接摘要: [`../v2.x.x-OpticalFlow/HANDOVER_SUMMARY.md`](../v2.x.x-OpticalFlow/HANDOVER_SUMMARY.md)
