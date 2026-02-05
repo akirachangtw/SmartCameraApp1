@@ -344,6 +344,41 @@ class TestHandoffApp:
         )
         device_combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
+        # Branch
+        branch_frame = tk.Frame(frame, bg=Colors.CARD_BG)
+        branch_frame.pack(pady=3, padx=10, fill=tk.X)
+
+        tk.Label(
+            branch_frame,
+            text="Git 分支:",
+            font=("Microsoft JhengHei UI", 9),
+            bg=Colors.CARD_BG,
+            width=12,
+            anchor=tk.W
+        ).pack(side=tk.LEFT)
+
+        current_branch = self.detect_current_branch()
+        local_branches = self.detect_local_branches()
+        self.branch_var = tk.StringVar(value=current_branch)
+        self.branch_combo = ttk.Combobox(
+            branch_frame,
+            textvariable=self.branch_var,
+            values=local_branches,
+            width=46
+        )
+        self.branch_combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        tk.Button(
+            branch_frame,
+            text="🔄",
+            font=("Microsoft JhengHei UI", 9),
+            bg=Colors.CARD_BG,
+            fg=Colors.TEXT_DARK,
+            relief=tk.FLAT,
+            cursor="hand2",
+            command=self.refresh_branches
+        ).pack(side=tk.LEFT, padx=(5, 0))
+
         # Objective
         obj_frame = tk.Frame(frame, bg=Colors.CARD_BG)
         obj_frame.pack(pady=(3, 8), padx=10, fill=tk.X)
@@ -711,6 +746,51 @@ class TestHandoffApp:
         r, g, b = int(r * 0.85), int(g * 0.85), int(b * 0.85)
         return f'#{r:02x}{g:02x}{b:02x}'
 
+    @staticmethod
+    def detect_current_branch() -> str:
+        """Detect current git branch"""
+        try:
+            result = subprocess.run(
+                ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+                capture_output=True, text=True, encoding='utf-8',
+                errors='replace',
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            )
+            branch = result.stdout.strip()
+            return branch if branch and branch != 'HEAD' else 'main'
+        except Exception:
+            return 'main'
+
+    @staticmethod
+    def detect_local_branches() -> List[str]:
+        """Detect available local git branches, main first"""
+        try:
+            result = subprocess.run(
+                ['git', 'branch', '--list'],
+                capture_output=True, text=True, encoding='utf-8',
+                errors='replace',
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            )
+            branches = []
+            for line in result.stdout.strip().split('\n'):
+                branch = line.strip().lstrip('* ')
+                if branch:
+                    branches.append(branch)
+            if 'main' in branches:
+                branches.remove('main')
+                branches.insert(0, 'main')
+            return branches if branches else ['main']
+        except Exception:
+            return ['main']
+
+    def refresh_branches(self):
+        """Refresh branch list and reset selector to current branch"""
+        current_branch = self.detect_current_branch()
+        local_branches = self.detect_local_branches()
+        self.branch_var.set(current_branch)
+        self.branch_combo.configure(values=local_branches)
+        self.write_log(f"分支列表已更新，當前分支: {current_branch}", "Info")
+
     def write_log(self, message: str, log_type: str = "Info"):
         """Write log message"""
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
@@ -847,7 +927,8 @@ class TestHandoffApp:
 
     def run_step1(self):
         """Step 1: Home NB Push"""
-        if not messagebox.askyesno("確認", "確定要推送到 GitHub (main) 嗎？"):
+        branch = self.branch_var.get()
+        if not messagebox.askyesno("確認", f"確定要推送到 GitHub ({branch}) 嗎？"):
             return
 
         topic = self.topic_var.get()
@@ -896,8 +977,8 @@ class TestHandoffApp:
 
         # Git Push
         remote = self.remote_detector.get_remote_for('home_push')
-        self.write_log(f"Pushing to {remote}...", "Info")
-        returncode, stdout, stderr = self.run_command(["git", "push", remote, "main"])
+        self.write_log(f"Pushing to {remote}/{branch}...", "Info")
+        returncode, stdout, stderr = self.run_command(["git", "push", remote, branch])
 
         if self.handle_git_error("git push", returncode, stderr):
             self.status_var.set("失敗")
@@ -911,9 +992,10 @@ class TestHandoffApp:
         self.write_log("=== Task 2: Work NB (Pull) ===", "Info")
         self.status_var.set("拉取中...")
 
+        branch = self.branch_var.get()
         remote = self.remote_detector.get_remote_for('work_pull')
-        self.write_log(f"Pulling from {remote}...", "Info")
-        returncode, stdout, stderr = self.run_command(["git", "pull", remote, "main"])
+        self.write_log(f"Pulling from {remote}/{branch}...", "Info")
+        returncode, stdout, stderr = self.run_command(["git", "pull", remote, branch])
 
         if self.handle_git_error("git pull", returncode, stderr):
             self.status_var.set("失敗")
@@ -924,11 +1006,12 @@ class TestHandoffApp:
 
     def run_step3(self):
         """Step 3: Work NB Push"""
-        if not messagebox.askyesno("確認", "確定要推送測試結果嗎？"):
+        if not messagebox.askyesno("確認", f"確定要推送測試結果到 {self.branch_var.get()} 嗎？"):
             return
 
         topic = self.topic_var.get()
         device = self.device_var.get()
+        branch = self.branch_var.get()
         result = self.result_var.get()
         date_str = datetime.datetime.now().strftime("%Y-%m-%d")
 
@@ -975,8 +1058,8 @@ class TestHandoffApp:
 
         # Git Push
         remote = self.remote_detector.get_remote_for('work_push')
-        self.write_log(f"Pushing to {remote}...", "Info")
-        returncode, stdout, stderr = self.run_command(["git", "push", remote, "main"])
+        self.write_log(f"Pushing to {remote}/{branch}...", "Info")
+        returncode, stdout, stderr = self.run_command(["git", "push", remote, branch])
 
         if self.handle_git_error("git push", returncode, stderr):
             self.status_var.set("失敗")
@@ -990,9 +1073,10 @@ class TestHandoffApp:
         self.write_log("=== Task 4: Home NB (Pull) ===", "Info")
         self.status_var.set("拉取中...")
 
+        branch = self.branch_var.get()
         remote = self.remote_detector.get_remote_for('home_pull')
-        self.write_log(f"Pulling from {remote}...", "Info")
-        returncode, stdout, stderr = self.run_command(["git", "pull", remote, "main"])
+        self.write_log(f"Pulling from {remote}/{branch}...", "Info")
+        returncode, stdout, stderr = self.run_command(["git", "pull", remote, branch])
 
         if self.handle_git_error("git pull", returncode, stderr):
             self.status_var.set("失敗")
