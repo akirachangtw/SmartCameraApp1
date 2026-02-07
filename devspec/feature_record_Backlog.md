@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-02-05
+Last updated: 2026-02-07
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -33,7 +33,25 @@ Last updated: 2026-02-05
 
 ## Preview / Resolution
 
+### ✅ Confirmed
+- Preview 固定 16:9 AspectRatioStrategy — 修正 1.6x FOV 放大問題 | Verified: 2026-02-07 (Phase A)
+- ImageCapture 同步 16:9 — WYSIWYG 拍照 | Verified: 2026-02-07 (Phase A)
+
+### 🔍 Code Locations
+- Preview selector (16:9):    `LiveCameraSource.kt:858-865`
+- ImageCapture selector (16:9): `LiveCameraSource.kt:889-896`
+- ImageAnalysis selector (原有): `LiveCameraSource.kt:868-886`
+
 ### 📋 Backlog
-- [ ] PreviewView 縱橫比放大 ~1.6x — pending 方案選定 | 詳細: `docs/issues/preview_zoom_aspect_ratio.md`
+- [ ] [Phase B] 長寬比 Toggle UI (4:3/16:9/1:1) — pending 設計與實作
+
+---
+
+## LumiFrame AI（景深 + 虛擬光源）
+
+### 📋 Backlog
+- [ ] ARCore Depth API 可行性驗證 PoC — pending 評估
+- [ ] AGSL bokeh shader 實作 — pending ARCore PoC 成功
+- [ ] 視覺協議動畫（搜尋/鎖定/淡出）— pending 設計確認
 
 ---

@@ -853,8 +853,19 @@ class LiveCameraSource @Inject constructor(
                     Log.i(TAG, "[v2.9.0-beta5] Smart Resolution: target=${targetResolution.width}x${targetResolution.height}, " +
                               "filter≤${maxFilterWidth}x${maxFilterHeight}")
 
-                    // Build ResolutionSelector with device-specific filter
-                    val resolutionSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                    // v2.10.0 Phase A: Separate ResolutionSelectors to fix 1.6x FOV zoom
+                    // 1. Preview: Use AspectRatioStrategy (16:9) to avoid CameraX negotiation selecting 4:3
+                    val previewSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                        .setAspectRatioStrategy(
+                            androidx.camera.core.resolutionselector.AspectRatioStrategy(
+                                androidx.camera.core.AspectRatio.RATIO_16_9,
+                                androidx.camera.core.resolutionselector.AspectRatioStrategy.FALLBACK_RULE_AUTO
+                            )
+                        )
+                        .build()
+
+                    // 2. ImageAnalysis: Keep original ResolutionStrategy for Optical Flow / ML Kit
+                    val analysisSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
                         .setResolutionStrategy(
                             androidx.camera.core.resolutionselector.ResolutionStrategy(
                                 targetResolution,
@@ -874,18 +885,28 @@ class LiveCameraSource @Inject constructor(
                         }
                         .build()
 
+                    // 3. ImageCapture: Sync with Preview (16:9) for WYSIWYG
+                    val captureSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                        .setAspectRatioStrategy(
+                            androidx.camera.core.resolutionselector.AspectRatioStrategy(
+                                androidx.camera.core.AspectRatio.RATIO_16_9,
+                                androidx.camera.core.resolutionselector.AspectRatioStrategy.FALLBACK_RULE_AUTO
+                            )
+                        )
+                        .build()
+
                     // Store target for diagnostic logging
                     selectedResolution = targetResolution
 
-                    Log.i(TAG, "[v2.9.0-beta4] Using ResolutionSelector with target=${targetResolution.width}x${targetResolution.height}, filter=<= 800px")
+                    Log.i(TAG, "[v2.10.0 Phase A] Using separate selectors: Preview=16:9, Analysis=target ${targetResolution.width}x${targetResolution.height}, Capture=16:9")
 
                     // One-time diagnostic: log all supported resolutions
                     logSupportedResolutions(cameraInfo)
 
                     // 1. Build Preview UseCase with SurfaceProvider
-                    // v2.9.0-beta4: Use ResolutionSelector instead of setTargetResolution
+                    // v2.10.0: Use independent 16:9 AspectRatioStrategy to fix FOV zoom
                     preview = Preview.Builder()
-                        .setResolutionSelector(resolutionSelector)
+                        .setResolutionSelector(previewSelector)  // ← 獨立 selector
                         .build()
                         .apply {
                             // ✅ CRITICAL: Attach SurfaceProvider (external or fallback)
@@ -893,28 +914,29 @@ class LiveCameraSource @Inject constructor(
                             val providerType = if (externalSurfaceProvider != null) "PreviewView (native)" else "Fallback SurfaceTexture"
 
                             setSurfaceProvider(provider)
-                            Log.i(TAG, "✅ Preview UseCase created with $providerType + ResolutionSelector")
+                            Log.i(TAG, "✅ Preview UseCase created with $providerType + AspectRatio 16:9")
                         }
 
                     // 2. Build ImageAnalysis UseCase (for Bitmap stream to UI)
-                    // v2.9.0-beta4: Use ResolutionSelector instead of setTargetResolution
+                    // v2.10.0: Keep original ResolutionStrategy (not affected by Preview change)
                     imageAnalysis = ImageAnalysis.Builder()
-                        .setResolutionSelector(resolutionSelector)
+                        .setResolutionSelector(analysisSelector)  // ← 獨立 selector
                         .setTargetRotation(Surface.ROTATION_0)  // Set target rotation for proper orientation
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
                         .apply {
-                            Log.i(TAG, "✅ ImageAnalysis UseCase created with ROTATION_0 + ResolutionSelector")
+                            Log.i(TAG, "✅ ImageAnalysis UseCase created with ROTATION_0 + target=${targetResolution.width}x${targetResolution.height}")
                         }
 
                     // 3. Build ImageCapture UseCase (for photo capture)
-                    // v2.9.6 Phase 1: targetRotation now dynamically updated by OrientationEventListener
+                    // v2.10.0: Sync with Preview (16:9) for WYSIWYG
                     imageCapture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                        .setResolutionSelector(captureSelector)  // ← 新增：WYSIWYG 16:9
                         // targetRotation will be set dynamically via updateTargetRotation()
                         .build()
                         .apply {
-                            Log.i(TAG, "✅ ImageCapture UseCase created (dynamic rotation)")
+                            Log.i(TAG, "✅ ImageCapture UseCase created with AspectRatio 16:9 (WYSIWYG)")
                         }
 
                     // 4. Unbind all previous UseCases before rebinding
