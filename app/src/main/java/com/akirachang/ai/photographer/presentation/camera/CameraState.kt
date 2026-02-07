@@ -3,6 +3,7 @@ package com.akirachang.ai.photographer.presentation.camera
 import android.net.Uri
 import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.domain.model.DetectionResult
+import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.presentation.camera.model.HDRMode
 
 /**
@@ -24,6 +25,8 @@ data class CameraState(
     val detectionResult: DetectionResult? = null,
     val isAnalysisEnabled: Boolean = false,
     val hdrMode: HDRMode = HDRMode.AUTO,  // v2.6.1: Manual HDR control
+    val aspectRatioMode: AspectRatioMode = AspectRatioMode.RATIO_16_9,  // v2.10.0: Aspect ratio toggle (4:3/16:9/1:1)
+    val isRebindingCamera: Boolean = false,  // v2.10.0: True when rebinding camera after aspect ratio change
     // v2.9.9: Focus state
     val focusPoint: Pair<Float, Float>? = null,  // (x, y) coordinates in pixels, null if no active focus
     val isFocusing: Boolean = false,  // True while focus animation is showing
@@ -49,6 +52,7 @@ sealed class CameraUiEvent {
     object SwitchCamera : CameraUiEvent()
     object ToggleFlash : CameraUiEvent()
     object ToggleHDR : CameraUiEvent()  // v2.6.1: Toggle HDR mode (AUTO → ON → OFF → AUTO)
+    object ToggleAspectRatio : CameraUiEvent()  // v2.10.0: Toggle aspect ratio (4:3 → 16:9 → 1:1 → 4:3)
     object StartAnalysis : CameraUiEvent()
     object StopAnalysis : CameraUiEvent()
     data class ShowError(val message: String) : CameraUiEvent()
