@@ -123,17 +123,14 @@ enum class AspectRatioMode {
     /**
      * 決定 PreviewView 的 ScaleType
      *
-     * 策略（基於 Gemini 方案）:
-     * - 4:3: FIT_CENTER（顯示黑邊，無裁切）→ 完全解決放大感
-     * - 16:9: FILL_CENTER（填滿螢幕）
-     * - 1:1: FIT_CENTER（正方形 + 黑邊）
+     * v2.10.0-fix: 統一使用 FIT_CENTER 配合 ViewPort.FIT
+     * 策略：
+     * - 所有模式都使用 FIT_CENTER，避免 PreviewView 額外裁切
+     * - 配合 ViewPort.FIT 保留完整 FOV
+     * - 可能顯示黑邊（letterbox），但這是保證 WYSIWYG 和完整 FOV 的必要代價
      */
     val toScaleType: PreviewView.ScaleType
-        get() = when (this) {
-            RATIO_4_3 -> PreviewView.ScaleType.FIT_CENTER   // 黑邊，無裁切
-            RATIO_16_9 -> PreviewView.ScaleType.FILL_CENTER  // 填滿螢幕
-            RATIO_1_1 -> PreviewView.ScaleType.FIT_CENTER   // 黑邊
-        }
+        get() = PreviewView.ScaleType.FIT_CENTER  // ✅ 統一使用 FIT_CENTER
 
     /**
      * 是否使用 FIT_CENTER（顯示黑邊）

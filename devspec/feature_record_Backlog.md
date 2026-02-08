@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-02-07
+Last updated: 2026-02-08
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -31,19 +31,27 @@ Last updated: 2026-02-07
 
 ---
 
-## Preview / Resolution
+## Preview / Resolution / Aspect Ratio (v2.10.0)
 
 ### ✅ Confirmed
 - Preview 固定 16:9 AspectRatioStrategy — 修正 1.6x FOV 放大問題 | Verified: 2026-02-07 (Phase A)
 - ImageCapture 同步 16:9 — WYSIWYG 拍照 | Verified: 2026-02-07 (Phase A)
+- **長寬比 Toggle (4:3/16:9/1:1)** — UseCaseGroup + ViewPort 架構 | Verified: 2026-02-08 (v2.10.0-fix)
+- **ViewPort.FIT** — 保留完整 FOV，避免雙層裁切 | Verified: 2026-02-08 (Sony + Pixel 9a)
+- **PreviewView.FIT_CENTER 統一** — 所有模式避免額外裁切 | Verified: 2026-02-08 (Sony + Pixel 9a)
+- **1:1 ResolutionFilter** — 動態選擇正方形解析度（Sony: 2448², Pixel 9a: 1920²）| Verified: 2026-02-08
 
 ### 🔍 Code Locations
-- Preview selector (16:9):    `LiveCameraSource.kt:858-865`
-- ImageCapture selector (16:9): `LiveCameraSource.kt:889-896`
-- ImageAnalysis selector (原有): `LiveCameraSource.kt:868-886`
+- ViewPort.FIT:                `LiveCameraSource.kt:932-940`
+- 1:1 ResolutionFilter:        `LiveCameraSource.kt:868-888`
+- PreviewView.ScaleType:       `AspectRatioMode.kt:132-133`
+- AspectRatioMode enum:        `AspectRatioMode.kt:19-68`
+- Toggle logic:                `CameraViewModel.kt` (aspect ratio state)
 
 ### 📋 Backlog
-- [ ] [Phase B] 長寬比 Toggle UI (4:3/16:9/1:1) — pending 設計與實作
+- [x] [Phase B] 長寬比 Toggle UI (4:3/16:9/1:1) — ✅ 完成 (v2.10.0-fix, 2026-02-08)
+- [ ] 建立設備解析度資料庫 — 記錄不同設備的 1:1 解析度選擇
+- [ ] 新增 UI 提示 — 首次使用說明黑邊（letterbox）是正常行為
 
 ---
 

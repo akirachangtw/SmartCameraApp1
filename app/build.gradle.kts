@@ -59,7 +59,8 @@ android {
             buildConfigField("Boolean", "ENABLE_FUSED_TRANSFORM", "true")
 
             // v2.8.6 Phase 2: PreviewView migration for Graphics memory fix
-            buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "false")  // DISABLED for v2.8.5 Baseline test
+            // v2.10.0: ENABLED for aspect ratio ScaleType testing
+            buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "true")  // ENABLED for v2.10.0 testing
 
             // v2.x.x Phase 1: Optical Flow Point Tracking (enabled for Phase 6 testing)
             buildConfigField("Boolean", "ENABLE_OPTICAL_FLOW_TRACKING", "true")

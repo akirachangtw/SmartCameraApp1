@@ -861,20 +861,46 @@ class LiveCameraSource @Inject constructor(
                               "filter≤${maxFilterWidth}x${maxFilterHeight}")
 
                     // v2.10.0: Unified AspectRatioStrategy for UseCaseGroup + ViewPort architecture
-                    // All UseCases use the same aspect ratio (4:3, 16:9, or 1:1) based on currentAspectRatioMode
-                    val commonSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
-                        .setAspectRatioStrategy(
-                            androidx.camera.core.resolutionselector.AspectRatioStrategy(
-                                currentAspectRatioMode.toCameraXAspectRatio,
-                                androidx.camera.core.resolutionselector.AspectRatioStrategy.FALLBACK_RULE_AUTO
+                    // v2.10.0-fix: 1:1 mode uses 4:3 sensor output, ViewPort crops to square (WYSIWYG)
+                    // All UseCases use the same aspect ratio based on currentAspectRatioMode
+                    // v2.10.0-fix: 1:1 mode requires special handling for ImageCapture output
+                    val commonSelector = if (currentAspectRatioMode == AspectRatioMode.RATIO_1_1) {
+                        // 1:1 mode: Use ResolutionFilter to find closest square resolution
+                        androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                            .setResolutionFilter { supportedSizes, _ ->
+                                // Find square or near-square resolutions
+                                val squareOrNearSquare = supportedSizes.sortedBy { size ->
+                                    kotlin.math.abs(size.width.toFloat() / size.height - 1.0f)
+                                }
+                                // Return closest to 1:1
+                                listOf(squareOrNearSquare.firstOrNull() ?: supportedSizes.first())
+                            }
+                            .build()
+                            .also {
+                                Log.i(TAG, "[v2.10.0 Fix] 1:1 mode: Using ResolutionFilter for square output")
+                            }
+                    } else {
+                        // 4:3 / 16:9 modes: Use standard AspectRatioStrategy
+                        val targetAspectRatio = when (currentAspectRatioMode) {
+                            AspectRatioMode.RATIO_4_3 -> androidx.camera.core.AspectRatio.RATIO_4_3
+                            AspectRatioMode.RATIO_16_9 -> androidx.camera.core.AspectRatio.RATIO_16_9
+                            else -> androidx.camera.core.AspectRatio.RATIO_4_3  // Fallback
+                        }
+                        androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                            .setAspectRatioStrategy(
+                                androidx.camera.core.resolutionselector.AspectRatioStrategy(
+                                    targetAspectRatio,
+                                    androidx.camera.core.resolutionselector.AspectRatioStrategy.FALLBACK_RULE_AUTO
+                                )
                             )
-                        )
-                        .build()
+                            .build()
+                            .also {
+                                Log.i(TAG, "[v2.10.0] Using AspectRatioStrategy: ${currentAspectRatioMode.displayName} ($targetAspectRatio)")
+                            }
+                    }
 
                     // Store target for diagnostic logging
                     selectedResolution = targetResolution
-
-                    Log.i(TAG, "[v2.10.0] Using unified AspectRatioStrategy: ${currentAspectRatioMode.displayName} (${currentAspectRatioMode.toCameraXAspectRatio})")
 
                     // One-time diagnostic: log all supported resolutions
                     logSupportedResolutions(cameraInfo)
@@ -929,12 +955,15 @@ class LiveCameraSource @Inject constructor(
 
                     // 5. Create ViewPort for WYSIWYG guarantee (v2.10.0: Gemini approach)
                     // ViewPort ensures Preview, ImageAnalysis, and ImageCapture see the same cropped region
+                    // v2.10.0-fix: Use FIT ScaleType to prevent double-cropping (ViewPort FILL + PreviewView FILL)
                     val viewPort = ViewPort.Builder(
                         currentAspectRatioMode.toRational(),  // Rational(4, 3) or Rational(16, 9) or Rational(1, 1)
                         currentRotation  // Current device rotation (Surface.ROTATION_*)
-                    ).build()
+                    )
+                        .setScaleType(ViewPort.FIT)  // ✅ Preserve full FOV, prevent over-cropping
+                        .build()
 
-                    Log.i(TAG, "[v2.10.0 ViewPort] Created with aspect=${currentAspectRatioMode.displayName}, rotation=$currentRotation")
+                    Log.i(TAG, "[v2.10.0 ViewPort] Created with aspect=${currentAspectRatioMode.displayName}, rotation=$currentRotation, scaleType=FIT")
 
                     // 6. Create UseCaseGroup with ViewPort (automatic WYSIWYG)
                     val useCaseGroup = UseCaseGroup.Builder()
