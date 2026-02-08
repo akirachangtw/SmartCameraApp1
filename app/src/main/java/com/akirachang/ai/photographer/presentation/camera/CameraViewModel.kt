@@ -340,6 +340,7 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.SwitchCamera -> switchCamera()
             is CameraUiEvent.ToggleFlash -> toggleFlash()
             is CameraUiEvent.ToggleHDR -> toggleHDR()  // v2.6.1
+            is CameraUiEvent.ToggleAspectRatio -> toggleAspectRatio()  // v2.10.0
             is CameraUiEvent.StartAnalysis -> startAnalysis()
             is CameraUiEvent.StopAnalysis -> stopAnalysis()
             is CameraUiEvent.ShowError -> showError(event.message)
@@ -496,6 +497,40 @@ class CameraViewModel @Inject constructor(
                 repository.disableHDRMode()
                 _isAutoHDRActive.value = false  // Update state for UI consistency
                 Log.i(TAG, "HDR mode: OFF - Force disabled")
+            }
+        }
+    }
+
+    /**
+     * Toggle aspect ratio mode (v2.10.0)
+     *
+     * Cycles through: 4:3 → 16:9 → 1:1 → 4:3
+     *
+     * Behavior:
+     * - Updates UI state with new aspect ratio
+     * - Sets isRebindingCamera flag during transition
+     * - Triggers camera rebind via repository with new ViewPort
+     */
+    private fun toggleAspectRatio() {
+        val newMode = _state.value.aspectRatioMode.next()
+        _state.update { it.copy(aspectRatioMode = newMode, isRebindingCamera = true) }
+
+        Log.i(TAG, "[v2.10.0] Aspect ratio mode toggled: ${newMode.displayName}")
+
+        viewModelScope.launch {
+            try {
+                // Set aspect ratio and trigger camera rebind
+                cameraRepository.setAspectRatioMode(newMode)
+
+                // Add small delay for UI stability during rebind
+                kotlinx.coroutines.delay(300)
+
+                Log.i(TAG, "[v2.10.0] Aspect ratio rebind completed: ${newMode.displayName}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to change aspect ratio: ${e.message}", e)
+                _state.update { it.copy(error = "切換長寬比失敗: ${e.message}") }
+            } finally {
+                _state.update { it.copy(isRebindingCamera = false) }
             }
         }
     }

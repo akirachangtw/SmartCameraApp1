@@ -147,6 +147,14 @@ interface CameraRepository {
     fun supportsNativePreview(): Boolean
 
     /**
+     * Set aspect ratio mode and rebind camera
+     * v2.10.0: UseCaseGroup + ViewPort architecture
+     *
+     * @param mode Target aspect ratio mode (4:3, 16:9, 1:1)
+     */
+    suspend fun setAspectRatioMode(mode: com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode)
+
+    /**
      * Focus on a specific point in the preview
      * v2.9.9: Tap-to-Focus support
      *

@@ -216,6 +216,7 @@ fun CameraScreen(
                     CameraPreview(
                         previewBitmap = previewBitmap,
                         supportsNativePreview = viewModel.supportsNativePreview(),
+                        aspectRatioMode = state.aspectRatioMode,  // v2.10.0: Dynamic ScaleType
                         onPreviewViewCreated = { previewView ->
                             // Connect PreviewView to CameraX Preview UseCase
                             viewModel.setPreviewSurfaceProvider(previewView.surfaceProvider)
@@ -414,6 +415,33 @@ fun CameraScreen(
                             },
                             modifier = Modifier.size(32.dp)
                         )
+                    }
+
+                    // 長寬比按鈕 (v2.10.0)
+                    IconButton(
+                        onClick = { viewModel.onEvent(CameraUiEvent.ToggleAspectRatio) },
+                        enabled = !state.isRebindingCamera  // Disable during camera rebind
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(
+                                    color = if (state.isRebindingCamera) Color(0xFF424242) else Color.Transparent,
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
+                                )
+                        ) {
+                            Text(
+                                text = when (state.aspectRatioMode) {
+                                    com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode.RATIO_4_3 -> "4:3"
+                                    com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode.RATIO_16_9 -> "16:9"
+                                    com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode.RATIO_1_1 -> "1:1"
+                                },
+                                color = if (state.isRebindingCamera) Color(0xFF757575) else Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
 

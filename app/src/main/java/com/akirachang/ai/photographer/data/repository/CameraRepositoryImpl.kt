@@ -699,6 +699,27 @@ class CameraRepositoryImpl @Inject constructor(
     }
 
     /**
+     * Set aspect ratio mode and rebind camera
+     * v2.10.0: UseCaseGroup + ViewPort architecture
+     *
+     * This triggers camera rebind to apply the new aspect ratio via ViewPort.
+     */
+    override suspend fun setAspectRatioMode(mode: com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode) {
+        Log.d(TAG, "[v2.10.0] Setting aspect ratio mode: ${mode.displayName}")
+
+        // Only LiveCameraSource supports dynamic aspect ratio
+        val liveCameraSource = cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource
+        if (liveCameraSource == null) {
+            Log.w(TAG, "Aspect ratio mode not supported by current camera source")
+            return
+        }
+
+        // Set aspect ratio and trigger rebind
+        liveCameraSource.setAspectRatioMode(mode)
+        Log.i(TAG, "[v2.10.0] Aspect ratio mode set successfully: ${mode.displayName}")
+    }
+
+    /**
      * Focus on a specific point in the preview
      * v2.9.9: Tap-to-Focus support
      *

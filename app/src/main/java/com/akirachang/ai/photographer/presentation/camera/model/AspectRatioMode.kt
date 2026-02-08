@@ -1,8 +1,8 @@
 package com.akirachang.ai.photographer.presentation.camera.model
 
+import android.util.Rational
 import androidx.camera.core.AspectRatio
 import androidx.camera.view.PreviewView
-import androidx.core.util.Rational
 
 /**
  * 長寬比模式列舉
