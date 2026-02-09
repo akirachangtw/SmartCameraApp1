@@ -19,6 +19,23 @@
             }
         },
         {
+            "label": "🧪 Stage Verification GUI",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "tools/stage_verification_gui.pyw"
+            ],
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "never",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "🚀 Build Emulator Debug",
             "type": "shell",
             "command": "${workspaceFolder}/gradlew.bat",

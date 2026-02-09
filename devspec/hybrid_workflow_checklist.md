@@ -62,11 +62,18 @@
 
 ### 必做事項
 - ☐ 小步提交（atomic commits）
-- ☐ Build / 測試 / 實機驗證
+- ☐ **執行階段驗測** ✨ NEW
+  - ☐ 啟動 `python tools/stage_verification_gui.pyw`
+  - ☐ 或參考 `devspec/stage_verification_checklist.md` 手動執行
+  - ☐ Phase 1-3: Pre-Build + Build + 16KB ✅
+  - ☐ Phase 4: Emulator Testing ✅
+  - ☐ Phase 5: Device Testing ✅ / ⏭️ SKIPPED
+- ☐ 紀錄驗測結果到 `docs/test_results/<version>/VERIFICATION_REPORT.md`
 - ☐ 紀錄結果與差異
 
 ### 產出物
 - ☐ Commit / PR
+- ☐ **階段驗測報告**（VERIFICATION_REPORT.md）✨ NEW
 - ☐ 驗證紀錄或回滾說明
 
 ---

@@ -30,6 +30,11 @@
 ## 驗證方式（How verified）
 
 ### ✅ 必要驗證 (全部必須勾選)
+- ☐ **階段驗測已完成** ✨ NEW
+  - 驗測報告: `docs/test_results/<version>/VERIFICATION_REPORT.md`
+  - ☐ Phase 1-3: Pre-Build + Build + 16KB ✅
+  - ☐ Phase 4: Emulator Testing ✅
+  - ☐ Phase 5: Device Testing ✅ / ⏭️ SKIPPED
 - ☐ Build 成功 (`./gradlew assembleDebug` 或 `./gradlew assembleEmulatorDebug`)
 - ☐ Lint 檢查通過
 - ☐ 無新增 Logcat 錯誤
@@ -53,6 +58,11 @@
 
 ### 📝 驗證詳情
 <!-- 請說明驗證指令、步驟與結果 -->
+
+### 📊 驗測報告連結
+- 驗測報告: `docs/test_results/<version>/VERIFICATION_REPORT.md`
+- Logcat (Emulator): `docs/test_results/<version>/emulator_test_logcat.log`
+- 16KB Check: `docs/test_results/<version>/16kb_check_emulator.log`
 
 ---
 
