@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-02-08
+Last updated: 2026-02-09
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -61,5 +61,40 @@ Last updated: 2026-02-08
 - [ ] ARCore Depth API 可行性驗證 PoC — pending 評估
 - [ ] AGSL bokeh shader 實作 — pending ARCore PoC 成功
 - [ ] 視覺協議動畫（搜尋/鎖定/淡出）— pending 設計確認
+
+---
+
+## Photo Capture Feedback (v2.9.8 → v2.10.2)
+
+### ✅ Confirmed
+- 照片保存反饋機制 — 移除 Snackbar，改用 UI 視覺反饋 | Verified: 2026-01-30 (v2.9.8)
+  - **Why removed**: Snackbar 重複顯示問題（每次進入 CameraScreen 都觸發）
+  - **Alternative solution**: 按鈕禁用 + CircularProgressIndicator（60ms 反饋）
+  - **User feedback**: 「拍照中/完成皆以快門按鈕動畫為主, 皆以視覺為主」
+  - **Test result**: 100% 通過，無用戶抱怨
+  - **Final decision**: 保持簡潔 UI，不添加額外按鈕 | Verified: 2026-02-09 (v2.10.2)
+
+### 🔍 Code Locations
+- 快門反饋: `CameraScreen.kt:151-154` (v2.10.2 移除 Snackbar)
+- 視覺反饋: `CameraScreen.kt:445-483` (按鈕禁用 + 進度指示器)
+- 狀態管理: `CameraState.kt:21` (lastCapturedImageUri)
+
+### ⚠️ Critical Warning
+**DO NOT re-add Snackbar for "照片已儲存"**
+- v2.9.8 already removed it due to repeated display issue
+- lastCapturedImageUri state persists without clear mechanism
+- LaunchedEffect monitoring this state will trigger on every CameraScreen re-entry
+- Use UI visual feedback instead (button disable + progress indicator)
+- **Regression history**: v2.10.1 (commit d7db1e5) re-added Snackbar for "查看資訊" feature → caused regression → fixed in v2.10.2
+
+**DO NOT add photo info button**
+- User feedback: 「刪除照片資訊按鈕->非用戶使用習慣」| 2026-02-09
+- Keep UI minimal - only shutter button with visual feedback
+- EXIF info access via PhotoInfoBottomSheet (if needed) can be triggered by long-press or Settings
+
+### 📋 Backlog
+- [x] 照片保存 Snackbar 移除 — ✅ 完成 (v2.9.8, 2026-01-30)
+- [x] 照片資訊按鈕嘗試 → ❌ 移除（非用戶使用習慣）(v2.10.2, 2026-02-09)
+- [ ] (Optional) EXIF 資訊訪問方式重新設計（長按快門按鈕或在 Settings 中查看）
 
 ---

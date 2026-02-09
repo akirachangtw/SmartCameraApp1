@@ -1,8 +1,8 @@
-# v2.10.0 Test Handoff Summary
+# v2.10.1 Test Handoff Summary
 
 **Date**: 2026-02-09
-**Version**: v2.10.0
-**Branch**: `feature/aspect-ratio-usecasegroup-v2.10.0`
+**Version**: v2.10.1
+**Branch**: `feature/aspect-ratio-usecasegroup-v2.10.1`
 **Status**: ⏳ Pending Device Testing
 **Test Device**: Pixel 9a (Device ID: `59131JEBF17244`)
 
@@ -10,7 +10,7 @@
 
 ## 📋 Executive Summary
 
-v2.10.0 包含以下重要功能更新：
+v2.10.1 包含以下重要功能更新：
 
 1. **Aspect Ratio WYSIWYG 修正** - 解決預覽與實際拍攝比例不一致問題
 2. **UseCaseGroup + ViewPort 整合** - 統一 Preview/Capture 比例
@@ -42,10 +42,10 @@ v2.10.0 包含以下重要功能更新：
 ## 📦 Commits Since Last Release
 
 ```
-d7db1e5 [Feature] v2.10.0: Add EXIF info + Photo info sheet + Location permission
-7948186 [Feature] v2.10.0: Aspect ratio WYSIWYG fix + cross-device validation
-9c412ca [Feature] v2.10.0: UseCaseGroup + ViewPort aspect ratio implementation
-998395f [Feature] v2.10.0: Add AspectRatioMode enum + CameraState support
+d7db1e5 [Feature] v2.10.1: Add EXIF info + Photo info sheet + Location permission
+7948186 [Feature] v2.10.1: Aspect ratio WYSIWYG fix + cross-device validation
+9c412ca [Feature] v2.10.1: UseCaseGroup + ViewPort aspect ratio implementation
+998395f [Feature] v2.10.1: Add AspectRatioMode enum + CameraState support
 2090934 [Fix] Preview zoom: Use 16:9 AspectRatioStrategy to fix 1.6x FOV + WYSIWYG capture
 ```
 
@@ -204,9 +204,9 @@ adb -s 59131JEBF17244 install -r app/build/outputs/apk/device/debug/app-device-d
   ```
 
 ### Test Results (To be filled by Work NB)
-- **Logcat**: `docs/test_results/v2.10.0/pixel9a_test_logcat.log`
-- **Screenshots**: `docs/test_results/v2.10.0/screenshots/`
-- **Test Report**: `docs/test_results/v2.10.0/PIXEL9A_TEST_REPORT.md`
+- **Logcat**: `docs/test_results/v2.10.1/pixel9a_test_logcat.log`
+- **Screenshots**: `docs/test_results/v2.10.1/screenshots/`
+- **Test Report**: `docs/test_results/v2.10.1/PIXEL9A_TEST_REPORT.md`
 
 ---
 
@@ -223,8 +223,8 @@ adb -s 59131JEBF17244 install -r app/build/outputs/apk/device/debug/app-device-d
 ### Step 1: Pull Changes
 ```bash
 git fetch origin
-git checkout feature/aspect-ratio-usecasegroup-v2.10.0
-git pull origin feature/aspect-ratio-usecasegroup-v2.10.0
+git checkout feature/aspect-ratio-usecasegroup-v2.10.1
+git pull origin feature/aspect-ratio-usecasegroup-v2.10.1
 ```
 
 ### Step 2: Build Device APK
@@ -240,7 +240,7 @@ adb -s 59131JEBF17244 install -r app/build/outputs/apk/device/debug/app-device-d
 ### Step 4: Start Logcat Monitoring
 ```bash
 adb -s 59131JEBF17244 logcat -c
-adb -s 59131JEBF17244 logcat -v time > docs/test_results/v2.10.0/pixel9a_test_logcat.log
+adb -s 59131JEBF17244 logcat -v time > docs/test_results/v2.10.1/pixel9a_test_logcat.log
 ```
 
 ### Step 5: Execute Test Plan
@@ -249,25 +249,25 @@ adb -s 59131JEBF17244 logcat -v time > docs/test_results/v2.10.0/pixel9a_test_lo
 ### Step 6: Collect Results
 ```bash
 # 截圖
-mkdir -p docs/test_results/v2.10.0/screenshots
+mkdir -p docs/test_results/v2.10.1/screenshots
 adb -s 59131JEBF17244 shell "screencap -p > /sdcard/Download/test_aspect_ratio.png"
-adb -s 59131JEBF17244 pull //sdcard//Download//test_aspect_ratio.png docs/test_results/v2.10.0/screenshots/
+adb -s 59131JEBF17244 pull //sdcard//Download//test_aspect_ratio.png docs/test_results/v2.10.1/screenshots/
 adb -s 59131JEBF17244 shell "rm /sdcard/Download/test_aspect_ratio.png"
 
 # 拍攝的照片
-adb -s 59131JEBF17244 pull //sdcard//DCIM//SmartCameraApp// docs/test_results/v2.10.0/captured_photos/
+adb -s 59131JEBF17244 pull //sdcard//DCIM//SmartCameraApp// docs/test_results/v2.10.1/captured_photos/
 ```
 
 ### Step 7: Create Test Report
-使用模板創建測試報告：`docs/test_results/v2.10.0/PIXEL9A_TEST_REPORT.md`
+使用模板創建測試報告：`docs/test_results/v2.10.1/PIXEL9A_TEST_REPORT.md`
 
 ### Step 8: Push Results
 ```bash
-git add docs/test_results/v2.10.0/
-git commit -m "[Test] v2.10.0: Pixel 9a 實機測試結果
+git add docs/test_results/v2.10.1/
+git commit -m "[Test] v2.10.1: Pixel 9a 實機測試結果
 
 Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-git push origin feature/aspect-ratio-usecasegroup-v2.10.0
+git push origin feature/aspect-ratio-usecasegroup-v2.10.1
 ```
 
 ---
@@ -281,4 +281,4 @@ git push origin feature/aspect-ratio-usecasegroup-v2.10.0
 
 ---
 
-**SSOT (Single Source of Truth)**: 此文檔為 v2.10.0 測試交接的唯一真實來源。所有測試相關資訊以此文檔為準。
+**SSOT (Single Source of Truth)**: 此文檔為 v2.10.1 測試交接的唯一真實來源。所有測試相關資訊以此文檔為準。

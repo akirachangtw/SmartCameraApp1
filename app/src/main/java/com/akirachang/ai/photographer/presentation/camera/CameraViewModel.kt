@@ -183,9 +183,9 @@ class CameraViewModel @Inject constructor(
             )
         }
 
-        // v2.11.0 Phase 2: Initialize aspect ratio mode from DataStore
+        // v2.10.2: Monitor aspect ratio mode changes from Settings (continuous listening)
         viewModelScope.launch {
-            overlayPreferences.aspectRatioMode.first().let { savedMode ->
+            overlayPreferences.aspectRatioMode.collect { savedMode ->
                 val mode = try {
                     com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode.valueOf(savedMode)
                 } catch (e: IllegalArgumentException) {
@@ -197,10 +197,10 @@ class CameraViewModel @Inject constructor(
                 // Update CameraState
                 _state.update { it.copy(aspectRatioMode = mode) }
 
-                // Apply to camera repository
+                // Apply to camera repository (triggers camera rebind)
                 cameraRepository.setAspectRatioMode(mode)
 
-                Log.d(TAG, "Aspect ratio mode initialized from settings: $mode")
+                Log.d(TAG, "Aspect ratio mode updated from settings: $mode")
             }
         }
     }

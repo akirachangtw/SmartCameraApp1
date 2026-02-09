@@ -148,19 +148,10 @@ fun CameraScreen(
         }
     }
 
-    // v2.11.0 Phase 3: Show photo saved Snackbar with "查看資訊" action
-    LaunchedEffect(state.lastCapturedImageUri) {
-        state.lastCapturedImageUri?.let { uri ->
-            val result = snackbarHostState.showSnackbar(
-                message = "照片已儲存",
-                actionLabel = "查看資訊",
-                duration = androidx.compose.material3.SnackbarDuration.Short
-            )
-            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-                viewModel.onEvent(CameraUiEvent.ShowPhotoInfo(uri))
-            }
-        }
-    }
+    // v2.9.8: Removed text message for photo saved - rely on UI visual feedback only
+    // (Button disable + CircularProgressIndicator)
+    // v2.10.2: Restored v2.9.8 solution to prevent Snackbar repeated display
+    // Photo info button is now persistent (always visible after first capture)
 
     if (cameraPermissionState.status.isGranted) {
         Scaffold(
@@ -491,7 +482,7 @@ fun CameraScreen(
                         }
                     }
 
-                    // 佔位符（對稱布局）
+                    // Right side placeholder for symmetry
                     Box(modifier = Modifier.size(48.dp))
                 }
             }
