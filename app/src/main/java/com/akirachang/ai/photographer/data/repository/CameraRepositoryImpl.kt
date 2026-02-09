@@ -836,4 +836,104 @@ class CameraRepositoryImpl @Inject constructor(
         smartAnalyzer?.trackFromBitmap(bitmap)
     }
 
+    /**
+     * Read EXIF metadata from captured photo
+     * v2.11.0 Phase 3: EXIF information display feature
+     *
+     * Extracts comprehensive EXIF metadata including file info, GPS data,
+     * camera information, and capture parameters.
+     *
+     * @param uri Content URI of the captured photo
+     * @return ExifInfo object with all metadata, or null if reading fails
+     */
+    override suspend fun readExifInfo(uri: Uri): com.akirachang.ai.photographer.domain.model.ExifInfo? = withContext(Dispatchers.IO) {
+        try {
+            context.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                val exif = ExifInterface(pfd.fileDescriptor)
+
+                // Read file basic information
+                val (fileName, fileSize) = context.contentResolver.query(
+                    uri,
+                    arrayOf(
+                        MediaStore.Images.Media.DISPLAY_NAME,
+                        MediaStore.Images.Media.SIZE
+                    ),
+                    null, null, null
+                )?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val nameIndex = cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME)
+                        val sizeIndex = cursor.getColumnIndex(MediaStore.Images.Media.SIZE)
+
+                        val name = if (nameIndex >= 0) cursor.getString(nameIndex) else "Unknown"
+                        val size = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
+
+                        name to size
+                    } else {
+                        "Unknown" to 0L
+                    }
+                } ?: ("Unknown" to 0L)
+
+                // Format file size
+                val fileSizeFormatted = when {
+                    fileSize < 1024 -> "${fileSize} B"
+                    fileSize < 1024 * 1024 -> "${fileSize / 1024} KB"
+                    else -> String.format("%.1f MB", fileSize / (1024f * 1024f))
+                }
+
+                // Read resolution
+                val width = exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH)?.toIntOrNull() ?: 0
+                val height = exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH)?.toIntOrNull() ?: 0
+                val resolution = "$width x $height"
+
+                // Read GPS information
+                val latLong = exif.latLong
+                val latitude = latLong?.get(0)
+                val longitude = latLong?.get(1)
+                val altitude = exif.getAltitude(0.0).takeIf { it != 0.0 }
+                val hasGpsInfo = latitude != null && longitude != null
+
+                // Read camera information
+                val make = exif.getAttribute(ExifInterface.TAG_MAKE) ?: "Unknown"
+                val model = exif.getAttribute(ExifInterface.TAG_MODEL) ?: "Unknown"
+                val software = exif.getAttribute(ExifInterface.TAG_SOFTWARE) ?: "SmartCameraApp"
+
+                // Read orientation
+                val orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
+                val orientationDescription = when (orientation) {
+                    ExifInterface.ORIENTATION_NORMAL -> "Normal (0°)"
+                    ExifInterface.ORIENTATION_ROTATE_90 -> "Rotated 90° CW"
+                    ExifInterface.ORIENTATION_ROTATE_180 -> "Rotated 180°"
+                    ExifInterface.ORIENTATION_ROTATE_270 -> "Rotated 270° CW"
+                    else -> "Unknown"
+                }
+
+                // Read capture timestamp
+                val dateTime = exif.getAttribute(ExifInterface.TAG_DATETIME)
+
+                Log.d(TAG, "EXIF read: file=$fileName, size=$fileSizeFormatted, res=$resolution, gps=$hasGpsInfo")
+
+                com.akirachang.ai.photographer.domain.model.ExifInfo(
+                    fileName = fileName,
+                    fileSizeFormatted = fileSizeFormatted,
+                    resolution = resolution,
+                    dateTime = dateTime,
+                    hasGpsInfo = hasGpsInfo,
+                    latitude = latitude,
+                    longitude = longitude,
+                    altitude = altitude,
+                    make = make,
+                    model = model,
+                    software = software,
+                    orientationDescription = orientationDescription
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to read EXIF info from $uri", e)
+            null
+        }
+    }
+
 }

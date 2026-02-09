@@ -20,9 +20,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
@@ -32,6 +34,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import com.akirachang.ai.photographer.presentation.settings.components.ExpandableSettingsCard
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -39,6 +42,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -88,8 +92,12 @@ fun SettingsScreen(
     val isDirectionalIndicatorEnabled by viewModel.isDirectionalIndicatorEnabled.collectAsState(initial = true)
     val isAutoHDREnabled by viewModel.isAutoHDREnabled.collectAsState(initial = true)
     val isGpsTaggingEnabled by viewModel.isGpsTaggingEnabled.collectAsState(initial = false)  // v2.9.7 Day 1-2: GPS default OFF
+    val aspectRatioMode by viewModel.aspectRatioMode.collectAsState(initial = "RATIO_16_9")  // v2.11.0 Phase 2: Aspect ratio
 
     val scope = rememberCoroutineScope()
+
+    // v2.11.0 Phase 1: GPS permission dialog state
+    var showLocationPermissionDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -124,9 +132,11 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Section: Overlay Settings
+            // ========================================
+            // Camera Settings (Fixed - Always Visible)
+            // ========================================
             Text(
-                text = "Overlay Settings",
+                text = "Camera Settings",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
@@ -134,88 +144,78 @@ fun SettingsScreen(
             )
 
             Text(
-                text = "Configure which overlays to display on the camera preview",
+                text = "Core camera capture and tagging options",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Grid Overlay Toggle
-            SettingsSwitchItem(
-                icon = Icons.Default.GridOn,
-                title = "Grid Overlay",
-                description = "Show Rule of Thirds composition grid",
-                checked = isGridEnabled,
-                onCheckedChange = { enabled ->
-                    scope.launch {
-                        viewModel.setGridEnabled(enabled)
+            // Aspect Ratio RadioButton Group
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AspectRatio,
+                        contentDescription = "Aspect Ratio",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Aspect Ratio",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                // RadioButton options
+                val aspectRatioOptions = listOf(
+                    "RATIO_4_3" to "4:3 - 標準（全感光元件）",
+                    "RATIO_16_9" to "16:9 - 寬螢幕（填滿螢幕）",
+                    "RATIO_1_1" to "1:1 - 正方形（Instagram）"
+                )
+
+                aspectRatioOptions.forEach { (mode, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = (aspectRatioMode == mode),
+                                onClick = {
+                                    scope.launch {
+                                        viewModel.setAspectRatioMode(mode)
+                                    }
+                                }
+                            )
+                            .padding(vertical = 8.dp, horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = (aspectRatioMode == mode),
+                            onClick = {
+                                scope.launch {
+                                    viewModel.setAspectRatioMode(mode)
+                                }
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
                     }
                 }
-            )
+            }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-            // Composition Hint Toggle
-            SettingsSwitchItem(
-                icon = Icons.Default.Info,
-                title = "Composition Hint",
-                description = "Show composition quality feedback",
-                checked = isCompositionHintEnabled,
-                onCheckedChange = { enabled ->
-                    scope.launch {
-                        viewModel.setCompositionHintEnabled(enabled)
-                    }
-                }
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // Detection Overlay Toggle
-            SettingsSwitchItem(
-                icon = Icons.Default.Visibility,
-                title = "Detection Boxes",
-                description = "Show face and object detection bounding boxes",
-                checked = isDetectionOverlayEnabled,
-                onCheckedChange = { enabled ->
-                    scope.launch {
-                        viewModel.setDetectionOverlayEnabled(enabled)
-                    }
-                }
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // Level Indicator Toggle
-            SettingsSwitchItem(
-                icon = Icons.Default.Recycling,
-                title = "Level Indicator",
-                description = "Show horizon level indicator with device tilt",
-                checked = isLevelIndicatorEnabled,
-                onCheckedChange = { enabled ->
-                    scope.launch {
-                        viewModel.setLevelIndicatorEnabled(enabled)
-                    }
-                }
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // Directional Indicator Toggle
-            SettingsSwitchItem(
-                icon = Icons.Default.Navigation,
-                title = "Directional Arrows",
-                description = "Show directional arrows for composition guidance",
-                checked = isDirectionalIndicatorEnabled,
-                onCheckedChange = { enabled ->
-                    scope.launch {
-                        viewModel.setDirectionalIndicatorEnabled(enabled)
-                    }
-                }
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // Auto HDR Toggle (v2.3.0)
+            // Auto HDR Toggle (v2.3.0) - moved to Camera Settings
             SettingsSwitchItem(
                 icon = Icons.Default.Star,
                 title = "自動 HDR",
@@ -230,18 +230,197 @@ fun SettingsScreen(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-            // GPS Tagging Toggle (v2.9.7 Day 1-2)
+            // GPS Tagging Toggle (v2.9.7 Day 1-2, v2.11.0 Phase 1) - moved to Camera Settings
             SettingsSwitchItem(
                 icon = Icons.Default.LocationOn,
                 title = "GPS 位置標記",
                 description = "將拍攝位置（經緯度、海拔）寫入照片 EXIF（需要位置權限，預設關閉保護隱私）",
                 checked = isGpsTaggingEnabled,
                 onCheckedChange = { enabled ->
-                    scope.launch {
-                        viewModel.setGpsTaggingEnabled(enabled)
+                    if (enabled) {
+                        // Turning ON - trigger permission check
+                        showLocationPermissionDialog = true
+                    } else {
+                        // Turning OFF - directly disable
+                        scope.launch {
+                            viewModel.setGpsTaggingEnabled(false)
+                        }
                     }
                 }
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ========================================
+            // Overlay Settings (Expandable - Default Expanded)
+            // v2.11.1: UI Modernization with ExpandableSettingsCard
+            // ========================================
+            ExpandableSettingsCard(
+                title = "Overlay Settings",
+                icon = Icons.Default.Visibility,
+                subtitle = "Configure camera preview overlays",
+                initialExpanded = true
+            ) {
+                // Grid Overlay Toggle
+                SettingsSwitchItem(
+                    icon = Icons.Default.GridOn,
+                    title = "Grid Overlay",
+                    description = "Show Rule of Thirds composition grid",
+                    checked = isGridEnabled,
+                    onCheckedChange = { enabled ->
+                        scope.launch {
+                            viewModel.setGridEnabled(enabled)
+                        }
+                    }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                // Composition Hint Toggle
+                SettingsSwitchItem(
+                    icon = Icons.Default.Info,
+                    title = "Composition Hint",
+                    description = "Show composition quality feedback",
+                    checked = isCompositionHintEnabled,
+                    onCheckedChange = { enabled ->
+                        scope.launch {
+                            viewModel.setCompositionHintEnabled(enabled)
+                        }
+                    }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                // Detection Overlay Toggle
+                SettingsSwitchItem(
+                    icon = Icons.Default.Visibility,
+                    title = "Detection Boxes",
+                    description = "Show face and object detection bounding boxes",
+                    checked = isDetectionOverlayEnabled,
+                    onCheckedChange = { enabled ->
+                        scope.launch {
+                            viewModel.setDetectionOverlayEnabled(enabled)
+                        }
+                    }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                // Level Indicator Toggle
+                SettingsSwitchItem(
+                    icon = Icons.Default.Recycling,
+                    title = "Level Indicator",
+                    description = "Show horizon level indicator with device tilt",
+                    checked = isLevelIndicatorEnabled,
+                    onCheckedChange = { enabled ->
+                        scope.launch {
+                            viewModel.setLevelIndicatorEnabled(enabled)
+                        }
+                    }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                // Directional Indicator Toggle
+                SettingsSwitchItem(
+                    icon = Icons.Default.Navigation,
+                    title = "Directional Arrows",
+                    description = "Show directional arrows for composition guidance",
+                    checked = isDirectionalIndicatorEnabled,
+                    onCheckedChange = { enabled ->
+                        scope.launch {
+                            viewModel.setDirectionalIndicatorEnabled(enabled)
+                        }
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ========================================
+            // Camera Diagnostics (Expandable - Default Collapsed)
+            // v2.11.1: UI Modernization with ExpandableSettingsCard
+            // ========================================
+            ExpandableSettingsCard(
+                title = "Camera Diagnostics",
+                icon = Icons.Default.Info,
+                subtitle = "Hardware capability detection",
+                initialExpanded = false
+            ) {
+                var diagnosticInfo by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+
+                // Load diagnostic info initially
+                if (diagnosticInfo.isEmpty()) {
+                    diagnosticInfo = viewModel.getCameraDiagnosticInfo()
+                }
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Device Information
+                    Text(
+                        text = "Device Information",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    DiagnosticInfoRow("Manufacturer", diagnosticInfo["Manufacturer"] ?: "N/A")
+                    DiagnosticInfoRow("Model", diagnosticInfo["Model"] ?: "N/A")
+                    DiagnosticInfoRow("Android SDK", diagnosticInfo["SDK"] ?: "N/A")
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // Detection Results
+                    Text(
+                        text = "Detection Results",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    DiagnosticInfoRow("Cache Version", diagnosticInfo["Cache Version"] ?: "N/A")
+                    DiagnosticInfoRow("App Version", diagnosticInfo["App Version"] ?: "N/A")
+                    DiagnosticInfoRow("Supports 800x600", diagnosticInfo["Supports 800x600"] ?: "N/A")
+                    DiagnosticInfoRow("Target Resolution", diagnosticInfo["Target Resolution"] ?: "N/A")
+                    DiagnosticInfoRow("Filter Max", diagnosticInfo["Filter Max"] ?: "N/A")
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Re-detect Button
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    viewModel.reDetectCameraCapabilities()
+                                    // Reload diagnostic info after re-detection
+                                    kotlinx.coroutines.delay(500)
+                                    diagnosticInfo = viewModel.getCameraDiagnosticInfo()
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Re-detect")
+                        }
+
+                        // Clear Cache Button
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.clearCameraCapabilityCache()
+                                diagnosticInfo = viewModel.getCameraDiagnosticInfo()
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Clear Cache")
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -258,131 +437,27 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-
-            // v2.9.5: Camera Diagnostics Section
-            CameraDiagnosticsSection(
-                viewModel = viewModel,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-/**
- * Camera Diagnostics Section
- * v2.9.5: Display camera capability detection results for testing/debugging
- *
- * @param viewModel SettingsViewModel instance
- * @param modifier Modifier for this composable
- */
-@Composable
-private fun CameraDiagnosticsSection(
-    viewModel: SettingsViewModel,
-    modifier: Modifier = Modifier
-) {
-    var diagnosticInfo by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-    val scope = rememberCoroutineScope()
-
-    // Load diagnostic info initially
-    if (diagnosticInfo.isEmpty()) {
-        diagnosticInfo = viewModel.getCameraDiagnosticInfo()
-    }
-
-    Column(modifier = modifier) {
-        // Section Header
-        Text(
-            text = "Camera Diagnostics (v2.9.5)",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Text(
-            text = "Hardware capability detection results for resolution selection",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // Diagnostic Info Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Device Information
-                Text(
-                    text = "Device Information",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                DiagnosticInfoRow("Manufacturer", diagnosticInfo["Manufacturer"] ?: "N/A")
-                DiagnosticInfoRow("Model", diagnosticInfo["Model"] ?: "N/A")
-                DiagnosticInfoRow("Android SDK", diagnosticInfo["SDK"] ?: "N/A")
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                // Detection Results
-                Text(
-                    text = "Detection Results",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                DiagnosticInfoRow("Cache Version", diagnosticInfo["Cache Version"] ?: "N/A")
-                DiagnosticInfoRow("App Version", diagnosticInfo["App Version"] ?: "N/A")
-                DiagnosticInfoRow("Supports 800x600", diagnosticInfo["Supports 800x600"] ?: "N/A")
-                DiagnosticInfoRow("Target Resolution", diagnosticInfo["Target Resolution"] ?: "N/A")
-                DiagnosticInfoRow("Filter Max", diagnosticInfo["Filter Max"] ?: "N/A")
-            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Action Buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Re-detect Button
-            Button(
-                onClick = {
+        // v2.11.0 Phase 1: GPS permission handler
+        if (showLocationPermissionDialog) {
+            LocationPermissionHandler(
+                onPermissionGranted = {
+                    // Permission granted - enable GPS tagging
                     scope.launch {
-                        viewModel.reDetectCameraCapabilities()
-                        // Reload diagnostic info after re-detection
-                        kotlinx.coroutines.delay(500)
-                        diagnosticInfo = viewModel.getCameraDiagnosticInfo()
+                        viewModel.setGpsTaggingEnabled(true)
                     }
+                    showLocationPermissionDialog = false
                 },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Re-detect")
-            }
-
-            // Clear Cache Button
-            OutlinedButton(
-                onClick = {
-                    viewModel.clearCameraCapabilityCache()
-                    diagnosticInfo = viewModel.getCameraDiagnosticInfo()
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Clear Cache")
-            }
+                onPermissionDenied = {
+                    // Permission denied - keep toggle OFF
+                    showLocationPermissionDialog = false
+                }
+            ) {}
         }
     }
 }
+
 
 /**
  * Diagnostic information row

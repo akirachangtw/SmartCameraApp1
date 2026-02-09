@@ -182,6 +182,27 @@ class CameraViewModel @Inject constructor(
                 "• 如遇記憶體問題請重啟 App"
             )
         }
+
+        // v2.11.0 Phase 2: Initialize aspect ratio mode from DataStore
+        viewModelScope.launch {
+            overlayPreferences.aspectRatioMode.first().let { savedMode ->
+                val mode = try {
+                    com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode.valueOf(savedMode)
+                } catch (e: IllegalArgumentException) {
+                    // Fallback to default if invalid string
+                    Log.w(TAG, "Invalid aspect ratio mode: $savedMode, falling back to RATIO_16_9")
+                    com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode.RATIO_16_9
+                }
+
+                // Update CameraState
+                _state.update { it.copy(aspectRatioMode = mode) }
+
+                // Apply to camera repository
+                cameraRepository.setAspectRatioMode(mode)
+
+                Log.d(TAG, "Aspect ratio mode initialized from settings: $mode")
+            }
+        }
     }
 
     /**
@@ -340,7 +361,7 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.SwitchCamera -> switchCamera()
             is CameraUiEvent.ToggleFlash -> toggleFlash()
             is CameraUiEvent.ToggleHDR -> toggleHDR()  // v2.6.1
-            is CameraUiEvent.ToggleAspectRatio -> toggleAspectRatio()  // v2.10.0
+            // v2.11.0 Phase 2: ToggleAspectRatio removed - now in Settings
             is CameraUiEvent.StartAnalysis -> startAnalysis()
             is CameraUiEvent.StopAnalysis -> stopAnalysis()
             is CameraUiEvent.ShowError -> showError(event.message)
@@ -348,6 +369,8 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.LockAEAF -> lockAEAF(event.x, event.y, event.viewWidth, event.viewHeight)  // v2.9.9 Day 1-2
             is CameraUiEvent.UnlockAEAF -> unlockAEAF()  // v2.9.9 Day 1-2
             is CameraUiEvent.SetPreviewSize -> setPreviewSize(event.width, event.height)  // v2.x.x Phase 5
+            is CameraUiEvent.ShowPhotoInfo -> showPhotoInfo(event.uri)  // v2.11.0 Phase 3
+            is CameraUiEvent.DismissPhotoInfo -> dismissPhotoInfo()  // v2.11.0 Phase 3
         }
     }
 
@@ -511,29 +534,7 @@ class CameraViewModel @Inject constructor(
      * - Sets isRebindingCamera flag during transition
      * - Triggers camera rebind via repository with new ViewPort
      */
-    private fun toggleAspectRatio() {
-        val newMode = _state.value.aspectRatioMode.next()
-        _state.update { it.copy(aspectRatioMode = newMode, isRebindingCamera = true) }
-
-        Log.i(TAG, "[v2.10.0] Aspect ratio mode toggled: ${newMode.displayName}")
-
-        viewModelScope.launch {
-            try {
-                // Set aspect ratio and trigger camera rebind
-                cameraRepository.setAspectRatioMode(newMode)
-
-                // Add small delay for UI stability during rebind
-                kotlinx.coroutines.delay(300)
-
-                Log.i(TAG, "[v2.10.0] Aspect ratio rebind completed: ${newMode.displayName}")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to change aspect ratio: ${e.message}", e)
-                _state.update { it.copy(error = "切換長寬比失敗: ${e.message}") }
-            } finally {
-                _state.update { it.copy(isRebindingCamera = false) }
-            }
-        }
-    }
+    // v2.11.0 Phase 2: toggleAspectRatio() removed - aspect ratio now managed in Settings
 
     private fun showError(message: String) {
         _state.update { it.copy(error = message) }
@@ -541,6 +542,46 @@ class CameraViewModel @Inject constructor(
 
     fun clearError() {
         _state.update { it.copy(error = null) }
+    }
+
+    /**
+     * Show photo EXIF information
+     * v2.11.0 Phase 3: EXIF display feature
+     *
+     * Reads EXIF metadata from captured photo and displays in BottomSheet.
+     * Launches coroutine to read EXIF asynchronously, updates state when ready.
+     *
+     * @param uri Content URI of the captured photo
+     */
+    private fun showPhotoInfo(uri: android.net.Uri) {
+        viewModelScope.launch {
+            val exifInfo = cameraRepository.readExifInfo(uri)
+            if (exifInfo != null) {
+                _state.update {
+                    it.copy(
+                        showPhotoInfo = true,
+                        currentPhotoExifInfo = exifInfo
+                    )
+                }
+                Log.d(TAG, "Photo EXIF info loaded: ${exifInfo.fileName}")
+            } else {
+                showError("無法讀取照片資訊")
+                Log.e(TAG, "Failed to read EXIF info from $uri")
+            }
+        }
+    }
+
+    /**
+     * Dismiss photo EXIF information
+     * v2.11.0 Phase 3: EXIF display feature
+     */
+    private fun dismissPhotoInfo() {
+        _state.update {
+            it.copy(
+                showPhotoInfo = false,
+                currentPhotoExifInfo = null
+            )
+        }
     }
 
     /**

@@ -68,6 +68,12 @@ class SettingsViewModel @Inject constructor(
     val isGpsTaggingEnabled: Flow<Boolean> = overlayPreferences.isGpsTaggingEnabled
 
     /**
+     * Flow emitting aspect ratio mode setting
+     * v2.11.0 Phase 2: Aspect ratio persistence
+     */
+    val aspectRatioMode: Flow<String> = overlayPreferences.aspectRatioMode
+
+    /**
      * Sets grid overlay visibility
      */
     suspend fun setGridEnabled(enabled: Boolean) {
@@ -116,6 +122,14 @@ class SettingsViewModel @Inject constructor(
      */
     suspend fun setGpsTaggingEnabled(enabled: Boolean) {
         overlayPreferences.setGpsTaggingEnabled(enabled)
+    }
+
+    /**
+     * Sets aspect ratio mode
+     * v2.11.0 Phase 2: Aspect ratio persistence
+     */
+    suspend fun setAspectRatioMode(mode: String) {
+        overlayPreferences.setAspectRatioMode(mode)
     }
 
     /**

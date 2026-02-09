@@ -44,7 +44,10 @@ data class CameraState(
     val trackedPoint: Pair<Float, Float>? = null,  // Tracked point coordinates (ImageAnalysis coordinate system)
     val trackedPointActive: Boolean = false,       // True when optical flow tracking is active
     val trackedPointQuality: Float = 0f,           // Tracking quality (0.0-1.0), used for confidence threshold
-    val trackedPointLost: Boolean = false          // True when tracking is lost (quality too low or out of bounds)
+    val trackedPointLost: Boolean = false,         // True when tracking is lost (quality too low or out of bounds)
+    // v2.11.0 Phase 3: EXIF information display state
+    val showPhotoInfo: Boolean = false,            // True when PhotoInfoBottomSheet should be shown
+    val currentPhotoExifInfo: com.akirachang.ai.photographer.domain.model.ExifInfo? = null  // EXIF data for display
 )
 
 sealed class CameraUiEvent {
@@ -52,7 +55,7 @@ sealed class CameraUiEvent {
     object SwitchCamera : CameraUiEvent()
     object ToggleFlash : CameraUiEvent()
     object ToggleHDR : CameraUiEvent()  // v2.6.1: Toggle HDR mode (AUTO → ON → OFF → AUTO)
-    object ToggleAspectRatio : CameraUiEvent()  // v2.10.0: Toggle aspect ratio (4:3 → 16:9 → 1:1 → 4:3)
+    // v2.11.0 Phase 2: ToggleAspectRatio removed - aspect ratio now managed in Settings
     object StartAnalysis : CameraUiEvent()
     object StopAnalysis : CameraUiEvent()
     data class ShowError(val message: String) : CameraUiEvent()
@@ -73,6 +76,9 @@ sealed class CameraUiEvent {
     object UnlockAEAF : CameraUiEvent()
     // v2.x.x Phase 5: Optical Flow tracking - set preview size for coordinate mapping
     data class SetPreviewSize(val width: Int, val height: Int) : CameraUiEvent()
+    // v2.11.0 Phase 3: EXIF information display events
+    data class ShowPhotoInfo(val uri: Uri) : CameraUiEvent()
+    object DismissPhotoInfo : CameraUiEvent()
 }
 
 /**

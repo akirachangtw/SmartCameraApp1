@@ -148,8 +148,19 @@ fun CameraScreen(
         }
     }
 
-    // v2.9.8: Removed text message for photo saved - rely on UI visual feedback only
-    // (Button disable + CircularProgressIndicator)
+    // v2.11.0 Phase 3: Show photo saved Snackbar with "查看資訊" action
+    LaunchedEffect(state.lastCapturedImageUri) {
+        state.lastCapturedImageUri?.let { uri ->
+            val result = snackbarHostState.showSnackbar(
+                message = "照片已儲存",
+                actionLabel = "查看資訊",
+                duration = androidx.compose.material3.SnackbarDuration.Short
+            )
+            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                viewModel.onEvent(CameraUiEvent.ShowPhotoInfo(uri))
+            }
+        }
+    }
 
     if (cameraPermissionState.status.isGranted) {
         Scaffold(
@@ -416,33 +427,7 @@ fun CameraScreen(
                             modifier = Modifier.size(32.dp)
                         )
                     }
-
-                    // 長寬比按鈕 (v2.10.0)
-                    IconButton(
-                        onClick = { viewModel.onEvent(CameraUiEvent.ToggleAspectRatio) },
-                        enabled = !state.isRebindingCamera  // Disable during camera rebind
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .background(
-                                    color = if (state.isRebindingCamera) Color(0xFF424242) else Color.Transparent,
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
-                                )
-                        ) {
-                            Text(
-                                text = when (state.aspectRatioMode) {
-                                    com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode.RATIO_4_3 -> "4:3"
-                                    com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode.RATIO_16_9 -> "16:9"
-                                    com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode.RATIO_1_1 -> "1:1"
-                                },
-                                color = if (state.isRebindingCamera) Color(0xFF757575) else Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                    // v2.11.0 Phase 2: Aspect ratio button removed - now in Settings
                 }
 
                 // 底部控制欄
@@ -509,6 +494,15 @@ fun CameraScreen(
                     // 佔位符（對稱布局）
                     Box(modifier = Modifier.size(48.dp))
                 }
+            }
+
+            // v2.11.0 Phase 3: Photo EXIF information bottom sheet
+            val exifInfo = state.currentPhotoExifInfo
+            if (state.showPhotoInfo && exifInfo != null) {
+                com.akirachang.ai.photographer.presentation.camera.components.PhotoInfoBottomSheet(
+                    exifInfo = exifInfo,
+                    onDismiss = { viewModel.onEvent(CameraUiEvent.DismissPhotoInfo) }
+                )
             }
         }
     } else {
