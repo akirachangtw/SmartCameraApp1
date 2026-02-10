@@ -17,8 +17,8 @@ android {
         applicationId = "com.akirachang.ai.photographer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 60
-        versionName = "2.9.9-Day1-2"
+        versionCode = 73
+        versionName = "2.11.0"
 
         // v2.8.2 Phase C: RenderScript GPU YUV conversion (support mode for API 31+)
         // v2.8.3 Phase D: Transform fast path optimizations
