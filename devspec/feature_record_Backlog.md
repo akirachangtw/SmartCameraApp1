@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-02-09
+Last updated: 2026-02-10
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -98,3 +98,49 @@ Last updated: 2026-02-09
 - [ ] (Optional) EXIF 資訊訪問方式重新設計（長按快門按鈕或在 Settings 中查看）
 
 ---
+
+---
+
+## Camera Core Features (v2.11.0 / v3.5.0) - 從 v2.9.9 延後
+
+### 📋 Backlog
+
+#### v2.11.0 規劃（2026-04，補完 v2.9.9 原規劃）
+- [ ] **對焦功能 (Tap-to-Focus)** - 簡化版
+  - CameraX FocusMeteringAction API
+  - 點擊對焦圓圈動畫
+  - 前後鏡頭支援（檢查 AF 能力）
+  - 參考: `docs/plan/v2.9.9-LumiFrame-AI-Focusing-light-shallow-deep.md`
+  - ❌ 不含 ML Kit 追蹤、景深虛化（移至 v4.0.0 LumiFrame）
+
+- [ ] **自拍定時器 (3s/5s/10s)**
+  - 三段式定時器循環切換
+  - 倒數計時 UI（螢幕中央大字）
+  - 震動回饋
+  - 倒數期間可取消
+
+- [ ] **Zoom 控制 UI** - 簡易版
+  - 滑桿控制 + Pinch-to-Zoom 手勢
+  - 焦點位置鎖定
+  - Zoom 範圍指示（0.5x - 4.0x）
+
+#### v3.5.0 規劃（2026-08）
+- [ ] **EXIF 查看器升級** - 完整版
+  - 完整 EXIF 參數顯示
+  - GPS 增強（座標 + 海拔 + 地址反查）
+  - 搜尋和複製功能
+  - 單位轉換
+  - 升級自 v2.10.0 PhotoInfoBottomSheet
+
+### ❌ 不實現
+- 雙擊預覽畫面拍照 (Touch to Capture) - 暫不考慮（誤觸風險高，優先級低）
+
+### 📝 版本校正說明
+- 原規劃版本: v2.9.9
+- 實際狀況: v2.10.2 未實現
+- 重新分配: v2.11.0（相機核心）/ v3.5.0（EXIF 升級）
+- 校正文檔: `devspec/VERSION_CORRECTION_v2.9.9_to_v2.11.0.md`
+- 版本定位: v2.11.0 = "補完 v2.9.9 原規劃功能"
+
+---
+
