@@ -1,8 +1,0 @@
-01-29 15:26:17.554 11203 11203 D CameraRepositoryImpl: Delegating HDR enable to CameraInputSource
-01-29 15:26:19.098 11203 11203 D CameraRepositoryImpl: Delegating HDR disable to CameraInputSource
-01-29 15:26:24.241 11203 11203 D CameraRepositoryImpl: Delegating HDR enable to CameraInputSource
-01-29 15:26:25.465 11203 11203 D CameraRepositoryImpl: Delegating HDR disable to CameraInputSource
-01-29 15:26:27.089 11203 11203 D CameraRepositoryImpl: Delegating HDR enable to CameraInputSource
-01-29 15:26:28.817 11203 11203 D CameraRepositoryImpl: Delegating HDR disable to CameraInputSource
-01-29 15:26:30.314 11203 11203 D CameraRepositoryImpl: Delegating HDR enable to CameraInputSource
-01-29 15:26:30.473 11203 11203 D CameraRepositoryImpl: Delegating HDR disable to CameraInputSource
