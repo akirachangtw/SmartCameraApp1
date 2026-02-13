@@ -115,6 +115,70 @@ adb -s DEVICE_ID shell "rm /sdcard/Download/temp_screen.png"
 
 ---
 
+## ⚠️ Git Merge 規範 - 分支合併前必讀
+
+### 合併前檢查清單
+
+**❌ 絕對不要使用以下方式合併**：
+```bash
+# 這些指令可能合併錯誤的版本（本地分支可能過時）
+git merge feature/branch-name          # ❌ 使用本地分支
+git merge feature-branch               # ❌ 使用本地分支
+```
+
+**✅ 正確的合併方法**（使用遠端分支或 tag）：
+```bash
+# 方法 1: 使用遠端分支（推薦）
+git merge origin/feature/branch-name   # ✅ 使用遠端最新版本
+
+# 方法 2: 使用 tag（最終修正版）
+git merge v2.10.2-final                # ✅ 使用已標記的穩定版本
+
+# 合併前必須執行
+git fetch origin --tags                # 更新所有遠端分支和標籤
+```
+
+### 必讀文檔
+
+**合併前必須檢查**：
+1. **`devspec/BRANCH_RELEASES.md`** - 查看分支版本記錄
+   - 確認使用 `-final` tag（最終修正版）
+   - 檢查「包含功能」和「已知問題」
+   - 確認分支狀態為「✅ 穩定，可安全合併」
+
+2. **`devspec/MERGE_SOP.md`** - 遵循標準作業程序
+   - Phase 1: 準備階段（確認來源分支、閱讀決議文檔）
+   - Phase 2: 文檔同步（devspec/, docs/plan/, docs/test_results/）
+   - Phase 3: 代碼合併（解決衝突、保留關鍵修復）
+   - Phase 4: 驗證（Build + 16KB + 實機測試）
+   - Phase 5: 記錄（更新 BRANCH_RELEASES.md）
+
+3. **`devspec/DOCS_SYNC_CHECKLIST.md`** - 文檔同步檢查清單
+   - 同步決議文檔（devspec/feature_record_Backlog.md）
+   - 同步計劃文檔（docs/plan/）
+   - 同步測試報告（docs/test_results/）
+
+### 常見錯誤與預防
+
+**錯誤案例**：合併了本地分支而非遠端分支
+- **問題**: 本地分支 `feature/aspect-ratio-usecasegroup-v2.10.0` 停留在 commit `0440242`
+- **缺少**: v2.10.2 的關鍵修復（commit `6501ac2`）
+- **影響**: 重新引入已修復的 Bug（Permission UX、Aspect Ratio、Toast Regression）
+- **解決**: 使用 `git merge origin/feature/aspect-ratio-usecasegroup-v2.10.0` 或 `git merge v2.10.2-final`
+
+**預防措施**：
+1. 合併前執行 `git fetch origin --tags`
+2. 使用 `git log origin/branch-name --oneline -10` 確認遠端分支包含所有關鍵提交
+3. 查看 `devspec/BRANCH_RELEASES.md` 確認使用正確的 tag
+4. 閱讀 `devspec/feature_record_Backlog.md` 的 Critical Warnings
+
+**關鍵提醒**：
+> 每次合併都可能影響過去已完成的功能。務必遵循完整的 MERGE_SOP 流程，確保不會遺失任何修復或功能。
+
+**詳細說明**：參考 [`devspec/MERGE_SOP.md`](devspec/MERGE_SOP.md)
+
+---
+
 # Android APP 開發規範
 
 ## 語言規範
