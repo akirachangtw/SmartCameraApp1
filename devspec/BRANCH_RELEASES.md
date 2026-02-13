@@ -39,7 +39,7 @@
 **已知問題**: 無
 
 **合併到**:
-- ⏳ Pending: `feature/camera-core-v2.11.0` (2026-02-13)
+- ✅ Merged: `feature/camera-core-v2.11.0` → v2.11.1 (2026-02-13, commit 70e1d67)
 
 ---
 
@@ -59,34 +59,46 @@
 
 ## v2.11.0 系列
 
-### v2.11.0-rc1 (2026-02-13) 🚧 開發中
+### v2.11.1 (2026-02-13) ✅ 穩定
 - **Branch**: `feature/camera-core-v2.11.0`
-- **Commit**: `3aac584` (origin/feature/camera-core-v2.11.0)
-- **Status**: 🚧 **開發中 - 需整合 v2.10.2-final**
+- **Commit**: `3830fb2` (feature/camera-core-v2.11.0)
+- **Build Code**: 74
+- **Status**: ✅ **穩定 - 已整合 v2.10.2-final**
 
 **包含功能**:
-- ✅ Eye-AF (眼睛優先自動對焦) - ML Kit Face Detection
-- ✅ Smart Subject Focus (智能主體對焦) - Saliency-based
-- ✅ Rectangle + Corner Brackets 視覺設計 (Cyan #00E5FF)
-- ✅ Neon Glow 雙層輝光效果
-- ❌ **缺少 v2.10.0 的 Aspect Ratio 功能**（需合併 v2.10.2-final）
+- ✅ **v2.11.0 功能**:
+  - Eye-AF (眼睛優先自動對焦) - ML Kit Face Detection
+  - Smart Subject Focus (智能主體對焦) - Saliency-based
+  - Rectangle + Corner Brackets 視覺設計 (Cyan #00E5FF)
+  - Neon Glow 雙層輝光效果
+- ✅ **v2.10.2 功能**:
+  - Aspect Ratio Toggle (4:3/16:9/1:1) + UseCaseGroup + ViewPort
+  - EXIF 資訊顯示 (GPS, 曝光參數, 裝置資訊)
+  - Settings UI 現代化 (可摺疊卡片, 位置權限管理)
+  - v2.10.2 Bug 修復 (Permission UX + Aspect Ratio + Toast Regression)
 
 **關鍵提交**:
+- `70e1d67`: Merge v2.10.2-final into v2.11.0: Combine Eye-AF + EXIF features
+- `3830fb2`: [Fix] Restore 16KB ELF alignment check script
 - `3aac584`: [Feature] v2.11.0: Eye-AF + Smart Subject Focus + Rectangle UI
+- `6501ac2`: [Fix] v2.10.2: Bug fixes - Permission UX + Aspect Ratio + Toast Regression
 
 **測試結果**:
-- ⏳ Pending: 需整合 v2.10.2-final 後再測試
+- ✅ Stage Verification Phase 1-4: PASS
+- ✅ Emulator Testing: PASS (無 FATAL/ERROR, Optical Flow 穩定)
+- ⏳ Pixel 9a 實機測試: Pending
+- 測試報告: `tmp/test_outputs/v2.11.1-emulator/EMULATOR_TEST_REPORT.md`
 
 **決議文檔**:
-- `devspec/feature_record_Backlog.md` (Camera Core Features 章節)
+- `devspec/feature_record_Backlog.md` (Camera Core Features, Preview, Photo Capture 章節)
 - `docs/test_results/v2.11.0-Phase5/HANDOVER_SUMMARY.md`
 - `docs/test_results/v2.11.0-Phase5/PIXEL9A_TEST_GUIDE.md`
+- `docs/test_results/v2.10.2/PIXEL9A_TEST_REPORT.md`
+
+**已知問題**: 無
 
 **待辦事項**:
-- [ ] 整合 v2.10.2-final (包含 Aspect Ratio + EXIF + Settings UI)
-- [ ] 解決合併衝突（CameraScreen.kt, feature_record_Backlog.md）
-- [ ] 重新編譯並測試整合後的版本
-- [ ] 執行完整的 6 個測試場景
+- [ ] 執行 Pixel 9a 實機測試 (Phase 5)
 
 ---
 
