@@ -18,11 +18,15 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCaseGroup
+import androidx.camera.core.ViewPort
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
+import android.util.Rational
 import androidx.lifecycle.LifecycleOwner
 import com.akirachang.ai.photographer.BuildConfig
 import com.akirachang.ai.photographer.data.source.analysis.GuidelineAnalyzer
+import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.util.BitmapPool
 import com.akirachang.ai.photographer.util.RenderScriptYuvConverter
 import com.akirachang.ai.photographer.util.YuvConverter
@@ -90,6 +94,9 @@ class LiveCameraSource @Inject constructor(
 
     // v2.9.0-beta3: Track selected resolution for diagnostics
     private var selectedResolution: Size? = null
+
+    // v2.10.0: Track current aspect ratio mode for ViewPort configuration
+    private var currentAspectRatioMode: AspectRatioMode = AspectRatioMode.RATIO_16_9
 
     // v2.6.1: Custom SurfaceProvider for Preview UseCase (Fallback when no PreviewView)
     // Preview UseCase is mandatory - without it, camera won't start on real devices
@@ -853,39 +860,55 @@ class LiveCameraSource @Inject constructor(
                     Log.i(TAG, "[v2.9.0-beta5] Smart Resolution: target=${targetResolution.width}x${targetResolution.height}, " +
                               "filter≤${maxFilterWidth}x${maxFilterHeight}")
 
-                    // Build ResolutionSelector with device-specific filter
-                    val resolutionSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
-                        .setResolutionStrategy(
-                            androidx.camera.core.resolutionselector.ResolutionStrategy(
-                                targetResolution,
-                                androidx.camera.core.resolutionselector.ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
-                            )
-                        )
-                        .setResolutionFilter { sizes, _ ->
-                            val beforeCount = sizes.size
-                            val filtered = sizes.filter { size ->
-                                size.width <= maxFilterWidth && size.height <= maxFilterHeight
+                    // v2.10.0: Unified AspectRatioStrategy for UseCaseGroup + ViewPort architecture
+                    // v2.10.0-fix: 1:1 mode uses 4:3 sensor output, ViewPort crops to square (WYSIWYG)
+                    // All UseCases use the same aspect ratio based on currentAspectRatioMode
+                    // v2.10.0-fix: 1:1 mode requires special handling for ImageCapture output
+                    val commonSelector = if (currentAspectRatioMode == AspectRatioMode.RATIO_1_1) {
+                        // 1:1 mode: Use ResolutionFilter to find closest square resolution
+                        androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                            .setResolutionFilter { supportedSizes, _ ->
+                                // Find square or near-square resolutions
+                                val squareOrNearSquare = supportedSizes.sortedBy { size ->
+                                    kotlin.math.abs(size.width.toFloat() / size.height - 1.0f)
+                                }
+                                // Return closest to 1:1
+                                listOf(squareOrNearSquare.firstOrNull() ?: supportedSizes.first())
                             }
-                            Log.i(TAG, "[v2.9.0-beta5 Filter] Before: $beforeCount sizes, After: ${filtered.size} sizes")
-                            if (filtered.isNotEmpty()) {
-                                Log.i(TAG, "[v2.9.0-beta5 Filter] Allowed: ${filtered.joinToString { "${it.width}x${it.height}" }}")
+                            .build()
+                            .also {
+                                Log.i(TAG, "[v2.10.0 Fix] 1:1 mode: Using ResolutionFilter for square output")
                             }
-                            filtered
+                    } else {
+                        // 4:3 / 16:9 modes: Use standard AspectRatioStrategy
+                        val targetAspectRatio = when (currentAspectRatioMode) {
+                            AspectRatioMode.RATIO_4_3 -> androidx.camera.core.AspectRatio.RATIO_4_3
+                            AspectRatioMode.RATIO_16_9 -> androidx.camera.core.AspectRatio.RATIO_16_9
+                            else -> androidx.camera.core.AspectRatio.RATIO_4_3  // Fallback
                         }
-                        .build()
+                        androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                            .setAspectRatioStrategy(
+                                androidx.camera.core.resolutionselector.AspectRatioStrategy(
+                                    targetAspectRatio,
+                                    androidx.camera.core.resolutionselector.AspectRatioStrategy.FALLBACK_RULE_AUTO
+                                )
+                            )
+                            .build()
+                            .also {
+                                Log.i(TAG, "[v2.10.0] Using AspectRatioStrategy: ${currentAspectRatioMode.displayName} ($targetAspectRatio)")
+                            }
+                    }
 
                     // Store target for diagnostic logging
                     selectedResolution = targetResolution
-
-                    Log.i(TAG, "[v2.9.0-beta4] Using ResolutionSelector with target=${targetResolution.width}x${targetResolution.height}, filter=<= 800px")
 
                     // One-time diagnostic: log all supported resolutions
                     logSupportedResolutions(cameraInfo)
 
                     // 1. Build Preview UseCase with SurfaceProvider
-                    // v2.9.0-beta4: Use ResolutionSelector instead of setTargetResolution
+                    // v2.10.0: Use unified AspectRatioStrategy from commonSelector
                     preview = Preview.Builder()
-                        .setResolutionSelector(resolutionSelector)
+                        .setResolutionSelector(commonSelector)
                         .build()
                         .apply {
                             // ✅ CRITICAL: Attach SurfaceProvider (external or fallback)
@@ -893,28 +916,29 @@ class LiveCameraSource @Inject constructor(
                             val providerType = if (externalSurfaceProvider != null) "PreviewView (native)" else "Fallback SurfaceTexture"
 
                             setSurfaceProvider(provider)
-                            Log.i(TAG, "✅ Preview UseCase created with $providerType + ResolutionSelector")
+                            Log.i(TAG, "✅ Preview UseCase created with $providerType + AspectRatio ${currentAspectRatioMode.displayName}")
                         }
 
                     // 2. Build ImageAnalysis UseCase (for Bitmap stream to UI)
-                    // v2.9.0-beta4: Use ResolutionSelector instead of setTargetResolution
+                    // v2.10.0: Use unified AspectRatioStrategy for consistency with ViewPort
                     imageAnalysis = ImageAnalysis.Builder()
-                        .setResolutionSelector(resolutionSelector)
+                        .setResolutionSelector(commonSelector)
                         .setTargetRotation(Surface.ROTATION_0)  // Set target rotation for proper orientation
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
                         .apply {
-                            Log.i(TAG, "✅ ImageAnalysis UseCase created with ROTATION_0 + ResolutionSelector")
+                            Log.i(TAG, "✅ ImageAnalysis UseCase created with ROTATION_0 + AspectRatio ${currentAspectRatioMode.displayName}")
                         }
 
                     // 3. Build ImageCapture UseCase (for photo capture)
-                    // v2.9.6 Phase 1: targetRotation now dynamically updated by OrientationEventListener
+                    // v2.10.0: Use unified AspectRatioStrategy for automatic WYSIWYG via ViewPort
                     imageCapture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                        .setResolutionSelector(commonSelector)
                         // targetRotation will be set dynamically via updateTargetRotation()
                         .build()
                         .apply {
-                            Log.i(TAG, "✅ ImageCapture UseCase created (dynamic rotation)")
+                            Log.i(TAG, "✅ ImageCapture UseCase created with AspectRatio ${currentAspectRatioMode.displayName} (WYSIWYG via ViewPort)")
                         }
 
                     // 4. Unbind all previous UseCases before rebinding
@@ -929,17 +953,35 @@ class LiveCameraSource @Inject constructor(
                         // 繼續執行 bind，可能是首次綁定
                     }
 
-                    // 5. ✅ CRITICAL: Bind all three UseCases together
-                    // Preview MUST be included or camera won't start on real devices
+                    // 5. Create ViewPort for WYSIWYG guarantee (v2.10.0: Gemini approach)
+                    // ViewPort ensures Preview, ImageAnalysis, and ImageCapture see the same cropped region
+                    // v2.10.0-fix: Use FIT ScaleType to prevent double-cropping (ViewPort FILL + PreviewView FILL)
+                    val viewPort = ViewPort.Builder(
+                        currentAspectRatioMode.toRational(),  // Rational(4, 3) or Rational(16, 9) or Rational(1, 1)
+                        currentRotation  // Current device rotation (Surface.ROTATION_*)
+                    )
+                        .setScaleType(ViewPort.FIT)  // ✅ Preserve full FOV, prevent over-cropping
+                        .build()
+
+                    Log.i(TAG, "[v2.10.0 ViewPort] Created with aspect=${currentAspectRatioMode.displayName}, rotation=$currentRotation, scaleType=FIT")
+
+                    // 6. Create UseCaseGroup with ViewPort (automatic WYSIWYG)
+                    val useCaseGroup = UseCaseGroup.Builder()
+                        .addUseCase(preview)        // ✅ REQUIRED: Provides Surface for camera
+                        .addUseCase(imageAnalysis)  // ✅ Provides Bitmap stream for UI
+                        .addUseCase(imageCapture)   // ✅ Provides photo capture capability
+                        .setViewPort(viewPort)      // ✅ Ensures all UseCases see same cropped region (WYSIWYG)
+                        .build()
+
+                    // 7. ✅ CRITICAL: Bind UseCaseGroup to lifecycle
+                    // Using UseCaseGroup + ViewPort guarantees Preview and Capture consistency
                     camera = cameraProvider.bindToLifecycle(
                         lifecycleOwner,
                         cameraSelector,
-                        preview,        // ✅ REQUIRED: Provides Surface for camera
-                        imageAnalysis,  // ✅ Provides Bitmap stream for UI
-                        imageCapture    // ✅ Provides photo capture capability
+                        useCaseGroup  // ✅ Single UseCaseGroup instead of individual UseCases
                     )
 
-                    Log.i(TAG, "✅ Camera bound successfully: Preview + ImageAnalysis + ImageCapture")
+                    Log.i(TAG, "✅ Camera bound successfully with UseCaseGroup (${currentAspectRatioMode.displayName}): Preview + ImageAnalysis + ImageCapture + ViewPort WYSIWYG")
 
                     // v2.9.6 Phase 1 Fix: Log sensor orientation for debugging
                     val sensorRotation = camera.cameraInfo.sensorRotationDegrees
@@ -1421,6 +1463,28 @@ class LiveCameraSource @Inject constructor(
      * v2.8.6 Phase 2: PreviewView migration
      */
     override fun supportsNativePreview(): Boolean = true
+
+    /**
+     * Set aspect ratio mode for ViewPort configuration
+     * v2.10.0: UseCaseGroup + ViewPort architecture
+     *
+     * Automatically rebinds camera to apply the new ViewPort with updated aspect ratio.
+     *
+     * @param mode The desired aspect ratio mode (4:3, 16:9, 1:1)
+     */
+    fun setAspectRatioMode(mode: AspectRatioMode) {
+        currentAspectRatioMode = mode
+        Log.i(TAG, "[v2.10.0] Aspect ratio mode set to: ${mode.displayName}")
+
+        // If camera already bound, rebind to apply new ViewPort with updated aspect ratio
+        if (::cameraProvider.isInitialized && currentLifecycleOwner != null) {
+            Log.i(TAG, "[v2.10.0] Camera rebind triggered to apply new aspect ratio via ViewPort")
+            // Trigger immediate rebinding to apply ViewPort change
+            currentLifecycleOwner?.let { owner ->
+                bindToLifecycle(owner)
+            }
+        }
+    }
 
     /**
      * Smart Resolution Selection - v2.9.0-beta5

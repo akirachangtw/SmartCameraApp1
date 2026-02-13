@@ -19,6 +19,23 @@
             }
         },
         {
+            "label": "🧪 Stage Verification GUI",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "tools/stage_verification_gui.pyw"
+            ],
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "never",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "🚀 Build Emulator Debug",
             "type": "shell",
             "command": "${workspaceFolder}/gradlew.bat",
@@ -188,6 +205,66 @@
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🛡️ Regression Scanner (Text Report)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "tools/regression_scanner.py",
+                "--verbose"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🛡️ Regression Scanner (Markdown Report)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "tools/regression_scanner.py",
+                "--format",
+                "markdown",
+                "--output",
+                "tmp/regression_report.md"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🛡️ Regression Scanner (JSON Report)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "tools/regression_scanner.py",
+                "--format",
+                "json",
+                "--output",
+                "tmp/regression_report.json"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
             },
             "problemMatcher": []
         }

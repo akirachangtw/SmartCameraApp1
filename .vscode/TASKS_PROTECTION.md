@@ -129,6 +129,9 @@ tools/hybrid_flow-tasks.json
 ❌ **所有 Hybrid Tasks** (5 個)
 - Label 包含 "Hybrid:" 的所有 Tasks
 
+❌ **所有 Regression Scanner Tasks** (3 個)
+- Label 包含 "Regression Scanner" 的所有 Tasks
+
 ❌ **所有 Hybrid Inputs** (4 個)
 - `hybridTopic`
 - `hybridInput`
@@ -162,12 +165,33 @@ powershell -NoProfile -Command "try { Get-Content .vscode\tasks.json -Raw | Conv
 
 ---
 
+### 4. Regression Scanner Tasks (3 個 Tasks) - v2.10.2 新增
+
+**Task 標籤**:
+1. 🛡️ Regression Scanner (Text Report)
+2. 🛡️ Regression Scanner (Markdown Report)
+3. 🛡️ Regression Scanner (JSON Report)
+
+**用途**: 自動掃描代碼庫中的已知反模式（anti-patterns）和回歸問題
+
+**刪除影響**:
+- ❌ 無法快速掃描回歸問題
+- ❌ Regression 預防機制失效
+- ❌ CI/CD 整合中斷
+
+**依賴檔案**:
+- `tools/regression_scanner.py`
+- `tools/REGRESSION_SCANNER_GUIDE.md`
+
+---
+
 ## 📊 當前 Tasks 統計
 
-**總 Tasks 數**: 13
+**總 Tasks 數**: 16
 - 7 個 Build/Test Tasks (可修改)
 - 5 個 Hybrid Tasks (🔒 受保護)
 - 1 個 Test Handoff Task (🔒 受保護)
+- 3 個 Regression Scanner Tasks (🔒 受保護)
 
 **總 Inputs 數**: 4
 - 4 個 Hybrid Inputs (🔒 受保護)

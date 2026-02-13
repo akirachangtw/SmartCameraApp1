@@ -30,6 +30,11 @@
 ## 驗證方式（How verified）
 
 ### ✅ 必要驗證 (全部必須勾選)
+- ☐ **階段驗測已完成** ✨ NEW
+  - 驗測報告: `docs/test_results/<version>/VERIFICATION_REPORT.md`
+  - ☐ Phase 1-3: Pre-Build + Build + 16KB ✅
+  - ☐ Phase 4: Emulator Testing ✅
+  - ☐ Phase 5: Device Testing ✅ / ⏭️ SKIPPED
 - ☐ Build 成功 (`./gradlew assembleDebug` 或 `./gradlew assembleEmulatorDebug`)
 - ☐ Lint 檢查通過
 - ☐ 無新增 Logcat 錯誤
@@ -54,6 +59,11 @@
 ### 📝 驗證詳情
 <!-- 請說明驗證指令、步驟與結果 -->
 
+### 📊 驗測報告連結
+- 驗測報告: `docs/test_results/<version>/VERIFICATION_REPORT.md`
+- Logcat (Emulator): `docs/test_results/<version>/emulator_test_logcat.log`
+- 16KB Check: `docs/test_results/<version>/16kb_check_emulator.log`
+
 ---
 
 ## 風險與回滾（Risk & rollback）
@@ -73,6 +83,48 @@
 - 影響使用者數量: ☐ 全部 ☐ 部分 (說明: _______)
 - 是否可降級: ☐ 是 ☐ 否
 - 回滾時間預估: ______ 分鐘
+
+---
+
+## 🔍 Regression Check（審查者必查）
+
+> **目的**: 預防重新引入已解決的 bug（如 v2.9.8 Toast → v2.10.1 regression → v2.10.2 修正）
+
+### 歷史修正搜尋
+- ☐ 已搜尋相關功能的歷史修正記錄
+  - Git log: `git log --grep="<keyword>" --oneline --all`
+  - Feature Record: 查閱 `devspec/feature_record_Backlog.md`
+  - Test Reports: 查閱 `docs/test_results/`
+  - 搜尋關鍵字: _______________
+  - 發現相關 commit: _______________
+
+### Regression 風險確認
+- ☐ 確認不會引入已解決的 bug
+  - ☐ 檢查 `feature_record_Backlog.md` 的 ⚠️ Critical Warning 區段
+  - ☐ 確認修改不違反已驗證的行為（Confirmed 區段）
+  - ☐ 查閱 CHANGELOG.md 中的 Fixed 區段
+
+### Critical Files 檢查（如有修改）
+- ☐ **CameraScreen.kt** - 照片保存反饋
+  - ⚠️ DO NOT re-add Snackbar for "照片已儲存"（v2.9.8 已移除）
+  - ⚠️ DO NOT add photo info button（v2.10.2 已移除）
+- ☐ **CameraViewModel.kt** - 長寬比例設定
+  - ⚠️ 使用 `.collect()` 持續監聽，不要用 `.first()`（v2.10.2 修正）
+  - ⚠️ Optical Flow fade-out guard（參考 MEMORY.md）
+- ☐ **MainActivity.kt** - 權限請求
+  - ⚠️ 啟動時一次性請求所有權限（v2.10.2 用戶期望）
+- ☐ **LiveCameraSource.kt** - 相機設定
+  - ⚠️ ViewPort.setScaleType(FIT) 必須存在（v2.10.0-fix）
+  - ⚠️ 1:1 模式使用 ResolutionFilter
+
+### 文檔更新（如有重大修正）
+- ☐ 更新 `devspec/feature_record_Backlog.md`（如有新 Confirmed 行為）
+  - ☐ 添加 Confirmed 行為描述
+  - ☐ 更新 Code Locations（如行號變動）
+  - ☐ 添加 Critical Warning（如有必要）
+  - ☐ 記錄 Regression 歷史（如適用）
+- ☐ 更新 `CHANGELOG.md`（用戶可見變更）
+- ☐ 創建測試報告 `docs/test_results/<version>/`（如有測試）
 
 ---
 

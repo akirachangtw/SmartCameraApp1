@@ -37,6 +37,8 @@ app/src/debug/assets/test_images/image-generation-metadata.json
 # Temporary files
 nul
 *.tmp
+__pycache__/
+*.tar.gz
 
 # Testing archives
 others/v2.6.2-Testing/

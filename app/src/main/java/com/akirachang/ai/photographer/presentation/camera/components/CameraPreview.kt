@@ -28,9 +28,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.akirachang.ai.photographer.BuildConfig
+import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 
 /**
  * Camera Preview composable with dual-path rendering
+ *
+ * v2.10.0: Dynamic ScaleType support for aspect ratio modes
+ * - ScaleType adapts to aspectRatioMode (FIT_CENTER for 4:3/1:1, FILL_CENTER for 16:9)
  *
  * v2.8.6 Phase 2: PreviewView migration for Graphics memory fix
  * - PRIMARY PATH: PreviewView (native GPU rendering) for real devices
@@ -49,6 +53,7 @@ import com.akirachang.ai.photographer.BuildConfig
 fun CameraPreview(
     previewBitmap: Bitmap?,
     supportsNativePreview: Boolean,
+    aspectRatioMode: AspectRatioMode = AspectRatioMode.RATIO_16_9,  // v2.10.0
     onPreviewViewCreated: ((PreviewView) -> Unit)? = null,
     modifier: Modifier = Modifier,
     onSizeChanged: ((Int, Int) -> Unit)? = null
@@ -59,6 +64,7 @@ fun CameraPreview(
     if (useNativePreview) {
         // PRIMARY PATH: Native PreviewView rendering (Graphics memory fix)
         NativePreviewPath(
+            aspectRatioMode = aspectRatioMode,  // v2.10.0
             onPreviewViewCreated = onPreviewViewCreated,
             modifier = modifier,
             onSizeChanged = onSizeChanged
@@ -77,6 +83,10 @@ fun CameraPreview(
 /**
  * Native PreviewView rendering path
  *
+ * v2.10.0: Dynamic ScaleType based on aspectRatioMode
+ * - 4:3/1:1: FIT_CENTER (black bars, full FOV)
+ * - 16:9: FILL_CENTER (fill screen)
+ *
  * v2.8.6 Phase 2: Direct GPU rendering via CameraX Preview UseCase
  * - No CPU bitmap conversion
  * - No Compose texture upload
@@ -84,6 +94,7 @@ fun CameraPreview(
  */
 @Composable
 private fun NativePreviewPath(
+    aspectRatioMode: AspectRatioMode,  // v2.10.0
     onPreviewViewCreated: ((PreviewView) -> Unit)?,
     modifier: Modifier,
     onSizeChanged: ((Int, Int) -> Unit)?
@@ -104,17 +115,19 @@ private fun NativePreviewPath(
             factory = { ctx ->
                 PreviewView(ctx).apply {
                     implementationMode = PreviewView.ImplementationMode.PERFORMANCE
-                    scaleType = PreviewView.ScaleType.FILL_CENTER
+                    scaleType = aspectRatioMode.toScaleType  // v2.10.0: Dynamic ScaleType
 
                     // Notify parent to connect CameraX Preview UseCase
                     onPreviewViewCreated?.invoke(this)
 
-                    Log.i("CameraPreview", "[Phase 2] PreviewView created (native GPU rendering)")
+                    Log.i("CameraPreview", "[v2.10.0] PreviewView created: ${aspectRatioMode.displayName} (${aspectRatioMode.toScaleType})")
                 }
             },
             modifier = Modifier.fillMaxSize(),
             update = { previewView ->
-                // PreviewView updates handled by CameraX lifecycle
+                // v2.10.0: Update ScaleType when aspectRatioMode changes
+                previewView.scaleType = aspectRatioMode.toScaleType
+                Log.d("CameraPreview", "[v2.10.0] ScaleType updated: ${aspectRatioMode.displayName} → ${aspectRatioMode.toScaleType}")
             }
         )
 

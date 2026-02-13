@@ -186,6 +186,27 @@ class CameraViewModel @Inject constructor(
                 "• 如遇記憶體問題請重啟 App"
             )
         }
+
+        // v2.10.2: Monitor aspect ratio mode changes from Settings (continuous listening)
+        viewModelScope.launch {
+            overlayPreferences.aspectRatioMode.collect { savedMode ->
+                val mode = try {
+                    com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode.valueOf(savedMode)
+                } catch (e: IllegalArgumentException) {
+                    // Fallback to default if invalid string
+                    Log.w(TAG, "Invalid aspect ratio mode: $savedMode, falling back to RATIO_16_9")
+                    com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode.RATIO_16_9
+                }
+
+                // Update CameraState
+                _state.update { it.copy(aspectRatioMode = mode) }
+
+                // Apply to camera repository (triggers camera rebind)
+                cameraRepository.setAspectRatioMode(mode)
+
+                Log.d(TAG, "Aspect ratio mode updated from settings: $mode")
+            }
+        }
     }
 
     /**
@@ -219,19 +240,28 @@ class CameraViewModel @Inject constructor(
                 Log.v(TAG, "Optical flow tracking updated: point=(${pointX}, ${pointY}), quality=${trackingResult.quality}")
 
             } else {
-                // Tracking lost
+                // Tracking lost — fade out then clear
                 _state.update {
                     it.copy(
                         trackedPointActive = false,
-                        trackedPointLost = true
+                        trackedPointLost = true,
+                        focusIndicatorFading = true  // Fade to Alpha 0.4
                     )
                 }
-                Log.w(TAG, "Optical flow tracking lost")
+                Log.w(TAG, "Optical flow tracking lost — starting fade-out")
 
-                // Stop tracking after a short delay
+                // Clear focus indicator after 1.5 seconds (1s fade hold + 0.5s animation)
                 viewModelScope.launch {
-                    delay(1000)
-                    stopOpticalFlowTracking()
+                    delay(1500)
+                    _state.update {
+                        it.copy(
+                            focusPoint = null,
+                            focusIndicatorFading = false,
+                            trackedPointLost = false
+                        )
+                    }
+                    cameraRepository.stopOpticalFlowTracking()
+                    Log.i(TAG, "Optical flow tracking stopped — focus indicator cleared")
                 }
             }
         }
@@ -239,22 +269,12 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
-     * Stop optical flow tracking
+     * Manual stop optical flow tracking (called from other contexts if needed)
      * v2.x.x Phase 5: Stop tracking and clear state
      */
     private fun stopOpticalFlowTracking() {
         cameraRepository.stopOpticalFlowTracking()
-        // v2.x.x: Keep focusPoint at last known position with Alpha 0.4 (persistent until next tap)
-        // focusPoint cleared only on next tap (focusOnPoint) or camera switch
-        _state.update {
-            it.copy(
-                trackedPointActive = false,
-                trackedPointQuality = 0f,
-                trackedPointLost = false,
-                focusIndicatorFading = true  // Maintain Alpha 0.4 at last tracked position
-            )
-        }
-        Log.i(TAG, "Optical flow tracking stopped — focusPoint retained at last position")
+        Log.i(TAG, "Optical flow tracking stopped (manual)")
     }
 
     /**
@@ -345,6 +365,7 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.SwitchCamera -> switchCamera()
             is CameraUiEvent.ToggleFlash -> toggleFlash()
             is CameraUiEvent.ToggleHDR -> toggleHDR()  // v2.6.1
+            // v2.11.0 Phase 2: ToggleAspectRatio removed - now in Settings
             is CameraUiEvent.StartAnalysis -> startAnalysis()
             is CameraUiEvent.StopAnalysis -> stopAnalysis()
             is CameraUiEvent.ShowError -> showError(event.message)
@@ -352,6 +373,8 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.LockAEAF -> lockAEAF(event.x, event.y, event.viewWidth, event.viewHeight)  // v2.9.9 Day 1-2
             is CameraUiEvent.UnlockAEAF -> unlockAEAF()  // v2.9.9 Day 1-2
             is CameraUiEvent.SetPreviewSize -> setPreviewSize(event.width, event.height)  // v2.x.x Phase 5
+            is CameraUiEvent.ShowPhotoInfo -> showPhotoInfo(event.uri)  // v2.11.0 Phase 3
+            is CameraUiEvent.DismissPhotoInfo -> dismissPhotoInfo()  // v2.11.0 Phase 3
         }
     }
 
@@ -505,12 +528,64 @@ class CameraViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Toggle aspect ratio mode (v2.10.0)
+     *
+     * Cycles through: 4:3 → 16:9 → 1:1 → 4:3
+     *
+     * Behavior:
+     * - Updates UI state with new aspect ratio
+     * - Sets isRebindingCamera flag during transition
+     * - Triggers camera rebind via repository with new ViewPort
+     */
+    // v2.11.0 Phase 2: toggleAspectRatio() removed - aspect ratio now managed in Settings
+
     private fun showError(message: String) {
         _state.update { it.copy(error = message) }
     }
 
     fun clearError() {
         _state.update { it.copy(error = null) }
+    }
+
+    /**
+     * Show photo EXIF information
+     * v2.11.0 Phase 3: EXIF display feature
+     *
+     * Reads EXIF metadata from captured photo and displays in BottomSheet.
+     * Launches coroutine to read EXIF asynchronously, updates state when ready.
+     *
+     * @param uri Content URI of the captured photo
+     */
+    private fun showPhotoInfo(uri: android.net.Uri) {
+        viewModelScope.launch {
+            val exifInfo = cameraRepository.readExifInfo(uri)
+            if (exifInfo != null) {
+                _state.update {
+                    it.copy(
+                        showPhotoInfo = true,
+                        currentPhotoExifInfo = exifInfo
+                    )
+                }
+                Log.d(TAG, "Photo EXIF info loaded: ${exifInfo.fileName}")
+            } else {
+                showError("無法讀取照片資訊")
+                Log.e(TAG, "Failed to read EXIF info from $uri")
+            }
+        }
+    }
+
+    /**
+     * Dismiss photo EXIF information
+     * v2.11.0 Phase 3: EXIF display feature
+     */
+    private fun dismissPhotoInfo() {
+        _state.update {
+            it.copy(
+                showPhotoInfo = false,
+                currentPhotoExifInfo = null
+            )
+        }
     }
 
     /**
@@ -769,14 +844,14 @@ class CameraViewModel @Inject constructor(
                     _state.update { it.copy(isFocusing = false, focusSuccess = true) }
                     Log.d(TAG, "Focus successful at ($x, $y)")
 
-                    // Tracking mode (ML Kit): Don't auto-clear (managed by updateTrackedObjectPosition)
-                    // Optical Flow / Static mode: Keep Alpha 1.0 for 2s, then fade to 0.4 (persistent)
-                    // v2.x.x: focusIndicatorFading=true 後保持 Alpha 0.4，直到下次點擊重置
+                    // ML Kit tracking: Alpha managed by updateTrackedObjectPosition (skip fade)
+                    // Optical Flow + Static: Alpha 1.0 for 1s → fade 500ms → Alpha 0.4 (persistent)
+                    // focusIndicatorFading=true 後保持 Alpha 0.4，直到下次點擊重置
                     if (_state.value.trackedObjectId == null) {
-                        delay(2000)  // Keep for 2 seconds
+                        delay(1000)  // Keep for 1 second
                         _state.update { it.copy(focusIndicatorFading = true, focusIndicatorFadeStartTime = System.currentTimeMillis()) }
                         delay(500)   // Fade out for 500ms
-                        // v2.9.9 Day 1-2 Optimize: Keep focusPoint visible at alpha 0.4 (persistent until next tap)
+                        // v2.x.x: Keep focusPoint visible at alpha 0.4 (persistent until next tap)
                         // Keep focusIndicatorFading=true to maintain alpha 0.4 (reset on next tap)
                     }
 

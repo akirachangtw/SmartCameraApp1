@@ -485,6 +485,15 @@ fun CameraScreen(
                     Box(modifier = Modifier.size(48.dp))
                 }
             }
+
+            // v2.10.0 Phase 3: Photo EXIF information bottom sheet
+            val exifInfo = state.currentPhotoExifInfo
+            if (state.showPhotoInfo && exifInfo != null) {
+                com.akirachang.ai.photographer.presentation.camera.components.PhotoInfoBottomSheet(
+                    exifInfo = exifInfo,
+                    onDismiss = { viewModel.onEvent(CameraUiEvent.DismissPhotoInfo) }
+                )
+            }
         }
     } else {
         PermissionRequestScreen(
@@ -522,7 +531,7 @@ private fun FocusIndicator(
     val animatedX by animateFloatAsState(
         targetValue = x,
         animationSpec = if (isTracking) {
-            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
+            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh)
         } else {
             tween(0)
         },
@@ -532,7 +541,7 @@ private fun FocusIndicator(
     val animatedY by animateFloatAsState(
         targetValue = y,
         animationSpec = if (isTracking) {
-            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
+            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh)
         } else {
             tween(0)
         },

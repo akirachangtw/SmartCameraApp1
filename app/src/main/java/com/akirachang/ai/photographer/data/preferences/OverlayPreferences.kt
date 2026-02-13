@@ -14,6 +14,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
@@ -60,10 +61,12 @@ class OverlayPreferences(private val context: Context) {
         private val KEY_DIRECTIONAL_INDICATOR_ENABLED = booleanPreferencesKey("directional_indicator_enabled")
         private val KEY_AUTO_HDR_ENABLED = booleanPreferencesKey("auto_hdr_enabled")  // v2.3.0
         private val KEY_GPS_TAGGING_ENABLED = booleanPreferencesKey("gps_tagging_enabled")  // v2.9.7 Day 1-2
+        private val KEY_ASPECT_RATIO_MODE = stringPreferencesKey("aspect_ratio_mode")  // v2.11.0 Phase 2
 
         // Default values
         private const val DEFAULT_ENABLED = true
         private const val DEFAULT_GPS_ENABLED = false  // Privacy-first: GPS default OFF
+        private const val DEFAULT_ASPECT_RATIO = "RATIO_16_9"  // v2.11.0: Default 16:9 widescreen
     }
 
     /**
@@ -181,6 +184,23 @@ class OverlayPreferences(private val context: Context) {
         }
 
     /**
+     * Flow emitting aspect ratio mode setting
+     * Default: "RATIO_16_9" (16:9 widescreen)
+     * v2.11.0 Phase 2: Aspect ratio persistence
+     */
+    val aspectRatioMode: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_ASPECT_RATIO_MODE] ?: DEFAULT_ASPECT_RATIO
+        }
+
+    /**
      * Sets grid overlay visibility
      *
      * @param enabled true to show grid, false to hide
@@ -256,6 +276,18 @@ class OverlayPreferences(private val context: Context) {
     suspend fun setGpsTaggingEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_GPS_TAGGING_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Sets aspect ratio mode
+     *
+     * @param mode Aspect ratio mode string ("RATIO_4_3", "RATIO_16_9", or "RATIO_1_1")
+     * v2.11.0 Phase 2: Aspect ratio persistence
+     */
+    suspend fun setAspectRatioMode(mode: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_ASPECT_RATIO_MODE] = mode
         }
     }
 

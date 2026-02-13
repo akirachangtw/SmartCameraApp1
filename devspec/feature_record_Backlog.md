@@ -111,7 +111,7 @@ Last updated: 2026-02-10
   - CameraX FocusMeteringAction API
   - 點擊對焦圓圈動畫
   - 前後鏡頭支援（檢查 AF 能力）
-  - 參考: `plans/v2.9.9-LumiFrame-AI-Focusing-light-shallow-deep.md`
+  - 參考: `docs/plan/v2.9.9-LumiFrame-AI-Focusing-light-shallow-deep.md`
   - ❌ 不含 ML Kit 追蹤、景深虛化（移至 v4.0.0 LumiFrame）
 
 - [ ] **自拍定時器 (3s/5s/10s)**

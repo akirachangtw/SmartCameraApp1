@@ -1,6 +1,7 @@
 package com.akirachang.ai.photographer.domain.repository
 
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.camera.core.CameraSelector
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -147,6 +148,14 @@ interface CameraRepository {
     fun supportsNativePreview(): Boolean
 
     /**
+     * Set aspect ratio mode and rebind camera
+     * v2.10.0: UseCaseGroup + ViewPort architecture
+     *
+     * @param mode Target aspect ratio mode (4:3, 16:9, 1:1)
+     */
+    suspend fun setAspectRatioMode(mode: com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode)
+
+    /**
      * Focus on a specific point in the preview
      * v2.9.9: Tap-to-Focus support
      *
@@ -235,4 +244,16 @@ interface CameraRepository {
      * @param bitmap Current preview frame as Bitmap
      */
     fun processOpticalFlowFrame(bitmap: Bitmap)
+
+    /**
+     * Read EXIF metadata from captured photo
+     * v2.11.0 Phase 3: EXIF information display feature
+     *
+     * Extracts comprehensive EXIF metadata including file info, GPS data,
+     * camera information, and capture parameters.
+     *
+     * @param uri Content URI of the captured photo
+     * @return ExifInfo object with all metadata, or null if reading fails
+     */
+    suspend fun readExifInfo(uri: Uri): com.akirachang.ai.photographer.domain.model.ExifInfo?
 }
