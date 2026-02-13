@@ -71,9 +71,12 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.PathEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -497,18 +500,11 @@ fun CameraScreen(
 }
 
 /**
- * Focus Indicator - Shows animated dashed 3-segment arc at focus point
- * v2.9.9: Tap-to-Focus visual feedback
- * v2.9.10: Traycer dual-mode rendering (tracking vs static)
- * v2.9.9 Day 1-2: Traycer v2 professional dashed arc design (3 × 120°)
- *
- * @param x X coordinate of focus point
- * @param y Y coordinate of focus point
- * @param isFocusing True while focus is in progress
- * @param focusSuccess True if focus succeeded, false if failed, null if still focusing
- * @param isTracking True if in tracking mode (Traycer), false for static focus
- * @param isLocked True if AE/AF is locked (long press)
- * @param modifier Modifier for the canvas
+ * Rectangle Focus Indicator with Corner Brackets (v2.11.0)
+ * - Searching: Rectangle only, Cyan neon glow
+ * - Success: Rectangle + Corner brackets, Cyan, shrink 10% → bounce animation
+ * - Dwell: Rectangle + Corner brackets, Cyan Alpha 0.4, stroke 1.5dp
+ * - Locked: Rectangle + Corner brackets, Cyber Yellow neon glow
  */
 @Composable
 private fun FocusIndicator(
@@ -516,23 +512,19 @@ private fun FocusIndicator(
     y: Float,
     isFocusing: Boolean,
     focusSuccess: Boolean?,
-    isTracking: Boolean,  // v2.9.10: Tracking mode flag
-    isLocked: Boolean = false,  // v2.9.9 Day 1-2: Lock mode flag
-    isFading: Boolean = false,  // v2.9.9 Day 1-2 Optimize: Fade-out animation flag
-    fadeStartTime: Long = 0L,   // v2.9.9 Day 1-2 Optimize: Fade start timestamp
+    isTracking: Boolean,
+    isLocked: Boolean = false,
+    isFading: Boolean = false,
+    fadeStartTime: Long = 0L,
     modifier: Modifier = Modifier
 ) {
-    // v2.9.10: Tracking mode - smooth position transition
-    // v2.9.9 Day 1-2 Optimize Round 2: Precision tracking (NoBouncy + Medium stiffness)
+    // Position tracking with smooth animation
     val animatedX by animateFloatAsState(
         targetValue = x,
         animationSpec = if (isTracking) {
-            spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,  // MediumBouncy → NoBouncy (precise tracking)
-                stiffness = Spring.StiffnessMedium  // StiffnessLow → StiffnessMedium (faster response)
-            )
+            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
         } else {
-            tween(durationMillis = 0)  // Static mode: no animation
+            tween(0)
         },
         label = "focus_x"
     )
@@ -540,118 +532,182 @@ private fun FocusIndicator(
     val animatedY by animateFloatAsState(
         targetValue = y,
         animationSpec = if (isTracking) {
-            spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,  // MediumBouncy → NoBouncy (precise tracking)
-                stiffness = Spring.StiffnessMedium  // StiffnessLow → StiffnessMedium (faster response)
-            )
+            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
         } else {
-            tween(durationMillis = 0)
+            tween(0)
         },
         label = "focus_y"
     )
 
-    // v2.9.10: Tracking mode - no scale animation
-    // v2.9.9 Day 1-2: Lock mode - no scale animation
-    val scale by animateFloatAsState(
-        targetValue = if (isTracking || isLocked) 1.0f else if (isFocusing) 1.2f else 1.0f,
-        animationSpec = tween(durationMillis = 300),
-        label = "focus_scale"
+    // Overshoot animation (shrink 10% → bounce back)
+    val scale = remember { Animatable(1.0f) }
+
+    LaunchedEffect(focusSuccess, isFocusing, isTracking, isLocked) {
+        when {
+            focusSuccess == true && !isFocusing && !isTracking && !isLocked -> {
+                // Focus success: Overshoot animation
+                scale.animateTo(0.9f, tween(500, easing = FastOutLinearInEasing))
+                scale.animateTo(1.0f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessHigh))
+            }
+            isTracking || isLocked -> scale.snapTo(1.0f)
+            isFocusing -> scale.animateTo(1.2f, tween(300))
+            else -> scale.snapTo(1.0f)
+        }
+    }
+
+    // Stroke width (Dwell: 2.5dp → 1.5dp)
+    val animatedStrokeWidth by animateFloatAsState(
+        targetValue = if (isFading) 1.5f else 2.5f,
+        animationSpec = tween(500),
+        label = "focus_stroke"
     )
 
-    // v2.9.10: Tracking mode - fixed alpha 1.0
-    // v2.9.9 Day 1-2: Lock mode - fixed alpha 1.0
-    // v2.9.9 Day 1-2 Optimize: Fade-out animation support
+    // Alpha
     val alpha by animateFloatAsState(
         targetValue = when {
-            isTracking || isLocked -> 1.0f  // Tracking/Lock: alpha 1.0
-            isFading -> 0.4f  // v2.9.9 Day 1-2 Optimize: Fading out to 0.4 (persistent visibility)
-            focusSuccess == false -> 0.6f  // Focus failed: alpha 0.6
-            focusSuccess == true -> 1.0f  // Focus success: alpha 1.0
-            else -> 1.0f  // Focusing: alpha 1.0
+            isTracking || isLocked -> 1.0f
+            isFading -> 0.4f
+            focusSuccess == false -> 0.6f
+            else -> 1.0f
         },
-        animationSpec = if (isFading) {
-            tween(durationMillis = 500)  // v2.9.9 Day 1-2 Optimize: 500ms fade-out
-        } else {
-            tween(durationMillis = 500)
-        },
+        animationSpec = tween(500),
         label = "focus_alpha"
     )
 
-    // v2.9.9 Day 1-2: Plan B color scheme (white/cyan/yellow)
-    // Based on v2.9.9_Day1-2_proud-mapping-boole.md (Line 13-21, 358-363)
-    // Focus failed: Cyan alpha 0.6, Focus success: White alpha 1.0
+    // Color: Cyan neon glow or Cyber Yellow (locked)
     val color = when {
-        isLocked -> Color(0xFFFFC107)  // Yellow (#FFC107) - AE/AF Lock
-        isTracking -> Color.White  // White (#FFFFFF) - Tracking
-        focusSuccess == false -> Color(0xFF00E5FF)  // Cyan (#00E5FF) - Focus failed (alpha 0.6)
-        isFocusing -> Color(0xFF00E5FF)  // Cyan (#00E5FF) - Focusing
-        else -> Color.White  // White (#FFFFFF) - Focus success/Default
+        isLocked -> Color(0xFFFFD700)  // Cyber Yellow (#FFD700)
+        else -> Color(0xFF00E5FF)      // Cyan neon glow (#00E5FF)
     }
+
+    // Corner brackets appear only on success/locked
+    val showCornerBrackets = focusSuccess == true || isLocked
 
     Canvas(modifier = modifier) {
-        val radius = 28.dp.toPx() * scale  // v2.9.9 Day 1-2 Optimize Round 2: 32dp → 28dp (Sony Alpha standard)
-        val strokeWidth = 2.5.dp.toPx()  // v2.9.9 Day 1-2 Optimize: 3dp → 2.5dp
+        val size = 48.dp.toPx() * scale.value
+        val halfSize = size / 2
+        val strokeWidth = animatedStrokeWidth.dp.toPx()
 
-        // v2.9.9 Day 1-2 Optimize Round 3: 4-segment solid arc design (reference: circle.png)
-        // Gaps at 0° (right), 90° (bottom), 180° (left), 270° (top)
-        // Each arc: 80°, Each gap: 10°
-
-        // Segment 1: 5° to 85° (80° arc, right to bottom quadrant)
-        drawArc(
+        // Glow Layer (Bottom) - Neon effect
+        drawRect(
             color = color,
-            startAngle = 5f,
-            sweepAngle = 80f,
-            useCenter = false,
-            topLeft = Offset(animatedX - radius, animatedY - radius),
-            size = Size(radius * 2, radius * 2),
+            topLeft = Offset(animatedX - halfSize, animatedY - halfSize),
+            size = Size(size, size),
+            alpha = alpha * 0.3f,
+            style = Stroke(width = strokeWidth * 2.4f)
+        )
+
+        // Core Layer (Top)
+        drawRect(
+            color = color,
+            topLeft = Offset(animatedX - halfSize, animatedY - halfSize),
+            size = Size(size, size),
             alpha = alpha,
             style = Stroke(width = strokeWidth)
         )
 
-        // Segment 2: 95° to 175° (80° arc, bottom to left quadrant)
-        drawArc(
-            color = color,
-            startAngle = 95f,
-            sweepAngle = 80f,
-            useCenter = false,
-            topLeft = Offset(animatedX - radius, animatedY - radius),
-            size = Size(radius * 2, radius * 2),
-            alpha = alpha,
-            style = Stroke(width = strokeWidth)
-        )
-
-        // Segment 3: 185° to 265° (80° arc, left to top quadrant)
-        drawArc(
-            color = color,
-            startAngle = 185f,
-            sweepAngle = 80f,
-            useCenter = false,
-            topLeft = Offset(animatedX - radius, animatedY - radius),
-            size = Size(radius * 2, radius * 2),
-            alpha = alpha,
-            style = Stroke(width = strokeWidth)
-        )
-
-        // Segment 4: 275° to 355° (80° arc, top to right quadrant)
-        drawArc(
-            color = color,
-            startAngle = 275f,
-            sweepAngle = 80f,
-            useCenter = false,
-            topLeft = Offset(animatedX - radius, animatedY - radius),
-            size = Size(radius * 2, radius * 2),
-            alpha = alpha,
-            style = Stroke(width = strokeWidth)
-        )
-
-        // Draw center dot
-        drawCircle(
-            color = color,
-            radius = 3.dp.toPx(),
-            center = Offset(animatedX, animatedY),
-            alpha = alpha
-        )
+        // Corner Brackets (Conditional)
+        if (showCornerBrackets) {
+            val bracketLength = 12.dp.toPx()
+            // Glow brackets
+            drawCornerBrackets(
+                centerX = animatedX,
+                centerY = animatedY,
+                halfSize = halfSize,
+                bracketLength = bracketLength,
+                strokeWidth = strokeWidth * 2.4f,
+                color = color,
+                alpha = alpha * 0.3f
+            )
+            // Core brackets
+            drawCornerBrackets(
+                centerX = animatedX,
+                centerY = animatedY,
+                halfSize = halfSize,
+                bracketLength = bracketLength,
+                strokeWidth = strokeWidth,
+                color = color,
+                alpha = alpha
+            )
+        }
     }
+}
+
+/**
+ * Draw L-shaped corner brackets (v2.11.0)
+ */
+private fun DrawScope.drawCornerBrackets(
+    centerX: Float,
+    centerY: Float,
+    halfSize: Float,
+    bracketLength: Float,
+    strokeWidth: Float,
+    color: Color,
+    alpha: Float
+) {
+    // Top-left corner
+    drawLine(
+        color = color,
+        start = Offset(centerX - halfSize, centerY - halfSize),
+        end = Offset(centerX - halfSize + bracketLength, centerY - halfSize),
+        strokeWidth = strokeWidth,
+        alpha = alpha
+    )
+    drawLine(
+        color = color,
+        start = Offset(centerX - halfSize, centerY - halfSize),
+        end = Offset(centerX - halfSize, centerY - halfSize + bracketLength),
+        strokeWidth = strokeWidth,
+        alpha = alpha
+    )
+
+    // Top-right corner
+    drawLine(
+        color = color,
+        start = Offset(centerX + halfSize, centerY - halfSize),
+        end = Offset(centerX + halfSize - bracketLength, centerY - halfSize),
+        strokeWidth = strokeWidth,
+        alpha = alpha
+    )
+    drawLine(
+        color = color,
+        start = Offset(centerX + halfSize, centerY - halfSize),
+        end = Offset(centerX + halfSize, centerY - halfSize + bracketLength),
+        strokeWidth = strokeWidth,
+        alpha = alpha
+    )
+
+    // Bottom-left corner
+    drawLine(
+        color = color,
+        start = Offset(centerX - halfSize, centerY + halfSize),
+        end = Offset(centerX - halfSize + bracketLength, centerY + halfSize),
+        strokeWidth = strokeWidth,
+        alpha = alpha
+    )
+    drawLine(
+        color = color,
+        start = Offset(centerX - halfSize, centerY + halfSize),
+        end = Offset(centerX - halfSize, centerY + halfSize - bracketLength),
+        strokeWidth = strokeWidth,
+        alpha = alpha
+    )
+
+    // Bottom-right corner
+    drawLine(
+        color = color,
+        start = Offset(centerX + halfSize, centerY + halfSize),
+        end = Offset(centerX + halfSize - bracketLength, centerY + halfSize),
+        strokeWidth = strokeWidth,
+        alpha = alpha
+    )
+    drawLine(
+        color = color,
+        start = Offset(centerX + halfSize, centerY + halfSize),
+        end = Offset(centerX + halfSize, centerY + halfSize - bracketLength),
+        strokeWidth = strokeWidth,
+        alpha = alpha
+    )
 }
 
 /**

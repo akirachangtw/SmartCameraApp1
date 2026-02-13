@@ -14,6 +14,7 @@ Last updated: 2026-02-10
 ### ✅ Confirmed
 - Fade-out: 對焦成功 → Alpha 1.0 (1s) → fade 500ms → Alpha 0.4 持續 | Verified: 2026-02-05
 - ML Kit 追蹤中: Alpha 由 `updateTrackedObjectPosition` 獨立管控，不觸發標準淡出 | Verified: 2026-02-05
+- **前置鏡頭 ML Kit 座標對齊與方向性**：預覽方向與實際方向一致，拍照圖片為鏡像（正常行為）。所有方向（Portrait, Landscape Left, Landscape Right）顯示正確 | Verified: 2026-01-26 (v2.9.6 Phase 2.1, Pixel 9a)
 - maxDistancePerFrame: 25f (downsampled coords) | Verified: pending Pixel 9a
 - Spring stiffness: StiffnessHigh (900f) animatedX/Y | Verified: pending Pixel 9a
 
@@ -27,7 +28,7 @@ Last updated: 2026-02-10
 ### 📋 Backlog
 - [ ] [9B] maxDistancePerFrame 25f — pending Pixel 9a 實機驗證
 - [ ] [9B] Spring StiffnessHigh — pending Pixel 9a 實機驗證
-- [ ] ML Kit 前置鏡頭座標鏡像偏移 — pending 驗證 | 詳細: `docs/issues/front_camera_mlkit_mirror.md`
+- [x] ML Kit 前置鏡頭座標鏡像偏移 — ✅ 已驗證正常 (v2.9.6 Phase 2.1) | 測試報告: `docs/test_results/v2.9.6-Phase2.1/Pixel9a_Physical_Test_Report.md`
 
 ---
 

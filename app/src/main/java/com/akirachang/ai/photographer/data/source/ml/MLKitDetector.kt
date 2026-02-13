@@ -14,6 +14,7 @@
  */
 package com.akirachang.ai.photographer.data.source.ml
 
+import android.graphics.PointF
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
@@ -23,12 +24,14 @@ import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.google.mlkit.vision.face.FaceLandmark
 import com.google.mlkit.vision.objects.DetectedObject
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.ObjectDetector
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import kotlinx.coroutines.tasks.await
 import com.akirachang.ai.photographer.domain.model.DetectionResult
+import com.akirachang.ai.photographer.domain.model.EyePosition
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -54,7 +57,7 @@ class MLKitDetector @Inject constructor() {
     private val faceDetector: FaceDetector by lazy {
         val options = FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL) // v2.11.0: Enable eye landmarks for Eye-AF
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
             .setMinFaceSize(0.15f) // 最小人臉大小（佔畫面比例）
             .enableTracking() // 啟用人臉追蹤
@@ -114,6 +117,7 @@ class MLKitDetector @Inject constructor() {
             DetectionResult(
                 faces = filteredFaces,
                 objects = filteredObjects,
+                eyePositions = extractEyePositions(filteredFaces),  // v2.11.0: Eye-AF
                 imageWidth = inputImage.width,
                 imageHeight = inputImage.height,
                 rotationDegrees = imageProxy.imageInfo.rotationDegrees,
@@ -144,6 +148,69 @@ class MLKitDetector @Inject constructor() {
         } catch (e: Exception) {
             Log.e(TAG, "Detection failed", e)
             null
+        }
+    }
+
+    /**
+     * Extract eye positions from detected faces (v2.11.0 Eye-AF)
+     *
+     * @param faces List of detected faces
+     * @return List of eye positions with nearest eye calculation
+     */
+    private fun extractEyePositions(faces: List<Face>): List<EyePosition> {
+        return faces.mapNotNull { face ->
+            val leftEyeLandmark = face.getLandmark(FaceLandmark.LEFT_EYE)
+            val rightEyeLandmark = face.getLandmark(FaceLandmark.RIGHT_EYE)
+
+            val leftEye = leftEyeLandmark?.position
+            val rightEye = rightEyeLandmark?.position
+
+            val nearestEye = calculateNearestEye(leftEye, rightEye, face.headEulerAngleY)
+
+            if (leftEye != null || rightEye != null) {
+                EyePosition(
+                    leftEye = leftEye,
+                    rightEye = rightEye,
+                    nearestEye = nearestEye,
+                    faceId = face.trackingId ?: -1
+                ).also {
+                    Log.d(TAG, "Eye-AF: Face ${face.trackingId} - Left: $leftEye, Right: $rightEye, Nearest: $nearestEye (Yaw: ${face.headEulerAngleY}°)")
+                }
+            } else {
+                null
+            }
+        }
+    }
+
+    /**
+     * Calculate nearest eye to camera based on head pose (v2.11.0 Eye-AF)
+     *
+     * Uses head yaw angle to determine which eye is closer:
+     * - Face turned left (positive yaw > 10°): right eye is closer
+     * - Face turned right (negative yaw < -10°): left eye is closer
+     * - Face front (yaw between -10° and 10°): choose eye with lower Y coordinate
+     *
+     * @param leftEye Left eye position
+     * @param rightEye Right eye position
+     * @param headEulerAngleY Head yaw angle in degrees
+     * @return The eye closest to camera, or null if both eyes are null
+     */
+    private fun calculateNearestEye(
+        leftEye: PointF?,
+        rightEye: PointF?,
+        headEulerAngleY: Float
+    ): PointF? {
+        return when {
+            headEulerAngleY > 10f -> rightEye  // Face left, right eye closer
+            headEulerAngleY < -10f -> leftEye  // Face right, left eye closer
+            else -> {
+                // Front face: choose eye with lower Y (higher in image, closer to camera)
+                if (leftEye != null && rightEye != null) {
+                    if (leftEye.y < rightEye.y) leftEye else rightEye
+                } else {
+                    leftEye ?: rightEye
+                }
+            }
         }
     }
 

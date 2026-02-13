@@ -103,6 +103,10 @@ class CameraViewModel @Inject constructor(
     private var targetLostFrameCount = 0
     private val TARGET_LOST_THRESHOLD = 10  // Stop tracking after 10 consecutive frames without target
 
+    // Smart Subject Focus (v2.11.0: AI Auto-Focus)
+    private var lastManualTapTime: Long = 0L
+    private val MANUAL_TAP_OVERRIDE_DURATION = 5000L  // 5 seconds
+
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
 
@@ -570,24 +574,79 @@ class CameraViewModel @Inject constructor(
         val trackedId = _state.value.trackedObjectId ?: return
         val trackedType = _state.value.trackedObjectType ?: return
 
-        // Find target by type
-        val targetBoundingBox: android.graphics.Rect? = when (trackedType) {
+        // Find target by type and calculate focus position
+        var centerX: Float? = null
+        var centerY: Float? = null
+
+        when (trackedType) {
             TrackedObjectType.FACE -> {
-                detectionResult.faces.firstOrNull { face ->
+                val face = detectionResult.faces.firstOrNull { face ->
                     (face.trackingId ?: -1) == trackedId
-                }?.boundingBox
+                }
+
+                if (face != null) {
+                    // v2.11.0 Eye-AF: Use eye position if available
+                    val eyePosition = detectionResult.eyePositions.firstOrNull { it.faceId == trackedId }
+
+                    if (eyePosition?.nearestEye != null) {
+                        // Eye-AF: Focus on nearest eye for professional portrait
+                        centerX = eyePosition.nearestEye.x
+                        centerY = eyePosition.nearestEye.y
+                        if (BuildConfig.DEBUG) {
+                            Log.v(TAG, "Eye-AF tracking: Face $trackedId at eye ($centerX, $centerY)")
+                        }
+                    } else {
+                        // Fallback: Use face bounding box center
+                        centerX = face.boundingBox.exactCenterX()
+                        centerY = face.boundingBox.exactCenterY()
+                        if (BuildConfig.DEBUG) {
+                            Log.v(TAG, "Face tracking (no eye): Face $trackedId at center ($centerX, $centerY)")
+                        }
+                    }
+                }
             }
             TrackedObjectType.OBJECT -> {
-                detectionResult.objects.firstOrNull { obj ->
+                val obj = detectionResult.objects.firstOrNull { obj ->
                     (obj.trackingId ?: -1) == trackedId
-                }?.boundingBox
+                }
+
+                if (obj != null) {
+                    centerX = obj.boundingBox.exactCenterX()
+                    centerY = obj.boundingBox.exactCenterY()
+                }
             }
         }
 
-        if (targetBoundingBox != null) {
+        if (centerX != null && centerY != null) {
             // Target found, update position
-            val centerX = targetBoundingBox.exactCenterX()
-            val centerY = targetBoundingBox.exactCenterY()
+
+            // v2.11.0 Fade-out optimization: Reset on significant motion during dwell state
+            if (_state.value.focusIndicatorFading) {
+                val oldFocusPoint = _state.value.focusPoint
+                if (oldFocusPoint != null) {
+                    val positionDelta = kotlin.math.sqrt(
+                        (centerX - oldFocusPoint.first) * (centerX - oldFocusPoint.first) +
+                        (centerY - oldFocusPoint.second) * (centerY - oldFocusPoint.second)
+                    )
+
+                    // Motion threshold: 30 pixels (about 1cm on typical phone screen)
+                    val motionThreshold = 30f
+
+                    if (positionDelta > motionThreshold) {
+                        // Significant motion detected: reset fade and refocus
+                        _state.update { it.copy(focusIndicatorFading = false, isFocusing = true) }
+
+                        val viewWidth = previewWidth ?: return
+                        val viewHeight = previewHeight ?: return
+                        focusOnPoint(centerX, centerY, viewWidth, viewHeight)
+
+                        if (BuildConfig.DEBUG) {
+                            Log.d(TAG, "Fade-out reset: object moved ${positionDelta.toInt()}px (threshold: ${motionThreshold.toInt()}px)")
+                        }
+                        return  // Skip normal position update since we just refocused
+                    }
+                }
+            }
 
             // Prevent excessive updates: only update if position changed > 5 pixels
             val currentFocusPoint = _state.value.focusPoint
@@ -638,6 +697,9 @@ class CameraViewModel @Inject constructor(
     private fun focusOnPoint(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
         viewModelScope.launch {
             try {
+                // v2.11.0: Record manual tap time for Smart Subject Focus override
+                lastManualTapTime = System.currentTimeMillis()
+
                 // 🔍 DIAGNOSTIC: Log tap coordinates and view size
                 Log.d(TAG, "🔍 [Coordinate Debug] Tap: ($x, $y), View: ${viewWidth}x${viewHeight}")
 
@@ -828,6 +890,110 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
+     * Calculate saliency score for Smart Subject Focus (v2.11.0)
+     *
+     * Uses heuristic weight calculation (ML Kit Proxy approach):
+     * Score = (BoxSize * 0.6) + (Centrality * 0.4) + (Face Bonus: +30)
+     *
+     * @param boundingBox Detection bounding box
+     * @param isFace Whether this is a face detection
+     * @param viewWidth View width in pixels
+     * @param viewHeight View height in pixels
+     * @return Saliency score (higher = more salient)
+     */
+    private fun calculateSaliencyScore(
+        boundingBox: android.graphics.Rect,
+        isFace: Boolean,
+        viewWidth: Int,
+        viewHeight: Int
+    ): Float {
+        // 1. Box size component (normalized)
+        val boxSize = (boundingBox.width() * boundingBox.height()).toFloat()
+        val normalizedSize = boxSize / (viewWidth * viewHeight)
+
+        // 2. Centrality component (distance from screen center)
+        val centerX = boundingBox.exactCenterX()
+        val centerY = boundingBox.exactCenterY()
+        val screenCenterX = viewWidth / 2f
+        val screenCenterY = viewHeight / 2f
+
+        val distance = kotlin.math.sqrt(
+            (centerX - screenCenterX) * (centerX - screenCenterX) +
+            (centerY - screenCenterY) * (centerY - screenCenterY)
+        )
+        val maxDistance = kotlin.math.sqrt(
+            screenCenterX * screenCenterX + screenCenterY * screenCenterY
+        )
+        val centrality = 1 - (distance / maxDistance)
+
+        // 3. Calculate base score
+        var score = (normalizedSize * 0.6f) + (centrality * 0.4f)
+
+        // 4. Face bonus
+        if (isFace) score += 30f
+
+        return score
+    }
+
+    /**
+     * Auto-focus on most salient subject (v2.11.0 Smart Subject Focus)
+     *
+     * Automatically identifies and focuses on the most important subject
+     * when no manual tap has occurred recently.
+     *
+     * Priority: Manual tap > Eye-AF > Smart Subject Focus > None
+     */
+    private fun autoFocusOnSalientTarget() {
+        val currentState = _state.value
+
+        // Don't auto-focus if:
+        // 1. AE/AF is locked
+        // 2. Currently focusing
+        // 3. Manual tap occurred within last 5 seconds
+        val canAutoFocus = !currentState.isAEAFLocked &&
+            !currentState.isFocusing &&
+            (System.currentTimeMillis() - lastManualTapTime) > MANUAL_TAP_OVERRIDE_DURATION
+
+        if (!canAutoFocus) return
+
+        val detectionResult = currentState.detectionResult ?: return
+        val viewWidth = previewWidth ?: return
+        val viewHeight = previewHeight ?: return
+
+        // Collect all candidates with scores
+        val candidates = mutableListOf<Pair<Pair<Float, Float>, Float>>()
+
+        // Faces (with Eye-AF integration)
+        detectionResult.faces.forEach { face ->
+            val score = calculateSaliencyScore(face.boundingBox, true, viewWidth, viewHeight)
+            val eyePosition = detectionResult.eyePositions.firstOrNull { it.faceId == face.trackingId }
+            val centerX = eyePosition?.nearestEye?.x ?: face.boundingBox.exactCenterX()
+            val centerY = eyePosition?.nearestEye?.y ?: face.boundingBox.exactCenterY()
+            candidates.add((centerX to centerY) to score)
+        }
+
+        // Objects
+        detectionResult.objects.forEach { obj ->
+            val score = calculateSaliencyScore(obj.boundingBox, false, viewWidth, viewHeight)
+            val centerX = obj.boundingBox.exactCenterX()
+            val centerY = obj.boundingBox.exactCenterY()
+            candidates.add((centerX to centerY) to score)
+        }
+
+        // Find top candidate
+        val topCandidate = candidates.maxByOrNull { it.second }
+
+        // Auto-focus if score is above threshold
+        if (topCandidate != null && topCandidate.second > 50f) {
+            val (x, y) = topCandidate.first
+            focusOnPoint(x, y, viewWidth, viewHeight)
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Smart Subject Focus: score=${topCandidate.second}, pos=($x, $y)")
+            }
+        }
+    }
+
+    /**
      * Unlock AE/AF (return to auto mode)
      * v2.9.9 Day 1-2: Traycer v2 AE/AF Lock
      *
@@ -1011,6 +1177,9 @@ class CameraViewModel @Inject constructor(
 
                                 // v2.9.10: Update tracked object position (Traycer)
                                 updateTrackedObjectPosition(detectionResult)
+
+                                // v2.11.0: Smart Subject Focus (AI auto-focus)
+                                autoFocusOnSalientTarget()
 
                                 // Perform composition analysis
                                 val compStart = System.nanoTime()
