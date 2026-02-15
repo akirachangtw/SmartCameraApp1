@@ -81,6 +81,29 @@ Feature branch: `feature/camera-input-abstraction`
 
 > ⚠️ **重要**: Work NB 測試產出（測試報告、照片、Logcat）必須存放至 `docs/test_results/<version>/` 目錄，才能被 Git 追蹤並提交。`tmp/` 目錄已被 `.gitignore` 忽略。
 
+### 📖 目錄結構規範
+
+**完整規範文檔**: [`devspec/DIRECTORY_STRUCTURE.md`](devspec/DIRECTORY_STRUCTURE.md)
+
+**快速參考** - 文檔應存放在哪裡？
+
+| 文檔類型 | 存放位置 | 範例 |
+|---------|---------|------|
+| 整體專案計畫/架構設計 | `plans/` | 產品路線圖、架構藍圖 |
+| 功能 L1/L2/Traycer 計劃 | `docs/features/<版本>/` | v2.10.0_aspect_ratio_L1.md |
+| 版本發布記錄 | `docs/releases/<版本>/` | RELEASE_NOTES_v2.8.0.md |
+| 測試報告 | `docs/test_results/<版本>/` | PIXEL9A_TEST_REPORT.md |
+| Bug 追蹤/Issue 分析 | `docs/issues/` | front_camera_mlkit_mirror.md |
+| 技術分析報告 | `docs/reports/` | 16kb-compatibility-report.md |
+| Git 管理文檔 | `docs/git/` | GIT_ANALYSIS_GUIDE.md |
+| 操作指南/工具使用 | `docs/guides/` | MANUAL_TEST_HANDOFF.md |
+| 開發規範/流程/模板 | `devspec/` | MERGE_SOP.md, BRANCH_RELEASES.md |
+
+**⚠️ 重要規則**:
+- L1/L2 計劃必須存放在 `docs/features/<版本>/`，**不要**放在 `plans/`
+- 測試報告必須存放在 `docs/test_results/<版本>/`，**不要**放在 `docs/features/`
+- 撰寫新文檔前，請查閱 `devspec/DIRECTORY_STRUCTURE.md` 的「快速決策樹」
+
 ---
 
 ## ⚠️ ADB 使用指南 - 重要注意事項
