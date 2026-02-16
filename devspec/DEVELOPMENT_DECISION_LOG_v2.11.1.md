@@ -18,6 +18,7 @@
 | D-005 | 2026-02-09 | 合併 v2.10.2-final 功能 | ✅ | `70e1d67` |
 | D-006 | 2026-02-13 | 恢復 16KB ELF 對齊檢查腳本 | ✅ | `3830fb2` |
 | D-007 | 2026-02-16 | 視覺語言協議精簡（v2.11.0 決議澄清） | ✅ | 文檔同步 |
+| D-008 | 2026-02-16 | 機械咬合動畫時長修正（符合「咔嗒」節奏感） | ✅ | 文檔更新 |
 
 ---
 
@@ -386,12 +387,13 @@ v2.11.0 設計文檔存在矛盾：
 #### 決議內容 (Decision)
 以 **v2.11.0_FINAL_SALIENCY_AND_VISUAL_DESIGN.md 為準**（最終設計規範優於評估報告）
 
-**保留 5 項視覺語言**：
-1. ✅ 機械咬合動畫 — 對焦成功時，四個括號向中心咬合 4dp
-2. ✅ 瞬間縮放大小（咔嗒動畫）— Scale 1.0 → 0.9 → 1.0 (1000ms)
-3. ✅ 淡化 Alpha + 線條變細 — Dwell 階段 Alpha 1.0 → 0.4，線條 2.5dp → 1.5dp
-4. ✅ 圖示顏色變化 — White（一般）/ Yellow（Lock）
-5. ✅ **Glow 輝光效果（靜態雙層繪製）** — 所有狀態統一應用，不做呼吸脈衝
+**保留 4 項視覺語言**：
+1. ✅ 機械咬合動畫（「咔嗒」節奏感）— Scale 1.0 → 0.9 → 1.0，縮小→彈回
+   - **⚠️ 時長問題**：v2.11.0 定義為 1000ms（500ms+500ms），但與「咔嗒」描述矛盾
+   - **修正**：見 D-008 決議（修正為 150ms+200ms）
+2. ✅ 淡化 Alpha + 線條變細 — Dwell 階段 Alpha 1.0 → 0.4，線條 2.5dp → 1.5dp
+3. ✅ 圖示顏色變化 — White（一般）/ Yellow（Lock）
+4. ✅ **Glow 輝光效果（靜態雙層繪製）** — 所有狀態統一應用，不做呼吸脈衝
 
 **刪除項目**：
 - ❌ 呼吸脈衝動畫 — Glow Alpha 0.2↔0.3 動態變化（Searching 階段）
@@ -467,6 +469,154 @@ v2.11.0 設計文檔存在矛盾：
 
 ---
 
+### D-008: 機械咬合動畫時長修正（符合「咔嗒」節奏感）
+
+**決議日期**: 2026-02-16
+**決議者**: Akira Chang + Claude Sonnet 4.5
+**相關功能**: Focus Indicator Visual Design - 機械咬合動畫
+**相關決議**: D-007（視覺語言協議）
+
+#### 問題背景 (What & Why)
+v2.11.0 設計文檔（`v2.11.0_FINAL_SALIENCY_AND_VISUAL_DESIGN.md` Lines 228-246）定義機械咬合動畫為：
+
+**當前設計**：
+- 階段 2: 縮小 10%（Scale 1.0 → 0.9，500ms）
+- 階段 3: 彈回原大小（Scale 0.9 → 1.0，500ms, Spring）
+- 總時長：**1000ms**
+- 描述：**「咔嗒」一聲的視覺節奏感**
+
+**核心矛盾**：
+1 秒（1000ms）的動畫**無法產生「咔嗒」的快速反饋感**。
+
+**真實「咔嗒」聲時長參考**：
+- 相機快門：約 50-100ms
+- 機械開關：約 100-200ms
+- 觸覺反饋：約 50-150ms
+- **合理範圍**：300-400ms
+
+#### 決議內容 (Decision)
+修正機械咬合動畫時長參數：
+
+**修正後設計**：
+- 階段 2: 快速縮小 10%（150ms）
+- 階段 3: 快速彈回（200ms, Spring 高剛性）
+- **總時長：350ms**
+- **效果**：真正符合「咔嗒」節奏感
+
+#### 實作規範 (Implementation)
+
+**修正前**（v2.11.0 原設計）：
+```kotlin
+// 階段 2: 縮小至 0.9（500ms）
+scale.animateTo(
+    targetValue = 0.9f,
+    animationSpec = tween(
+        durationMillis = 500,  // ❌ 太慢
+        easing = FastOutLinearInEasing
+    )
+)
+
+// 階段 3: 彈回至 1.0（500ms, Spring）
+scale.animateTo(
+    targetValue = 1.0f,
+    animationSpec = spring(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessHigh
+    )
+    // Spring 動畫約 500ms
+)
+
+// 總時長：約 1000ms ❌
+```
+
+**修正後**（v2.11.1 新設計）：
+```kotlin
+// 階段 2: 快速縮小至 0.9（150ms）
+scale.animateTo(
+    targetValue = 0.9f,
+    animationSpec = tween(
+        durationMillis = 150,  // ✅ 快速壓縮
+        easing = FastOutLinearInEasing
+    )
+)
+
+// 階段 3: 快速彈回至 1.0（200ms, Spring 高剛性）
+scale.animateTo(
+    targetValue = 1.0f,
+    animationSpec = spring(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessHigh  // 高剛性，快速彈回
+    )
+    // Spring 動畫約 200ms
+)
+
+// 總時長：約 350ms ✅ 清脆「咔嗒」節奏感
+```
+
+#### 視覺效果對比 (Visual Effect Comparison)
+
+| 時長 | 視覺感受 | 適合描述 | 採用 |
+|------|---------|---------|------|
+| **150ms + 200ms = 350ms** | 「咔嗒」一聲 | 快門、開關、確認 | ✅ **採用** |
+| **500ms + 500ms = 1000ms** | 優雅滑動 | 平滑過渡、從容展開 | ❌ 不符合 |
+
+**用戶體驗提升**：
+- ✅ 快速反饋，即時確認
+- ✅ 清脆節奏感，不拖泥帶水
+- ✅ 符合「咔嗒」的語義描述
+- ✅ 接近真實相機快門體驗
+
+#### 決策來源 (Reference)
+**原始設計**（存在矛盾）:
+- `docs/features/v2.11.0/v2.11.0_FINAL_SALIENCY_AND_VISUAL_DESIGN.md`
+  - Line 235: Scale 動畫 1.0 → 0.9（500ms）
+  - Line 244: Scale 動畫 0.9 → 1.0（500ms, Spring）
+  - Line 245: 視覺節奏感「咔嗒」一聲 ❌ 矛盾
+  - Lines 258-277: 動畫實作代碼（500ms 參數）
+
+**修正依據**:
+- 用戶反饋：「咔嗒」應該是快速、清脆的反饋
+- UX 最佳實踐：觸覺反饋通常 < 400ms
+- 真實相機快門時長：50-150ms
+
+#### 影響範圍 (Impact)
+**影響檔案**:
+- `CameraScreen.kt`: FocusIndicator 動畫時間參數（待實作）
+- `devspec/feature_record_Backlog.md`: 視覺語言協議更新（本次修正）
+- v2.11.1 L1 Plan: 視覺設計實作章節（待更新）
+
+**影響功能**:
+- Focus Indicator 對焦成功動畫（v2.11.1 待實作）
+
+**向後兼容性**:
+- N/A（新功能，尚未實作）
+
+#### 風險評估 (Risks)
+| 風險 | 機率 | 影響 | 緩解措施 |
+|------|------|------|---------|
+| 動畫太快，用戶難以察覺 | 低 | 低 | 350ms 處於可察覺範圍（200-500ms），實機測試驗證 |
+| Spring 彈性效果不明顯 | 低 | 低 | 使用 Spring.StiffnessHigh 保證彈性質感 |
+
+#### 實作細節 (Implementation)
+**待實作** (v2.11.1 Phase 2):
+- [ ] 修改 FocusIndicator Scale 動畫時間參數
+  - 縮小階段：500ms → 150ms
+  - 彈回階段：500ms → 200ms（Spring）
+- [ ] 實機測試驗證「咔嗒」節奏感
+- [ ] 必要時微調時長（允許 ±50ms 調整範圍）
+
+**關鍵代碼位置**:
+- Focus Indicator: `CameraScreen.kt` (Pending implementation)
+- 動畫範例: 見上方「實作規範」章節
+
+#### 狀態
+- [x] 決議完成
+- [x] 文檔更新完成（本條目 + D-007 修正）
+- [ ] 實作待開始（v2.11.1 Phase 2）
+- [ ] 實機測試待開始（Pixel 9a）
+
+---
+
 ## ⚠️ Critical Warnings（關鍵警告）
 
 > **目的**: 記錄不可逆轉的決議，避免未來重新引入已修復的問題
@@ -505,7 +655,7 @@ v2.11.0 設計文檔存在矛盾：
 
 | 狀態 | 數量 |
 |------|------|
-| ✅ 已完成 | 7 |
+| ✅ 已完成 | 8 |
 | 🚧 進行中 | 0 |
 | ⏸️ 暫停 | 0 |
 | ❌ 已取消 | 0 |
@@ -521,6 +671,8 @@ v2.11.0 設計文檔存在矛盾：
 | 2026-02-15 | 新增 4 個 Critical Warnings | Claude Sonnet 4.5 |
 | 2026-02-16 | 新增 D-007 決議（視覺語言協議精簡） | Claude Sonnet 4.5 + Akira Chang |
 | 2026-02-16 | 同步更新 feature_record_Backlog.md | Claude Sonnet 4.5 + Akira Chang |
+| 2026-02-16 | 修正 D-007（合併重複視覺語言，5 項 → 4 項） | Claude Sonnet 4.5 + Akira Chang |
+| 2026-02-16 | 新增 D-008 決議（機械咬合動畫時長修正） | Claude Sonnet 4.5 + Akira Chang |
 
 ---
 
