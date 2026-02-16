@@ -3,7 +3,7 @@
  * Description: Main camera screen with ML Kit detection and composition guidance
  * Author: Claude Code
  * Date: 2025-11-17
- * Version: 2.4.0
+ * Version: 2.11.1
  *
  * Modifications:
  * - 2025-11-17: Added ML Kit detection result text overlay
@@ -13,6 +13,7 @@
  * - 2025-11-30: Added directional indicator arrows for composition guidance (v2.0 Phase 4)
  * - 2025-12-01: Added LevelIndicator overlay with sensor integration (v2.1.0)
  * - 2025-12-08: Added CompositionGuideOverlay for visual composition guidance (v2.4.0)
+ * - 2026-02-16: Fixed mechanical clamp animation timing: 500ms → 150ms (v2.11.1 D-008)
  */
 package com.akirachang.ai.photographer.presentation.camera
 
@@ -509,11 +510,17 @@ fun CameraScreen(
 }
 
 /**
- * Rectangle Focus Indicator with Corner Brackets (v2.11.0)
+ * Rectangle Focus Indicator with Corner Brackets (v2.11.1)
  * - Searching: Rectangle only, Cyan neon glow
- * - Success: Rectangle + Corner brackets, Cyan, shrink 10% → bounce animation
+ * - Success: Rectangle + Corner brackets, Cyan, mechanical clamp animation (350ms: 150ms shrink + 200ms bounce)
  * - Dwell: Rectangle + Corner brackets, Cyan Alpha 0.4, stroke 1.5dp
  * - Locked: Rectangle + Corner brackets, Cyber Yellow neon glow
+ *
+ * Visual Languages (4 items only - D-007, D-008):
+ * 1. Mechanical clamp animation (350ms)
+ * 2. Fade-out Alpha + Stroke thinning (500ms)
+ * 3. Color change (Cyan ↔ Cyber Yellow)
+ * 4. Static Glow effect (dual-layer rendering, alpha=0.3)
  */
 @Composable
 private fun FocusIndicator(
@@ -554,8 +561,10 @@ private fun FocusIndicator(
     LaunchedEffect(focusSuccess, isFocusing, isTracking, isLocked) {
         when {
             focusSuccess == true && !isFocusing && !isTracking && !isLocked -> {
-                // Focus success: Overshoot animation
-                scale.animateTo(0.9f, tween(500, easing = FastOutLinearInEasing))
+                // Focus success: Mechanical clamp animation (v2.11.1: 350ms total = 150ms + 200ms)
+                // Phase 2: Shrink to 0.9 (150ms)
+                scale.animateTo(0.9f, tween(150, easing = FastOutLinearInEasing))
+                // Phase 3: Bounce back to 1.0 (Spring ~200ms)
                 scale.animateTo(1.0f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessHigh))
             }
             isTracking || isLocked -> scale.snapTo(1.0f)
