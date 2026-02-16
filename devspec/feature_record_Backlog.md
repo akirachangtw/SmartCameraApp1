@@ -102,6 +102,93 @@ Last updated: 2026-02-10
 
 ---
 
+## Focus Indicator Visual Design (v2.11.1)
+
+### ✅ Confirmed - 保留的視覺語言（僅此五項）
+**過去決議**：Focus Indicator 僅使用以下五種視覺語言，其他動畫全部刪除 | Decision: 2026-02-16
+
+1. **機械咬合動畫** — 對焦成功時，四個括號向中心咬合 4dp | Verified: pending v2.11.1
+   - **Effect**: 科技感 + 精準感的視覺反饋
+   - **Timing**: 對焦成功後觸發（Success → Locked 轉換）
+   - **Reference**: `v2.11.0_corner_bracket_feasibility.md` Lines 345-399
+
+2. **瞬間縮放大小（咔嗒動畫）** — 對焦成功瞬間，Scale 1.0 → 0.9 → 1.0 (1000ms) | Verified: pending v2.11.1
+   - **Effect**: 模擬快門「咔嗒」聲的視覺節奏感
+   - **Timing**: 對焦成功瞬間（Success 階段）
+
+3. **淡化 Alpha** — Dwell 階段 Alpha 1.0 → 0.4，線條從 2.5dp → 1.5dp | Verified: pending v2.11.1
+   - **Effect**: 減少視覺干擾，呈現機械咬合的穩定感
+   - **Timing**: 對焦成功後 1500-2000ms（持續停留）
+   - **Reference**: `v2.11.0_corner_bracket_feasibility.md` Lines 301-306
+
+4. **圖示顏色變化** — 狀態改變時的顏色轉換 | Verified: pending v2.11.1
+   - **White**: 一般對焦狀態（Searching, Success, Dwell）
+   - **Yellow**: AE/AF Lock 鎖定狀態
+
+5. **Glow 輝光效果** — 靜態霓虹光暈（所有狀態） | Verified: pending v2.11.1
+   - **Effect**: 科技感視覺增強，提升介面質感
+   - **Implementation**: 使用 BlurMaskFilter 或雙層 Canvas 繪製
+   - **Note**: 靜態 Glow，不做呼吸脈衝動畫
+   - **Reference**: `v2.11.0_corner_bracket_feasibility.md` Lines 268-277
+
+### ✅ Confirmed - 刪除的視覺語言（不再使用）
+**過去決議**：以下動畫全部刪除，不再實作 | Decision: 2026-02-16
+
+- ❌ **呼吸脈衝動畫** — Searching 階段的 Glow Alpha 動態變化（0.2 ↔ 0.3 脈衝）（已刪除）
+  - **Reason**: 簡化視覺語言，減少不必要的持續動畫
+  - **Clarification**: Glow 輝光效果本身**保留**（靜態光暈），僅刪除 Alpha 呼吸脈衝動畫
+  - **Original design**: `v2.11.0_FINAL_RECOMMENDATION.md` Lines 143-171 (Phase 2B)
+  - **Final decision**: `v2.11.0_FINAL_SALIENCY_AND_VISUAL_DESIGN.md` Line 208「動畫: ❌ 無呼吸動畫（已刪除）」
+
+- ❌ **停止呼吸動畫** — 對焦成功時停止呼吸脈衝轉換（已刪除）
+  - **Reason**: 呼吸脈衝動畫本身已刪除，此轉換動畫不再需要
+
+- ❌ **其他動畫效果** — 包括但不限於：
+  - 抖動（Jitter）
+  - 旋轉（Rotation）
+  - 複雜的彈性動畫（除了咔嗒縮放和機械咬合外）
+  - 任何未在「保留的視覺語言」列表中的動畫
+
+### ⚠️ Critical Warning
+**DO NOT re-add deleted animations**
+- v2.11.1 design decision: **ONLY 5 visual languages allowed**
+  1. Mechanical clamp (向中心咬合)
+  2. Instant scale (瞬間縮放)
+  3. Alpha fade (淡化透明度 + 線條變細)
+  4. Color change (顏色變化)
+  5. **Glow effect (靜態輝光，不做呼吸脈衝)**
+- **Glow breathing pulse animation** (Alpha 0.2↔0.3) → **removed in v2.11.0/v2.11.1**
+  - Static Glow effect (雙層繪製) → **retained** (v2.11.0 FINAL_SALIENCY_AND_VISUAL_DESIGN.md)
+- "Stop breathing" transition → **removed (no longer needed)**
+- Keep visual language **minimal and focused**
+- If adding new animations, must have **explicit user approval** and update this section
+
+### 📚 Reference Documents (v2.11.0 決議)
+- **最終設計規範**: `docs/features/v2.11.0/v2.11.0_FINAL_SALIENCY_AND_VISUAL_DESIGN.md`
+  - Line 178: 搜尋中動畫 - 呼吸動畫（Alpha 脈衝）→ ❌ 刪除
+  - Line 179: 霓虹輝光 - 雙層繪製（Glow + Core）→ ✅ 保留
+  - Lines 387-431: 霓虹輝光效果實作（雙層繪製）
+- **評估報告**: `docs/features/v2.11.0/v2.11.0_FINAL_RECOMMENDATION.md`
+  - Lines 103-139: Phase 2A 霓虹輝光效果 ⭐ 強烈推薦
+  - Lines 143-171: Phase 2B 呼吸訊號動畫 ✅ 推薦實作（但被最終設計推翻）
+- **工作流程驗證**: `devspec/GIT_WORKFLOW_PHASE1_IMPLEMENTATION_REPORT.md`
+  - Phase 6: Merge Readiness - 文檔同步驗證（Lines 71-95）
+  - 驗證工具: `python tools/check_merge_readiness.py`
+  - 本次修正符合 MERGE_SOP Phase 2 文檔同步要求
+
+### 🔍 Code Locations
+- (Pending implementation) Mechanical clamp animation: `CameraScreen.kt` - FocusIndicator
+- (Pending implementation) Dwell stroke animation: `CameraScreen.kt` - FocusIndicator
+
+### 📋 Backlog
+- [ ] [v2.11.1] 實作機械咬合動畫（向中心移動 4dp）
+- [ ] [v2.11.1] 實作 Glow 輝光效果（雙層繪製：Glow 層 + Core 層）
+- [ ] [v2.11.1] 實作 Dwell 線條變細動畫（2.5dp → 1.5dp）
+- [ ] [v2.11.1] 實作「咔嗒」縮放動畫（1.0 → 0.9 → 1.0，1000ms）
+- [ ] [v2.11.1] 確認顏色變化正確（White → Yellow for Lock）
+
+---
+
 ## Camera Core Features (v2.11.0 / v3.5.0) - 從 v2.9.9 延後
 
 ### 📋 Backlog
