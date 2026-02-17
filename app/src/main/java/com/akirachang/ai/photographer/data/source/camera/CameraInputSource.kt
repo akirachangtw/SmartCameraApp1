@@ -97,6 +97,22 @@ interface CameraInputSource {
     }
 
     /**
+     * Set PreviewView reference for coordinate transformation
+     *
+     * v2.11.1 P0-1: Coordinate system unification (Bug fix for out-of-preview tap focus)
+     * PreviewView.meteringPointFactory provides accurate coordinate mapping that respects
+     * FIT_CENTER letterboxing and ViewPort cropping.
+     *
+     * For LiveCameraSource: Stores PreviewView reference for accurate metering point creation
+     * For StaticImageSource: No-op (test images don't support autofocus)
+     *
+     * @param previewView PreviewView instance, or null to clear
+     */
+    fun setPreviewView(previewView: androidx.camera.view.PreviewView?) {
+        // Default no-op for StaticImageSource
+    }
+
+    /**
      * Check if native preview is supported
      *
      * v2.8.6 Phase 2: PreviewView migration

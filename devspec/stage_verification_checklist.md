@@ -12,6 +12,7 @@
 - [ ] **Phase 3**: 16KB Compatibility
 - [ ] **Phase 4**: Emulator Testing
 - [ ] **Phase 5**: Device Testing（條件觸發）
+- [ ] **Phase 6**: Merge Readiness（準備合併前）
 
 ---
 
@@ -206,6 +207,141 @@ adb -s <device-id> logcat -v time > docs/test_results/<version>/device_test_logc
 
 ---
 
+## Phase 6: Merge Readiness（準備合併前）
+
+> ⚠️ **執行時機**: 準備執行 `git merge` 合併分支前
+> 📖 **目的**: 確保已完成 MERGE_SOP.md Phase 2 文檔同步，避免合併後文檔與代碼脫節
+
+### 6.1 執行 Smart Check
+
+**方法 1: 直接執行腳本**
+```bash
+python tools/check_merge_readiness.py
+```
+
+**方法 2: 使用 GUI（未來開發）**
+```bash
+python tools/stage_verification_gui.pyw
+# Tab 6 → 點擊 "🔍 檢查合併準備狀態"
+```
+
+**預期輸出**（全部通過時）:
+```
+============================================================
+                🔍 Git Merge Readiness Check
+============================================================
+
+📋 Step 1: 版本偵測
+────────────────────────────────────────────────────────────
+ℹ️  偵測到版本: v2.11.1
+
+📋 Step 2: 檢查功能文檔 (docs/features/v2.11.1/)
+────────────────────────────────────────────────────────────
+✅ 功能文檔存在: 8 個檔案
+   - L1 規劃: 2 個
+   - L2 可行性: 3 個
+   - Traycer 實作: 3 個
+
+📋 Step 3: 檢查測試報告 (docs/test_results/v2.11.1/)
+────────────────────────────────────────────────────────────
+✅ 測試報告存在: 5 個檔案
+   - 交接摘要: HANDOVER_SUMMARY.md
+   - 測試報告: PIXEL9A_TEST_REPORT.md
+
+📋 Step 4: 檢查分支發布記錄
+────────────────────────────────────────────────────────────
+✅ BRANCH_RELEASES.md 包含 v2.11.1 記錄
+   - 發現穩定版本標記 ✅
+
+📋 Step 5: 檢查功能決議文檔
+────────────────────────────────────────────────────────────
+✅ feature_record_Backlog.md 包含 v2.11.1 相關記錄
+
+============================================================
+                           📊 檢查結果
+============================================================
+
+✅ READY TO MERGE
+
+所有檢查通過，您可以安全執行 git merge
+```
+
+### 6.2 檢查項目詳解
+
+腳本會自動檢查以下項目：
+
+**基礎檢查**:
+- [ ] 版本號偵測成功（從 `app/build.gradle.kts`）
+- [ ] 當前版本: __________
+
+**文檔同步檢查**:
+- [ ] `docs/features/v<version>/` 目錄存在
+  - [ ] L1 規劃文檔: ______ 個
+  - [ ] L2 可行性文檔: ______ 個
+  - [ ] Traycer 實作計劃: ______ 個
+- [ ] `docs/test_results/v<version>/` 目錄存在
+  - [ ] 測試報告: ______ 個
+  - [ ] 交接摘要: ______ 個
+
+**規範文檔更新檢查**:
+- [ ] `devspec/BRANCH_RELEASES.md` 包含當前版本
+- [ ] `devspec/feature_record_Backlog.md` 包含相關記錄
+
+**可選檢查**:
+- [ ] `devspec/DOCS_SYNC_LOG_*.md` 存在（MERGE_SOP Phase 2 執行證據）
+
+### 6.3 處理檢查失敗
+
+**如果檢查失敗**（輸出 `⚠️  NOT READY`）:
+
+1. **查看問題列表**:
+   ```
+   ⚠️  NOT READY - 發現 4 個問題
+
+   問題列表:
+     1. 目錄 docs/features/v2.11.1/ 不存在
+     2. 目錄 docs/test_results/v2.11.1/ 不存在
+     3. feature_record_Backlog.md 未提及 v2.11.1
+     4. 建議檢查是否需要更新決議文檔
+   ```
+
+2. **執行修正動作**:
+   - 參考 `devspec/MERGE_SOP.md` Phase 2 執行文檔同步
+   - 確保 `docs/features/v<version>/` 包含功能文檔
+   - 確保 `docs/test_results/v<version>/` 包含測試報告
+   - 更新 `devspec/BRANCH_RELEASES.md`
+   - 更新 `devspec/feature_record_Backlog.md`
+
+3. **重新執行檢查**:
+   ```bash
+   python tools/check_merge_readiness.py
+   ```
+
+**緊急情況**（使用 `--bypass`）:
+```bash
+# 繞過檢查（僅顯示警告，不阻擋合併）
+python tools/check_merge_readiness.py --bypass
+```
+
+> ⚠️ **警告**: `--bypass` 模式應僅用於緊急修復或特殊情況，風險自負
+
+### 6.4 後續動作
+
+**如果檢查通過 (✅ READY TO MERGE)**:
+- [ ] 執行 `devspec/MERGE_SOP.md` 的完整流程
+- [ ] 使用遠端分支或 tag 進行合併（避免使用過時的本地分支）
+- [ ] 解決衝突時參考決議文檔（`devspec/feature_record_Backlog.md`）
+- [ ] 合併後更新 `devspec/BRANCH_RELEASES.md` 記錄合併資訊
+
+**參考文檔**:
+- `devspec/MERGE_SOP.md` - 完整合併流程
+- `devspec/DOCS_SYNC_CHECKLIST.md` - 文檔同步檢查清單
+- `.claude/CLAUDE.md` - Git Merge 規範
+
+**Pass 標準**: Smart Check 輸出 `✅ READY TO MERGE`
+
+---
+
 ## 驗測結果總結
 
 ### 通過標準（All Must Pass）
@@ -215,6 +351,7 @@ adb -s <device-id> logcat -v time > docs/test_results/<version>/device_test_logc
 - [ ] Phase 3: 16KB Compatibility ✅
 - [ ] Phase 4: Emulator Testing ✅
 - [ ] Phase 5: Device Testing ✅ / ⏭️ SKIPPED
+- [ ] Phase 6: Merge Readiness ✅ / ⏭️ SKIPPED (若不需合併)
 
 ### 驗測報告
 

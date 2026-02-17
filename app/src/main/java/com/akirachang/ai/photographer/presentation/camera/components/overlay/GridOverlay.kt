@@ -15,6 +15,7 @@
  */
 package com.akirachang.ai.photographer.presentation.camera.components.overlay
 
+import android.graphics.RectF
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -32,24 +33,29 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
  * and vertically, highlighting the four intersection points which are
  * considered optimal positions for subject placement in photography.
  *
+ * v2.11.1 P0-2: Supports contentBounds to restrict grid to preview area only (excludes letterbox)
+ *
  * @param modifier Modifier for the canvas
  * @param visible Whether to show the grid (default: true)
  * @param color Color of the grid lines (default: semi-transparent white)
  * @param strokeWidth Width of the grid lines in pixels (default: 2f)
+ * @param contentBounds Actual preview content bounds (excludes FIT_CENTER letterbox). If null, uses full canvas size.
  */
 @Composable
 fun GridOverlay(
     modifier: Modifier = Modifier,
     visible: Boolean = true,
     color: Color = Color.White.copy(alpha = 0.4f),
-    strokeWidth: Float = 2f
+    strokeWidth: Float = 2f,
+    contentBounds: RectF? = null  // v2.11.1 P0-2: Optional content bounds
 ) {
     if (!visible) return
 
     Canvas(modifier = modifier.fillMaxSize()) {
         drawRuleOfThirdsGrid(
             color = color,
-            strokeWidth = strokeWidth
+            strokeWidth = strokeWidth,
+            contentBounds = contentBounds
         )
     }
 }
@@ -62,28 +68,36 @@ fun GridOverlay(
  * - 2 horizontal lines at 1/3 and 2/3 of the height
  *
  * The four intersection points are the ideal positions for subject placement.
+ *
+ * v2.11.1 P0-2: Supports contentBounds to restrict grid to preview area
  */
 private fun DrawScope.drawRuleOfThirdsGrid(
     color: Color,
-    strokeWidth: Float
+    strokeWidth: Float,
+    contentBounds: RectF?
 ) {
-    val width = size.width
-    val height = size.height
+    // v2.11.1 P0-2: Use contentBounds if provided, otherwise use full canvas size
+    val bounds = contentBounds ?: RectF(0f, 0f, size.width, size.height)
 
-    // Calculate third positions
-    val leftThird = width / 3f
-    val rightThird = width * 2f / 3f
-    val topThird = height / 3f
-    val bottomThird = height * 2f / 3f
+    val left = bounds.left
+    val top = bounds.top
+    val width = bounds.width()
+    val height = bounds.height()
+
+    // Calculate third positions relative to content bounds
+    val leftThird = left + width / 3f
+    val rightThird = left + width * 2f / 3f
+    val topThird = top + height / 3f
+    val bottomThird = top + height * 2f / 3f
 
     // Optional: Dashed line effect for less intrusive appearance
     val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
 
-    // Draw vertical lines
+    // Draw vertical lines (within content bounds)
     drawLine(
         color = color,
-        start = Offset(leftThird, 0f),
-        end = Offset(leftThird, height),
+        start = Offset(leftThird, top),
+        end = Offset(leftThird, top + height),
         strokeWidth = strokeWidth,
         cap = StrokeCap.Round,
         pathEffect = pathEffect
@@ -91,18 +105,18 @@ private fun DrawScope.drawRuleOfThirdsGrid(
 
     drawLine(
         color = color,
-        start = Offset(rightThird, 0f),
-        end = Offset(rightThird, height),
+        start = Offset(rightThird, top),
+        end = Offset(rightThird, top + height),
         strokeWidth = strokeWidth,
         cap = StrokeCap.Round,
         pathEffect = pathEffect
     )
 
-    // Draw horizontal lines
+    // Draw horizontal lines (within content bounds)
     drawLine(
         color = color,
-        start = Offset(0f, topThird),
-        end = Offset(width, topThird),
+        start = Offset(left, topThird),
+        end = Offset(left + width, topThird),
         strokeWidth = strokeWidth,
         cap = StrokeCap.Round,
         pathEffect = pathEffect
@@ -110,8 +124,8 @@ private fun DrawScope.drawRuleOfThirdsGrid(
 
     drawLine(
         color = color,
-        start = Offset(0f, bottomThird),
-        end = Offset(width, bottomThird),
+        start = Offset(left, bottomThird),
+        end = Offset(left + width, bottomThird),
         strokeWidth = strokeWidth,
         cap = StrokeCap.Round,
         pathEffect = pathEffect

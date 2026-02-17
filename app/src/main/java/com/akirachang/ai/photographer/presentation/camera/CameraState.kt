@@ -1,8 +1,10 @@
 package com.akirachang.ai.photographer.presentation.camera
 
+import android.graphics.RectF
 import android.net.Uri
 import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.domain.model.DetectionResult
+import com.akirachang.ai.photographer.presentation.camera.components.CoordinateTransformer
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.presentation.camera.model.HDRMode
 
@@ -47,7 +49,10 @@ data class CameraState(
     val trackedPointLost: Boolean = false,         // True when tracking is lost (quality too low or out of bounds)
     // v2.11.0 Phase 3: EXIF information display state
     val showPhotoInfo: Boolean = false,            // True when PhotoInfoBottomSheet should be shown
-    val currentPhotoExifInfo: com.akirachang.ai.photographer.domain.model.ExifInfo? = null  // EXIF data for display
+    val currentPhotoExifInfo: com.akirachang.ai.photographer.domain.model.ExifInfo? = null,  // EXIF data for display
+    // v2.11.1 P0-2: Coordinate system unification
+    val contentBounds: RectF = RectF(0f, 0f, 0f, 0f),  // Actual preview content bounds (excludes FIT_CENTER letterbox)
+    val coordinateTransformer: CoordinateTransformer? = null  // Coordinate transformer for Image ↔ Preview ↔ Screen mapping
 )
 
 sealed class CameraUiEvent {

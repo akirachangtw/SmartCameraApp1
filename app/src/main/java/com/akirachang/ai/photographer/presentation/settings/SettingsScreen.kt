@@ -150,7 +150,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Aspect Ratio RadioButton Group
+            // Aspect Ratio — single row with 3 options
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -173,18 +173,35 @@ fun SettingsScreen(
                     )
                 }
 
-                // RadioButton options
+                // Single row: 4:3 | 16:9 | 1:1
                 val aspectRatioOptions = listOf(
-                    "RATIO_4_3" to "4:3 - 標準（全感光元件）",
-                    "RATIO_16_9" to "16:9 - 寬螢幕（填滿螢幕）",
-                    "RATIO_1_1" to "1:1 - 正方形（Instagram）"
+                    "RATIO_4_3" to "4:3",
+                    "RATIO_16_9" to "16:9",
+                    "RATIO_1_1" to "1:1"
                 )
 
-                aspectRatioOptions.forEach { (mode, label) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    aspectRatioOptions.forEach { (mode, label) ->
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .selectable(
+                                    selected = (aspectRatioMode == mode),
+                                    onClick = {
+                                        scope.launch {
+                                            viewModel.setAspectRatioMode(mode)
+                                        }
+                                    }
+                                )
+                                .padding(vertical = 4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            RadioButton(
                                 selected = (aspectRatioMode == mode),
                                 onClick = {
                                     scope.launch {
@@ -192,23 +209,12 @@ fun SettingsScreen(
                                     }
                                 }
                             )
-                            .padding(vertical = 8.dp, horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = (aspectRatioMode == mode),
-                            onClick = {
-                                scope.launch {
-                                    viewModel.setAspectRatioMode(mode)
-                                }
-                            }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (aspectRatioMode == mode) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
                     }
                 }
             }

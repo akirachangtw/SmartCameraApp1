@@ -140,6 +140,34 @@ adb -s DEVICE_ID shell "rm /sdcard/Download/temp_screen.png"
 
 ## ⚠️ Git Merge 規範 - 分支合併前必讀
 
+### 🔴 強制性檢查（合併前必須執行）
+
+**IMPORTANT**: 在執行任何 `git merge` 操作前，**必須**先執行以下檢查：
+
+```bash
+# Step 1: 執行智能檢查工具（必須）
+python tools/check_merge_readiness.py
+
+# 預期輸出: ✅ READY TO MERGE
+# 如果輸出 ⚠️  NOT READY，必須先修正問題再合併
+```
+
+**檢查內容**:
+- ✅ 版本號偵測成功
+- ✅ `docs/features/v<版本>/` 存在功能文檔
+- ✅ `docs/test_results/v<版本>/` 存在測試報告
+- ✅ `devspec/BRANCH_RELEASES.md` 包含當前版本
+- ✅ `devspec/feature_record_Backlog.md` 已更新
+
+**如果檢查失敗**:
+1. 執行 `devspec/MERGE_SOP.md` Phase 2 文檔同步
+2. 修正所有警告項目
+3. 重新執行檢查，直到輸出 `✅ READY TO MERGE`
+
+**快速參考**: `devspec/MERGE_SOP_QUICK_REFERENCE.md`
+
+---
+
 ### 合併前檢查清單
 
 **❌ 絕對不要使用以下方式合併**：
@@ -151,34 +179,47 @@ git merge feature-branch               # ❌ 使用本地分支
 
 **✅ 正確的合併方法**（使用遠端分支或 tag）：
 ```bash
+# 合併前必須執行（更新遠端信息）
+git fetch origin --tags
+
+# 合併前必須執行（智能檢查）
+python tools/check_merge_readiness.py
+
 # 方法 1: 使用遠端分支（推薦）
 git merge origin/feature/branch-name   # ✅ 使用遠端最新版本
 
 # 方法 2: 使用 tag（最終修正版）
 git merge v2.10.2-final                # ✅ 使用已標記的穩定版本
-
-# 合併前必須執行
-git fetch origin --tags                # 更新所有遠端分支和標籤
 ```
 
 ### 必讀文檔
 
 **合併前必須檢查**：
-1. **`devspec/BRANCH_RELEASES.md`** - 查看分支版本記錄
+1. **`tools/check_merge_readiness.py`** 🔴 強制執行
+   - 自動檢查文檔同步狀態
+   - 驗證 MERGE_SOP Phase 2 是否完成
+   - 輸出必須為 `✅ READY TO MERGE`
+
+2. **`devspec/MERGE_SOP_QUICK_REFERENCE.md`** - 快速參考（1-2 頁）
+   - ⚡ 5 步驟快速流程
+   - 🔍 執行前檢查清單
+   - ⚠️ 常見錯誤與預防
+
+3. **`devspec/BRANCH_RELEASES.md`** - 查看分支版本記錄
    - 確認使用 `-final` tag（最終修正版）
    - 檢查「包含功能」和「已知問題」
    - 確認分支狀態為「✅ 穩定，可安全合併」
 
-2. **`devspec/MERGE_SOP.md`** - 遵循標準作業程序
+4. **`devspec/MERGE_SOP.md`** - 完整標準作業程序
    - Phase 1: 準備階段（確認來源分支、閱讀決議文檔）
-   - Phase 2: 文檔同步（devspec/, docs/plan/, docs/test_results/）
+   - Phase 2: 文檔同步（devspec/, docs/features/, docs/test_results/）
    - Phase 3: 代碼合併（解決衝突、保留關鍵修復）
    - Phase 4: 驗證（Build + 16KB + 實機測試）
    - Phase 5: 記錄（更新 BRANCH_RELEASES.md）
 
-3. **`devspec/DOCS_SYNC_CHECKLIST.md`** - 文檔同步檢查清單
+5. **`devspec/DOCS_SYNC_CHECKLIST.md`** - 文檔同步檢查清單
    - 同步決議文檔（devspec/feature_record_Backlog.md）
-   - 同步計劃文檔（docs/plan/）
+   - 同步計劃文檔（docs/features/）
    - 同步測試報告（docs/test_results/）
 
 ### 常見錯誤與預防

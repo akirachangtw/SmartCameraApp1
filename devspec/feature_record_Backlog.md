@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-02-10
+Last updated: 2026-02-17
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -53,6 +53,32 @@ Last updated: 2026-02-10
 - [x] [Phase B] 長寬比 Toggle UI (4:3/16:9/1:1) — ✅ 完成 (v2.10.0-fix, 2026-02-08)
 - [ ] 建立設備解析度資料庫 — 記錄不同設備的 1:1 解析度選擇
 - [ ] 新增 UI 提示 — 首次使用說明黑邊（letterbox）是正常行為
+
+---
+
+## Camera UI 清理 (v2.11.1)
+
+### ✅ Confirmed
+- **移除 Debug 文字** — CameraPreview.kt 左上角綠色 "PreviewView Mode (Native GPU Rendering)" 已移除 | Verified: 2026-02-17 (Pixel 9a)
+  - **Why removed**: Debug 模式字串不應出現在正常操作畫面
+  - **File**: `CameraPreview.kt` - NativePreviewPath composable
+
+- **移除 Pixel 9a 記憶體訊息** — CameraViewModel.kt 底部中央的 Pixel 9a 記憶體優化訊息已移除 | Verified: 2026-02-17 (Pixel 9a)
+  - **Why removed**: 設備特定訊息對使用者無意義，造成視覺干擾
+  - **File**: `CameraViewModel.kt` - init block Pixel 9a detection block
+
+- **長寬比 UI 簡化（Settings）** — SettingsScreen.kt 長寬比選項改為單行並排 + 簡短標籤 | Verified: 2026-02-17 (Pixel 9a)
+  - **Before**: 垂直排列（3 行），標籤含長說明文字（如 "1:1 - 正方形"）
+  - **After**: 水平單行並排（`◯ 4:3  ◯ 16:9  ◯ 1:1`），標籤僅顯示比例數字
+  - **File**: `SettingsScreen.kt` - AspectRatio section
+
+### ⚠️ Critical Warning
+**DO NOT re-add any of the following**:
+- ❌ 任何 DEBUG 字串或模式標示覆蓋在相機預覽畫面上（包括 "PreviewView Mode"、"Bitmap Mode" 等）
+  - 例外：`BitmapPreviewPath` 中的 "Bitmap Mode\n(Emulator Fallback)" 保留（模擬器測試用）
+- ❌ Pixel 9a（或任何特定設備）的記憶體/效能優化訊息
+- ❌ 長寬比設定的長說明文字（維持簡短比例標籤）
+- ❌ 垂直排列長寬比選項（維持水平單行）
 
 ---
 

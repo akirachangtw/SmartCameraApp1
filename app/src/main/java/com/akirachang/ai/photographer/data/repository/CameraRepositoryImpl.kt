@@ -688,6 +688,20 @@ class CameraRepositoryImpl @Inject constructor(
     }
 
     /**
+     * Set PreviewView reference for accurate coordinate transformation
+     *
+     * v2.11.1 P0-1: Coordinate system unification (Bug fix for out-of-preview tap focus)
+     *
+     * Delegates to CameraInputSource implementation:
+     * - LiveCameraSource: Stores PreviewView reference for accurate metering point creation
+     * - StaticImageSource: No-op (test images don't support autofocus)
+     */
+    override fun setPreviewView(previewView: androidx.camera.view.PreviewView?) {
+        Log.d(TAG, "[v2.11.1 P0-1] Delegating setPreviewView to CameraInputSource")
+        cameraInputSource.setPreviewView(previewView)
+    }
+
+    /**
      * Check if native preview is supported
      *
      * v2.8.6 Phase 2: PreviewView migration

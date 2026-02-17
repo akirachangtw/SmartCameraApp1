@@ -139,6 +139,22 @@ interface CameraRepository {
     fun setPreviewSurfaceProvider(surfaceProvider: androidx.camera.core.Preview.SurfaceProvider?)
 
     /**
+     * Set PreviewView reference for accurate coordinate transformation
+     *
+     * v2.11.1 P0-1: Coordinate system unification (Bug fix for out-of-preview tap focus)
+     * PreviewView.meteringPointFactory provides accurate mapping that accounts for:
+     * - FIT_CENTER letterboxing (black bars)
+     * - ViewPort cropping (aspect ratio modes)
+     * - Display rotation
+     *
+     * For LiveCameraSource: Stores PreviewView reference for accurate metering point creation
+     * For StaticImageSource: No-op (test images don't support autofocus)
+     *
+     * @param previewView PreviewView instance, or null to clear
+     */
+    fun setPreviewView(previewView: androidx.camera.view.PreviewView?)
+
+    /**
      * Check if native preview is supported
      *
      * v2.8.6 Phase 2: PreviewView migration

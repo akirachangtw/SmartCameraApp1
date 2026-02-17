@@ -92,6 +92,9 @@ class LiveCameraSource @Inject constructor(
     // v2.8.6 Phase 2: External surface provider for PreviewView integration
     private var externalSurfaceProvider: Preview.SurfaceProvider? = null
 
+    // v2.11.1 P0-1: Store PreviewView reference for accurate metering point creation
+    private var previewView: androidx.camera.view.PreviewView? = null
+
     // v2.9.0-beta3: Track selected resolution for diagnostics
     private var selectedResolution: Size? = null
 
@@ -568,6 +571,7 @@ class LiveCameraSource @Inject constructor(
     /**
      * Focus on a specific point in the preview
      * v2.9.9: Tap-to-Focus implementation using CameraX FocusMeteringAction
+     * v2.11.1 P0-1: Use PreviewView.meteringPointFactory for accurate coordinate mapping
      *
      * @param x X coordinate in the preview view (0.0 to viewWidth)
      * @param y Y coordinate in the preview view (0.0 to viewHeight)
@@ -590,14 +594,23 @@ class LiveCameraSource @Inject constructor(
 
             val cameraControl = camera.cameraControl
 
-            // Create metering point factory for surface-oriented coordinates
-            val factory = androidx.camera.core.SurfaceOrientedMeteringPointFactory(
-                viewWidth.toFloat(),
-                viewHeight.toFloat()
-            )
-
-            // Create focus point at the tapped coordinates
-            val focusPoint = factory.createPoint(x, y)
+            // v2.11.1 P0-1: Use PreviewView.meteringPointFactory if available
+            // This provides accurate coordinate mapping that respects FIT_CENTER letterboxing
+            val focusPoint = if (previewView != null) {
+                // ✅ FIX Issue #1: Check if tap is within content bounds (exclude letterbox)
+                // PreviewView.meteringPointFactory automatically handles this validation
+                val factory = previewView!!.meteringPointFactory
+                factory.createPoint(x, y)
+            } else {
+                // Fallback to SurfaceOrientedMeteringPointFactory (legacy behavior)
+                // ⚠️ WARNING: This does NOT account for FIT_CENTER letterboxing
+                Log.w(TAG, "[v2.11.1 P0-1] PreviewView not set - using legacy factory (letterbox not handled)")
+                val factory = androidx.camera.core.SurfaceOrientedMeteringPointFactory(
+                    viewWidth.toFloat(),
+                    viewHeight.toFloat()
+                )
+                factory.createPoint(x, y)
+            }
 
             // Build focus metering action
             val action = androidx.camera.core.FocusMeteringAction.Builder(
@@ -616,11 +629,11 @@ class LiveCameraSource @Inject constructor(
                 try {
                     val result = future.get()  // Called in Executor thread, doesn't block main thread
                     if (result.isFocusSuccessful) {
-                        Log.d(TAG, "Focus successful at ($x, $y)")
+                        Log.d(TAG, "[v2.11.1] Focus successful at ($x, $y) - factory: ${if (previewView != null) "PreviewView" else "SurfaceOriented"}")
                         Timber.d("LiveCameraSource: Focus successful at ($x, $y)")
                         continuation.resume(Result.success(Unit))
                     } else {
-                        Log.w(TAG, "Focus failed at ($x, $y)")
+                        Log.w(TAG, "[v2.11.1] Focus failed at ($x, $y) - factory: ${if (previewView != null) "PreviewView" else "SurfaceOriented"}")
                         Timber.w("LiveCameraSource: Focus failed at ($x, $y)")
                         continuation.resume(Result.failure(Exception("Focus failed")))
                     }
@@ -647,6 +660,7 @@ class LiveCameraSource @Inject constructor(
     /**
      * Lock AE/AF at a specific point (long press)
      * v2.9.9 Day 1-2: Traycer v2 AE/AF Lock support
+     * v2.11.1 P0-1: Use PreviewView.meteringPointFactory for accurate coordinate mapping
      *
      * Creates a persistent focus metering action with FLAG_AF | FLAG_AE without auto-cancel.
      * Use cancelFocusAndMetering() to unlock and return to auto mode.
@@ -666,14 +680,20 @@ class LiveCameraSource @Inject constructor(
 
             val cameraControl = camera.cameraControl
 
-            // Create metering point factory for surface-oriented coordinates
-            val factory = androidx.camera.core.SurfaceOrientedMeteringPointFactory(
-                viewWidth.toFloat(),
-                viewHeight.toFloat()
-            )
-
-            // Create lock point at the long-pressed coordinates
-            val lockPoint = factory.createPoint(x, y)
+            // v2.11.1 P0-1: Use PreviewView.meteringPointFactory if available
+            val lockPoint = if (previewView != null) {
+                // ✅ FIX Issue #1: PreviewView.meteringPointFactory handles letterbox correctly
+                val factory = previewView!!.meteringPointFactory
+                factory.createPoint(x, y)
+            } else {
+                // Fallback to SurfaceOrientedMeteringPointFactory (legacy behavior)
+                Log.w(TAG, "[v2.11.1 P0-1] PreviewView not set - using legacy factory for AE/AF lock")
+                val factory = androidx.camera.core.SurfaceOrientedMeteringPointFactory(
+                    viewWidth.toFloat(),
+                    viewHeight.toFloat()
+                )
+                factory.createPoint(x, y)
+            }
 
             // Build focus metering action with AE and AF lock
             val action = androidx.camera.core.FocusMeteringAction.Builder(
@@ -693,11 +713,11 @@ class LiveCameraSource @Inject constructor(
                 try {
                     val result = future.get()  // Called in Executor thread
                     if (result.isFocusSuccessful) {
-                        Log.i(TAG, "AE/AF locked successfully at ($x, $y)")
+                        Log.i(TAG, "[v2.11.1] AE/AF locked at ($x, $y) - factory: ${if (previewView != null) "PreviewView" else "SurfaceOriented"}")
                         Timber.i("LiveCameraSource: AE/AF locked at ($x, $y)")
                         continuation.resume(Result.success(Unit))
                     } else {
-                        Log.w(TAG, "AE/AF lock failed at ($x, $y)")
+                        Log.w(TAG, "[v2.11.1] AE/AF lock failed at ($x, $y)")
                         Timber.w("LiveCameraSource: AE/AF lock failed at ($x, $y)")
                         continuation.resume(Result.failure(Exception("AE/AF lock failed")))
                     }
@@ -861,30 +881,38 @@ class LiveCameraSource @Inject constructor(
                               "filter≤${maxFilterWidth}x${maxFilterHeight}")
 
                     // v2.10.0: Unified AspectRatioStrategy for UseCaseGroup + ViewPort architecture
-                    // v2.10.0-fix: 1:1 mode uses 4:3 sensor output, ViewPort crops to square (WYSIWYG)
-                    // All UseCases use the same aspect ratio based on currentAspectRatioMode
-                    // v2.10.0-fix: 1:1 mode requires special handling for ImageCapture output
+                    // v2.11.1: 1:1 mode uses ResolutionFilter (Traycer Plan A) to prefer true square resolutions.
+                    //   Priority: exact square (width==height, nearest to 1920×1920) → fallback to nearest 1:1 aspect
+                    //   ViewPort Rational(1,1) + FIT ensures WYSIWYG (Preview = Capture = 1:1 square)
+                    //   See: docs/features/v2.10.0/v2.10.0_aspect-ratio-wysiwyg-fix_Traycer.md
                     val commonSelector = if (currentAspectRatioMode == AspectRatioMode.RATIO_1_1) {
-                        // 1:1 mode: Use ResolutionFilter to find closest square resolution
+                        // 1:1 mode: prefer true square resolution, fallback to nearest 1:1 aspect
                         androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
                             .setResolutionFilter { supportedSizes, _ ->
-                                // Find square or near-square resolutions
-                                val squareOrNearSquare = supportedSizes.sortedBy { size ->
-                                    kotlin.math.abs(size.width.toFloat() / size.height - 1.0f)
+                                val squareSizes = supportedSizes.filter { it.width == it.height }
+                                if (squareSizes.isNotEmpty()) {
+                                    // Select closest to 1920×1920 square
+                                    val selected = squareSizes.minByOrNull {
+                                        kotlin.math.abs(it.width - 1920)
+                                    } ?: squareSizes.first()
+                                    Log.i(TAG, "[v2.11.1] 1:1 ResolutionFilter: true square found → ${selected.width}x${selected.height}")
+                                    listOf(selected)
+                                } else {
+                                    // Fallback: nearest aspect ratio to 1:1
+                                    val fallback = supportedSizes.minByOrNull { size ->
+                                        kotlin.math.abs(size.width.toFloat() / size.height - 1.0f)
+                                    } ?: supportedSizes.first()
+                                    Log.w(TAG, "[v2.11.1] 1:1 ResolutionFilter: no square found, fallback → ${fallback.width}x${fallback.height} (ratio=${fallback.width.toFloat()/fallback.height})")
+                                    listOf(fallback)
                                 }
-                                // Return closest to 1:1
-                                listOf(squareOrNearSquare.firstOrNull() ?: supportedSizes.first())
                             }
                             .build()
-                            .also {
-                                Log.i(TAG, "[v2.10.0 Fix] 1:1 mode: Using ResolutionFilter for square output")
-                            }
                     } else {
-                        // 4:3 / 16:9 modes: Use standard AspectRatioStrategy
+                        // 4:3 / 16:9 modes: use standard AspectRatioStrategy
                         val targetAspectRatio = when (currentAspectRatioMode) {
                             AspectRatioMode.RATIO_4_3 -> androidx.camera.core.AspectRatio.RATIO_4_3
                             AspectRatioMode.RATIO_16_9 -> androidx.camera.core.AspectRatio.RATIO_16_9
-                            else -> androidx.camera.core.AspectRatio.RATIO_4_3  // Fallback
+                            else -> androidx.camera.core.AspectRatio.RATIO_4_3
                         }
                         androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
                             .setAspectRatioStrategy(
@@ -895,7 +923,7 @@ class LiveCameraSource @Inject constructor(
                             )
                             .build()
                             .also {
-                                Log.i(TAG, "[v2.10.0] Using AspectRatioStrategy: ${currentAspectRatioMode.displayName} ($targetAspectRatio)")
+                                Log.i(TAG, "[v2.11.1] ResolutionSelector: ${currentAspectRatioMode.displayName} → RATIO_$targetAspectRatio")
                             }
                     }
 
@@ -956,14 +984,16 @@ class LiveCameraSource @Inject constructor(
                     // 5. Create ViewPort for WYSIWYG guarantee (v2.10.0: Gemini approach)
                     // ViewPort ensures Preview, ImageAnalysis, and ImageCapture see the same cropped region
                     // v2.10.0-fix: Use FIT ScaleType to prevent double-cropping (ViewPort FILL + PreviewView FILL)
+                    // v2.11.1: 1:1 mode uses Rational(1,1) ViewPort — Preview displays 1:1 square (WYSIWYG)
+                    //   ResolutionFilter provides true square resolution; ViewPort crops to 1:1 if fallback to 4:3
                     val viewPort = ViewPort.Builder(
-                        currentAspectRatioMode.toRational(),  // Rational(4, 3) or Rational(16, 9) or Rational(1, 1)
+                        currentAspectRatioMode.toRational(),  // Rational(4,3) / Rational(16,9) / Rational(1,1)
                         currentRotation  // Current device rotation (Surface.ROTATION_*)
                     )
                         .setScaleType(ViewPort.FIT)  // ✅ Preserve full FOV, prevent over-cropping
                         .build()
 
-                    Log.i(TAG, "[v2.10.0 ViewPort] Created with aspect=${currentAspectRatioMode.displayName}, rotation=$currentRotation, scaleType=FIT")
+                    Log.i(TAG, "[v2.11.1 ViewPort] Created: aspect=${currentAspectRatioMode.displayName} (${currentAspectRatioMode.toRational()}), rotation=$currentRotation, scaleType=FIT")
 
                     // 6. Create UseCaseGroup with ViewPort (automatic WYSIWYG)
                     val useCaseGroup = UseCaseGroup.Builder()
@@ -1456,6 +1486,22 @@ class LiveCameraSource @Inject constructor(
                 bindToLifecycle(owner)
             }
         }
+    }
+
+    /**
+     * Set PreviewView reference for accurate coordinate transformation
+     * v2.11.1 P0-1: Coordinate system unification
+     *
+     * PreviewView.meteringPointFactory provides accurate mapping that accounts for:
+     * - FIT_CENTER letterboxing (black bars)
+     * - ViewPort cropping (aspect ratio modes)
+     * - Display rotation
+     *
+     * This fixes Issue #1: Out-of-preview area can trigger tap focus
+     */
+    override fun setPreviewView(previewView: androidx.camera.view.PreviewView?) {
+        this.previewView = previewView
+        Log.i(TAG, "[v2.11.1 P0-1] PreviewView reference ${if (previewView != null) "set" else "cleared"}")
     }
 
     /**

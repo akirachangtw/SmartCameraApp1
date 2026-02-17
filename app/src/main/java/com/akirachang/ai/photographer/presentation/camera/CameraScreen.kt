@@ -86,6 +86,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.akirachang.ai.photographer.presentation.camera.components.CameraPreview
 import com.akirachang.ai.photographer.presentation.camera.components.PermissionRequestScreen
+import com.akirachang.ai.photographer.presentation.camera.components.PreviewViewportContainer
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.CompositionGuideOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.CompositionHint
 // v2.2.2: Removed DetectionOverlay and DirectionalIndicator - visual clutter
@@ -95,6 +96,7 @@ import com.akirachang.ai.photographer.presentation.camera.components.overlay.Gui
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.HDRWarningOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.LevelIndicator
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
+import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import com.akirachang.ai.photographer.BuildConfig
 
@@ -164,20 +166,35 @@ fun CameraScreen(
             // v2.x.x Phase 5: Also used for Optical Flow coordinate mapping
             var previewSize by remember { mutableStateOf(IntSize.Zero) }
 
-            Box(
+            // v2.11.1 Phase 1: contentBounds calculation moved to PreviewViewportContainer below
+            // (Replaced LaunchedEffect manual calculation with PreviewViewportContainer)
+
+            // v2.11.1 Phase 1+2: PreviewViewportContainer calculates accurate contentBounds,
+            // replaces manual LaunchedEffect calculation; pointerInput has letterbox filtering
+            PreviewViewportContainer(
+                targetAspectRatio = state.aspectRatioMode,
+                onContentBoundsChanged = { bounds ->
+                    viewModel.updateContentBounds(bounds)
+                },
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
                     .onSizeChanged { size ->
+                        // Get full screen size BEFORE padding (used for optical flow SetPreviewSize)
                         previewSize = size
                         // v2.x.x Phase 5: Notify ViewModel of preview size for optical flow
                         if (size.width > 0 && size.height > 0) {
                             viewModel.onEvent(CameraUiEvent.SetPreviewSize(size.width, size.height))
                         }
                     }
-                    .pointerInput(Unit) {
+                    .padding(paddingValues)
+                    .pointerInput(Unit, state.contentBounds) {
                         detectTapGestures(
                             onTap = { offset ->
+                                // v2.11.1 Phase 2: Filter taps in letterbox area
+                                val bounds = state.contentBounds
+                                if (!bounds.isEmpty && !bounds.contains(offset.x, offset.y)) {
+                                    return@detectTapGestures  // Ignore letterbox taps
+                                }
                                 // v2.9.9: Tap-to-Focus - single tap triggers focus
                                 if (FeatureFlags.enableManualFocus &&
                                     previewSize.width > 0 &&
@@ -193,6 +210,11 @@ fun CameraScreen(
                                 }
                             },
                             onLongPress = { offset ->
+                                // v2.11.1 Phase 2: Filter long presses in letterbox area
+                                val bounds = state.contentBounds
+                                if (!bounds.isEmpty && !bounds.contains(offset.x, offset.y)) {
+                                    return@detectTapGestures  // Ignore letterbox long presses
+                                }
                                 // v2.9.9 Day 1-2: AE/AF Lock - long press triggers lock
                                 if (FeatureFlags.enableManualFocus &&
                                     previewSize.width > 0 &&
@@ -209,7 +231,7 @@ fun CameraScreen(
                             }
                         )
                     }
-            ) {
+            ) { contentBounds ->
                 // 相機預覽
                 // v2.8.6 Phase 2: PreviewView migration with dual-path rendering
                 // v2.5.1: Refactored to use Bitmap preview from CameraInputSource
@@ -221,8 +243,10 @@ fun CameraScreen(
                         previewBitmap = previewBitmap,
                         supportsNativePreview = viewModel.supportsNativePreview(),
                         onPreviewViewCreated = { previewView ->
-                            // Connect PreviewView to CameraX Preview UseCase
+                            // v2.8.6 Phase 2: Connect PreviewView to CameraX Preview UseCase
                             viewModel.setPreviewSurfaceProvider(previewView.surfaceProvider)
+                            // v2.11.1 P0-1: Pass PreviewView reference for accurate coordinate transformation
+                            viewModel.setPreviewView(previewView)
                         },
                         modifier = Modifier.fillMaxSize(),
                         onSizeChanged = { width, height ->
@@ -253,9 +277,12 @@ fun CameraScreen(
                 if (!CameraViewModel.DEBUG_DISABLE_OVERLAYS) {
                     // v1.5.0: Rule of Thirds grid overlay
                     // v2.1.0: Respect overlay preferences
+                    // v2.11.1 Phase 1: Use contentBounds from PreviewViewportContainer (local)
+                    // Phase 3: contentBounds.isEmpty = true initially → Grid hidden until calculated
                     GridOverlay(
                         modifier = Modifier.fillMaxSize(),
-                        visible = isGridEnabled
+                        visible = isGridEnabled && !contentBounds.isEmpty,
+                        contentBounds = contentBounds.takeIf { !it.isEmpty }
                     )
 
                     // v2.4.0: Visual composition guide frame
@@ -761,4 +788,55 @@ private fun LockIndicator(
             style = Stroke(width = strokeWidth, pathEffect = dashEffect)
         )
     }
+}
+
+/**
+ * Calculate content bounds for FIT_CENTER layout
+ *
+ * v2.11.1 P0-3: Helper function to calculate preview content bounds
+ * excluding FIT_CENTER letterbox (black bars).
+ *
+ * @param screenWidth Screen width in pixels
+ * @param screenHeight Screen height in pixels
+ * @param targetAspectRatio Target aspect ratio mode
+ * @return RectF representing content bounds
+ */
+private fun calculateContentBoundsForAspectRatio(
+    screenWidth: Int,
+    screenHeight: Int,
+    targetAspectRatio: AspectRatioMode
+): android.graphics.RectF {
+    val screenAspect = screenWidth.toFloat() / screenHeight.toFloat()
+    val rational = targetAspectRatio.toRational()
+
+    // v2.11.1 P0-3 FIX: Handle portrait mode (height > width)
+    // AspectRatioMode defines landscape ratios (e.g., 16:9 = width:height)
+    // For portrait screens, we need to invert the ratio
+    val isPortrait = screenHeight > screenWidth
+    val targetAspect = if (isPortrait) {
+        // Invert ratio for portrait: 16:9 becomes 9:16
+        rational.denominator.toFloat() / rational.numerator.toFloat()
+    } else {
+        rational.numerator.toFloat() / rational.denominator.toFloat()
+    }
+
+    val (contentWidth, contentHeight) = if (screenAspect > targetAspect) {
+        // Screen is wider than target → letterbox on left/right
+        val width = screenHeight * targetAspect
+        val height = screenHeight.toFloat()
+        Pair(width, height)
+    } else {
+        // Screen is taller than target → letterbox on top/bottom
+        val width = screenWidth.toFloat()
+        val height = screenWidth / targetAspect
+        Pair(width, height)
+    }
+
+    // Center content within screen
+    val left = (screenWidth - contentWidth) / 2f
+    val top = (screenHeight - contentHeight) / 2f
+    val right = left + contentWidth
+    val bottom = top + contentHeight
+
+    return android.graphics.RectF(left, top, right, bottom)
 }

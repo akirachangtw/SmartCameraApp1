@@ -131,18 +131,6 @@ private fun NativePreviewPath(
             }
         )
 
-        // Debug indicator (only visible in debug builds)
-        if (BuildConfig.DEBUG) {
-            Text(
-                text = "PreviewView Mode\n(Native GPU Rendering)",
-                color = Color.Green,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp)
-                    .background(Color.Black.copy(alpha = 0.5f))
-                    .padding(4.dp)
-            )
-        }
     }
 }
 

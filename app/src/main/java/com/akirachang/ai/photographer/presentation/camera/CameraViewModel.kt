@@ -177,16 +177,6 @@ class CameraViewModel @Inject constructor(
         // v2.x.x Phase 7: High-rate optical flow feed (bypass sample(100) throttle)
         observePreviewForOpticalFlow()
 
-        // v2.8.5: Pixel 9a memory mitigation warning
-        if (Build.MODEL == "Pixel 9a") {
-            showError(
-                "Pixel 9a 記憶體優化模式:\n" +
-                "• AI 分析頻率已降低至 2 FPS\n" +
-                "• 相機解析度已調整至 480x480\n" +
-                "• 如遇記憶體問題請重啟 App"
-            )
-        }
-
         // v2.10.2: Monitor aspect ratio mode changes from Settings (continuous listening)
         viewModelScope.launch {
             overlayPreferences.aspectRatioMode.collect { savedMode ->
@@ -402,6 +392,47 @@ class CameraViewModel @Inject constructor(
         previewWidth = width
         previewHeight = height
         Log.d(TAG, "Preview size updated: ${width}x${height}")
+    }
+
+    /**
+     * Update content bounds and coordinate transformer
+     * v2.11.1 P0-2: Coordinate system unification
+     *
+     * Called by PreviewViewportContainer when content bounds are calculated.
+     * Creates CoordinateTransformer for accurate Image ↔ Preview ↔ Screen mapping.
+     *
+     * @param bounds Actual preview content bounds (excludes FIT_CENTER letterbox)
+     */
+    fun updateContentBounds(bounds: android.graphics.RectF) {
+        val detection = _state.value.detectionResult
+        val imageWidth = detection?.imageWidth ?: 0
+        val imageHeight = detection?.imageHeight ?: 0
+        val isFrontCamera = _state.value.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT
+
+        // Create coordinate transformer if image dimensions are available
+        val transformer = if (imageWidth > 0 && imageHeight > 0) {
+            com.akirachang.ai.photographer.presentation.camera.components.CoordinateTransformer(
+                contentBounds = bounds,
+                imageWidth = imageWidth,
+                imageHeight = imageHeight,
+                isFrontCamera = isFrontCamera
+            )
+        } else {
+            null
+        }
+
+        _state.update {
+            it.copy(
+                contentBounds = bounds,
+                coordinateTransformer = transformer
+            )
+        }
+
+        Log.d(TAG, "[v2.11.1 P0-2] Content bounds updated: " +
+                "left=${bounds.left}, top=${bounds.top}, " +
+                "right=${bounds.right}, bottom=${bounds.bottom}, " +
+                "width=${bounds.width()}, height=${bounds.height()}, " +
+                "transformer=${if (transformer != null) "created" else "null (no image dims)"}")
     }
 
     private fun capturePhoto() {
@@ -1454,6 +1485,83 @@ class CameraViewModel @Inject constructor(
     fun setPreviewSurfaceProvider(surfaceProvider: androidx.camera.core.Preview.SurfaceProvider?) {
         Log.d(TAG, "[Phase 2] setPreviewSurfaceProvider called")
         cameraRepository.setPreviewSurfaceProvider(surfaceProvider)
+    }
+
+    /**
+     * Set PreviewView reference for accurate coordinate transformation
+     *
+     * v2.11.1 P0-1: Coordinate system unification (Bug fix for out-of-preview tap focus)
+     * Connects PreviewView to CameraInputSource for accurate metering point creation
+     *
+     * @param previewView PreviewView instance, or null to clear
+     */
+    fun setPreviewView(previewView: androidx.camera.view.PreviewView?) {
+        Log.d(TAG, "[v2.11.1 P0-1] setPreviewView called")
+        cameraRepository.setPreviewView(previewView)
+
+        // v2.11.1 P0-3 FIX: Get actual PreviewView content bounds after layout
+        previewView?.post {
+            val contentBounds = getActualPreviewContentBounds(previewView)
+            if (contentBounds != null) {
+                updateContentBounds(contentBounds)
+                Log.d(TAG, "[v2.11.1 P0-3 FIX] Actual preview content bounds: " +
+                        "left=${contentBounds.left}, top=${contentBounds.top}, " +
+                        "right=${contentBounds.right}, bottom=${contentBounds.bottom}")
+            }
+        }
+    }
+
+    /**
+     * Get actual preview content bounds from PreviewView
+     *
+     * v2.11.1 P0-3 FIX: PreviewView uses FIT_CENTER, which means the actual preview
+     * may be smaller than the View and centered with letterbox.
+     * This method finds the actual preview surface and gets its bounds.
+     */
+    private fun getActualPreviewContentBounds(previewView: androidx.camera.view.PreviewView): android.graphics.RectF? {
+        // Find the SurfaceView/TextureView inside PreviewView
+        val previewSurface = findPreviewSurface(previewView) ?: run {
+            Log.w(TAG, "[v2.11.1 P0-3 FIX] No preview surface found in PreviewView")
+            return null
+        }
+
+        // Get surface size
+        val width = previewSurface.width.toFloat()
+        val height = previewSurface.height.toFloat()
+
+        if (width <= 0 || height <= 0) {
+            Log.w(TAG, "[v2.11.1 P0-3 FIX] Preview surface size is zero: ${width}x${height}")
+            return null
+        }
+
+        // Get position relative to screen
+        val location = IntArray(2)
+        previewSurface.getLocationInWindow(location)
+
+        // Content bounds in screen coordinates
+        val left = location[0].toFloat()
+        val top = location[1].toFloat()
+        val right = left + width
+        val bottom = top + height
+
+        return android.graphics.RectF(left, top, right, bottom)
+    }
+
+    /**
+     * Find the actual Surface (SurfaceView or TextureView) inside PreviewView
+     */
+    private fun findPreviewSurface(previewView: androidx.camera.view.PreviewView): android.view.View? {
+        if (previewView.childCount == 0) return null
+
+        // PreviewView typically has one child: SurfaceView or TextureView
+        for (i in 0 until previewView.childCount) {
+            val child = previewView.getChildAt(i)
+            when (child) {
+                is android.view.SurfaceView -> return child
+                is android.view.TextureView -> return child
+            }
+        }
+        return null
     }
 
     /**
