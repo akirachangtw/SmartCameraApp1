@@ -208,17 +208,20 @@ Last updated: 2026-02-17
   - 本次修正符合 MERGE_SOP Phase 2 文檔同步要求
 
 ### 🔍 Code Locations
-- (Pending implementation) Mechanical clamp animation: `CameraScreen.kt` - FocusIndicator
-- (Pending implementation) Dwell stroke animation: `CameraScreen.kt` - FocusIndicator
+- Mechanical clamp animation: `CameraScreen.kt:587-595` - FocusIndicator LaunchedEffect
+- Dwell stroke animation: `CameraScreen.kt:604-613` - animatedStrokeWidth
+- Dwell alpha animation: `CameraScreen.kt:614-619` - alpha animateFloatAsState
+- Glow dual-layer: `CameraScreen.kt:637-650` - Canvas drawRect ×2
+- Color change: `CameraScreen.kt:623-626` - color val (Cyan / Cyber Yellow)
 
 ### 📋 Backlog
-- [ ] [v2.11.1] 實作機械咬合動畫（Scale 1.0→0.9→1.0，350ms）
-  - 階段 2: 快速縮小（150ms）
-  - 階段 3: 快速彈回（200ms, Spring 高剛性）
-- [ ] [v2.11.1] 實作 Glow 輝光效果（雙層繪製：Glow 層 alpha=0.3 + Core 層）
-- [ ] [v2.11.1] 實作 Dwell 淡化動畫（Alpha 1.0→0.4 + 線條 2.5dp→1.5dp，同步 500ms）
-- [ ] [v2.11.1] 實作「咔嗒」縮放動畫（1.0 → 0.9 → 1.0，1000ms）
-- [ ] [v2.11.1] 確認顏色變化正確（White → Yellow for Lock）
+- [x] [v2.11.1] 實作機械咬合動畫（Scale 1.0→0.9→1.0，350ms）| Verified: 2026-02-17 (Pixel 9a)
+  - 階段 2: 快速縮小（150ms, FastOutLinearInEasing）
+  - 階段 3: 快速彈回（200ms, Spring.DampingRatioMediumBouncy + StiffnessHigh）
+- [x] [v2.11.1] 實作 Glow 輝光效果（雙層繪製：Glow 層 alpha=0.3 + Core 層）| Verified: 2026-02-17 (Pixel 9a)
+- [x] [v2.11.1] 實作 Dwell 淡化動畫（Alpha 1.0→0.4 + 線條 2.5dp→1.5dp，同步 500ms）| Verified: 2026-02-17 (Pixel 9a)
+- [x] [v2.11.1] 機械咬合時長修正：1000ms → 350ms（D-008 決議）| Verified: 2026-02-17 (Pixel 9a)
+- [x] [v2.11.1] 確認顏色變化正確（Cyan #00E5FF → Cyber Yellow #FFD700 for Lock）| Verified: 2026-02-17 (Pixel 9a)
 
 ---
 
