@@ -133,28 +133,32 @@ Last updated: 2026-02-17
 ### ✅ Confirmed - 保留的視覺語言（僅此四項）
 **過去決議**：Focus Indicator 僅使用以下四種視覺語言，其他動畫全部刪除 | Decision: 2026-02-16
 
-1. **機械咬合動畫（「咔嗒」節奏感）** — 對焦成功時，Scale 1.0 → 0.9 → 1.0（縮小→彈回） | Verified: pending v2.11.1
+1. **機械咬合動畫（「咔嗒」節奏感）** — 對焦成功時，Scale 1.0 → 0.75 → 1.2 → 1.0（三階段 tween） | Verified: 2026-02-18 (Pixel 9a)
    - **Effect**: 模擬快門「咔嗒」聲的視覺節奏感，傳達「對焦成功」
    - **Timing**: 對焦成功瞬間（Success 階段）
-   - **Duration**: **350ms**（150ms 縮小 + 200ms 彈回）
+   - **Duration**: **350ms**（Phase 1: 150ms 縮小 + Phase 2: 120ms 彈回超過 + Phase 3: 80ms 落定）
+   - **Animation**: 3-phase explicit tween（取代 spring，確保彈回可見）
+     - Phase 1: 1.0 → 0.75（150ms, FastOutLinearInEasing）— 咔嗒縮小
+     - Phase 2: 0.75 → 1.2（120ms, FastOutSlowInEasing）— 明顯彈回超過原始大小
+     - Phase 3: 1.2 → 1.0（80ms, LinearOutSlowInEasing）— 穩定落定
    - **⚠️ v2.11.0 設計問題**: 原定義為 1000ms（500ms+500ms），但與「咔嗒」描述矛盾
-   - **✅ v2.11.1 修正**: D-008 決議修正為 350ms（真正符合「咔嗒」節奏感）
+   - **✅ v2.11.1 修正**: D-008 決議修正為 350ms；spring 動畫振幅不足（~5-13%）→ 改用 3-phase tween
    - **Reference**:
      - v2.11.0 原設計: `v2.11.0_FINAL_SALIENCY_AND_VISUAL_DESIGN.md` Lines 228-277
      - v2.11.1 修正: `DEVELOPMENT_DECISION_LOG_v2.11.1.md` D-008 決議
 
-2. **淡化 Alpha + 線條變細** — Dwell 階段 Alpha 1.0 → 0.4，線條從 2.5dp → 1.5dp | Verified: pending v2.11.1
+2. **淡化 Alpha + 線條變細** — Dwell 階段 Alpha 1.0 → 0.4，線條從 2.5dp → 1.5dp | Verified: 2026-02-17 (Pixel 9a)
    - **Effect**: 減少視覺干擾，呈現機械咬合的穩定感
    - **Timing**: 對焦成功後 1500-2000ms（持續停留）
    - **Duration**: 500ms（同步動畫）
    - **Reference**: `v2.11.0_FINAL_SALIENCY_AND_VISUAL_DESIGN.md` Lines 287-318
 
-3. **圖示顏色變化** — 狀態改變時的顏色轉換 | Verified: pending v2.11.1
+3. **圖示顏色變化** — 狀態改變時的顏色轉換 | Verified: 2026-02-17 (Pixel 9a)
    - **Cyan** (#00E5FF): 一般對焦狀態（Searching, Success, Dwell）
    - **Cyber Yellow** (#FFD700): AE/AF Lock 鎖定狀態
    - **Reference**: `v2.11.0_FINAL_SALIENCY_AND_VISUAL_DESIGN.md` Lines 339-344
 
-4. **Glow 輝光效果（靜態霓虹光暈）** — 所有狀態統一應用 | Verified: pending v2.11.1
+4. **Glow 輝光效果（靜態霓虹光暈）** — 所有狀態統一應用 | Verified: 2026-02-17 (Pixel 9a)
    - **Effect**: 科技感視覺增強，提升介面質感（「懸浮光束」美學）
    - **Implementation**: 雙層 Canvas 繪製（Glow 層 alpha=0.3 + Core 層）
    - **Note**: **靜態 Glow**，不做呼吸脈衝動畫（Alpha 動態變化已刪除）
@@ -181,8 +185,9 @@ Last updated: 2026-02-17
 ### ⚠️ Critical Warning
 **DO NOT re-add deleted animations**
 - v2.11.1 design decision: **ONLY 4 visual languages allowed**
-  1. **Mechanical clamp / 「咔嗒」animation** (Scale 1.0→0.9→1.0, 350ms)
+  1. **Mechanical clamp / 「咔嗒」animation** (Scale 1.0→0.75→1.2→1.0, 3-phase tween, 350ms)
      - ⚠️ NOT 1000ms (v2.11.0 design flaw, corrected by D-008)
+     - ⚠️ NOT spring animation (visually imperceptible bounce ~5-13%) → use explicit 3-phase tween
   2. **Alpha fade + Stroke thinning** (Alpha 1.0→0.4, Stroke 2.5dp→1.5dp)
   3. **Color change** (Cyan ↔ Cyber Yellow)
   4. **Static Glow effect** (雙層繪製，不做呼吸脈衝)
@@ -208,16 +213,19 @@ Last updated: 2026-02-17
   - 本次修正符合 MERGE_SOP Phase 2 文檔同步要求
 
 ### 🔍 Code Locations
-- Mechanical clamp animation: `CameraScreen.kt:587-595` - FocusIndicator LaunchedEffect
-- Dwell stroke animation: `CameraScreen.kt:604-613` - animatedStrokeWidth
-- Dwell alpha animation: `CameraScreen.kt:614-619` - alpha animateFloatAsState
-- Glow dual-layer: `CameraScreen.kt:637-650` - Canvas drawRect ×2
-- Color change: `CameraScreen.kt:623-626` - color val (Cyan / Cyber Yellow)
+- Mechanical clamp animation: `CameraScreen.kt:600-621` - LaunchedEffect(focusSuccess) 3-phase tween
+- Other states (searching/locked): `CameraScreen.kt:623-633` - LaunchedEffect(isFocusing, isLocked)
+- Dwell stroke animation: `CameraScreen.kt:636-640` - animatedStrokeWidth
+- Dwell alpha animation: `CameraScreen.kt:645-655` - alpha animateFloatAsState (isFading 優先於 isTracking)
+- Color change: `CameraScreen.kt:658-661` - color val (Cyan / Cyber Yellow)
+- Glow dual-layer: `CameraScreen.kt:666+` - Canvas drawRect ×2
 
 ### 📋 Backlog
-- [x] [v2.11.1] 實作機械咬合動畫（Scale 1.0→0.9→1.0，350ms）| Verified: 2026-02-17 (Pixel 9a)
-  - 階段 2: 快速縮小（150ms, FastOutLinearInEasing）
-  - 階段 3: 快速彈回（200ms, Spring.DampingRatioMediumBouncy + StiffnessHigh）
+- [x] [v2.11.1] 實作機械咬合動畫（3-phase tween: Scale 1.0→0.75→1.2→1.0，350ms total）| Verified: 2026-02-18 (Pixel 9a)
+  - Phase 1: 縮小 1.0→0.75（150ms, FastOutLinearInEasing）— 咔嗒感
+  - Phase 2: 彈回超過 0.75→1.2（120ms, FastOutSlowInEasing）— 明顯擴張可見
+  - Phase 3: 落定 1.2→1.0（80ms, LinearOutSlowInEasing）— 穩定
+  - ⚠️ 原 spring 動畫（DampingRatioLowBouncy + stiffness=400）振幅不足，改用 explicit tween
 - [x] [v2.11.1] 實作 Glow 輝光效果（雙層繪製：Glow 層 alpha=0.3 + Core 層）| Verified: 2026-02-17 (Pixel 9a)
 - [x] [v2.11.1] 實作 Dwell 淡化動畫（Alpha 1.0→0.4 + 線條 2.5dp→1.5dp，同步 500ms）| Verified: 2026-02-17 (Pixel 9a)
 - [x] [v2.11.1] 機械咬合時長修正：1000ms → 350ms（D-008 決議）| Verified: 2026-02-17 (Pixel 9a)
