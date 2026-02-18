@@ -875,16 +875,15 @@ class CameraViewModel @Inject constructor(
                     _state.update { it.copy(isFocusing = false, focusSuccess = true) }
                     Log.d(TAG, "Focus successful at ($x, $y)")
 
-                    // ML Kit tracking: Alpha managed by updateTrackedObjectPosition (skip fade)
-                    // Optical Flow + Static: Alpha 1.0 for 1s → fade 500ms → Alpha 0.4 (persistent)
-                    // focusIndicatorFading=true 後保持 Alpha 0.4，直到下次點擊重置
-                    if (_state.value.trackedObjectId == null) {
-                        delay(1000)  // Keep for 1 second
-                        _state.update { it.copy(focusIndicatorFading = true, focusIndicatorFadeStartTime = System.currentTimeMillis()) }
-                        delay(500)   // Fade out for 500ms
-                        // v2.x.x: Keep focusPoint visible at alpha 0.4 (persistent until next tap)
-                        // Keep focusIndicatorFading=true to maintain alpha 0.4 (reset on next tap)
-                    }
+                    // v2.11.1 fix: Always trigger dwell fade after focus success,
+                    // regardless of ML Kit tracking state.
+                    // Previously guarded by trackedObjectId == null, but ML Kit re-assigns
+                    // trackingId immediately after tap, preventing fade from ever triggering.
+                    // Alpha 1.0 for 1s → fade 500ms → Alpha 0.4 (persistent until next tap)
+                    delay(1000)  // Keep for 1 second
+                    _state.update { it.copy(focusIndicatorFading = true, focusIndicatorFadeStartTime = System.currentTimeMillis()) }
+                    delay(500)   // Fade out for 500ms
+                    // Keep focusIndicatorFading=true to maintain alpha 0.4 (reset on next tap)
 
                 } else {
                     _state.update { it.copy(isFocusing = false, focusSuccess = false) }

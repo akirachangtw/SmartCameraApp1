@@ -74,6 +74,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -582,21 +584,51 @@ private fun FocusIndicator(
         label = "focus_y"
     )
 
-    // Overshoot animation (shrink 10% → bounce back)
+    // Mechanical clamp animation
     val scale = remember { Animatable(1.0f) }
 
-    LaunchedEffect(focusSuccess, isFocusing, isTracking, isLocked) {
+    // v2.11.1 fix: Split into two separate LaunchedEffects
+    // Problem: isFocusing in the key caused re-trigger during the 150ms shrink phase.
+    // ViewModel motion detection can set isFocusing=true within 150ms of focus success,
+    // which re-triggered the effect and jumped to `isFocusing -> scale.animateTo(1.2f)`,
+    // cancelling the bounce-back before it could run.
+    //
+    // Fix: LaunchedEffect(focusSuccess) = clamp ONLY — not cancellable by isFocusing/isTracking
+    //      LaunchedEffect(isFocusing, isLocked) = search/locked states — guards against focusSuccess
+
+    // Clamp: keyed on focusSuccess only — runs to completion regardless of isFocusing changes
+    LaunchedEffect(focusSuccess) {
+        android.util.Log.d("FocusClamp", "LaunchedEffect(focusSuccess=$focusSuccess) triggered, isFocusing=$isFocusing, isTracking=$isTracking")
         when {
-            focusSuccess == true && !isFocusing && !isTracking && !isLocked -> {
-                // Focus success: Mechanical clamp animation (v2.11.1: 350ms total = 150ms + 200ms)
-                // Phase 2: Shrink to 0.9 (150ms)
-                scale.animateTo(0.9f, tween(150, easing = FastOutLinearInEasing))
-                // Phase 3: Bounce back to 1.0 (Spring ~200ms)
-                scale.animateTo(1.0f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessHigh))
+            focusSuccess == true -> {
+                // Phase 2: Shrink to 0.75 (150ms) — 25% compression for visible "咔嗒" feel
+                // Previously 0.9 (10% = 4.8dp change) was too subtle; 0.75 = 12dp change
+                android.util.Log.d("FocusClamp", "Clamp START: shrink to 0.75")
+                scale.animateTo(0.75f, tween(150, easing = FastOutLinearInEasing))
+                android.util.Log.d("FocusClamp", "Clamp MID: shrink done (scale=${scale.value}), expanding to 1.2")
+                // Phase 2: Bounce UP past 1.0 to 1.2 (120ms) — 20% expansion clearly visible
+                scale.animateTo(1.2f, tween(120, easing = FastOutSlowInEasing))
+                android.util.Log.d("FocusClamp", "Clamp SETTLE: settling to 1.0 (scale=${scale.value})")
+                // Phase 3: Settle back to 1.0 (80ms)
+                scale.animateTo(1.0f, tween(80, easing = LinearOutSlowInEasing))
+                android.util.Log.d("FocusClamp", "Clamp DONE: animation complete (scale=${scale.value})")
             }
-            isTracking || isLocked -> scale.snapTo(1.0f)
-            isFocusing -> scale.animateTo(1.2f, tween(300))
-            else -> scale.snapTo(1.0f)
+            else -> {
+                android.util.Log.d("FocusClamp", "Clamp RESET (focusSuccess=$focusSuccess)")
+                scale.snapTo(1.0f)
+            }
+        }
+    }
+
+    // Searching / Locked states — only when not in a focus-success clamp
+    LaunchedEffect(isFocusing, isLocked) {
+        android.util.Log.d("FocusClamp", "LaunchedEffect(isFocusing=$isFocusing, isLocked=$isLocked) triggered, focusSuccess=$focusSuccess")
+        if (focusSuccess != true) {
+            when {
+                isLocked -> scale.snapTo(1.0f)
+                isFocusing -> scale.animateTo(1.2f, tween(300))
+                else -> scale.snapTo(1.0f)
+            }
         }
     }
 
@@ -608,10 +640,13 @@ private fun FocusIndicator(
     )
 
     // Alpha
+    // v2.11.1 fix: isFading takes priority over isTracking
+    // Previously isTracking || isLocked -> 1.0f blocked the dwell fade during ML Kit tracking
     val alpha by animateFloatAsState(
         targetValue = when {
-            isTracking || isLocked -> 1.0f
-            isFading -> 0.4f
+            isLocked -> 1.0f           // Lock state: always full alpha
+            isFading -> 0.4f           // Dwell fade: applies even during tracking
+            isTracking -> 1.0f         // Tracking (not fading): full alpha
             focusSuccess == false -> 0.6f
             else -> 1.0f
         },
