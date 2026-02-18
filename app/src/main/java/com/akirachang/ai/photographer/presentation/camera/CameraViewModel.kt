@@ -928,26 +928,28 @@ class CameraViewModel @Inject constructor(
             try {
                 Log.i(TAG, "Locking AE/AF at ($x, $y)")
 
-                // Clear tracking state if active (lock mode is exclusive)
-                val wasTracking = _state.value.trackedObjectId != null
-                if (wasTracking) {
-                    _state.update {
-                        it.copy(
-                            trackedObjectId = null,
-                            trackedObjectType = null
-                        )
-                    }
-                    Log.i(TAG, "Tracking cleared for AE/AF lock")
+                // v2.11.2 fix Bug A: Stop Optical Flow BEFORE state update to prevent
+                // OF callback from overwriting focusPoint=B with the old A coordinates.
+                val wasOpticalFlowTracking = _state.value.trackedPointActive
+                if (wasOpticalFlowTracking) {
+                    cameraRepository.stopOpticalFlowTracking()
+                    Log.i(TAG, "Optical flow tracking stopped for AE/AF lock")
                 }
 
-                // Update state to show lock indicator (yellow square)
+                // Single atomic update: clear ALL tracking state + set lock indicator.
+                // trackedPointActive=false ensures OF callback no longer writes focusPoint.
                 _state.update {
                     it.copy(
-                        focusPoint = Pair(x, y),
+                        trackedObjectId = null,       // Clear ML Kit tracking
+                        trackedObjectType = null,
+                        trackedPointActive = false,   // Stop OF callback from overwriting focusPoint
+                        trackedPointLost = false,
+                        focusIndicatorFading = false, // Reset dwell fade for fresh lock indicator
+                        focusPoint = Pair(x, y),      // B point (safe: OF already stopped)
                         isFocusing = true,
                         focusSuccess = null,
                         lockPoint = Pair(x, y),
-                        isAEAFLocked = false  // Will be set to true after successful lock
+                        isAEAFLocked = false          // Will be set to true after successful lock
                     )
                 }
 

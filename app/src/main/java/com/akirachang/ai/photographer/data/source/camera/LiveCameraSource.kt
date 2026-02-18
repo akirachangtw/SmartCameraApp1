@@ -712,15 +712,12 @@ class LiveCameraSource @Inject constructor(
             future.addListener({
                 try {
                     val result = future.get()  // Called in Executor thread
-                    if (result.isFocusSuccessful) {
-                        Log.i(TAG, "[v2.11.1] AE/AF locked at ($x, $y) - factory: ${if (previewView != null) "PreviewView" else "SurfaceOriented"}")
-                        Timber.i("LiveCameraSource: AE/AF locked at ($x, $y)")
-                        continuation.resume(Result.success(Unit))
-                    } else {
-                        Log.w(TAG, "[v2.11.1] AE/AF lock failed at ($x, $y)")
-                        Timber.w("LiveCameraSource: AE/AF lock failed at ($x, $y)")
-                        continuation.resume(Result.failure(Exception("AE/AF lock failed")))
-                    }
+                    // v2.11.2 fix Bug B: AE/AF lock is applied regardless of AF convergence quality.
+                    // isFocusSuccessful indicates AF convergence, NOT whether the lock was applied.
+                    // Always resume success so ViewModel triggers 3-phase animation + yellow indicator.
+                    Log.i(TAG, "[v2.11.2] AE/AF lock applied at ($x, $y) - isFocusSuccessful=${result.isFocusSuccessful}, factory=${if (previewView != null) "PreviewView" else "SurfaceOriented"}")
+                    Timber.i("LiveCameraSource: AE/AF lock applied at ($x, $y), isFocusSuccessful=${result.isFocusSuccessful}")
+                    continuation.resume(Result.success(Unit))
                 } catch (e: Exception) {
                     Log.e(TAG, "AE/AF lock error", e)
                     Timber.e(e, "LiveCameraSource: AE/AF lock error")

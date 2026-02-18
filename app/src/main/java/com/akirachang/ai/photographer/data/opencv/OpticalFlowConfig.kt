@@ -139,17 +139,19 @@ data class OpticalFlowConfig(
      * Actual threshold = max(3.0, ransacDistanceThreshold * medianDisplacementMagnitude).
      * Adaptive: tight for small motions, wider for large motions.
      *
-     * Default: 0.5f - at 10px median motion the threshold is 5px
+     * Default: 1.0f - at 10px median motion the threshold is 10px
+     * v2.11.2: 0.5→1.0 to reduce over-rejection in small-motion scenes (hand-held shake)
      */
-    val ransacDistanceThreshold: Float = 0.5f,
+    val ransacDistanceThreshold: Float = 1.0f,
 
     /**
      * Frames between full feature re-detection via goodFeaturesToTrack.
      * Replenishes point set as LK drops failed points between redetections.
      *
-     * Default: 15 - at 15 FPS throttle this is ~1 second
+     * Default: 5 - at 15 FPS throttle this is ~333ms
+     * v2.11.2: 15→5 for faster feature replenishment, prevents point depletion → LOST
      */
-    val redetectionInterval: Int = 15
+    val redetectionInterval: Int = 5
 ) {
     companion object {
         /**
