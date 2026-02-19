@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Dispatchers
@@ -106,6 +107,10 @@ class CameraViewModel @Inject constructor(
     // Smart Subject Focus (v2.11.0: AI Auto-Focus)
     private var lastManualTapTime: Long = 0L
     private val MANUAL_TAP_OVERRIDE_DURATION = 5000L  // 5 seconds
+
+    // v2.11.2 Fix E: Track the active focusOnPoint() coroutine to cancel stale jobs.
+    // Prevents race condition where stale delay(500) clears focusPoint after lockAEAF sets it.
+    private var focusJob: Job? = null
 
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
@@ -214,22 +219,39 @@ class CameraViewModel @Inject constructor(
 
         cameraRepository.setOpticalFlowCallback { trackingResult ->
             if (trackingResult.isValid) {
-                val pointX = trackingResult.point.x.toFloat()
-                val pointY = trackingResult.point.y.toFloat()
+                // [v2.11.2 Fix G] trackingResult.point is in IMAGE coords (SmartCameraAnalyzer no longer converts).
+                // Use CoordinateTransformer (FIT_CENTER) instead of CoordinateMapper (CENTER_CROP) to
+                // avoid the 2.24x scale error that caused excessive drift.
+                val transformer = _state.value.coordinateTransformer
+                val (screenX, screenY) = if (transformer != null) {
+                    transformer.imageToScreen(
+                        trackingResult.point.x.toFloat(),
+                        trackingResult.point.y.toFloat()
+                    )
+                } else {
+                    // Fallback: transformer not ready — use raw coords (may drift, but non-crashing)
+                    Log.w(TAG, "[Fix G] No coordinateTransformer in OF callback — using raw image coords (fallback)")
+                    trackingResult.point.x.toFloat() to trackingResult.point.y.toFloat()
+                }
 
-                // Update tracking state with raw LK coordinates (zero-lag)
+                // Update tracking state with screen-space coordinates
                 // Note: Do NOT reset focusIndicatorFading here — fade sequence controls it
                 _state.update {
                     it.copy(
-                        focusPoint = Pair(pointX, pointY),
+                        focusPoint = Pair(screenX, screenY),
                         trackedPointActive = true,
                         trackedPointQuality = trackingResult.quality,
                         trackedPointLost = false
                     )
                 }
-                Log.v(TAG, "Optical flow tracking updated: point=(${pointX}, ${pointY}), quality=${trackingResult.quality}")
+                Log.v(TAG, "[Fix G] OF callback: image=(${trackingResult.point.x.toFloat()}, ${trackingResult.point.y.toFloat()}) → screen=($screenX, $screenY), quality=${trackingResult.quality}")
 
             } else {
+                // v2.11.2 fix: Guard against repeated LOST callbacks (fires every frame after LOST).
+                // Only process LOST once: when trackedPointActive is still true (first LOST event).
+                val wasActive = _state.value.trackedPointActive
+                if (!wasActive) return@setOpticalFlowCallback  // Already handling LOST, skip duplicate
+
                 // Tracking lost — fade out then clear
                 _state.update {
                     it.copy(
@@ -405,16 +427,28 @@ class CameraViewModel @Inject constructor(
      */
     fun updateContentBounds(bounds: android.graphics.RectF) {
         val detection = _state.value.detectionResult
-        val imageWidth = detection?.imageWidth ?: 0
-        val imageHeight = detection?.imageHeight ?: 0
+        val rawImageWidth = detection?.imageWidth ?: 0
+        val rawImageHeight = detection?.imageHeight ?: 0
+        val rotation = detection?.rotationDegrees ?: 0
         val isFrontCamera = _state.value.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT
 
+        // v2.11.2 Fix D: Swap dimensions for 90°/270° rotation.
+        // ImageProxy reports sensor-native (landscape) dimensions: e.g., width=1280, height=720.
+        // ML Kit bounding boxes and OF tracked positions are in the ROTATED (upright) image space.
+        // In portrait (rotationDegrees=90 or 270), the effective upright space is 720×1280.
+        // Without this swap, CoordinateTransformer maps image coords to wrong screen positions.
+        val (effectiveImageWidth, effectiveImageHeight) = if (rotation == 90 || rotation == 270) {
+            rawImageHeight to rawImageWidth   // landscape sensor → portrait upright: 1280×720 → 720×1280
+        } else {
+            rawImageWidth to rawImageHeight
+        }
+
         // Create coordinate transformer if image dimensions are available
-        val transformer = if (imageWidth > 0 && imageHeight > 0) {
+        val transformer = if (effectiveImageWidth > 0 && effectiveImageHeight > 0) {
             com.akirachang.ai.photographer.presentation.camera.components.CoordinateTransformer(
                 contentBounds = bounds,
-                imageWidth = imageWidth,
-                imageHeight = imageHeight,
+                imageWidth = effectiveImageWidth,
+                imageHeight = effectiveImageHeight,
                 isFrontCamera = isFrontCamera
             )
         } else {
@@ -428,10 +462,12 @@ class CameraViewModel @Inject constructor(
             )
         }
 
-        Log.d(TAG, "[v2.11.1 P0-2] Content bounds updated: " +
+        Log.d(TAG, "[v2.11.2 Fix D] Content bounds updated: " +
                 "left=${bounds.left}, top=${bounds.top}, " +
                 "right=${bounds.right}, bottom=${bounds.bottom}, " +
                 "width=${bounds.width()}, height=${bounds.height()}, " +
+                "rawImage=${rawImageWidth}x${rawImageHeight}, rotation=${rotation}°, " +
+                "effectiveImage=${effectiveImageWidth}x${effectiveImageHeight}, " +
                 "transformer=${if (transformer != null) "created" else "null (no image dims)"}")
     }
 
@@ -629,44 +665,41 @@ class CameraViewModel @Inject constructor(
      */
     private fun findTappedTarget(x: Float, y: Float): Pair<Int, TrackedObjectType>? {
         val detectionResult = _state.value.detectionResult ?: return null
+        val transformer = _state.value.coordinateTransformer
 
-        // 🔍 DIAGNOSTIC: Log detection result image dimensions
-        Log.d(TAG, "🔍 [Coordinate Debug] DetectionResult: ${detectionResult.imageWidth}x${detectionResult.imageHeight}, rotation=${detectionResult.rotationDegrees}°")
-        Log.d(TAG, "🔍 [Coordinate Debug] Faces: ${detectionResult.faces.size}, Objects: ${detectionResult.objects.size}")
-
-        // Log all face bounding boxes
-        detectionResult.faces.forEachIndexed { index, face ->
-            Log.d(TAG, "🔍 [Coordinate Debug] Face[$index] BoundingBox: ${face.boundingBox}")
+        // Convert tap point from screen space to ML Kit image space for boundingBox comparison.
+        // face.boundingBox / obj.boundingBox are in image coordinates; touch x,y are in screen coords.
+        val (imageX, imageY) = if (transformer != null) {
+            transformer.screenToImage(x, y) ?: run {
+                Log.d(TAG, "findTappedTarget: tap ($x, $y) outside content bounds — no target")
+                return null
+            }
+        } else {
+            Log.w(TAG, "findTappedTarget: no coordinateTransformer, using raw screen coords (legacy fallback)")
+            x to y
         }
 
-        // Log all object bounding boxes
-        detectionResult.objects.forEachIndexed { index, obj ->
-            Log.d(TAG, "🔍 [Coordinate Debug] Object[$index] BoundingBox: ${obj.boundingBox}")
-        }
+        Log.d(TAG, "findTappedTarget: screen=($x, $y) → image=($imageX, $imageY)")
 
         // Priority 1: Check faces (more stable tracking)
         detectionResult.faces.forEachIndexed { index, face ->
-            val contains = face.boundingBox.contains(x.toInt(), y.toInt())
-            Log.d(TAG, "🔍 [Coordinate Debug] Face[$index] contains($x, $y)? $contains")
-            if (contains) {
-                val trackingId = face.trackingId ?: (index + 10000)  // Fallback ID: 10000+
-                Log.i(TAG, "✅ Tapped on face: trackingId=$trackingId, boundingBox=${face.boundingBox}")
+            if (face.boundingBox.contains(imageX.toInt(), imageY.toInt())) {
+                val trackingId = face.trackingId ?: (index + 10000)
+                Log.i(TAG, "findTappedTarget: tapped face trackingId=$trackingId, bbox=${face.boundingBox}")
                 return Pair(trackingId, TrackedObjectType.FACE)
             }
         }
 
         // Priority 2: Check objects
         detectionResult.objects.forEachIndexed { index, obj ->
-            val contains = obj.boundingBox.contains(x.toInt(), y.toInt())
-            Log.d(TAG, "🔍 [Coordinate Debug] Object[$index] contains($x, $y)? $contains")
-            if (contains) {
-                val trackingId = obj.trackingId ?: (index + 20000)  // Fallback ID: 20000+
-                Log.i(TAG, "✅ Tapped on object: trackingId=$trackingId, boundingBox=${obj.boundingBox}")
+            if (obj.boundingBox.contains(imageX.toInt(), imageY.toInt())) {
+                val trackingId = obj.trackingId ?: (index + 20000)
+                Log.i(TAG, "findTappedTarget: tapped object trackingId=$trackingId, bbox=${obj.boundingBox}")
                 return Pair(trackingId, TrackedObjectType.OBJECT)
             }
         }
 
-        Log.d(TAG, "🔍 [Coordinate Debug] No target found at ($x, $y)")
+        Log.d(TAG, "findTappedTarget: no target at image=($imageX, $imageY)")
         return null
     }
 
@@ -724,27 +757,36 @@ class CameraViewModel @Inject constructor(
         }
 
         if (centerX != null && centerY != null) {
-            // Target found, update position
+            // Target found — convert image-space center to screen space for FocusIndicator.
+            // centerX/centerY are in ML Kit image coordinates; focusPoint must be in screen space.
+            val transformer = _state.value.coordinateTransformer
+            val (screenX, screenY) = if (transformer != null) {
+                transformer.imageToScreen(centerX, centerY)
+            } else {
+                Log.w(TAG, "updateTrackedObjectPosition: no coordinateTransformer, using raw image coords (legacy fallback)")
+                centerX to centerY
+            }
 
             // v2.11.0 Fade-out optimization: Reset on significant motion during dwell state
+            // Comparison uses screen-space coordinates on both sides now.
             if (_state.value.focusIndicatorFading) {
                 val oldFocusPoint = _state.value.focusPoint
                 if (oldFocusPoint != null) {
                     val positionDelta = kotlin.math.sqrt(
-                        (centerX - oldFocusPoint.first) * (centerX - oldFocusPoint.first) +
-                        (centerY - oldFocusPoint.second) * (centerY - oldFocusPoint.second)
+                        (screenX - oldFocusPoint.first) * (screenX - oldFocusPoint.first) +
+                        (screenY - oldFocusPoint.second) * (screenY - oldFocusPoint.second)
                     )
 
                     // Motion threshold: 30 pixels (about 1cm on typical phone screen)
                     val motionThreshold = 30f
 
                     if (positionDelta > motionThreshold) {
-                        // Significant motion detected: reset fade and refocus
+                        // Significant motion detected: reset fade and refocus using screen coords
                         _state.update { it.copy(focusIndicatorFading = false, isFocusing = true) }
 
                         val viewWidth = previewWidth ?: return
                         val viewHeight = previewHeight ?: return
-                        focusOnPoint(centerX, centerY, viewWidth, viewHeight)
+                        focusOnPoint(screenX, screenY, viewWidth, viewHeight)
 
                         if (BuildConfig.DEBUG) {
                             Log.d(TAG, "Fade-out reset: object moved ${positionDelta.toInt()}px (threshold: ${motionThreshold.toInt()}px)")
@@ -757,13 +799,13 @@ class CameraViewModel @Inject constructor(
             // Prevent excessive updates: only update if position changed > 5 pixels
             val currentFocusPoint = _state.value.focusPoint
             val shouldUpdate = currentFocusPoint == null ||
-                kotlin.math.abs(currentFocusPoint.first - centerX) > 5f ||
-                kotlin.math.abs(currentFocusPoint.second - centerY) > 5f
+                kotlin.math.abs(currentFocusPoint.first - screenX) > 5f ||
+                kotlin.math.abs(currentFocusPoint.second - screenY) > 5f
 
             if (shouldUpdate) {
-                _state.update { it.copy(focusPoint = Pair(centerX, centerY)) }
+                _state.update { it.copy(focusPoint = Pair(screenX, screenY)) }
                 if (BuildConfig.DEBUG) {
-                    Log.v(TAG, "Tracking update: ID=$trackedId, position=($centerX, $centerY)")
+                    Log.v(TAG, "Tracking update: ID=$trackedId, image=($centerX, $centerY), screen=($screenX, $screenY)")
                 }
             }
 
@@ -801,7 +843,10 @@ class CameraViewModel @Inject constructor(
      * @param viewHeight View height in pixels
      */
     private fun focusOnPoint(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
-        viewModelScope.launch {
+        // v2.11.2 Fix E: Cancel any stale focusOnPoint() coroutine before launching new one.
+        // Prevents stale delay(500) → focusPoint=null from racing with lockAEAF state update.
+        focusJob?.cancel()
+        focusJob = viewModelScope.launch {
             try {
                 // v2.11.0: Record manual tap time for Smart Subject Focus override
                 lastManualTapTime = System.currentTimeMillis()
@@ -809,11 +854,21 @@ class CameraViewModel @Inject constructor(
                 // 🔍 DIAGNOSTIC: Log tap coordinates and view size
                 Log.d(TAG, "🔍 [Coordinate Debug] Tap: ($x, $y), View: ${viewWidth}x${viewHeight}")
 
-                // v2.9.9 Day 1-2: Unlock AE/AF if locked (tap to unlock)
+                // v2.11.2 fix Bug C: Unlock AE/AF then immediately re-focus at the new tap point.
+                // Previous behavior: return@launch after unlock (required two taps to restart tracking).
+                // New behavior: unlock + continue to process the tap, so one tap restores auto-focus
+                // and starts tracking at the new location.
                 if (_state.value.isAEAFLocked) {
-                    unlockAEAF()
-                    Log.i(TAG, "AE/AF unlocked by tap")
-                    return@launch  // Don't start new focus, just unlock
+                    cameraRepository.cancelFocusAndMetering()
+                    _state.update {
+                        it.copy(
+                            isAEAFLocked = false,
+                            lockPoint = null,
+                            focusIndicatorFading = false
+                        )
+                    }
+                    Log.i(TAG, "AE/AF unlocked by tap — continuing to focus at ($x, $y)")
+                    // Do NOT return — fall through to process the tap as new focus/tracking
                 }
 
                 // v2.9.10: Find tapped target for tracking
@@ -849,9 +904,24 @@ class CameraViewModel @Inject constructor(
                         )
                     }
 
-                    // Start optical flow tracking
-                    cameraRepository.startOpticalFlowTracking(x, y)
-                    Log.i(TAG, "Optical flow tracking started at ($x, $y)")
+                    // [v2.11.2 Fix G] Convert screen → image via CoordinateTransformer (FIT_CENTER, correct scale).
+                    // Bypasses CoordinateMapper CENTER_CROP to eliminate 2.24x scale error.
+                    val transformer = _state.value.coordinateTransformer
+                    if (transformer != null) {
+                        val imageCoords = transformer.screenToImage(x, y)
+                        if (imageCoords != null) {
+                            cameraRepository.startOpticalFlowTrackingImageCoords(imageCoords.first, imageCoords.second)
+                            Log.i(TAG, "[Fix G] OF start: screen=($x, $y) → image=(${imageCoords.first}, ${imageCoords.second}) via CoordinateTransformer")
+                        } else {
+                            // Tap outside content bounds (letterbox area) — fallback to old path
+                            cameraRepository.startOpticalFlowTracking(x, y)
+                            Log.w(TAG, "[Fix G] OF start: tap outside content bounds, fallback to CoordinateMapper")
+                        }
+                    } else {
+                        // Transformer not ready — fallback to old path (may drift)
+                        cameraRepository.startOpticalFlowTracking(x, y)
+                        Log.w(TAG, "[Fix G] OF start: no coordinateTransformer, fallback to CoordinateMapper")
+                    }
 
                 } else {
                     // Static focus mode: Traditional tap-to-focus
@@ -924,6 +994,11 @@ class CameraViewModel @Inject constructor(
      * Displays yellow square indicator at lock point.
      */
     private fun lockAEAF(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
+        // v2.11.2 Fix E: Cancel stale focusOnPoint() coroutine to prevent its delay(500) → focusPoint=null
+        // from firing AFTER this lockAEAF sets focusPoint=B (race window: ~800ms for focus failure path).
+        focusJob?.cancel()
+        Log.i(TAG, "focusJob cancelled for AE/AF lock at ($x, $y)")
+
         viewModelScope.launch {
             try {
                 Log.i(TAG, "Locking AE/AF at ($x, $y)")
@@ -961,7 +1036,8 @@ class CameraViewModel @Inject constructor(
                         it.copy(
                             isFocusing = false,
                             focusSuccess = true,
-                            isAEAFLocked = true  // Lock successful
+                            isAEAFLocked = true,  // Lock successful
+                            focusPoint = Pair(x, y)  // v2.11.2 Fix E: Restore in case focusJob cancel arrived late
                         )
                     }
                     Log.i(TAG, "AE/AF locked successfully at ($x, $y)")
@@ -1070,21 +1146,24 @@ class CameraViewModel @Inject constructor(
         // Collect all candidates with scores
         val candidates = mutableListOf<Pair<Pair<Float, Float>, Float>>()
 
+        val transformer = _state.value.coordinateTransformer
+
         // Faces (with Eye-AF integration)
+        // Candidate points are in ML Kit image space and will be converted to screen space before use.
         detectionResult.faces.forEach { face ->
             val score = calculateSaliencyScore(face.boundingBox, true, viewWidth, viewHeight)
             val eyePosition = detectionResult.eyePositions.firstOrNull { it.faceId == face.trackingId }
-            val centerX = eyePosition?.nearestEye?.x ?: face.boundingBox.exactCenterX()
-            val centerY = eyePosition?.nearestEye?.y ?: face.boundingBox.exactCenterY()
-            candidates.add((centerX to centerY) to score)
+            val imageCenterX = eyePosition?.nearestEye?.x ?: face.boundingBox.exactCenterX()
+            val imageCenterY = eyePosition?.nearestEye?.y ?: face.boundingBox.exactCenterY()
+            candidates.add((imageCenterX to imageCenterY) to score)
         }
 
         // Objects
         detectionResult.objects.forEach { obj ->
             val score = calculateSaliencyScore(obj.boundingBox, false, viewWidth, viewHeight)
-            val centerX = obj.boundingBox.exactCenterX()
-            val centerY = obj.boundingBox.exactCenterY()
-            candidates.add((centerX to centerY) to score)
+            val imageCenterX = obj.boundingBox.exactCenterX()
+            val imageCenterY = obj.boundingBox.exactCenterY()
+            candidates.add((imageCenterX to imageCenterY) to score)
         }
 
         // Find top candidate
@@ -1092,10 +1171,16 @@ class CameraViewModel @Inject constructor(
 
         // Auto-focus if score is above threshold
         if (topCandidate != null && topCandidate.second > 50f) {
-            val (x, y) = topCandidate.first
-            focusOnPoint(x, y, viewWidth, viewHeight)
+            val (imageX, imageY) = topCandidate.first
+            // Convert image-space point to screen space before calling focusOnPoint.
+            val (screenX, screenY) = if (transformer != null) {
+                transformer.imageToScreen(imageX, imageY)
+            } else {
+                imageX to imageY  // Legacy fallback
+            }
+            focusOnPoint(screenX, screenY, viewWidth, viewHeight)
             if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Smart Subject Focus: score=${topCandidate.second}, pos=($x, $y)")
+                Log.d(TAG, "Smart Subject Focus: score=${topCandidate.second}, image=($imageX, $imageY), screen=($screenX, $screenY)")
             }
         }
     }
@@ -1181,6 +1266,14 @@ class CameraViewModel @Inject constructor(
                             _state.value.detectionResult?.faces?.isNotEmpty() == true) {
                             _state.update { it.copy(detectionResult = result) }
 
+                            // v2.11.2 Fix F: Rebuild CoordinateTransformer on first detection with valid dims.
+                            // updateContentBounds() runs at layout time (before ML Kit), so transformer is null.
+                            // Now that imageWidth/imageHeight are available, recreate with correct dimensions.
+                            if (result.imageWidth > 0 && _state.value.coordinateTransformer == null &&
+                                _state.value.contentBounds.width() > 0) {
+                                updateContentBounds(_state.value.contentBounds)
+                            }
+
                             // Perform composition analysis (v1.5.0)
                             analyzeComposition(result)
 
@@ -1196,6 +1289,13 @@ class CameraViewModel @Inject constructor(
                         // Only clear if we have enough consecutive empty frames
                         if (consecutiveNoFaceDetections >= MIN_NO_DETECTIONS_TO_HIDE) {
                             _state.update { it.copy(detectionResult = result) }
+
+                            // v2.11.2 Fix F: Rebuild transformer even on no-face result — imageWidth still valid
+                            if (result.imageWidth > 0 && _state.value.coordinateTransformer == null &&
+                                _state.value.contentBounds.width() > 0) {
+                                updateContentBounds(_state.value.contentBounds)
+                            }
+
                             _compositionState.value = CompositionState.NoSubject
 
                             Log.i(TAG, "Detection cleared: No stable face detected")
@@ -1282,6 +1382,12 @@ class CameraViewModel @Inject constructor(
                                 _state.value.detectionResult?.faces?.isNotEmpty() == true) {
                                 _state.update { it.copy(detectionResult = detectionResult) }
 
+                                // v2.11.2 Fix F: Rebuild CoordinateTransformer on first detection with valid dims
+                                if (detectionResult.imageWidth > 0 && _state.value.coordinateTransformer == null &&
+                                    _state.value.contentBounds.width() > 0) {
+                                    updateContentBounds(_state.value.contentBounds)
+                                }
+
                                 // v2.9.10: Update tracked object position (Traycer)
                                 updateTrackedObjectPosition(detectionResult)
 
@@ -1305,6 +1411,12 @@ class CameraViewModel @Inject constructor(
                             // Only clear if we have enough consecutive empty frames
                             if (consecutiveNoFaceDetections >= MIN_NO_DETECTIONS_TO_HIDE) {
                                 _state.update { it.copy(detectionResult = detectionResult) }
+
+                                // v2.11.2 Fix F: Rebuild transformer even on no-face result — imageWidth still valid
+                                if (detectionResult.imageWidth > 0 && _state.value.coordinateTransformer == null &&
+                                    _state.value.contentBounds.width() > 0) {
+                                    updateContentBounds(_state.value.contentBounds)
+                                }
 
                                 // v2.9.10: Update tracking (will clear if target lost)
                                 updateTrackedObjectPosition(detectionResult)

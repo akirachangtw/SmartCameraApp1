@@ -237,6 +237,15 @@ interface CameraRepository {
     fun startOpticalFlowTracking(x: Float, y: Float)
 
     /**
+     * Start optical flow tracking using image/analysis coordinates directly.
+     * [v2.11.2 Fix G] Bypasses CoordinateMapper (CENTER_CROP) — caller uses CoordinateTransformer (FIT_CENTER).
+     *
+     * @param imageX X coordinate in image analysis space
+     * @param imageY Y coordinate in image analysis space
+     */
+    fun startOpticalFlowTrackingImageCoords(imageX: Float, imageY: Float)
+
+    /**
      * Stop optical flow tracking
      * v2.x.x Phase 4: Stop tracking and release resources
      */

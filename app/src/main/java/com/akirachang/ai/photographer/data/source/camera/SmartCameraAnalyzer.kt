@@ -112,6 +112,8 @@ class SmartCameraAnalyzer(
     private var pendingTrackX: Float = 0f
     private var pendingTrackY: Float = 0f
     private var hasPendingTrack: Boolean = false
+    // v2.11.2 Fix G: true when pending coords are already in image space (set by startOpticalFlowTrackingImageCoords)
+    private var isPendingInImageCoords: Boolean = false
 
     /**
      * Set optical flow tracking result callback
@@ -176,6 +178,29 @@ class SmartCameraAnalyzer(
     }
 
     /**
+     * [v2.11.2 Fix G] Start optical flow tracking using image/analysis coordinates directly.
+     * Bypasses CoordinateMapper (CENTER_CROP) — caller has already converted via CoordinateTransformer (FIT_CENTER).
+     *
+     * @param imageX X coordinate in image analysis space
+     * @param imageY Y coordinate in image analysis space
+     */
+    fun startOpticalFlowTrackingImageCoords(imageX: Float, imageY: Float) {
+        if (imageWidth == 0 || imageHeight == 0) {
+            pendingTrackX = imageX
+            pendingTrackY = imageY
+            hasPendingTrack = true
+            isPendingInImageCoords = true
+            Log.d(TAG, "[Fix G] OF tracking start pending (image coords): ($imageX, $imageY)")
+            return
+        }
+        if (opticalFlowTracker == null) {
+            opticalFlowTracker = OpticalFlowTracker()
+        }
+        opticalFlowTracker?.startTracking(Point(imageX.toDouble(), imageY.toDouble()), imageWidth, imageHeight)
+        Log.i(TAG, "[Fix G] OF tracking started at image ($imageX, $imageY) — bypassing CoordinateMapper")
+    }
+
+    /**
      * Stop optical flow tracking
      * v2.x.x Phase 4: Stop tracking and release resources
      */
@@ -211,16 +236,22 @@ class SmartCameraAnalyzer(
         // Apply pending tracking start if exists
         if (hasPendingTrack) {
             hasPendingTrack = false
-            val imagePoint = CoordinateMapper.previewToImage(
-                pendingTrackX, pendingTrackY,
-                previewWidth, previewHeight,
-                imageWidth, imageHeight
-            )
+            // [Fix G] If coords are already in image space, skip CoordinateMapper
+            val imagePoint = if (isPendingInImageCoords) {
+                isPendingInImageCoords = false
+                Point(pendingTrackX.toDouble(), pendingTrackY.toDouble())
+            } else {
+                CoordinateMapper.previewToImage(
+                    pendingTrackX, pendingTrackY,
+                    previewWidth, previewHeight,
+                    imageWidth, imageHeight
+                )
+            }
             if (opticalFlowTracker == null) {
                 opticalFlowTracker = OpticalFlowTracker()
             }
             opticalFlowTracker?.startTracking(imagePoint, imageWidth, imageHeight)
-            Log.i(TAG, "Applied pending tracking start: preview (${pendingTrackX}, ${pendingTrackY}) -> image (${imagePoint.x}, ${imagePoint.y})")
+            Log.i(TAG, "Applied pending tracking start: image (${imagePoint.x}, ${imagePoint.y})")
         }
 
         // Skip if not actively tracking
@@ -232,25 +263,9 @@ class SmartCameraAnalyzer(
         try {
             val trackingResult = opticalFlowTracker?.track(grayMat) ?: return
 
-            // Convert tracking coordinates back to PreviewView coordinates
-            val (previewX, previewY) = if (trackingResult.isValid) {
-                CoordinateMapper.imageToPreview(
-                    trackingResult.point.x.toFloat(),
-                    trackingResult.point.y.toFloat(),
-                    imageWidth, imageHeight,
-                    previewWidth, previewHeight
-                )
-            } else {
-                Pair(0f, 0f)
-            }
-
-            val previewTrackingResult = TrackingResult(
-                point = Point(previewX.toDouble(), previewY.toDouble()),
-                quality = trackingResult.quality,
-                distance = trackingResult.distance,
-                isValid = trackingResult.isValid
-            )
-            onOpticalFlowResult?.invoke(previewTrackingResult)
+            // [Fix G] Pass image coords directly — CameraViewModel converts via CoordinateTransformer (FIT_CENTER)
+            // (Removed CoordinateMapper.imageToPreview — CENTER_CROP scale caused 2.24x drift)
+            onOpticalFlowResult?.invoke(trackingResult)
         } finally {
             grayMat.release()
         }
@@ -355,29 +370,9 @@ class SmartCameraAnalyzer(
                             val trackingResult = opticalFlowTracker?.track(grayMat)
 
                             if (trackingResult != null) {
-                                // Convert tracking result coordinates back to PreviewView coordinates
-                                val (previewX, previewY) = if (trackingResult.isValid) {
-                                    CoordinateMapper.imageToPreview(
-                                        trackingResult.point.x.toFloat(),
-                                        trackingResult.point.y.toFloat(),
-                                        imageWidth, imageHeight,
-                                        previewWidth, previewHeight
-                                    )
-                                } else {
-                                    // Tracking lost - keep previous coordinates or use (0, 0)
-                                    Pair(0f, 0f)
-                                }
-
-                                // Create result with PreviewView coordinates
-                                val previewTrackingResult = TrackingResult(
-                                    point = Point(previewX.toDouble(), previewY.toDouble()),
-                                    quality = trackingResult.quality,
-                                    distance = trackingResult.distance,
-                                    isValid = trackingResult.isValid
-                                )
-
-                                // Invoke callback
-                                onOpticalFlowResult?.invoke(previewTrackingResult)
+                                // [Fix G] Pass image coords directly — CameraViewModel converts via CoordinateTransformer (FIT_CENTER)
+                                // (Removed CoordinateMapper.imageToPreview — CENTER_CROP scale caused 2.24x drift)
+                                onOpticalFlowResult?.invoke(trackingResult)
                             }
                         } finally {
                             // Release Mat to prevent memory leak

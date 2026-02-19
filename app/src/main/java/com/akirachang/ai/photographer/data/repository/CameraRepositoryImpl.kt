@@ -822,6 +822,19 @@ class CameraRepositoryImpl @Inject constructor(
     }
 
     /**
+     * [v2.11.2 Fix G] Start optical flow tracking using image/analysis coordinates directly.
+     * Bypasses CoordinateMapper (CENTER_CROP) — caller already converted via CoordinateTransformer (FIT_CENTER).
+     */
+    override fun startOpticalFlowTrackingImageCoords(imageX: Float, imageY: Float) {
+        if (smartAnalyzer == null) {
+            Log.d(TAG, "[Fix G] Lazy initializing SmartCameraAnalyzer for OF tracking (image coords)")
+            startImageAnalysis()
+        }
+        smartAnalyzer?.startOpticalFlowTrackingImageCoords(imageX, imageY)
+            ?: Log.w(TAG, "[Fix G] Cannot start OF tracking (image coords): analyzer not initialized")
+    }
+
+    /**
      * Stop optical flow tracking
      * v2.x.x Phase 4: Stop tracking and release resources
      *
