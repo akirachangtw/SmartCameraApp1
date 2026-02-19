@@ -11,10 +11,15 @@ Generates:
 - Level 2 feasibility memo (Claude Code-side feasibility input)
 - PR notes (verification + risk/rollback draft)
 
+Output directory convention:
+  --version vX.Y.Z  →  docs/features/vX.Y.Z/{vX.Y.Z}_{topic}_{level}.md  (preferred)
+  --out <dir>       →  <dir>/{topic}_{level}.md                            (legacy fallback)
+  (auto-detect)     →  reads versionName from app/build.gradle.kts
+
 Usage examples:
-  python tools/hybrid_flow.py --level L1 --topic "camera_static_mode" --out docs/plan
-  python tools/hybrid_flow.py --level L2 --topic "camera_static_mode" --out docs/plan
-  python tools/hybrid_flow.py --level PR --topic "camera_static_mode" --out docs/plan
+  python tools/hybrid_flow.py --level L1 --topic "camera_static_mode" --version v2.11.3
+  python tools/hybrid_flow.py --level L2 --topic "camera_static_mode" --version v2.11.3
+  python tools/hybrid_flow.py --level PR --topic "camera_static_mode" --version v2.11.3
   python tools/hybrid_flow.py --level L1 --topic "camera_control_not_available" --input "實體機切換 Live 後操作 zoom 出現錯誤"
   python tools/hybrid_flow.py --level L2 --topic "camera_control_not_available" --input_file logs/logcat.txt
   adb logcat -d | python tools/hybrid_flow.py --level L1 --topic "camera_control_not_available" --stdin
@@ -53,10 +58,28 @@ def _read_if_exists(path: Path, max_chars: int = 60_000) -> str:
         return f"[failed to read {path}] {e}"
 
 def _slugify(s: str) -> str:
-    s = s.strip().lower()
+    s = s.strip()
     s = "".join(ch if ch.isalnum() or ch in "-_." else "-" for ch in s)
     s = "-".join(filter(None, s.split("-")))
     return s[:80] if s else "task"
+
+def _detect_version(repo: Path) -> str:
+    """Auto-detect versionName from app/build.gradle.kts.
+    Returns 'vX.Y.Z' string, or empty string if not found.
+    """
+    gradle_path = repo / "app" / "build.gradle.kts"
+    if not gradle_path.exists():
+        return ""
+    try:
+        import re
+        text = gradle_path.read_text(encoding="utf-8", errors="replace")
+        m = re.search(r'versionName\s*=\s*"([^"]+)"', text)
+        if m:
+            ver = m.group(1).strip()
+            return f"v{ver}" if not ver.startswith("v") else ver
+    except Exception:
+        pass
+    return ""
 
 def _compose_prompt(level: str, topic: str, issue_text: str, additional_text: str, context_blocks: List[str], git_block: str) -> str:
     header = "你是資深 Android / CameraX / AI 即時影像專案的技術 PM 與工程顧問。請用繁體中文產出以下文件。\n\n"
@@ -120,7 +143,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--level", required=True, choices=["L1", "L2", "PR"], help="Which artifact to generate")
     ap.add_argument("--topic", required=True, help="Short topic name, used for filename")
-    ap.add_argument("--out", default="docs/plan", help="Output directory")
+    ap.add_argument("--version", default="", help="Version tag (e.g. v2.11.3). Output goes to docs/features/{version}/. Auto-detected from build.gradle.kts if omitted.")
+    ap.add_argument("--out", default="docs/plan", help="Output directory (legacy fallback, used only when --version is absent and auto-detect fails)")
     ap.add_argument("--issue", default="", help="Optional path to Issue markdown, or raw text")
     ap.add_argument("--input", default="", help="Optional inline description (requirements / problem statement)")
     ap.add_argument("--input_file", default="", help="Optional path to a text/markdown/log file to include as additional context")
@@ -131,7 +155,19 @@ def main() -> int:
     args = ap.parse_args()
 
     repo = Path(args.repo).resolve()
-    out_dir = (repo / args.out).resolve() if not Path(args.out).is_absolute() else Path(args.out).resolve()
+
+    # Resolve version: explicit arg > auto-detect from build.gradle.kts > fallback to --out
+    version = args.version.strip()
+    if not version:
+        version = _detect_version(repo)
+
+    if version:
+        # New convention: docs/features/{version}/{version}_{slug}_{level}.md
+        out_dir = (repo / "docs" / "features" / version).resolve()
+    else:
+        # Legacy fallback: --out directory
+        out_dir = (repo / args.out).resolve() if not Path(args.out).is_absolute() else Path(args.out).resolve()
+
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Issue text (file or inline)
@@ -219,7 +255,10 @@ def main() -> int:
 
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     slug = _slugify(args.topic)
-    out_name = f"{slug}_{args.level}.md"
+    if version:
+        out_name = f"{version}_{slug}_{args.level}.md"
+    else:
+        out_name = f"{slug}_{args.level}.md"
     out_path = out_dir / out_name
 
     out_path.write_text(f"<!-- generated: {stamp} -->\n\n{text.strip()}\n", encoding="utf-8")
