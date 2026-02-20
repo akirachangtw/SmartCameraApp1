@@ -108,6 +108,12 @@ class SmartCameraAnalyzer(
     private var previewWidth: Int = 0
     private var previewHeight: Int = 0
 
+    // v2.11.3 Fix H: Dedicated analyze-pipeline dimensions (always = ImageProxy size, e.g. 1920×1920 for 1:1 mode).
+    // Separate from imageWidth/imageHeight which may be set first by trackFromBitmap() (bitmap ~720px).
+    // @Volatile for cross-thread visibility between analyze() (Default dispatcher) and trackFromBitmap().
+    @Volatile private var analyzeImageWidth: Int = 0
+    @Volatile private var analyzeImageHeight: Int = 0
+
     // v2.x.x Phase 6: Pending tracking start (applied when first frame arrives)
     private var pendingTrackX: Float = 0f
     private var pendingTrackY: Float = 0f
@@ -185,19 +191,27 @@ class SmartCameraAnalyzer(
      * @param imageY Y coordinate in image analysis space
      */
     fun startOpticalFlowTrackingImageCoords(imageX: Float, imageY: Float) {
+        // v2.11.3 Fix H: image coords are in the CoordinateTransformer's image space.
+        // On real device (Pixel 9a), analyze() (CameraX ImageAnalysis) does NOT run — so we cannot
+        // depend on analyzeImageWidth. Instead:
+        // - If imageWidth > 0 (set by a previous trackFromBitmap call), use it directly — it equals
+        //   the bitmap width which matches the CoordinateTransformer's image space.
+        // - If imageWidth == 0 (trackFromBitmap not yet called), store as pending; trackFromBitmap()
+        //   will apply it with bitmap.width/height (the correct dimensions).
+        Log.i(TAG, "[Fix H] startOpticalFlowTrackingImageCoords: imageXY=($imageX,$imageY), imageWidth=$imageWidth")
         if (imageWidth == 0 || imageHeight == 0) {
             pendingTrackX = imageX
             pendingTrackY = imageY
             hasPendingTrack = true
             isPendingInImageCoords = true
-            Log.d(TAG, "[Fix G] OF tracking start pending (image coords): ($imageX, $imageY)")
+            Log.i(TAG, "[Fix H] OF tracking start pending (image coords): ($imageX, $imageY) — imageWidth not yet set")
             return
         }
         if (opticalFlowTracker == null) {
             opticalFlowTracker = OpticalFlowTracker()
         }
         opticalFlowTracker?.startTracking(Point(imageX.toDouble(), imageY.toDouble()), imageWidth, imageHeight)
-        Log.i(TAG, "[Fix G] OF tracking started at image ($imageX, $imageY) — bypassing CoordinateMapper")
+        Log.i(TAG, "[Fix H] OF tracking started at image ($imageX, $imageY), imageSize=${imageWidth}x${imageHeight}")
     }
 
     /**
@@ -235,23 +249,32 @@ class SmartCameraAnalyzer(
 
         // Apply pending tracking start if exists
         if (hasPendingTrack) {
-            hasPendingTrack = false
-            // [Fix G] If coords are already in image space, skip CoordinateMapper
-            val imagePoint = if (isPendingInImageCoords) {
+            if (isPendingInImageCoords) {
+                // v2.11.3 Fix H: Pending coords are in image space; bitmap IS the image space
+                // (Pixel 9a bitmap=1920x1920 matches the image-space coords directly).
+                // Use bitmap.width/height as tracker dimensions — no dependency on analyzeImageWidth.
+                hasPendingTrack = false
                 isPendingInImageCoords = false
-                Point(pendingTrackX.toDouble(), pendingTrackY.toDouble())
+                val imagePoint = Point(pendingTrackX.toDouble(), pendingTrackY.toDouble())
+                if (opticalFlowTracker == null) {
+                    opticalFlowTracker = OpticalFlowTracker()
+                }
+                opticalFlowTracker?.startTracking(imagePoint, bitmap.width, bitmap.height)
+                Log.i(TAG, "[Fix H] Applied pending image-coord track: (${imagePoint.x}, ${imagePoint.y}), bitmapSize=${bitmap.width}x${bitmap.height}")
             } else {
-                CoordinateMapper.previewToImage(
+                // Legacy preview-coord path: use bitmap dimensions (imageWidth set by this path)
+                hasPendingTrack = false
+                val imagePoint = CoordinateMapper.previewToImage(
                     pendingTrackX, pendingTrackY,
                     previewWidth, previewHeight,
                     imageWidth, imageHeight
                 )
+                if (opticalFlowTracker == null) {
+                    opticalFlowTracker = OpticalFlowTracker()
+                }
+                opticalFlowTracker?.startTracking(imagePoint, imageWidth, imageHeight)
+                Log.i(TAG, "Applied pending preview-coord track: image (${imagePoint.x}, ${imagePoint.y})")
             }
-            if (opticalFlowTracker == null) {
-                opticalFlowTracker = OpticalFlowTracker()
-            }
-            opticalFlowTracker?.startTracking(imagePoint, imageWidth, imageHeight)
-            Log.i(TAG, "Applied pending tracking start: image (${imagePoint.x}, ${imagePoint.y})")
         }
 
         // Skip if not actively tracking
@@ -296,6 +319,13 @@ class SmartCameraAnalyzer(
                     imageHeight = imageProxy.height
                     Log.d(TAG, "Image size captured: ${imageWidth}x${imageHeight}")
                 }
+
+                // v2.11.3 Fix H: Always update analyze-pipeline dimensions unconditionally.
+                // Must NOT be inside the if-guard above: trackFromBitmap() sets imageWidth=720 first
+                // (28 FPS vs 2 FPS), so the if-guard is never true when analyze() runs.
+                // analyzeImageWidth always reflects the ImageProxy resolution (e.g. 1920 for 1:1 mode).
+                analyzeImageWidth = imageProxy.width
+                analyzeImageHeight = imageProxy.height
 
                 // Create InputImage for ML Kit
                 val inputImage = InputImage.fromMediaImage(

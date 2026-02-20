@@ -74,7 +74,8 @@ class OpticalFlowTracker(
 
     // Multi-point tracking state (all coordinates in downsampled space)
     private var trackedPoints: MatOfPoint2f? = null   // Current feature point set for LK
-    private var trackedCenter: Point? = null           // Median center point (output target)
+    private var trackedCenter: Point? = null           // Clamped center point (UI output only)
+    private var logicCenter: Point? = null             // Unclamped true center (ROI redetection base)
     private var redetectionFrameCount: Int = 0         // Counter for periodic feature redetection
 
     // Downsampling dimensions (aspect-ratio-preserving, recalculated per session)
@@ -107,10 +108,10 @@ class OpticalFlowTracker(
 
         // Store initial center in downsampled coordinates.
         // trackedPoints will be populated on the first frame via detectFeatures().
-        trackedCenter = Point(
-            initialPoint.x * scaleX,
-            initialPoint.y * scaleY
-        )
+        val initialX = initialPoint.x * scaleX
+        val initialY = initialPoint.y * scaleY
+        trackedCenter = Point(initialX, initialY)  // UI output (clamped)
+        logicCenter = Point(initialX, initialY)    // ROI base (unclamped)
 
         redetectionFrameCount = 0
         isTracking.set(true)
@@ -125,6 +126,7 @@ class OpticalFlowTracker(
         releasePreviousFrame()
         releaseTrackedPoints()
         trackedCenter = null
+        logicCenter = null
         Log.i(TAG, "Stopped tracking")
     }
 
@@ -135,7 +137,7 @@ class OpticalFlowTracker(
      * @return Tracking result with updated point coordinates and quality
      */
     fun track(currentGray: Mat): TrackingResult {
-        if (!isTracking.get() || trackedCenter == null) {
+        if (!isTracking.get() || trackedCenter == null || logicCenter == null) {
             return TrackingResult.LOST
         }
 
@@ -161,7 +163,7 @@ class OpticalFlowTracker(
             // First frame — detect features and store as baseline; no LK to run yet
             if (prevGray == null) {
                 prevGray = downsampledGray.clone()
-                detectFeatures(downsampledGray, trackedCenter!!)
+                detectFeatures(downsampledGray, logicCenter!!)
                 return TrackingResult(
                     point = scalePointToOriginal(trackedCenter!!),
                     quality = 1.0f,
@@ -172,7 +174,7 @@ class OpticalFlowTracker(
 
             // Guard: if point set is empty, attempt redetection before giving up
             if (trackedPoints == null || trackedPoints!!.rows() == 0) {
-                detectFeatures(downsampledGray, trackedCenter!!)
+                detectFeatures(downsampledGray, logicCenter!!)
                 if (trackedPoints == null || trackedPoints!!.rows() == 0) {
                     Log.w(TAG, "Redetection yielded zero points — tracking lost")
                     stopTracking()
@@ -224,14 +226,16 @@ class OpticalFlowTracker(
                 val prevPointArray = prevPoints.toArray()
                 val totalPoints = statusArray.size
 
-                // --- Collect valid (status=1) displacements ---
+                // --- Collect valid (status=1, error < threshold) displacements ---
+                // Filter out high-error LK points — these tracked to wrong patches and
+                // pollute the RANSAC median, causing coherent motion to be rejected.
                 val validDx = mutableListOf<Float>()
                 val validDy = mutableListOf<Float>()
                 val validErrors = mutableListOf<Float>()
                 val validNextPts = mutableListOf<Point>()
 
                 for (i in 0 until totalPoints) {
-                    if (statusArray[i].toInt() == 1) {
+                    if (statusArray[i].toInt() == 1 && errorArray[i] < MAX_LK_ERROR) {
                         val dx = (nextPointArray[i].x - prevPointArray[i].x).toFloat()
                         val dy = (nextPointArray[i].y - prevPointArray[i].y).toFloat()
                         validDx.add(dx)
@@ -243,10 +247,11 @@ class OpticalFlowTracker(
 
                 val validCount = validDx.size
                 if (validCount == 0) {
-                    Log.w(TAG, "All $totalPoints points lost LK status")
+                    Log.w(TAG, "All $totalPoints points rejected (LK error filter or status=0)")
                     stopTracking()
                     return TrackingResult.LOST
                 }
+                Log.v(TAG, "LK error filter: ${validCount}/${totalPoints} points passed (error < $MAX_LK_ERROR)")
 
                 // --- RANSAC: median displacement + outlier filtering ---
                 val medDx = median(validDx)
@@ -271,27 +276,54 @@ class OpticalFlowTracker(
                 val minRequired = max(1, (config.minValidPointsRatio * validCount).toInt())
 
                 if (inlierCount < minRequired) {
-                    Log.w(TAG, "RANSAC: inliers=$inlierCount / valid=$validCount < minRequired=$minRequired")
-                    stopTracking()
-                    return TrackingResult.LOST
+                    // Pass 2: relaxed threshold for 2-cluster / equal-split-median recovery.
+                    // When two equal-size groups of features have opposite displacements the
+                    // pass-1 median lands between them (≈0) and the 3px floor rejects every
+                    // point.  5× expansion covers the actual cluster radius.
+                    val relaxedThreshold = max(MIN_RANSAC_THRESHOLD * 5f, ransacThreshold * 5f)
+                    val inlierNextPts2 = mutableListOf<Point>()
+                    val inlierErrors2 = mutableListOf<Float>()
+                    for (i in validDx.indices) {
+                        val devX = abs(validDx[i] - medDx)
+                        val devY = abs(validDy[i] - medDy)
+                        val deviation = sqrt((devX * devX + devY * devY).toDouble()).toFloat()
+                        if (deviation <= relaxedThreshold) {
+                            inlierNextPts2.add(validNextPts[i])
+                            inlierErrors2.add(validErrors[i])
+                        }
+                    }
+                    if (inlierNextPts2.size >= minRequired) {
+                        Log.i(TAG, "RANSAC pass2: thr ${ransacThreshold.toInt()}→${relaxedThreshold.toInt()}, inliers=${inlierNextPts2.size}/$validCount")
+                        inlierNextPts.clear()
+                        inlierNextPts.addAll(inlierNextPts2)
+                        inlierErrors.clear()
+                        inlierErrors.addAll(inlierErrors2)
+                    } else {
+                        Log.w(TAG, "RANSAC: inliers=$inlierCount(p1)/${inlierNextPts2.size}(p2) / valid=$validCount < minRequired=$minRequired")
+                        stopTracking()
+                        return TrackingResult.LOST
+                    }
                 }
 
-                // --- New center = previous center + median displacement ---
+                // --- New center = logicCenter + median displacement, clamped to frame bounds ---
+                // median≈0 when stationary → no drift (centroid approach caused feature-bias drift).
+                // Clamping to frame bounds prevents out-of-bounds LOST during fast edge motion.
                 val newCenter = Point(
-                    trackedCenter!!.x + medDx,
-                    trackedCenter!!.y + medDy
+                    (logicCenter!!.x + medDx).coerceIn(0.0, (downsampledGray.width() - 1).toDouble()),
+                    (logicCenter!!.y + medDy).coerceIn(0.0, (downsampledGray.height() - 1).toDouble())
                 )
 
                 // --- Quality = inlier ratio * LK error-based quality ---
-                val avgInlierError = inlierErrors.sum() / inlierCount
-                val inlierRatio = inlierCount.toFloat() / validCount.toFloat()
+                val finalInlierCount = inlierNextPts.size
+                val avgInlierError = inlierErrors.sum() / finalInlierCount
+                val inlierRatio = finalInlierCount.toFloat() / validCount.toFloat()
                 val baseQuality = calculateQuality(avgInlierError, medianMagnitude)
                 val quality = (inlierRatio * baseQuality).coerceIn(0f, 1f)
 
-                val distance = calculateDistance(trackedCenter!!, newCenter)
+                val distance = calculateDistance(logicCenter!!, newCenter)
 
                 val elapsedMs = (System.nanoTime() - startTime) / 1_000_000
-                Log.v(TAG, "Track: inliers=$inlierCount/valid=$validCount/total=$totalPoints, quality=${"%.2f".format(quality)}, dist=${"%.1f".format(distance)}px, med=(${"%.1f".format(medDx)},${"%.1f".format(medDy)}), elapsed=${elapsedMs}ms")
+                Log.v(TAG, "Track: inliers=$finalInlierCount/valid=$validCount/total=$totalPoints, quality=${"%.2f".format(quality)}, dist=${"%.1f".format(distance)}px, med=(${"%.1f".format(medDx)},${"%.1f".format(medDy)}), elapsed=${elapsedMs}ms")
 
                 // --- Validate (bounds, quality, distance) ---
                 val isValid = validateTracking(
@@ -303,18 +335,21 @@ class OpticalFlowTracker(
                 )
 
                 if (isValid) {
-                    // Phase 7: Clamp velocity on center point
-                    val clampedCenter = clampVelocity(trackedCenter!!, newCenter, distance)
-                    trackedCenter = clampedCenter
+                    // logicCenter: unclamped true position — ROI base for feature redetection
+                    logicCenter = newCenter
+
+                    // trackedCenter: clamped for smooth UI output (independent of logicCenter lag)
+                    val uiDistance = calculateDistance(trackedCenter!!, newCenter)
+                    trackedCenter = clampVelocity(trackedCenter!!, newCenter, uiDistance)
 
                     // Update tracked points to inliers only (point set shrinks naturally)
                     releaseTrackedPoints()
                     trackedPoints = MatOfPoint2f(*inlierNextPts.toTypedArray())
 
-                    // Periodic feature redetection to replenish point set
+                    // Periodic feature redetection: use logicCenter so ROI always covers real object
                     redetectionFrameCount++
                     if (redetectionFrameCount >= config.redetectionInterval) {
-                        detectFeatures(downsampledGray, trackedCenter!!)
+                        detectFeatures(downsampledGray, logicCenter!!)
                         redetectionFrameCount = 0
                     }
 
@@ -434,12 +469,15 @@ class OpticalFlowTracker(
         distance: Float
     ): Boolean {
         if (point.x < 0 || point.x >= imageWidth || point.y < 0 || point.y >= imageHeight) {
+            Log.i(TAG, "[Diag] LOST: out-of-bounds (${point.x.toInt()},${point.y.toInt()}) in ${imageWidth.toInt()}x${imageHeight.toInt()}")
             return false
         }
         if (quality < config.minQuality) {
+            Log.i(TAG, "[Diag] LOST: quality=${"%.3f".format(quality)} < min=${config.minQuality}")
             return false
         }
         if (distance > config.maxTrackingDistance) {
+            Log.i(TAG, "[Diag] LOST: distance=${"%.1f".format(distance)} > max=${config.maxTrackingDistance}")
             return false
         }
         return true

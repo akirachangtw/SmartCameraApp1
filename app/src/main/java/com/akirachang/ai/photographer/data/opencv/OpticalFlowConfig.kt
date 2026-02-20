@@ -58,9 +58,10 @@ data class OpticalFlowConfig(
      * Tracking is considered lost if quality drops below this value
      * Quality is calculated from LK error and movement distance
      *
-     * Default: 0.3f - conservative threshold to avoid false positives
+     * Default: 0.2f - same as ACCURATE preset; logicCenter split reduces false positives
+     * v2.11.3: 0.3→0.2 (safety net for fast-motion quality drop; logicCenter fix is primary fix)
      */
-    val minQuality: Float = 0.3f,
+    val minQuality: Float = 0.2f,
 
     /**
      * Maximum tracking distance per frame (pixels)
@@ -68,9 +69,10 @@ data class OpticalFlowConfig(
      * If point moves more than this distance, tracking is considered lost
      * Prevents tracking jumps to unrelated features
      *
-     * Default: 200f - reasonable for handheld camera movement
+     * Default: 250f - allows fast handheld panning (~39% of 640px frame per frame)
+     * v2.11.3: 200→250 to prevent LOST at extreme phone pan (observed 201px/frame at 200px limit)
      */
-    val maxTrackingDistance: Float = 200f,
+    val maxTrackingDistance: Float = 250f,
 
     /**
      * Target frame rate for tracking (FPS)
@@ -90,7 +92,7 @@ data class OpticalFlowConfig(
      * Based on logcat analysis: normal tracking distance < 5px, jitter spikes 30-35px.
      * Default: 15f - allows normal motion while clamping extreme jumps
      */
-    val maxDistancePerFrame: Float = 25f,  // Phase 9B-fix: 15f→25f to reduce per-frame jump magnitude
+    val maxDistancePerFrame: Float = 40f,  // v2.11.3: 25f→40f; logicCenter split removes drift risk, UI can follow faster
 
     // --- Multi-point LK tracking parameters ---
 

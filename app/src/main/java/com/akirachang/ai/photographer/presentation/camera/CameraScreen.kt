@@ -596,25 +596,36 @@ private fun FocusIndicator(
     // Fix: LaunchedEffect(focusSuccess) = clamp ONLY — not cancellable by isFocusing/isTracking
     //      LaunchedEffect(isFocusing, isLocked) = search/locked states — guards against focusSuccess
 
-    // Clamp: keyed on focusSuccess only — runs to completion regardless of isFocusing changes
-    LaunchedEffect(focusSuccess) {
-        android.util.Log.d("FocusClamp", "LaunchedEffect(focusSuccess=$focusSuccess) triggered, isFocusing=$isFocusing, isTracking=$isTracking")
+    // Clamp: keyed on focusSuccess + isLocked — ensures 3-phase fires on each AE/AF lock success.
+    // v2.11.2 fix Bug B: Previously keyed on focusSuccess only. If focusSuccess=true before and after
+    // the lock sequence, the key doesn't change and LaunchedEffect won't refire. Adding isLocked
+    // guarantees the effect fires when isLocked changes from false→true (lock success), and again
+    // when it goes true→false (unlock via tap), which resets scale correctly.
+    LaunchedEffect(focusSuccess, isLocked) {
+        android.util.Log.d("FocusClamp", "LaunchedEffect(focusSuccess=$focusSuccess, isLocked=$isLocked) triggered, isFocusing=$isFocusing, isTracking=$isTracking")
         when {
-            focusSuccess == true -> {
-                // Phase 2: Shrink to 0.75 (150ms) — 25% compression for visible "咔嗒" feel
-                // Previously 0.9 (10% = 4.8dp change) was too subtle; 0.75 = 12dp change
-                android.util.Log.d("FocusClamp", "Clamp START: shrink to 0.75")
+            focusSuccess == true && isLocked -> {
+                // AE/AF Lock success — mechanical clamp animation
+                android.util.Log.d("FocusClamp", "Clamp LOCK START: shrink to 0.75 (locked)")
                 scale.animateTo(0.75f, tween(150, easing = FastOutLinearInEasing))
                 android.util.Log.d("FocusClamp", "Clamp MID: shrink done (scale=${scale.value}), expanding to 1.2")
-                // Phase 2: Bounce UP past 1.0 to 1.2 (120ms) — 20% expansion clearly visible
                 scale.animateTo(1.2f, tween(120, easing = FastOutSlowInEasing))
                 android.util.Log.d("FocusClamp", "Clamp SETTLE: settling to 1.0 (scale=${scale.value})")
-                // Phase 3: Settle back to 1.0 (80ms)
+                scale.animateTo(1.0f, tween(80, easing = LinearOutSlowInEasing))
+                android.util.Log.d("FocusClamp", "Clamp DONE: animation complete (scale=${scale.value})")
+            }
+            focusSuccess == true && !isLocked -> {
+                // Regular focus success (tap) — same mechanical clamp
+                android.util.Log.d("FocusClamp", "Clamp TAP START: shrink to 0.75")
+                scale.animateTo(0.75f, tween(150, easing = FastOutLinearInEasing))
+                android.util.Log.d("FocusClamp", "Clamp MID: shrink done (scale=${scale.value}), expanding to 1.2")
+                scale.animateTo(1.2f, tween(120, easing = FastOutSlowInEasing))
+                android.util.Log.d("FocusClamp", "Clamp SETTLE: settling to 1.0 (scale=${scale.value})")
                 scale.animateTo(1.0f, tween(80, easing = LinearOutSlowInEasing))
                 android.util.Log.d("FocusClamp", "Clamp DONE: animation complete (scale=${scale.value})")
             }
             else -> {
-                android.util.Log.d("FocusClamp", "Clamp RESET (focusSuccess=$focusSuccess)")
+                android.util.Log.d("FocusClamp", "Clamp RESET (focusSuccess=$focusSuccess, isLocked=$isLocked)")
                 scale.snapTo(1.0f)
             }
         }
