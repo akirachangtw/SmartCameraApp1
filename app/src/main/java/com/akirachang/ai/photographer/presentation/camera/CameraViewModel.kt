@@ -107,6 +107,9 @@ class CameraViewModel @Inject constructor(
     // Smart Subject Focus (v2.11.0: AI Auto-Focus)
     private var lastManualTapTime: Long = 0L
     private val MANUAL_TAP_OVERRIDE_DURATION = 5000L  // 5 seconds
+    // v2.11.4: Separate throttle for auto-focus (avoid conflating with manual tap override)
+    private var lastAutoFocusTime: Long = 0L
+    private val AUTO_FOCUS_THROTTLE_MS = 2000L  // 2 seconds between auto-focus triggers
 
     // v2.11.2 Fix E: Track the active focusOnPoint() coroutine to cancel stale jobs.
     // Prevents race condition where stale delay(500) clears focusPoint after lockAEAF sets it.
@@ -782,11 +785,17 @@ class CameraViewModel @Inject constructor(
 
                     if (positionDelta > motionThreshold) {
                         // Significant motion detected: reset fade and refocus using screen coords
-                        _state.update { it.copy(focusIndicatorFading = false, isFocusing = true) }
+                        // v2.11.4-01 Fix Bug 2: TOCTOU guard — abort if trackedObjectId changed
+                        // since the start of updateTrackedObjectPosition() (path B).
+                        _state.update { current ->
+                            if (current.trackedObjectId != trackedId) return@update current
+                            current.copy(focusIndicatorFading = false, isFocusing = true)
+                        }
 
                         val viewWidth = previewWidth ?: return
                         val viewHeight = previewHeight ?: return
-                        focusOnPoint(screenX, screenY, viewWidth, viewHeight)
+                        // v2.11.4: isUserTap=false — motion-triggered refocus, not manual tap
+                        focusOnPoint(screenX, screenY, viewWidth, viewHeight, isUserTap = false)
 
                         if (BuildConfig.DEBUG) {
                             Log.d(TAG, "Fade-out reset: object moved ${positionDelta.toInt()}px (threshold: ${motionThreshold.toInt()}px)")
@@ -803,7 +812,12 @@ class CameraViewModel @Inject constructor(
                 kotlin.math.abs(currentFocusPoint.second - screenY) > 5f
 
             if (shouldUpdate) {
-                _state.update { it.copy(focusPoint = Pair(screenX, screenY)) }
+                // v2.11.4-01 Fix Bug 2: TOCTOU guard — abort if trackedObjectId changed
+                // since the start of updateTrackedObjectPosition() (path A).
+                _state.update { current ->
+                    if (current.trackedObjectId != trackedId) return@update current
+                    current.copy(focusPoint = Pair(screenX, screenY))
+                }
                 if (BuildConfig.DEBUG) {
                     Log.v(TAG, "Tracking update: ID=$trackedId, image=($centerX, $centerY), screen=($screenX, $screenY)")
                 }
@@ -842,14 +856,23 @@ class CameraViewModel @Inject constructor(
      * @param viewWidth View width in pixels
      * @param viewHeight View height in pixels
      */
-    private fun focusOnPoint(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
+    /**
+     * @param isUserTap v2.11.4: true = user manual tap (sets lastManualTapTime to suppress auto-focus
+     *   for 5s), false = auto-focus or motion-triggered refocus (does NOT set lastManualTapTime).
+     */
+    private fun focusOnPoint(x: Float, y: Float, viewWidth: Int, viewHeight: Int, isUserTap: Boolean = true) {
         // v2.11.2 Fix E: Cancel any stale focusOnPoint() coroutine before launching new one.
         // Prevents stale delay(500) → focusPoint=null from racing with lockAEAF state update.
         focusJob?.cancel()
+        // v2.11.4-01 Fix Bug 2: Set lastManualTapTime synchronously BEFORE launch{} so
+        // autoFocusOnSalientTarget() always sees the updated timestamp when the ML Kit
+        // analysis resumes on Main thread. Eliminates the ~0.1ms race window where
+        // autoFocusOnSalientTarget() could read the stale value and cancel this tap job.
+        if (isUserTap) {
+            lastManualTapTime = System.currentTimeMillis()
+        }
         focusJob = viewModelScope.launch {
             try {
-                // v2.11.0: Record manual tap time for Smart Subject Focus override
-                lastManualTapTime = System.currentTimeMillis()
 
                 // 🔍 DIAGNOSTIC: Log tap coordinates and view size
                 Log.d(TAG, "🔍 [Coordinate Debug] Tap: ($x, $y), View: ${viewWidth}x${viewHeight}")
@@ -873,9 +896,17 @@ class CameraViewModel @Inject constructor(
 
                 // v2.9.10: Find tapped target for tracking
                 val tappedTarget = findTappedTarget(x, y)
+                // v2.11.4 Fix 3: Track which branch was taken at the START of the coroutine.
+                // Cannot rely on _state.value.trackedObjectId at focus-success time because:
+                //   (a) ML Kit detection may briefly clear trackedObjectId during the 1-2s focus window
+                //   (b) Even on empty-area taps, ML Kit detection keeps setting trackedObjectId for
+                //       any face present in the frame — making the state check unreliable.
+                // Using a local variable ensures the fade decision matches the branch entered here.
+                var enteredMLKitTrackingMode = false
 
                 if (tappedTarget != null && FeatureFlags.enableFocusTracking) {
                     // ML Kit Tracking mode: Start continuous tracking
+                    enteredMLKitTrackingMode = true
                     val (trackingId, targetType) = tappedTarget
                     _state.update {
                         it.copy(
@@ -945,15 +976,19 @@ class CameraViewModel @Inject constructor(
                     _state.update { it.copy(isFocusing = false, focusSuccess = true) }
                     Log.d(TAG, "Focus successful at ($x, $y)")
 
-                    // v2.11.1 fix: Always trigger dwell fade after focus success,
-                    // regardless of ML Kit tracking state.
-                    // Previously guarded by trackedObjectId == null, but ML Kit re-assigns
-                    // trackingId immediately after tap, preventing fade from ever triggering.
-                    // Alpha 1.0 for 1s → fade 500ms → Alpha 0.4 (persistent until next tap)
-                    delay(1000)  // Keep for 1 second
-                    _state.update { it.copy(focusIndicatorFading = true, focusIndicatorFadeStartTime = System.currentTimeMillis()) }
-                    delay(500)   // Fade out for 500ms
-                    // Keep focusIndicatorFading=true to maintain alpha 0.4 (reset on next tap)
+                    // v2.11.4 Fix 3: Skip dwell fade when ML Kit continuous tracking is active.
+                    // enteredMLKitTrackingMode is captured at coroutine START (not at success time)
+                    // to avoid race conditions where ML Kit reassigns trackedObjectId during the
+                    // 1-2s focus window, making the state check at this point unreliable.
+                    // ML Kit tracking: keep alpha 1.0 (indicator stays visible while tracking).
+                    // OF/Static: alpha 1.0 for 1s → fade 500ms → alpha 0.4 (dwell indicator).
+                    if (!enteredMLKitTrackingMode) {
+                        delay(1000)  // Keep for 1 second
+                        _state.update { it.copy(focusIndicatorFading = true, focusIndicatorFadeStartTime = System.currentTimeMillis()) }
+                        delay(500)   // Fade out for 500ms
+                        // Keep focusIndicatorFading=true to maintain alpha 0.4 (reset on next tap)
+                    }
+                    // else: ML Kit tracking — no fade, indicator stays bright (alpha 1.0)
 
                 } else {
                     _state.update { it.copy(isFocusing = false, focusSuccess = false) }
@@ -1076,13 +1111,18 @@ class CameraViewModel @Inject constructor(
      * Calculate saliency score for Smart Subject Focus (v2.11.0)
      *
      * Uses heuristic weight calculation (ML Kit Proxy approach):
-     * Score = (BoxSize * 0.6) + (Centrality * 0.4) + (Face Bonus: +30)
+     * Score (0-100 range) = (BoxSize% * 60) + (Centrality * 40) + (Face Bonus: +30)
+     *
+     * v2.11.4 fix: Changed weight multipliers from 0.6f/0.4f to 60f/40f so the base score
+     * is 0-100 (not 0-1). Face bonus +30 on a 0-100 scale means ~30% boost, making the
+     * autoFocusOnSalientTarget threshold of 50f achievable for typical faces.
+     * With 0.6f/0.4f the max face score was ~31, which NEVER reached the 50f threshold.
      *
      * @param boundingBox Detection bounding box
      * @param isFace Whether this is a face detection
      * @param viewWidth View width in pixels
      * @param viewHeight View height in pixels
-     * @return Saliency score (higher = more salient)
+     * @return Saliency score (0-130 range; higher = more salient)
      */
     private fun calculateSaliencyScore(
         boundingBox: android.graphics.Rect,
@@ -1090,11 +1130,11 @@ class CameraViewModel @Inject constructor(
         viewWidth: Int,
         viewHeight: Int
     ): Float {
-        // 1. Box size component (normalized)
+        // 1. Box size component (normalized area ratio, 0-1)
         val boxSize = (boundingBox.width() * boundingBox.height()).toFloat()
         val normalizedSize = boxSize / (viewWidth * viewHeight)
 
-        // 2. Centrality component (distance from screen center)
+        // 2. Centrality component (distance from screen center, 0-1)
         val centerX = boundingBox.exactCenterX()
         val centerY = boundingBox.exactCenterY()
         val screenCenterX = viewWidth / 2f
@@ -1109,10 +1149,11 @@ class CameraViewModel @Inject constructor(
         )
         val centrality = 1 - (distance / maxDistance)
 
-        // 3. Calculate base score
-        var score = (normalizedSize * 0.6f) + (centrality * 0.4f)
+        // 3. Base score: 0-100 range (size 0-60, centrality 0-40)
+        // v2.11.4 fix: 0.6f→60f, 0.4f→40f — score is now 0-100 compatible with threshold 50f
+        var score = (normalizedSize * 60f) + (centrality * 40f)
 
-        // 4. Face bonus
+        // 4. Face bonus: +30 on 0-100 scale = 30% boost (Eye-AF priority)
         if (isFace) score += 30f
 
         return score
@@ -1128,14 +1169,17 @@ class CameraViewModel @Inject constructor(
      */
     private fun autoFocusOnSalientTarget() {
         val currentState = _state.value
+        val now = System.currentTimeMillis()
 
         // Don't auto-focus if:
         // 1. AE/AF is locked
         // 2. Currently focusing
-        // 3. Manual tap occurred within last 5 seconds
+        // 3. Manual tap occurred within last 5 seconds (user has override priority)
+        // 4. v2.11.4: Auto-focus triggered within last 2 seconds (independent throttle)
         val canAutoFocus = !currentState.isAEAFLocked &&
             !currentState.isFocusing &&
-            (System.currentTimeMillis() - lastManualTapTime) > MANUAL_TAP_OVERRIDE_DURATION
+            (now - lastManualTapTime) > MANUAL_TAP_OVERRIDE_DURATION &&
+            (now - lastAutoFocusTime) > AUTO_FOCUS_THROTTLE_MS
 
         if (!canAutoFocus) return
 
@@ -1178,7 +1222,10 @@ class CameraViewModel @Inject constructor(
             } else {
                 imageX to imageY  // Legacy fallback
             }
-            focusOnPoint(screenX, screenY, viewWidth, viewHeight)
+            // v2.11.4: isUserTap=false (auto-focus call, not user manual tap)
+            // Record auto-focus time here (independent throttle, not lastManualTapTime)
+            lastAutoFocusTime = now
+            focusOnPoint(screenX, screenY, viewWidth, viewHeight, isUserTap = false)
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "Smart Subject Focus: score=${topCandidate.second}, image=($imageX, $imageY), screen=($screenX, $screenY)")
             }
