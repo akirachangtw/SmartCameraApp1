@@ -1,0 +1,95 @@
+----------------- SmartCameraApp -----------------
+                                 : 
+Image width                      : 4000
+Image length                     : 3000
+Orientation                      : right-top (6)
+                                 : 
+Light source                     : Unknown (0)
+                                 : 
+Latitude                         : 25ï¿½ 2' 35.50"
+Altitude                         : 24.00
+Latitude Ref                     : North
+Speed                            : 0
+Processing Method                : fused
+Altitude Ref                     : Above Sea Level
+Speed Ref                        : K
+Longitude Ref                    : East
+TimeStamp                        : 8 48 27
+Longitude                        : 121ï¿½ 32' 42.87"
+Date Stamp                       : 2026:02:21
+
+
+----------------- Pixel9a -----------------
+                                 : 
+Camera Manufacturer              : Google
+Camera Model                     : Pixel 9a
+Orientation                      : top-left (1)
+X Resolution                     : 72
+Y Resolution                     : 72
+Resolution unit                  : Inch
+Software                         : HDR+ 1.0.839895461zd
+Date modified                    : 2026:02:21 16:49:08
+YCbCr Positioning                : centered (1)
+                                 : 
+Exposure time [s]                : 1/100
+F-Number                         : 1.7
+Exposure program                 : Normal (2)
+ISO speed ratings                : 470
+EXIF version                     : 02.32
+Date taken                       : 2026:02:21 16:49:08
+Date digitized                   : 2026:02:21 16:49:08
+Components configuration         : YCbCr
+Shutter speed [s]                : 1/100
+Aperture                         : F1.7
+Brightness                       : 0.94
+Exposure bias value              : 0
+Max aperture                     : F1.7
+Subject distance (m)             : 0
+Metering mode                    : Center weight (2)
+Flash                            : No flash
+Focal length [mm]                : 4.5
+SubSecTime                       : 848
+SubSecTimeOriginal               : 848
+SubSecTimeDigitized              : 848
+FlashPix Version                 : 01.00
+Colour space                     : sRGB
+EXIF image width                 : 3000
+EXIF image length                : 4000
+Interoperability offset          : 911
+Sensing method                   : One-chip color area sensor (2)
+Scene type                       : A directly photographed image
+Custom rendered                  : Custom process (1)
+Exposure mode                    : Auto (0)
+White balance                    : Auto (0)
+Digital zoom                     : 0
+Focal length (35mm)              : 24
+Scene capture type               : Standard (0)
+Contrast                         : Normal (0)
+Saturation                       : Normal (0)
+Sharpness                        : Normal (0)
+Subject distance range           : Macro (1)
+Lens make                        : Google
+Lens model                       : Pixel 9a back camera 4.53mm f/1.7
+                                 : 
+IOP index                        : R98
+IOP version                      : 0100
+                                 : 
+Version ID                       : 2.2.0.0
+Latitude Ref                     : North
+Latitude                         : 25嚙?2' 35.49"
+Longitude Ref                    : East
+Longitude                        : 121嚙?32' 42.87"
+Altitude Ref                     : Above Sea Level
+Altitude                         : 24.30
+TimeStamp                        : 8 48 27
+Img Direction Ref                : M
+Img Direction                    : 70.00
+Date Stamp                       : 2026:02:21
+                                 : 
+Compression                      : 6
+Orientation                      : top-left (1)
+X Resolution                     : 72
+Y Resolution                     : 72
+Resolution unit                  : Inch
+Thumbnail offset                 : 1284
+Thumbnail length                 : 32786

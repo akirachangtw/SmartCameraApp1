@@ -53,6 +53,16 @@ import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.RectF
 import kotlin.math.ceil
+// v2.11.4-01: Camera2 interop for AE/AF lock parameter verification (DEBUG only)
+// v2.11.4-02: Camera2CameraControl + CaptureRequestOptions for true AE lock
+import android.hardware.camera2.CameraCaptureSession
+import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.CaptureResult
+import android.hardware.camera2.TotalCaptureResult
+import androidx.camera.camera2.interop.Camera2CameraControl
+import androidx.camera.camera2.interop.Camera2Interop
+import androidx.camera.camera2.interop.CaptureRequestOptions
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 
 /**
  * Live Camera Source for Real Device
@@ -71,7 +81,14 @@ class LiveCameraSource @Inject constructor(
 
     companion object {
         private const val TAG = "LiveCameraSource"
+        // v2.11.4-01: AE/AF debug logging throttle interval (1 log per second)
+        private const val AEAF_DEBUG_LOG_INTERVAL_MS = 1000L
     }
+
+    // v2.11.4-01: Flag to enable Camera2 AE/AF state logging (toggled by lock/unlock)
+    @Volatile
+    private var logAeAfState = false
+    private var lastAeAfLogTime = 0L
 
     // v2.9.0-alpha Phase 0: Thermal monitoring
     private val powerManager: PowerManager? by lazy {
@@ -717,6 +734,26 @@ class LiveCameraSource @Inject constructor(
                     // Always resume success so ViewModel triggers 3-phase animation + yellow indicator.
                     Log.i(TAG, "[v2.11.2] AE/AF lock applied at ($x, $y) - isFocusSuccessful=${result.isFocusSuccessful}, factory=${if (previewView != null) "PreviewView" else "SurfaceOriented"}")
                     Timber.i("LiveCameraSource: AE/AF lock applied at ($x, $y), isFocusSuccessful=${result.isFocusSuccessful}")
+                    // v2.11.4-02: Set CONTROL_AE_LOCK=true via Camera2CameraControl.
+                    // FocusMeteringAction.FLAG_AE only sets metering region, NOT AE_LOCK parameter.
+                    // Must explicitly set CONTROL_AE_LOCK=true to freeze ISO + exposure time.
+                    try {
+                        @OptIn(ExperimentalCamera2Interop::class)
+                        Camera2CameraControl.from(cameraControl)
+                            .addCaptureRequestOptions(
+                                CaptureRequestOptions.Builder()
+                                    .setCaptureRequestOption(CaptureRequest.CONTROL_AE_LOCK, true)
+                                    .build()
+                            )
+                        Log.i(TAG, "[v2.11.4-02] CONTROL_AE_LOCK=true applied via Camera2CameraControl")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "[v2.11.4-02] Failed to apply CONTROL_AE_LOCK: ${e.message}")
+                    }
+                    // v2.11.4-01: Start Camera2 AE/AF state logging (DEBUG only)
+                    if (BuildConfig.DEBUG) {
+                        logAeAfState = true
+                        Log.i(TAG, "[AE/AF Debug] Logging ENABLED — will log AF_STATE, AE_STATE, ISO, exposure, focusDist every 1s")
+                    }
                     continuation.resume(Result.success(Unit))
                 } catch (e: Exception) {
                     Log.e(TAG, "AE/AF lock error", e)
@@ -761,6 +798,21 @@ class LiveCameraSource @Inject constructor(
             future.addListener({
                 try {
                     future.get()  // Wait for cancellation to complete
+                    // v2.11.4-02: Clear CONTROL_AE_LOCK to re-enable auto exposure.
+                    // clearCaptureRequestOptions() removes all Camera2 interop options (safe:
+                    // confirmed no other usages in repo).
+                    try {
+                        @OptIn(ExperimentalCamera2Interop::class)
+                        Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
+                        Log.i(TAG, "[v2.11.4-02] CONTROL_AE_LOCK cleared — auto exposure restored")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "[v2.11.4-02] Failed to clear CONTROL_AE_LOCK: ${e.message}")
+                    }
+                    // v2.11.4-01: Stop Camera2 AE/AF state logging
+                    if (BuildConfig.DEBUG) {
+                        logAeAfState = false
+                        Log.i(TAG, "[AE/AF Debug] Logging DISABLED — returned to auto mode")
+                    }
                     Log.i(TAG, "Focus and metering cancelled - returned to auto mode")
                     Timber.i("LiveCameraSource: Focus/metering cancelled")
                     continuation.resume(Result.success(Unit))
@@ -932,9 +984,44 @@ class LiveCameraSource @Inject constructor(
 
                     // 1. Build Preview UseCase with SurfaceProvider
                     // v2.10.0: Use unified AspectRatioStrategy from commonSelector
-                    preview = Preview.Builder()
+                    val previewBuilder = Preview.Builder()
                         .setResolutionSelector(commonSelector)
-                        .build()
+
+                    // v2.11.4-01: Camera2 CaptureResult callback for AE/AF lock parameter verification (DEBUG only)
+                    if (BuildConfig.DEBUG) {
+                        @OptIn(ExperimentalCamera2Interop::class)
+                        Camera2Interop.Extender(previewBuilder).setSessionCaptureCallback(
+                            object : CameraCaptureSession.CaptureCallback() {
+                                override fun onCaptureCompleted(
+                                    session: CameraCaptureSession,
+                                    request: CaptureRequest,
+                                    result: TotalCaptureResult
+                                ) {
+                                    if (!logAeAfState) return
+                                    val now = System.currentTimeMillis()
+                                    if (now - lastAeAfLogTime < AEAF_DEBUG_LOG_INTERVAL_MS) return
+                                    lastAeAfLogTime = now
+
+                                    val afState = result.get(CaptureResult.CONTROL_AF_STATE)
+                                    val aeState = result.get(CaptureResult.CONTROL_AE_STATE)
+                                    val exposureTime = result.get(CaptureResult.SENSOR_EXPOSURE_TIME)
+                                    val sensitivity = result.get(CaptureResult.SENSOR_SENSITIVITY)
+                                    val focusDistance = result.get(CaptureResult.LENS_FOCUS_DISTANCE)
+                                    val aeLock = result.get(CaptureResult.CONTROL_AE_LOCK)
+
+                                    Log.i(TAG, "[AE/AF Debug] " +
+                                        "AF_STATE=${afStateToString(afState)}, " +
+                                        "AE_STATE=${aeStateToString(aeState)}, " +
+                                        "AE_LOCK=$aeLock, " +
+                                        "exposure=${exposureTime?.let { "${it / 1_000_000.0}ms" } ?: "null"}, " +
+                                        "ISO=$sensitivity, " +
+                                        "focusDist=${focusDistance?.let { "%.3f diopters".format(it) } ?: "null"}")
+                                }
+                            }
+                        )
+                    }
+
+                    preview = previewBuilder.build()
                         .apply {
                             // ✅ CRITICAL: Attach SurfaceProvider (external or fallback)
                             val provider = externalSurfaceProvider ?: fallbackSurfaceProvider
@@ -1587,5 +1674,29 @@ class LiveCameraSource @Inject constructor(
         } else {
             "N/A"
         }
+    }
+
+    // v2.11.4-01: Camera2 AF_STATE / AE_STATE name helpers (DEBUG only)
+    private fun afStateToString(state: Int?): String = when (state) {
+        CaptureResult.CONTROL_AF_STATE_INACTIVE -> "INACTIVE"
+        CaptureResult.CONTROL_AF_STATE_PASSIVE_SCAN -> "PASSIVE_SCAN"
+        CaptureResult.CONTROL_AF_STATE_PASSIVE_FOCUSED -> "PASSIVE_FOCUSED"
+        CaptureResult.CONTROL_AF_STATE_ACTIVE_SCAN -> "ACTIVE_SCAN"
+        CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED -> "FOCUSED_LOCKED"
+        CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED -> "NOT_FOCUSED_LOCKED"
+        CaptureResult.CONTROL_AF_STATE_PASSIVE_UNFOCUSED -> "PASSIVE_UNFOCUSED"
+        null -> "null"
+        else -> "UNKNOWN($state)"
+    }
+
+    private fun aeStateToString(state: Int?): String = when (state) {
+        CaptureResult.CONTROL_AE_STATE_INACTIVE -> "INACTIVE"
+        CaptureResult.CONTROL_AE_STATE_SEARCHING -> "SEARCHING"
+        CaptureResult.CONTROL_AE_STATE_CONVERGED -> "CONVERGED"
+        CaptureResult.CONTROL_AE_STATE_LOCKED -> "LOCKED"
+        CaptureResult.CONTROL_AE_STATE_FLASH_REQUIRED -> "FLASH_REQUIRED"
+        CaptureResult.CONTROL_AE_STATE_PRECAPTURE -> "PRECAPTURE"
+        null -> "null"
+        else -> "UNKNOWN($state)"
     }
 }
