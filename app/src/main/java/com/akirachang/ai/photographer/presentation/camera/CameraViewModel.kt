@@ -1120,25 +1120,25 @@ class CameraViewModel @Inject constructor(
      *
      * @param boundingBox Detection bounding box
      * @param isFace Whether this is a face detection
-     * @param viewWidth View width in pixels
-     * @param viewHeight View height in pixels
+     * @param imageWidth  Rotation-aware effective image width (swap if rotation 90/270)
+     * @param imageHeight Rotation-aware effective image height (swap if rotation 90/270)
      * @return Saliency score (0-130 range; higher = more salient)
      */
     private fun calculateSaliencyScore(
         boundingBox: android.graphics.Rect,
         isFace: Boolean,
-        viewWidth: Int,
-        viewHeight: Int
+        imageWidth: Int,
+        imageHeight: Int
     ): Float {
         // 1. Box size component (normalized area ratio, 0-1)
         val boxSize = (boundingBox.width() * boundingBox.height()).toFloat()
-        val normalizedSize = boxSize / (viewWidth * viewHeight)
+        val normalizedSize = boxSize / (imageWidth * imageHeight)
 
-        // 2. Centrality component (distance from screen center, 0-1)
+        // 2. Centrality component (distance from image center, 0-1)
         val centerX = boundingBox.exactCenterX()
         val centerY = boundingBox.exactCenterY()
-        val screenCenterX = viewWidth / 2f
-        val screenCenterY = viewHeight / 2f
+        val screenCenterX = imageWidth / 2f
+        val screenCenterY = imageHeight / 2f
 
         val distance = kotlin.math.sqrt(
             (centerX - screenCenterX) * (centerX - screenCenterX) +
@@ -1187,6 +1187,16 @@ class CameraViewModel @Inject constructor(
         val viewWidth = previewWidth ?: return
         val viewHeight = previewHeight ?: return
 
+        // v2.11.4-01 Fix Bug 1: Use rotation-aware effective image dimensions for saliency score.
+        // ML Kit bboxes are in ROTATED (portrait-upright) image space: for rotation=90°,
+        // effectiveImgW = rawImageHeight (480), effectiveImgH = rawImageWidth (640).
+        // Matches the same swap logic in updateContentBounds() / CoordinateTransformer.
+        // Without this fix: score uses viewWidth=1080 vs bbox≤640 → score≈42 < threshold 50 → never fires.
+        val effectiveImgW = if (detectionResult.rotationDegrees == 90 || detectionResult.rotationDegrees == 270)
+            detectionResult.imageHeight else detectionResult.imageWidth
+        val effectiveImgH = if (detectionResult.rotationDegrees == 90 || detectionResult.rotationDegrees == 270)
+            detectionResult.imageWidth else detectionResult.imageHeight
+
         // Collect all candidates with scores
         val candidates = mutableListOf<Pair<Pair<Float, Float>, Float>>()
 
@@ -1195,7 +1205,10 @@ class CameraViewModel @Inject constructor(
         // Faces (with Eye-AF integration)
         // Candidate points are in ML Kit image space and will be converted to screen space before use.
         detectionResult.faces.forEach { face ->
-            val score = calculateSaliencyScore(face.boundingBox, true, viewWidth, viewHeight)
+            val score = calculateSaliencyScore(face.boundingBox, true, effectiveImgW, effectiveImgH)
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Saliency score: face bbox=${face.boundingBox}, effectiveImage=${effectiveImgW}x${effectiveImgH}, score=$score")
+            }
             val eyePosition = detectionResult.eyePositions.firstOrNull { it.faceId == face.trackingId }
             val imageCenterX = eyePosition?.nearestEye?.x ?: face.boundingBox.exactCenterX()
             val imageCenterY = eyePosition?.nearestEye?.y ?: face.boundingBox.exactCenterY()
@@ -1204,7 +1217,7 @@ class CameraViewModel @Inject constructor(
 
         // Objects
         detectionResult.objects.forEach { obj ->
-            val score = calculateSaliencyScore(obj.boundingBox, false, viewWidth, viewHeight)
+            val score = calculateSaliencyScore(obj.boundingBox, false, effectiveImgW, effectiveImgH)
             val imageCenterX = obj.boundingBox.exactCenterX()
             val imageCenterY = obj.boundingBox.exactCenterY()
             candidates.add((imageCenterX to imageCenterY) to score)
