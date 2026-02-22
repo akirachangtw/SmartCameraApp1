@@ -564,6 +564,10 @@ private fun FocusIndicator(
     modifier: Modifier = Modifier
 ) {
     // Position tracking with smooth animation
+    // v2.11.4-01 Fix 3: Reverted to StiffnessHigh (from StiffnessMedium introduced in v2.11.4).
+    // StiffnessMedium (~400ms settle) is too slow for ML Kit bbox update rate (~100ms per frame),
+    // causing the indicator to visibly lag behind the subject. StiffnessHigh (~100-150ms) matches
+    // the update frequency and restores v2.11.1 verified behavior.
     val animatedX by animateFloatAsState(
         targetValue = x,
         animationSpec = if (isTracking) {
