@@ -887,10 +887,12 @@ class CameraViewModel @Inject constructor(
                         it.copy(
                             isAEAFLocked = false,
                             lockPoint = null,
-                            focusIndicatorFading = false
+                            focusPoint = null,            // v2.11.4-05: Clear indicator immediately
+                            focusIndicatorFading = false  // so user sees yellow box → blank → cyan
                         )
                     }
                     Log.i(TAG, "AE/AF unlocked by tap — continuing to focus at ($x, $y)")
+                    delay(150)  // v2.11.4-05: 150ms blank gives user visual confirmation of unlock
                     // Do NOT return — fall through to process the tap as new focus/tracking
                 }
 
