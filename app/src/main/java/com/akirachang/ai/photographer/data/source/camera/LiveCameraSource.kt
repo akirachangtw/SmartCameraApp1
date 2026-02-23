@@ -743,11 +743,15 @@ class LiveCameraSource @Inject constructor(
                             .addCaptureRequestOptions(
                                 CaptureRequestOptions.Builder()
                                     .setCaptureRequestOption(CaptureRequest.CONTROL_AE_LOCK, true)
+                                    .setCaptureRequestOption(
+                                        CaptureRequest.CONTROL_AF_MODE,
+                                        CaptureRequest.CONTROL_AF_MODE_OFF
+                                    )
                                     .build()
                             )
-                        Log.i(TAG, "[v2.11.4-02] CONTROL_AE_LOCK=true applied via Camera2CameraControl")
+                        Log.i(TAG, "[v2.11.4-03] CONTROL_AE_LOCK=true + CONTROL_AF_MODE=OFF applied (true AE+AF lock)")
                     } catch (e: Exception) {
-                        Log.w(TAG, "[v2.11.4-02] Failed to apply CONTROL_AE_LOCK: ${e.message}")
+                        Log.w(TAG, "[v2.11.4-03] Failed to apply AE/AF lock options: ${e.message}")
                     }
                     // v2.11.4-01: Start Camera2 AE/AF state logging (DEBUG only)
                     if (BuildConfig.DEBUG) {
@@ -804,7 +808,7 @@ class LiveCameraSource @Inject constructor(
                     try {
                         @OptIn(ExperimentalCamera2Interop::class)
                         Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
-                        Log.i(TAG, "[v2.11.4-02] CONTROL_AE_LOCK cleared — auto exposure restored")
+                        Log.i(TAG, "[v2.11.4-03] AE/AF lock cleared — auto exposure + focus restored")
                     } catch (e: Exception) {
                         Log.w(TAG, "[v2.11.4-02] Failed to clear CONTROL_AE_LOCK: ${e.message}")
                     }
