@@ -800,18 +800,34 @@ class LiveCameraSource @Inject constructor(
 
             // Non-blocking coroutine approach
             future.addListener({
+                // v2.11.4-04: Unconditional Camera2 options cleanup.
+                // MUST run before future.get() because OperationCanceledException
+                // ("Cancelled by another cancelFocusAndMetering()") would skip cleanup
+                // if placed inside the try block. Multiple rapid taps/events trigger
+                // concurrent cancelFocusAndMetering() calls — each cancels the previous.
+                // By running cleanup first, we guarantee CONTROL_AE_LOCK and
+                // CONTROL_AF_MODE=OFF are cleared regardless of concurrency outcome.
                 try {
-                    future.get()  // Wait for cancellation to complete
-                    // v2.11.4-02: Clear CONTROL_AE_LOCK to re-enable auto exposure.
-                    // clearCaptureRequestOptions() removes all Camera2 interop options (safe:
-                    // confirmed no other usages in repo).
-                    try {
-                        @OptIn(ExperimentalCamera2Interop::class)
-                        Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
-                        Log.i(TAG, "[v2.11.4-03] AE/AF lock cleared — auto exposure + focus restored")
-                    } catch (e: Exception) {
-                        Log.w(TAG, "[v2.11.4-02] Failed to clear CONTROL_AE_LOCK: ${e.message}")
-                    }
+                    @OptIn(ExperimentalCamera2Interop::class)
+                    val camera2Control = Camera2CameraControl.from(cameraControl)
+                    // Step 1: Explicitly set AF mode back to continuous (exit INACTIVE state)
+                    camera2Control.addCaptureRequestOptions(
+                        CaptureRequestOptions.Builder()
+                            .setCaptureRequestOption(
+                                CaptureRequest.CONTROL_AF_MODE,
+                                CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
+                            )
+                            .build()
+                    )
+                    // Step 2: Clear all Camera2 interop options (returns full CameraX control)
+                    camera2Control.clearCaptureRequestOptions()
+                    Log.i(TAG, "[v2.11.4-04] AE/AF lock cleared — CONTINUOUS_PICTURE + AE auto restored")
+                } catch (ex: Exception) {
+                    Log.w(TAG, "[v2.11.4-04] Failed to restore AE/AF options: ${ex.message}")
+                }
+
+                try {
+                    future.get()  // Wait for cancellation to complete (result used for logging only)
                     // v2.11.4-01: Stop Camera2 AE/AF state logging
                     if (BuildConfig.DEBUG) {
                         logAeAfState = false
@@ -821,9 +837,18 @@ class LiveCameraSource @Inject constructor(
                     Timber.i("LiveCameraSource: Focus/metering cancelled")
                     continuation.resume(Result.success(Unit))
                 } catch (e: Exception) {
-                    Log.e(TAG, "Cancel focus/metering error", e)
-                    Timber.e(e, "LiveCameraSource: Cancel focus/metering error")
-                    continuation.resume(Result.failure(e))
+                    // OperationCanceledException = superseded by another cancelFocusAndMetering()
+                    // Camera2 cleanup already done above; treat as non-fatal
+                    val isSuperseded = e.cause?.message?.contains("Cancelled by another") == true
+                    if (isSuperseded) {
+                        Log.w(TAG, "[v2.11.4-04] cancelFocusAndMetering superseded — cleanup already applied")
+                        if (BuildConfig.DEBUG) logAeAfState = false
+                        continuation.resume(Result.success(Unit))
+                    } else {
+                        Log.e(TAG, "Cancel focus/metering error", e)
+                        Timber.e(e, "LiveCameraSource: Cancel focus/metering error")
+                        continuation.resume(Result.failure(e))
+                    }
                 }
             }, ContextCompat.getMainExecutor(context))
 
