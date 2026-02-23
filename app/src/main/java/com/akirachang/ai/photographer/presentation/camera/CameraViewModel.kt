@@ -877,23 +877,24 @@ class CameraViewModel @Inject constructor(
                 // 🔍 DIAGNOSTIC: Log tap coordinates and view size
                 Log.d(TAG, "🔍 [Coordinate Debug] Tap: ($x, $y), View: ${viewWidth}x${viewHeight}")
 
-                // v2.11.2 fix Bug C: Unlock AE/AF then immediately re-focus at the new tap point.
-                // Previous behavior: return@launch after unlock (required two taps to restart tracking).
-                // New behavior: unlock + continue to process the tap, so one tap restores auto-focus
-                // and starts tracking at the new location.
+                // v2.11.4-05 (rev2): On tap while locked, unlock and return.
+                // Fall-through (v2.11.4-05 rev1) failed: AF_MODE=OFF (set in v2.11.4-03) requires
+                // ~500-1000ms to exit after clearCaptureRequestOptions(). FocusMeteringAction at
+                // 150ms silently fails — user still saw 2 taps needed.
+                // Fix: return@launch after unlock. v2.11.4-04's CONTINUOUS_PICTURE cleanup ensures
+                // passive AF resumes immediately. 1 tap = unlock; 2nd tap = explicit point focus.
                 if (_state.value.isAEAFLocked) {
                     cameraRepository.cancelFocusAndMetering()
                     _state.update {
                         it.copy(
                             isAEAFLocked = false,
                             lockPoint = null,
-                            focusPoint = null,            // v2.11.4-05: Clear indicator immediately
-                            focusIndicatorFading = false  // so user sees yellow box → blank → cyan
+                            focusPoint = null,
+                            focusIndicatorFading = false
                         )
                     }
-                    Log.i(TAG, "AE/AF unlocked by tap — continuing to focus at ($x, $y)")
-                    delay(150)  // v2.11.4-05: 150ms blank gives user visual confirmation of unlock
-                    // Do NOT return — fall through to process the tap as new focus/tracking
+                    Log.i(TAG, "AE/AF unlocked by tap — passive AF resumed")
+                    return@launch
                 }
 
                 // v2.9.10: Find tapped target for tracking
@@ -1257,6 +1258,15 @@ class CameraViewModel @Inject constructor(
     private fun unlockAEAF() {
         viewModelScope.launch {
             try {
+                // v2.11.4-05 (rev2): Guard — skip if not locked.
+                // Without this, ON_STOP (screen lock) fires UnlockAEAF even when no lock is active,
+                // causing unnecessary cancelFocusAndMetering() + Camera2 option changes that disturb
+                // the HAL and introduce a delay on the next long-press lock attempt after screen unlock.
+                if (!_state.value.isAEAFLocked) {
+                    Log.d(TAG, "Unlocking AE/AF skipped — not locked")
+                    return@launch
+                }
+
                 Log.i(TAG, "Unlocking AE/AF")
 
                 // Cancel focus metering to return to auto mode
