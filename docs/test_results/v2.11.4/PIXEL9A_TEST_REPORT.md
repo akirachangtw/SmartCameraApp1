@@ -66,10 +66,31 @@
 
 ## Notes / Observations
 
-### Observation 1 — focusDist=0.000 after CONTROL_AF_MODE=OFF
-Immediately after lock, `focusDist` drops from the converged value (e.g. 2.974 diopters) to 0.000.
-Some subjects appeared slightly blurred after lock. Needs investigation: whether the lens physically
-moves to infinity or whether Camera2 simply stops reporting LENS_FOCUS_DISTANCE when AF_MODE=OFF.
+### Observation 1 — focusDist=0.000 after CONTROL_AF_MODE=OFF (Visual Evidence)
+
+**Screenshot**: `Screenshot_20260224-154446.png`
+
+![AE/AF Lock blur after lock](Screenshot_20260224-154446.png)
+
+**What the screenshot shows**:
+- Yellow focus box is present (AE/AF Lock active)
+- Monitor screen content is severely blurred/out-of-focus
+- Text on the monitor is completely unreadable despite the subject being a flat, close-range screen
+- FPS: 16.1 (mildly degraded)
+
+**Logcat at lock moment**:
+```
+15:28:50.511  AF_STATE=FOCUSED_LOCKED, focusDist=2.974 diopters  ← correct focus at lock
+15:28:51.526  AF_STATE=INACTIVE,       focusDist=0.000 diopters  ← drops to 0 after AF_MODE=OFF
+```
+
+**Root cause hypothesis**: Setting `CONTROL_AF_MODE=OFF` causes the Pixel 9a to reset
+`LENS_FOCUS_DISTANCE` to 0 (infinity), physically moving the lens away from the converged
+position. This contradicts the expected behavior where the lens should freeze at the
+current converged distance.
+
+Needs investigation: whether this is a Pixel 9a firmware behavior or requires explicitly
+setting `CONTROL_LENS_FOCUS_DISTANCE` to the converged value before switching AF_MODE=OFF.
 
 ### Observation 2 — AE lock value captured during AE_STATE=SEARCHING
 At the lock moment, `AE_STATE=SEARCHING` (not CONVERGED). The locked exposure value may differ
