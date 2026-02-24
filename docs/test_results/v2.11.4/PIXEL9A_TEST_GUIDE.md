@@ -1,8 +1,9 @@
-# Pixel 9a Test Guide — v2.11.4-03
+# Pixel 9a Test Guide — v2.11.4-05
 
-**Version**: v2.11.4-03 (CONTROL_AF_MODE=OFF for permanent AF lock)
+**Version**: v2.11.4-05 (Unlock UX + Screen lock auto-clear)
 **Device**: Pixel 9a (Device ID: `59131JEBF17244`)
-**Date**: 2026-02-23
+**Latest Commit**: `91333c5`
+**Date**: 2026-02-24
 
 ---
 
@@ -12,11 +13,11 @@
 # Pull latest
 git pull origin feature/camera-core-v2.11.0
 
-# Build debug APK
-./gradlew :app:assembleDebug
+# Build device debug APK
+./gradlew :app:assembleDeviceDebug
 
 # Install
-adb -s 59131JEBF17244 install -r app/build/outputs/apk/debug/app-debug.apk
+adb -s 59131JEBF17244 install -r app/build/outputs/apk/device/debug/app-device-debug.apk
 
 # Start Logcat (keep running during tests)
 adb -s 59131JEBF17244 logcat -v time CameraViewModel:I LiveCameraSource:I *:S
@@ -24,82 +25,134 @@ adb -s 59131JEBF17244 logcat -v time CameraViewModel:I LiveCameraSource:I *:S
 
 ---
 
-## Test 1 — AE/AF Lock Applied (Logcat)
+## Test 1 — AE/AF Lock Applied (Regression)
 
 **Steps**:
 1. Open app → live preview
-2. Long-press on a subject to activate AE/AF Lock
-3. Observe logcat output
+2. Long-press on a subject → yellow indicator appears
 
-**Expected logs** (in order):
+**Expected logs**:
 ```
 [v2.11.2] AE/AF lock applied at (x, y) - isFocusSuccessful=...
 [v2.11.4-03] CONTROL_AE_LOCK=true + CONTROL_AF_MODE=OFF applied (true AE+AF lock)
-[AE/AF Debug] Logging ENABLED — will log AF_STATE, AE_STATE, ISO, exposure, focusDist every 1s
+[AE/AF Debug] Logging ENABLED ...
 ```
 
-**Pass condition**: Log line `[v2.11.4-03] CONTROL_AE_LOCK=true + CONTROL_AF_MODE=OFF applied` appears immediately after lock.
+**Pass condition**: Yellow box shows, log lines appear in order.
 
 ---
 
-## Test 2 — AF Stays Locked (Logcat, 30s observation)
+## Test 2 — AF Stays INACTIVE 30s (Regression)
 
 **Steps**:
-1. Long-press to lock → keep preview open for 30 seconds
-2. Watch `AF_STATE` in debug logs
+1. Long-press to lock → observe `AF_STATE` in logcat for 30 seconds
 
-**Expected behavior**:
-- `AF_STATE: 0 (INACTIVE)` — stays `0` continuously ← **CORRECT** (MODE=OFF)
-- ❌ Must NOT cycle to `3 (PASSIVE_SCAN)` or `4 (PASSIVE_FOCUSED)` within 30s
+**Expected**:
+- `AF_STATE: 0 (INACTIVE)` stays 0 continuously
+- ❌ Must NOT cycle to 3 (PASSIVE_SCAN) or 4 (PASSIVE_FOCUSED)
 
-**Note**: `AF_STATE: 0 (INACTIVE)` is correct behavior for `CONTROL_AF_MODE=OFF`. The AF algorithm is disabled; lens position is frozen. This is equivalent to switching a DSLR to Manual Focus.
+**Note**: `AF_STATE: 0 (INACTIVE)` is correct for `CONTROL_AF_MODE=OFF`. Lens is frozen at converged position.
 
 ---
 
-## Test 3 — AE Stays Locked (Logcat)
+## Test 3 — AE Stays Locked (Regression)
 
 **Steps**:
 1. Lock on a dimly-lit area
-2. Wave hand in front of camera or move to brighter area
-3. Observe `AE_STATE` and `ISO` in debug logs
+2. Wave hand or move to brighter area
+3. Observe `AE_STATE` and ISO in logcat
 
-**Expected behavior**:
-- `AE_STATE: LOCKED` — stays locked
-- ISO and exposure values remain stable (no large swings)
+**Expected**:
+- `AE_STATE: LOCKED` stays locked
+- ISO and exposure remain stable
 - ❌ Must NOT see ISO jumping 10x+ after lock
 
 ---
 
-## Test 4 — Physical Focus Hold
+## Test 4 — Unlock Doesn't Get Stuck (v2.11.4-04)
 
 **Steps**:
-1. Lock focus on a subject ~50cm away
-2. Tap subject position for Long Press lock (yellow indicator appears)
-3. Move camera to point at a subject ~2m away
-4. Observe whether foreground distance stays blurred (depth cue)
+1. Long-press to lock (yellow box)
+2. Tap screen to unlock
+3. Immediately long-press again (rapid succession)
+4. Repeat 3–5 times
 
-**Expected behavior**:
-- Near subject (original distance): sharp
-- Far subject (new distance after moving camera): blurred / out of focus
-- Focus does NOT re-adjust to new distance ← confirms lens held position
+**Expected**:
+- Each cycle: lock → unlock → lock → unlock completes cleanly
+- Yellow box disappears reliably on each unlock
+- ❌ Must NOT see yellow box persisting after unlock
 
-**Note**: On Pixel 9a this may be subtle due to small sensor DOF. Best results: use macro subject (~20-30cm) and move to >1m.
+**Expected logs (on unlock)**:
+```
+[v2.11.4-04] AE/AF lock cleared — CONTINUOUS_PICTURE + AE auto restored
+Focus and metering cancelled - returned to auto mode
+AE/AF unlocked, returned to auto mode
+```
 
 ---
 
-## Test 5 — Unlock Restores Auto Focus
+## Test 5 — Single-Tap Unlock (v2.11.4-05 Fix A) ★ Primary
 
 **Steps**:
-1. Apply AE/AF Lock (yellow indicator)
-2. Tap elsewhere or press unlock (if available) to cancel lock
-3. Observe logcat
+1. Long-press → yellow box appears (AE/AF Lock)
+2. **Tap once** at any position on screen
+3. Observe immediately
 
-**Expected logs**:
+**Expected**:
+- Yellow box **disappears** on the first tap
+- AF scanning resumes automatically (no second tap needed)
+- ❌ Must NOT require a second tap to clear the yellow box or start AF scanning
+
+**Expected log on first tap**:
 ```
-[v2.11.4-03] AE/AF lock cleared — auto exposure + focus restored
+AE/AF unlocked by tap — passive AF resumed
 ```
 
-**Expected behavior**: After unlock, AF resumes normal operation (subject at new distance focuses correctly within 1-2s).
+**If behavior**: Yellow disappears, then AF scanning starts on its own → ✅ PASS
+**If behavior**: Yellow disappears, nothing happens, need 2nd tap → ❌ FAIL
+
+---
+
+## Test 6 — Screen Lock Auto-Clears Yellow Box (v2.11.4-05 Fix B) ★ Primary
+
+**Steps**:
+1. Long-press → yellow box appears (AE/AF Lock)
+2. Press power button to lock screen
+3. Unlock screen (fingerprint / swipe)
+4. Return to camera app (should be in foreground immediately)
+
+**Expected**:
+- Yellow box is **gone** after screen unlock
+- Preview brightness is **normal** (not dark)
+- ❌ Must NOT see yellow box persisting after screen unlock
+- ❌ Must NOT see dark/underexposed preview after screen unlock
+
+**Expected log (on screen lock)**:
+```
+Unlocking AE/AF
+[v2.11.4-04] AE/AF lock cleared — CONTINUOUS_PICTURE + AE auto restored
+AE/AF unlocked, returned to auto mode
+```
+
+---
+
+## Test 7 — No Long-Press Delay After Screen Unlock (v2.11.4-05 guard) ★ Primary
+
+**Steps**:
+1. Ensure **no AE/AF lock** is active (no yellow box)
+2. Press power button to lock screen
+3. Unlock screen → return to camera
+4. **Immediately long-press** to apply AE/AF Lock
+
+**Expected**:
+- Long-press triggers lock **without noticeable delay** (~1–2s for focus to converge is normal)
+- ❌ Must NOT take significantly longer than a long-press before the screen was locked
+
+**Expected log (on screen lock with NO prior lock)**:
+```
+Unlocking AE/AF skipped — not locked
+```
+*(confirms the guard prevented unnecessary Camera2 operations)*
 
 ---
 
@@ -109,11 +162,13 @@ Copy to [PIXEL9A_TEST_REPORT.md](PIXEL9A_TEST_REPORT.md) after testing.
 
 | Test | Result | Notes |
 |------|--------|-------|
-| Test 1: Lock applied log | PASS / FAIL | |
-| Test 2: AF stays INACTIVE 30s | PASS / FAIL | |
-| Test 3: AE stays locked | PASS / FAIL | |
-| Test 4: Physical focus hold | PASS / FAIL | |
-| Test 5: Unlock restores AF | PASS / FAIL | |
+| Test 1: Lock applied log (regression) | PASS / FAIL | |
+| Test 2: AF stays INACTIVE 30s (regression) | PASS / FAIL | |
+| Test 3: AE stays locked (regression) | PASS / FAIL | |
+| Test 4: Rapid lock/unlock doesn't stick | PASS / FAIL | |
+| Test 5: Single-tap unlock | PASS / FAIL | |
+| Test 6: Screen lock auto-clears yellow box | PASS / FAIL | |
+| Test 7: No long-press delay after screen unlock | PASS / FAIL | |
 
 ---
 
@@ -121,5 +176,5 @@ Copy to [PIXEL9A_TEST_REPORT.md](PIXEL9A_TEST_REPORT.md) after testing.
 
 ```bash
 # Save to test results (replace YYYYMMDD with today's date)
-adb -s 59131JEBF17244 logcat -v time -d CameraViewModel:I LiveCameraSource:I *:S > docs/test_results/v2.11.4/logcat_v2114_03_YYYYMMDD.log
+adb -s 59131JEBF17244 logcat -v time -d CameraViewModel:I LiveCameraSource:I *:S > docs/test_results/v2.11.4/logcat_v211405_YYYYMMDD.log
 ```
