@@ -61,7 +61,7 @@
 
 ### v2.11.4 (2026-02-25) ✅ 穩定，可安全合併
 - **Branch**: `feature/camera-core-v2.11.0`
-- **Stable Commit**: 待 commit（versionName `2.11.4`, versionCode `83`）
+- **Stable Commit**: `e8427e4` (versionName `2.11.4`, versionCode `83`)
 - **Latest Iteration**: `f6aba2a` (v2.11.4-10)
 - **Status**: ✅ **Tests 1-8 全部 PASS（Pixel 9a 2026-02-25）**
 
