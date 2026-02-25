@@ -1226,30 +1226,38 @@ class LiveCameraSource @Inject constructor(
                         Log.w(TAG, "[v2.11.4-06] Failed to clear Camera2 options on bind: ${e.message}")
                     }
 
-                    // v2.11.4-08 Bug 2 fix (L2 refined): Replace DefaultLifecycleObserver.onStart()
-                    // with a CameraState.OPEN reactive Flow observer.
-                    // onStart() fires before the HAL is ready — clearCaptureRequestOptions() is
-                    // silently ignored at that point. CameraState.OPEN fires only when the camera HAL
-                    // is truly open and ready to accept capture requests, guaranteeing the clear takes effect.
-                    // Guard: only clear when UNLOCKED (not during LOCK_REQUESTED / LOCKED transitions).
-                    // sessionId guard: ++sessionId on each bind; listener captures currentSession at
-                    // submission time — stale callbacks from a recycled session are discarded.
+                    // v2.11.4-09 Bug 2 fix (race condition fix): Broaden CameraState.OPEN guard.
+                    // v2.11.4-08 guard (UNLOCKED only) missed a race condition:
+                    //   ON_STOP fires → cancelFocusAndMetering() starts, but camera goes inactive
+                    //   before the Future listener runs → aeAfLockState stays LOCKED → guard blocks clear.
+                    // Symptom: yellow box gone (ViewModel isAEAFLocked=false) but AE_LOCK=true persists
+                    //   in hardware → overexposed preview after screen unlock.
+                    // Fix: allow clear whenever state is NOT LOCK_REQUESTED (i.e. not mid-lock-operation).
+                    //   If LOCKED at OPEN time → stale lock from closed session → auto-invalidate.
+                    //   UNLOCK_REQUESTED → cleanup already in flight, redundant clear is safe.
                     val currentSession = ++sessionId
                     camera.cameraInfo.cameraState
                         .asFlow()
                         .filter { it.type == CameraState.Type.OPEN }
                         .onEach {
-                            if (currentSession == sessionId && aeAfLockState == AeAfLockState.UNLOCKED) {
+                            if (currentSession == sessionId && aeAfLockState != AeAfLockState.LOCK_REQUESTED) {
+                                // v2.11.4-09: If LOCKED when camera reopens, the lock is from a closed
+                                // session (ON_STOP cancel raced with camera shutdown). Auto-invalidate.
+                                val autoInvalidated = aeAfLockState == AeAfLockState.LOCKED
+                                if (autoInvalidated) {
+                                    aeAfLockState = AeAfLockState.UNLOCKED
+                                    Log.i(TAG, "[v2.11.4-09] Stale lock auto-invalidated on camera reopen (session #$currentSession)")
+                                }
                                 try {
                                     @OptIn(ExperimentalCamera2Interop::class)
                                     Camera2CameraControl.from(camera.cameraControl)
                                         .clearCaptureRequestOptions()
-                                    Log.i(TAG, "[v2.11.4-08] Camera2 options cleared on CameraState.OPEN (session #$currentSession)")
+                                    Log.i(TAG, "[v2.11.4-09] Camera2 options cleared on CameraState.OPEN (session #$currentSession, autoInvalidated=$autoInvalidated)")
                                 } catch (e: Exception) {
-                                    Log.w(TAG, "[v2.11.4-08] clearCaptureRequestOptions on OPEN failed (non-fatal): ${e.message}")
+                                    Log.w(TAG, "[v2.11.4-09] clearCaptureRequestOptions on OPEN failed (non-fatal): ${e.message}")
                                 }
                             } else {
-                                Log.d(TAG, "[v2.11.4-08] CameraState.OPEN — skip clear: session=${currentSession}/$sessionId, state=$aeAfLockState")
+                                Log.d(TAG, "[v2.11.4-09] CameraState.OPEN — skip clear (lock in progress): session=${currentSession}/$sessionId, state=$aeAfLockState")
                             }
                         }
                         .launchIn(sourceScope)
