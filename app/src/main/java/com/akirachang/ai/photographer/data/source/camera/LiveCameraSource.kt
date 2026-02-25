@@ -869,45 +869,34 @@ class LiveCameraSource @Inject constructor(
 
             val cameraControl = camera.cameraControl
 
-            // Cancel any active focus metering action
+            // v2.11.4-10: Clear Camera2 Interop options BEFORE cancelFocusAndMetering().
+            // Root cause of prior deadlock: AF_MODE=OFF (set in lockAEAF via Camera2 Interop)
+            // causes CameraX's cancelFocusAndMetering() future to hang indefinitely.
+            // CameraX waits for an AF state change to confirm cancellation, but AF_MODE=OFF
+            // keeps AF_STATE=INACTIVE permanently — nothing to wait for, future never completes.
+            // Since cleanup (clearCaptureRequestOptions, logAeAfState=false) was inside
+            // future.addListener(), it NEVER ran → AE_LOCK=true remained in hardware.
+            // Fix: Clear Camera2 options synchronously first so AF_MODE reverts to CameraX
+            // default (CONTINUOUS_PICTURE), unblocking the cancel future.
+            aeAfLockState = AeAfLockState.UNLOCK_REQUESTED
+            Log.d(TAG, "[v2.11.4-10] Unlock requested — clearing Camera2 options before cancel")
+            try {
+                @OptIn(ExperimentalCamera2Interop::class)
+                Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
+                Log.i(TAG, "[v2.11.4-10] Camera2 options pre-cleared (AE_LOCK + AF_MODE=OFF removed)")
+            } catch (ex: Exception) {
+                Log.w(TAG, "[v2.11.4-10] Pre-cancel clearCaptureRequestOptions failed (non-fatal): ${ex.message}")
+            }
+
+            // Cancel any active focus metering action (now unblocked since AF_MODE=OFF removed)
             val future = cameraControl.cancelFocusAndMetering()
 
             // Non-blocking coroutine approach
             future.addListener({
-                // v2.11.4-04: Unconditional Camera2 options cleanup.
-                // MUST run before future.get() because OperationCanceledException
-                // ("Cancelled by another cancelFocusAndMetering()") would skip cleanup
-                // if placed inside the try block. Multiple rapid taps/events trigger
-                // concurrent cancelFocusAndMetering() calls — each cancels the previous.
-                // By running cleanup first, we guarantee CONTROL_AE_LOCK and
-                // CONTROL_AF_MODE=OFF are cleared regardless of concurrency outcome.
-                // v2.11.4-08: Transition to UNLOCK_REQUESTED immediately (cleanup will set UNLOCKED).
-                aeAfLockState = AeAfLockState.UNLOCK_REQUESTED
-                Log.d(TAG, "[v2.11.4-08] Unlock requested — state=UNLOCK_REQUESTED")
-                try {
-                    @OptIn(ExperimentalCamera2Interop::class)
-                    val camera2Control = Camera2CameraControl.from(cameraControl)
-                    // Step 1: Explicitly set AF mode back to continuous (exit INACTIVE state)
-                    camera2Control.addCaptureRequestOptions(
-                        CaptureRequestOptions.Builder()
-                            .setCaptureRequestOption(
-                                CaptureRequest.CONTROL_AF_MODE,
-                                CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
-                            )
-                            .build()
-                    )
-                    // Step 2: Clear all Camera2 interop options (returns full CameraX control)
-                    camera2Control.clearCaptureRequestOptions()
-                    Log.i(TAG, "[v2.11.4-04] AE/AF lock cleared — CONTINUOUS_PICTURE + AE auto restored")
-                } catch (ex: Exception) {
-                    Log.w(TAG, "[v2.11.4-04] Failed to restore AE/AF options: ${ex.message}")
-                }
-                // v2.11.4-08: Camera2 cleanup complete — transition to UNLOCKED regardless of outcome.
                 aeAfLockState = AeAfLockState.UNLOCKED
-                Log.d(TAG, "[v2.11.4-08] State → UNLOCKED after Camera2 cleanup")
-
+                Log.d(TAG, "[v2.11.4-10] State → UNLOCKED after cancel")
                 try {
-                    future.get()  // Wait for cancellation to complete (result used for logging only)
+                    future.get()
                     // v2.11.4-01: Stop Camera2 AE/AF state logging
                     if (BuildConfig.DEBUG) {
                         logAeAfState = false
@@ -918,10 +907,10 @@ class LiveCameraSource @Inject constructor(
                     continuation.resume(Result.success(Unit))
                 } catch (e: Exception) {
                     // OperationCanceledException = superseded by another cancelFocusAndMetering()
-                    // Camera2 cleanup already done above; treat as non-fatal
+                    // Camera2 pre-cleanup already done above; treat as non-fatal
                     val isSuperseded = e.cause?.message?.contains("Cancelled by another") == true
                     if (isSuperseded) {
-                        Log.w(TAG, "[v2.11.4-04] cancelFocusAndMetering superseded — cleanup already applied")
+                        Log.w(TAG, "[v2.11.4-10] cancelFocusAndMetering superseded — cleanup already applied")
                         if (BuildConfig.DEBUG) logAeAfState = false
                         continuation.resume(Result.success(Unit))
                     } else {
