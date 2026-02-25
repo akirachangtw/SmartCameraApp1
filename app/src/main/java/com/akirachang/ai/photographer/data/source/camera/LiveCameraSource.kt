@@ -90,6 +90,13 @@ class LiveCameraSource @Inject constructor(
     private var logAeAfState = false
     private var lastAeAfLogTime = 0L
 
+    // v2.11.4-06 Bug 3: Track latest converged focus distance for lens freeze on lock.
+    // Pixel 9a resets LENS_FOCUS_DISTANCE to 0 (infinity) when AF_MODE=OFF is applied,
+    // causing visible blur. We capture the most recent value from every CaptureResult frame
+    // and pin the lens to this position when locking AE/AF.
+    @Volatile
+    private var lastFocusDistance: Float = 0f
+
     // v2.9.0-alpha Phase 0: Thermal monitoring
     private val powerManager: PowerManager? by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -738,6 +745,11 @@ class LiveCameraSource @Inject constructor(
                     // FocusMeteringAction.FLAG_AE only sets metering region, NOT AE_LOCK parameter.
                     // Must explicitly set CONTROL_AE_LOCK=true to freeze ISO + exposure time.
                     try {
+                        // v2.11.4-06 Bug 3: Capture lastFocusDistance at this exact moment.
+                        // At success callback time (1-2s after tap), the value reflects the
+                        // converged lens position. Pinning LENS_FOCUS_DISTANCE prevents Pixel 9a
+                        // from drifting to infinity (0 diopters) when AF_MODE=OFF takes effect.
+                        val frozenFocusDist = lastFocusDistance
                         @OptIn(ExperimentalCamera2Interop::class)
                         Camera2CameraControl.from(cameraControl)
                             .addCaptureRequestOptions(
@@ -747,9 +759,13 @@ class LiveCameraSource @Inject constructor(
                                         CaptureRequest.CONTROL_AF_MODE,
                                         CaptureRequest.CONTROL_AF_MODE_OFF
                                     )
+                                    .setCaptureRequestOption(
+                                        CaptureRequest.CONTROL_LENS_FOCUS_DISTANCE,
+                                        frozenFocusDist
+                                    )
                                     .build()
                             )
-                        Log.i(TAG, "[v2.11.4-03] CONTROL_AE_LOCK=true + CONTROL_AF_MODE=OFF applied (true AE+AF lock)")
+                        Log.i(TAG, "[v2.11.4-06] CONTROL_AE_LOCK=true + CONTROL_AF_MODE=OFF + CONTROL_LENS_FOCUS_DISTANCE=$frozenFocusDist applied")
                     } catch (e: Exception) {
                         Log.w(TAG, "[v2.11.4-03] Failed to apply AE/AF lock options: ${e.message}")
                     }
@@ -1026,6 +1042,12 @@ class LiveCameraSource @Inject constructor(
                                     request: CaptureRequest,
                                     result: TotalCaptureResult
                                 ) {
+                                    // v2.11.4-06 Bug 3: Always track focus distance regardless of debug logging state.
+                                    // This value is used by lockAEAF() to freeze the lens at the converged position
+                                    // when AF_MODE=OFF is applied (Pixel 9a resets to 0/infinity otherwise).
+                                    val fd = result.get(CaptureResult.LENS_FOCUS_DISTANCE)
+                                    if (fd != null) lastFocusDistance = fd
+
                                     if (!logAeAfState) return
                                     val now = System.currentTimeMillis()
                                     if (now - lastAeAfLogTime < AEAF_DEBUG_LOG_INTERVAL_MS) return
@@ -1125,6 +1147,20 @@ class LiveCameraSource @Inject constructor(
                     )
 
                     Log.i(TAG, "✅ Camera bound successfully with UseCaseGroup (${currentAspectRatioMode.displayName}): Preview + ImageAnalysis + ImageCapture + ViewPort WYSIWYG")
+
+                    // v2.11.4-06 Bug 2: Clear any lingering Camera2 interop options from previous session.
+                    // When screen locks while AE_LOCK=true + AF_MODE=OFF are active, the
+                    // clearCaptureRequestOptions() call in ON_STOP fails silently (camera inactive,
+                    // HAL ignores the request). CameraX re-applies the stale options on re-bind,
+                    // freezing AF after screen unlock. Clearing unconditionally on every bind
+                    // guarantees a clean AE/AF state regardless of how the previous session ended.
+                    try {
+                        @OptIn(ExperimentalCamera2Interop::class)
+                        Camera2CameraControl.from(camera.cameraControl).clearCaptureRequestOptions()
+                        Log.i(TAG, "[v2.11.4-06] Camera2 interop options cleared on bind (clean state)")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "[v2.11.4-06] Failed to clear Camera2 options on bind: ${e.message}")
+                    }
 
                     // v2.9.6 Phase 1 Fix: Log sensor orientation for debugging
                     val sensorRotation = camera.cameraInfo.sensorRotationDegrees

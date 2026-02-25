@@ -59,11 +59,102 @@
 
 ## v2.11.0 系列
 
-### v2.11.1 (2026-02-13) ✅ 穩定
+### v2.11.4 (2026-02-25) 🚧 Pixel 9a 驗證中（v2.11.4-06）
 - **Branch**: `feature/camera-core-v2.11.0`
-- **Commit**: `3830fb2` (feature/camera-core-v2.11.0)
+- **Latest Commit**: `8953dc8` (v2.11.4-06)
+- **Build Code**: 77+（以 commit 為準）
+- **Status**: 🚧 **待 Pixel 9a 驗證** — v2.11.4-06 三個 Bug 修復已提交
+
+**功能目標**: AE/AF Lock UX + Camera2 Interop
+
+**迭代歷程**:
+| 迭代 | Commit | 內容 | Pixel 9a |
+|------|--------|------|----------|
+| v2.11.4-01 | `62dcd41`~`11b3c94` | Saliency AF fix + focus jump fix | — |
+| v2.11.4-02 | `e09d4b7` | CONTROL_AE_LOCK=true via Camera2 | — |
+| v2.11.4-03 | `4e64361` | CONTROL_AF_MODE=OFF (AF frozen) | — |
+| v2.11.4-04 | `f98d9ec` | Fix unlock stuck (concurrent cancel) | ✅ PASS |
+| v2.11.4-05 | `91333c5` | Single-tap unlock + screen lock auto-clear | ❌ FAIL (Test 5/6/7) |
+| **v2.11.4-06** | `8953dc8` | Fix double-unlock race + Camera2 persist + lens drift | ⏳ Pending |
+
+**v2.11.4-06 修復內容**:
+- ✅ **Bug 1**: `_state.update{isAEAFLocked=false}` 移到 `cancelFocusAndMetering()` suspend 前 → 關閉 race window
+- ✅ **Bug 2**: `clearCaptureRequestOptions()` 在 `bindToLifecycle` 後無條件呼叫 → 螢幕解鎖後 AF 不再凍結
+- ✅ **Bug 3**: `lastFocusDistance` 每幀追蹤 + `lockAEAF` 時 pin `CONTROL_LENS_FOCUS_DISTANCE` → 鎖定後畫面不模糊
+
+**測試文件**:
+- `docs/test_results/v2.11.4/HANDOVER_SUMMARY.md`
+- `docs/test_results/v2.11.4/PIXEL9A_TEST_GUIDE_v2.11.4-06.md`
+- `docs/test_results/v2.11.4/logcat_v211405_20260224.log` (v2.11.4-05 FAIL 證據)
+
+**已知問題**: v2.11.4-05 Test 5/6/7 FAIL + Observation 1（均已在 v2.11.4-06 修復）
+
+---
+
+### v2.11.3 (2026-02-21) ✅ 穩定
+- **Branch**: `feature/camera-core-v2.11.0`
+- **Commit**: `bbd679c`
+- **Build Code**: 76（未在 build.gradle 中更新，以 commit 為準）
+- **Status**: ✅ **穩定 - Pixel 9a 驗證**
+
+**包含功能**:
+- ✅ **logicCenter/trackedCenter 架構分離（Phase 1）**
+  - `logicCenter`: unclamped 真實位置 → detectFeatures() ROI 中心
+  - `trackedCenter`: clamped UI 輸出（maxDistancePerFrame 速度限制）
+- ✅ **2-pass RANSAC**（2-cluster median≈0 修復）
+- ✅ **Fix H**: `trackFromBitmap` pending apply
+- ✅ **LK error filter**: 過濾錯誤的 LK 追蹤點
+- ✅ **Config tuning**: minQuality 0.3→0.2, maxTrackingDistance 200→250, maxDistancePerFrame 25→40
+
+**關鍵提交**:
+- `bbd679c`: [Fix] v2.11.3: OF tracking stability — logicCenter/trackedCenter split + 2-pass RANSAC
+
+**測試結果**:
+- ✅ Pixel 9a: 951 lines, **0 LOST events**, quality=0.97-0.98, dist≈0px (stationary)
+
+**決議文檔**:
+- `devspec/feature_record_Backlog.md` (Optical Flow Tracking 章節)
+- `docs/features/v2.11.3/` (如有)
+
+**已知問題**: 無
+
+---
+
+### v2.11.2 (2026-02-18) ✅ 穩定
+- **Branch**: `feature/camera-core-v2.11.0`
+- **Commit**: `fec8296` (Fix G, 最終修正)
+- **Build Code**: 75（未在 build.gradle 中更新，以 commit 為準）
+- **Status**: ✅ **穩定 - Pixel 9a 驗證**
+
+**包含功能**:
+- ✅ **Bug A**: `CameraViewModel.lockAEAF()` — 停止 OF + 單一原子 state update
+- ✅ **Bug B**: `LiveCameraSource.lockAEAF()` — 移除 `isFocusSuccessful` gate
+- ✅ **Bug C**: `OpticalFlowConfig.DEFAULT` — redetectionInterval: 15→5, ransacDistanceThreshold: 0.5→1.0
+- ✅ **Fix D**: `updateContentBounds()` rotation-aware 尺寸交換（portrait 正確映射）
+- ✅ **Fix E**: `focusJob: Job?` 取消機制 + `lockAEAF` focusPoint 還原
+- ✅ **Fix F**: `onDetectionResult` 收到有效 imageWidth 時重建 CoordinateTransformer
+- ✅ **Fix G**: OF 追蹤座標比例錯誤修正
+
+**關鍵提交**:
+- `6fd95d1`: [Fix] v2.11.2: AE/AF lock coordinate + animation + OF tracking stability
+- `fec8296`: [Fix] v2.11.2: Fix OF tracking coordinate scale error (Fix G)
+
+**測試結果**:
+- ✅ Pixel 9a: Tap→OF tracking 跟隨主體，Lock 黃框正確出現
+
+**決議文檔**:
+- `devspec/feature_record_Backlog.md` (Camera Core Features 章節)
+- `docs/features/v2.11.2/Pixel9_Focus-tracking-lock-function-analysis.md`
+
+**已知問題**: 無
+
+---
+
+### v2.11.1 (2026-02-18) ✅ 穩定
+- **Branch**: `feature/camera-core-v2.11.0`
+- **Commit**: `8c86068` (Focus Indicator 最終修正)
 - **Build Code**: 74
-- **Status**: ✅ **穩定 - 已整合 v2.10.2-final**
+- **Status**: ✅ **穩定 - Pixel 9a 驗證**
 
 **包含功能**:
 - ✅ **v2.11.0 功能**:
@@ -76,29 +167,24 @@
   - EXIF 資訊顯示 (GPS, 曝光參數, 裝置資訊)
   - Settings UI 現代化 (可摺疊卡片, 位置權限管理)
   - v2.10.2 Bug 修復 (Permission UX + Aspect Ratio + Toast Regression)
+- ✅ **UI 清理**: 移除 Debug 文字、Pixel 9a 記憶體訊息、長寬比單行標籤
+- ✅ **Focus Indicator 4 視覺語言**: 機械咬合 3-phase tween + Dwell 淡化 + 顏色 + Glow
+- ✅ **座標系統統一**: CoordinateTransformer + PreviewViewportContainer
 
 **關鍵提交**:
-- `70e1d67`: Merge v2.10.2-final into v2.11.0: Combine Eye-AF + EXIF features
-- `3830fb2`: [Fix] Restore 16KB ELF alignment check script
-- `3aac584`: [Feature] v2.11.0: Eye-AF + Smart Subject Focus + Rectangle UI
-- `6501ac2`: [Fix] v2.10.2: Bug fixes - Permission UX + Aspect Ratio + Toast Regression
+- `1f404fe`: [Feature] v2.11.1: Coordinate system unification + UI cleanup (Pixel 9a verified)
+- `27474a2`: [Feature] v2.11.1: Focus Indicator 3-phase tween + Dwell animations
+- `8c86068`: [Feature] v2.11.1: Fix Focus Indicator animations (Pixel 9a verified)
 
 **測試結果**:
-- ✅ Stage Verification Phase 1-4: PASS
-- ✅ Emulator Testing: PASS (無 FATAL/ERROR, Optical Flow 穩定)
-- ⏳ Pixel 9a 實機測試: Pending
-- 測試報告: `tmp/test_outputs/v2.11.1-emulator/EMULATOR_TEST_REPORT.md`
+- ✅ Pixel 9a: PASS (Focus Indicator 視覺語言、座標系統、UI 清理)
+- ✅ Emulator: PASS (無 FATAL/ERROR)
 
 **決議文檔**:
-- `devspec/feature_record_Backlog.md` (Camera Core Features, Preview, Photo Capture 章節)
-- `docs/test_results/v2.11.0-Phase5/HANDOVER_SUMMARY.md`
-- `docs/test_results/v2.11.0-Phase5/PIXEL9A_TEST_GUIDE.md`
-- `docs/test_results/v2.10.2/PIXEL9A_TEST_REPORT.md`
+- `devspec/feature_record_Backlog.md` (Camera UI 清理, Focus Indicator Visual Design 章節)
+- `docs/features/v2.11.0/v2.11.0_FINAL_SALIENCY_AND_VISUAL_DESIGN.md`
 
 **已知問題**: 無
-
-**待辦事項**:
-- [ ] 執行 Pixel 9a 實機測試 (Phase 5)
 
 ---
 

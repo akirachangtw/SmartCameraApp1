@@ -884,7 +884,12 @@ class CameraViewModel @Inject constructor(
                 // Fix: return@launch after unlock. v2.11.4-04's CONTINUOUS_PICTURE cleanup ensures
                 // passive AF resumes immediately. 1 tap = unlock; 2nd tap = explicit point focus.
                 if (_state.value.isAEAFLocked) {
-                    cameraRepository.cancelFocusAndMetering()
+                    // v2.11.4-06: Update state BEFORE the suspend call to close the race window.
+                    // Without this, a 2nd focusOnPoint() coroutine (double-gesture) starts,
+                    // sees isAEAFLocked=true, and calls cancelFocusAndMetering() a second time
+                    // while coroutine A is suspended — causing "superseded" + double-cancel.
+                    // Moving _state.update first means the 2nd coroutine sees isAEAFLocked=false
+                    // and skips the unlock branch entirely.
                     _state.update {
                         it.copy(
                             isAEAFLocked = false,
@@ -893,6 +898,7 @@ class CameraViewModel @Inject constructor(
                             focusIndicatorFading = false
                         )
                     }
+                    cameraRepository.cancelFocusAndMetering()
                     Log.i(TAG, "AE/AF unlocked by tap — passive AF resumed")
                     return@launch
                 }
