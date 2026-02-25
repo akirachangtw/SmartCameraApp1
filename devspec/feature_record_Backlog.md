@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-02-21
+Last updated: 2026-02-25
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -315,6 +315,82 @@ Last updated: 2026-02-21
 - [ ] [v2.12.0] Camera2Interop `TotalCaptureResult` 讀取 ISO / ExposureTime / FNumber / FocalLength → 在 `writeExifMetadata()` 中寫入（需 `Camera2CameraControl`）
 - [ ] [v2.12.0] 改用 `ImageCapture` 直接輸出 JPEG（不走 bitmap.compress 路徑），保留硬體 EXIF
 - [ ] [v2.12.0] `@SuppressWarnings("deprecation")` 或 API 版本分支處理 `TAG_ISO_SPEED_RATINGS` 棄用警告
+
+---
+
+## AE/AF Lock — Camera2 Interop (v2.11.4)
+
+### ✅ Confirmed (v2.11.4-06, 2026-02-25 Pixel 9a)
+
+| # | 描述 | Commit |
+|---|------|--------|
+| B1 | **Double cancelFocusAndMetering race 修復** — `_state.update{isAEAFLocked=false}` 移至 suspend 前，第 2 個 coroutine 見到 false 直接跳過 | v2.11.4-06 `8953dc8` |
+| B3 | **focusDist=0 修復** — 鎖定時同時設 `LENS_FOCUS_DISTANCE=lastFocusDistance`，Pixel 9a 不再重置鏡頭位置至無限遠 | v2.11.4-06 `8953dc8` |
+| B2B4 | **螢幕解鎖/解鎖延遲修復** — `DefaultLifecycleObserver.onStart()` + pre-clear 排隊機制 | v2.11.4-07 `5a73ec4` |
+
+### ⚠️ Critical Warning — Camera2 Interop & CameraX Lifecycle
+
+---
+
+#### 坑點 1：`clearCaptureRequestOptions()` 在 ON_STOP 時被 HAL 忽略
+- **症狀**：螢幕鎖定/解鎖後，`AE_LOCK=true` + `AF_MODE=OFF` 殘留 → 預覽畫面過暗、AF 凍結
+- **根因**：camera inactive 時 HAL 忽略所有 capture request；ON_STOP 時呼叫 clear 無效
+- **❌ 錯誤做法**：`bindToLifecycle()` callback 或 `DisposableEffect(ON_STOP)` 內呼叫 clear（v2.11.4-06 嘗試過，仍 FAIL）
+- **✅ 正確做法**：`DefaultLifecycleObserver.onStart()` — 每次 camera resume（含螢幕解鎖、背景切換）時 clear
+- **關鍵約束**：必須配合 `isAEAFLockedInSource` flag guard，避免清除使用者主動啟動的 lock
+- **版本記錄**：v2.11.4-07（commit `5a73ec4`）
+
+---
+
+#### 坑點 2：`clearCaptureRequestOptions()` 與 `startFocusAndMetering()` 非同步順序問題
+- **症狀**：解鎖後第 2 次 long-press 有 5s delay（每次解鎖幾乎必現），須重啟 APP 才能恢復正常
+- **根因**：`clearCaptureRequestOptions()` 返回 `ListenableFuture`；若在 clear **完成前** 就呼叫 `startFocusAndMetering()`，兩者共用同一 camera executor（FIFO 隊列），`AF_MODE=OFF` 殘留在隊列中 → 新的 AF scan 被舊的 OFF 命令覆蓋
+- **❌ 錯誤做法**：cancelFocusAndMetering 後直接 startFocusAndMetering（不等待 clear）
+- **✅ 正確做法**：在 `lockAEAF()` 呼叫 `startFocusAndMetering()` **之前**先排入 pre-clear（利用 FIFO 保證：clear 先處理，再執行 AF scan）
+- **版本記錄**：v2.11.4-07（commit `5a73ec4`）
+
+---
+
+#### 坑點 3：Pixel 9a — `AF_MODE=OFF` 後 `LENS_FOCUS_DISTANCE` 重置為 0（無限遠）
+- **症狀**：AE/AF lock 後畫面模糊（鏡頭物理移動至無限遠位置）
+- **根因**：Pixel 9a 在 `CONTROL_AF_MODE=OFF` 生效後，HAL 自動將 `LENS_FOCUS_DISTANCE` 重置為 0（0 diopters = 無限遠），推翻剛剛收斂的焦點位置
+- **❌ 錯誤做法**：僅設 `AF_MODE=OFF`，不同時固定焦距
+- **✅ 正確做法**：在 `lockAEAF()` success callback 時，同時設 `CONTROL_LENS_FOCUS_DISTANCE=lastFocusDistance`（在 `onCaptureCompleted` 每幀更新的最後收斂值）
+- **注意**：此為 Pixel 9a 特有行為，其他設備可能無此問題；建議保留此機制作為通用防禦
+- **版本記錄**：v2.11.4-06（commit `8953dc8`）
+
+---
+
+#### 坑點 4：`bindToLifecycle()` 只在 process 啟動時呼叫，螢幕鎖定/解鎖不觸發 rebind
+- **症狀**：以為 bind-time clear 能處理螢幕解鎖後的殘留，但測試證明無效
+- **根因**：CameraX 的 `onStop → onStart` 路徑（螢幕鎖定/解鎖、背景切換）**不會**重新呼叫 `bindToLifecycle()`，僅第一次 bind 或 `unbindAll()` 後 rebind 才會觸發
+- **❌ 錯誤假設**：「每次回到相機都會觸發 bindToLifecycle callback」
+- **✅ 正確理解**：螢幕解鎖 = `onStart()`（無 rebind）；需用 `DefaultLifecycleObserver.onStart()` 攔截
+- **版本記錄**：v2.11.4-07（commit `5a73ec4`，v2.11.4-06 踩坑後修正）
+
+---
+
+#### 坑點 5：`cancelFocusAndMetering()` 雙次呼叫 race（"superseded" error）
+- **症狀**：雙手勢觸發兩個 coroutine → 第 1 個被 "superseded" cancel → state 未清乾淨
+- **根因**：解鎖 branch 的 `_state.update{isAEAFLocked=false}` 放在 suspend call **之後**，race window 內第 2 個 coroutine 仍看到 `isAEAFLocked=true` → 再次呼叫 cancelFocusAndMetering
+- **✅ 正確做法**：`_state.update{isAEAFLocked=false}` 移至 `cancelFocusAndMetering()` suspend call **之前**
+- **版本記錄**：v2.11.4-06（commit `8953dc8`，`CameraViewModel.kt:886`）
+
+### 🔍 Code Locations (v2.11.4-07)
+- `isAEAFLockedInSource` flag:       `LiveCameraSource.kt:101`
+- Pre-clear before lock:             `LiveCameraSource.kt:739`（lockAEAF — FIFO pre-clear）
+- Set locked flag on success:        `LiveCameraSource.kt:771`
+- Clear flag in cancelFocusAndMetering: `LiveCameraSource.kt:851`
+- DefaultLifecycleObserver.onStart(): `LiveCameraSource.kt:1191`
+- lastFocusDistance tracking:        `LiveCameraSource.kt:97`（每幀 onCaptureCompleted 更新）
+- CameraViewModel race fix:          `CameraViewModel.kt:886`（_state.update 在 suspend 前）
+
+### 📋 Backlog
+- [x] [v2.11.4-06] Bug 1: Double cancel race — `_state.update` 移至 suspend 前 ✅ Pixel 9a PASS
+- [x] [v2.11.4-06] Bug 3: focusDist=0 — `LENS_FOCUS_DISTANCE=lastFocusDistance` 同時設定 ✅ Pixel 9a PASS
+- [x] [v2.11.4-07] Bug 2: 螢幕解鎖後暗畫面 — `DefaultLifecycleObserver.onStart()` ⏳ 待 Pixel 9a 驗證
+- [x] [v2.11.4-07] Bug 4: 第 2 次 lock 5s delay — pre-clear before startFocusAndMetering ⏳ 待 Pixel 9a 驗證
+- [ ] [v2.11.4-08] 若 v2.11.4-07 仍 FAIL：改用 `CameraState.OPEN` reactive observer（見 L2 分析 docs/features/v2.11.4/v2.11.4-06_Analyzing_App_Bugs_Lock_Delay_Dark-L2.md）
 
 ---
 
