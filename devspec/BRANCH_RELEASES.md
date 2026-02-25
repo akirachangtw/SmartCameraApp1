@@ -59,11 +59,11 @@
 
 ## v2.11.0 系列
 
-### v2.11.4 (2026-02-25) 🚧 Pixel 9a 驗證中（v2.11.4-06）
+### v2.11.4 (2026-02-25) 🚧 Pixel 9a 驗證中（v2.11.4-07）
 - **Branch**: `feature/camera-core-v2.11.0`
-- **Latest Commit**: `8953dc8` (v2.11.4-06)
-- **Build Code**: 77+（以 commit 為準）
-- **Status**: 🚧 **待 Pixel 9a 驗證** — v2.11.4-06 三個 Bug 修復已提交
+- **Latest Commit**: `5a73ec4` (v2.11.4-07)
+- **Build Code**: `79` (versionName `2.11.4-07`)
+- **Status**: 🚧 **待 Pixel 9a 驗證** — v2.11.4-07 Bug 2+4 修復已提交，等待 Work NB 測試
 
 **功能目標**: AE/AF Lock UX + Camera2 Interop
 
@@ -75,19 +75,25 @@
 | v2.11.4-03 | `4e64361` | CONTROL_AF_MODE=OFF (AF frozen) | — |
 | v2.11.4-04 | `f98d9ec` | Fix unlock stuck (concurrent cancel) | ✅ PASS |
 | v2.11.4-05 | `91333c5` | Single-tap unlock + screen lock auto-clear | ❌ FAIL (Test 5/6/7) |
-| **v2.11.4-06** | `8953dc8` | Fix double-unlock race + Camera2 persist + lens drift | ⏳ Pending |
+| v2.11.4-06 | `8953dc8` | Fix double-unlock race + Camera2 persist + lens drift | ❌ FAIL (Test 6/7) + Bug 4 NEW |
+| **v2.11.4-07** | `5a73ec4` | Clear Camera2 Interop on Lifecycle STARTED (Bug 2+4) | ⏳ Pending |
 
-**v2.11.4-06 修復內容**:
-- ✅ **Bug 1**: `_state.update{isAEAFLocked=false}` 移到 `cancelFocusAndMetering()` suspend 前 → 關閉 race window
-- ✅ **Bug 2**: `clearCaptureRequestOptions()` 在 `bindToLifecycle` 後無條件呼叫 → 螢幕解鎖後 AF 不再凍結
-- ✅ **Bug 3**: `lastFocusDistance` 每幀追蹤 + `lockAEAF` 時 pin `CONTROL_LENS_FOCUS_DISTANCE` → 鎖定後畫面不模糊
+**v2.11.4-06 測試結果（Work NB 2026-02-25）**:
+- ✅ Test 1–3, 5, 8 PASS（Bug 1 race 修復 ✅、Bug 3 focusDist 修復 ✅）
+- ❌ Test 6 FAIL：`bindToLifecycle` bind-time clear 在螢幕解鎖時不觸發
+- ❌ Test 7 FAIL：`AF_MODE=OFF` 殘留，第 2 次 lock 5s delay（Bug 4 新發現）
+
+**v2.11.4-07 修復內容**:
+- ✅ **Bug 2** (螢幕解鎖後暗畫面)：`DefaultLifecycleObserver.onStart()` — 每次 camera resume 自動 clear
+- ✅ **Bug 4** (5s delay)：`lockAEAF()` 呼叫 `startFocusAndMetering()` 前先排入 pre-clear（FIFO 保證順序）
+- ✅ **Guard**：`isAEAFLockedInSource` flag 防止 onStart() clear 清除主動鎖定的 lock
 
 **測試文件**:
-- `docs/test_results/v2.11.4/HANDOVER_SUMMARY.md`
+- `docs/test_results/v2.11.4/HANDOVER_SUMMARY.md` (SSOT)
 - `docs/test_results/v2.11.4/PIXEL9A_TEST_GUIDE_v2.11.4-06.md`
-- `docs/test_results/v2.11.4/logcat_v211405_20260224.log` (v2.11.4-05 FAIL 證據)
+- `docs/test_results/v2.11.4/logcat_v211406_20260225.log` (v2.11.4-06 FAIL 證據)
 
-**已知問題**: v2.11.4-05 Test 5/6/7 FAIL + Observation 1（均已在 v2.11.4-06 修復）
+**Critical Warnings**: 見 `devspec/feature_record_Backlog.md` → AE/AF Lock — Camera2 Interop section（5 個坑點）
 
 ---
 
