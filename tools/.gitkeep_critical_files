@@ -1,53 +1,111 @@
-# Critical Files Protection
+# Critical Files Protection — tools/
 
-⚠️  The following files in this directory are CRITICAL and must NOT be deleted:
+⚠️  The following files in this directory are CRITICAL and must NOT be deleted or overwritten during merges.
 
-## Python Scripts
-- `hybrid_flow.py` - Development workflow automation (L1/L2/PR planning)
+---
+
+## 🔴 Tier 1 — Workflow Core (Breaking if missing)
+
+### Development Workflow Automation
+- **`hybrid_flow.py`** — L1/L2/PR planning document generation
   - Integrated with Claude Code (`.claude/settings.local.json`)
   - Integrated with VSCode Tasks (`hybrid_flow-tasks.json`)
   - Required for: Level 1/2 planning, PR notes generation
 
-## Configuration Files
-- `hybrid_flow-tasks.json` - VSCode Tasks configuration
-  - Required for: VSCode Task Runner integration
-  - Used by: Ctrl+Shift+P → "Run Task" → "Hybrid: L1/L2/PR"
+- **`hybrid_flow-tasks.json`** — VSCode Tasks configuration reference
+  - Required for: VSCode Task Runner (Ctrl+Shift+P → "Run Task")
 
-## Documentation
-- `HYBRID_FLOW_CLAUDE_USAGE.md` - Usage guide for Claude Code integration
-- `README.md` - Tools directory documentation
+### Merge & Branch Management
+- **`check_merge_readiness.py`** — Pre-merge readiness check (FORCED by CLAUDE.md)
+  - Must output `✅ READY TO MERGE` before any merge
+  - Checks: docs/features/, docs/test_results/, BRANCH_RELEASES.md, feature_record_Backlog.md
 
-## Asset Generation Scripts
-- `generate_assets.py` - Test image generation with Google Gemini API
-- `test_generate_assets.py` - Test suite for generate_assets.py
-
----
-
-## Why These Files Are Critical
-
-### Developer Workflow Integration
-1. **Claude Code**: Can directly execute `hybrid_flow.py` during conversations
-2. **VSCode Tasks**: Provides GUI for running L1/L2/PR generation
-3. **Development Planning**: Core tool for Hybrid Workflow (ChatGPT + Claude Code)
-
-### Deletion Impact
-❌ Breaking Claude Code workflow automation
-❌ Breaking VSCode Tasks integration
-❌ Loss of automated planning documentation
-❌ Manual recreation of L1/L2/PR documents required
+### Test Handoff (Home NB ↔ Work NB)
+- **`test_handoff_gui.pyw`** — Cross-machine test handoff automation GUI
+  - 4-step workflow: Home Push → Work Pull → Work Push → Home Pull
+  - Documentation: `docs/test_handoff/PYTHON_GUI_GUIDE.md`
 
 ---
 
-## Protection Checklist
+## 🟡 Tier 2 — Active Development Tools (Used in every session)
 
-Before cleaning up files in `tools/`, verify:
-- [ ] File is NOT listed above
-- [ ] File is NOT imported by any Python script
-- [ ] File is NOT referenced in `.claude/settings.local.json`
-- [ ] File is NOT referenced in `hybrid_flow-tasks.json`
-- [ ] File has NOT been used in recent development sessions
+### GUI Tools
+- **`prompt_generator_gui.py`** — Hybrid Workflow prompt generator via Gemini API
+  - Input: problem description → Output: Step 0~3 prompts (Traycer/L1/L2/Claude Code)
+  - Added: 2026-02-25
+
+- **`stage_verification_gui.pyw`** — Stage/phase verification GUI
+
+- **`UsbDevTool_Enhanced.pyw`** — USB device management tool
+  - Launcher: `UsbDevTool_Enhanced_Launcher.vbs`
+  - Script: `UsbDevTool_Enhanced.ps1`
+
+### Asset & Test Image Generation
+- **`generate_assets.py`** — Test image generation with Google Gemini API
+- **`test_generate_assets.py`** — Test suite for generate_assets.py
+- **`optimize-test-images.pyw`** — Test image optimization GUI
+
+### Analysis Tools
+- **`regression_scanner.py`** — Regression pattern scanner
+  - Guide: `REGRESSION_SCANNER_GUIDE.md`
+
+- **`analyze_exif.py`**, **`compare_exif.py`**, **`analyze_gps_exif.py`** — EXIF analysis suite
 
 ---
 
-**Last Updated**: 2026-01-04
-**Maintainer**: SmartCameraApp1 Development Team
+## 🟢 Tier 3 — Reference & Scripts (Valuable, not blocking)
+
+### ADB / Device Scripts
+- `query_camera_quick.ps1` — Quick camera info query
+- `query_device_camera_info.sh` — Device camera info
+- `deploy-and-log.ps1` — Deploy APK + capture logs
+- `install-apk.ps1` — APK installation helper
+- `capture-logcat.ps1` — Logcat capture
+- `capture-emulator-screenshots.ps1` — Emulator screenshots
+- `pixel_memory_test.ps1 / .sh` — Pixel 9a memory tests
+
+### Branch & Docs Management
+- `check_branch_docs_sync.ps1 / .sh` — Branch docs sync checker
+- `check_document_path.sh` — Document path validator
+
+### Prompt Files
+- `prompts_example.txt` — Workflow prompt examples
+- `prompts_lighting_tests.txt` — Lighting test prompts
+- `prompts_v2.6.0_hdr_test.txt` — HDR test prompts
+- `prompts_v2.7.0_guideline_test.txt` — Guideline test prompts
+
+---
+
+## Merge Checklist — tools/ directory
+
+When merging feature branches into main (or vice versa), verify:
+
+```bash
+# 1. Check if any tools/ files have merge conflicts
+git diff --name-only --diff-filter=U | grep "^tools/"
+
+# 2. Verify Tier 1 tools are present after merge
+ls tools/hybrid_flow.py tools/check_merge_readiness.py tools/test_handoff_gui.pyw tools/prompt_generator_gui.py
+
+# 3. Check if newer tools exist in feature branch but not in main
+git log --oneline --diff-filter=A -- tools/  # shows Add commits
+```
+
+**Conflict resolution priority**:
+- `hybrid_flow.py`, `hybrid_flow-tasks.json` → Keep **feature branch** version (newer features)
+- `check_merge_readiness.py` → Keep **main** version (stricter checks preferred)
+- New tools added in feature branch → **Always keep** (don't discard)
+
+---
+
+## Why This File Exists
+
+During merges, git merges file content automatically but:
+1. New files added in feature branches may not conflict but can be overlooked in `--no-ff` squash merges
+2. Deleted files in either branch will be removed by git
+3. This file serves as a human checklist for post-merge verification
+
+---
+
+**Last Updated**: 2026-02-25
+**Maintainer**: Claude Sonnet 4.6 + Akira Chang

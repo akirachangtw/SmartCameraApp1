@@ -152,7 +152,37 @@ ls docs/test_results/v2.10.2/
 - [ ] v2.10.2 測試報告已複製
 - [ ] Logcat 日誌已複製
 
-#### 2.5 創建文檔同步記錄
+#### 2.5 驗證 tools/ 目錄關鍵工具
+
+合併後確認 `tools/` 的關鍵工具完整：
+
+```bash
+# Tier 1 — 必須存在，缺一不可
+ls tools/hybrid_flow.py \
+   tools/hybrid_flow-tasks.json \
+   tools/check_merge_readiness.py \
+   tools/test_handoff_gui.pyw \
+   tools/prompt_generator_gui.py
+
+# 查看 feature branch 是否新增了 tools/ 中的工具
+git log --oneline --diff-filter=A -- tools/
+
+# 如有 merge conflict，解決方式
+# - hybrid_flow.py / hybrid_flow-tasks.json → 保留 feature branch 版本
+# - check_merge_readiness.py → 保留 main 版本（檢查更嚴格）
+# - 其他新增工具 → 一律保留（不丟棄 feature branch 新增的工具）
+```
+
+**詳細清單**: `tools/.gitkeep_critical_files`（三級分類：Tier 1 / 2 / 3）
+
+**檢查點**:
+- [ ] Tier 1 工具（5 個）全部存在
+- [ ] feature branch 新增的工具未因 merge 遺失
+- [ ] 無 tools/ 相關 merge conflict 遺留
+
+---
+
+#### 2.6 創建文檔同步記錄
 
 ```bash
 # 創建同步記錄
