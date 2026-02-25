@@ -1,0 +1,389 @@
+--------- beginning of main
+02-25 23:12:05.222 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=274ms, Total=274.9ms
+02-25 23:12:05.295 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:05.343 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=9.997884ms, ISO=155, focusDist=2.803 diopters
+02-25 23:12:05.385 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=443.8ms (Convert=0.1ms, MLKit=353.8ms, Composition=0.0ms, Lighting=88.9ms)
+02-25 23:12:05.389 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=4, OpenCV=112ms, Total=166.8ms
+02-25 23:12:05.607 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=217ms, Total=217.3ms
+02-25 23:12:05.765 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=158ms, Total=158.3ms
+02-25 23:12:05.844 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:05.953 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=568.6ms (Convert=0.1ms, MLKit=459.3ms, Composition=0.0ms, Lighting=108.5ms)
+02-25 23:12:05.981 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=214ms, Total=215.2ms
+02-25 23:12:06.176 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=194ms, Total=194.5ms
+02-25 23:12:06.248 I/LiveCameraSource( 1173): Performance: FPS=13.0, Dropped=0/3090 (0.0%), Memory: Native=174MB, Java=51MB, Total=444MB, Thermal=LIGHT
+02-25 23:12:06.321 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:06.361 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=9.997884ms, ISO=155, focusDist=2.803 diopters
+02-25 23:12:06.409 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=455.0ms (Convert=0.1ms, MLKit=367.3ms, Composition=0.0ms, Lighting=86.7ms)
+02-25 23:12:06.418 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=175ms, Total=241.5ms
+02-25 23:12:06.620 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=199ms, Total=200.9ms
+02-25 23:12:06.819 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=198ms, Total=199.0ms
+02-25 23:12:06.846 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:06.958 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=548.8ms (Convert=0.1ms, MLKit=436.7ms, Composition=0.0ms, Lighting=111.0ms)
+02-25 23:12:07.021 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=201ms, Total=201.5ms
+02-25 23:12:07.235 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:07.323 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=364.1ms (Convert=0.1ms, MLKit=276.8ms, Composition=0.0ms, Lighting=86.2ms)
+02-25 23:12:07.325 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=218ms, Total=303.6ms
+02-25 23:12:07.379 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=9.997884ms, ISO=155, focusDist=2.803 diopters
+02-25 23:12:07.529 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=201ms, Total=203.8ms
+02-25 23:12:07.810 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=486.6ms (Convert=0.1ms, MLKit=381.4ms, Composition=0.0ms, Lighting=104.4ms)
+02-25 23:12:07.810 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=180ms, Total=280.5ms
+02-25 23:12:08.038 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=4, OpenCV=227ms, Total=227.5ms
+02-25 23:12:08.334 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=523.8ms (Convert=0.1ms, MLKit=413.6ms, Composition=0.0ms, Lighting=109.2ms)
+02-25 23:12:08.343 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=230ms, Total=304.2ms
+02-25 23:12:08.405 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=9.997884ms, ISO=155, focusDist=2.803 diopters
+02-25 23:12:08.482 I/LiveCameraSource( 1173): Performance: FPS=13.5, Dropped=0/3120 (0.0%), Memory: Native=175MB, Java=67MB, Total=462MB, Thermal=LIGHT
+02-25 23:12:08.484 I/LiveCameraSource( 1173): [v2.8.1 Diagnostic] Thread=LiveCameraSourceAnalyzer, Priority=10, Frame=3121, PoolSize=2
+02-25 23:12:08.613 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=269ms, Total=269.6ms
+02-25 23:12:08.773 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=4, OpenCV=159ms, Total=159.6ms
+02-25 23:12:08.912 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=577.8ms (Convert=0.1ms, MLKit=468.1ms, Composition=0.0ms, Lighting=108.8ms)
+02-25 23:12:08.929 I/LiveCameraSource( 1173): HDR enabled: exposure compensation set to 1 (range: -24..24)
+02-25 23:12:08.929 I/CameraViewModel( 1173): Auto HDR activated
+02-25 23:12:08.938 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=164ms, Total=165.1ms
+02-25 23:12:09.113 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=174ms, Total=174.6ms
+02-25 23:12:09.380 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=467.2ms (Convert=0.1ms, MLKit=356.0ms, Composition=0.0ms, Lighting=110.3ms)
+02-25 23:12:09.382 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=159ms, Total=268.0ms
+02-25 23:12:09.395 I/LiveCameraSource( 1173): HDR disabled: exposure compensation reset to 0
+02-25 23:12:09.395 I/CameraViewModel( 1173): Auto HDR deactivated
+02-25 23:12:09.418 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=20.002889ms, ISO=87, focusDist=2.803 diopters
+02-25 23:12:09.611 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=228ms, Total=229.2ms
+02-25 23:12:09.914 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=533.8ms (Convert=0.1ms, MLKit=423.0ms, Composition=0.0ms, Lighting=109.9ms)
+02-25 23:12:09.995 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=367ms, Total=382.8ms
+02-25 23:12:10.259 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:10.371 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=456.9ms (Convert=0.1ms, MLKit=345.0ms, Composition=0.0ms, Lighting=111.0ms)
+02-25 23:12:10.378 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=300ms, Total=382.8ms
+02-25 23:12:10.437 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=20.002889ms, ISO=77, focusDist=2.803 diopters
+02-25 23:12:10.737 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=358ms, Total=358.9ms
+02-25 23:12:10.821 I/LiveCameraSource( 1173): Performance: FPS=13.0, Dropped=0/3150 (0.0%), Memory: Native=139MB, Java=52MB, Total=408MB, Thermal=LIGHT
+02-25 23:12:10.839 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:10.948 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=576.7ms (Convert=0.1ms, MLKit=467.1ms, Composition=0.0ms, Lighting=108.6ms)
+02-25 23:12:10.966 I/LiveCameraSource( 1173): HDR enabled: exposure compensation set to 1 (range: -24..24)
+02-25 23:12:10.966 I/CameraViewModel( 1173): Auto HDR activated
+02-25 23:12:11.019 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=280ms, Total=281.0ms
+02-25 23:12:11.252 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:11.361 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=412.4ms (Convert=0.1ms, MLKit=303.2ms, Composition=0.0ms, Lighting=108.2ms)
+02-25 23:12:11.386 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=364ms, Total=367.2ms
+02-25 23:12:11.458 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=20.002889ms, ISO=87, focusDist=2.803 diopters
+02-25 23:12:11.635 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=246ms, Total=248.6ms
+02-25 23:12:11.916 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=554.3ms (Convert=0.1ms, MLKit=463.1ms, Composition=0.0ms, Lighting=90.5ms)
+02-25 23:12:11.945 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=308ms, Total=308.9ms
+02-25 23:12:12.256 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=309ms, Total=310.1ms
+02-25 23:12:12.387 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=470.7ms (Convert=0.1ms, MLKit=362.5ms, Composition=0.0ms, Lighting=107.5ms)
+02-25 23:12:12.476 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=20.002889ms, ISO=87, focusDist=2.803 diopters
+02-25 23:12:12.508 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=251ms, Total=251.6ms
+02-25 23:12:12.887 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=499.7ms (Convert=0.1ms, MLKit=391.0ms, Composition=0.0ms, Lighting=107.9ms)
+02-25 23:12:12.895 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=4, OpenCV=298ms, Total=386.0ms
+02-25 23:12:12.897 I/LiveCameraSource( 1173): HDR disabled: exposure compensation reset to 0
+02-25 23:12:12.897 I/CameraViewModel( 1173): Auto HDR deactivated
+02-25 23:12:13.269 I/LiveCameraSource( 1173): Performance: FPS=12.2, Dropped=0/3180 (0.0%), Memory: Native=176MB, Java=67MB, Total=463MB, Thermal=LIGHT
+02-25 23:12:13.306 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=418.8ms (Convert=0.1ms, MLKit=318.3ms, Composition=0.0ms, Lighting=99.7ms)
+02-25 23:12:13.312 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=2, OpenCV=356ms, Total=415.8ms
+02-25 23:12:13.497 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=20.002889ms, ISO=77, focusDist=2.803 diopters
+02-25 23:12:13.569 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=2, OpenCV=256ms, Total=256.8ms
+02-25 23:12:13.838 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=531.8ms (Convert=0.1ms, MLKit=452.8ms, Composition=0.0ms, Lighting=78.2ms)
+02-25 23:12:13.851 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=4, OpenCV=278ms, Total=281.9ms
+02-25 23:12:14.137 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:14.247 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=408.6ms (Convert=0.1ms, MLKit=298.3ms, Composition=0.0ms, Lighting=109.5ms)
+02-25 23:12:14.253 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=339ms, Total=401.8ms
+02-25 23:12:14.515 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=20.002889ms, ISO=77, focusDist=2.803 diopters
+02-25 23:12:14.632 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=373ms, Total=378.3ms
+02-25 23:12:14.672 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:14.780 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=532.5ms (Convert=0.1ms, MLKit=424.4ms, Composition=0.0ms, Lighting=107.2ms)
+02-25 23:12:14.959 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=325ms, Total=326.1ms
+02-25 23:12:15.166 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:15.275 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=494.7ms (Convert=0.1ms, MLKit=385.4ms, Composition=0.0ms, Lighting=108.3ms)
+02-25 23:12:15.285 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=2, OpenCV=291ms, Total=325.9ms
+02-25 23:12:15.538 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=20.002889ms, ISO=77, focusDist=2.803 diopters
+02-25 23:12:15.578 I/LiveCameraSource( 1173): Performance: FPS=12.8, Dropped=0/3210 (0.0%), Memory: Native=179MB, Java=71MB, Total=470MB, Thermal=LIGHT
+02-25 23:12:15.681 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=391ms, Total=395.1ms
+02-25 23:12:15.689 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:15.778 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=502.5ms (Convert=0.1ms, MLKit=413.5ms, Composition=0.0ms, Lighting=88.2ms)
+02-25 23:12:15.916 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=232ms, Total=234.6ms
+02-25 23:12:16.116 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:16.224 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=445.3ms (Convert=0.1ms, MLKit=338.1ms, Composition=0.0ms, Lighting=106.2ms)
+02-25 23:12:16.239 I/LiveCameraSource( 1173): HDR enabled: exposure compensation set to 1 (range: -24..24)
+02-25 23:12:16.239 I/CameraViewModel( 1173): Auto HDR activated
+02-25 23:12:16.549 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=20.002889ms, ISO=87, focusDist=2.803 diopters
+02-25 23:12:16.602 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=685ms, Total=685.7ms
+02-25 23:12:16.619 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:16.729 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=504.5ms (Convert=0.1ms, MLKit=395.1ms, Composition=0.0ms, Lighting=108.5ms)
+02-25 23:12:16.743 I/LiveCameraSource( 1173): [v2.11.4-10] Camera2 options pre-cleared (AE_LOCK + AF_MODE=OFF removed)
+02-25 23:12:16.961 I/LiveCameraSource( 1173): [AE/AF Debug] Logging DISABLED — returned to auto mode
+02-25 23:12:16.961 I/LiveCameraSource( 1173): Focus and metering cancelled - returned to auto mode
+02-25 23:12:16.961 I/CameraViewModel( 1173): AE/AF unlocked by tap — passive AF resumed
+02-25 23:12:17.013 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:17.123 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=393.6ms (Convert=0.1ms, MLKit=284.2ms, Composition=0.0ms, Lighting=108.3ms)
+02-25 23:12:17.128 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=430ms, Total=526.1ms
+02-25 23:12:17.464 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:17.570 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=447.1ms (Convert=0.1ms, MLKit=340.7ms, Composition=0.0ms, Lighting=105.7ms)
+02-25 23:12:17.581 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=446ms, Total=452.6ms
+02-25 23:12:17.817 I/LiveCameraSource( 1173): Performance: FPS=13.4, Dropped=0/3240 (0.0%), Memory: Native=171MB, Java=90MB, Total=482MB, Thermal=LIGHT
+02-25 23:12:17.819 I/LiveCameraSource( 1173): [v2.8.1 Diagnostic] Thread=LiveCameraSourceAnalyzer, Priority=10, Frame=3241, PoolSize=2
+02-25 23:12:17.820 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=237ms, Total=238.5ms
+02-25 23:12:17.865 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:17.973 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=402.7ms (Convert=0.1ms, MLKit=294.5ms, Composition=0.0ms, Lighting=107.3ms)
+02-25 23:12:18.053 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=232ms, Total=232.7ms
+02-25 23:12:18.155 I/CameraViewModel( 1173): focusJob cancelled for AE/AF lock at (504.0996, 1157.2998)
+02-25 23:12:18.155 I/CameraViewModel( 1173): Locking AE/AF at (504.0996, 1157.2998)
+02-25 23:12:18.155 I/LiveCameraSource( 1173): [v2.11.4-07] Pre-clear Camera2 options before lock attempt
+02-25 23:12:18.313 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=259ms, Total=259.4ms
+02-25 23:12:18.322 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:18.429 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=455.2ms (Convert=0.1ms, MLKit=348.2ms, Composition=0.0ms, Lighting=106.2ms)
+02-25 23:12:18.437 I/LiveCameraSource( 1173): [v2.11.2] AE/AF lock applied at (504.0996, 1157.2998) - isFocusSuccessful=true, factory=PreviewView
+02-25 23:12:18.437 I/LiveCameraSource( 1173): [v2.11.4-06] CONTROL_AE_LOCK=true + CONTROL_AF_MODE=OFF + CONTROL_LENS_FOCUS_DISTANCE=3.0312402 applied
+02-25 23:12:18.437 I/LiveCameraSource( 1173): [AE/AF Debug] Logging ENABLED — will log AF_STATE, AE_STATE, ISO, exposure, focusDist every 1s
+02-25 23:12:18.438 I/CameraViewModel( 1173): AE/AF locked successfully at (504.0996, 1157.2998)
+02-25 23:12:18.463 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=FOCUSED_LOCKED, AE_STATE=SEARCHING, AE_LOCK=false, exposure=9.997884ms, ISO=53, focusDist=3.031 diopters
+02-25 23:12:18.549 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=234ms, Total=235.3ms
+02-25 23:12:18.705 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:18.815 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=386.2ms (Convert=0.1ms, MLKit=276.1ms, Composition=0.0ms, Lighting=109.2ms)
+02-25 23:12:18.844 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=291ms, Total=294.4ms
+02-25 23:12:19.143 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:19.250 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=435.0ms (Convert=0.1ms, MLKit=327.8ms, Composition=0.0ms, Lighting=106.4ms)
+02-25 23:12:19.279 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=434ms, Total=434.8ms
+02-25 23:12:19.482 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=9.848343ms, ISO=29, focusDist=3.031 diopters
+02-25 23:12:19.517 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:19.611 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=359.9ms (Convert=0.1ms, MLKit=266.3ms, Composition=0.0ms, Lighting=92.5ms)
+02-25 23:12:19.623 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=286ms, Total=343.0ms
+02-25 23:12:19.632 I/LiveCameraSource( 1173): HDR disabled: exposure compensation reset to 0
+02-25 23:12:19.632 I/CameraViewModel( 1173): Auto HDR deactivated
+02-25 23:12:19.938 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:19.946 I/LiveCameraSource( 1173): Performance: FPS=14.2, Dropped=0/3270 (0.0%), Memory: Native=172MB, Java=92MB, Total=482MB, Thermal=LIGHT
+02-25 23:12:20.049 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=437.9ms (Convert=0.1ms, MLKit=327.2ms, Composition=0.0ms, Lighting=109.8ms)
+02-25 23:12:20.060 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=325ms, Total=437.2ms
+02-25 23:12:20.064 I/LiveCameraSource( 1173): HDR enabled: exposure compensation set to 1 (range: -24..24)
+02-25 23:12:20.064 I/CameraViewModel( 1173): Auto HDR activated
+02-25 23:12:20.327 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:20.437 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=387.6ms (Convert=0.1ms, MLKit=277.6ms, Composition=0.0ms, Lighting=108.7ms)
+02-25 23:12:20.455 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=323ms, Total=393.7ms
+02-25 23:12:20.500 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=9.848343ms, ISO=29, focusDist=3.031 diopters
+02-25 23:12:20.785 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:20.895 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=457.4ms (Convert=0.1ms, MLKit=347.7ms, Composition=0.0ms, Lighting=108.6ms)
+02-25 23:12:20.909 I/LiveCameraSource( 1173): HDR disabled: exposure compensation reset to 0
+02-25 23:12:20.909 I/CameraViewModel( 1173): Auto HDR deactivated
+02-25 23:12:20.910 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=444ms, Total=455.2ms
+02-25 23:12:21.170 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:21.279 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=383.2ms (Convert=0.1ms, MLKit=274.5ms, Composition=0.0ms, Lighting=107.7ms)
+02-25 23:12:21.280 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=1, OpenCV=258ms, Total=368.7ms
+02-25 23:12:21.386 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=104ms, Total=105.8ms
+02-25 23:12:21.443 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=55ms, Total=56.9ms
+02-25 23:12:21.517 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=8.773072ms, ISO=29, focusDist=3.031 diopters
+02-25 23:12:21.538 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=51ms, Total=52.1ms
+02-25 23:12:21.594 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:21.703 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=424.0ms (Convert=0.1ms, MLKit=314.6ms, Composition=0.0ms, Lighting=108.5ms)
+02-25 23:12:21.712 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=56ms, Total=124.9ms
+02-25 23:12:21.785 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=69ms, Total=70.7ms
+02-25 23:12:21.875 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=60ms, Total=60.6ms
+02-25 23:12:21.970 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=55ms, Total=55.8ms
+02-25 23:12:21.997 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:22.085 I/LiveCameraSource( 1173): Performance: FPS=13.9, Dropped=0/3300 (0.0%), Memory: Native=152MB, Java=112MB, Total=485MB, Thermal=LIGHT
+02-25 23:12:22.106 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=402.6ms (Convert=0.1ms, MLKit=294.0ms, Composition=0.0ms, Lighting=107.7ms)
+02-25 23:12:22.202 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=87ms, Total=90.3ms
+02-25 23:12:22.281 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=67ms, Total=68.5ms
+02-25 23:12:22.373 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=57ms, Total=59.7ms
+02-25 23:12:22.437 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:22.531 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=8.773072ms, ISO=29, focusDist=3.031 diopters
+02-25 23:12:22.547 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=440.5ms (Convert=0.1ms, MLKit=330.4ms, Composition=0.0ms, Lighting=109.2ms)
+02-25 23:12:22.553 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=56ms, Total=138.5ms
+02-25 23:12:22.603 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=47ms, Total=48.9ms
+02-25 23:12:22.714 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=55ms, Total=56.4ms
+02-25 23:12:22.809 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:22.919 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=371.7ms (Convert=0.1ms, MLKit=262.2ms, Composition=0.0ms, Lighting=108.5ms)
+02-25 23:12:22.920 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=56ms, Total=161.6ms
+02-25 23:12:22.993 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=69ms, Total=69.7ms
+02-25 23:12:23.086 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=61ms, Total=62.3ms
+02-25 23:12:23.146 I/LiveCameraSource( 1173): [v2.11.4-10] Camera2 options pre-cleared (AE_LOCK + AF_MODE=OFF removed)
+02-25 23:12:23.183 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=58ms, Total=58.8ms
+02-25 23:12:23.259 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:23.366 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=446.9ms (Convert=0.1ms, MLKit=339.6ms, Composition=0.0ms, Lighting=106.4ms)
+02-25 23:12:23.370 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=61ms, Total=145.1ms
+02-25 23:12:23.381 I/LiveCameraSource( 1173): [AE/AF Debug] Logging DISABLED — returned to auto mode
+02-25 23:12:23.381 I/LiveCameraSource( 1173): Focus and metering cancelled - returned to auto mode
+02-25 23:12:23.381 I/CameraViewModel( 1173): AE/AF unlocked by tap — passive AF resumed
+02-25 23:12:23.424 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=50ms, Total=52.6ms
+02-25 23:12:23.534 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=60ms, Total=60.6ms
+02-25 23:12:23.625 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:23.733 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=367.0ms (Convert=0.1ms, MLKit=258.7ms, Composition=0.0ms, Lighting=107.2ms)
+02-25 23:12:23.735 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=1, OpenCV=56ms, Total=161.8ms
+02-25 23:12:23.832 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=91ms, Total=92.5ms
+02-25 23:12:23.989 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=147ms, Total=148.7ms
+02-25 23:12:24.027 I/LiveCameraSource( 1173): Performance: FPS=15.6, Dropped=0/3330 (0.0%), Memory: Native=172MB, Java=111MB, Total=504MB, Thermal=LIGHT
+02-25 23:12:24.066 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:24.180 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=445.7ms (Convert=0.1ms, MLKit=332.5ms, Composition=0.0ms, Lighting=111.9ms)
+02-25 23:12:24.186 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=3, OpenCV=105ms, Total=196.3ms
+02-25 23:12:24.308 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=3, OpenCV=121ms, Total=121.8ms
+02-25 23:12:24.375 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=66ms, Total=66.9ms
+02-25 23:12:24.462 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:24.533 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=353.1ms (Convert=0.1ms, MLKit=282.1ms, Composition=0.0ms, Lighting=69.9ms)
+02-25 23:12:24.542 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=3, OpenCV=111ms, Total=133.6ms
+02-25 23:12:24.765 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=221ms, Total=222.4ms
+02-25 23:12:24.891 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:25.003 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=470.0ms (Convert=0.1ms, MLKit=358.0ms, Composition=0.0ms, Lighting=110.1ms)
+02-25 23:12:25.013 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=150ms, Total=248.1ms
+02-25 23:12:25.212 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=198ms, Total=198.6ms
+02-25 23:12:25.281 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:25.357 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=352.8ms (Convert=0.1ms, MLKit=276.8ms, Composition=0.0ms, Lighting=75.1ms)
+02-25 23:12:25.361 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=3, OpenCV=88ms, Total=147.8ms
+02-25 23:12:25.455 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=93ms, Total=93.9ms
+02-25 23:12:25.509 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=47ms, Total=48.0ms
+02-25 23:12:25.621 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=59ms, Total=60.4ms
+02-25 23:12:25.723 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:25.796 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=438.6ms (Convert=0.1ms, MLKit=365.8ms, Composition=0.0ms, Lighting=71.5ms)
+02-25 23:12:25.797 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=64ms, Total=135.5ms
+02-25 23:12:25.909 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=95ms, Total=98.4ms
+02-25 23:12:25.979 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=69ms, Total=69.7ms
+02-25 23:12:26.073 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=1, OpenCV=63ms, Total=63.7ms
+02-25 23:12:26.088 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:26.149 I/LiveCameraSource( 1173): Performance: FPS=13.9, Dropped=0/3360 (0.0%), Memory: Native=155MB, Java=32MB, Total=407MB, Thermal=LIGHT
+02-25 23:12:26.150 I/LiveCameraSource( 1173): [v2.8.1 Diagnostic] Thread=LiveCameraSourceAnalyzer, Priority=10, Frame=3361, PoolSize=2
+02-25 23:12:26.196 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=399.9ms (Convert=0.1ms, MLKit=292.3ms, Composition=0.0ms, Lighting=106.6ms)
+02-25 23:12:26.321 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=1, OpenCV=113ms, Total=114.4ms
+02-25 23:12:26.400 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=2, OpenCV=77ms, Total=78.2ms
+02-25 23:12:26.405 I/CameraViewModel( 1173): focusJob cancelled for AE/AF lock at (643.0996, 1057.0996)
+02-25 23:12:26.405 I/CameraViewModel( 1173): Locking AE/AF at (643.0996, 1057.0996)
+02-25 23:12:26.406 I/LiveCameraSource( 1173): [v2.11.4-07] Pre-clear Camera2 options before lock attempt
+02-25 23:12:26.497 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=69ms, Total=69.5ms
+02-25 23:12:26.557 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:26.668 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=471.4ms (Convert=0.1ms, MLKit=360.4ms, Composition=0.0ms, Lighting=109.9ms)
+02-25 23:12:26.675 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=72ms, Total=148.0ms
+02-25 23:12:26.738 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=60ms, Total=62.4ms
+02-25 23:12:26.847 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=71ms, Total=71.4ms
+02-25 23:12:26.941 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:27.051 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=383.1ms (Convert=0.1ms, MLKit=272.9ms, Composition=0.0ms, Lighting=109.3ms)
+02-25 23:12:27.056 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=91ms, Total=179.8ms
+02-25 23:12:27.138 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=2, OpenCV=79ms, Total=81.1ms
+02-25 23:12:27.221 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=61ms, Total=63.7ms
+02-25 23:12:27.323 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=65ms, Total=65.3ms
+02-25 23:12:27.398 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:27.471 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=419.7ms (Convert=0.1ms, MLKit=346.0ms, Composition=0.0ms, Lighting=72.6ms)
+02-25 23:12:27.484 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=63ms, Total=126.7ms
+02-25 23:12:27.577 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=91ms, Total=91.9ms
+02-25 23:12:27.655 I/LiveCameraSource( 1173): [v2.11.2] AE/AF lock applied at (643.0996, 1057.0996) - isFocusSuccessful=true, factory=PreviewView
+02-25 23:12:27.655 I/LiveCameraSource( 1173): [v2.11.4-06] CONTROL_AE_LOCK=true + CONTROL_AF_MODE=OFF + CONTROL_LENS_FOCUS_DISTANCE=2.346234 applied
+02-25 23:12:27.655 I/LiveCameraSource( 1173): [AE/AF Debug] Logging ENABLED — will log AF_STATE, AE_STATE, ISO, exposure, focusDist every 1s
+02-25 23:12:27.655 I/CameraViewModel( 1173): AE/AF locked successfully at (643.0996, 1057.0996)
+02-25 23:12:27.665 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=1, OpenCV=76ms, Total=77.8ms
+02-25 23:12:27.694 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=FOCUSED_LOCKED, AE_STATE=SEARCHING, AE_LOCK=false, exposure=60.001546ms, ISO=522, focusDist=2.346 diopters
+02-25 23:12:27.755 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:27.863 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=390.9ms (Convert=0.1ms, MLKit=283.0ms, Composition=0.0ms, Lighting=106.7ms)
+02-25 23:12:27.879 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=122ms, Total=188.3ms
+02-25 23:12:28.024 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=2, OpenCV=144ms, Total=144.4ms
+02-25 23:12:28.161 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=137ms, Total=137.4ms
+02-25 23:12:28.257 I/LiveCameraSource( 1173): Performance: FPS=14.5, Dropped=0/3390 (0.0%), Memory: Native=165MB, Java=52MB, Total=434MB, Thermal=LIGHT
+02-25 23:12:28.398 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=534.6ms (Convert=0.1ms, MLKit=409.1ms, Composition=0.0ms, Lighting=124.5ms)
+02-25 23:12:28.407 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=181ms, Total=245.3ms
+02-25 23:12:28.578 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=169ms, Total=170.7ms
+02-25 23:12:28.638 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=55ms, Total=59.7ms
+02-25 23:12:28.721 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=60.001546ms, ISO=522, focusDist=2.346 diopters
+02-25 23:12:28.797 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=398.5ms (Convert=0.1ms, MLKit=283.4ms, Composition=0.0ms, Lighting=114.2ms)
+02-25 23:12:28.802 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=71ms, Total=123.3ms
+02-25 23:12:28.862 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=58ms, Total=59.1ms
+02-25 23:12:28.948 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=44ms, Total=44.4ms
+02-25 23:12:29.057 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=50ms, Total=51.0ms
+02-25 23:12:29.237 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=440.0ms (Convert=0.1ms, MLKit=329.8ms, Composition=0.0ms, Lighting=109.2ms)
+02-25 23:12:29.253 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=1, OpenCV=51ms, Total=146.6ms
+02-25 23:12:29.307 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=52ms, Total=52.6ms
+02-25 23:12:29.409 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=53ms, Total=53.6ms
+02-25 23:12:29.512 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=56ms, Total=56.8ms
+02-25 23:12:29.616 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=378.3ms (Convert=0.1ms, MLKit=299.7ms, Composition=0.0ms, Lighting=77.7ms)
+02-25 23:12:29.676 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=52ms, Total=53.0ms
+02-25 23:12:29.745 I/LiveCameraSource( 1173): [AE/AF Debug] AF_STATE=INACTIVE, AE_STATE=LOCKED, AE_LOCK=true, exposure=60.001546ms, ISO=522, focusDist=2.346 diopters
+02-25 23:12:29.788 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=60ms, Total=64.7ms
+02-25 23:12:29.874 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=49ms, Total=49.9ms
+02-25 23:12:30.069 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=452.7ms (Convert=0.1ms, MLKit=340.8ms, Composition=0.0ms, Lighting=111.1ms)
+02-25 23:12:30.075 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=62ms, Total=150.9ms
+02-25 23:12:30.160 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=84ms, Total=84.6ms
+02-25 23:12:30.235 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=58ms, Total=58.6ms
+02-25 23:12:30.242 I/LiveCameraSource( 1173): [v2.11.4-10] Camera2 options pre-cleared (AE_LOCK + AF_MODE=OFF removed)
+02-25 23:12:30.346 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=68ms, Total=68.7ms
+02-25 23:12:30.357 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:30.429 I/LiveCameraSource( 1173): Performance: FPS=13.6, Dropped=0/3420 (0.0%), Memory: Native=154MB, Java=53MB, Total=427MB, Thermal=LIGHT
+02-25 23:12:30.465 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=396.2ms (Convert=0.1ms, MLKit=288.2ms, Composition=0.0ms, Lighting=106.2ms)
+02-25 23:12:30.536 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=61ms, Total=63.6ms
+02-25 23:12:30.585 I/LiveCameraSource( 1173): [AE/AF Debug] Logging DISABLED — returned to auto mode
+02-25 23:12:30.585 I/LiveCameraSource( 1173): Focus and metering cancelled - returned to auto mode
+02-25 23:12:30.585 I/CameraViewModel( 1173): AE/AF unlocked by tap — passive AF resumed
+02-25 23:12:30.609 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=35ms, Total=36.0ms
+02-25 23:12:30.740 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=66ms, Total=66.7ms
+02-25 23:12:30.786 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:30.896 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=429.8ms (Convert=0.1ms, MLKit=319.8ms, Composition=0.0ms, Lighting=109.0ms)
+02-25 23:12:30.902 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=0, OpenCV=89ms, Total=129.5ms
+02-25 23:12:31.103 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=4, OpenCV=194ms, Total=199.9ms
+02-25 23:12:31.193 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:31.301 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=404.7ms (Convert=0.1ms, MLKit=296.7ms, Composition=0.0ms, Lighting=107.1ms)
+02-25 23:12:31.311 I/LiveCameraSource( 1173): HDR enabled: exposure compensation set to 1 (range: -24..24)
+02-25 23:12:31.311 I/CameraViewModel( 1173): Auto HDR activated
+02-25 23:12:31.622 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:31.731 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=429.6ms (Convert=0.1ms, MLKit=320.8ms, Composition=0.0ms, Lighting=107.8ms)
+02-25 23:12:31.742 I/LiveCameraSource( 1173): HDR disabled: exposure compensation reset to 0
+02-25 23:12:31.742 I/CameraViewModel( 1173): Auto HDR deactivated
+02-25 23:12:31.802 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=696ms, Total=699.0ms
+02-25 23:12:32.034 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:32.142 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=411.1ms (Convert=0.1ms, MLKit=302.9ms, Composition=0.0ms, Lighting=107.3ms)
+02-25 23:12:32.149 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=331ms, Total=346.4ms
+02-25 23:12:32.433 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=281ms, Total=283.3ms
+02-25 23:12:32.510 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:32.525 I/LiveCameraSource( 1173): Performance: FPS=14.4, Dropped=0/3450 (0.0%), Memory: Native=159MB, Java=73MB, Total=451MB, Thermal=LIGHT
+02-25 23:12:32.622 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=479.4ms (Convert=0.1ms, MLKit=367.6ms, Composition=0.0ms, Lighting=110.9ms)
+02-25 23:12:32.727 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=293ms, Total=294.0ms
+02-25 23:12:32.882 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:32.990 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=367.8ms (Convert=0.1ms, MLKit=260.5ms, Composition=0.0ms, Lighting=106.5ms)
+02-25 23:12:32.997 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=238ms, Total=269.6ms
+02-25 23:12:33.179 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=180ms, Total=181.4ms
+02-25 23:12:33.327 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:33.437 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=446.5ms (Convert=0.1ms, MLKit=336.7ms, Composition=0.0ms, Lighting=108.7ms)
+02-25 23:12:33.444 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=206ms, Total=264.5ms
+02-25 23:12:33.682 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=234ms, Total=237.9ms
+02-25 23:12:33.723 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:33.833 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=395.8ms (Convert=0.1ms, MLKit=286.3ms, Composition=0.0ms, Lighting=108.6ms)
+02-25 23:12:33.955 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=272ms, Total=272.5ms
+02-25 23:12:34.153 I/CameraViewModel( 1173): Detection cleared: No stable face detected
+02-25 23:12:34.265 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=431.6ms (Convert=0.1ms, MLKit=319.6ms, Composition=0.0ms, Lighting=111.0ms)
+02-25 23:12:34.272 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=271ms, Total=316.1ms
+02-25 23:12:34.474 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=198ms, Total=202.3ms
+02-25 23:12:34.670 I/LiveCameraSource( 1173): Performance: FPS=14.1, Dropped=0/3480 (0.0%), Memory: Native=158MB, Java=72MB, Total=451MB, Thermal=LIGHT
+02-25 23:12:34.678 I/LiveCameraSource( 1173): [v2.8.1 Diagnostic] Thread=LiveCameraSourceAnalyzer, Priority=10, Frame=3481, PoolSize=2
+02-25 23:12:34.703 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=437.9ms (Convert=0.1ms, MLKit=328.8ms, Composition=0.0ms, Lighting=108.1ms)
+02-25 23:12:34.708 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=146ms, Total=233.2ms
+02-25 23:12:35.922 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=6, OpenCV=1213ms, Total=1213.7ms
+02-25 23:12:36.698 I/CameraViewModel( 1173): [v2.8.4 Guideline] Lines=5, OpenCV=773ms, Total=774.2ms
+02-25 23:12:37.273 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=2569.1ms (Convert=0.1ms, MLKit=2135.7ms, Composition=0.0ms, Lighting=427.8ms)
+02-25 23:12:39.005 I/CameraViewModel( 1173): findTappedTarget: tapped face trackingId=45, bbox=Rect(214, 656 - 597, 1040)
+02-25 23:12:39.005 I/CameraViewModel( 1173): ML Kit tracking started: ID=45, type=FACE
+02-25 23:12:39.013 I/CameraViewModel( 1173): Detection result updated: 1 faces, 0 objects
+02-25 23:12:39.435 I/CameraViewModel( 1173): [v2.8.4 E2E] Total=2159.4ms (Convert=0.3ms, MLKit=1727.5ms, Composition=5.6ms, Lighting=415.3ms)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): Focus error
+02-25 23:12:39.445 E/LiveCameraSource( 1173): java.util.concurrent.ExecutionException: androidx.camera.core.CameraControl$OperationCanceledException: Camera is not active.
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at androidx.camera.core.impl.utils.futures.ImmediateFuture$ImmediateFailedFuture.get(ImmediateFuture.java:134)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at com.akirachang.ai.photographer.data.source.camera.LiveCameraSource$focusOnPoint$2$1.run(LiveCameraSource.kt:682)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at android.os.Handler.handleCallback(Handler.java:1070)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at android.os.Handler.dispatchMessage(Handler.java:125)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at android.os.Looper.dispatchMessage(Looper.java:333)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at android.os.Looper.loopOnce(Looper.java:263)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at android.os.Looper.loop(Looper.java:367)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at android.app.ActivityThread.main(ActivityThread.java:9287)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at java.lang.reflect.Method.invoke(Native Method)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:566)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:929)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): Caused by: androidx.camera.core.CameraControl$OperationCanceledException: Camera is not active.
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at androidx.camera.camera2.internal.Camera2CameraControlImpl.startFocusAndMetering(Camera2CameraControlImpl.java:342)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at androidx.camera.core.impl.RestrictedCameraControl.startFocusAndMetering(RestrictedCameraControl.java:88)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at com.akirachang.ai.photographer.data.source.camera.LiveCameraSource.focusOnPoint-yxL6bBk(LiveCameraSource.kt:677)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at com.akirachang.ai.photographer.data.repository.CameraRepositoryImpl.focusOnPoint-yxL6bBk(CameraRepositoryImpl.kt:748)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at com.akirachang.ai.photographer.presentation.camera.CameraViewModel$focusOnPoint$1.invokeSuspend(CameraViewModel.kt:982)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWith(DispatchedContinuation.kt:359)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt:26)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at kotlinx.coroutines.CoroutineStart.invoke(CoroutineStart.kt:358)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at kotlinx.coroutines.AbstractCoroutine.start(AbstractCoroutine.kt:124)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch(Builders.common.kt:52)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at kotlinx.coroutines.BuildersKt.launch(Unknown Source:1)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch$default(Builders.common.kt:43)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at kotlinx.coroutines.BuildersKt.launch$default(Unknown Source:1)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at com.akirachang.ai.photographer.presentation.camera.CameraViewModel.focusOnPoint(CameraViewModel.kt:874)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at com.akirachang.ai.photographer.presentation.camera.CameraViewModel.autoFocusOnSalientTarget(CameraViewModel.kt:1250)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at com.akirachang.ai.photographer.presentation.camera.CameraViewModel.access$autoFocusOnSalientTarget(CameraViewModel.kt:45)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at com.akirachang.ai.photographer.presentation.camera.CameraViewModel$observePreviewForAnalysis$1.invokeSuspend(CameraViewModel.kt:1473)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+02-25 23:12:39.445 E/LiveCameraSource( 1173): 	... 9 more
+02-25 23:12:39.446 W/CameraViewModel( 1173): Focus failed at (228.09375, 1041.5): androidx.camera.core.CameraControl$OperationCanceledException: Camera is not active.

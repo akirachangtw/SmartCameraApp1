@@ -3,22 +3,39 @@
 **Date**: 2026-02-25
 **Branch**: `feature/camera-core-v2.11.0`
 **Test Device**: Pixel 9a (Device ID: `59131JEBF17244`)
-**Handover**: Work NB → Home NB (for Bug 2 + Bug 4 fix)
+**Final Status**: ✅ **v2.11.4 STABLE — Tests 1-8 ALL PASS (2026-02-25)**
 
 ---
 
-## Current Status
+## Final Test Results (v2.11.4-10, 2026-02-25)
+
+| Test | 項目 | 結果 |
+|------|------|------|
+| Test 1 | 長按對焦鎖定 | ✅ PASS |
+| Test 2 | AF 鎖定維持 30s | ✅ PASS |
+| Test 3 | AE 鎖定確認（強光區過曝） | ✅ PASS |
+| Test 4 | 快速 lock/unlock（第 2 次 <2s） | ✅ PASS |
+| Test 5 | 無雙 cancel race | ✅ PASS |
+| Test 6 | tap 解鎖後曝光恢復 | ✅ PASS |
+| Test 7 | 螢幕解鎖後長按速度（<2s） | ✅ PASS |
+| Test 8 | 鎖定後預覽清晰 | ✅ PASS |
+
+**Logcat 存檔**: `logcat_v211410_regression_20260225.log`
+
+---
+
+## Iteration History
 
 | Iteration | Home NB | Work NB | Result |
 |-----------|---------|---------|--------|
-| v2.11.4-01~03 | ✅ Built | ✅ Installed | 부분 기능 확인 |
+| v2.11.4-01~03 | ✅ Built | ✅ Installed | 基礎功能確認 |
 | v2.11.4-04 | ✅ Built | ✅ Installed | ✅ Unlock stuck fixed |
 | v2.11.4-05 | ✅ Built | ✅ Tested | ❌ Test 5/6/7 FAIL + Observation 1 |
 | **v2.11.4-06** | ✅ Built | ✅ **Tested 2026-02-25** | ❌ **Test 6/7 FAIL + Bug 4 NEW** |
 | v2.11.4-07 | ✅ Built | ❌ FAIL (onStart before HAL) | onStart fires before HAL ready — clear ignored |
 | v2.11.4-08 | ✅ Built | ⚠️ PARTIAL | Guard race: LOCKED state blocks clear on screen unlock |
 | v2.11.4-09 | ✅ Built | ✅ **Test 6 PASS 2026-02-25** | Screen-lock path fixed |
-| **v2.11.4-10** | ✅ Built | ✅ **Test 6 PASS 2026-02-25** | Tap-unlock path fixed — Full regression pending |
+| **v2.11.4-10** | ✅ Built | ✅ **Tests 1-8 ALL PASS 2026-02-25** | **STABLE** |
 
 ---
 

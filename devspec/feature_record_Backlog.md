@@ -320,13 +320,26 @@ Last updated: 2026-02-25
 
 ## AE/AF Lock — Camera2 Interop (v2.11.4)
 
-### ✅ Confirmed (v2.11.4-06, 2026-02-25 Pixel 9a)
+### ✅ Confirmed (v2.11.4, 2026-02-25 Pixel 9a — Tests 1-8 ALL PASS)
 
 | # | 描述 | Commit |
 |---|------|--------|
 | B1 | **Double cancelFocusAndMetering race 修復** — `_state.update{isAEAFLocked=false}` 移至 suspend 前，第 2 個 coroutine 見到 false 直接跳過 | v2.11.4-06 `8953dc8` |
 | B3 | **focusDist=0 修復** — 鎖定時同時設 `LENS_FOCUS_DISTANCE=lastFocusDistance`，Pixel 9a 不再重置鏡頭位置至無限遠 | v2.11.4-06 `8953dc8` |
-| B2B4 | **螢幕解鎖/解鎖延遲修復** — `DefaultLifecycleObserver.onStart()` + pre-clear 排隊機制 | v2.11.4-07 `5a73ec4` |
+| B2 | **螢幕解鎖後暗畫面修復** — `CameraState.OPEN` Flow observer + `AeAfLockState` enum（LOCKED→auto-invalidate guard） | v2.11.4-09 `98bcf67` |
+| B4 | **第 2 次 lock 5s delay 修復** — `cancelFocusAndMetering()` 前先 `clearCaptureRequestOptions()` 移除 AF_MODE=OFF | v2.11.4-10 `f6aba2a` |
+
+**Pixel 9a 完整回歸測試（2026-02-25 v2.11.4-10）**:
+| Test | 結果 |
+|------|------|
+| Test 1: 長按鎖定 | ✅ PASS |
+| Test 2: AF 維持 30s | ✅ PASS |
+| Test 3: AE 鎖定確認 | ✅ PASS |
+| Test 4: 快速 lock/unlock（第 2 次 <2s） | ✅ PASS |
+| Test 5: 無雙 cancel race | ✅ PASS |
+| Test 6: tap 解鎖後曝光恢復 | ✅ PASS |
+| Test 7: 螢幕解鎖後長按速度（<2s） | ✅ PASS |
+| Test 8: 鎖定後預覽清晰 | ✅ PASS |
 
 ### ⚠️ Critical Warning — Camera2 Interop & CameraX Lifecycle
 
@@ -376,7 +389,28 @@ Last updated: 2026-02-25
 - **✅ 正確做法**：`_state.update{isAEAFLocked=false}` 移至 `cancelFocusAndMetering()` suspend call **之前**
 - **版本記錄**：v2.11.4-06（commit `8953dc8`，`CameraViewModel.kt:886`）
 
-### 🔍 Code Locations (v2.11.4-07)
+---
+
+#### 坑點 6：`CameraState.OPEN` guard 過嚴（`== UNLOCKED` 判斷）
+- **症狀**：螢幕鎖定後 ON_STOP 途中的 cancel 與 camera shutdown 競爭 → `aeAfLockState` 停在 LOCKED → OPEN 時 guard 阻擋 clear
+- **根因**：guard 條件 `aeAfLockState == UNLOCKED` 在 LOCKED 狀態下不允許 clear，但此時 LOCKED 是 stale 的（螢幕鎖定時沒有正確 cancel）
+- **❌ 錯誤做法**：guard `== UNLOCKED`（過嚴，不允許 LOCKED 狀態的 auto-invalidate）
+- **✅ 正確做法**：guard `!= LOCK_REQUESTED`（允許 LOCKED 觸發 auto-invalidate + clear）
+- **版本記錄**：v2.11.4-09（commit `98bcf67`）
+
+---
+
+#### 坑點 7：`AF_MODE=OFF` 導致 `cancelFocusAndMetering()` future 死鎖
+- **症狀**：tap 解鎖後黃框消失但預覽仍過曝（AE_LOCK=true 殘留在 HAL）
+- **根因**：CameraX 的 `cancelFocusAndMetering()` 返回 `ListenableFuture`，等待 AF state change 確認取消；但 `AF_MODE=OFF` 使 `AF_STATE` 永遠是 INACTIVE → future 永不完成（死鎖）。cleanup code（`clearCaptureRequestOptions()`, `logAeAfState=false`）在 `future.addListener()` 內 → 永遠不執行 → `AE_LOCK=true` 殘留
+- **為什麼黃框消失**：`focusOnPoint()` 在呼叫 suspend `cancelFocusAndMetering()` 前，已設 `isAEAFLocked=false`（UI 更新），但 hardware 從未清除
+- **❌ 錯誤做法**：直接呼叫 `cameraControl.cancelFocusAndMetering()`（AF_MODE=OFF 狀態下會死鎖）
+- **✅ 正確做法**：先 `clearCaptureRequestOptions()` 移除 `AF_MODE=OFF`，再呼叫 `cancelFocusAndMetering()`（AF_MODE 恢復 CONTINUOUS_PICTURE → future ~300ms 正常完成）
+- **版本記錄**：v2.11.4-10（commit `f6aba2a`）
+
+---
+
+### 🔍 Code Locations (v2.11.4-10)
 - `isAEAFLockedInSource` flag:       `LiveCameraSource.kt:101`
 - Pre-clear before lock:             `LiveCameraSource.kt:739`（lockAEAF — FIFO pre-clear）
 - Set locked flag on success:        `LiveCameraSource.kt:771`
@@ -388,9 +422,9 @@ Last updated: 2026-02-25
 ### 📋 Backlog
 - [x] [v2.11.4-06] Bug 1: Double cancel race — `_state.update` 移至 suspend 前 ✅ Pixel 9a PASS
 - [x] [v2.11.4-06] Bug 3: focusDist=0 — `LENS_FOCUS_DISTANCE=lastFocusDistance` 同時設定 ✅ Pixel 9a PASS
-- [x] [v2.11.4-07] Bug 2: 螢幕解鎖後暗畫面 — `DefaultLifecycleObserver.onStart()` ⏳ 待 Pixel 9a 驗證
-- [x] [v2.11.4-07] Bug 4: 第 2 次 lock 5s delay — pre-clear before startFocusAndMetering ⏳ 待 Pixel 9a 驗證
-- [ ] [v2.11.4-08] 若 v2.11.4-07 仍 FAIL：改用 `CameraState.OPEN` reactive observer（見 L2 分析 docs/features/v2.11.4/v2.11.4-06_Analyzing_App_Bugs_Lock_Delay_Dark-L2.md）
+- [x] [v2.11.4-09] Bug 2: 螢幕解鎖後暗畫面 — `CameraState.OPEN` observer + LOCKED→auto-invalidate ✅ Test 7 Pixel 9a PASS
+- [x] [v2.11.4-10] Bug 4: tap 解鎖後 AE_LOCK 殘留 — `cancelFocusAndMetering()` 前先 `clearCaptureRequestOptions()` ✅ Test 6 Pixel 9a PASS
+- [x] **v2.11.4 完成** — Tests 1-8 全部 PASS（Pixel 9a 2026-02-25）
 
 ---
 
