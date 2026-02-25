@@ -23,6 +23,7 @@ import androidx.camera.core.ViewPort
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import android.util.Rational
+import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.akirachang.ai.photographer.BuildConfig
 import com.akirachang.ai.photographer.data.source.analysis.GuidelineAnalyzer
@@ -96,6 +97,12 @@ class LiveCameraSource @Inject constructor(
     // and pin the lens to this position when locking AE/AF.
     @Volatile
     private var lastFocusDistance: Float = 0f
+
+    // v2.11.4-07: Track whether AE/AF lock is currently active in this source.
+    // Guards clearCaptureRequestOptions() calls in onStart() to avoid clearing
+    // an intentionally active lock during normal lifecycle transitions.
+    @Volatile
+    private var isAEAFLockedInSource: Boolean = false
 
     // v2.9.0-alpha Phase 0: Thermal monitoring
     private val powerManager: PowerManager? by lazy {
@@ -729,6 +736,21 @@ class LiveCameraSource @Inject constructor(
                 // (do not call setAutoCancelDuration)
             }.build()
 
+            // v2.11.4-07 Bug 4 fix: Pre-clear Camera2 interop options BEFORE startFocusAndMetering().
+            // clearCaptureRequestOptions() and startFocusAndMetering() share the same camera executor
+            // (FIFO queue). By submitting the clear first, the executor processes:
+            //   1. clearCaptureRequestOptions() → removes AF_MODE=OFF residual
+            //   2. startFocusAndMetering() → CameraX native AF (CONTINUOUS_PICTURE first)
+            // Without this, a residual AF_MODE=OFF from a previous lock/cancel cycle blocks
+            // CameraX's AF scan → 5s timeout on second lock attempt after any unlock.
+            try {
+                @OptIn(ExperimentalCamera2Interop::class)
+                Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
+                Log.i(TAG, "[v2.11.4-07] Pre-clear Camera2 options before lock attempt")
+            } catch (e: Exception) {
+                Log.w(TAG, "[v2.11.4-07] Pre-clear failed (non-fatal): ${e.message}")
+            }
+
             // Start focus and metering (persistent lock)
             val future = cameraControl.startFocusAndMetering(action)
 
@@ -745,6 +767,8 @@ class LiveCameraSource @Inject constructor(
                     // FocusMeteringAction.FLAG_AE only sets metering region, NOT AE_LOCK parameter.
                     // Must explicitly set CONTROL_AE_LOCK=true to freeze ISO + exposure time.
                     try {
+                        // v2.11.4-07: Mark lock as active so onStart() lifecycle guard won't clear it.
+                        isAEAFLockedInSource = true
                         // v2.11.4-06 Bug 3: Capture lastFocusDistance at this exact moment.
                         // At success callback time (1-2s after tap), the value reflects the
                         // converged lens position. Pinning LENS_FOCUS_DISTANCE prevents Pixel 9a
@@ -823,6 +847,8 @@ class LiveCameraSource @Inject constructor(
                 // concurrent cancelFocusAndMetering() calls — each cancels the previous.
                 // By running cleanup first, we guarantee CONTROL_AE_LOCK and
                 // CONTROL_AF_MODE=OFF are cleared regardless of concurrency outcome.
+                // v2.11.4-07: Clear lock flag unconditionally so onStart() guard sees correct state.
+                isAEAFLockedInSource = false
                 try {
                     @OptIn(ExperimentalCamera2Interop::class)
                     val camera2Control = Camera2CameraControl.from(cameraControl)
@@ -1161,6 +1187,30 @@ class LiveCameraSource @Inject constructor(
                     } catch (e: Exception) {
                         Log.w(TAG, "[v2.11.4-06] Failed to clear Camera2 options on bind: ${e.message}")
                     }
+
+                    // v2.11.4-07 Bug 2 fix: Clear Camera2 interop options on every STARTED state.
+                    // bindToLifecycle() fires only on first bind (process start), NOT on
+                    // screen lock/unlock or background→foreground (onStop→onStart path).
+                    // Adding a DefaultLifecycleObserver guarantees clearCaptureRequestOptions()
+                    // runs on every camera resume, removing AE_LOCK=true+AF_MODE=OFF residuals
+                    // that cause dark preview after screen unlock.
+                    // Guard: isAEAFLockedInSource prevents clearing an intentionally active lock.
+                    lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
+                        override fun onStart(owner: LifecycleOwner) {
+                            if (!isAEAFLockedInSource) {
+                                try {
+                                    @OptIn(ExperimentalCamera2Interop::class)
+                                    Camera2CameraControl.from(camera.cameraControl)
+                                        .clearCaptureRequestOptions()
+                                    Log.i(TAG, "[v2.11.4-07] Camera2 options cleared on lifecycle STARTED (AE/AF not locked)")
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "[v2.11.4-07] clearCaptureRequestOptions on STARTED failed (non-fatal): ${e.message}")
+                                }
+                            } else {
+                                Log.d(TAG, "[v2.11.4-07] onStart skipped clear — AE/AF lock active")
+                            }
+                        }
+                    })
 
                     // v2.9.6 Phase 1 Fix: Log sensor orientation for debugging
                     val sensorRotation = camera.cameraInfo.sensorRotationDegrees
