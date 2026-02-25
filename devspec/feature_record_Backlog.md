@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-02-17
+Last updated: 2026-02-21
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -15,19 +15,21 @@ Last updated: 2026-02-17
 - Fade-out: 對焦成功 → Alpha 1.0 (1s) → fade 500ms → Alpha 0.4 持續 | Verified: 2026-02-05
 - ML Kit 追蹤中: Alpha 由 `updateTrackedObjectPosition` 獨立管控，不觸發標準淡出 | Verified: 2026-02-05
 - **前置鏡頭 ML Kit 座標對齊與方向性**：預覽方向與實際方向一致，拍照圖片為鏡像（正常行為）。所有方向（Portrait, Landscape Left, Landscape Right）顯示正確 | Verified: 2026-01-26 (v2.9.6 Phase 2.1, Pixel 9a)
-- maxDistancePerFrame: 25f (downsampled coords) | Verified: pending Pixel 9a
-- Spring stiffness: StiffnessHigh (900f) animatedX/Y | Verified: pending Pixel 9a
+- maxDistancePerFrame: 40f (downsampled coords) | Verified: 2026-02-21 (v2.11.3, Pixel 9a) — 原 25f→40f，logicCenter 分離後 UI 可更快跟隨
+- **Spring stiffness: StiffnessMedium animatedX/Y** | Verified: pending Pixel 9a (v2.11.4)
+  - 原 StiffnessHigh 回彈速度過快（Sony 設備實測），改為 StiffnessMedium 使追蹤動畫更流暢
+  - DampingRatioNoBouncy 保留（無振盪，純滑動跟隨）
 
 ### 🔍 Code Locations
 - Fade guard (`trackedObjectId == null`):  `CameraViewModel.kt:712`
 - focusIndicatorFading = true:             `CameraViewModel.kt:714`
 - Alpha 0.4 render (`isFading`):           `CameraScreen.kt:567`
-- Spring stiffness X / Y:                  `CameraScreen.kt:532, 545`
-- maxDistancePerFrame:                     `OpticalFlowConfig.kt:93`
+- Spring stiffness X / Y:                  `CameraScreen.kt:570, 581` (v2.11.4: StiffnessMedium)
+- maxDistancePerFrame:                     `OpticalFlowConfig.kt:95`
 
 ### 📋 Backlog
-- [ ] [9B] maxDistancePerFrame 25f — pending Pixel 9a 實機驗證
-- [ ] [9B] Spring StiffnessHigh — pending Pixel 9a 實機驗證
+- [x] [9B] maxDistancePerFrame: 25f→40f — ✅ 完成 (v2.11.3, 2026-02-21, Pixel 9a) | logicCenter 分離消除漂移風險
+- [x] [9B] Spring Stiffness 調整 — ✅ StiffnessHigh→StiffnessMedium (v2.11.4, 2026-02-21) | Sony 設備追蹤動畫過快問題修復
 - [x] ML Kit 前置鏡頭座標鏡像偏移 — ✅ 已驗證正常 (v2.9.6 Phase 2.1) | 測試報告: `docs/test_results/v2.9.6-Phase2.1/Pixel9a_Physical_Test_Report.md`
 
 ---
@@ -233,6 +235,89 @@ Last updated: 2026-02-17
 
 ---
 
+## Smart Subject Focus / Eye-AF Auto-Focus (v2.11.4)
+
+### ✅ Confirmed
+- **saliency score 公式修復**: `normalizedSize × 60f + centrality × 40f`（0-100 範圍）| Verified: pending Pixel 9a (v2.11.4)
+  - **Before (Bug)**: 0.6f/0.4f weights → base 0-1, face +30 → max ~31f，threshold `> 50f` 永遠無法達到 → auto-focus **從未觸發**
+  - **After (Fix 1)**: 60f/40f weights → base 0-100, face +30 → range 30-130, threshold 50f 可達
+- **isUserTap 獨立節流**: auto-focus 不再佔用 `lastManualTapTime` | Verified: pending Pixel 9a (v2.11.4)
+  - **Before (Bug)**: `focusOnPoint()` 總是設 `lastManualTapTime = now` → auto-focus 觸發後自我封鎖 5s
+  - **After (Fix 2)**: `isUserTap=false` 跳過 `lastManualTapTime`，改用獨立 `lastAutoFocusTime`（2s throttle）
+- **ML Kit tracking 期間不淡出**: `enteredMLKitTrackingMode` 本地變數 | Verified: pending Pixel 9a (v2.11.4)
+  - **Before (Bug)**: focus 成功後總是進入 dwell fade（1s delay → alpha 0.4），ML Kit 追蹤模式下指示器會消失
+  - **After (Fix 3)**: coroutine 啟動時捕捉進入的分支，focus 成功後條件性跳過 fade（ML Kit 模式保持 alpha 1.0）
+  - **原 trackedObjectId == null guard 已移除（v2.11.1）**：ML Kit 立即重新賦值 trackingId → guard 導致 fade 從未觸發
+  - **修正方法**：改用 `var enteredMLKitTrackingMode = false` 本地變數在 coroutine 啟動時捕捉
+
+### 🔍 Code Locations
+- calculateSaliencyScore() Fix 1:  `CameraViewModel.kt` ~1105（60f/40f weights）
+- lastAutoFocusTime Fix 2:         `CameraViewModel.kt:111`（獨立 auto-focus 節流）
+- AUTO_FOCUS_THROTTLE_MS:          `CameraViewModel.kt:112`（2000L）
+- isUserTap param Fix 2:           `CameraViewModel.kt:853`（focusOnPoint signature）
+- enteredMLKitTrackingMode Fix 3:  `CameraViewModel.kt:894`（本地變數宣告）
+- fade skip logic Fix 3:           `CameraViewModel.kt:974`（`if (!enteredMLKitTrackingMode)`）
+
+### ⚠️ Critical Warning
+- **Fix 1 Root Cause**: `calculateSaliencyScore()` 的 weight 使用 float literal（`0.6f`/`0.4f`），每次修改公式時務必確認 threshold `50f` 與 weight scale 一致
+- **Fix 2 注意**: `isUserTap=false` 的呼叫點有 2 處（autoFocusOnSalientTarget + motion refocus），新增 focusOnPoint 呼叫時必須指定 `isUserTap`
+- **Fix 3 與 MEMORY.md 的差異**: MEMORY.md 記錄的是「trackedObjectId == null guard 已移除」，Fix 3 是下一步修正（不用 state check，改用本地變數）
+
+### 📋 Backlog
+- [x] [v2.11.4] Fix 1: `calculateSaliencyScore()` 公式 0.6f→60f, 0.4f→40f — ML Kit auto-focus 從未觸發根本原因
+- [x] [v2.11.4] Fix 2: `focusOnPoint(isUserTap)` 參數 + `lastAutoFocusTime` 獨立節流 — auto-focus 自我封鎖問題
+- [x] [v2.11.4] Fix 3: `enteredMLKitTrackingMode` 本地變數 — ML Kit 追蹤中 focus indicator 不應淡出
+- [ ] [v2.12.0] 自適應對焦框大小 — `boundingBox.width() × 0.8` → `coerceIn(48dp, 120dp)` | 分析: `v2.11.1_Camera_Autofocus_Issues-Final.md` P2 Fix 2.1
+- [ ] [v2.12.0] PreviewViewportContainer — 統一 Overlay 座標系統（Grid / Detection / Focus 全部限制在 contentBounds）| 分析: `v2.11.1_Camera_Autofocus_Issues-Final.md` P2
+
+---
+
+## FPS 1:1 Analysis Pipeline (v2.12.0) - 研究分析完成
+
+### 📋 狀態
+- **研究文件**: `docs/features/v2.11.3/v2.11.3_FPS_1to1_L1.md`, `v2.11.3_fps_1to1_l1_L2.md` + Gemini/Traycer 版本
+- **核心結論**: 需先確認 FPS 來源（Preview UseCase vs ImageAnalysis callback rate）再選方案
+  - 若 Analysis FPS 問題 → 方案 A（Guideline 縮圖上限 960px）優先，最小 diff
+  - 若 Preview FPS 問題 → 查 CameraX UseCase 組合 / HAL stream config / ResolutionSelector
+- **高風險點**: 1:1 ↔ 4:3 切換 rebind UseCase → HAL 可能降 FPS；1920×1920 bitmap 14MB/幀 GC 壓力
+- **待實作**: v2.12.0（需獨立 L3 計劃）
+
+### 📋 Backlog
+- [ ] [v2.12.0] Step 0: FPS 指標來源確認（log 標注 Preview FPS vs Analysis rate）
+- [ ] [v2.12.0] Step 1: 若 Analysis 問題 → Guideline 縮圖上限 960px（方案 A，最小 diff）
+- [ ] [v2.12.0] Step 2: 若 ML Kit 仍瓶頸 → ImageAnalysis cap 960×960（方案 B）
+- [ ] [v2.12.0] Step 3: 若 Preview FPS 問題 → ResolutionSelector + HAL stream 排查
+
+---
+
+## EXIF 寫入與顯示增強 (v2.11.4)
+
+### 📋 狀態
+- **根本問題**: `bitmap.compress(JPEG)` 丟失所有硬體 EXIF；舊版 `writeExifMetadata()` 只寫回 Orientation + GPS
+- **v2.11.4 已實作** (2026-02-21): 基礎欄位寫入 + 完整曝光資訊讀取/顯示
+
+### ✅ Confirmed (v2.11.4, 2026-02-21)
+
+| # | 描述 | Code Location |
+|---|------|---------------|
+| W1 | 寫入 `TAG_MAKE` / `TAG_MODEL` / `TAG_DATETIME` / `TAG_SOFTWARE` | `CameraRepositoryImpl.writeExifMetadata()` |
+| R1 | 讀取曝光 EXIF: `TAG_ISO_SPEED_RATINGS`, `TAG_EXPOSURE_TIME`, `TAG_F_NUMBER`, `TAG_FOCAL_LENGTH`, `TAG_FOCAL_LENGTH_IN_35MM_FILM`, `TAG_LENS_MODEL`, `TAG_FLASH`, `TAG_WHITE_BALANCE`, `TAG_METERING_MODE` | `CameraRepositoryImpl.readExifInfo()` |
+| D1 | PhotoInfoBottomSheet — 新增「曝光資訊」區塊（快門/光圈/ISO/焦距/等效焦距） | `PhotoInfoBottomSheet.kt` |
+| M1 | `ExifInfo.kt` 新增欄位: `iso, exposureTime, fNumber, focalLengthMm, focalLength35mm, lensModel, flash, whiteBalance, meteringMode` | `ExifInfo.kt` |
+
+### ⚠️ Known Limitation
+- **ISO/ExposureTime/FNumber/FocalLength 值來自 JPEG EXIF**（由硬體相機寫入）
+  - 以 CameraX ImageCapture 拍攝的 JPEG：Pixel 9a 的系統相機 API 會寫入完整 EXIF ✅
+  - 透過 `bitmap.compress()` 重壓的影像：會失去硬體 EXIF（目前 SmartCameraApp 走此路徑）
+  - **實際效果**: 裝置廠商相機 EXIF 仍可正確讀取並顯示，新拍照片仍缺 ISO/曝光
+
+### 📋 Backlog — 後續改善
+- [ ] [v2.12.0] Camera2Interop `TotalCaptureResult` 讀取 ISO / ExposureTime / FNumber / FocalLength → 在 `writeExifMetadata()` 中寫入（需 `Camera2CameraControl`）
+- [ ] [v2.12.0] 改用 `ImageCapture` 直接輸出 JPEG（不走 bitmap.compress 路徑），保留硬體 EXIF
+- [ ] [v2.12.0] `@SuppressWarnings("deprecation")` 或 API 版本分支處理 `TAG_ISO_SPEED_RATINGS` 棄用警告
+
+---
+
 ## Camera Core Features (v2.11.0 / v3.5.0) - 從 v2.9.9 延後
 
 ### 📋 Backlog
@@ -256,15 +341,11 @@ Last updated: 2026-02-17
   - 焦點位置鎖定
   - Zoom 範圍指示（0.5x - 4.0x）
 
-- [ ] **完整 EXIF 寫入**（拍照時）
-  - ISO 感光度
-  - 快門速度 (Shutter Speed)
-  - 焦距 (Focal Length)
-  - 光圈值 (F-number)
-  - 曝光補償 (Exposure Compensation)
-  - 白平衡 (White Balance)
-  - 使用 Camera2Interop 獲取相機參數
-  - 寫入至 ImageCapture.Metadata
+- [x] **EXIF 寫入增強（基礎）** (v2.11.4) — Make/Model/DateTime/Software 已寫入
+- [ ] **完整 EXIF 曝光資訊寫入**（拍照時，v2.12.0）
+  - ISO 感光度 / 快門速度 / 光圈值 / 焦距
+  - 使用 Camera2Interop `TotalCaptureResult` 獲取相機參數
+  - 或改用 ImageCapture 直接輸出 JPEG（保留硬體 EXIF）
 
 - [ ] **微距模式檢測**（可選功能）
   - 檢測裝置是否支援 Macro 模式
