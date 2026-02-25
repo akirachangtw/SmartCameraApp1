@@ -15,7 +15,8 @@
 | v2.11.4-04 | ✅ Built | ✅ Installed | ✅ Unlock stuck fixed |
 | v2.11.4-05 | ✅ Built | ✅ Tested | ❌ Test 5/6/7 FAIL + Observation 1 |
 | **v2.11.4-06** | ✅ Built | ✅ **Tested 2026-02-25** | ❌ **Test 6/7 FAIL + Bug 4 NEW** |
-| **v2.11.4-07** | ✅ Built | ⏳ Pending test | **→ This handover** |
+| v2.11.4-07 | ✅ Built | ❌ FAIL (onStart before HAL) | onStart fires before HAL ready — clear ignored |
+| **v2.11.4-08** | ✅ Built | ⏳ Pending test | **→ This handover** |
 
 ---
 
@@ -66,34 +67,33 @@
 
 ---
 
-## What Needs to Be Fixed in v2.11.4-07
+## What Needs to Be Tested in v2.11.4-08
 
-### Fix Direction (Home NB)
+### Fix Architecture (L2 Refined — Home NB)
 
-**Root cause of Bug 2 + Bug 4 (same underlying issue)**:
+**v2.11.4-07 failure analysis**:
+- `DefaultLifecycleObserver.onStart()` fires **before** HAL is ready — `clearCaptureRequestOptions()` silently ignored
+- Camera HAL re-opens after `onStart()`, re-applying stale Camera2 options → same Bug 2 symptom
 
-`clearCaptureRequestOptions()` is currently called only in the `bindToLifecycle()` callback. CameraX does **not** re-call `bindToLifecycle()` on `onStop → onStart` (screen lock/unlock, background switch). Therefore:
-- After screen lock/unlock: Camera2 Interop options (`AE_LOCK=true`, `AF_MODE=OFF`) are never cleared
-- After normal tap-unlock: `cancelFocusAndMetering()` sometimes throws `Camera is not active` during lifecycle transitions → `AF_MODE=OFF` not cleared → 5s timeout on next lock
-
-**Proper fix direction**:
+**v2.11.4-08 solution (L2 Reactive Camera Controller)**:
 
 ```kotlin
-// In LiveCameraSource.kt (or CameraViewModel.kt)
-// Add a Lifecycle observer that fires on every STARTED state:
-lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
-    override fun onStart(owner: LifecycleOwner) {
-        // Clear Camera2 Interop options on every camera resume
-        // Covers: screen unlock, background→foreground, NOT just bind
-        camera?.let {
-            val camera2CameraControl = Camera2CameraControl.from(it.cameraControl)
-            camera2CameraControl.clearCaptureRequestOptions()
+// CameraState.OPEN fires only when HAL is truly ready for capture requests
+val currentSession = ++sessionId
+camera.cameraInfo.cameraState
+    .asFlow()
+    .filter { it.type == CameraState.Type.OPEN }
+    .onEach {
+        if (currentSession == sessionId && aeAfLockState == AeAfLockState.UNLOCKED) {
+            Camera2CameraControl.from(camera.cameraControl).clearCaptureRequestOptions()
         }
     }
-})
+    .launchIn(sourceScope)
 ```
 
-**Key constraint**: `clearCaptureRequestOptions()` must only be called when `isAEAFLocked == false` to avoid clearing an intentionally active lock.
+**Additional improvements**:
+- `AeAfLockState` enum (UNLOCKED/LOCK_REQUESTED/LOCKED/UNLOCK_REQUESTED) replaces boolean flag
+- `sessionId` stale callback guard — increments each `bindToLifecycle()`, discards old callbacks
 
 ### Verification Commands (after fix)
 
@@ -106,11 +106,20 @@ git pull origin feature/camera-core-v2.11.0
 # Install
 adb -s 59131JEBF17244 install -r app/build/outputs/apk/device/debug/app-device-debug.apk
 
-# Start Logcat
+# Start Logcat (watch for [v2.11.4-08] tags)
 adb -s 59131JEBF17244 logcat -v time CameraViewModel:I LiveCameraSource:I *:S
 ```
 
-### Test Focus for v2.11.4-07
+**Expected logcat on screen unlock**:
+```
+[v2.11.4-08] Camera2 options cleared on CameraState.OPEN (session #N)
+```
+**NOT expected (would indicate issue)**:
+```
+[v2.11.4-08] CameraState.OPEN — skip clear: ...state=LOCKED
+```
+
+### Test Focus for v2.11.4-08
 
 | Test | Check Point |
 |------|------------|
@@ -143,9 +152,9 @@ See [PIXEL9A_TEST_GUIDE_v2.11.4-06.md](PIXEL9A_TEST_GUIDE_v2.11.4-06.md) for ful
 ## After Fixing (Home NB Push)
 
 ```bash
-# After implementing and testing fix locally:
-git add app/src/main/java/com/akirachang/ai/photographer/
-git commit -m "[Fix] v2.11.4-07: Clear Camera2 Interop on Lifecycle STARTED (Bug 2+4)"
+# After Work NB verifies v2.11.4-08 PASS:
+git add app/src/main/java/com/akirachang/ai/photographer/ devspec/ docs/
+git commit -m "[Test] v2.11.4-08: Pixel 9a verification results"
 git push origin feature/camera-core-v2.11.0
 ```
 

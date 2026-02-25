@@ -23,7 +23,6 @@ import androidx.camera.core.ViewPort
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import android.util.Rational
-import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.akirachang.ai.photographer.BuildConfig
 import com.akirachang.ai.photographer.data.source.analysis.GuidelineAnalyzer
@@ -64,6 +63,14 @@ import androidx.camera.camera2.interop.Camera2CameraControl
 import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.camera2.interop.CaptureRequestOptions
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
+import androidx.camera.core.CameraState
+import androidx.lifecycle.asFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 /**
  * Live Camera Source for Real Device
@@ -98,11 +105,25 @@ class LiveCameraSource @Inject constructor(
     @Volatile
     private var lastFocusDistance: Float = 0f
 
-    // v2.11.4-07: Track whether AE/AF lock is currently active in this source.
-    // Guards clearCaptureRequestOptions() calls in onStart() to avoid clearing
-    // an intentionally active lock during normal lifecycle transitions.
+    // v2.11.4-08 (L2 State Machine): Full AeAfLockState enum replaces the boolean flag.
+    // Tracks precise lifecycle of each lock operation:
+    //   UNLOCKED → LOCK_REQUESTED → LOCKED → UNLOCK_REQUESTED → UNLOCKED
+    // CameraState.OPEN observer only clears Camera2 options when state is UNLOCKED,
+    // preventing spurious clears during active lock/unlock transitions.
+    private enum class AeAfLockState { UNLOCKED, LOCK_REQUESTED, LOCKED, UNLOCK_REQUESTED }
+
     @Volatile
-    private var isAEAFLockedInSource: Boolean = false
+    private var aeAfLockState: AeAfLockState = AeAfLockState.UNLOCKED
+
+    // v2.11.4-08: Increments on every bindToLifecycle call.
+    // Future callbacks capture this value at submission time; if it diverges (camera switched),
+    // the stale callback is discarded, preventing LOCKED state from a recycled session.
+    @Volatile
+    private var sessionId: Int = 0
+
+    // v2.11.4-08: Coroutine scope for the CameraState.OPEN Flow observer.
+    // Survives screen lock/unlock and background transitions within the same session.
+    private val sourceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     // v2.9.0-alpha Phase 0: Thermal monitoring
     private val powerManager: PowerManager? by lazy {
@@ -711,6 +732,12 @@ class LiveCameraSource @Inject constructor(
 
             val cameraControl = camera.cameraControl
 
+            // v2.11.4-08: Capture session ID now — listener compares against current sessionId
+            // to detect if the camera was rebound (e.g. switchCamera) before the lock completes.
+            val capturedSession = sessionId
+            aeAfLockState = AeAfLockState.LOCK_REQUESTED
+            Log.d(TAG, "[v2.11.4-08] Lock requested — session #$capturedSession, state=LOCK_REQUESTED")
+
             // v2.11.1 P0-1: Use PreviewView.meteringPointFactory if available
             val lockPoint = if (previewView != null) {
                 // ✅ FIX Issue #1: PreviewView.meteringPointFactory handles letterbox correctly
@@ -767,8 +794,14 @@ class LiveCameraSource @Inject constructor(
                     // FocusMeteringAction.FLAG_AE only sets metering region, NOT AE_LOCK parameter.
                     // Must explicitly set CONTROL_AE_LOCK=true to freeze ISO + exposure time.
                     try {
-                        // v2.11.4-07: Mark lock as active so onStart() lifecycle guard won't clear it.
-                        isAEAFLockedInSource = true
+                        // v2.11.4-08: Stale session guard — if camera was rebound between lock request
+                        // and this callback, discard the result to prevent LOCKED state from a dead session.
+                        if (capturedSession != sessionId) {
+                            Log.w(TAG, "[v2.11.4-08] Stale lock callback discarded (session $capturedSession != $sessionId)")
+                            continuation.cancel()
+                            return@addListener
+                        }
+                        aeAfLockState = AeAfLockState.LOCKED
                         // v2.11.4-06 Bug 3: Capture lastFocusDistance at this exact moment.
                         // At success callback time (1-2s after tap), the value reflects the
                         // converged lens position. Pinning LENS_FOCUS_DISTANCE prevents Pixel 9a
@@ -800,6 +833,7 @@ class LiveCameraSource @Inject constructor(
                     }
                     continuation.resume(Result.success(Unit))
                 } catch (e: Exception) {
+                    aeAfLockState = AeAfLockState.UNLOCKED
                     Log.e(TAG, "AE/AF lock error", e)
                     Timber.e(e, "LiveCameraSource: AE/AF lock error")
                     continuation.resume(Result.failure(e))
@@ -847,8 +881,9 @@ class LiveCameraSource @Inject constructor(
                 // concurrent cancelFocusAndMetering() calls — each cancels the previous.
                 // By running cleanup first, we guarantee CONTROL_AE_LOCK and
                 // CONTROL_AF_MODE=OFF are cleared regardless of concurrency outcome.
-                // v2.11.4-07: Clear lock flag unconditionally so onStart() guard sees correct state.
-                isAEAFLockedInSource = false
+                // v2.11.4-08: Transition to UNLOCK_REQUESTED immediately (cleanup will set UNLOCKED).
+                aeAfLockState = AeAfLockState.UNLOCK_REQUESTED
+                Log.d(TAG, "[v2.11.4-08] Unlock requested — state=UNLOCK_REQUESTED")
                 try {
                     @OptIn(ExperimentalCamera2Interop::class)
                     val camera2Control = Camera2CameraControl.from(cameraControl)
@@ -867,6 +902,9 @@ class LiveCameraSource @Inject constructor(
                 } catch (ex: Exception) {
                     Log.w(TAG, "[v2.11.4-04] Failed to restore AE/AF options: ${ex.message}")
                 }
+                // v2.11.4-08: Camera2 cleanup complete — transition to UNLOCKED regardless of outcome.
+                aeAfLockState = AeAfLockState.UNLOCKED
+                Log.d(TAG, "[v2.11.4-08] State → UNLOCKED after Camera2 cleanup")
 
                 try {
                     future.get()  // Wait for cancellation to complete (result used for logging only)
@@ -1188,29 +1226,33 @@ class LiveCameraSource @Inject constructor(
                         Log.w(TAG, "[v2.11.4-06] Failed to clear Camera2 options on bind: ${e.message}")
                     }
 
-                    // v2.11.4-07 Bug 2 fix: Clear Camera2 interop options on every STARTED state.
-                    // bindToLifecycle() fires only on first bind (process start), NOT on
-                    // screen lock/unlock or background→foreground (onStop→onStart path).
-                    // Adding a DefaultLifecycleObserver guarantees clearCaptureRequestOptions()
-                    // runs on every camera resume, removing AE_LOCK=true+AF_MODE=OFF residuals
-                    // that cause dark preview after screen unlock.
-                    // Guard: isAEAFLockedInSource prevents clearing an intentionally active lock.
-                    lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
-                        override fun onStart(owner: LifecycleOwner) {
-                            if (!isAEAFLockedInSource) {
+                    // v2.11.4-08 Bug 2 fix (L2 refined): Replace DefaultLifecycleObserver.onStart()
+                    // with a CameraState.OPEN reactive Flow observer.
+                    // onStart() fires before the HAL is ready — clearCaptureRequestOptions() is
+                    // silently ignored at that point. CameraState.OPEN fires only when the camera HAL
+                    // is truly open and ready to accept capture requests, guaranteeing the clear takes effect.
+                    // Guard: only clear when UNLOCKED (not during LOCK_REQUESTED / LOCKED transitions).
+                    // sessionId guard: ++sessionId on each bind; listener captures currentSession at
+                    // submission time — stale callbacks from a recycled session are discarded.
+                    val currentSession = ++sessionId
+                    camera.cameraInfo.cameraState
+                        .asFlow()
+                        .filter { it.type == CameraState.Type.OPEN }
+                        .onEach {
+                            if (currentSession == sessionId && aeAfLockState == AeAfLockState.UNLOCKED) {
                                 try {
                                     @OptIn(ExperimentalCamera2Interop::class)
                                     Camera2CameraControl.from(camera.cameraControl)
                                         .clearCaptureRequestOptions()
-                                    Log.i(TAG, "[v2.11.4-07] Camera2 options cleared on lifecycle STARTED (AE/AF not locked)")
+                                    Log.i(TAG, "[v2.11.4-08] Camera2 options cleared on CameraState.OPEN (session #$currentSession)")
                                 } catch (e: Exception) {
-                                    Log.w(TAG, "[v2.11.4-07] clearCaptureRequestOptions on STARTED failed (non-fatal): ${e.message}")
+                                    Log.w(TAG, "[v2.11.4-08] clearCaptureRequestOptions on OPEN failed (non-fatal): ${e.message}")
                                 }
                             } else {
-                                Log.d(TAG, "[v2.11.4-07] onStart skipped clear — AE/AF lock active")
+                                Log.d(TAG, "[v2.11.4-08] CameraState.OPEN — skip clear: session=${currentSession}/$sessionId, state=$aeAfLockState")
                             }
                         }
-                    })
+                        .launchIn(sourceScope)
 
                     // v2.9.6 Phase 1 Fix: Log sensor orientation for debugging
                     val sensorRotation = camera.cameraInfo.sensorRotationDegrees

@@ -59,11 +59,11 @@
 
 ## v2.11.0 系列
 
-### v2.11.4 (2026-02-25) 🚧 Pixel 9a 驗證中（v2.11.4-07）
+### v2.11.4 (2026-02-25) 🚧 Pixel 9a 驗證中（v2.11.4-08）
 - **Branch**: `feature/camera-core-v2.11.0`
-- **Latest Commit**: `5a73ec4` (v2.11.4-07)
-- **Build Code**: `79` (versionName `2.11.4-07`)
-- **Status**: 🚧 **待 Pixel 9a 驗證** — v2.11.4-07 Bug 2+4 修復已提交，等待 Work NB 測試
+- **Latest Commit**: pending (v2.11.4-08)
+- **Build Code**: `80` (versionName `2.11.4-08`)
+- **Status**: 🚧 **待 Pixel 9a 驗證** — v2.11.4-08 L2 Refined approach（AeAfLockState enum + CameraState.OPEN）
 
 **功能目標**: AE/AF Lock UX + Camera2 Interop
 
@@ -76,17 +76,22 @@
 | v2.11.4-04 | `f98d9ec` | Fix unlock stuck (concurrent cancel) | ✅ PASS |
 | v2.11.4-05 | `91333c5` | Single-tap unlock + screen lock auto-clear | ❌ FAIL (Test 5/6/7) |
 | v2.11.4-06 | `8953dc8` | Fix double-unlock race + Camera2 persist + lens drift | ❌ FAIL (Test 6/7) + Bug 4 NEW |
-| **v2.11.4-07** | `5a73ec4` | Clear Camera2 Interop on Lifecycle STARTED (Bug 2+4) | ⏳ Pending |
+| v2.11.4-07 | `5a73ec4` | Clear Camera2 Interop on Lifecycle STARTED (Bug 2+4) | ❌ FAIL (onStart before HAL ready) |
+| **v2.11.4-08** | pending | L2 Refined: AeAfLockState enum + CameraState.OPEN + sessionId | ⏳ Pending |
 
 **v2.11.4-06 測試結果（Work NB 2026-02-25）**:
 - ✅ Test 1–3, 5, 8 PASS（Bug 1 race 修復 ✅、Bug 3 focusDist 修復 ✅）
 - ❌ Test 6 FAIL：`bindToLifecycle` bind-time clear 在螢幕解鎖時不觸發
 - ❌ Test 7 FAIL：`AF_MODE=OFF` 殘留，第 2 次 lock 5s delay（Bug 4 新發現）
 
-**v2.11.4-07 修復內容**:
-- ✅ **Bug 2** (螢幕解鎖後暗畫面)：`DefaultLifecycleObserver.onStart()` — 每次 camera resume 自動 clear
-- ✅ **Bug 4** (5s delay)：`lockAEAF()` 呼叫 `startFocusAndMetering()` 前先排入 pre-clear（FIFO 保證順序）
-- ✅ **Guard**：`isAEAFLockedInSource` flag 防止 onStart() clear 清除主動鎖定的 lock
+**v2.11.4-07 分析（onStart() 根因）**:
+- ❌ `DefaultLifecycleObserver.onStart()` fires before HAL is ready → `clearCaptureRequestOptions()` silently ignored
+
+**v2.11.4-08 修復內容（L2 Refined Architecture）**:
+- ✅ **Bug 2** (螢幕解鎖後暗畫面)：`CameraState.OPEN` Flow observer — HAL 真正 OPEN 後才 clear（更可靠）
+- ✅ **Bug 4** (5s delay)：保留 `lockAEAF()` pre-clear（FIFO 順序）
+- ✅ **State Machine**：`AeAfLockState` enum（UNLOCKED/LOCK_REQUESTED/LOCKED/UNLOCK_REQUESTED）取代 boolean flag
+- ✅ **Stale session guard**：`sessionId` 在每次 `bindToLifecycle()` 遞增，防止舊 session callback 污染狀態
 
 **測試文件**:
 - `docs/test_results/v2.11.4/HANDOVER_SUMMARY.md` (SSOT)
