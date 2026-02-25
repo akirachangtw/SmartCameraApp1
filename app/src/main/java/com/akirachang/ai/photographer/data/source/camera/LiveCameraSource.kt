@@ -760,7 +760,7 @@ class LiveCameraSource @Inject constructor(
                                         CaptureRequest.CONTROL_AF_MODE_OFF
                                     )
                                     .setCaptureRequestOption(
-                                        CaptureRequest.CONTROL_LENS_FOCUS_DISTANCE,
+                                        CaptureRequest.LENS_FOCUS_DISTANCE,
                                         frozenFocusDist
                                     )
                                     .build()
