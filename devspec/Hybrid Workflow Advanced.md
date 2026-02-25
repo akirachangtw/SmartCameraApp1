@@ -38,7 +38,7 @@
 | **Traycer (VS Code)** | **導航員/雷達** | **定位關鍵代碼**、理解複雜依賴關係、提供精確的上下文路徑。 |
 | **OpenAI (L1)** | **架構師** | 定義需求、定義介面協議、撰寫 PR Notes 範本。 |
 | **Gemini (L2)** | **資深審查員** | 檢查 CameraX 安全性、效能評估、多模型邏輯校閱。 |
-| **Claude Code (CLI)** | **執行長 (CEO)** | **執行修改**、合併代碼、運行 ./gradlew build 並修復報錯。 |
+| **Claude Code (CLI)** | **執行長 (CEO)** | **執行修改**、合併代碼、運行 ./gradlew build 並修復報錯；**彙整測試結果**（撰寫 HANDOVER_SUMMARY / TEST_REPORT、更新 BRANCH_RELEASES、記錄 Critical Warnings）；**維護開發規範**（更新 feature_record_Backlog.md、devspec 文件、session handoff log）。 |
 
 ## **4\. 針對「對焦功能」的優化腳本建議**
 
