@@ -17,7 +17,8 @@
 | **v2.11.4-06** | ✅ Built | ✅ **Tested 2026-02-25** | ❌ **Test 6/7 FAIL + Bug 4 NEW** |
 | v2.11.4-07 | ✅ Built | ❌ FAIL (onStart before HAL) | onStart fires before HAL ready — clear ignored |
 | v2.11.4-08 | ✅ Built | ⚠️ PARTIAL | Guard race: LOCKED state blocks clear on screen unlock |
-| **v2.11.4-09** | ✅ Built | ✅ **Test 6 PASS 2026-02-25** | Full regression pending — **→ This handover** |
+| v2.11.4-09 | ✅ Built | ✅ **Test 6 PASS 2026-02-25** | Screen-lock path fixed |
+| **v2.11.4-10** | ✅ Built | ✅ **Test 6 PASS 2026-02-25** | Tap-unlock path fixed — Full regression pending |
 
 ---
 

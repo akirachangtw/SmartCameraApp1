@@ -59,11 +59,11 @@
 
 ## v2.11.0 系列
 
-### v2.11.4 (2026-02-25) 🚧 Pixel 9a 驗證中（v2.11.4-09）
+### v2.11.4 (2026-02-25) 🚧 Pixel 9a 驗證中（v2.11.4-10）
 - **Branch**: `feature/camera-core-v2.11.0`
-- **Latest Commit**: `98bcf67` (v2.11.4-09)
-- **Build Code**: `81` (versionName `2.11.4-09`)
-- **Status**: 🚧 **部分 PASS** — Test 6 ✅ PASS (v2.11.4-09)；待完整回歸測試 Test 1-8
+- **Latest Commit**: `f6aba2a` (v2.11.4-10)
+- **Build Code**: `82` (versionName `2.11.4-10`)
+- **Status**: 🚧 **Test 6 ✅ PASS (v2.11.4-10)**；待完整回歸測試 Test 1-8
 
 **功能目標**: AE/AF Lock UX + Camera2 Interop
 
@@ -78,7 +78,8 @@
 | v2.11.4-06 | `8953dc8` | Fix double-unlock race + Camera2 persist + lens drift | ❌ FAIL (Test 6/7) + Bug 4 NEW |
 | v2.11.4-07 | `5a73ec4` | Clear Camera2 Interop on Lifecycle STARTED (Bug 2+4) | ❌ FAIL (onStart before HAL ready) |
 | v2.11.4-08 | `caa9d9b` | L2 Refined: AeAfLockState enum + CameraState.OPEN + sessionId | ⚠️ PARTIAL (guard too strict — race) |
-| **v2.11.4-09** | `98bcf67` | Fix CameraState.OPEN guard: LOCKED→auto-invalidate (race fix) | ✅ Test 6 PASS |
+| v2.11.4-09 | `98bcf67` | Fix CameraState.OPEN guard: LOCKED→auto-invalidate (race fix) | ✅ Test 6 PASS |
+| **v2.11.4-10** | `f6aba2a` | Fix cancelFocusAndMetering deadlock (AF_MODE=OFF hang) | ✅ Test 6 PASS |
 
 **v2.11.4-06 測試結果（Work NB 2026-02-25）**:
 - ✅ Test 1–3, 5, 8 PASS（Bug 1 race 修復 ✅、Bug 3 focusDist 修復 ✅）
