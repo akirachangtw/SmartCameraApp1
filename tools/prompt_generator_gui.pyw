@@ -1,0 +1,468 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+prompt_generator_gui.pyw
+Hybrid Workflow Prompt Generator — AI-powered step-by-step prompt generation
+使用 Gemini API 自動生成 Hybrid Workflow 四步驟提示詞，每步驟輸出獨立分頁。
+"""
+
+import os
+import re
+import sys
+import json
+import datetime
+import threading
+import tkinter as tk
+from tkinter import ttk, scrolledtext, messagebox
+from pathlib import Path
+
+try:
+    import requests
+except ImportError:
+    requests = None
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
+
+# ── Color scheme (same as stage_verification_gui.pyw) ──────────────────────
+class Colors:
+    PRIMARY    = "#2980b9"
+    SUCCESS    = "#27ae60"
+    WARNING    = "#f39c12"
+    DANGER     = "#e74c3c"
+    BACKGROUND = "#ecf0f1"
+    CARD_BG    = "#ffffff"
+    TEXT_DARK  = "#2c3e50"
+    TEXT_LIGHT = "#ffffff"
+    BORDER     = "#bdc3c7"
+    ACCENT     = "#8e44ad"   # Purple for AI-related actions
+
+
+# ── Step metadata ────────────────────────────────────────────────────────────
+STEPS = [
+    {"key": "Step 0", "label": "Step 0 — 探索與定位",  "tool": "Traycer",            "color": "#16a085"},
+    {"key": "Step 1", "label": "Step 1 — L1 規劃摘要", "tool": "OpenAI / Gemini",    "color": Colors.PRIMARY},
+    {"key": "Step 2", "label": "Step 2 — L2 可行性",   "tool": "Gemini",             "color": Colors.WARNING},
+    {"key": "Step 3", "label": "Step 3 — Claude Code", "tool": "Claude Code",        "color": Colors.ACCENT},
+]
+
+MODEL_NAME = "gemini-2.5-flash"
+API_URL    = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent"
+
+SYSTEM_INSTRUCTION = """\
+你是一位開發工作流架構師。根據使用者的問題，生成 4 個步驟的 Hybrid Workflow 提示詞。
+嚴格按照以下格式輸出，每個 Step 必須以 "Step N:" 開頭（N 為 0-3）：
+
+Step 0: 探索與定位 (Traycer)
+目的：說明此步驟的目的。
+建議提示詞：提供給 Traycer 的具體英文提示詞。
+
+Step 1: L1 規劃摘要 (OpenAI/Gemini)
+目的：說明此步驟的目的。
+建議提示詞：具體的 L1 生成提示詞。
+
+Step 2: L2 可行性檢視 (Gemini)
+目的：說明此步驟的目的。
+建議提示詞：具體的 L2 檢視提示詞。
+
+Step 3: Claude Code 終端落地 (Claude Code)
+目的：說明此步驟的目的。
+建議提示詞：具體的 CLI 執行指令。
+"""
+
+
+# ── Main Application ─────────────────────────────────────────────────────────
+class PromptGeneratorApp:
+
+    def __init__(self, root: tk.Tk):
+        self.root = root
+        self.root.title("Hybrid Workflow — 提示詞生成器")
+        self.root.geometry("960x820")
+        self.root.minsize(800, 640)
+        self.root.configure(bg=Colors.BACKGROUND)
+        self.root.resizable(True, True)
+
+        self._setup_ui()
+        self.write_log("🤖 Workflow Prompt Generator 已啟動", "Success")
+
+        if requests is None:
+            self.write_log("❌ 缺少 requests 套件，請執行：pip install requests", "Error")
+        if not os.getenv("GEMINI_API_KEY", ""):
+            self.write_log("⚠️ 未偵測到 GEMINI_API_KEY 環境變數，請在 API Key 欄位手動輸入", "Warning")
+        else:
+            self.write_log("✅ 已從環境變數載入 GEMINI_API_KEY", "Success")
+            self.api_key_var.set(os.getenv("GEMINI_API_KEY"))
+
+    # ── UI Setup ─────────────────────────────────────────────────────────────
+
+    def _setup_ui(self):
+        self._create_header()
+        self._create_input_section()
+        self._create_output_tabs()
+        self._create_log_section()
+        self._create_statusbar()
+
+    def _create_header(self):
+        header = tk.Frame(self.root, bg=Colors.ACCENT, height=52)
+        header.pack(fill=tk.X)
+        header.pack_propagate(False)
+
+        tk.Label(
+            header,
+            text="🤖  Hybrid Workflow — 提示詞生成器",
+            font=("Microsoft JhengHei UI", 14, "bold"),
+            fg=Colors.TEXT_LIGHT, bg=Colors.ACCENT
+        ).pack(side=tk.LEFT, padx=20, pady=13)
+
+        tk.Label(
+            header,
+            text=f"Model: {MODEL_NAME}  •  Step 0 Traycer → Step 1 L1 → Step 2 L2 → Step 3 Claude Code",
+            font=("Microsoft JhengHei UI", 9),
+            fg=Colors.TEXT_LIGHT, bg=Colors.ACCENT
+        ).pack(side=tk.LEFT, padx=(0, 20), pady=13)
+
+    def _create_input_section(self):
+        frame = tk.LabelFrame(
+            self.root, text=" 📝 輸入問題描述 ",
+            font=("Microsoft JhengHei UI", 10, "bold"),
+            bg=Colors.CARD_BG, fg=Colors.TEXT_DARK,
+            relief=tk.RIDGE, bd=1
+        )
+        frame.pack(padx=15, pady=(8, 4), fill=tk.X)
+
+        # API Key row
+        key_row = tk.Frame(frame, bg=Colors.CARD_BG)
+        key_row.pack(padx=10, pady=(8, 2), fill=tk.X)
+
+        tk.Label(
+            key_row, text="API Key:",
+            font=("Microsoft JhengHei UI", 9),
+            bg=Colors.CARD_BG, width=9, anchor=tk.W
+        ).pack(side=tk.LEFT)
+
+        self.api_key_var = tk.StringVar()
+        self._key_entry = tk.Entry(
+            key_row, textvariable=self.api_key_var,
+            font=("Consolas", 9), show="*", width=50
+        )
+        self._key_entry.pack(side=tk.LEFT, padx=(0, 5))
+
+        self._show_key = tk.BooleanVar(value=False)
+        tk.Checkbutton(
+            key_row, text="顯示",
+            variable=self._show_key,
+            command=self._toggle_key_visibility,
+            font=("Microsoft JhengHei UI", 8),
+            bg=Colors.CARD_BG
+        ).pack(side=tk.LEFT)
+
+        tk.Label(
+            key_row,
+            text="  (留空則使用 GEMINI_API_KEY 環境變數)",
+            font=("Microsoft JhengHei UI", 8),
+            fg="gray", bg=Colors.CARD_BG
+        ).pack(side=tk.LEFT)
+
+        # Problem description
+        desc_row = tk.Frame(frame, bg=Colors.CARD_BG)
+        desc_row.pack(padx=10, pady=(4, 4), fill=tk.X)
+
+        tk.Label(
+            desc_row, text="問題描述:",
+            font=("Microsoft JhengHei UI", 9),
+            bg=Colors.CARD_BG, width=9, anchor=tk.NW
+        ).pack(side=tk.LEFT, anchor=tk.N)
+
+        self.input_text = scrolledtext.ScrolledText(
+            desc_row, height=5,
+            font=("Microsoft JhengHei UI", 10),
+            wrap=tk.WORD
+        )
+        self.input_text.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.input_text.insert(tk.END, "例如：AE/AF Lock 後對焦鎖定延遲 5 秒，有時需重啟 APP 才能恢復")
+
+        # Buttons
+        btn_row = tk.Frame(frame, bg=Colors.CARD_BG)
+        btn_row.pack(padx=10, pady=(4, 10), fill=tk.X)
+
+        self._gen_btn = self._create_button(
+            btn_row, "🚀 生成提示詞 (Gemini API)",
+            Colors.ACCENT, self._on_generate
+        )
+        self._gen_btn.pack(side=tk.LEFT, padx=(0, 8))
+
+        self._create_button(
+            btn_row, "🗑️ 清除輸入",
+            Colors.BORDER, self._clear_input,
+            fg=Colors.TEXT_DARK
+        ).pack(side=tk.LEFT, padx=(0, 8))
+
+        self._create_button(
+            btn_row, "🧹 清除所有輸出",
+            Colors.BORDER, self._clear_outputs,
+            fg=Colors.TEXT_DARK
+        ).pack(side=tk.LEFT)
+
+    def _create_output_tabs(self):
+        outer = tk.LabelFrame(
+            self.root, text=" 📋 生成結果 (每步驟獨立分頁) ",
+            font=("Microsoft JhengHei UI", 10, "bold"),
+            bg=Colors.CARD_BG, fg=Colors.TEXT_DARK,
+            relief=tk.RIDGE, bd=1
+        )
+        outer.pack(padx=15, pady=4, fill=tk.BOTH, expand=True)
+
+        self.notebook = ttk.Notebook(outer)
+        self.notebook.pack(padx=5, pady=5, fill=tk.BOTH, expand=True)
+
+        self._step_texts = {}
+
+        for step in STEPS:
+            tab_frame = tk.Frame(self.notebook, bg=Colors.CARD_BG)
+            self.notebook.add(tab_frame, text=f"  {step['label']}  ")
+
+            # Header row inside tab
+            info_row = tk.Frame(tab_frame, bg=step["color"], height=30)
+            info_row.pack(fill=tk.X)
+            info_row.pack_propagate(False)
+
+            tk.Label(
+                info_row,
+                text=f"  🔧 {step['label']}  │  Tool: {step['tool']}",
+                font=("Microsoft JhengHei UI", 9, "bold"),
+                fg=Colors.TEXT_LIGHT, bg=step["color"]
+            ).pack(side=tk.LEFT, padx=8, pady=5)
+
+            # Copy button
+            step_key = step["key"]
+            copy_btn = tk.Button(
+                info_row,
+                text="📋 複製",
+                font=("Microsoft JhengHei UI", 8),
+                bg=Colors.TEXT_LIGHT, fg=step["color"],
+                relief=tk.FLAT, cursor="hand2",
+                padx=6, pady=2,
+                command=lambda k=step_key: self._copy_step(k)
+            )
+            copy_btn.pack(side=tk.RIGHT, padx=8, pady=4)
+
+            # Content text area
+            txt = scrolledtext.ScrolledText(
+                tab_frame,
+                font=("Consolas", 10),
+                bg="#fafafa",
+                fg=Colors.TEXT_DARK,
+                wrap=tk.WORD,
+                state=tk.DISABLED
+            )
+            txt.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+            txt.tag_config("header", font=("Microsoft JhengHei UI", 10, "bold"), foreground=step["color"])
+
+            self._step_texts[step_key] = txt
+
+    def _create_log_section(self):
+        log_frame = tk.LabelFrame(
+            self.root, text=" 🖥️ 執行日誌 ",
+            font=("Microsoft JhengHei UI", 10, "bold"),
+            bg=Colors.CARD_BG, fg=Colors.TEXT_DARK,
+            relief=tk.RIDGE, bd=1
+        )
+        log_frame.pack(padx=15, pady=(4, 4), fill=tk.X)
+
+        self.log_text = scrolledtext.ScrolledText(
+            log_frame, height=5,
+            font=("Consolas", 9),
+            bg="#2c3e50", fg="#ecf0f1",
+            insertbackground="white",
+            wrap=tk.WORD
+        )
+        self.log_text.pack(padx=5, pady=5, fill=tk.X)
+        self.log_text.tag_config("Success", foreground="#2ecc71")
+        self.log_text.tag_config("Error",   foreground="#e74c3c")
+        self.log_text.tag_config("Warning", foreground="#f39c12")
+        self.log_text.tag_config("Info",    foreground="#3498db")
+
+    def _create_statusbar(self):
+        self._statusbar = tk.Label(
+            self.root, text="就緒",
+            bd=1, relief=tk.SUNKEN, anchor=tk.W,
+            font=("Microsoft JhengHei UI", 9),
+            bg=Colors.CARD_BG, fg=Colors.TEXT_DARK
+        )
+        self._statusbar.pack(side=tk.BOTTOM, fill=tk.X)
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _create_button(self, parent, text, bg_color, command,
+                       fg=Colors.TEXT_LIGHT, width=None):
+        return tk.Button(
+            parent, text=text,
+            font=("Microsoft JhengHei UI", 9),
+            bg=bg_color, fg=fg,
+            activebackground=bg_color, activeforeground=fg,
+            relief=tk.FLAT, cursor="hand2",
+            command=command,
+            padx=10, pady=7,
+            width=width
+        )
+
+    def write_log(self, message: str, level: str = "Info"):
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
+        self.log_text.insert(tk.END, f"[{ts}] {message}\n", level)
+        self.log_text.see(tk.END)
+        self.log_text.update()
+
+    def _update_status(self, message: str):
+        self._statusbar.config(text=message)
+        self._statusbar.update()
+
+    def _toggle_key_visibility(self):
+        self._key_entry.config(show="" if self._show_key.get() else "*")
+
+    def _clear_input(self):
+        self.input_text.delete("1.0", tk.END)
+
+    def _clear_outputs(self):
+        for txt in self._step_texts.values():
+            txt.config(state=tk.NORMAL)
+            txt.delete("1.0", tk.END)
+            txt.config(state=tk.DISABLED)
+        self.write_log("🗑️ 已清除所有輸出", "Info")
+
+    def _copy_step(self, step_key: str):
+        txt = self._step_texts.get(step_key)
+        if txt:
+            content = txt.get("1.0", tk.END).strip()
+            if content:
+                self.root.clipboard_clear()
+                self.root.clipboard_append(content)
+                self.write_log(f"📋 已複製 {step_key} 內容到剪貼簿", "Success")
+            else:
+                self.write_log(f"⚠️ {step_key} 尚無內容可複製", "Warning")
+
+    def _set_step_content(self, step_key: str, content: str):
+        txt = self._step_texts.get(step_key)
+        if not txt:
+            return
+        txt.config(state=tk.NORMAL)
+        txt.delete("1.0", tk.END)
+        if content:
+            txt.insert(tk.END, content)
+        txt.config(state=tk.DISABLED)
+
+    # ── API Call & Parsing ────────────────────────────────────────────────────
+
+    def _on_generate(self):
+        query = self.input_text.get("1.0", tk.END).strip()
+        if not query:
+            messagebox.showwarning("警告", "請輸入問題描述。")
+            return
+
+        api_key = self.api_key_var.get().strip() or os.getenv("GEMINI_API_KEY", "")
+        if not api_key:
+            messagebox.showerror("錯誤", "未設定 API Key。\n請在欄位輸入或設定 GEMINI_API_KEY 環境變數。")
+            return
+
+        if requests is None:
+            messagebox.showerror("錯誤", "缺少 requests 套件。\n請執行：pip install requests")
+            return
+
+        self._gen_btn.config(state=tk.DISABLED, text="⏳ 生成中…")
+        self._update_status("呼叫 Gemini API 中…")
+        self.write_log(f"🚀 開始生成提示詞：{query[:60]}…", "Info")
+        self._clear_outputs()
+
+        threading.Thread(
+            target=self._call_api,
+            args=(query, api_key),
+            daemon=True
+        ).start()
+
+    def _call_api(self, query: str, api_key: str):
+        payload = {
+            "contents": [{"parts": [{"text": f"問題描述：{query}\n\n請根據以上問題生成優化後的工作流提示詞。"}]}],
+            "systemInstruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]}
+        }
+
+        try:
+            response_text = self._call_with_retry(payload, api_key)
+            steps = self._parse_steps(response_text)
+
+            self.root.after(0, self._on_api_success, steps, response_text)
+        except Exception as exc:
+            self.root.after(0, self._on_api_error, str(exc))
+
+    def _call_with_retry(self, payload: dict, api_key: str, retries: int = 5) -> str:
+        import time
+        for attempt in range(retries):
+            try:
+                url = f"{API_URL}?key={api_key}"
+                resp = requests.post(url, json=payload, timeout=45)
+                data = resp.json()
+
+                if resp.status_code == 200:
+                    return data["candidates"][0]["content"]["parts"][0]["text"]
+
+                err_msg = data.get("error", {}).get("message", "未知錯誤")
+                if resp.status_code == 429:
+                    wait = 2 ** attempt
+                    self.root.after(0, self.write_log, f"⚠️ Rate limit，{wait}s 後重試 (attempt {attempt+1})", "Warning")
+                    time.sleep(wait)
+                    continue
+                raise Exception(f"API 錯誤 ({resp.status_code}): {err_msg}")
+
+            except requests.exceptions.RequestException as exc:
+                if attempt == retries - 1:
+                    raise exc
+                time.sleep(2 ** attempt)
+
+        raise Exception("所有重試均失敗")
+
+    def _parse_steps(self, text: str) -> dict:
+        """Split Gemini response into per-step sections."""
+        result = {}
+        # Split on 'Step N:' boundaries
+        parts = re.split(r'(?=Step\s+\d+\s*:)', text, flags=re.IGNORECASE)
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+            match = re.match(r'Step\s+(\d+)\s*:', part, re.IGNORECASE)
+            if match:
+                idx = int(match.group(1))
+                result[f"Step {idx}"] = part
+        return result
+
+    def _on_api_success(self, steps: dict, raw: str):
+        for step in STEPS:
+            key = step["key"]
+            content = steps.get(key, f"（{key} 內容未從 API 回應中解析出來）\n\n原始回應：\n{raw}")
+            self._set_step_content(key, content)
+
+        parsed_count = len([k for k in steps if any(s["key"] == k for s in STEPS)])
+        self.write_log(f"✅ 生成完成，成功解析 {parsed_count}/4 個步驟", "Success")
+        self._update_status(f"✅ 完成 — 已解析 {parsed_count}/4 步驟")
+        self._gen_btn.config(state=tk.NORMAL, text="🚀 生成提示詞 (Gemini API)")
+
+        # Auto-switch to first populated step
+        for idx, step in enumerate(STEPS):
+            if steps.get(step["key"]):
+                self.notebook.select(idx)
+                break
+
+    def _on_api_error(self, error_msg: str):
+        self.write_log(f"❌ API 呼叫失敗：{error_msg}", "Error")
+        self._update_status("❌ 生成失敗")
+        self._gen_btn.config(state=tk.NORMAL, text="🚀 生成提示詞 (Gemini API)")
+        messagebox.showerror("API 錯誤", f"呼叫 Gemini API 失敗：\n\n{error_msg}")
+
+
+def main():
+    root = tk.Tk()
+    app = PromptGeneratorApp(root)
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    main()

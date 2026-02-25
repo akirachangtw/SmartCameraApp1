@@ -36,6 +36,19 @@
             "problemMatcher": []
         },
         {
+            "label": "🤖 Workflow Prompt Generator",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "tools/prompt_generator_gui.pyw"
+            ],
+            "presentation": {
+                "reveal": "never",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "🚀 Build Emulator Debug",
             "type": "shell",
             "command": "${workspaceFolder}/gradlew.bat",

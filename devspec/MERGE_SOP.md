@@ -162,7 +162,7 @@ ls tools/hybrid_flow.py \
    tools/hybrid_flow-tasks.json \
    tools/check_merge_readiness.py \
    tools/test_handoff_gui.pyw \
-   tools/prompt_generator_gui.py
+   tools/prompt_generator_gui.pyw
 
 # 查看 feature branch 是否新增了 tools/ 中的工具
 git log --oneline --diff-filter=A -- tools/
@@ -171,14 +171,29 @@ git log --oneline --diff-filter=A -- tools/
 # - hybrid_flow.py / hybrid_flow-tasks.json → 保留 feature branch 版本
 # - check_merge_readiness.py → 保留 main 版本（檢查更嚴格）
 # - 其他新增工具 → 一律保留（不丟棄 feature branch 新增的工具）
+
+# 驗證 VSCode Tasks 配置（.vscode/tasks.json 被強制加入 Git）
+grep -c "label" .vscode/tasks.json  # 應 >= 10 個 task
+grep "Workflow Prompt Generator" .vscode/tasks.json  # 🤖 Workflow Prompt Generator task
+grep "Test Handoff Manager" .vscode/tasks.json       # 🚀 Test Handoff Manager task
+grep "Hybrid: L1" .vscode/tasks.json                 # 📋 Hybrid L1/L2/PR tasks
 ```
 
 **詳細清單**: `tools/.gitkeep_critical_files`（三級分類：Tier 1 / 2 / 3）
+
+**VSCode Tasks 保護清單** (`.vscode/tasks.json`):
+| Task | 用途 |
+|------|------|
+| 🚀 Test Handoff Manager | Home↔Work NB 測試交接 GUI |
+| 🧪 Stage Verification GUI | 階段驗證 GUI |
+| 🤖 Workflow Prompt Generator | Gemini API 分步提示生成（tabbed GUI） |
+| 📋 Hybrid: L1/L2/PR (inline + file) | L1/L2/PR 計劃文檔生成 |
 
 **檢查點**:
 - [ ] Tier 1 工具（5 個）全部存在
 - [ ] feature branch 新增的工具未因 merge 遺失
 - [ ] 無 tools/ 相關 merge conflict 遺留
+- [ ] `.vscode/tasks.json` 包含 Workflow Prompt Generator + Hybrid Tasks
 
 ---
 
@@ -444,5 +459,5 @@ git merge feature-name  # 可能是舊的本地分支
 
 ---
 
-**最後更新**: 2026-02-13
-**維護者**: Claude Sonnet 4.5 + Akira Chang
+**最後更新**: 2026-02-25
+**維護者**: Claude Sonnet 4.6 + Akira Chang
