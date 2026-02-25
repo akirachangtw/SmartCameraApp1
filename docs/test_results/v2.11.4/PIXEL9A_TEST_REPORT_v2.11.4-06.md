@@ -15,7 +15,7 @@
 | Test 1: Lock applied log (regression) | PASS | `[v2.11.4-06]` prefix confirmed; LENS_FOCUS_DISTANCE logged |
 | Test 2: AF stays INACTIVE 30s (regression) | PASS | AF_STATE=INACTIVE held 30s, no degradation |
 | Test 3: AE stays locked (regression) | PASS | Overexposed when moved to bright area — AE lock confirmed |
-| Test 4: Rapid lock/unlock doesn't stick | PASS (with note) | Cycles cleanly; ~1/10 chance of 5s delay (see Bug 4) |
+| Test 4: Rapid lock/unlock doesn't stick | PASS (with note) | Rapid cycles clean; in normal usage after app restart: 1st lock fast, 2nd lock (after unlock) has consistent 5s delay (see Bug 4) |
 | Test 5: No double-cancel race | **PASS** ✅ | Bug 1 FIXED — only 1 `lock cleared` + 1 `unlocked by tap` |
 | Test 6: Screen lock clears Camera2 options | FAIL | Same as v2.11.4-05 — bind fix doesn't trigger on screen lock/unlock |
 | Test 7: No long-press delay after screen unlock | FAIL | Same as v2.11.4-05 — AF_MODE=OFF residual persists |
@@ -76,11 +76,11 @@
 | Bug 1: Double cancelFocusAndMetering race | High | **FIXED ✅** | `isAEAFLocked=false` before suspend call prevents 2nd coroutine; guard logs `superseded` |
 | Bug 2: Camera2 settings persist after screen lock | High | **STILL FAILING** | `clearCaptureRequestOptions()` on bind only fires on app start/process restart; screen lock/unlock does NOT rebind → fix never triggers |
 | Bug 3: focusDist=0.000 after CONTROL_AF_MODE=OFF | Medium | **FIXED ✅** | `CONTROL_LENS_FOCUS_DISTANCE=lastFocusDistance` applied simultaneously; lens stays at converged position |
-| Bug 4 (New): `cancelFocusAndMetering` intermittent failure | High | NEW | `Camera is not active` thrown during normal tap-unlock lifecycle transitions; leaves `AF_MODE=OFF` residual → ~1/10 5s delay in normal use; consistent after screen lock/unlock |
+| Bug 4 (New): `cancelFocusAndMetering` intermittent failure | High | NEW | `Camera is not active` thrown during tap-unlock lifecycle transitions; leaves `AF_MODE=OFF` residual → 2nd long-press after any unlock has consistent 5s delay; worse after screen lock/unlock |
 
 ### Bug 4 Detail — New Finding
 
-**Symptom**: After app restart, 1st lock is always fast. After the 1st tap-unlock, the 2nd long-press has ~1/10 chance of 5-second delay. After screen lock/unlock or background switch, the delay occurs consistently and requires app restart to recover.
+**Symptom**: After app restart, 1st lock is always fast (clean state from bind). After the 1st tap-unlock, the 2nd long-press has a consistent 5-second delay in normal usage (probability higher than initially estimated — near-consistent after a brief pause between cycles). Rapid successive cycles may not exhibit the delay because the camera has no time to enter the transitioning state. After screen lock/unlock or background switch, the delay occurs consistently and requires app restart to recover.
 
 **Root cause**: `cancelFocusAndMetering()` (called during `unlockAEAF`) sometimes throws `Camera is not active` while the camera is transitioning between lifecycle states (not just during screen lock). When this happens, `CONTROL_AF_MODE=OFF` is not cleared from Camera2 Interop. The next `startFocusAndMetering` call cannot converge (AF is hardware-frozen), and CameraX times out after 5 seconds → `isFocusSuccessful=false`.
 
