@@ -601,7 +601,7 @@ class CameraViewModel @Inject constructor(
     /**
      * Toggle aspect ratio mode (v2.10.0)
      *
-     * Cycles through: 4:3 → 16:9 → 1:1 → 4:3
+     * Cycles through: 4:3 → 16:9 → 4:3
      *
      * Behavior:
      * - Updates UI state with new aspect ratio

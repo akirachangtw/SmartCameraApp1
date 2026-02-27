@@ -27,7 +27,7 @@ data class CameraState(
     val detectionResult: DetectionResult? = null,
     val isAnalysisEnabled: Boolean = false,
     val hdrMode: HDRMode = HDRMode.AUTO,  // v2.6.1: Manual HDR control
-    val aspectRatioMode: AspectRatioMode = AspectRatioMode.RATIO_16_9,  // v2.10.0: Aspect ratio toggle (4:3/16:9/1:1)
+    val aspectRatioMode: AspectRatioMode = AspectRatioMode.RATIO_16_9,  // v2.10.0: Aspect ratio toggle (4:3/16:9)
     val isRebindingCamera: Boolean = false,  // v2.10.0: True when rebinding camera after aspect ratio change
     // v2.9.9: Focus state
     val focusPoint: Pair<Float, Float>? = null,  // (x, y) coordinates in pixels, null if no active focus

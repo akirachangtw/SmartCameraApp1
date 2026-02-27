@@ -1028,51 +1028,23 @@ class LiveCameraSource @Inject constructor(
                               "filter≤${maxFilterWidth}x${maxFilterHeight}")
 
                     // v2.10.0: Unified AspectRatioStrategy for UseCaseGroup + ViewPort architecture
-                    // v2.11.1: 1:1 mode uses ResolutionFilter (Traycer Plan A) to prefer true square resolutions.
-                    //   Priority: exact square (width==height, nearest to 1920×1920) → fallback to nearest 1:1 aspect
-                    //   ViewPort Rational(1,1) + FIT ensures WYSIWYG (Preview = Capture = 1:1 square)
-                    //   See: docs/features/v2.10.0/v2.10.0_aspect-ratio-wysiwyg-fix_Traycer.md
-                    val commonSelector = if (currentAspectRatioMode == AspectRatioMode.RATIO_1_1) {
-                        // 1:1 mode: prefer true square resolution, fallback to nearest 1:1 aspect
-                        androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
-                            .setResolutionFilter { supportedSizes, _ ->
-                                val squareSizes = supportedSizes.filter { it.width == it.height }
-                                if (squareSizes.isNotEmpty()) {
-                                    // Select closest to 1920×1920 square
-                                    val selected = squareSizes.minByOrNull {
-                                        kotlin.math.abs(it.width - 1920)
-                                    } ?: squareSizes.first()
-                                    Log.i(TAG, "[v2.11.1] 1:1 ResolutionFilter: true square found → ${selected.width}x${selected.height}")
-                                    listOf(selected)
-                                } else {
-                                    // Fallback: nearest aspect ratio to 1:1
-                                    val fallback = supportedSizes.minByOrNull { size ->
-                                        kotlin.math.abs(size.width.toFloat() / size.height - 1.0f)
-                                    } ?: supportedSizes.first()
-                                    Log.w(TAG, "[v2.11.1] 1:1 ResolutionFilter: no square found, fallback → ${fallback.width}x${fallback.height} (ratio=${fallback.width.toFloat()/fallback.height})")
-                                    listOf(fallback)
-                                }
-                            }
-                            .build()
-                    } else {
-                        // 4:3 / 16:9 modes: use standard AspectRatioStrategy
-                        val targetAspectRatio = when (currentAspectRatioMode) {
-                            AspectRatioMode.RATIO_4_3 -> androidx.camera.core.AspectRatio.RATIO_4_3
-                            AspectRatioMode.RATIO_16_9 -> androidx.camera.core.AspectRatio.RATIO_16_9
-                            else -> androidx.camera.core.AspectRatio.RATIO_4_3
-                        }
-                        androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
-                            .setAspectRatioStrategy(
-                                androidx.camera.core.resolutionselector.AspectRatioStrategy(
-                                    targetAspectRatio,
-                                    androidx.camera.core.resolutionselector.AspectRatioStrategy.FALLBACK_RULE_AUTO
-                                )
-                            )
-                            .build()
-                            .also {
-                                Log.i(TAG, "[v2.11.1] ResolutionSelector: ${currentAspectRatioMode.displayName} → RATIO_$targetAspectRatio")
-                            }
+                    // v2.12.0: Simplified to 4:3 / 16:9 only — removed 1:1 digital crop mode
+                    //   4:3 = sensor native, 16:9 = display fill; no square ResolutionFilter needed
+                    val targetAspectRatio = when (currentAspectRatioMode) {
+                        AspectRatioMode.RATIO_4_3 -> androidx.camera.core.AspectRatio.RATIO_4_3
+                        AspectRatioMode.RATIO_16_9 -> androidx.camera.core.AspectRatio.RATIO_16_9
                     }
+                    val commonSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                        .setAspectRatioStrategy(
+                            androidx.camera.core.resolutionselector.AspectRatioStrategy(
+                                targetAspectRatio,
+                                androidx.camera.core.resolutionselector.AspectRatioStrategy.FALLBACK_RULE_AUTO
+                            )
+                        )
+                        .build()
+                        .also {
+                            Log.i(TAG, "[v2.12.0] ResolutionSelector: ${currentAspectRatioMode.displayName} → RATIO_$targetAspectRatio")
+                        }
 
                     // Store target for diagnostic logging
                     selectedResolution = targetResolution
@@ -1172,10 +1144,9 @@ class LiveCameraSource @Inject constructor(
                     // 5. Create ViewPort for WYSIWYG guarantee (v2.10.0: Gemini approach)
                     // ViewPort ensures Preview, ImageAnalysis, and ImageCapture see the same cropped region
                     // v2.10.0-fix: Use FIT ScaleType to prevent double-cropping (ViewPort FILL + PreviewView FILL)
-                    // v2.11.1: 1:1 mode uses Rational(1,1) ViewPort — Preview displays 1:1 square (WYSIWYG)
-                    //   ResolutionFilter provides true square resolution; ViewPort crops to 1:1 if fallback to 4:3
+                    // v2.12.0: Only 4:3 and 16:9 supported — ViewPort uses Rational(4,3) or Rational(16,9)
                     val viewPort = ViewPort.Builder(
-                        currentAspectRatioMode.toRational(),  // Rational(4,3) / Rational(16,9) / Rational(1,1)
+                        currentAspectRatioMode.toRational(),  // Rational(4,3) / Rational(16,9)
                         currentRotation  // Current device rotation (Surface.ROTATION_*)
                     )
                         .setScaleType(ViewPort.FIT)  // ✅ Preserve full FOV, prevent over-cropping

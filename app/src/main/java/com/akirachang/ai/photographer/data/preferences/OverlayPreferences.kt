@@ -282,7 +282,7 @@ class OverlayPreferences(private val context: Context) {
     /**
      * Sets aspect ratio mode
      *
-     * @param mode Aspect ratio mode string ("RATIO_4_3", "RATIO_16_9", or "RATIO_1_1")
+     * @param mode Aspect ratio mode string ("RATIO_4_3" or "RATIO_16_9")
      * v2.11.0 Phase 2: Aspect ratio persistence
      */
     suspend fun setAspectRatioMode(mode: String) {
