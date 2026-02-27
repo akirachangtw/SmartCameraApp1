@@ -39,21 +39,20 @@ Last updated: 2026-02-25
 ### ✅ Confirmed
 - Preview 固定 16:9 AspectRatioStrategy — 修正 1.6x FOV 放大問題 | Verified: 2026-02-07 (Phase A)
 - ImageCapture 同步 16:9 — WYSIWYG 拍照 | Verified: 2026-02-07 (Phase A)
-- **長寬比 Toggle (4:3/16:9/1:1)** — UseCaseGroup + ViewPort 架構 | Verified: 2026-02-08 (v2.10.0-fix)
+- **長寬比 Toggle (4:3/16:9)** — UseCaseGroup + ViewPort 架構 | Verified: 2026-02-08 (v2.10.0-fix)
 - **ViewPort.FIT** — 保留完整 FOV，避免雙層裁切 | Verified: 2026-02-08 (Sony + Pixel 9a)
 - **PreviewView.FIT_CENTER 統一** — 所有模式避免額外裁切 | Verified: 2026-02-08 (Sony + Pixel 9a)
-- **1:1 ResolutionFilter** — 動態選擇正方形解析度（Sony: 2448², Pixel 9a: 1920²）| Verified: 2026-02-08
+- ~~**1:1 ResolutionFilter**~~ — **已移除**（v2.12.0，commit b93d181）：1:1 為數位裁切非 sensor 原生；Pixel 9a 1920×1920 ImageProxy 造成 FPS 崩潰
 
 ### 🔍 Code Locations
 - ViewPort.FIT:                `LiveCameraSource.kt:932-940`
-- 1:1 ResolutionFilter:        `LiveCameraSource.kt:868-888`
 - PreviewView.ScaleType:       `AspectRatioMode.kt:132-133`
-- AspectRatioMode enum:        `AspectRatioMode.kt:19-68`
+- AspectRatioMode enum:        `AspectRatioMode.kt:19-68` （僅 RATIO_4_3 / RATIO_16_9）
 - Toggle logic:                `CameraViewModel.kt` (aspect ratio state)
 
 ### 📋 Backlog
-- [x] [Phase B] 長寬比 Toggle UI (4:3/16:9/1:1) — ✅ 完成 (v2.10.0-fix, 2026-02-08)
-- [ ] 建立設備解析度資料庫 — 記錄不同設備的 1:1 解析度選擇
+- [x] [Phase B] 長寬比 Toggle UI (4:3/16:9) — ✅ 完成 (v2.10.0-fix, 2026-02-08)
+- [x] ~~建立設備解析度資料庫 — 記錄不同設備的 1:1 解析度選擇~~ — 已取消（1:1 移除）
 - [ ] 新增 UI 提示 — 首次使用說明黑邊（letterbox）是正常行為
 
 ---
@@ -71,7 +70,8 @@ Last updated: 2026-02-25
 
 - **長寬比 UI 簡化（Settings）** — SettingsScreen.kt 長寬比選項改為單行並排 + 簡短標籤 | Verified: 2026-02-17 (Pixel 9a)
   - **Before**: 垂直排列（3 行），標籤含長說明文字（如 "1:1 - 正方形"）
-  - **After**: 水平單行並排（`◯ 4:3  ◯ 16:9  ◯ 1:1`），標籤僅顯示比例數字
+  - **After (v2.11.1)**: 水平單行並排（`◯ 4:3  ◯ 16:9  ◯ 1:1`），標籤僅顯示比例數字
+  - **After (v2.12.0)**: 移除 1:1，僅保留（`◯ 4:3  ◯ 16:9`）— commit b93d181
   - **File**: `SettingsScreen.kt` - AspectRatio section
 
 ### ⚠️ Critical Warning
@@ -272,21 +272,19 @@ Last updated: 2026-02-25
 
 ---
 
-## FPS 1:1 Analysis Pipeline (v2.12.0) - 研究分析完成
+## ~~FPS 1:1 Analysis Pipeline~~ → 移除 1:1 模式（v2.12.0）✅ 已完成
 
-### 📋 狀態
-- **研究文件**: `docs/features/v2.11.3/v2.11.3_FPS_1to1_L1.md`, `v2.11.3_fps_1to1_l1_L2.md` + Gemini/Traycer 版本
-- **核心結論**: 需先確認 FPS 來源（Preview UseCase vs ImageAnalysis callback rate）再選方案
-  - 若 Analysis FPS 問題 → 方案 A（Guideline 縮圖上限 960px）優先，最小 diff
-  - 若 Preview FPS 問題 → 查 CameraX UseCase 組合 / HAL stream config / ResolutionSelector
-- **高風險點**: 1:1 ↔ 4:3 切換 rebind UseCase → HAL 可能降 FPS；1920×1920 bitmap 14MB/幀 GC 壓力
-- **待實作**: v2.12.0（需獨立 L3 計劃）
+### 📋 決議（2026-02-27）
+- **設計決策**: 移除 1:1 模式，只保留 4:3（sensor 原生）和 16:9（螢幕填充）
+- **根因**: Pixel 9a 1:1 模式 ImageProxy 為 1920×1920（3.69 MP，比 4:3 大 12 倍）→ FPS 崩潰
+- **決策理由**: 1:1 為數位裁切，非 sensor 原生比例；現代主流手機螢幕只支援 4:3/16:9 為核心
+- **Commit**: `b93d181` [Refactor] v2.12.0: Remove 1:1 aspect ratio mode
+- **研究文件（保留供參考）**: `docs/features/v2.11.3/v2.11.3_FPS_1to1_L1.md`, `docs/features/v2.11.4/v2.11.4-06_Pinpoint_FPS_Bottleneck-L2.md`
 
 ### 📋 Backlog
-- [ ] [v2.12.0] Step 0: FPS 指標來源確認（log 標注 Preview FPS vs Analysis rate）
-- [ ] [v2.12.0] Step 1: 若 Analysis 問題 → Guideline 縮圖上限 960px（方案 A，最小 diff）
-- [ ] [v2.12.0] Step 2: 若 ML Kit 仍瓶頸 → ImageAnalysis cap 960×960（方案 B）
-- [ ] [v2.12.0] Step 3: 若 Preview FPS 問題 → ResolutionSelector + HAL stream 排查
+- [x] ~~FPS 指標來源確認~~ — 已取消（根本方案為移除 1:1）
+- [x] ~~ImageAnalysis cap~~ — 已取消（根本方案為移除 1:1）
+- [x] ~~ResolutionSelector 排查~~ — 已取消（根本方案為移除 1:1）
 
 ---
 

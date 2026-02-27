@@ -14,7 +14,7 @@
 - **Status**: ✅ **穩定，可安全合併**
 
 **包含功能**:
-- ✅ Aspect Ratio Toggle (4:3/16:9/1:1) + UseCaseGroup + ViewPort
+- ✅ Aspect Ratio Toggle (4:3/16:9) + UseCaseGroup + ViewPort
 - ✅ EXIF 資訊顯示 (GPS, 曝光參數, 裝置資訊)
 - ✅ Settings UI 現代化 (可摺疊卡片, 位置權限管理)
 - ✅ v2.10.2 Bug 修復 (Permission UX + Aspect Ratio + Toast Regression)
@@ -177,7 +177,7 @@
   - Rectangle + Corner Brackets 視覺設計 (Cyan #00E5FF)
   - Neon Glow 雙層輝光效果
 - ✅ **v2.10.2 功能**:
-  - Aspect Ratio Toggle (4:3/16:9/1:1) + UseCaseGroup + ViewPort
+  - Aspect Ratio Toggle (4:3/16:9) + UseCaseGroup + ViewPort
   - EXIF 資訊顯示 (GPS, 曝光參數, 裝置資訊)
   - Settings UI 現代化 (可摺疊卡片, 位置權限管理)
   - v2.10.2 Bug 修復 (Permission UX + Aspect Ratio + Toast Regression)
@@ -197,6 +197,40 @@
 **決議文檔**:
 - `devspec/feature_record_Backlog.md` (Camera UI 清理, Focus Indicator Visual Design 章節)
 - `docs/features/v2.11.0/v2.11.0_FINAL_SALIENCY_AND_VISUAL_DESIGN.md`
+
+**已知問題**: 無
+
+---
+
+## v2.12.0 系列
+
+### v2.12.0 (2026-02-27) 🚧 開發中
+- **Branch**: `feature/camera-core-v2.12.0`
+- **Stable Commit**: `b93d181`
+- **Status**: 🚧 **開發中（待 Pixel 9a 驗證）**
+
+**功能目標**: 移除 1:1 長寬比模式，僅保留 4:3 / 16:9
+
+**設計決策**:
+- 1:1 為數位裁切，並非 sensor 原生比例
+- Pixel 9a 1:1 模式 ImageProxy = 1920×1920（3.69 MP），是 FPS 崩潰根因
+- 現代主流手機螢幕僅需 4:3（sensor 原生）+ 16:9（螢幕填充）
+
+**包含功能**:
+- ✅ **移除 RATIO_1_1**: AspectRatioMode enum 僅剩 RATIO_4_3 / RATIO_16_9
+- ✅ **簡化 ResolutionSelector**: commonSelector 直接 when 分支（無 ResolutionFilter）
+- ✅ **設定頁面**: 移除 1:1 選項
+- ✅ **循環更新**: 4:3 → 16:9 → 4:3
+
+**關鍵提交**:
+- `b93d181`: [Refactor] v2.12.0: Remove 1:1 aspect ratio mode
+
+**測試結果**:
+- ⏳ Pixel 9a: 待驗證
+
+**決議文檔**:
+- `devspec/feature_record_Backlog.md` (Aspect Ratio Toggle 章節)
+- `plans/roadmap/v2.11-v2.1x-roadmap.md` (v2.12.0 Step 8)
 
 **已知問題**: 無
 
@@ -228,5 +262,5 @@
 
 ---
 
-**最後更新**: 2026-02-13
-**維護者**: Claude Sonnet 4.5 + Akira Chang
+**最後更新**: 2026-02-27
+**維護者**: Claude Sonnet 4.6 + Akira Chang
