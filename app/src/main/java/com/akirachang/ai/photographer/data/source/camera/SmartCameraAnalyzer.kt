@@ -9,7 +9,7 @@
  * - ML Kit face and object detection
  * - Lighting analysis with histogram calculation
  * - Exposure detection (backlight, overexposure, low light)
- * - Throttled analysis for performance (10 FPS)
+ * - Adaptive throttle via EWMA (v2.12.0-03): auto-tunes interval per device (100–500ms)
  * - Proper resource management
  * - v2.x.x Phase 4: Optical flow point tracking integration
  *
@@ -20,7 +20,6 @@
  */
 package com.akirachang.ai.photographer.data.source.camera
 
-import android.os.Build
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
@@ -47,7 +46,9 @@ import com.akirachang.ai.photographer.util.CoordinateMapper
 import org.opencv.core.Mat
 import org.opencv.core.Point
 import android.graphics.Bitmap
+import android.os.SystemClock
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -88,14 +89,30 @@ class SmartCameraAnalyzer(
     companion object {
         private const val TAG = "SmartCameraAnalyzer"
 
-        // Pixel 9a: Increase throttle to 500ms (2 FPS) to reduce ML Kit TPU memory usage
-        // Other devices: Keep at 100ms (10 FPS) for responsive AI analysis
-        private val THROTTLE_INTERVAL_MS = if (Build.MODEL == "Pixel 9a") 500L else 100L
+        // v2.12.0-03: Adaptive ML Kit throttle — replaces per-device hardcoded values
+        private const val DEFAULT_THROTTLE_MS    = 200L   // initial interval
+        private const val MIN_THROTTLE_MS        = 100L   // fastest allowed (10 FPS)
+        private const val MAX_THROTTLE_MS        = 500L   // slowest allowed (2 FPS)
+        private const val WARMUP_FRAMES          = 3      // frames skipped from EWMA
+        private const val EMA_ALPHA              = 0.2    // EWMA smoothing factor
+        private const val SAFETY_FACTOR          = 1.25   // headroom multiplier
+        private const val DEADBAND_RATIO         = 0.10   // ±10% change ignored
+        private const val MAX_EXPAND_PER_FRAME   = 50L    // ms max increase per frame
+        private const val MAX_CONTRACT_PER_FRAME = 20L    // ms max decrease per frame
+        private const val PANIC_RATIO            = 1.5    // measured > interval×1.5 → panic
+        private const val PANIC_SCALE            = 1.2    // panic: interval × 1.2
+        private const val LOG_EVERY_N_FRAMES     = 30     // logcat throttle interval
     }
 
     private val analysisScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val isProcessing = AtomicBoolean(false)
     private var lastAnalysisTime = 0L
+
+    // v2.12.0-03: Adaptive throttle state
+    private val adaptiveThrottleMs = AtomicLong(DEFAULT_THROTTLE_MS)
+    private var emaMs = 0.0
+    private var warmupCount = 0
+    private var processedFrames = 0L
 
     // Cached detection results for lighting analysis
     private var cachedDetectionResult: DetectionResult? = null
@@ -296,9 +313,9 @@ class SmartCameraAnalyzer(
 
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
-        // Throttle analysis to 10 FPS
+        // v2.12.0-03: Adaptive throttle gate (replaces hardcoded THROTTLE_INTERVAL_MS)
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastAnalysisTime < THROTTLE_INTERVAL_MS) {
+        if (currentTime - lastAnalysisTime < adaptiveThrottleMs.get()) {
             imageProxy.close()
             return
         }
@@ -312,6 +329,7 @@ class SmartCameraAnalyzer(
         lastAnalysisTime = currentTime
 
         analysisScope.launch {
+            val startNs = SystemClock.elapsedRealtimeNanos() // v2.12.0-03: measure ML Kit latency
             try {
                 // v2.x.x Phase 4: Store image dimensions for coordinate mapping
                 if (imageWidth == 0 || imageHeight == 0) {
@@ -416,9 +434,72 @@ class SmartCameraAnalyzer(
             } catch (e: Exception) {
                 Log.e(TAG, "Analysis error", e)
             } finally {
+                val elapsedNs = SystemClock.elapsedRealtimeNanos() - startNs // v2.12.0-03
+                updateAdaptiveThrottle(elapsedNs)
                 imageProxy.close()
                 isProcessing.set(false)
             }
+        }
+    }
+
+    /**
+     * v2.12.0-03: Update adaptive throttle interval based on measured ML Kit latency.
+     *
+     * Algorithm:
+     *   1. Warmup: skip first WARMUP_FRAMES to exclude JIT/cold-start spikes
+     *   2. EWMA: smooth measured latency with α=0.2
+     *   3. Panic backoff: if measured > interval×PANIC_RATIO → immediate scale-up
+     *   4. Target = EWMA × SAFETY_FACTOR
+     *   5. Deadband: skip update if |target - current| < current × DEADBAND_RATIO
+     *   6. Step-rate limit: cap change to ±MAX_EXPAND/MAX_CONTRACT per frame
+     *   7. Clamp: [MIN_THROTTLE_MS, MAX_THROTTLE_MS]
+     */
+    private fun updateAdaptiveThrottle(measuredNs: Long) {
+        val measuredMs = measuredNs / 1_000_000.0
+
+        // 1. Warmup — skip noisy first frames
+        if (warmupCount < WARMUP_FRAMES) {
+            warmupCount++
+            return
+        }
+
+        // 2. EWMA smoothing
+        emaMs = if (emaMs == 0.0) measuredMs
+                else EMA_ALPHA * measuredMs + (1.0 - EMA_ALPHA) * emaMs
+
+        val currentMs = adaptiveThrottleMs.get().toDouble()
+        processedFrames++
+
+        // 3. Panic backoff: measured far exceeds current interval
+        if (measuredMs > currentMs * PANIC_RATIO) {
+            val panicMs = (currentMs * PANIC_SCALE).toLong()
+                .coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
+            adaptiveThrottleMs.set(panicMs)
+            if (processedFrames % LOG_EVERY_N_FRAMES == 0L) {
+                Log.i(TAG, "[v2.12.0-03] PANIC throttle=${panicMs}ms measured=${measuredMs.toInt()}ms EMA=${emaMs.toInt()}ms")
+            }
+            return
+        }
+
+        // 4. Target with safety headroom
+        val targetMs = (emaMs * SAFETY_FACTOR).toLong()
+            .coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
+
+        // 5. Deadband — ignore tiny fluctuations
+        if (Math.abs(targetMs - currentMs) < currentMs * DEADBAND_RATIO) return
+
+        // 6. Step-rate limit
+        val newMs = when {
+            targetMs > currentMs -> (currentMs + MAX_EXPAND_PER_FRAME).toLong()
+                .coerceAtMost(targetMs).coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
+            else                 -> (currentMs - MAX_CONTRACT_PER_FRAME).toLong()
+                .coerceAtLeast(targetMs).coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
+        }
+
+        adaptiveThrottleMs.set(newMs)
+
+        if (processedFrames % LOG_EVERY_N_FRAMES == 0L) {
+            Log.i(TAG, "[v2.12.0-03] throttle=${newMs}ms EMA=${emaMs.toInt()}ms measured=${measuredMs.toInt()}ms frames=$processedFrames")
         }
     }
 
