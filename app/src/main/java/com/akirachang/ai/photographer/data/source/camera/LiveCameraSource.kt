@@ -1046,6 +1046,28 @@ class LiveCameraSource @Inject constructor(
                             Log.i(TAG, "[v2.12.0] ResolutionSelector: ${currentAspectRatioMode.displayName} → RATIO_$targetAspectRatio")
                         }
 
+                    // v2.12.0: Dedicated analysisSelector for ImageAnalysis — capped at ≤640×480
+                    // Rationale: commonSelector lets HAL pick any resolution (e.g. Sony selects 1920×1080
+                    //   for 16:9 → FPS drops below 20). ML Kit analysis does not need high resolution.
+                    //   Separating selectors: Preview+Capture keep full quality; Analysis stays small.
+                    val analysisSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                        .setAspectRatioStrategy(
+                            androidx.camera.core.resolutionselector.AspectRatioStrategy(
+                                targetAspectRatio,
+                                androidx.camera.core.resolutionselector.AspectRatioStrategy.FALLBACK_RULE_AUTO
+                            )
+                        )
+                        .setResolutionStrategy(
+                            androidx.camera.core.resolutionselector.ResolutionStrategy(
+                                android.util.Size(640, 480),
+                                androidx.camera.core.resolutionselector.ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER
+                            )
+                        )
+                        .build()
+                        .also {
+                            Log.i(TAG, "[v2.12.0] analysisSelector: ${currentAspectRatioMode.displayName} → capped ≤640×480")
+                        }
+
                     // Store target for diagnostic logging
                     selectedResolution = targetResolution
 
@@ -1109,8 +1131,9 @@ class LiveCameraSource @Inject constructor(
 
                     // 2. Build ImageAnalysis UseCase (for Bitmap stream to UI)
                     // v2.10.0: Use unified AspectRatioStrategy for consistency with ViewPort
+                    // v2.12.0: Use analysisSelector (≤640×480 cap) — prevents HAL-dependent FPS drop
                     imageAnalysis = ImageAnalysis.Builder()
-                        .setResolutionSelector(commonSelector)
+                        .setResolutionSelector(analysisSelector)
                         .setTargetRotation(Surface.ROTATION_0)  // Set target rotation for proper orientation
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
