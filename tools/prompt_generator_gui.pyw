@@ -392,12 +392,17 @@ class PromptGeneratorApp:
     # ── Path Computation & File Creation ─────────────────────────────────────
 
     def _compute_paths(self) -> dict:
-        """Build relative (display) and absolute (file I/O) paths for L0-L2 docs."""
-        version = self.version_var.get().strip() or "v0.0.0"
-        topic   = self.topic_var.get().strip()[:30]
-        topic   = re.sub(r'[\\/*?:"<>|]', '_', topic).replace(' ', '_')
-        base    = f"{version}_{topic}" if topic else version
-        rel_dir = Path("docs") / "features" / version
+        """Build relative (display) and absolute (file I/O) paths for L0-L2 docs.
+
+        Iteration suffix rule: v2.12.0-01 → directory docs/features/v2.12.0/
+        but filename keeps full version: v2.12.0-01_topic-L0.md
+        """
+        version     = self.version_var.get().strip() or "v0.0.0"
+        dir_version = re.sub(r'-\d+$', '', version)   # strip -NN for directory only
+        topic       = self.topic_var.get().strip()[:30]
+        topic       = re.sub(r'[\\/*?:"<>|]', '_', topic).replace(' ', '_')
+        base        = f"{version}_{topic}" if topic else version
+        rel_dir     = Path("docs") / "features" / dir_version
         return {
             "abs_dir": PROJECT_ROOT / rel_dir,
             "L0": rel_dir / f"{base}-L0.md",
@@ -427,7 +432,9 @@ class PromptGeneratorApp:
         def fwd(p):
             return p.as_posix()
 
-        if step_key == "Step 1":
+        if step_key == "Step 0":
+            content = content.rstrip() + ". The planning document is primarily in Traditional Chinese."
+        elif step_key == "Step 1":
             content = (content.rstrip()
                        + f"\n@{fwd(paths['L0'])}"
                        + f". The planning document is primarily in Traditional Chinese"
