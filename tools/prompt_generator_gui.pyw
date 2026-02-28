@@ -47,12 +47,15 @@ STEPS = [
     {"key": "Step 3", "label": "Step 3 — Claude Code", "tool": "Claude Code",        "color": Colors.ACCENT},
 ]
 
-MODEL_NAME = "gemini-2.5-flash"
-API_URL    = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent"
+MODEL_NAME   = "gemini-2.5-flash"
+API_URL      = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent"
+PROJECT_ROOT = Path(__file__).parent.parent   # tools/../ → project root
 
 SYSTEM_INSTRUCTION = """\
 你是一位開發工作流架構師。根據使用者的問題，生成 4 個步驟的 Hybrid Workflow 提示詞。
-嚴格按照以下格式輸出，每個 Step 必須以 "Step N:" 開頭（N 為 0-3）：
+嚴格按照以下格式輸出，首先輸出 FileName 行，再依序輸出 Step 0-3：
+
+FileName: [英文 snake_case，最多 30 字元，精確描述問題核心，例如 aeaf_lock_focus_delay]
 
 Step 0: 探索與定位 (Traycer)
 目的：說明此步驟的目的。
@@ -160,6 +163,41 @@ class PromptGeneratorApp:
         tk.Label(
             key_row,
             text="  (留空則使用 GEMINI_API_KEY 環境變數)",
+            font=("Microsoft JhengHei UI", 8),
+            fg="gray", bg=Colors.CARD_BG
+        ).pack(side=tk.LEFT)
+
+        # Version + Topic row
+        ver_row = tk.Frame(frame, bg=Colors.CARD_BG)
+        ver_row.pack(padx=10, pady=(2, 2), fill=tk.X)
+
+        tk.Label(
+            ver_row, text="版本:",
+            font=("Microsoft JhengHei UI", 9),
+            bg=Colors.CARD_BG, width=9, anchor=tk.W
+        ).pack(side=tk.LEFT)
+
+        self.version_var = tk.StringVar(value="v2.12.0")
+        tk.Entry(
+            ver_row, textvariable=self.version_var,
+            font=("Consolas", 9), width=12
+        ).pack(side=tk.LEFT, padx=(0, 12))
+
+        tk.Label(
+            ver_row, text="檔名 (自動):",
+            font=("Microsoft JhengHei UI", 9),
+            bg=Colors.CARD_BG
+        ).pack(side=tk.LEFT)
+
+        self.topic_var = tk.StringVar()
+        tk.Entry(
+            ver_row, textvariable=self.topic_var,
+            font=("Consolas", 9), width=32
+        ).pack(side=tk.LEFT, padx=(0, 5))
+
+        tk.Label(
+            ver_row,
+            text="  (由 AI 依問題描述自動生成，可手動覆蓋)",
             font=("Microsoft JhengHei UI", 8),
             fg="gray", bg=Colors.CARD_BG
         ).pack(side=tk.LEFT)
@@ -351,6 +389,58 @@ class PromptGeneratorApp:
             txt.insert(tk.END, content)
         txt.config(state=tk.DISABLED)
 
+    # ── Path Computation & File Creation ─────────────────────────────────────
+
+    def _compute_paths(self) -> dict:
+        """Build relative (display) and absolute (file I/O) paths for L0-L2 docs."""
+        version = self.version_var.get().strip() or "v0.0.0"
+        topic   = self.topic_var.get().strip()[:30]
+        topic   = re.sub(r'[\\/*?:"<>|]', '_', topic).replace(' ', '_')
+        base    = f"{version}_{topic}" if topic else version
+        rel_dir = Path("docs") / "features" / version
+        return {
+            "abs_dir": PROJECT_ROOT / rel_dir,
+            "L0": rel_dir / f"{base}-L0.md",
+            "L1": rel_dir / f"{base}-L1.md",
+            "L2": rel_dir / f"{base}-L2.md",
+        }
+
+    def _create_doc_files(self, paths: dict):
+        """Create docs/features/<version>/ directory and empty L0-L2 placeholder files."""
+        try:
+            paths["abs_dir"].mkdir(parents=True, exist_ok=True)
+            for key in ("L0", "L1", "L2"):
+                abs_fp = PROJECT_ROOT / paths[key]
+                if not abs_fp.exists():
+                    abs_fp.write_text("", encoding="utf-8")
+            rel = paths["abs_dir"].relative_to(PROJECT_ROOT).as_posix()
+            self.write_log(f"📁 已創建規劃書目錄：{rel}", "Success")
+            for key in ("L0", "L1", "L2"):
+                self.write_log(f"  📄 {paths[key].as_posix()}", "Info")
+        except Exception as exc:
+            self.write_log(f"⚠️ 創建規劃書檔案失敗：{exc}", "Warning")
+
+    def _postprocess_step(self, step_key: str, content: str, paths: dict) -> str:
+        """Remove '建議提示詞：' label and inject file-path references per step."""
+        content = content.replace("建議提示詞：", "").replace("建議提示詞:", "")
+
+        def fwd(p):
+            return p.as_posix()
+
+        if step_key == "Step 1":
+            content = (content.rstrip()
+                       + f"\n@{fwd(paths['L0'])}"
+                       + f". The planning document is primarily in Traditional Chinese"
+                         f" and is saved file: @{fwd(paths['L1'])}")
+        elif step_key == "Step 2":
+            content = (content.rstrip()
+                       + f"\n@{fwd(paths['L1'])}"
+                       + f". The planning document is primarily in Traditional Chinese"
+                         f" and is saved file: @{fwd(paths['L2'])}")
+        elif step_key == "Step 3":
+            content = content.rstrip() + f"\n@{fwd(paths['L2'])}"
+        return content
+
     # ── API Call & Parsing ────────────────────────────────────────────────────
 
     def _on_generate(self):
@@ -387,9 +477,9 @@ class PromptGeneratorApp:
 
         try:
             response_text = self._call_with_retry(payload, api_key)
-            steps = self._parse_steps(response_text)
+            steps, filename = self._parse_steps(response_text)
 
-            self.root.after(0, self._on_api_success, steps, response_text)
+            self.root.after(0, self._on_api_success, steps, response_text, filename)
         except Exception as exc:
             self.root.after(0, self._on_api_error, str(exc))
 
@@ -419,10 +509,15 @@ class PromptGeneratorApp:
 
         raise Exception("所有重試均失敗")
 
-    def _parse_steps(self, text: str) -> dict:
-        """Split Gemini response into per-step sections."""
+    def _parse_steps(self, text: str) -> tuple:
+        """Split Gemini response into per-step sections; also extract FileName."""
+        # Extract FileName from the first matching line
+        filename = ""
+        fn_match = re.search(r'^FileName:\s*(\S+)', text, re.IGNORECASE | re.MULTILINE)
+        if fn_match:
+            filename = re.sub(r'[\\/*?:"<>|]', '_', fn_match.group(1).strip())[:30]
+
         result = {}
-        # Split on 'Step N:' boundaries
         parts = re.split(r'(?=Step\s+\d+\s*:)', text, flags=re.IGNORECASE)
         for part in parts:
             part = part.strip()
@@ -432,12 +527,21 @@ class PromptGeneratorApp:
             if match:
                 idx = int(match.group(1))
                 result[f"Step {idx}"] = part
-        return result
+        return result, filename
 
-    def _on_api_success(self, steps: dict, raw: str):
+    def _on_api_success(self, steps: dict, raw: str, filename: str = ""):
+        if filename:
+            self.topic_var.set(filename)
+            self.write_log(f"📛 自動生成檔名：{filename}", "Info")
+        else:
+            self.write_log("⚠️ 未解析到 FileName，使用現有主題欄位值", "Warning")
+        paths = self._compute_paths()
+        self._create_doc_files(paths)
+
         for step in STEPS:
             key = step["key"]
             content = steps.get(key, f"（{key} 內容未從 API 回應中解析出來）\n\n原始回應：\n{raw}")
+            content = self._postprocess_step(key, content, paths)
             self._set_step_content(key, content)
 
         parsed_count = len([k for k in steps if any(s["key"] == k for s in STEPS)])
