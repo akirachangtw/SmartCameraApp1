@@ -1046,17 +1046,19 @@ class LiveCameraSource @Inject constructor(
                             Log.i(TAG, "[v2.12.0] ResolutionSelector: ${currentAspectRatioMode.displayName} → RATIO_$targetAspectRatio")
                         }
 
-                    // v2.12.0: Dedicated analysisSelector for ImageAnalysis — capped at ≤640×480
+                    // v2.12.0-02: Dedicated analysisSelector for ImageAnalysis — capped at ≤640×480
                     // Rationale: commonSelector lets HAL pick any resolution (e.g. Sony selects 1920×1080
                     //   for 16:9 → FPS drops below 20). ML Kit analysis does not need high resolution.
                     //   Separating selectors: Preview+Capture keep full quality; Analysis stays small.
+                    // v2.12.0-02 fix: Remove AspectRatioStrategy from analysisSelector.
+                    //   Root cause: Sony XQ-BT52 HAL has no 16:9 YUV_420_888 resolution < 1280×720.
+                    //   AspectRatioStrategy(16:9) filtered to 16:9-only resolutions → Sony minimum =
+                    //   1280×720 → ResolutionStrategy cap(640×480) failed (no lower 16:9 found).
+                    //   Fix: AR-free selector → HAL picks 640×480 (4:3 physical) for both 4:3 and 16:9
+                    //   modes. ViewPort cropRect handles the 16:9 visible region.
+                    //   Impact: ML Kit analyzes full 640×480 in 16:9 mode (slight letterbox FOV).
+                    //   imageProxy.width=640, imageProxy.height=480 for all modes → coordinate mapping OK.
                     val analysisSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
-                        .setAspectRatioStrategy(
-                            androidx.camera.core.resolutionselector.AspectRatioStrategy(
-                                targetAspectRatio,
-                                androidx.camera.core.resolutionselector.AspectRatioStrategy.FALLBACK_RULE_AUTO
-                            )
-                        )
                         .setResolutionStrategy(
                             androidx.camera.core.resolutionselector.ResolutionStrategy(
                                 android.util.Size(640, 480),
@@ -1065,7 +1067,7 @@ class LiveCameraSource @Inject constructor(
                         )
                         .build()
                         .also {
-                            Log.i(TAG, "[v2.12.0] analysisSelector: ${currentAspectRatioMode.displayName} → capped ≤640×480")
+                            Log.i(TAG, "[v2.12.0-02] analysisSelector: AR-free, capped ≤640×480 (both modes)")
                         }
 
                     // Store target for diagnostic logging
