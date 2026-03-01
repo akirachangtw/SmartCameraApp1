@@ -2,6 +2,7 @@ package com.akirachang.ai.photographer.presentation.camera
 
 import android.graphics.Bitmap
 import android.os.Build
+import android.os.SystemClock
 import android.util.Log
 import androidx.camera.core.ImageCapture
 import androidx.lifecycle.ViewModel
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -63,6 +65,20 @@ class CameraViewModel @Inject constructor(
         const val DEBUG_DISABLE_BITMAP_PREVIEW = false  // Test A switch - DISABLED (Phase 0 complete)
         const val DEBUG_DISABLE_OVERLAYS = false         // Test B switch
         const val DEBUG_DISABLE_ANALYSIS = false         // Test C switch
+
+        // v2.12.0-03: Adaptive ML Kit throttle for CameraViewModel (device mode)
+        private const val ADAPTIVE_THROTTLE_DEFAULT_MS  = 200L
+        private const val ADAPTIVE_THROTTLE_MIN_MS      = 100L
+        private const val ADAPTIVE_THROTTLE_MAX_MS      = 500L
+        private const val ADAPTIVE_WARMUP_FRAMES        = 3
+        private const val ADAPTIVE_EMA_ALPHA            = 0.2
+        private const val ADAPTIVE_SAFETY_FACTOR        = 1.25
+        private const val ADAPTIVE_DEADBAND_RATIO       = 0.10
+        private const val ADAPTIVE_MAX_EXPAND_MS        = 50L
+        private const val ADAPTIVE_MAX_CONTRACT_MS      = 20L
+        private const val ADAPTIVE_PANIC_RATIO          = 1.5
+        private const val ADAPTIVE_PANIC_SCALE          = 1.2
+        private const val ADAPTIVE_LOG_EVERY_N_FRAMES   = 30
     }
 
     private val _state = MutableStateFlow(CameraState())
@@ -123,6 +139,13 @@ class CameraViewModel @Inject constructor(
     private var consecutiveNoFaceDetections = 0
     private val MIN_DETECTIONS_TO_SHOW = 3  // Need 3 consecutive detections to show
     private val MIN_NO_DETECTIONS_TO_HIDE = 5  // Need 5 consecutive empty frames to hide
+
+    // v2.12.0-03: Adaptive throttle state for ML Kit analysis (device mode)
+    // All accessed on Main thread (viewModelScope) — no AtomicLong needed
+    private var mlkitThrottleMs: Long      = ADAPTIVE_THROTTLE_DEFAULT_MS
+    private var mlkitEmaMs: Double         = 0.0
+    private var mlkitWarmupCount: Int      = 0
+    private var mlkitProcessedFrames: Long = 0L
 
     /**
      * Camera preview bitmap stream (v2.5.1)
@@ -1423,9 +1446,10 @@ class CameraViewModel @Inject constructor(
 
         previewBitmap
             .filterNotNull()
-            // Throttle analysis to avoid processing every frame
-            // Process approximately every 100ms (10 FPS)
-            .sample(100)
+            // v2.12.0-03: sample at MIN rate; EWMA adds delay() after processing for adaptive pacing
+            // NOTE: conflate() was tried but StateFlow.distinctUntilChanged + BitmapPool object reuse
+            //       caused the channel to stop emitting. sample() uses a timer and is BitmapPool-safe.
+            .sample(ADAPTIVE_THROTTLE_MIN_MS)
             .onEach { bitmap ->
                 try {
                     // v2.8.4: End-to-end profiling
@@ -1527,12 +1551,17 @@ class CameraViewModel @Inject constructor(
                     // (runs at full frame rate, independent of this sample(100) throttle)
 
                     // v2.8.4: End-to-end profiling summary
-                    val e2eTotal = (System.nanoTime() - e2eStart) / 1_000_000.0
+                    val e2eNs    = System.nanoTime() - e2eStart        // v2.12.0-03: ns for EWMA
+                    val e2eTotal = e2eNs / 1_000_000.0
                     Log.i(TAG, "[v2.8.4 E2E] Total=${"%.1f".format(e2eTotal)}ms " +
                                "(Convert=${"%.1f".format(convertTime)}ms, " +
                                "MLKit=${"%.1f".format(mlkitTime)}ms, " +
                                "Composition=${"%.1f".format(compositionTime)}ms, " +
                                "Lighting=${"%.1f".format(lightingTime)}ms)")
+                    updateMlkitAdaptiveThrottle(e2eNs)                 // v2.12.0-03: update EWMA
+                    // v2.12.0-03: Adaptive pacing — add delay if throttle demands slower rate
+                    val extraMs = mlkitThrottleMs - (e2eNs / 1_000_000L)
+                    if (extraMs > 0L) delay(extraMs)
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to analyze preview bitmap", e)
                 }
@@ -1569,6 +1598,62 @@ class CameraViewModel @Inject constructor(
             Log.e(TAG, "ML Kit analysis failed", e)
             null
         }
+    }
+
+    /**
+     * v2.12.0-03: Update adaptive throttle for CameraViewModel ML Kit analysis (device mode).
+     *
+     * Algorithm identical to SmartCameraAnalyzer.updateAdaptiveThrottle():
+     *   1. Warmup: skip first ADAPTIVE_WARMUP_FRAMES to exclude JIT/cold-start spikes
+     *   2. EWMA: smooth measured E2E latency with α=0.2
+     *   3. Panic backoff: if measured > interval×PANIC_RATIO → immediate scale-up
+     *   4. Target = EWMA × SAFETY_FACTOR (1.25)
+     *   5. Deadband: skip if |target - current| < current × 10%
+     *   6. Step-rate: cap change to +50ms / -20ms per frame
+     *   7. Clamp: [100ms, 500ms]
+     */
+    private fun updateMlkitAdaptiveThrottle(measuredNs: Long) {
+        val measuredMs = measuredNs / 1_000_000.0
+
+        if (mlkitWarmupCount < ADAPTIVE_WARMUP_FRAMES) {
+            mlkitWarmupCount++
+            return
+        }
+
+        mlkitEmaMs = if (mlkitEmaMs == 0.0) measuredMs
+                     else ADAPTIVE_EMA_ALPHA * measuredMs + (1.0 - ADAPTIVE_EMA_ALPHA) * mlkitEmaMs
+
+        val currentMs = mlkitThrottleMs.toDouble()
+        mlkitProcessedFrames++
+
+        if (measuredMs > currentMs * ADAPTIVE_PANIC_RATIO) {
+            val panicMs = (currentMs * ADAPTIVE_PANIC_SCALE).toLong()
+                .coerceIn(ADAPTIVE_THROTTLE_MIN_MS, ADAPTIVE_THROTTLE_MAX_MS)
+            mlkitThrottleMs = panicMs
+            if (mlkitProcessedFrames % ADAPTIVE_LOG_EVERY_N_FRAMES == 0L) {
+                Log.i(TAG, "[v2.12.0-03] PANIC throttle=${panicMs}ms measured=${measuredMs.toInt()}ms EMA=${mlkitEmaMs.toInt()}ms")
+            }
+            return
+        }
+
+        val targetMs = (mlkitEmaMs * ADAPTIVE_SAFETY_FACTOR).toLong()
+            .coerceIn(ADAPTIVE_THROTTLE_MIN_MS, ADAPTIVE_THROTTLE_MAX_MS)
+
+        // Log every N frames unconditionally — shows convergence even when deadband is stable
+        if (mlkitProcessedFrames % ADAPTIVE_LOG_EVERY_N_FRAMES == 0L) {
+            Log.i(TAG, "[v2.12.0-03] throttle=${mlkitThrottleMs}ms target=${targetMs}ms EMA=${mlkitEmaMs.toInt()}ms measured=${measuredMs.toInt()}ms frames=$mlkitProcessedFrames")
+        }
+
+        if (Math.abs(targetMs - currentMs) < currentMs * ADAPTIVE_DEADBAND_RATIO) return
+
+        val newMs = when {
+            targetMs > currentMs -> (currentMs + ADAPTIVE_MAX_EXPAND_MS).toLong()
+                .coerceAtMost(targetMs).coerceIn(ADAPTIVE_THROTTLE_MIN_MS, ADAPTIVE_THROTTLE_MAX_MS)
+            else                 -> (currentMs - ADAPTIVE_MAX_CONTRACT_MS).toLong()
+                .coerceAtLeast(targetMs).coerceIn(ADAPTIVE_THROTTLE_MIN_MS, ADAPTIVE_THROTTLE_MAX_MS)
+        }
+
+        mlkitThrottleMs = newMs
     }
 
     /**
