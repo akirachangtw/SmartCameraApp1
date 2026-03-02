@@ -1283,7 +1283,9 @@ class CameraViewModel @Inject constructor(
 
             // v2.12.0-04: Calculate screen-space bbox size for adaptive focus frame
             // Transform bbox corners through CoordinateTransformer for accurate screen-space dimensions.
-            // Scale factor 0.85 keeps the frame slightly inset of the detected object (L2 spec).
+            // Scale factor 1.5: frame slightly larger than subject so adaptation is visible at
+            // normal shooting distances on high-density displays (>2.5x). 0.85 was too small —
+            // all values fell below the 48dp minimum on Sony/Pixel at typical face distances.
             val focusSizePx = if (transformer != null) {
                 val box = topCandidate.box
                 val (sLeft, _) = transformer.imageToScreen(box.left.toFloat(), box.top.toFloat())
@@ -1291,7 +1293,7 @@ class CameraViewModel @Inject constructor(
                 val (_, sTop) = transformer.imageToScreen(box.left.toFloat(), box.top.toFloat())
                 val screenW = abs(sRight - sLeft)
                 val screenH = abs(sBottom - sTop)
-                max(screenW, screenH) * 0.85f
+                max(screenW, screenH) * 1.5f
             } else 0f  // 0f = FocusIndicator uses default 48dp
             _state.update { it.copy(focusFrameSizePx = focusSizePx) }
 
