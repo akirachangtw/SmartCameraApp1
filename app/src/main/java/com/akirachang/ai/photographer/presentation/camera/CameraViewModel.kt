@@ -42,6 +42,8 @@ import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 import com.akirachang.ai.photographer.data.source.analysis.GuidelineAnalyzer
 import com.akirachang.ai.photographer.BuildConfig
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
+import kotlin.math.abs
+import kotlin.math.max
 import javax.inject.Inject
 
 @HiltViewModel
@@ -1016,7 +1018,13 @@ class CameraViewModel @Inject constructor(
                     // OF/Static: alpha 1.0 for 1s → fade 500ms → alpha 0.4 (dwell indicator).
                     if (!enteredMLKitTrackingMode) {
                         delay(1000)  // Keep for 1 second
-                        _state.update { it.copy(focusIndicatorFading = true, focusIndicatorFadeStartTime = System.currentTimeMillis()) }
+                        _state.update {
+                            it.copy(
+                                focusIndicatorFading = true,
+                                focusIndicatorFadeStartTime = System.currentTimeMillis(),
+                                focusFrameSizePx = 0f  // v2.12.0-04: reset to default 48dp on dwell fade
+                            )
+                        }
                         delay(500)   // Fade out for 500ms
                         // Keep focusIndicatorFading=true to maintain alpha 0.4 (reset on next tap)
                     }
@@ -1230,7 +1238,13 @@ class CameraViewModel @Inject constructor(
             detectionResult.imageWidth else detectionResult.imageHeight
 
         // Collect all candidates with scores
-        val candidates = mutableListOf<Pair<Pair<Float, Float>, Float>>()
+        // v2.12.0-04: FocusCandidate carries bounding box for adaptive frame size calculation
+        data class FocusCandidate(
+            val imageX: Float, val imageY: Float,
+            val score: Float,
+            val box: android.graphics.Rect
+        )
+        val candidates = mutableListOf<FocusCandidate>()
 
         val transformer = _state.value.coordinateTransformer
 
@@ -1244,7 +1258,7 @@ class CameraViewModel @Inject constructor(
             val eyePosition = detectionResult.eyePositions.firstOrNull { it.faceId == face.trackingId }
             val imageCenterX = eyePosition?.nearestEye?.x ?: face.boundingBox.exactCenterX()
             val imageCenterY = eyePosition?.nearestEye?.y ?: face.boundingBox.exactCenterY()
-            candidates.add((imageCenterX to imageCenterY) to score)
+            candidates.add(FocusCandidate(imageCenterX, imageCenterY, score, face.boundingBox))
         }
 
         // Objects
@@ -1252,27 +1266,41 @@ class CameraViewModel @Inject constructor(
             val score = calculateSaliencyScore(obj.boundingBox, false, effectiveImgW, effectiveImgH)
             val imageCenterX = obj.boundingBox.exactCenterX()
             val imageCenterY = obj.boundingBox.exactCenterY()
-            candidates.add((imageCenterX to imageCenterY) to score)
+            candidates.add(FocusCandidate(imageCenterX, imageCenterY, score, obj.boundingBox))
         }
 
         // Find top candidate
-        val topCandidate = candidates.maxByOrNull { it.second }
+        val topCandidate = candidates.maxByOrNull { it.score }
 
         // Auto-focus if score is above threshold
-        if (topCandidate != null && topCandidate.second > 50f) {
-            val (imageX, imageY) = topCandidate.first
-            // Convert image-space point to screen space before calling focusOnPoint.
+        if (topCandidate != null && topCandidate.score > 50f) {
+            // Convert image-space center to screen space before calling focusOnPoint.
             val (screenX, screenY) = if (transformer != null) {
-                transformer.imageToScreen(imageX, imageY)
+                transformer.imageToScreen(topCandidate.imageX, topCandidate.imageY)
             } else {
-                imageX to imageY  // Legacy fallback
+                topCandidate.imageX to topCandidate.imageY  // Legacy fallback
             }
+
+            // v2.12.0-04: Calculate screen-space bbox size for adaptive focus frame
+            // Transform bbox corners through CoordinateTransformer for accurate screen-space dimensions.
+            // Scale factor 0.85 keeps the frame slightly inset of the detected object (L2 spec).
+            val focusSizePx = if (transformer != null) {
+                val box = topCandidate.box
+                val (sLeft, _) = transformer.imageToScreen(box.left.toFloat(), box.top.toFloat())
+                val (sRight, sBottom) = transformer.imageToScreen(box.right.toFloat(), box.bottom.toFloat())
+                val (_, sTop) = transformer.imageToScreen(box.left.toFloat(), box.top.toFloat())
+                val screenW = abs(sRight - sLeft)
+                val screenH = abs(sBottom - sTop)
+                max(screenW, screenH) * 0.85f
+            } else 0f  // 0f = FocusIndicator uses default 48dp
+            _state.update { it.copy(focusFrameSizePx = focusSizePx) }
+
             // v2.11.4: isUserTap=false (auto-focus call, not user manual tap)
             // Record auto-focus time here (independent throttle, not lastManualTapTime)
             lastAutoFocusTime = now
             focusOnPoint(screenX, screenY, viewWidth, viewHeight, isUserTap = false)
             if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Smart Subject Focus: score=${topCandidate.second}, image=($imageX, $imageY), screen=($screenX, $screenY)")
+                Log.d(TAG, "Smart Subject Focus: score=${topCandidate.score}, image=(${topCandidate.imageX}, ${topCandidate.imageY}), screen=($screenX, $screenY), frameSizePx=$focusSizePx")
             }
         }
     }

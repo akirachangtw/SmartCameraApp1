@@ -71,11 +71,15 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.getValue
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.coerceIn
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -382,6 +386,7 @@ fun CameraScreen(
                     FocusIndicator(
                         x = x,
                         y = y,
+                        focusFrameSizePx = state.focusFrameSizePx,  // v2.12.0-04: adaptive frame size
                         isFocusing = state.isFocusing,
                         focusSuccess = state.focusSuccess,
                         isTracking = state.trackedObjectId != null || state.trackedPointActive,  // v2.9.10/v2.x.x: ML Kit + Optical Flow tracking
@@ -574,6 +579,7 @@ fun CameraScreen(
 private fun FocusIndicator(
     x: Float,
     y: Float,
+    focusFrameSizePx: Float = 0f,  // v2.12.0-04: adaptive size in screen px (0 = default 48dp)
     isFocusing: Boolean,
     focusSuccess: Boolean?,
     isTracking: Boolean,
@@ -697,8 +703,22 @@ private fun FocusIndicator(
     // Corner brackets appear only on success/locked
     val showCornerBrackets = focusSuccess == true || isLocked
 
+    // v2.12.0-04: Adaptive focus frame size — screen px → Dp → spring animation
+    // 0f means no ML Kit bbox available; fall back to fixed 48dp.
+    val targetSizeDp: Dp = if (focusFrameSizePx > 0f) {
+        with(LocalDensity.current) { focusFrameSizePx.toDp() }.coerceIn(48.dp, 120.dp)
+    } else 48.dp
+    val animatedSizeDp by animateDpAsState(
+        targetValue = targetSizeDp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "focus_frame_size"
+    )
+
     Canvas(modifier = modifier) {
-        val size = 48.dp.toPx() * scale.value
+        val size = animatedSizeDp.toPx() * scale.value  // v2.12.0-04: replaced hardcoded 48.dp
         val halfSize = size / 2
         val strokeWidth = animatedStrokeWidth.dp.toPx()
 
