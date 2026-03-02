@@ -204,33 +204,60 @@
 
 ## v2.12.0 系列
 
-### v2.12.0 (2026-02-27) 🚧 開發中
+### v2.12.0-04 (2026-03-03) ✅ 穩定，可安全合併
 - **Branch**: `feature/camera-core-v2.12.0`
-- **Stable Commit**: `b93d181`
-- **Status**: 🚧 **開發中（待 Pixel 9a 驗證）**
+- **App Version**: `2.12.0-04` (versionCode=85)
+- **Latest Commit**: `6e5cd67`
+- **Status**: ✅ **穩定 — Emulator + Sony XQ-BT52 + Pixel 9a 驗測通過**
 
-**功能目標**: 移除 1:1 長寬比模式，僅保留 4:3 / 16:9
+**功能目標**: CameraX 分析管線精簡 + FocusIndicator 動態縮放
 
-**設計決策**:
-- 1:1 為數位裁切，並非 sensor 原生比例
-- Pixel 9a 1:1 模式 ImageProxy = 1920×1920（3.69 MP），是 FPS 崩潰根因
-- 現代主流手機螢幕僅需 4:3（sensor 原生）+ 16:9（螢幕填充）
+---
 
-**包含功能**:
-- ✅ **移除 RATIO_1_1**: AspectRatioMode enum 僅剩 RATIO_4_3 / RATIO_16_9
-- ✅ **簡化 ResolutionSelector**: commonSelector 直接 when 分支（無 ResolutionFilter）
-- ✅ **設定頁面**: 移除 1:1 選項
-- ✅ **循環更新**: 4:3 → 16:9 → 4:3
+#### v2.12.0-01 (2026-02-27)
+- **Commit**: `b93d181` (原始), `c1646fd` (完整)
+- ✅ **移除 RATIO_1_1**: AspectRatioMode 僅剩 RATIO_4_3 / RATIO_16_9
+- ✅ **analysisSelector cap**: `ResolutionStrategy(Size(640, 480), FALLBACK_RULE_CLOSEST_LOWER)`
+- 設計決策: 1:1 模式 ImageProxy=1920×1920 是 Pixel 9a FPS 崩潰根因
 
-**關鍵提交**:
-- `b93d181`: [Refactor] v2.12.0: Remove 1:1 aspect ratio mode
+#### v2.12.0-02 (2026-02-28)
+- **Commit**: `28b501f`
+- ✅ **移除 analysisSelector setAspectRatioStrategy**: 解決 Sony XQ-BT52 HAL Quirk
+- Sony 16:9 YUV_420_888 最小解析度=1280×720，AR 約束使 cap 失效
+
+#### v2.12.0-03 (2026-03-01)
+- **Commit**: `bdc65c0`
+- ✅ **CameraViewModel Adaptive EWMA Throttle** (Device mode)
+- `.sample(100ms)` 替代 `conflate()`（BitmapPool reuse 陷阱）
+- EWMA 公式: `EMA = EMA * 0.8 + measured * 0.2`，額外 delay 保持目標間隔
+
+#### v2.12.0-04 (2026-03-03)
+- **Commits**: `610d143` (feature), `22b0d02` (fix scale), `6e5cd67` (version bump)
+- ✅ **FocusIndicator 自適應框** 48-120dp，基於 ML Kit bounding box
+- ✅ `CameraState.focusFrameSizePx: Float = 0f`
+- ✅ `FocusCandidate` data class，bbox 四角轉 screen-space via CoordinateTransformer
+- ✅ `VISUAL_PADDING_SCALE = 1.5f`（正常距離可見縮放，替換 L2 初始值 0.85）
+- ✅ `animateDpAsState(Spring.DampingRatioMediumBouncy + StiffnessMediumLow)`
+
+---
+
+**關鍵提交（完整）**:
+- `c1646fd`: v2.12.0-01 analysisSelector cap
+- `28b501f`: v2.12.0-02 Sony HAL fix
+- `bdc65c0`: v2.12.0-03 EWMA throttle
+- `610d143`: v2.12.0-04 adaptive focus frame (feature)
+- `22b0d02`: v2.12.0-04 scale fix 0.85→1.5
+- `6e5cd67`: version 2.12.0-04 + MERGE_SOP update
 
 **測試結果**:
-- ⏳ Pixel 9a: 待驗證
+- ✅ Emulator (Pixel_5): 16KB ELF PASS, 無 crash
+- ✅ Sony XQ-BT52 (HQ616R2713): frameSizePx 72.6dp（正常距離人臉）驗測 PASS
+- ✅ Pixel 9a (59131JEBF17244): 安裝驗測 PASS
 
 **決議文檔**:
-- `devspec/feature_record_Backlog.md` (Aspect Ratio Toggle 章節)
-- `plans/roadmap/v2.11-v2.1x-roadmap.md` (v2.12.0 Step 8)
+- `docs/features/v2.12.0/` (L0×3 / L1×3 / L2×3 共 9 個)
+- `docs/test_results/v2.12.0/TEST_REPORT_v2.12.0-02.md`
+- `devspec/feature_record_Backlog.md` (v2.12.0 章節)
 
 **已知問題**: 無
 
