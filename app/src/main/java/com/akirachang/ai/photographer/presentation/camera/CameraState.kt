@@ -54,7 +54,9 @@ data class CameraState(
     val contentBounds: RectF = RectF(0f, 0f, 0f, 0f),  // Actual preview content bounds (excludes FIT_CENTER letterbox)
     val coordinateTransformer: CoordinateTransformer? = null,  // Coordinate transformer for Image ↔ Preview ↔ Screen mapping
     // v2.12.0-04: Adaptive focus frame size in screen pixels (0f = use default 48dp)
-    val focusFrameSizePx: Float = 0f
+    val focusFrameSizePx: Float = 0f,
+    // v2.12.0-05: 4-way AF state machine (Eye-AF throttle + withTimeout)
+    val afState: AfState = AfState.Idle
 )
 
 sealed class CameraUiEvent {

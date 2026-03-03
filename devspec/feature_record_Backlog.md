@@ -267,8 +267,8 @@ Last updated: 2026-02-25
 - [x] [v2.11.4] Fix 1: `calculateSaliencyScore()` 公式 0.6f→60f, 0.4f→40f — ML Kit auto-focus 從未觸發根本原因
 - [x] [v2.11.4] Fix 2: `focusOnPoint(isUserTap)` 參數 + `lastAutoFocusTime` 獨立節流 — auto-focus 自我封鎖問題
 - [x] [v2.11.4] Fix 3: `enteredMLKitTrackingMode` 本地變數 — ML Kit 追蹤中 focus indicator 不應淡出
-- [ ] [v2.12.0] 自適應對焦框大小 — `boundingBox.width() × 0.8` → `coerceIn(48dp, 120dp)` | 分析: `v2.11.1_Camera_Autofocus_Issues-Final.md` P2 Fix 2.1
-- [ ] [v2.12.0] PreviewViewportContainer — 統一 Overlay 座標系統（Grid / Detection / Focus 全部限制在 contentBounds）| 分析: `v2.11.1_Camera_Autofocus_Issues-Final.md` P2
+- [x] [v2.12.0-04] 自適應對焦框大小 — `boundingBox.width() × 0.8` → `coerceIn(48dp, 120dp)` ✅ 完成 commit `610d143` + VISUAL_PADDING_SCALE=1.5 `22b0d02`
+- [x] [v2.11.1] PreviewViewportContainer — 統一 Overlay 座標系統（Grid / Detection / Focus 全部限制在 contentBounds）✅ 早在 v2.11.1 完整實作（非 v2.12.0 待辦，Roadmap 標記有誤）| 驗證: emulator Pixel_5 16:9 + Sony XQ-BT52 4:3 黑邊排除正確
 
 ---
 

@@ -26,7 +26,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
+import kotlin.math.min
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
 import com.akirachang.ai.photographer.data.sensor.DeviceSensorManager
 import com.akirachang.ai.photographer.data.sensor.OrientationData
@@ -125,9 +129,11 @@ class CameraViewModel @Inject constructor(
     // Smart Subject Focus (v2.11.0: AI Auto-Focus)
     private var lastManualTapTime: Long = 0L
     private val MANUAL_TAP_OVERRIDE_DURATION = 5000L  // 5 seconds
-    // v2.11.4: Separate throttle for auto-focus (avoid conflating with manual tap override)
-    private var lastAutoFocusTime: Long = 0L
-    private val AUTO_FOCUS_THROTTLE_MS = 2000L  // 2 seconds between auto-focus triggers
+    // v2.12.0-05: Eye-AF dynamic throttle + 4-way state machine (Step 3+4)
+    // Replaces lastAutoFocusTime / AUTO_FOCUS_THROTTLE_MS (simple 2 s gate).
+    private val eyeAfStabilityTracker = StabilityTracker()
+    private val eyeAfThrottle = AfTriggerThrottleController(stabilityTracker = eyeAfStabilityTracker)
+    private val FOCUS_TIMEOUT_MS = 3_000L  // withTimeout guard for HAL deadlock
 
     // v2.11.2 Fix E: Track the active focusOnPoint() coroutine to cancel stale jobs.
     // Prevents race condition where stale delay(500) clears focusPoint after lockAEAF sets it.
@@ -441,6 +447,7 @@ class CameraViewModel @Inject constructor(
     fun updatePreviewSize(width: Int, height: Int) {
         previewWidth = width
         previewHeight = height
+        eyeAfThrottle.setScreenWidth(width)  // v2.12.0-05: update rescanThresholdPx (5% of width)
         Log.d(TAG, "Preview size updated: ${width}x${height}")
     }
 
@@ -1004,10 +1011,27 @@ class CameraViewModel @Inject constructor(
                 }
 
                 // Execute CameraX focus (both modes)
-                val result = cameraRepository.focusOnPoint(x, y, viewWidth, viewHeight)
+                // v2.12.0-05 Step 4: Transition to FOCUSING state + withTimeout HAL deadlock guard.
+                _state.update { it.copy(afState = AfState.Focusing) }
+
+                val result = try {
+                    withTimeout(FOCUS_TIMEOUT_MS) {
+                        cameraRepository.focusOnPoint(x, y, viewWidth, viewHeight)
+                    }
+                } catch (e: TimeoutCancellationException) {
+                    Log.w(TAG, "focusOnPoint: HAL timeout after ${FOCUS_TIMEOUT_MS}ms at ($x, $y)")
+                    val prevCount = (_state.value.afState as? AfState.Failed)?.failCount ?: 0
+                    val newCount  = prevCount + 1
+                    _state.update { it.copy(isFocusing = false, focusSuccess = false, afState = AfState.Failed(FailReason.TIMEOUT, newCount)) }
+                    eyeAfThrottle.onFailure(newCount)
+                    delay(500)
+                    _state.update { it.copy(focusPoint = null, focusSuccess = null, trackedObjectId = null, trackedObjectType = null, afState = AfState.Idle) }
+                    return@launch
+                }
 
                 if (result.isSuccess) {
-                    _state.update { it.copy(isFocusing = false, focusSuccess = true) }
+                    _state.update { it.copy(isFocusing = false, focusSuccess = true, afState = AfState.Locked) }
+                    eyeAfThrottle.onSuccess()  // v2.12.0-05: arm throttle + start postLockCooldown
                     Log.d(TAG, "Focus successful at ($x, $y)")
 
                     // v2.11.4 Fix 3: Skip dwell fade when ML Kit continuous tracking is active.
@@ -1031,7 +1055,10 @@ class CameraViewModel @Inject constructor(
                     // else: ML Kit tracking — no fade, indicator stays bright (alpha 1.0)
 
                 } else {
-                    _state.update { it.copy(isFocusing = false, focusSuccess = false) }
+                    val prevCount = (_state.value.afState as? AfState.Failed)?.failCount ?: 0
+                    val newCount  = prevCount + 1
+                    _state.update { it.copy(isFocusing = false, focusSuccess = false, afState = AfState.Failed(FailReason.HAL_FAILED, newCount)) }
+                    eyeAfThrottle.onFailure(newCount)  // v2.12.0-05: backoff on HAL failure
                     Log.w(TAG, "Focus failed at ($x, $y): ${result.exceptionOrNull()?.message}")
                     delay(500)
                     _state.update {
@@ -1039,23 +1066,35 @@ class CameraViewModel @Inject constructor(
                             focusPoint = null,
                             focusSuccess = null,
                             trackedObjectId = null,
-                            trackedObjectType = null
+                            trackedObjectType = null,
+                            afState = AfState.Idle  // v2.12.0-05
                         )
                     }
                 }
 
             } catch (e: Exception) {
+                if (e is CancellationException) {
+                    // v2.12.0-05 Fix: Job cancelled by focusJob.cancel() (new tap / camera switch).
+                    // Not a HAL failure — must NOT penalise eyeAfThrottle with onFailure().
+                    Log.d(TAG, "focusOnPoint cancelled (new tap / camera switch)")
+                    _state.update { it.copy(isFocusing = false, focusSuccess = false, afState = AfState.Idle) }
+                    throw e  // Re-throw to preserve coroutine cancellation semantics
+                }
                 Log.e(TAG, "Focus error", e)
+                val prevCount = (_state.value.afState as? AfState.Failed)?.failCount ?: 0
+                val newCount  = prevCount + 1
                 _state.update {
                     it.copy(
                         isFocusing = false,
                         focusSuccess = false,
                         trackedObjectId = null,
-                        trackedObjectType = null
+                        trackedObjectType = null,
+                        afState = AfState.Failed(FailReason.EXCEPTION, newCount)  // v2.12.0-05
                     )
                 }
+                eyeAfThrottle.onFailure(newCount)
                 delay(500)
-                _state.update { it.copy(focusPoint = null, focusSuccess = null) }
+                _state.update { it.copy(focusPoint = null, focusSuccess = null, afState = AfState.Idle) }
             }
         }
     }
@@ -1213,13 +1252,11 @@ class CameraViewModel @Inject constructor(
 
         // Don't auto-focus if:
         // 1. AE/AF is locked
-        // 2. Currently focusing
-        // 3. Manual tap occurred within last 5 seconds (user has override priority)
-        // 4. v2.11.4: Auto-focus triggered within last 2 seconds (independent throttle)
+        // 2. Manual tap occurred within last 5 seconds (user has override priority)
+        // Note: isFocusing / lastAutoFocusTime checks removed — AfTriggerThrottleController
+        //       handles FOCUSING guard and cooldown via shouldTrigger() (v2.12.0-05 Step 3).
         val canAutoFocus = !currentState.isAEAFLocked &&
-            !currentState.isFocusing &&
-            (now - lastManualTapTime) > MANUAL_TAP_OVERRIDE_DURATION &&
-            (now - lastAutoFocusTime) > AUTO_FOCUS_THROTTLE_MS
+            (now - lastManualTapTime) > MANUAL_TAP_OVERRIDE_DURATION
 
         if (!canAutoFocus) return
 
@@ -1297,9 +1334,9 @@ class CameraViewModel @Inject constructor(
             } else 0f  // 0f = FocusIndicator uses default 48dp
             _state.update { it.copy(focusFrameSizePx = focusSizePx) }
 
-            // v2.11.4: isUserTap=false (auto-focus call, not user manual tap)
-            // Record auto-focus time here (independent throttle, not lastManualTapTime)
-            lastAutoFocusTime = now
+            // v2.12.0-05: Eye-AF throttle gate (Step 3) — replaces lastAutoFocusTime check.
+            // Evaluates: FOCUSING guard + delta-px + cooldown + backoff in one call.
+            if (!eyeAfThrottle.shouldTrigger(screenX, screenY, currentState.afState)) return
             focusOnPoint(screenX, screenY, viewWidth, viewHeight, isUserTap = false)
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "Smart Subject Focus: score=${topCandidate.score}, image=(${topCandidate.imageX}, ${topCandidate.imageY}), screen=($screenX, $screenY), frameSizePx=$focusSizePx")
