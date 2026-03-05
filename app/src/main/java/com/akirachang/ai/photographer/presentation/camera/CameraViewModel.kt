@@ -133,7 +133,14 @@ class CameraViewModel @Inject constructor(
     // Replaces lastAutoFocusTime / AUTO_FOCUS_THROTTLE_MS (simple 2 s gate).
     private val eyeAfStabilityTracker = StabilityTracker()
     private val eyeAfThrottle = AfTriggerThrottleController(stabilityTracker = eyeAfStabilityTracker)
-    private val FOCUS_TIMEOUT_MS = 3_000L  // withTimeout guard for HAL deadlock
+    // v2.12.0-06 H2.2: 4500ms > CameraX autoCancelDuration(4s) — withTimeout fires only if HAL
+    // is truly stuck. Previously 3000ms caused premature TIMEOUT before CameraX could deliver
+    // success (e.g. rear-camera face focus succeeds at ~3.5s on some devices).
+    private val FOCUS_TIMEOUT_MS = 4_500L
+    // v2.12.0-06 Bug C: Face-first selection grace period — prevents target ping-pong when face
+    // detection flickers between 0 and 1 (partial occlusion / head turn).
+    private var lastFaceSeenMs = 0L
+    private val FACE_GRACE_PERIOD_MS = 500L
 
     // v2.11.2 Fix E: Track the active focusOnPoint() coroutine to cancel stale jobs.
     // Prevents race condition where stale delay(500) clears focusPoint after lockAEAF sets it.
@@ -1046,7 +1053,9 @@ class CameraViewModel @Inject constructor(
                             it.copy(
                                 focusIndicatorFading = true,
                                 focusIndicatorFadeStartTime = System.currentTimeMillis(),
-                                focusFrameSizePx = 0f  // v2.12.0-04: reset to default 48dp on dwell fade
+                                // v2.12.0-06: reset both axes to default 48dp on dwell fade
+                                focusFrameWidthPx = 0f,
+                                focusFrameHeightPx = 0f
                             )
                         }
                         delay(500)   // Fade out for 500ms
@@ -1274,19 +1283,23 @@ class CameraViewModel @Inject constructor(
         val effectiveImgH = if (detectionResult.rotationDegrees == 90 || detectionResult.rotationDegrees == 270)
             detectionResult.imageWidth else detectionResult.imageHeight
 
-        // Collect all candidates with scores
-        // v2.12.0-04: FocusCandidate carries bounding box for adaptive frame size calculation
+        // v2.12.0-06 Bug C: Face-first candidate selection with grace period.
+        // When faces are present → use ONLY faces (never mix with objects).
+        // When faces drop to 0 → wait FACE_GRACE_PERIOD_MS before falling through to objects,
+        // preventing target ping-pong on partial occlusion / head turns.
+        // v2.12.0-06 H3.2: isFace added — drives per-type bbox scale factor below.
         data class FocusCandidate(
             val imageX: Float, val imageY: Float,
             val score: Float,
-            val box: android.graphics.Rect
+            val box: android.graphics.Rect,
+            val isFace: Boolean = false
         )
         val candidates = mutableListOf<FocusCandidate>()
 
         val transformer = _state.value.coordinateTransformer
+        val nowMs = System.currentTimeMillis()
 
-        // Faces (with Eye-AF integration)
-        // Candidate points are in ML Kit image space and will be converted to screen space before use.
+        // Phase 1 — Faces (highest priority)
         detectionResult.faces.forEach { face ->
             val score = calculateSaliencyScore(face.boundingBox, true, effectiveImgW, effectiveImgH)
             if (BuildConfig.DEBUG) {
@@ -1295,15 +1308,24 @@ class CameraViewModel @Inject constructor(
             val eyePosition = detectionResult.eyePositions.firstOrNull { it.faceId == face.trackingId }
             val imageCenterX = eyePosition?.nearestEye?.x ?: face.boundingBox.exactCenterX()
             val imageCenterY = eyePosition?.nearestEye?.y ?: face.boundingBox.exactCenterY()
-            candidates.add(FocusCandidate(imageCenterX, imageCenterY, score, face.boundingBox))
+            candidates.add(FocusCandidate(imageCenterX, imageCenterY, score, face.boundingBox, isFace = true))
+        }
+        if (detectionResult.faces.isNotEmpty()) {
+            lastFaceSeenMs = nowMs
         }
 
-        // Objects
-        detectionResult.objects.forEach { obj ->
-            val score = calculateSaliencyScore(obj.boundingBox, false, effectiveImgW, effectiveImgH)
-            val imageCenterX = obj.boundingBox.exactCenterX()
-            val imageCenterY = obj.boundingBox.exactCenterY()
-            candidates.add(FocusCandidate(imageCenterX, imageCenterY, score, obj.boundingBox))
+        // Phase 2 — Objects (only when no face found AND grace period has expired)
+        if (candidates.isEmpty()) {
+            val graceExpired = (nowMs - lastFaceSeenMs) >= FACE_GRACE_PERIOD_MS
+            if (graceExpired) {
+                detectionResult.objects.forEach { obj ->
+                    val score = calculateSaliencyScore(obj.boundingBox, false, effectiveImgW, effectiveImgH)
+                    val imageCenterX = obj.boundingBox.exactCenterX()
+                    val imageCenterY = obj.boundingBox.exactCenterY()
+                    candidates.add(FocusCandidate(imageCenterX, imageCenterY, score, obj.boundingBox))
+                }
+            }
+            // else: grace period active — skip this frame, keep current AF state
         }
 
         // Find top candidate
@@ -1318,28 +1340,37 @@ class CameraViewModel @Inject constructor(
                 topCandidate.imageX to topCandidate.imageY  // Legacy fallback
             }
 
-            // v2.12.0-04: Calculate screen-space bbox size for adaptive focus frame
-            // Transform bbox corners through CoordinateTransformer for accurate screen-space dimensions.
-            // Scale factor 1.5: frame slightly larger than subject so adaptation is visible at
-            // normal shooting distances on high-density displays (>2.5x). 0.85 was too small —
-            // all values fell below the 48dp minimum on Sony/Pixel at typical face distances.
-            val focusSizePx = if (transformer != null) {
+            // v2.12.0-06 Bug A: Separate screenW/screenH for non-square focus frame.
+            // v2.12.0-06 H3.2: Face=1.5x (stable, close bbox), Object=1.8x (tight ML Kit bbox).
+            // Object bboxes from ML Kit Object Detection tend to hug the contour, making 1.5x
+            // too small to be visible as an indicator at normal shooting distances.
+            val bboxScaleFactor = if (topCandidate.isFace) 1.5f else 1.8f
+            val (focusWidthPx, focusHeightPx) = if (transformer != null) {
                 val box = topCandidate.box
-                val (sLeft, _) = transformer.imageToScreen(box.left.toFloat(), box.top.toFloat())
+                val (sLeft, sTop) = transformer.imageToScreen(box.left.toFloat(), box.top.toFloat())
                 val (sRight, sBottom) = transformer.imageToScreen(box.right.toFloat(), box.bottom.toFloat())
-                val (_, sTop) = transformer.imageToScreen(box.left.toFloat(), box.top.toFloat())
-                val screenW = abs(sRight - sLeft)
-                val screenH = abs(sBottom - sTop)
-                max(screenW, screenH) * 1.5f
-            } else 0f  // 0f = FocusIndicator uses default 48dp
-            _state.update { it.copy(focusFrameSizePx = focusSizePx) }
+                abs(sRight - sLeft) * bboxScaleFactor to abs(sBottom - sTop) * bboxScaleFactor
+            } else 0f to 0f  // 0f = FocusIndicator uses default 48dp
+
+            // v2.12.0-06 H1.2: Grow-only size update during AfState.Locked (postLockCooldown).
+            // Bug B fix (frozen-small) — only shrink is blocked; the frame can still grow.
+            // Scenario: front camera close-up, user moves in after lock → face bbox grows larger
+            //   than the frame captured at lock time → frame must expand to reflect proximity.
+            // Shrink is still blocked to prevent micro-flicker when the face drifts a few px.
+            // When Locked state ends (cooldown expires / subject lost), the next frame resets freely.
+            val updatedW = if (currentState.afState is AfState.Locked)
+                maxOf(focusWidthPx, currentState.focusFrameWidthPx) else focusWidthPx
+            val updatedH = if (currentState.afState is AfState.Locked)
+                maxOf(focusHeightPx, currentState.focusFrameHeightPx) else focusHeightPx
+            _state.update { it.copy(focusFrameWidthPx = updatedW, focusFrameHeightPx = updatedH) }
 
             // v2.12.0-05: Eye-AF throttle gate (Step 3) — replaces lastAutoFocusTime check.
             // Evaluates: FOCUSING guard + delta-px + cooldown + backoff in one call.
             if (!eyeAfThrottle.shouldTrigger(screenX, screenY, currentState.afState)) return
+
             focusOnPoint(screenX, screenY, viewWidth, viewHeight, isUserTap = false)
             if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Smart Subject Focus: score=${topCandidate.score}, image=(${topCandidate.imageX}, ${topCandidate.imageY}), screen=($screenX, $screenY), frameSizePx=$focusSizePx")
+                Log.d(TAG, "Smart Subject Focus: score=${topCandidate.score}, image=(${topCandidate.imageX}, ${topCandidate.imageY}), screen=($screenX, $screenY), frame=${focusWidthPx}x${focusHeightPx}px")
             }
         }
     }

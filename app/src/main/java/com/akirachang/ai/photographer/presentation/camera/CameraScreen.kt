@@ -386,7 +386,8 @@ fun CameraScreen(
                     FocusIndicator(
                         x = x,
                         y = y,
-                        focusFrameSizePx = state.focusFrameSizePx,  // v2.12.0-04: adaptive frame size
+                        focusFrameWidthPx = state.focusFrameWidthPx,   // v2.12.0-06: non-square frame
+                        focusFrameHeightPx = state.focusFrameHeightPx,
                         isFocusing = state.isFocusing,
                         focusSuccess = state.focusSuccess,
                         isTracking = state.trackedObjectId != null || state.trackedPointActive,  // v2.9.10/v2.x.x: ML Kit + Optical Flow tracking
@@ -579,7 +580,9 @@ fun CameraScreen(
 private fun FocusIndicator(
     x: Float,
     y: Float,
-    focusFrameSizePx: Float = 0f,  // v2.12.0-04: adaptive size in screen px (0 = default 48dp)
+    // v2.12.0-06: separate W/H replaces focusFrameSizePx — enables non-square rectangle frames
+    focusFrameWidthPx: Float = 0f,
+    focusFrameHeightPx: Float = 0f,
     isFocusing: Boolean,
     focusSuccess: Boolean?,
     isTracking: Boolean,
@@ -703,30 +706,47 @@ private fun FocusIndicator(
     // Corner brackets appear only on success/locked
     val showCornerBrackets = focusSuccess == true || isLocked
 
-    // v2.12.0-04: Adaptive focus frame size — screen px → Dp → spring animation
-    // 0f means no ML Kit bbox available; fall back to fixed 48dp.
-    val targetSizeDp: Dp = if (focusFrameSizePx > 0f) {
-        with(LocalDensity.current) { focusFrameSizePx.toDp() }.coerceIn(48.dp, 120.dp)
-    } else 48.dp
-    val animatedSizeDp by animateDpAsState(
-        targetValue = targetSizeDp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "focus_frame_size"
+    // v2.12.0-06: Adaptive focus frame — separate W/H animations (Bug A: non-square support).
+    // 0f means no ML Kit bbox available; fall back to fixed 48dp square.
+    // L2 spec: use DampingRatioNoBouncy + StiffnessMedium so W/H animate identically (no distortion).
+    val density = LocalDensity.current
+    val animSpec = spring<Dp>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium
     )
+    // v2.12.0-06 H3.3: Aspect-ratio-preserving clamp — avoids degenerating rectangles into squares.
+    // Independent coerceIn() on W and H (old code) could turn a 5:1 bbox into 48×48 square.
+    // Fix: scale both axes uniformly so neither exceeds maxDp, then floor each to minDp.
+    val (targetWidthDp, targetHeightDp) = if (focusFrameWidthPx > 0f && focusFrameHeightPx > 0f) {
+        val rawW = with(density) { focusFrameWidthPx.toDp() }
+        val rawH = with(density) { focusFrameHeightPx.toDp() }
+        val minDp = 48.dp
+        val maxDp = 200.dp
+        // Compute a single uniform scale-down so the larger axis fits within maxDp.
+        val scaleDown = minOf(
+            if (rawW > maxDp) maxDp / rawW else 1f,
+            if (rawH > maxDp) maxDp / rawH else 1f
+        )
+        val scaledW = (rawW * scaleDown).coerceAtLeast(minDp)
+        val scaledH = (rawH * scaleDown).coerceAtLeast(minDp)
+        scaledW to scaledH
+    } else 48.dp to 48.dp
+    val animatedWidthDp by animateDpAsState(targetValue = targetWidthDp, animationSpec = animSpec, label = "focus_frame_w")
+    val animatedHeightDp by animateDpAsState(targetValue = targetHeightDp, animationSpec = animSpec, label = "focus_frame_h")
 
     Canvas(modifier = modifier) {
-        val size = animatedSizeDp.toPx() * scale.value  // v2.12.0-04: replaced hardcoded 48.dp
-        val halfSize = size / 2
+        // v2.12.0-06 Bug A: independent W/H for non-square rectangle frame
+        val frameW = animatedWidthDp.toPx() * scale.value
+        val frameH = animatedHeightDp.toPx() * scale.value
+        val halfW = frameW / 2
+        val halfH = frameH / 2
         val strokeWidth = animatedStrokeWidth.dp.toPx()
 
         // Glow Layer (Bottom) - Neon effect
         drawRect(
             color = color,
-            topLeft = Offset(animatedX - halfSize, animatedY - halfSize),
-            size = Size(size, size),
+            topLeft = Offset(animatedX - halfW, animatedY - halfH),
+            size = Size(frameW, frameH),
             alpha = alpha * 0.3f,
             style = Stroke(width = strokeWidth * 2.4f)
         )
@@ -734,8 +754,8 @@ private fun FocusIndicator(
         // Core Layer (Top)
         drawRect(
             color = color,
-            topLeft = Offset(animatedX - halfSize, animatedY - halfSize),
-            size = Size(size, size),
+            topLeft = Offset(animatedX - halfW, animatedY - halfH),
+            size = Size(frameW, frameH),
             alpha = alpha,
             style = Stroke(width = strokeWidth)
         )
@@ -747,7 +767,8 @@ private fun FocusIndicator(
             drawCornerBrackets(
                 centerX = animatedX,
                 centerY = animatedY,
-                halfSize = halfSize,
+                halfW = halfW,
+                halfH = halfH,
                 bracketLength = bracketLength,
                 strokeWidth = strokeWidth * 2.4f,
                 color = color,
@@ -757,7 +778,8 @@ private fun FocusIndicator(
             drawCornerBrackets(
                 centerX = animatedX,
                 centerY = animatedY,
-                halfSize = halfSize,
+                halfW = halfW,
+                halfH = halfH,
                 bracketLength = bracketLength,
                 strokeWidth = strokeWidth,
                 color = color,
@@ -770,10 +792,12 @@ private fun FocusIndicator(
 /**
  * Draw L-shaped corner brackets (v2.11.0)
  */
+// v2.12.0-06: halfW/halfH replace halfSize — brackets follow non-square rectangle corners
 private fun DrawScope.drawCornerBrackets(
     centerX: Float,
     centerY: Float,
-    halfSize: Float,
+    halfW: Float,
+    halfH: Float,
     bracketLength: Float,
     strokeWidth: Float,
     color: Color,
@@ -782,15 +806,15 @@ private fun DrawScope.drawCornerBrackets(
     // Top-left corner
     drawLine(
         color = color,
-        start = Offset(centerX - halfSize, centerY - halfSize),
-        end = Offset(centerX - halfSize + bracketLength, centerY - halfSize),
+        start = Offset(centerX - halfW, centerY - halfH),
+        end = Offset(centerX - halfW + bracketLength, centerY - halfH),
         strokeWidth = strokeWidth,
         alpha = alpha
     )
     drawLine(
         color = color,
-        start = Offset(centerX - halfSize, centerY - halfSize),
-        end = Offset(centerX - halfSize, centerY - halfSize + bracketLength),
+        start = Offset(centerX - halfW, centerY - halfH),
+        end = Offset(centerX - halfW, centerY - halfH + bracketLength),
         strokeWidth = strokeWidth,
         alpha = alpha
     )
@@ -798,15 +822,15 @@ private fun DrawScope.drawCornerBrackets(
     // Top-right corner
     drawLine(
         color = color,
-        start = Offset(centerX + halfSize, centerY - halfSize),
-        end = Offset(centerX + halfSize - bracketLength, centerY - halfSize),
+        start = Offset(centerX + halfW, centerY - halfH),
+        end = Offset(centerX + halfW - bracketLength, centerY - halfH),
         strokeWidth = strokeWidth,
         alpha = alpha
     )
     drawLine(
         color = color,
-        start = Offset(centerX + halfSize, centerY - halfSize),
-        end = Offset(centerX + halfSize, centerY - halfSize + bracketLength),
+        start = Offset(centerX + halfW, centerY - halfH),
+        end = Offset(centerX + halfW, centerY - halfH + bracketLength),
         strokeWidth = strokeWidth,
         alpha = alpha
     )
@@ -814,15 +838,15 @@ private fun DrawScope.drawCornerBrackets(
     // Bottom-left corner
     drawLine(
         color = color,
-        start = Offset(centerX - halfSize, centerY + halfSize),
-        end = Offset(centerX - halfSize + bracketLength, centerY + halfSize),
+        start = Offset(centerX - halfW, centerY + halfH),
+        end = Offset(centerX - halfW + bracketLength, centerY + halfH),
         strokeWidth = strokeWidth,
         alpha = alpha
     )
     drawLine(
         color = color,
-        start = Offset(centerX - halfSize, centerY + halfSize),
-        end = Offset(centerX - halfSize, centerY + halfSize - bracketLength),
+        start = Offset(centerX - halfW, centerY + halfH),
+        end = Offset(centerX - halfW, centerY + halfH - bracketLength),
         strokeWidth = strokeWidth,
         alpha = alpha
     )
@@ -830,15 +854,15 @@ private fun DrawScope.drawCornerBrackets(
     // Bottom-right corner
     drawLine(
         color = color,
-        start = Offset(centerX + halfSize, centerY + halfSize),
-        end = Offset(centerX + halfSize - bracketLength, centerY + halfSize),
+        start = Offset(centerX + halfW, centerY + halfH),
+        end = Offset(centerX + halfW - bracketLength, centerY + halfH),
         strokeWidth = strokeWidth,
         alpha = alpha
     )
     drawLine(
         color = color,
-        start = Offset(centerX + halfSize, centerY + halfSize),
-        end = Offset(centerX + halfSize, centerY + halfSize - bracketLength),
+        start = Offset(centerX + halfW, centerY + halfH),
+        end = Offset(centerX + halfW, centerY + halfH - bracketLength),
         strokeWidth = strokeWidth,
         alpha = alpha
     )
