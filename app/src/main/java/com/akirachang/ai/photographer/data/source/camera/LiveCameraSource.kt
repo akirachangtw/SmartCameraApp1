@@ -115,6 +115,12 @@ class LiveCameraSource @Inject constructor(
     @Volatile
     private var aeAfLockState: AeAfLockState = AeAfLockState.UNLOCKED
 
+    // v2.12.0-07: Fixed-focus lens detection (set after bindToLifecycle).
+    // Front cameras on many devices (incl. Pixel 9a) have no VCM — startFocusAndMetering()
+    // always returns isFocusSuccessful=false, causing endless FAILED→backoff loops.
+    @Volatile
+    private var isFixedFocus = false
+
     // v2.11.4-08: Increments on every bindToLifecycle call.
     // Future callbacks capture this value at submission time; if it diverges (camera switched),
     // the stale callback is discarded, preventing LOCKED state from a recycled session.
@@ -664,13 +670,36 @@ class LiveCameraSource @Inject constructor(
                 factory.createPoint(x, y)
             }
 
-            // Build focus metering action
+            // v2.12.0-07: Fixed-focus bypass — skip FLAG_AF entirely.
+            // Fixed-focus lenses (e.g. Pixel 9a front camera) have no VCM motor;
+            // startFocusAndMetering(FLAG_AF) always returns isFocusSuccessful=false,
+            // causing AfState to enter endless FAILED→backoff loops.
+            // Instead: trigger AE+AWB only (exposure/white-balance still benefit from
+            // metering point) and return success immediately so ViewModel sets AfState.Locked.
+            if (isFixedFocus) {
+                Log.i(TAG, "[v2.12.0-07] Fixed-focus lens — AE/AWB metering only at ($x, $y)")
+                val aeOnlyAction = androidx.camera.core.FocusMeteringAction.Builder(
+                    focusPoint,
+                    androidx.camera.core.FocusMeteringAction.FLAG_AE or
+                            androidx.camera.core.FocusMeteringAction.FLAG_AWB
+                ).apply {
+                    setAutoCancelDuration(4, java.util.concurrent.TimeUnit.SECONDS)
+                }.build()
+                cameraControl.startFocusAndMetering(aeOnlyAction)
+                continuation.resume(Result.success(Unit))
+                return@suspendCancellableCoroutine
+            }
+
+            // Build focus metering action (autofocus-capable lenses)
+            // v2.12.0-06 H2.1: Add FLAG_AE so rear-camera HAL can gate exposure before locking AF.
+            // v2.12.0-06 H2.2: autoCancelDuration 5s→4s — CameraX must deliver result BEFORE
+            //   ViewModel's withTimeout(4500ms) fires, preventing premature TIMEOUT state + backoff.
             val action = androidx.camera.core.FocusMeteringAction.Builder(
                 focusPoint,
-                androidx.camera.core.FocusMeteringAction.FLAG_AF
+                androidx.camera.core.FocusMeteringAction.FLAG_AF or
+                        androidx.camera.core.FocusMeteringAction.FLAG_AE
             ).apply {
-                // Auto-cancel after 5 seconds
-                setAutoCancelDuration(5, java.util.concurrent.TimeUnit.SECONDS)
+                setAutoCancelDuration(4, java.util.concurrent.TimeUnit.SECONDS)
             }.build()
 
             // Start focus and metering
@@ -1196,6 +1225,12 @@ class LiveCameraSource @Inject constructor(
                     )
 
                     Log.i(TAG, "✅ Camera bound successfully with UseCaseGroup (${currentAspectRatioMode.displayName}): Preview + ImageAnalysis + ImageCapture + ViewPort WYSIWYG")
+
+                    // v2.12.0-07: Detect fixed-focus lens and store for focusOnPoint() bypass
+                    isFixedFocus = FixedFocusDetector.isFixedFocus(camera.cameraInfo)
+                    val afModes = FixedFocusDetector.getAfModes(camera.cameraInfo)
+                    val hwLevel = FixedFocusDetector.getHardwareLevel(camera.cameraInfo)
+                    Log.i(TAG, "[v2.12.0-07] isFixedFocus=$isFixedFocus, afModes=[${afModes.joinToString()}], hwLevel=$hwLevel")
 
                     // v2.11.4-06 Bug 2: Clear any lingering Camera2 interop options from previous session.
                     // When screen locks while AE_LOCK=true + AF_MODE=OFF are active, the
