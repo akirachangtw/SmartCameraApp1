@@ -115,20 +115,39 @@ Focus successful at (x, y)
 
 ---
 
-## Test Results (Work NB — to be filled)
+## Test Results — Sony XQ-BT52 (v2.12.0-08+09, 2026-03-06)
+
+**Date tested**: 2026-03-06
+**Tester**: Work NB
+**Logcat**: `logcat_sony_tc06_bugAB.log`
+
+| TC | Description | Result | Notes |
+|----|-------------|--------|-------|
+| TC-01 | Rear cam far face — AR preserved | ✅ PASS | |
+| TC-02 | Front cam normal dist — AR preserved | ✅ PASS | |
+| TC-03 | Rear cam close face — large AR frame | ✅ PASS | |
+| TC-04 | Rapid taps — no backoff | ✅ PASS | OperationCanceledException caught correctly |
+| TC-05 | Normal AF regression | ✅ PASS | |
+| TC-06 | TC-06 bugs found — see v2.12.0-10 | ❌ FAIL | Bug A + Bug B (details in SONY_BUG_ANALYSIS.md) |
+
+**Overall Result**: PARTIAL PASS → v2.12.0-10 built to fix TC-06 bugs
+
+---
+
+## Test Results — Work NB re-test (v2.12.0-10, pending)
 
 **Date tested**: __________
 **Tester**: Work NB / Claude Code
 
 | TC | Description | Result | Notes |
 |----|-------------|--------|-------|
-| TC-01 | Rear cam far face — AR preserved | ⏳ | |
-| TC-02 | Front cam normal dist — AR preserved | ⏳ | |
-| TC-03 | Rear cam close face — large AR frame | ⏳ | |
-| TC-04 | Rapid taps — no backoff | ⏳ | |
-| TC-05 | Normal AF regression | ⏳ | |
-| TC-06a | Front cam: frame scales with face distance | ⏳ | |
-| TC-06b | Rear cam: non-face tap shows 72dp square | ⏳ | |
+| TC-01 | Rear cam far face — AR preserved | ✅ PASS (prev) | |
+| TC-02 | Front cam normal dist — AR preserved | ✅ PASS (prev) | |
+| TC-03 | Rear cam close face — large AR frame | ✅ PASS (prev) | |
+| TC-04 | Rapid taps — no backoff | ✅ PASS (prev) | |
+| TC-05 | Normal AF regression | ✅ PASS (prev) | |
+| TC-06a | Front cam: frame scales with face distance | ⏳ | Bug A fix |
+| TC-06b | Rear cam: non-face tap shows 72dp square | ⏳ | Bug B fix |
 
 **Overall Result**: ⏳ PENDING
 
