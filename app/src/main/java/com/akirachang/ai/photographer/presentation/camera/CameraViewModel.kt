@@ -1064,11 +1064,23 @@ class CameraViewModel @Inject constructor(
                     // else: ML Kit tracking — no fade, indicator stays bright (alpha 1.0)
 
                 } else {
+                    val ex = result.exceptionOrNull()
+                    // v2.12.0-09: OperationCanceledException is a CameraX internal cancellation
+                    // (e.g., a new startFocusAndMetering() overrode the current one, or camera
+                    // switched). Not a HAL failure — reset to Idle without penalising eyeAfThrottle.
+                    val isOperationCancelled =
+                        ex is androidx.camera.core.CameraControl.OperationCanceledException ||
+                        ex?.cause is androidx.camera.core.CameraControl.OperationCanceledException
+                    if (isOperationCancelled) {
+                        Log.d(TAG, "[v2.12.0-09] OperationCanceledException — reset to Idle (no backoff)")
+                        _state.update { it.copy(isFocusing = false, focusSuccess = false, afState = AfState.Idle) }
+                        return@launch
+                    }
                     val prevCount = (_state.value.afState as? AfState.Failed)?.failCount ?: 0
                     val newCount  = prevCount + 1
                     _state.update { it.copy(isFocusing = false, focusSuccess = false, afState = AfState.Failed(FailReason.HAL_FAILED, newCount)) }
                     eyeAfThrottle.onFailure(newCount)  // v2.12.0-05: backoff on HAL failure
-                    Log.w(TAG, "Focus failed at ($x, $y): ${result.exceptionOrNull()?.message}")
+                    Log.w(TAG, "Focus failed at ($x, $y): ${ex?.message}")
                     delay(500)
                     _state.update {
                         it.copy(
