@@ -85,6 +85,11 @@ class CameraViewModel @Inject constructor(
         private const val ADAPTIVE_PANIC_RATIO          = 1.5
         private const val ADAPTIVE_PANIC_SCALE          = 1.2
         private const val ADAPTIVE_LOG_EVERY_N_FRAMES   = 30
+
+        // v2.12.0-10: Bbox scale factors shared by resolveTapTarget + updateTrackedObjectPosition.
+        // Face bboxes are stable; object bboxes hug contours → needs more padding.
+        const val BBOX_SCALE_FACE   = 1.5f
+        const val BBOX_SCALE_OBJECT = 1.8f
     }
 
     private val _state = MutableStateFlow(CameraState())
@@ -697,52 +702,84 @@ class CameraViewModel @Inject constructor(
         }
     }
 
+    // v2.12.0-10: Tap resolution result — carries screen-space bbox so the ML Kit branch can
+    // set the initial focusFrameWidthPx/HeightPx immediately (no 1-frame delay waiting for
+    // updateTrackedObjectPosition), fixing Bug A (front-cam fixed frame size across distances).
+    private sealed class TapTargetInfo {
+        /** Tap landed on an ML Kit face or object. */
+        data class Subject(
+            val trackingId: Int,
+            val type: TrackedObjectType,
+            val screenBoxPx: android.graphics.RectF   // image bbox converted to screen space
+        ) : TapTargetInfo()
+        /** Tap landed on empty area — no ML Kit subject. */
+        object Generic : TapTargetInfo()
+    }
+
+    // v2.12.0-10: Helper — converts an image-space Rect to a screen-space RectF using the
+    // CoordinateTransformer (FIT_CENTER geometry).  Returns null when transformer is unavailable.
+    private fun imageRectToScreenRectF(
+        box: android.graphics.Rect,
+        transformer: com.akirachang.ai.photographer.presentation.camera.components.CoordinateTransformer
+    ): android.graphics.RectF {
+        val (sLeft, sTop)     = transformer.imageToScreen(box.left.toFloat(),  box.top.toFloat())
+        val (sRight, sBottom) = transformer.imageToScreen(box.right.toFloat(), box.bottom.toFloat())
+        return android.graphics.RectF(sLeft, sTop, sRight, sBottom)
+    }
+
     /**
-     * Find tapped face or object for tracking
-     * v2.9.10: Traycer collision detection
+     * Resolve tap into a typed TapTargetInfo (v2.12.0-10, replaces findTappedTarget).
      *
-     * @param x Tap coordinate X (PreviewView coordinates)
-     * @param y Tap coordinate Y (PreviewView coordinates)
-     * @return Pair<trackingId, type> or null if no target found
+     * Returns [TapTargetInfo.Subject] when the tap hits an ML Kit face or object, carrying
+     * the screen-space bounding box so callers can set focusFrameWidthPx/HeightPx immediately.
+     * Returns [TapTargetInfo.Generic] when no subject is hit (OF / static focus path).
+     *
+     * @param x Tap X in PreviewView (screen) coordinates
+     * @param y Tap Y in PreviewView (screen) coordinates
      */
-    private fun findTappedTarget(x: Float, y: Float): Pair<Int, TrackedObjectType>? {
-        val detectionResult = _state.value.detectionResult ?: return null
+    private fun resolveTapTarget(x: Float, y: Float): TapTargetInfo {
+        val detectionResult = _state.value.detectionResult ?: return TapTargetInfo.Generic
         val transformer = _state.value.coordinateTransformer
 
-        // Convert tap point from screen space to ML Kit image space for boundingBox comparison.
-        // face.boundingBox / obj.boundingBox are in image coordinates; touch x,y are in screen coords.
+        // Convert tap point from screen → image space for bbox hit-test.
         val (imageX, imageY) = if (transformer != null) {
             transformer.screenToImage(x, y) ?: run {
-                Log.d(TAG, "findTappedTarget: tap ($x, $y) outside content bounds — no target")
-                return null
+                Log.d(TAG, "resolveTapTarget: tap ($x, $y) outside content bounds — Generic")
+                return TapTargetInfo.Generic
             }
         } else {
-            Log.w(TAG, "findTappedTarget: no coordinateTransformer, using raw screen coords (legacy fallback)")
+            Log.w(TAG, "resolveTapTarget: no coordinateTransformer, using raw screen coords (legacy fallback)")
             x to y
         }
 
-        Log.d(TAG, "findTappedTarget: screen=($x, $y) → image=($imageX, $imageY)")
+        Log.d(TAG, "resolveTapTarget: screen=($x, $y) → image=($imageX, $imageY)")
 
-        // Priority 1: Check faces (more stable tracking)
+        // Priority 1: Faces (more stable tracking, Face-First Policy per L2 §1)
         detectionResult.faces.forEachIndexed { index, face ->
             if (face.boundingBox.contains(imageX.toInt(), imageY.toInt())) {
                 val trackingId = face.trackingId ?: (index + 10000)
-                Log.i(TAG, "findTappedTarget: tapped face trackingId=$trackingId, bbox=${face.boundingBox}")
-                return Pair(trackingId, TrackedObjectType.FACE)
+                val screenBox = if (transformer != null)
+                    imageRectToScreenRectF(face.boundingBox, transformer)
+                else android.graphics.RectF(face.boundingBox)
+                Log.i(TAG, "resolveTapTarget: face trackingId=$trackingId, bbox=${face.boundingBox}")
+                return TapTargetInfo.Subject(trackingId, TrackedObjectType.FACE, screenBox)
             }
         }
 
-        // Priority 2: Check objects
+        // Priority 2: Objects
         detectionResult.objects.forEachIndexed { index, obj ->
             if (obj.boundingBox.contains(imageX.toInt(), imageY.toInt())) {
                 val trackingId = obj.trackingId ?: (index + 20000)
-                Log.i(TAG, "findTappedTarget: tapped object trackingId=$trackingId, bbox=${obj.boundingBox}")
-                return Pair(trackingId, TrackedObjectType.OBJECT)
+                val screenBox = if (transformer != null)
+                    imageRectToScreenRectF(obj.boundingBox, transformer)
+                else android.graphics.RectF(obj.boundingBox)
+                Log.i(TAG, "resolveTapTarget: object trackingId=$trackingId, bbox=${obj.boundingBox}")
+                return TapTargetInfo.Subject(trackingId, TrackedObjectType.OBJECT, screenBox)
             }
         }
 
-        Log.d(TAG, "findTappedTarget: no target at image=($imageX, $imageY)")
-        return null
+        Log.d(TAG, "resolveTapTarget: no target at image=($imageX, $imageY) — Generic")
+        return TapTargetInfo.Generic
     }
 
     /**
@@ -942,8 +979,8 @@ class CameraViewModel @Inject constructor(
                     return@launch
                 }
 
-                // v2.9.10: Find tapped target for tracking
-                val tappedTarget = findTappedTarget(x, y)
+                // v2.12.0-10: Resolve tap target (replaces findTappedTarget).
+                val tapInfo = resolveTapTarget(x, y)
                 // v2.11.4 Fix 3: Track which branch was taken at the START of the coroutine.
                 // Cannot rely on _state.value.trackedObjectId at focus-success time because:
                 //   (a) ML Kit detection may briefly clear trackedObjectId during the 1-2s focus window
@@ -952,10 +989,17 @@ class CameraViewModel @Inject constructor(
                 // Using a local variable ensures the fade decision matches the branch entered here.
                 var enteredMLKitTrackingMode = false
 
-                if (tappedTarget != null && FeatureFlags.enableFocusTracking) {
+                if (tapInfo is TapTargetInfo.Subject && FeatureFlags.enableFocusTracking) {
                     // ML Kit Tracking mode: Start continuous tracking
                     enteredMLKitTrackingMode = true
-                    val (trackingId, targetType) = tappedTarget
+                    val trackingId = tapInfo.trackingId
+                    val targetType = tapInfo.type
+                    // v2.12.0-10 Bug A fix: set initial frame dims from tap bbox immediately,
+                    // before updateTrackedObjectPosition fires (avoids 1-frame 48dp flash on
+                    // front cam and grow-only stale size after unlock).
+                    val scaleFactor = if (targetType == TrackedObjectType.FACE) BBOX_SCALE_FACE else BBOX_SCALE_OBJECT
+                    val initialW = tapInfo.screenBoxPx.width() * scaleFactor
+                    val initialH = tapInfo.screenBoxPx.height() * scaleFactor
                     _state.update {
                         it.copy(
                             focusPoint = Pair(x, y),
@@ -963,13 +1007,17 @@ class CameraViewModel @Inject constructor(
                             focusSuccess = null,
                             trackedObjectId = trackingId,
                             trackedObjectType = targetType,
-                            focusIndicatorFading = false  // Reset fade animation
+                            focusIndicatorFading = false,  // Reset fade animation
+                            isGenericTapActive = false,
+                            focusFrameWidthPx = initialW,
+                            focusFrameHeightPx = initialH
                         )
                     }
                     Log.i(TAG, "ML Kit tracking started: ID=$trackingId, type=$targetType")
 
-                } else if (tappedTarget == null && FeatureFlags.enableOpticalFlowTracking) {
+                } else if (tapInfo is TapTargetInfo.Generic && FeatureFlags.enableOpticalFlowTracking) {
                     // v2.x.x Phase 5: Optical Flow tracking mode (tap-to-track arbitrary point)
+                    // v2.12.0-10 Bug B fix: reset frame dims so stale face bbox doesn't persist.
                     _state.update {
                         it.copy(
                             focusPoint = Pair(x, y),
@@ -979,7 +1027,10 @@ class CameraViewModel @Inject constructor(
                             trackedObjectType = null,
                             trackedPointActive = true,
                             trackedPointLost = false,
-                            focusIndicatorFading = false  // Reset fade animation
+                            focusIndicatorFading = false,  // Reset fade animation
+                            isGenericTapActive = true,
+                            focusFrameWidthPx = 0f,
+                            focusFrameHeightPx = 0f
                         )
                     }
 
@@ -1004,6 +1055,7 @@ class CameraViewModel @Inject constructor(
 
                 } else {
                     // Static focus mode: Traditional tap-to-focus
+                    // v2.12.0-10 Bug B fix: reset frame dims so stale face bbox doesn't persist.
                     _state.update {
                         it.copy(
                             focusPoint = Pair(x, y),
@@ -1011,7 +1063,10 @@ class CameraViewModel @Inject constructor(
                             focusSuccess = null,
                             trackedObjectId = null,
                             trackedObjectType = null,
-                            focusIndicatorFading = false  // Reset fade animation
+                            focusIndicatorFading = false,  // Reset fade animation
+                            isGenericTapActive = true,
+                            focusFrameWidthPx = 0f,
+                            focusFrameHeightPx = 0f
                         )
                     }
                     Log.d(TAG, "Static focus mode at ($x, $y)")
@@ -1356,7 +1411,7 @@ class CameraViewModel @Inject constructor(
             // v2.12.0-06 H3.2: Face=1.5x (stable, close bbox), Object=1.8x (tight ML Kit bbox).
             // Object bboxes from ML Kit Object Detection tend to hug the contour, making 1.5x
             // too small to be visible as an indicator at normal shooting distances.
-            val bboxScaleFactor = if (topCandidate.isFace) 1.5f else 1.8f
+            val bboxScaleFactor = if (topCandidate.isFace) BBOX_SCALE_FACE else BBOX_SCALE_OBJECT
             val (focusWidthPx, focusHeightPx) = if (transformer != null) {
                 val box = topCandidate.box
                 val (sLeft, sTop) = transformer.imageToScreen(box.left.toFloat(), box.top.toFloat())

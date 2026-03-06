@@ -44,6 +44,25 @@ was caught by generic `else` branch → `eyeAfThrottle.onFailure()` → 2s backo
 Check `ex is OperationCanceledException || ex?.cause is OperationCanceledException`
 → reset to Idle without penalising throttle.
 
+### v2.12.0-10: Sony Bug A + Bug B Focus Frame State Reset
+
+**Bug A** (Front cam fixed frame size across distances):
+- Root cause: `focusFrameWidthPx/HeightPx` set to `0f` only in dwell-fade path; ML Kit branch
+  (when `enteredMLKitTrackingMode=true`) skips dwell fade entirely — frame dims never reset
+  between taps → grow-only `maxOf` in `AfState.Locked` keeps the first locked size forever.
+- Fix: `resolveTapTarget()` returns `TapTargetInfo.Subject` with `screenBoxPx`; ML Kit branch
+  immediately computes `initialW = screenBoxPx.width() * BBOX_SCALE_FACE` and sets it on tap.
+
+**Bug B** (Rear cam retains face frame shape after non-face tap):
+- Root cause: OF/Static branches never set `focusFrameWidthPx/HeightPx = 0f` — old face dims persist.
+- Fix: OF and Static branches now explicitly set `focusFrameWidthPx = 0f, focusFrameHeightPx = 0f`
+  + `isGenericTapActive = true` → `FocusIndicator` shows 72dp square (per L2 §2).
+
+**Files changed**:
+- `CameraViewModel.kt`: `resolveTapTarget()` + 3 tap branches updated + `BBOX_SCALE_*` in companion
+- `CameraScreen.kt`: `FocusIndicator` signature adds `isGenericTapActive`; 72dp branch in size calc
+- `CameraState.kt`: `isGenericTapActive: Boolean = false` field
+
 ---
 
 ## Test Instructions for Work NB
@@ -57,10 +76,10 @@ git pull origin feature/camera-core-v2.12.0
 ./gradlew assembleDeviceDebug
 adb -s 59131JEBF17244 install -r app/build/outputs/apk/device/debug/app-device-debug.apk
 
-# Logcat
-adb -s 59131JEBF17244 logcat -c
-adb -s 59131JEBF17244 logcat -v time CameraViewModel:D LiveCameraSource:I *:S \
-  > docs/test_results/v2.12.0/logcat_v2.12.0-08-09_$(date +%Y%m%d).log &
+# Logcat (Sony)
+adb -s HQ616R2713 logcat -c
+adb -s HQ616R2713 logcat -v time CameraViewModel:D LiveCameraSource:I *:S \
+  > docs/test_results/v2.12.0/logcat_v2.12.0-10_$(date +%Y%m%d).log &
 ```
 
 ### Test Cases Summary
@@ -72,7 +91,8 @@ adb -s 59131JEBF17244 logcat -v time CameraViewModel:D LiveCameraSource:I *:S \
 | TC-03 | Rear cam, close face — large frame, AR preserved | v2.12.0-08 |
 | TC-04 | Rapid taps rear cam — no 2s backoff pause | v2.12.0-09 |
 | TC-05 | Normal AF regression — lock/dwell works | regression |
-| TC-06 | Fixed-focus bypass regression (front cam) | regression |
+| TC-06a | Front cam: frame SCALES with face distance | v2.12.0-10 Bug A |
+| TC-06b | Rear cam: non-face tap shows 72dp square (not face shape) | v2.12.0-10 Bug B |
 
 ### Key Logcat Patterns
 
@@ -83,11 +103,14 @@ adb -s 59131JEBF17244 logcat -v time CameraViewModel:D LiveCameraSource:I *:S \
 # v2.12.0-07 regression still working:
 [v2.12.0-07] Fixed-focus lens — AE/AWB metering only at (x, y)
 
+# v2.12.0-10 Bug A fix — initial frame set from bbox on tap:
+ML Kit tracking started: ID=<n>, type=FACE
+
+# v2.12.0-10 Bug B fix — generic tap resets frame:
+resolveTapTarget: no target at image=(...) — Generic
+
 # Normal AF success:
 Focus successful at (x, y)
-
-# Should NOT appear for OperationCanceledException:
-Focus failed at (x, y)
 ```
 
 ---
@@ -104,11 +127,12 @@ Focus failed at (x, y)
 | TC-03 | Rear cam close face — large AR frame | ⏳ | |
 | TC-04 | Rapid taps — no backoff | ⏳ | |
 | TC-05 | Normal AF regression | ⏳ | |
-| TC-06 | Fixed-focus bypass regression | ⏳ | |
+| TC-06a | Front cam: frame scales with face distance | ⏳ | |
+| TC-06b | Rear cam: non-face tap shows 72dp square | ⏳ | |
 
 **Overall Result**: ⏳ PENDING
 
-**Logcat file**: `logcat_v2.12.0-08-09_YYYYMMDD.log`
+**Logcat file**: `logcat_v2.12.0-10_YYYYMMDD.log`
 
 ---
 
@@ -125,9 +149,9 @@ Focus failed at (x, y)
 | v2.12.0-07 | Fixed-focus bypass (Pixel 9a front cam) + FixedFocusDetector | ✅ |
 | v2.12.0-08 | Focus frame AR clamp uniform scale-up | ✅ Built — **⏳ Pending test** |
 | v2.12.0-09 | OperationCanceledException → Idle (no backoff) | ✅ Built — **⏳ Pending test** |
-| v2.12.0-10 | Rear cam object bbox mapping fix | ⏳ Not yet built |
+| v2.12.0-10 | Bug A+B fix: resolveTapTarget + 72dp generic tap + frame state reset | ✅ Built — **⏳ Pending test** |
 | v2.12.0-11 | ObjectTrackingPipeline + FocusUiSmoother integration | ⏳ Not yet built |
-| v2.12.0 | Stable tag — dual-camera AF complete | ⏳ Pending v2.12.0-10/11 |
+| v2.12.0 | Stable tag — dual-camera AF complete | ⏳ Pending v2.12.0-11 |
 
 ---
 

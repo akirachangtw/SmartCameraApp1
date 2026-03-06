@@ -388,6 +388,7 @@ fun CameraScreen(
                         y = y,
                         focusFrameWidthPx = state.focusFrameWidthPx,   // v2.12.0-06: non-square frame
                         focusFrameHeightPx = state.focusFrameHeightPx,
+                        isGenericTapActive = state.isGenericTapActive, // v2.12.0-10: 72dp generic tap frame
                         isFocusing = state.isFocusing,
                         focusSuccess = state.focusSuccess,
                         isTracking = state.trackedObjectId != null || state.trackedPointActive,  // v2.9.10/v2.x.x: ML Kit + Optical Flow tracking
@@ -583,6 +584,8 @@ private fun FocusIndicator(
     // v2.12.0-06: separate W/H replaces focusFrameSizePx — enables non-square rectangle frames
     focusFrameWidthPx: Float = 0f,
     focusFrameHeightPx: Float = 0f,
+    // v2.12.0-10: True when tap hit empty area (no ML Kit subject). Shows 72dp square frame.
+    isGenericTapActive: Boolean = false,
     isFocusing: Boolean,
     focusSuccess: Boolean?,
     isTracking: Boolean,
@@ -719,22 +722,27 @@ private fun FocusIndicator(
     //   e.g. rawW=36dp, rawH=43dp both got floored to 48dp → square (wrong).
     // Fix: after scale-down, check if either dim < minDp and scale BOTH up uniformly,
     //   so the smaller dimension reaches minDp while preserving the original aspect ratio.
-    val (targetWidthDp, targetHeightDp) = if (focusFrameWidthPx > 0f && focusFrameHeightPx > 0f) {
-        val rawW = with(density) { focusFrameWidthPx.toDp() }
-        val rawH = with(density) { focusFrameHeightPx.toDp() }
-        val minDp = 48.dp
-        val maxDp = 200.dp
-        // Step 1: Uniform scale-down so the larger axis fits within maxDp.
-        val scaleDown = minOf(
-            if (rawW > maxDp) maxDp / rawW else 1f,
-            if (rawH > maxDp) maxDp / rawH else 1f
-        )
-        val downW = rawW * scaleDown
-        val downH = rawH * scaleDown
-        // Step 2: Uniform scale-up so the smaller axis reaches minDp (preserves AR).
-        val scaleUp = if (downW < minDp || downH < minDp) minDp / minOf(downW, downH) else 1f
-        (downW * scaleUp) to (downH * scaleUp)
-    } else 48.dp to 48.dp
+    val (targetWidthDp, targetHeightDp) = when {
+        // v2.12.0-10: Generic tap (no ML Kit subject) → fixed 72dp square per L2 spec.
+        isGenericTapActive -> 72.dp to 72.dp
+        focusFrameWidthPx > 0f && focusFrameHeightPx > 0f -> {
+            val rawW = with(density) { focusFrameWidthPx.toDp() }
+            val rawH = with(density) { focusFrameHeightPx.toDp() }
+            val minDp = 48.dp
+            val maxDp = 200.dp
+            // Step 1: Uniform scale-down so the larger axis fits within maxDp.
+            val scaleDown = minOf(
+                if (rawW > maxDp) maxDp / rawW else 1f,
+                if (rawH > maxDp) maxDp / rawH else 1f
+            )
+            val downW = rawW * scaleDown
+            val downH = rawH * scaleDown
+            // Step 2: Uniform scale-up so the smaller axis reaches minDp (preserves AR).
+            val scaleUp = if (downW < minDp || downH < minDp) minDp / minOf(downW, downH) else 1f
+            (downW * scaleUp) to (downH * scaleUp)
+        }
+        else -> 48.dp to 48.dp
+    }
     val animatedWidthDp by animateDpAsState(targetValue = targetWidthDp, animationSpec = animSpec, label = "focus_frame_w")
     val animatedHeightDp by animateDpAsState(targetValue = targetHeightDp, animationSpec = animSpec, label = "focus_frame_h")
 
