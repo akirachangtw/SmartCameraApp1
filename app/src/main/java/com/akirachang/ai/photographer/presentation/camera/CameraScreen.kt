@@ -714,22 +714,26 @@ private fun FocusIndicator(
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = Spring.StiffnessMedium
     )
-    // v2.12.0-06 H3.3: Aspect-ratio-preserving clamp — avoids degenerating rectangles into squares.
-    // Independent coerceIn() on W and H (old code) could turn a 5:1 bbox into 48×48 square.
-    // Fix: scale both axes uniformly so neither exceeds maxDp, then floor each to minDp.
+    // v2.12.0-08: Full AR-preserving clamp (scale-down AND scale-up, both uniform).
+    // Bug fixed: independent coerceAtLeast(minDp) on W and H broke aspect ratio —
+    //   e.g. rawW=36dp, rawH=43dp both got floored to 48dp → square (wrong).
+    // Fix: after scale-down, check if either dim < minDp and scale BOTH up uniformly,
+    //   so the smaller dimension reaches minDp while preserving the original aspect ratio.
     val (targetWidthDp, targetHeightDp) = if (focusFrameWidthPx > 0f && focusFrameHeightPx > 0f) {
         val rawW = with(density) { focusFrameWidthPx.toDp() }
         val rawH = with(density) { focusFrameHeightPx.toDp() }
         val minDp = 48.dp
         val maxDp = 200.dp
-        // Compute a single uniform scale-down so the larger axis fits within maxDp.
+        // Step 1: Uniform scale-down so the larger axis fits within maxDp.
         val scaleDown = minOf(
             if (rawW > maxDp) maxDp / rawW else 1f,
             if (rawH > maxDp) maxDp / rawH else 1f
         )
-        val scaledW = (rawW * scaleDown).coerceAtLeast(minDp)
-        val scaledH = (rawH * scaleDown).coerceAtLeast(minDp)
-        scaledW to scaledH
+        val downW = rawW * scaleDown
+        val downH = rawH * scaleDown
+        // Step 2: Uniform scale-up so the smaller axis reaches minDp (preserves AR).
+        val scaleUp = if (downW < minDp || downH < minDp) minDp / minOf(downW, downH) else 1f
+        (downW * scaleUp) to (downH * scaleUp)
     } else 48.dp to 48.dp
     val animatedWidthDp by animateDpAsState(targetValue = targetWidthDp, animationSpec = animSpec, label = "focus_frame_w")
     val animatedHeightDp by animateDpAsState(targetValue = targetHeightDp, animationSpec = animSpec, label = "focus_frame_h")
