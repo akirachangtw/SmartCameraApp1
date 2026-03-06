@@ -42,7 +42,7 @@ Feature branch: `feature/camera-input-abstraction`
 
 - **`tools/test_handoff_gui.pyw`** 🔴 CRITICAL
   - Purpose: Home NB ↔ Work NB test handoff automation GUI
-  - Documentation: `docs/test_handoff/`
+  - Documentation: `docs/guides/PYTHON_GUI_GUIDE.md`
 
 **Deletion Impact**: Breaks automated development workflow!
 **Protection Details**: See `tools/.gitkeep_critical_files` and `.vscode/TASKS_PROTECTION.md`
@@ -428,7 +428,7 @@ git merge v2.10.2-final                # ✅ 使用已標記的穩定版本
 **✅ 使用 Test Handoff GUI**
 - **工具**: `python tools/test_handoff_gui.pyw`
 - **方法**: Git 遠端同步（GitHub/GitLab）
-- **文檔**: `docs/test_handoff/PYTHON_GUI_GUIDE.md`
+- **文檔**: `docs/guides/PYTHON_GUI_GUIDE.md`
 
 ### 工作流程
 
@@ -533,7 +533,7 @@ docs/test_results/<version>/
    - 自動生成 commit 訊息
    - 4 步工作流（Home Push → Work Pull → Work Push → Home Pull）
 
-**詳細說明**: 參考 `docs/test_handoff/PYTHON_GUI_GUIDE.md`
+**詳細說明**: 參考 `docs/guides/PYTHON_GUI_GUIDE.md`
 
 ---
 
