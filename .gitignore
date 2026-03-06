@@ -55,3 +55,6 @@ tmp/
 # tools/HYBRID_FLOW_CLAUDE_USAGE.md - Documentation
 # .claude/settings.local.json - Already ignored (line 26)
 # See tools/.gitkeep_critical_files for details
+
+# Personal local settings (machine-specific, not shared)
+CLAUDE.local.md

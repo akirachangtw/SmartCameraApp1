@@ -556,11 +556,52 @@ class PromptGeneratorApp:
         self._update_status(f"✅ 完成 — 已解析 {parsed_count}/4 步驟")
         self._gen_btn.config(state=tk.NORMAL, text="🚀 生成提示詞 (Gemini API)")
 
+        self._save_log(paths)
+
         # Auto-switch to first populated step
         for idx, step in enumerate(STEPS):
             if steps.get(step["key"]):
                 self.notebook.select(idx)
                 break
+
+    def _save_log(self, paths: dict):
+        """Save all step contents to tmp/prompt_generator_gui.log (overwrite each run)."""
+        try:
+            log_path = PROJECT_ROOT / "tmp" / "prompt_generator_gui.log"
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+
+            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            version = self.version_var.get().strip()
+            topic   = self.topic_var.get().strip()
+
+            lines = [
+                f"# Prompt Generator Log",
+                f"# Generated : {ts}",
+                f"# Version   : {version}",
+                f"# Topic     : {topic}",
+                f"# L0        : {paths['L0'].as_posix()}",
+                f"# L1        : {paths['L1'].as_posix()}",
+                f"# L2        : {paths['L2'].as_posix()}",
+                "",
+            ]
+
+            for step in STEPS:
+                key = step["key"]
+                txt = self._step_texts.get(key)
+                content = txt.get("1.0", tk.END).strip() if txt else ""
+                lines += [
+                    f"{'=' * 60}",
+                    f"## {step['label']}  (Tool: {step['tool']})",
+                    f"{'=' * 60}",
+                    content,
+                    "",
+                ]
+
+            log_path.write_text("\n".join(lines), encoding="utf-8")
+            rel = log_path.relative_to(PROJECT_ROOT).as_posix()
+            self.write_log(f"💾 已儲存提示詞日誌：{rel}", "Success")
+        except Exception as exc:
+            self.write_log(f"⚠️ 儲存日誌失敗：{exc}", "Warning")
 
     def _on_api_error(self, error_msg: str):
         self.write_log(f"❌ API 呼叫失敗：{error_msg}", "Error")
