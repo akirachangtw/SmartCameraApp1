@@ -722,13 +722,19 @@ class CameraViewModel @Inject constructor(
 
     // v2.12.0-10: Helper — converts an image-space Rect to a screen-space RectF using the
     // CoordinateTransformer (FIT_CENTER geometry).  Returns null when transformer is unavailable.
+    // v2.12.0-11 Bug A complete fix: Normalize corners with min/max so width/height are always
+    // positive. Front camera mirroring swaps left/right in image→screen mapping (sLeft > sRight),
+    // which produced negative RectF.width() and caused FocusIndicator to fall back to 48dp.
     private fun imageRectToScreenRectF(
         box: android.graphics.Rect,
         transformer: com.akirachang.ai.photographer.presentation.camera.components.CoordinateTransformer
     ): android.graphics.RectF {
         val (sLeft, sTop)     = transformer.imageToScreen(box.left.toFloat(),  box.top.toFloat())
         val (sRight, sBottom) = transformer.imageToScreen(box.right.toFloat(), box.bottom.toFloat())
-        return android.graphics.RectF(sLeft, sTop, sRight, sBottom)
+        return android.graphics.RectF(
+            minOf(sLeft, sRight), minOf(sTop, sBottom),
+            maxOf(sLeft, sRight), maxOf(sTop, sBottom)
+        )
     }
 
     /**
