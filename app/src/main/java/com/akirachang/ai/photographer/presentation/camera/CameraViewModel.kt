@@ -555,6 +555,7 @@ class CameraViewModel @Inject constructor(
         viewModelScope.launch {
             // v2.9.10: Clear tracking state before switching camera
             // v2.9.9 Day 1-2: Clear AE/AF lock state before switching camera
+            // v2.12.0-10: Clear generic tap flag so new camera starts with neutral frame sizing.
             _state.update {
                 it.copy(
                     trackedObjectId = null,
@@ -563,7 +564,10 @@ class CameraViewModel @Inject constructor(
                     isFocusing = false,
                     focusSuccess = null,
                     isAEAFLocked = false,
-                    lockPoint = null
+                    lockPoint = null,
+                    isGenericTapActive = false,
+                    focusFrameWidthPx = 0f,
+                    focusFrameHeightPx = 0f
                 )
             }
 
@@ -1203,6 +1207,7 @@ class CameraViewModel @Inject constructor(
 
                 // Single atomic update: clear ALL tracking state + set lock indicator.
                 // trackedPointActive=false ensures OF callback no longer writes focusPoint.
+                // v2.12.0-10: Clear generic tap flag so lock indicator uses neutral frame sizing.
                 _state.update {
                     it.copy(
                         trackedObjectId = null,       // Clear ML Kit tracking
@@ -1214,7 +1219,10 @@ class CameraViewModel @Inject constructor(
                         isFocusing = true,
                         focusSuccess = null,
                         lockPoint = Pair(x, y),
-                        isAEAFLocked = false          // Will be set to true after successful lock
+                        isAEAFLocked = false,         // Will be set to true after successful lock
+                        isGenericTapActive = false,
+                        focusFrameWidthPx = 0f,
+                        focusFrameHeightPx = 0f
                     )
                 }
 
@@ -1467,13 +1475,17 @@ class CameraViewModel @Inject constructor(
                 cameraRepository.cancelFocusAndMetering()
 
                 // Clear lock state and indicators
+                // v2.12.0-10: Also clear generic tap flag to restore neutral frame sizing.
                 _state.update {
                     it.copy(
                         isAEAFLocked = false,
                         lockPoint = null,
                         focusPoint = null,
                         isFocusing = false,
-                        focusSuccess = null
+                        focusSuccess = null,
+                        isGenericTapActive = false,
+                        focusFrameWidthPx = 0f,
+                        focusFrameHeightPx = 0f
                     )
                 }
 
