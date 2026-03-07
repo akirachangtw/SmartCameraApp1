@@ -305,7 +305,16 @@ git merge v2.10.2-final                # ✅ 使用已標記的穩定版本
 
 ## 混合工作流程 (Claude Code + ChatGPT)
 
-### 三級評估機制
+> ⚠️ **2026-03-07 升級通知**：本專案工作流已全面升級為「**終極防禦型混合工作流 (Ultimate Defensive Hybrid Workflow)**」。
+> 完整規範：`devspec/ultimate_defensive_hybrid_workflow.md`
+> 提示詞工具：`tools/prompt_generator_gui.pyw`（v4，4步驟閉環版）
+>
+> **Claude Code 的三條絕對紀律（Step 3: The Finisher）**：
+> 1. 嚴格依照 Gemini L2 架構指南實作，不可擅自大重寫
+> 2. 編譯成功後暫停，等待 Traycer Step 4 Quality Gate 驗收後才寫 Log / Commit
+> 3. 收到實機 Logcat 異常時，回覆「⚠️ 架構防禦啟動：請將此 Logcat 帶回 Step 1 (Traycer) 重新啟動 PDCA 閉環」，不直接搶修
+
+### 三級評估機制（舊版，保留作參考）
 
 本專案採用分級風險評估機制,根據變更複雜度自動判斷所需流程深度:
 

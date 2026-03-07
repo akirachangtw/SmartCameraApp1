@@ -389,7 +389,7 @@ class PromptGeneratorApp:
 
     def _compute_paths(self) -> dict:
         version     = self.version_var.get().strip() or "v0.0.0"
-        dir_version = re.sub(r'-\d+$', '', version)   
+        dir_version = re.sub(r'-\d+$', '', version)
         topic       = self.topic_var.get().strip()[:30]
         topic       = re.sub(r'[\\/*?:"<>|]', '_', topic).replace(' ', '_')
         base        = f"{version}_{topic}" if topic else version
@@ -507,7 +507,7 @@ class PromptGeneratorApp:
         self._update_status("✅ 完成")
         self._gen_btn.config(state=tk.NORMAL, text="🚀 生成閉環防禦提示詞")
         self._save_log(paths)
-        
+
         for idx, step in enumerate(STEPS):
             if steps.get(step["key"]):
                 self.notebook.select(idx)

@@ -191,14 +191,18 @@ grep "Hybrid: L1" .vscode/tasks.json                 # 📋 Hybrid L1/L2/PR task
 |------|------|
 | 🚀 Test Handoff Manager | Home↔Work NB 測試交接 GUI |
 | 🧪 Stage Verification GUI | 階段驗證 GUI |
-| 🤖 Workflow Prompt Generator | Gemini API 分步提示生成（tabbed GUI） |
+| 🤖 Workflow Prompt Generator | 終極防禦型混合工作流提示詞生成器（4步驟閉環版：Traycer→Gemini→Claude→Traycer Verify） |
 | 📋 Hybrid: L1/L2/PR (inline + file) | L1/L2/PR 計劃文檔生成 |
+
+> 📖 **工作流規範**: `devspec/ultimate_defensive_hybrid_workflow.md`（2026-03-07 升級）
+> Claude Code 在此工作流中扮演 **Step 3: The Finisher**，實作完成後必須暫停等待 Traycer Step 4 驗收。
 
 **檢查點**:
 - [ ] Tier 1 工具（5 個）全部存在
 - [ ] feature branch 新增的工具未因 merge 遺失
 - [ ] 無 tools/ 相關 merge conflict 遺留
 - [ ] `.vscode/tasks.json` 包含 Workflow Prompt Generator + Hybrid Tasks
+- [ ] `devspec/ultimate_defensive_hybrid_workflow.md` 存在（終極防禦工作流規範）
 
 ---
 
@@ -562,5 +566,5 @@ git merge feature-name  # 可能是舊的本地分支
 
 ---
 
-**最後更新**: 2026-03-03
+**最後更新**: 2026-03-07（Phase 2.5 更新：Workflow Prompt Generator 升級至 v4 終極防禦閉環版）
 **維護者**: Claude Sonnet 4.6 + Akira Chang
