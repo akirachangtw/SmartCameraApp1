@@ -146,12 +146,20 @@ Focus successful at (x, y)
 | TC-03 | Rear cam close face — large AR frame | ✅ PASS (prev) | |
 | TC-04 | Rapid taps — no backoff | ✅ PASS (prev) | |
 | TC-05 | Normal AF regression | ✅ PASS (prev) | |
-| TC-06a | Front cam: frame scales with face distance | ❌ FAIL | 對焦框仍為固定大小；停留約 1 秒後消失 |
+| TC-06a | Front cam: frame scales with face distance | ❌ FAIL | 對焦框仍為固定大小（重啟 App 後穩定重現；初次測試觀察到的 1 秒消失為一次性現象） |
 | TC-06b | Rear cam: non-face tap shows 72dp square | ✅ PASS | 非人臉點擊已顯示 72dp 正方形，不再殘留臉部形狀 |
 
 **Overall Result**: ⚠️ PARTIAL — TC-06a Bug A 仍未修復，需重啟 PDCA 閉環
 
-**Logcat file**: `logcat_v2.12.0-10_sony_20260309.log`
+### Additional Observations (2026-03-09)
+
+| 現象 | 場景 | 嚴重度 |
+|------|------|--------|
+| AF hunting — 持續搜尋對焦狀態 | 前後鏡頭對準人臉時均出現，未點擊自然等待中也會持續觸發 AF | ⚠️ 需根因分析 |
+
+**Logcat files**:
+- `logcat_v2.12.0-10_sony_20260309.log` — TC-06a/b 測試
+- `logcat_v2.12.0-10_sony_af_hunting_20260309.log` — AF hunting 捕捉
 
 ---
 
