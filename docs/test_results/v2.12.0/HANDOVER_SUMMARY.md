@@ -134,10 +134,10 @@ Focus successful at (x, y)
 
 ---
 
-## Test Results — Work NB re-test (v2.12.0-10, pending)
+## Test Results — Work NB re-test (v2.12.0-10, 2026-03-09)
 
-**Date tested**: __________
-**Tester**: Work NB / Claude Code
+**Date tested**: 2026-03-09
+**Tester**: Work NB (Sony XQ-BT52)
 
 | TC | Description | Result | Notes |
 |----|-------------|--------|-------|
@@ -146,12 +146,12 @@ Focus successful at (x, y)
 | TC-03 | Rear cam close face — large AR frame | ✅ PASS (prev) | |
 | TC-04 | Rapid taps — no backoff | ✅ PASS (prev) | |
 | TC-05 | Normal AF regression | ✅ PASS (prev) | |
-| TC-06a | Front cam: frame scales with face distance | ⏳ | Bug A fix |
-| TC-06b | Rear cam: non-face tap shows 72dp square | ⏳ | Bug B fix |
+| TC-06a | Front cam: frame scales with face distance | ❌ FAIL | 對焦框仍為固定大小；停留約 1 秒後消失 |
+| TC-06b | Rear cam: non-face tap shows 72dp square | ✅ PASS | 非人臉點擊已顯示 72dp 正方形，不再殘留臉部形狀 |
 
-**Overall Result**: ⏳ PENDING
+**Overall Result**: ⚠️ PARTIAL — TC-06a Bug A 仍未修復，需重啟 PDCA 閉環
 
-**Logcat file**: `logcat_v2.12.0-10_YYYYMMDD.log`
+**Logcat file**: `logcat_v2.12.0-10_sony_20260309.log`
 
 ---
 
