@@ -92,16 +92,22 @@ grep -A 20 "Critical Warning" devspec/feature_record_Backlog.md
 
 #### 1.4 閱讀測試報告
 
+> 📖 **測試報告來源**：測試結果由 Work NB 透過「雙機測試交接工作流」產出。
+> 完整流程規範：`devspec/99-test_handoff.md`
+> 工具：`python tools/test_handoff_gui.pyw`
+
 ```bash
 # 閱讀 v2.12.0 的測試報告
 ls docs/test_results/v2.12.0/
-cat docs/test_results/v2.12.0/TEST_REPORT_v2.12.0-02.md
+cat docs/test_results/v2.12.0/HANDOVER_SUMMARY.md
 ```
 
 **確認**:
-- [ ] 所有測試通過（PASSED）
+- [ ] `docs/test_results/<version>/HANDOVER_SUMMARY.md` 存在（SSOT）
+- [ ] 所有測試通過（PASS）— 非 PARTIAL / FAIL
 - [ ] 無阻塞性 Bug
 - [ ] 實機測試已完成（Pixel 9a: 59131JEBF17244, Sony XQ-BT52: HQ616R2713）
+- [ ] Logcat 日誌已存至 `docs/test_results/<version>/`
 
 ---
 
@@ -185,6 +191,7 @@ grep "Hybrid: L1" .vscode/tasks.json                 # 📋 Hybrid L1/L2/PR task
 ```
 
 **詳細清單**: `tools/.gitkeep_critical_files`（三級分類：Tier 1 / 2 / 3）
+**測試交接流程**: `devspec/99-test_handoff.md`（Home NB ↔ Work NB 四步驟 SOP）
 
 **VSCode Tasks 保護清單** (`.vscode/tasks.json`):
 | Task | 用途 |

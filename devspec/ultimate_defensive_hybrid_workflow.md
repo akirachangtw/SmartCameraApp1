@@ -111,3 +111,21 @@ Claude Code 已完成實作。請執行 \`strict\_verification\`。
 2. **標準做法：退回 Step 1 重新啟動防禦閉環**
    將 Logcat 與異常行為帶回給 Traycer (Step 1)，說明：「實測發生異常，請幫我釐清這個 Edge Case，並拆解修復 Ticket。」這將觸發更新 L1 \-\> Gemini 審查 L2 \-\> Claude 再次安全實作的完整 PDCA。
 3. **例外情況**：僅有純粹的 Syntax Error 或與架構無關的微小 Typo，才允許 Claude 直接修復。
+
+### **雙機測試交接流程 (Home NB ↔ Work NB)**
+
+實機測試需跨機器執行時，使用以下標準交接工作流：
+
+```
+Home NB (開發)  →  GitHub  →  Work NB (實機測試)  →  GitHub  →  Home NB (查看結果)
+  Step 1: Push           Step 2: Pull     (執行測試)  Step 3: Push    Step 4: Pull
+```
+
+**工具**：`python tools/test_handoff_gui.pyw`
+**完整 SOP**：`devspec/99-test_handoff.md`
+
+**結果判斷**：
+| 結果 | 下一步 |
+|------|--------|
+| PASS | 繼續下一個 Ticket 或進行 Merge SOP |
+| PARTIAL / FAIL | 帶 Logcat 回 Step 1 (Traycer `trigger-workflow`) 重啟 PDCA |

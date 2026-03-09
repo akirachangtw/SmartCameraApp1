@@ -31,6 +31,9 @@
 
 ## 🔍 執行前檢查（必讀）
 
+> ⚠️ **前提條件**：`docs/test_results/<version>/HANDOVER_SUMMARY.md` 必須存在且結果為 **PASS**。
+> 測試結果透過雙機交接工作流產出，參考：`devspec/99-test_handoff.md`
+
 ### Step 1: 檢查來源分支
 
 ```bash
@@ -242,6 +245,7 @@ python tools/check_merge_readiness.py --bypass
 - **分支記錄**: `devspec/BRANCH_RELEASES.md`
 - **決議文檔**: `devspec/feature_record_Backlog.md`
 - **Git 規範**: `.claude/CLAUDE.md` (Git Merge 規範)
+- **測試交接流程**: `devspec/99-test_handoff.md` (Home NB ↔ Work NB 四步驟 SOP)
 
 ---
 
