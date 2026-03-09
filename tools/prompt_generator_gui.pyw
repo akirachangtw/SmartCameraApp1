@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 prompt_generator_gui.pyw
-Ultimate Defensive Hybrid Workflow Prompt Generator (4-Step Closed-Loop)
-使用 Gemini API 自動生成「終極防禦型混合工作流」四步驟提示詞（包含最終驗證）。
+Ultimate Defensive Hybrid Workflow Prompt Generator (Custom Workflow Edition)
+使用 Gemini API 自動生成「終極防禦型混合工作流」四步驟提示詞，
+並完美對接 Traycer Custom Workflow 的 5 大 Commands。
 """
 
 import os
@@ -36,16 +37,17 @@ class Colors:
     TEXT_LIGHT = "#ffffff"
     BORDER     = "#bdc3c7"
     ACCENT     = "#8e44ad"  # Claude
-    TRAYCER    = "#16a085"  # Traycer Plan
+    TRAYCER    = "#16a085"  # Traycer Trigger
+    PLANNER    = "#34495e"  # Traycer Planner
     VERIFY     = "#1abc9c"  # Traycer Verify
 
 
 # ── Step metadata ────────────────────────────────────────────────────────────
 STEPS = [
-    {"key": "Step 1", "label": "Step 1 — 宏觀防禦 (Traycer)",  "tool": "Traycer",            "color": Colors.TRAYCER},
-    {"key": "Step 2", "label": "Step 2 — 微觀防禦 (Gemini)",   "tool": "Gemini 2.0/1.5 Pro", "color": Colors.WARNING},
-    {"key": "Step 3", "label": "Step 3 — 終端落地 (Claude)",   "tool": "Claude Code",        "color": Colors.ACCENT},
-    {"key": "Step 4", "label": "Step 4 — 驗收閉環 (Traycer)",  "tool": "Traycer Verify",     "color": Colors.VERIFY},
+    {"key": "Step 1", "label": "Step 1 — 宏觀防禦 (Traycer)",    "tool": "Traycer Trigger", "color": Colors.TRAYCER},
+    {"key": "Step 2", "label": "Step 2 — 微觀防禦 (Gemini)",     "tool": "Gemini Architect", "color": Colors.WARNING},
+    {"key": "Step 3", "label": "Step 3 — 匯入與排程 (Traycer)",  "tool": "Traycer Planner", "color": Colors.PLANNER},
+    {"key": "Step 4", "label": "Step 4 — 實作與驗收 (雙重指令)", "tool": "Claude + Traycer", "color": Colors.VERIFY},
 ]
 
 MODEL_NAME   = "gemini-2.5-flash"
@@ -60,19 +62,23 @@ FileName: [英文 snake_case，最多 30 字元，精確描述問題核心，例
 
 Step 1: 宏觀防禦 (Traycer)
 目的：說明此步驟的目的（釐清現況、驗證問題、確立邊界）。
-建議提示詞：提供給 Traycer 的具體指令。內容必須包含：「我需要開發/重構 [問題相關功能]。請啟動你的 Refactoring Workflow。在我們規劃代碼前，請先探索專案中與此相關的現有邏輯，並與我確認：1. 你的理解與我的問題是否相符？ 2. 這次修改的 Scope 邊界？ 確認共識後，請產出 L1 現況與需求報告。」
+建議提示詞：提供給 Traycer 的指令。內容必須包含：「我需要開發/重構 [問題相關功能]。請啟動 Ultimate Defensive Workflow 並執行 `trigger-workflow`。在規劃代碼前，請先探索專案現有邏輯，並進行 Spec-Driven 的釐清。請與我確認：1. 我的需求是否符合現實？ 2. 這次修改的 Scope IN 與 Scope OUT 邊界？ 確認後，請產出 L1 現況與需求報告。」
 
 Step 2: 微觀防禦 (Gemini)
 目的：說明此步驟的目的（嚴格架構審查、防禦邊界條件）。
-建議提示詞：提供給 Gemini 的具體指令。內容必須包含：「你現在是一位擁有 10 年經驗的矽谷頂尖 Android 首席架構師。以下是 Traycer 梳理出的 L1 需求：[貼上 L1]。請對此進行嚴格技術審查，根據軟硬體限制、Sealed Class 狀態機防禦、單向資料流解耦，產出一份 `Claude_Implementation_Guide_L2.md`。」
+建議提示詞：提供給 Gemini 的指令。內容必須包含：「你現在是一位擁有 10 年經驗的頂尖 Android 架構師。這是 Traycer 產出的 L1 需求：[貼上 L1]。請對此進行『嚴格的技術設計審查』。請根據：1. 軟硬體能力矩陣 2. Sealed Class 狀態機防禦 3. UDF 解耦 4. 破壞性邊界條件，來拷問這個需求。審查完畢後，產出一份給 Claude Code 參考的英文 `Claude_Implementation_Guide_L2.md` 防禦架構指南。」
 
-Step 3: 終端落地 (Claude Code)
-目的：說明此步驟的目的（嚴格依循架構規範執行小步開發）。
-建議提示詞：提供給 Claude Code 的具體指令。內容必須包含：「請讀取 `Claude_Implementation_Guide_L2.md`。請嚴格遵守文件中的架構規範，以『小步快跑』方式實作。完成後不要急著合併，先編譯確保無錯誤，並等待進一步驗收。」
+Step 3: 匯入與排程 (Traycer Planner)
+目的：說明此步驟的目的（讓 Traycer 吸收 L2 架構，並進入 Planner Mode 拆解票據與產生交接指令）。
+建議提示詞：提供給 Traycer 的指令。內容必須包含：「請執行 `architectural_review`。這是我準備好的 L2 防禦架構指南：[貼上 Gemini 產出的 L2]。請吸收這份指南並產出正式的 Tech Plan Spec。確認無誤後，請接續執行 `ticket_breakdown` 將其拆解為 Scoped Tickets，最後啟動 `execute` 為我產出第一批要交接給 Claude Code 的【精確交接指令 (Handoff Instructions)】。」
 
-Step 4: 驗收閉環 (Traycer Verify)
-目的：說明此步驟的目的（扮演 Quality Gate，比對 L1/L2 與實際代碼的差異，抓出架構偏移）。
-建議提示詞：提供給 Traycer 的驗收指令。內容必須包含：「請切換為 Quality Gate 驗證角色。請讀取 L1 需求與 L2 架構指南，並檢視 Claude Code 剛才修改的程式碼。請檢查：1. 目標狀態與防禦機制（如 Sealed Class）是否如實建立？ 2. 是否有發生 Implementation drift (代碼偏移)？ 請提供最終裁決：Path A (批准), Path B (開立 Fix Tickets) 或 Path C (遇到死胡同需重新規劃)。」
+Step 4: 實作落地與驗收閉環 (Claude & Traycer)
+目的：說明此步驟的目的（交接給 Claude 實作，完成後用 Traycer 的 Reviewer Mode 驗收）。
+建議提示詞：提供實作與驗收的雙重指令。內容必須包含：
+「【第一步：貼給 Claude Code】
+請根據以下 Traycer 的交接指令執行任務：[貼上 Traycer 產出的 Handoff Instructions]。請嚴格遵守 Ticket 範圍與 Acceptance Criteria，絕不可進行大重寫。實作並編譯無誤後，請立即暫停並回報。
+【第二步：Claude 完成後，貼回給 Traycer】
+Claude Code 已完成實作。請執行 `strict_verification`。請嚴格比對 Tech Plan 與實際代碼，檢查狀態機制是否如實建立？是否有 Implementation drift (代碼偏移)？請給出最終裁決：Path A (批准), Path B (開立 Fix Tickets) 或 Path C (升級重新規劃)。」
 """
 
 
@@ -82,13 +88,13 @@ class PromptGeneratorApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("Ultimate Defensive Hybrid Workflow — 提示詞生成器")
-        self.root.geometry("1000x820")
-        self.root.minsize(800, 640)
+        self.root.geometry("1050x820")
+        self.root.minsize(850, 640)
         self.root.configure(bg=Colors.BACKGROUND)
         self.root.resizable(True, True)
 
         self._setup_ui()
-        self.write_log("🤖 終極防禦工作流 Generator 已啟動 (包含 Step 4 驗收閉環)", "Success")
+        self.write_log("🤖 終極防禦工作流 Generator (自訂工作流版) 已啟動", "Success")
 
         if requests is None:
             self.write_log("❌ 缺少 requests 套件，請執行：pip install requests", "Error")
@@ -114,14 +120,14 @@ class PromptGeneratorApp:
 
         tk.Label(
             header,
-            text="🛡️  終極防禦型混合工作流 — 提示詞生成器 (閉環版)",
+            text="🛡️  終極防禦型混合工作流 — 提示詞生成器 (Custom Workflow 版)",
             font=("Microsoft JhengHei UI", 14, "bold"),
             fg=Colors.TEXT_LIGHT, bg=Colors.TEXT_DARK
         ).pack(side=tk.LEFT, padx=20, pady=13)
 
         tk.Label(
             header,
-            text=f"Model: {MODEL_NAME}  •  Plan (L1) → Design (L2) → Code → Verify",
+            text=f"Model: {MODEL_NAME}  •  Trigger → Design → Planner → Code/Verify",
             font=("Microsoft JhengHei UI", 9),
             fg="#bdc3c7", bg=Colors.TEXT_DARK
         ).pack(side=tk.LEFT, padx=(0, 20), pady=13)
@@ -245,7 +251,7 @@ class PromptGeneratorApp:
 
     def _create_output_tabs(self):
         outer = tk.LabelFrame(
-            self.root, text=" 📋 四部曲提示詞 (生成結果) ",
+            self.root, text=" 📋 四部曲提示詞 (自訂工作流適配版) ",
             font=("Microsoft JhengHei UI", 10, "bold"),
             bg=Colors.CARD_BG, fg=Colors.TEXT_DARK,
             relief=tk.RIDGE, bd=1
@@ -421,9 +427,9 @@ class PromptGeneratorApp:
         elif step_key == "Step 2":
             content = content.rstrip() + f"\n\n[💡 系統建議] 請提供 @{fwd(paths['L1'])} 讓 Gemini 審查，並要求其產出：\n@{fwd(paths['L2'])}"
         elif step_key == "Step 3":
-            content = content.rstrip() + f"\n\n[💡 系統建議] 請啟動 Claude Code 依循 @{fwd(paths['L2'])} 實作。實作完成後，先不要紀錄 Log，準備進入 Step 4 驗收。"
+            content = content.rstrip() + f"\n\n[💡 系統建議] 將 @{fwd(paths['L2'])} 餵給 Traycer，讓其自動執行審查 (`architectural_review`)、拆解票據 (`ticket_breakdown`)，並產出給 Claude 的交接指令 (`execute`)。"
         elif step_key == "Step 4":
-            content = content.rstrip() + f"\n\n[💡 系統建議] 在 Traycer 中啟動 Quality Gate，提供 @{fwd(paths['L1'])} 與 @{fwd(paths['L2'])} 要求比對現有代碼。若通過驗收 (Path A)，再讓 Claude 寫入 feature_record_Backlog.md。"
+            content = content.rstrip() + f"\n\n[💡 系統建議] 第一步讓 Claude 依循 Handoff 指令實作；第二步在 Traycer 啟動 `strict_verification` 驗收。若通過 (Path A)，再寫入 feature_record_Backlog.md。"
         return content
 
     # ── API Call & Parsing ────────────────────────────────────────────────────
@@ -451,7 +457,7 @@ class PromptGeneratorApp:
 
     def _call_api(self, query: str, api_key: str):
         payload = {
-            "contents": [{"parts": [{"text": f"開發需求描述：{query}\n\n請根據以上需求，生成終極防禦型混合工作流的四步驟提示詞（需包含 Step 4 驗收閉環）。"}]}],
+            "contents": [{"parts": [{"text": f"開發需求描述：{query}\n\n請根據以上需求，生成終極防禦型混合工作流 (適配 Traycer Custom Workflow 版) 的四步驟提示詞。"}]}],
             "systemInstruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]}
         }
         try:

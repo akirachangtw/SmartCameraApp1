@@ -191,11 +191,11 @@ grep "Hybrid: L1" .vscode/tasks.json                 # 📋 Hybrid L1/L2/PR task
 |------|------|
 | 🚀 Test Handoff Manager | Home↔Work NB 測試交接 GUI |
 | 🧪 Stage Verification GUI | 階段驗證 GUI |
-| 🤖 Workflow Prompt Generator | 終極防禦型混合工作流提示詞生成器（4步驟閉環版：Traycer→Gemini→Claude→Traycer Verify） |
+| 🤖 Workflow Prompt Generator | 終極防禦型混合工作流提示詞生成器（Custom Workflow 版：trigger-workflow→Gemini L2→ticket_breakdown/execute→Claude+strict_verification） |
 | 📋 Hybrid: L1/L2/PR (inline + file) | L1/L2/PR 計劃文檔生成 |
 
-> 📖 **工作流規範**: `devspec/ultimate_defensive_hybrid_workflow.md`（2026-03-07 升級）
-> Claude Code 在此工作流中扮演 **Step 3: The Finisher**，實作完成後必須暫停等待 Traycer Step 4 驗收。
+> 📖 **工作流規範**: `devspec/ultimate_defensive_hybrid_workflow.md`（2026-03-09 升級至 Custom Workflow 版）
+> Claude Code 在此工作流中扮演 **The Finisher**，僅依 Traycer `execute` 的 Handoff Instructions 執行單一 Ticket，完成後必須暫停等待 Traycer `strict_verification` 驗收。
 
 **檢查點**:
 - [ ] Tier 1 工具（5 個）全部存在
