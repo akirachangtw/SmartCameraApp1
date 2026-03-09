@@ -175,7 +175,7 @@ git push origin feature/camera-core-v2.12.0
 2. 點擊「**⬇️ 拉取並開啟報告**」
 
 ```bash
-git pull github <branch>
+git pull github <branch>   # Home NB 用 github remote
 # 自動開啟 docs/test_results/ 最新的 .md 檔案（VS Code）
 ```
 
@@ -194,14 +194,14 @@ git pull github <branch>
 **處置**（依嚴重度選擇）：
 
 ```bash
-# 方法 1（推薦）：暫存本地修改再拉取
-git stash && git pull github <branch>
+# 方法 1（推薦）：暫存本地修改再拉取（Work NB 用 origin）
+git stash && git pull origin <branch>
 
 # 方法 2：還原特定衝突檔案
 git restore .vscode/tasks.json   # 例如 tasks.json 衝突
 
-# 方法 3（謹慎）：放棄所有本地修改
-git reset --hard github/<branch>
+# 方法 3（謹慎）：放棄所有本地修改（Work NB 用 origin）
+git reset --hard origin/<branch>
 ```
 
 ### Q: Push / Pull 用哪個 Remote？
