@@ -50,16 +50,35 @@ object FixedFocusDetector {
     fun isFixedFocus(cameraInfo: CameraInfo): Boolean {
         return try {
             val camera2Info = Camera2CameraInfo.from(cameraInfo)
+
+            // Condition 1: LENS_INFO_MINIMUM_FOCUS_DISTANCE == 0.0f
             val minFocusDist = camera2Info.getCameraCharacteristic(
                 CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE
             )
+            val minFocusDistFixed = minFocusDist != null && minFocusDist == 0.0f
 
-            val isFixed = minFocusDist != null && minFocusDist == 0.0f
-            Log.i(TAG, "LENS_INFO_MINIMUM_FOCUS_DISTANCE=$minFocusDist → " +
-                    if (isFixed) "FIXED_FOCUS" else "AUTOFOCUS")
+            // Condition 2: CONTROL_AF_AVAILABLE_MODES == [0] (AF_MODE_OFF only)
+            // Queried inline (not via getAfModes()) to stay in the same try-catch.
+            // Empty result → conservative: treat as autofocus capable.
+            val afModes = camera2Info.getCameraCharacteristic(
+                CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES
+            ) ?: intArrayOf()
+            val afModesOnlyOff = afModes.size == 1 && afModes[0] == 0
+
+            // Composite OR: either condition alone is sufficient evidence of fixed-focus
+            val isFixed = minFocusDistFixed || afModesOnlyOff
+
+            val reason = when {
+                minFocusDistFixed -> "MIN_FOCUS_DIST_ZERO"
+                afModesOnlyOff   -> "AF_MODES_ONLY_OFF"
+                else             -> "AUTOFOCUS_CAPABLE"
+            }
+
+            Log.i(TAG, "[v2.12.0-11] isFixedFocus=$isFixed (reason=$reason), " +
+                    "afModes=[${afModes.joinToString()}], minFocusDist=$minFocusDist")
             isFixed
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to query focus capability: ${e.message}")
+            Log.w(TAG, "[v2.12.0-11] Failed to query focus capability: ${e.message}")
             false  // Assume autofocus if query fails
         }
     }
