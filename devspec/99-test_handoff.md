@@ -107,7 +107,7 @@ Co-Authored-By: Claude Sonnet 4.5 (noreply@anthropic.com)
 3. 點擊「**⬇️ 拉取更新 (Git Pull)**」
 
 ```bash
-git pull github <branch>
+git pull origin feature/camera-core-v2.12.0
 ```
 
 ### Pull 成功後
@@ -145,7 +145,7 @@ git commit -m "[Test] {topic}: Test results - {PASS|FAIL|PARTIAL}"  \
            -m "Device: {device}"                                      \
            -m "Tester: Claude Code (Work NB)"                         \
            -m "Date: {YYYY-MM-DD}"
-git push github <branch>
+git push origin feature/camera-core-v2.12.0
 ```
 
 ### 推送前人工確認清單
@@ -204,10 +204,15 @@ git restore .vscode/tasks.json   # 例如 tasks.json 衝突
 git reset --hard github/<branch>
 ```
 
-### Q: Push 到哪個 Remote？
+### Q: Push / Pull 用哪個 Remote？
 
-GUI 的 Remote 優先順序：`github` > `origin`（全部步驟一致）。
-可在「⚙️ Settings」分頁確認偵測到的 Remote 清單。
+| 機器 | Remote 名稱 | 說明 |
+|------|------------|------|
+| Home NB | `github` | 自訂 remote，指向 GitHub |
+| Work NB | `origin` | 預設 remote，指向 GitHub |
+
+GUI 自動偵測：優先選 `github`，不存在則 fallback 到 `origin`。
+可在「⚙️ Settings」分頁確認當前機器的 Remote 清單。
 
 ---
 
