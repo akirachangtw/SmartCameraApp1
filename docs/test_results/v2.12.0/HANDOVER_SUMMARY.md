@@ -219,20 +219,87 @@ Focus successful at (x, y)
 [v2.12.0-11] isFixedFocusLens updated: true  → CameraState synced   ← 前鏡頭（Pixel 9a）
 ```
 
-### Test Results — Sony XQ-BT52 (v2.12.0-11, ⏳ 待測試)
+### Test Results — Sony XQ-BT52 (v2.12.0-11, 2026-03-10)
+
+**Date tested**: 2026-03-10
+**Tester**: Work NB (Sony XQ-BT52 `HQ616R2713`)
+**Logcat**: `logcat_v2.12.0-11_sony_20260310.log`
 
 | TC | Description | Result | Notes |
 |----|-------------|--------|-------|
-| TC-06a-v2 | 前鏡頭：框隨距離縮放 | ⏳ | |
-| TC-06b | 後鏡頭：72dp 正方形 | ⏳ | |
-| TC-07 | 前鏡頭 AF Hunting 消除 | ⏳ | |
-| TC-08 | 後鏡頭 Hysteresis 抑制 | ⏳ | |
-| TC-09 | Suspended 模式觸發 | ⏳ | |
-| TC-10 | UserTap 解除 Suspended | ⏳ | |
-| TC-11 | 鏡頭切換 AF 重置 | ⏳ | |
-| TC-05 | Regression AF lock/dwell | ⏳ | |
+| TC-05 | Regression：正常 AF lock/dwell | ❌ FAIL | Locked 動畫 + α=0.4 淡出未觸發（FocusClamp isLocked=false UI 斷路） |
+| TC-06a-v2 | 前鏡頭：框隨距離縮放 | ❌ FAIL | ViewModel bbox 值正確變化，但 Compose UI 未更新顯示（同根因） |
+| TC-06b | 後鏡頭：72dp 正方形 | ✅ PASS | 非人臉點擊正方形框正常，regression 未發生 |
+| TC-07 | 前鏡頭 AF Hunting 消除 | ⚠️ PARTIAL | 核心邏輯 PASS（`Fixed-focus Locked — UI-only update` 持續，無 Focus fail/success 循環）；Locked 動畫 FAIL（同根因） |
+| TC-08 | 後鏡頭 Hysteresis 抑制 | ✅ PASS | `Hysteresis gate (Locked): delta=Xpx < 135px — skip` 全程正常攔截 |
+| TC-09 | Suspended 模式觸發 | ⏭️ SKIP | Sony AF 能力強，無法製造連續 3 次失敗 |
+| TC-10 | UserTap 解除 Suspended | ⏭️ SKIP | 前置條件 TC-09 未觸發 |
+| TC-11 | 鏡頭切換 AF 重置 | ❌ FAIL（嚴重） | AfState.Locked 跨切換殘留 Race Condition，前鏡頭 HAL AF 死鎖需重啟 App |
 
-**Overall Result**: ⏳ 待 Work NB 測試
+**Overall Result**: ❌ FAIL — 2 項新 Bug 發現，需重啟 PDCA 閉環
+
+---
+
+### Test Results — Pixel 9a (v2.12.0-11, 2026-03-10)
+
+**Date tested**: 2026-03-10
+**Tester**: Work NB (Pixel 9a `59131JEBF17244`)
+
+| TC | Description | Result | Notes |
+|----|-------------|--------|-------|
+| TC-05 | Regression：正常 AF lock/dwell | ❌ FAIL | 同 Sony Bug #1（FocusClamp isLocked=false UI 斷路） |
+| TC-06a-v2 | 前鏡頭：框隨距離縮放 | ❌ FAIL（推斷） | 同根因，未個別執行 |
+| TC-06b | 後鏡頭：72dp 正方形 | ✅ PASS（推斷） | Sony 已驗證，Pixel 9a 同版本 |
+| TC-07 | 前鏡頭 AF Hunting 消除 | ⚠️ PARTIAL（推斷） | 同根因 |
+| TC-08 | 後鏡頭 Hysteresis 抑制 | ✅ PASS（推斷） | 同根因邏輯正常 |
+| TC-09 | Suspended 模式觸發 | ⏭️ SKIP | Pixel 9a AF 能力強，同 Sony 無法觸發 |
+| TC-10 | UserTap 解除 Suspended | ⏭️ SKIP | 前置條件未觸發 |
+| TC-11 | 鏡頭切換 AF 重置 | ❌ FAIL（嚴重） | Race Condition 重現：`AfState@3e6b26f` 切換後仍 Locked，前鏡頭 AF 死鎖 |
+
+**Overall Result**: ❌ FAIL — Bug #1 + Bug #2 雙裝置均重現，問題為系統性
+
+**附加觀察（Pixel 9a）**:
+- Saliency score 門檻問題：臉部靠近畫面上方時 score=48.2 < 50f，Eye-AF 不觸發（需靠近畫面中央才能過門檻）
+
+---
+
+### Bug Report — v2.12.0-11 新發現（2026-03-10）
+
+#### Bug #1：FocusClamp isLocked=false UI 斷路（影響 TC-05、TC-06a-v2、TC-07）
+
+**現象**：`AfStateMachine` 內部 `AfState=Locked` 正確，但 UI 層 `FocusClamp` 收到 `isLocked=false`
+- Locked 動畫（機械夾爪）❌ 未觸發
+- Dwell 計時器 ❌ 未啟動
+- Alpha 淡出至 0.4 ❌ 未發生
+- 對焦框大小固定（TC-06a-v2：ViewModel bbox 正確變化，UI 未更新）
+
+**Logcat 關鍵行**：
+```
+[v2.12.0-11] UI frame update (AfState=AfState$Locked@f050c37)  ← 內部 Locked ✅
+FocusClamp: LaunchedEffect(focusSuccess=true, isLocked=false)   ← UI isLocked 未同步 ❌
+FocusClamp: Clamp RESET (focusSuccess=null, isLocked=false)     ← 動畫被重置 ❌
+```
+
+**修復方向**：`FocusClamp` 的 `isLocked` 參數來源需對應 `AfState is AfState.Locked`
+
+---
+
+#### Bug #2：switchCamera() Race Condition — 前鏡頭 AF 死鎖（TC-11）
+
+**現象**：後鏡頭對焦 Locked 後切換前鏡頭，前鏡頭 HAL AF 永久失效（需重啟 App 才能恢復）
+
+**根因 Race Condition**：
+```
+1. 後鏡頭 in-flight focusOnPoint() coroutine 等待 HAL 結果
+2. 用戶切換前鏡頭 → switchCamera() 執行 afState = AfState.Idle ✅
+3. 【Race】in-flight coroutine 此時回傳 Success
+   → afState = AfState.Locked ← 覆蓋剛設定的 Idle！
+4. 前鏡頭啟動，isFixedFocusLens=true + afState=Locked
+   → line 1466: Fixed-focus Locked → return（永久跳過 HAL AF）
+5. 前鏡頭 AF 死鎖，無法自動恢復
+```
+
+**修復方向**：`switchCamera()` 必須先 **cancel** 所有 in-flight `focusOnPoint()` Job，再執行 `afState=Idle`
 
 ---
 
@@ -250,7 +317,7 @@ Focus successful at (x, y)
 | v2.12.0-08 | Focus frame AR clamp uniform scale-up | ✅ PASS (Sony 2026-03-06) |
 | v2.12.0-09 | OperationCanceledException → Idle (no backoff) | ✅ PASS (Sony 2026-03-06) |
 | v2.12.0-10 | Bug A+B fix: resolveTapTarget + 72dp generic tap + frame state reset | ⚠️ PARTIAL — TC-06a FAIL (Sony 2026-03-09) |
-| v2.12.0-11 | AF 防禦修復：Fixed-focus 永久鎖定 + Suspended 模式（commit `17d6f91`） | ⏳ **Pending Work NB test** |
+| v2.12.0-11 | AF 防禦修復：Fixed-focus 永久鎖定 + Suspended 模式（commit `17d6f91`） | ❌ FAIL — 2 新 Bug，需重啟 PDCA（2026-03-10） |
 | v2.12.0 | Stable tag — dual-camera AF complete | ⏳ Pending v2.12.0-11 PASS |
 
 ---
