@@ -512,6 +512,94 @@ autoFocusOnSalientTarget() 中：
 
 ---
 
+## AF 視覺語義雙路徑 + Session ID 第二道防線（v2.12.0-13）
+
+### 📋 問題背景（2026-03-10）
+
+v2.12.0-12 Build PASS 後，實機測試（Sony XQ-BT52）發現：
+1. **Bug #1（FocusClamp 未觸發）**：Eye-AF 成功（`afState=Locked`）後，`FocusClamp` LaunchedEffect 進入 `else → scale.snapTo(1.0f)`，機械夾爪動畫未執行，dwell fade 未啟動
+2. **Bug #1b（updateTrackedObjectPosition bbox 不更新）**：ML Kit 追蹤時，`_state.update` 只更新 `focusPoint`，未同步更新 `focusFrameWidthPx/HeightPx`，對焦框大小凍結在 tap 時的初始值
+3. **Bug #2（Session ID 穿透）**：v2.12.0-12 的 `afState !is Focusing` 守衛是協作式取消的第一道防線，但 HAL callback 在 `cancel()` 與 `afState=Idle` 之間的極小視窗仍可穿透
+
+### ✅ 已確認的防禦決策（v2.12.0-13，2026-03-10）
+
+#### A. FocusIndicator 雙視覺路徑分離
+
+**SSOT 規範**（不可違背）：
+
+| 視覺路徑 | 觸發條件 | 顏色 | 框大小 |
+|---------|---------|------|--------|
+| Eye-AF / 物件對焦 | `afState is AfState.Locked` | Cyan `#00F2FF` | 動態 bbox |
+| AE/AF 長按鎖定 | `isAEAFLocked = true` | Yellow `#FFD700` | 固定 72dp |
+
+**實作要點**：
+- `CameraState.isFocusIndicatorLocked = isAEAFLocked`（**只對應 Yellow**，`afState=Locked` 不加入此條件）
+- `FocusIndicator` 新增 `isEyeAfLocked: Boolean` 參數，由呼叫處傳入 `state.afState is AfState.Locked`
+- `alpha when` 優先順序：`isLocked(Yellow) → isEyeAfLocked(Cyan) → isFading(0.4) → isTracking → else`
+- `showCornerBrackets = focusSuccess == true || isLocked || isEyeAfLocked`
+
+**⚠️ 禁止違背**：`isLocked` 與 `isEyeAfLocked` 語義嚴格分離。Eye-AF 成功絕不走 Yellow 路徑。Composable 不得在內部自行做 `|| afState is Locked` 合併。
+
+#### B. updateTrackedObjectPosition — 原子性 bbox + focusPoint 同步
+
+**問題根因**：`shouldUpdate` 區塊的 `_state.update` 只更新 `focusPoint`，ML Kit 追蹤期間 `focusFrameWidthPx/HeightPx` 凍結在 tap 初始值。
+
+**修復方式**：在 `when (trackedType)` 各分支中，於計算 `centerX/centerY` 的同時，透過 `imageRectToScreenRectF()` 計算 `newFrameW/newFrameH`，並在同一個 `_state.update` 呼叫中一次寫入：
+
+```kotlin
+current.copy(
+    focusPoint = Pair(screenX, screenY),
+    focusFrameWidthPx  = newFrameW ?: current.focusFrameWidthPx,
+    focusFrameHeightPx = newFrameH ?: current.focusFrameHeightPx
+)
+```
+
+- `newFrameW ?: current.focusFrameWidthPx`：transformer 不可用時保留現有值，不破壞 legacy fallback
+- FACE 使用 `BBOX_SCALE_FACE (1.5f)`；OBJECT 使用 `BBOX_SCALE_OBJECT (1.8f)`
+- 兩個 `transformer` 讀取在各自的 `when` 分支內（避免跨分支 race）
+
+#### C. Session ID 第二道防線（HAL callback 穿透防禦）
+
+**防禦層次**：
+
+| 層 | 機制 | 版本 |
+|---|------|------|
+| 第一道 | `afState !is AfState.Focusing` 狀態校驗 | v2.12.0-12 |
+| 第二道 | `capturedSessionId != focusSessionId` Session ID 校驗 | v2.12.0-13 |
+
+**實作要點**：
+- `private var focusSessionId: Int = 0`（Main thread 存取，無需 AtomicInteger）
+- `resetFocusState()` 中：`focusJob?.cancel()` → `focusSessionId++` → `_state.update(Idle)`（順序不可調換）
+- `focusOnPoint()` coroutine 最開頭：`val capturedSessionId = ++focusSessionId`
+- HAL 成功/失敗路徑：在 `afState !is Focusing` 守衛之後，再加 `capturedSessionId != focusSessionId` 校驗
+- `isOperationCancelled` 與 `TimeoutCancellationException` 路徑**不需要** Session ID 守衛（本地取消，非 HAL 穿透）
+
+**Logcat 驗證模式**：
+```
+# 正常對焦（Session ID 匹配）
+[v2.12.0-13] focusOnPoint: sessionId=5 captured
+Focus successful at (x, y)
+
+# 切換鏡頭後的過期回調（Session ID 不匹配）
+[v2.12.0-12] switchCamera: resetFocusState() called
+[v2.12.0-13] Stale HAL success dropped (captured=5, current=6)
+```
+
+### ⚠️ Critical Warnings
+
+1. **`isFocusIndicatorLocked` 語義永遠是 `isAEAFLocked`**：v2.12.0-12 L2 指南曾建議 `|| afState is Locked`，但已確認錯誤，SSOT 規範和 CameraState 批注均明確說明 Eye-AF Locked 為 Cyan，不切 Yellow
+2. **`updateTrackedObjectPosition` bbox 必須原子更新**：禁止拆成兩次 `_state.update`，否則 UI 會在兩幀之間看到位置已更新但框大小未更新的不一致狀態
+3. **Session ID `++` 順序**：`resetFocusState()` 中 `focusSessionId++` 必須在 `focusJob?.cancel()` 之後、`_state.update` 之前，確保遞增發生在 cancel 之後（即使協作取消有延遲）
+4. **`focusOnPoint()` 的 `capturedSessionId` 作用域**：在 `try { }` 最開頭宣告，整個 coroutine 的 HAL 回調均可存取；不可在 `withTimeout` 之後才宣告
+
+### 📋 Backlog
+
+- [x] T1: `updateTrackedObjectPosition()` bbox 原子更新（`newFrameW/H` + 同一 `_state.update`） ✅
+- [x] T2: `FocusIndicator` 雙路徑分離（`isEyeAfLocked` 參數 + alpha/showCornerBrackets 更新） ✅
+- [x] T3: `focusSessionId` Session ID 防禦（5 個插入點）✅
+
+---
+
 ## Camera Core Features (v2.11.0 / v3.5.0) - 從 v2.9.9 延後
 
 ### 📋 Backlog

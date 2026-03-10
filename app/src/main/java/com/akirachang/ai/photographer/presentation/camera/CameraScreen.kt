@@ -392,7 +392,8 @@ fun CameraScreen(
                         isFocusing = state.isFocusing,
                         focusSuccess = state.focusSuccess,
                         isTracking = state.trackedObjectId != null || state.trackedPointActive,  // v2.9.10/v2.x.x: ML Kit + Optical Flow tracking
-                        isLocked = state.isAEAFLocked,  // v2.9.9 Day 1-2: Lock mode flag
+                        isLocked = state.isFocusIndicatorLocked,  // v2.12.0-12: UDF-clean derived state
+                        isEyeAfLocked = state.afState is AfState.Locked,  // v2.12.0-13: Cyan path
                         isFading = state.focusIndicatorFading,  // v2.9.9 Day 1-2 Optimize: Fade-out animation
                         fadeStartTime = state.focusIndicatorFadeStartTime,  // v2.9.9 Day 1-2 Optimize: Fade start time
                         modifier = Modifier.fillMaxSize()
@@ -590,6 +591,7 @@ private fun FocusIndicator(
     focusSuccess: Boolean?,
     isTracking: Boolean,
     isLocked: Boolean = false,
+    isEyeAfLocked: Boolean = false,   // v2.12.0-13: afState is AfState.Locked (Cyan path)
     isFading: Boolean = false,
     fadeStartTime: Long = 0L,
     modifier: Modifier = Modifier
@@ -690,7 +692,8 @@ private fun FocusIndicator(
     // Previously isTracking || isLocked -> 1.0f blocked the dwell fade during ML Kit tracking
     val alpha by animateFloatAsState(
         targetValue = when {
-            isLocked -> 1.0f           // Lock state: always full alpha
+            isLocked -> 1.0f           // Lock state: always full alpha (Yellow path)
+            isEyeAfLocked -> 1.0f      // Cyan 路徑：Eye-AF 鎖定（dwell 前保持全亮）
             isFading -> 0.4f           // Dwell fade: applies even during tracking
             isTracking -> 1.0f         // Tracking (not fading): full alpha
             focusSuccess == false -> 0.6f
@@ -707,7 +710,7 @@ private fun FocusIndicator(
     }
 
     // Corner brackets appear only on success/locked
-    val showCornerBrackets = focusSuccess == true || isLocked
+    val showCornerBrackets = focusSuccess == true || isLocked || isEyeAfLocked
 
     // v2.12.0-06: Adaptive focus frame — separate W/H animations (Bug A: non-square support).
     // 0f means no ML Kit bbox available; fall back to fixed 48dp square.

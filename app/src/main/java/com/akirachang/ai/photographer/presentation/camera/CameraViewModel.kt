@@ -150,6 +150,7 @@ class CameraViewModel @Inject constructor(
     // v2.11.2 Fix E: Track the active focusOnPoint() coroutine to cancel stale jobs.
     // Prevents race condition where stale delay(500) clears focusPoint after lockAEAF sets it.
     private var focusJob: Job? = null
+    private var focusSessionId: Int = 0  // v2.12.0-13: Session ID for HAL callback validation
 
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
@@ -552,6 +553,15 @@ class CameraViewModel @Inject constructor(
         }
     }
 
+    // v2.12.0-12: Unified focus state teardown — cancel in-flight job BEFORE state reset
+    private fun resetFocusState() {
+        focusJob?.cancel()
+        focusSessionId++  // v2.12.0-13: Invalidate all in-flight HAL callbacks
+        _state.update { it.copy(afState = AfState.Idle, isFocusing = false, focusSuccess = null) }
+        eyeAfThrottle.reset()
+        eyeAfStabilityTracker.reset()
+    }
+
     /**
      * Switch camera between front and back (v2.5.2 Phase 7)
      *
@@ -561,6 +571,10 @@ class CameraViewModel @Inject constructor(
         // v2.6.1 Fix: Execute camera switching asynchronously
         // switchCamera() internally handles Main thread requirement for CameraX
         viewModelScope.launch {
+            // v2.12.0-12: cancel focusJob BEFORE state reset to prevent Race Condition
+            resetFocusState()
+            Log.i(TAG, "[v2.12.0-12] switchCamera: resetFocusState() called")
+
             // v2.9.10: Clear tracking state before switching camera
             // v2.9.9 Day 1-2: Clear AE/AF lock state before switching camera
             // v2.12.0-10: Clear generic tap flag so new camera starts with neutral frame sizing.
@@ -569,24 +583,17 @@ class CameraViewModel @Inject constructor(
                     trackedObjectId = null,
                     trackedObjectType = null,
                     focusPoint = null,
-                    isFocusing = false,
-                    focusSuccess = null,
                     isAEAFLocked = false,
                     lockPoint = null,
                     isGenericTapActive = false,
                     focusFrameWidthPx = 0f,
-                    focusFrameHeightPx = 0f,
-                    afState = AfState.Idle  // v2.12.0-11: reset AF state on camera switch
+                    focusFrameHeightPx = 0f
+                    // afState=Idle、isFocusing=false、focusSuccess=null 已由 resetFocusState() 處理
                 )
             }
 
             // Cancel focus metering if locked
             cameraRepository.cancelFocusAndMetering()
-
-            // v2.12.0-11: Reset Eye-AF throttle state to prevent stale armed/cooldown from leaking
-            eyeAfThrottle.reset()
-            eyeAfStabilityTracker.reset()
-            Log.i(TAG, "[v2.12.0-11] switchCamera: eyeAfThrottle.reset() + afState=Idle")
 
             cameraRepository.switchCamera()
             _state.update {
@@ -819,6 +826,9 @@ class CameraViewModel @Inject constructor(
         // Find target by type and calculate focus position
         var centerX: Float? = null
         var centerY: Float? = null
+        // v2.12.0-13: frame size update alongside position — keeps bbox in sync every tracking frame
+        var newFrameW: Float? = null
+        var newFrameH: Float? = null
 
         when (trackedType) {
             TrackedObjectType.FACE -> {
@@ -845,6 +855,13 @@ class CameraViewModel @Inject constructor(
                             Log.v(TAG, "Face tracking (no eye): Face $trackedId at center ($centerX, $centerY)")
                         }
                     }
+                    // v2.12.0-13: calculate screen-space frame size from face bbox
+                    val transformer = _state.value.coordinateTransformer
+                    if (transformer != null) {
+                        val screenBox = imageRectToScreenRectF(face.boundingBox, transformer)
+                        newFrameW = screenBox.width() * BBOX_SCALE_FACE
+                        newFrameH = screenBox.height() * BBOX_SCALE_FACE
+                    }
                 }
             }
             TrackedObjectType.OBJECT -> {
@@ -855,6 +872,13 @@ class CameraViewModel @Inject constructor(
                 if (obj != null) {
                     centerX = obj.boundingBox.exactCenterX()
                     centerY = obj.boundingBox.exactCenterY()
+                    // v2.12.0-13: calculate screen-space frame size from object bbox
+                    val transformer = _state.value.coordinateTransformer
+                    if (transformer != null) {
+                        val screenBox = imageRectToScreenRectF(obj.boundingBox, transformer)
+                        newFrameW = screenBox.width() * BBOX_SCALE_OBJECT
+                        newFrameH = screenBox.height() * BBOX_SCALE_OBJECT
+                    }
                 }
             }
         }
@@ -916,10 +940,17 @@ class CameraViewModel @Inject constructor(
                 // since the start of updateTrackedObjectPosition() (path A).
                 _state.update { current ->
                     if (current.trackedObjectId != trackedId) return@update current
-                    current.copy(focusPoint = Pair(screenX, screenY))
+                    current.copy(
+                        focusPoint = Pair(screenX, screenY),
+                        focusFrameWidthPx  = newFrameW ?: current.focusFrameWidthPx,
+                        focusFrameHeightPx = newFrameH ?: current.focusFrameHeightPx
+                    )
                 }
                 if (BuildConfig.DEBUG) {
                     Log.v(TAG, "Tracking update: ID=$trackedId, image=($centerX, $centerY), screen=($screenX, $screenY)")
+                }
+                if (BuildConfig.DEBUG && newFrameW != null && newFrameH != null) {
+                    Log.d(TAG, "[v2.12.0-13] Frame size update: ID=$trackedId, W=${newFrameW}px, H=${newFrameH}px")
                 }
             }
 
@@ -975,6 +1006,8 @@ class CameraViewModel @Inject constructor(
         }
         focusJob = viewModelScope.launch {
             try {
+                val capturedSessionId = ++focusSessionId
+                Log.d(TAG, "[v2.12.0-13] focusOnPoint: sessionId=$capturedSessionId captured")
 
                 // 🔍 DIAGNOSTIC: Log tap coordinates and view size
                 Log.d(TAG, "🔍 [Coordinate Debug] Tap: ($x, $y), View: ${viewWidth}x${viewHeight}")
@@ -1118,6 +1151,16 @@ class CameraViewModel @Inject constructor(
                 }
 
                 if (result.isSuccess) {
+                    // v2.12.0-12: State validity guard — drop stale HAL callback if no longer Focusing
+                    if (_state.value.afState !is AfState.Focusing) {
+                        Log.w(TAG, "[v2.12.0-12] Stale HAL success dropped (afState=${_state.value.afState})")
+                        return@launch
+                    }
+                    // v2.12.0-13: Session ID guard — drop stale HAL callback from previous focus session
+                    if (capturedSessionId != focusSessionId) {
+                        Log.w(TAG, "[v2.12.0-13] Stale HAL success dropped (captured=$capturedSessionId, current=$focusSessionId)")
+                        return@launch
+                    }
                     _state.update { it.copy(isFocusing = false, focusSuccess = true, afState = AfState.Locked) }
                     eyeAfThrottle.onSuccess()  // v2.12.0-05: arm throttle + start postLockCooldown
                     Log.d(TAG, "Focus successful at ($x, $y)")
@@ -1155,6 +1198,11 @@ class CameraViewModel @Inject constructor(
                     if (isOperationCancelled) {
                         Log.d(TAG, "[v2.12.0-09] OperationCanceledException — reset to Idle (no backoff)")
                         _state.update { it.copy(isFocusing = false, focusSuccess = false, afState = AfState.Idle) }
+                        return@launch
+                    }
+                    // v2.12.0-13: Session ID guard — drop stale HAL failure from previous focus session
+                    if (capturedSessionId != focusSessionId) {
+                        Log.w(TAG, "[v2.12.0-13] Stale HAL failure dropped (captured=$capturedSessionId, current=$focusSessionId)")
                         return@launch
                     }
                     val prevCount = (_state.value.afState as? AfState.Failed)?.failCount ?: 0

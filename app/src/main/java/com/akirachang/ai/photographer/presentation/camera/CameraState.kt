@@ -64,7 +64,12 @@ data class CameraState(
     val afState: AfState = AfState.Idle,
     // v2.12.0-11: true when current lens is fixed-focus (no VCM / AF hardware)
     val isFixedFocusLens: Boolean = false
-)
+) {
+    // v2.12.0-12: UDF-clean derived state for FocusIndicator
+    // AE/AF long-press lock ONLY. Eye-AF success (afState=Locked) uses Cyan, NOT Yellow.
+    val isFocusIndicatorLocked: Boolean
+        get() = isAEAFLocked
+}
 
 sealed class CameraUiEvent {
     object CapturePhoto : CameraUiEvent()
