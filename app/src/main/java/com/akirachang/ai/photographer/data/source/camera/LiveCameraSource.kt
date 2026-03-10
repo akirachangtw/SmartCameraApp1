@@ -121,6 +121,10 @@ class LiveCameraSource @Inject constructor(
     @Volatile
     private var isFixedFocus = false
 
+    // v2.12.0-11: StateFlow path for ViewModel to observe fixed-focus capability.
+    private val _isFixedFocusLens = MutableStateFlow(false)
+    val isFixedFocusLens: StateFlow<Boolean> = _isFixedFocusLens.asStateFlow()
+
     // v2.11.4-08: Increments on every bindToLifecycle call.
     // Future callbacks capture this value at submission time; if it diverges (camera switched),
     // the stale callback is discarded, preventing LOCKED state from a recycled session.
@@ -1231,6 +1235,10 @@ class LiveCameraSource @Inject constructor(
                     val afModes = FixedFocusDetector.getAfModes(camera.cameraInfo)
                     val hwLevel = FixedFocusDetector.getHardwareLevel(camera.cameraInfo)
                     Log.i(TAG, "[v2.12.0-07] isFixedFocus=$isFixedFocus, afModes=[${afModes.joinToString()}], hwLevel=$hwLevel")
+
+                    // v2.12.0-11: Emit to StateFlow so ViewModel can observe fixed-focus capability
+                    _isFixedFocusLens.value = isFixedFocus
+                    Log.i(TAG, "[v2.12.0-11] isFixedFocusLens updated: $isFixedFocus → StateFlow emitted")
 
                     // v2.11.4-06 Bug 2: Clear any lingering Camera2 interop options from previous session.
                     // When screen locks while AE_LOCK=true + AF_MODE=OFF are active, the

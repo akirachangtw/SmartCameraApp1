@@ -426,6 +426,92 @@ Last updated: 2026-02-25
 
 ---
 
+## AF 防禦修復 — Fixed-focus 永久鎖定 + Suspended 保護（v2.12.0-11）
+
+### 📋 問題背景（2026-03-10）
+
+v2.12.0-10 Sony 實機測試發現兩個互相關聯的 AF 問題：
+1. **AF Hunting（前鏡頭）**：Pixel 9a 前鏡頭為 fixed-focus（無 VCM），`startFocusAndMetering()` 永遠回傳 `isFocusSuccessful=false` → `onFailure()` 觸發指數退避（2s→4s→8s→repeat），形成無限循環
+2. **grow-only 框阻擋縮小**：`autoFocusOnSalientTarget()` 中 `AfState.Locked` 時 `maxOf()` 阻止框縮小 → ML Kit 新一幀更小 bbox 無法反映到 UI
+
+### ✅ 已確認的防禦決策（v2.12.0-11，2026-03-10）
+
+#### A. Fixed-focus 識別路徑（StateFlow 傳遞）
+
+| 層 | 實作 | 說明 |
+|---|------|------|
+| `LiveCameraSource` | `FixedFocusDetector.isFixedFocus(camera.cameraInfo)` | `bindToLifecycle()` 後立即偵測，結果同步到 `_isFixedFocusLens: MutableStateFlow` |
+| `CameraRepository` | `val isFixedFocusLens: StateFlow<Boolean>` | 介面宣告，`CameraRepositoryImpl` 代理 `LiveCameraSource`；`StaticImageSource` 回傳 `MutableStateFlow(false)` |
+| `CameraState` | `val isFixedFocusLens: Boolean = false` | ViewModel `init` 透過 `collect` 同步 |
+
+**⚠️ 注意**：`@Volatile private var isFixedFocus`（`LiveCameraSource` 內部）保留不動，`_isFixedFocusLens.value = isFixedFocus` 複用同一次查詢結果（不重複呼叫 `FixedFocusDetector`）。
+
+#### B. Fixed-focus 永久鎖定分流
+
+```
+autoFocusOnSalientTarget() 中：
+  ML Kit bbox → 更新 UI 框（直接，不再 maxOf）
+  ↓
+  if (isFixedFocusLens && AfState.Locked) → return  ← 跳過 HAL 呼叫
+  ↓
+  eyeAfThrottle.shouldTrigger() → focusOnPoint()
+```
+
+- **前鏡頭（fixed-focus）**：第一次成功對焦進入 `AfState.Locked` 後，後續 ML Kit 幀只更新 UI 框，完全不呼叫 `startFocusAndMetering()`
+- **後鏡頭（AF 鏡頭）**：`isFixedFocusLens=false`，走原有完整 AF 路徑
+
+#### C. grow-only maxOf 移除
+
+- **移除前**：`AfState.Locked` 時 `maxOf(focusWidthPx, currentState.focusFrameWidthPx)` → 框只能長大，不能縮小
+- **移除後**：`updatedW = focusWidthPx`，UI 框直接跟隨 ML Kit bbox
+- **視覺平滑**：由 `animateDpAsState(Spring(StiffnessMedium))` 提供，不需要 grow-only 保護
+
+#### D. AfTriggerThrottleController — Suspended 模式
+
+```
+連續失敗 ≥ 3 次 → consecutiveFailCount >= maxFailCount → shouldTrigger() 永遠 false
+解除途徑：UserTap → focusOnPoint(isUserTap=true) → eyeAfThrottle.reset()
+         鏡頭切換 → switchCamera() → eyeAfThrottle.reset()
+```
+
+- **目的**：防止 AF 無限 backoff 循環（2s→4s→8s→2s→...）
+- **`onSuccess()`**：`consecutiveFailCount = 0`（成功後自動解除）
+- **`reset()`**：`consecutiveFailCount = 0`（UserTap / 鏡頭切換後解除）
+
+#### E. Hysteresis 擴大（AfState.Locked 時）
+
+- **條件**：`isArmed && AfState.Locked`
+- **門檻**：`effectiveThreshold = rescanThresholdPx * 2.5f`（約 135px，原 54px）
+- **目的**：抑制 ML Kit bbox 微抖動（< 54px）在 Locked 後誤觸發重新對焦
+
+#### F. switchCamera() 補強
+
+| 新增 | 說明 |
+|------|------|
+| `afState = AfState.Idle` | 切換後 AF 狀態歸零，避免 Locked/Failed 殘留 |
+| `eyeAfThrottle.reset()` | 清除 isArmed / cooldown / consecutiveFailCount |
+| `eyeAfStabilityTracker.reset()` | 清除舊鏡頭座標，避免第一幀 delta 偏大 |
+
+### ⚠️ Critical Warnings
+
+1. **固定 `@Volatile private var isFixedFocus` 不可刪除**：`LiveCameraSource.focusOnPoint()` 仍使用此變數作為 bypass 判斷（line ~683）；`_isFixedFocusLens StateFlow` 是額外的觀察路徑，不是替代品
+2. **Fixed-focus guard 位置**：必須在 `_state.update { focusFrameWidthPx }` **之後**、`shouldTrigger()` **之前** — 確保 UI 框仍然更新，只跳過 HAL 呼叫
+3. **Suspended 模式不影響 UserTap**：`focusOnPoint(isUserTap=true)` 在進入 `focusJob launch` 前呼叫 `eyeAfThrottle.reset()`，確保使用者手動點擊永遠有效
+4. **Sony HAL 特性**：Sony XQ-BT52 後鏡頭 `afModes=[0,1,3]`（無 CONTINUOUS_PICTURE=4），但 `FixedFocusDetector.isFixedFocus()` 檢查 `afModes.isEmpty()` 或全為 `AF_MODE_OFF(0)`，Sony 不觸發 fixed-focus 路徑 ✅
+
+### 📋 Backlog
+
+- [x] P0-B `isFixedFocusLens` StateFlow 傳遞路徑（Repository 層） ✅
+- [x] P0-C `CameraState.isFixedFocusLens` + ViewModel init collect ✅
+- [x] P0-D `autoFocusOnSalientTarget()` grow-only maxOf 移除 ✅
+- [x] P1-A Fixed-focus 永久鎖定分流（跳過 focusOnPoint） ✅
+- [x] P1-B `switchCamera()` 補強（afState reset + eyeAfThrottle.reset） ✅
+- [x] P2-A `AfTriggerThrottleController` Suspended 模式（consecutiveFailCount） ✅
+- [x] P2-B Hysteresis 擴大 2.5x（AfState.Locked） ✅
+- [x] P2-C UserTap 解除 Suspended（focusOnPoint isUserTap=true 路徑） ✅
+
+---
+
 ## Camera Core Features (v2.11.0 / v3.5.0) - 從 v2.9.9 延後
 
 ### 📋 Backlog

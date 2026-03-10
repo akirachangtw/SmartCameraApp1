@@ -91,6 +91,16 @@ interface CameraRepository {
     val guidelineResults: StateFlow<GuidelineAnalysisResult?>
 
     /**
+     * Whether the current lens is fixed-focus (no VCM / AF hardware)
+     * v2.12.0-11: StateFlow path for ViewModel to observe fixed-focus capability
+     *
+     * Emits true after bindToLifecycle() when FixedFocusDetector confirms the lens
+     * cannot perform autofocus (e.g. Pixel 9a front camera).
+     * Emits false for emulator / StaticImageSource.
+     */
+    val isFixedFocusLens: StateFlow<Boolean>
+
+    /**
      * 啟用 HDR 模式（透過曝光補償）
      * v2.3.0: 逆光場景自動 HDR
      */

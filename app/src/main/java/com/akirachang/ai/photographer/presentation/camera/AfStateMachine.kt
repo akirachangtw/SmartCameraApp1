@@ -1,5 +1,6 @@
 package com.akirachang.ai.photographer.presentation.camera
 
+import com.akirachang.ai.photographer.BuildConfig
 import kotlin.math.min
 import kotlin.math.max
 import kotlin.math.sqrt
@@ -69,6 +70,8 @@ internal class AfTriggerThrottleController(
     private var nextAllowedTimeMs  = 0L
     private var isArmed            = false             // true after first LOCKED success
     private var lockedTimestamp    = 0L
+    private val maxFailCount: Int = 3              // v2.12.0-11: max consecutive failures before suspend
+    private var consecutiveFailCount: Int = 0      // v2.12.0-11: consecutive failure counter
 
     /** Call when preview width is known (SetPreviewSize event). */
     fun setScreenWidth(widthPx: Int) {
@@ -80,6 +83,7 @@ internal class AfTriggerThrottleController(
         isArmed           = true
         lockedTimestamp   = now()
         nextAllowedTimeMs = now() + postLockCooldownMs
+        consecutiveFailCount = 0  // v2.12.0-11: reset on success
     }
 
     /**
@@ -89,6 +93,11 @@ internal class AfTriggerThrottleController(
     fun onFailure(failCount: Int) {
         val backoff = min(backoffBaseMs * (1L shl (failCount - 1).coerceIn(0, 2)), 8_000L)
         nextAllowedTimeMs = now() + backoff
+        consecutiveFailCount++
+        if (consecutiveFailCount >= maxFailCount) {
+            android.util.Log.i("AfStateMachine",
+                "[v2.12.0-11] Auto-retry suspended (failCount=$consecutiveFailCount) — awaiting UserTap")
+        }
     }
 
     /**
@@ -102,12 +111,19 @@ internal class AfTriggerThrottleController(
     fun shouldTrigger(eyeScreenX: Float, eyeScreenY: Float, currentAfState: AfState): Boolean {
         val n = now()
 
+        // v2.12.0-11: Suspended mode — too many consecutive failures, await UserTap or camera switch
+        if (consecutiveFailCount >= maxFailCount) return false
+
         // Rule 1 — Don't interrupt in-flight FOCUSING
         if (currentAfState is AfState.Focusing) return false
 
+        // v2.12.0-11: Expand hysteresis 2.5x when Locked to suppress ML Kit bbox micro-jitter
+        val effectiveThreshold = if (isArmed && currentAfState is AfState.Locked)
+            rescanThresholdPx * 2.5f else rescanThresholdPx
+
         // Rule 2 — Stability / displacement check
         val deltaPx  = stabilityTracker.getDeltaPx(eyeScreenX, eyeScreenY)
-        val isMoving = deltaPx > rescanThresholdPx
+        val isMoving = deltaPx > effectiveThreshold
 
         // Rule 3 — Dynamic cooldown shortening for moving LOCKED target
         if (isArmed && isMoving && currentAfState is AfState.Locked) {
@@ -116,6 +132,10 @@ internal class AfTriggerThrottleController(
         }
 
         // Rule 4 — Time gate
+        if (BuildConfig.DEBUG && isArmed && currentAfState is AfState.Locked && !isMoving) {
+            android.util.Log.d("AfStateMachine",
+                "[v2.12.0-11] Hysteresis gate (Locked): delta=${deltaPx}px < ${effectiveThreshold}px — skip")
+        }
         if (n < nextAllowedTimeMs) return false
 
         // Rule 5 — Pre-lock base throttle (unarmed + IDLE first attempt)
@@ -133,6 +153,7 @@ internal class AfTriggerThrottleController(
         isArmed           = false
         lockedTimestamp   = 0L
         stabilityTracker.reset()
+        consecutiveFailCount = 0  // v2.12.0-11: reset on UserTap / camera switch
     }
 
     private fun now() = System.currentTimeMillis()

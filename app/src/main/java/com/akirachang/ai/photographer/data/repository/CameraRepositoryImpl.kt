@@ -99,6 +99,11 @@ class CameraRepositoryImpl @Inject constructor(
     private val _guidelineResults = MutableStateFlow<GuidelineAnalysisResult?>(null)
     override val guidelineResults: StateFlow<GuidelineAnalysisResult?> = _guidelineResults.asStateFlow()
 
+    // v2.12.0-11: Fixed-focus lens StateFlow — delegates to LiveCameraSource when available
+    override val isFixedFocusLens: StateFlow<Boolean> =
+        (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)?.isFixedFocusLens
+            ?: MutableStateFlow(false)
+
     // 分析是否已啟動
     private var isAnalysisStarted = false
 

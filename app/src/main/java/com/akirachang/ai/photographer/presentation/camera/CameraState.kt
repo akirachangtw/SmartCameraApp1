@@ -61,7 +61,9 @@ data class CameraState(
     // FocusIndicator uses GENERIC_TAP_FRAME_DP (72dp square) instead of the 48dp fallback.
     val isGenericTapActive: Boolean = false,
     // v2.12.0-05: 4-way AF state machine (Eye-AF throttle + withTimeout)
-    val afState: AfState = AfState.Idle
+    val afState: AfState = AfState.Idle,
+    // v2.12.0-11: true when current lens is fixed-focus (no VCM / AF hardware)
+    val isFixedFocusLens: Boolean = false
 )
 
 sealed class CameraUiEvent {

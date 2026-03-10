@@ -248,6 +248,14 @@ class CameraViewModel @Inject constructor(
                 Log.d(TAG, "Aspect ratio mode updated from settings: $mode")
             }
         }
+
+        // v2.12.0-11: Observe fixed-focus lens capability → sync to CameraState
+        viewModelScope.launch {
+            cameraRepository.isFixedFocusLens.collect { isFixed ->
+                _state.update { it.copy(isFixedFocusLens = isFixed) }
+                Log.i(TAG, "[v2.12.0-11] isFixedFocusLens updated: $isFixed → CameraState synced")
+            }
+        }
     }
 
     /**
@@ -567,12 +575,18 @@ class CameraViewModel @Inject constructor(
                     lockPoint = null,
                     isGenericTapActive = false,
                     focusFrameWidthPx = 0f,
-                    focusFrameHeightPx = 0f
+                    focusFrameHeightPx = 0f,
+                    afState = AfState.Idle  // v2.12.0-11: reset AF state on camera switch
                 )
             }
 
             // Cancel focus metering if locked
             cameraRepository.cancelFocusAndMetering()
+
+            // v2.12.0-11: Reset Eye-AF throttle state to prevent stale armed/cooldown from leaking
+            eyeAfThrottle.reset()
+            eyeAfStabilityTracker.reset()
+            Log.i(TAG, "[v2.12.0-11] switchCamera: eyeAfThrottle.reset() + afState=Idle")
 
             cameraRepository.switchCamera()
             _state.update {
@@ -956,6 +970,8 @@ class CameraViewModel @Inject constructor(
         // autoFocusOnSalientTarget() could read the stale value and cancel this tap job.
         if (isUserTap) {
             lastManualTapTime = System.currentTimeMillis()
+            eyeAfThrottle.reset()
+            Log.i(TAG, "[v2.12.0-11] UserTap: eyeAfThrottle.reset() — Suspended state cleared")
         }
         focusJob = viewModelScope.launch {
             try {
@@ -1437,13 +1453,20 @@ class CameraViewModel @Inject constructor(
             // Bug B fix (frozen-small) — only shrink is blocked; the frame can still grow.
             // Scenario: front camera close-up, user moves in after lock → face bbox grows larger
             //   than the frame captured at lock time → frame must expand to reflect proximity.
-            // Shrink is still blocked to prevent micro-flicker when the face drifts a few px.
-            // When Locked state ends (cooldown expires / subject lost), the next frame resets freely.
-            val updatedW = if (currentState.afState is AfState.Locked)
-                maxOf(focusWidthPx, currentState.focusFrameWidthPx) else focusWidthPx
-            val updatedH = if (currentState.afState is AfState.Locked)
-                maxOf(focusHeightPx, currentState.focusFrameHeightPx) else focusHeightPx
+            // v2.12.0-11: Removed grow-only maxOf — UI frame always follows ML Kit bbox directly.
+            // Spring animation (StiffnessMedium) provides sufficient visual smoothing.
+            val updatedW = focusWidthPx
+            val updatedH = focusHeightPx
             _state.update { it.copy(focusFrameWidthPx = updatedW, focusFrameHeightPx = updatedH) }
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "[v2.12.0-11] UI frame update: ${updatedW}x${updatedH}px (AfState=${currentState.afState})")
+            }
+
+            // v2.12.0-11: Fixed-focus permanent lock — UI-only update, skip HAL calls
+            if (currentState.isFixedFocusLens && currentState.afState is AfState.Locked) {
+                Log.i(TAG, "[v2.12.0-11] Fixed-focus Locked — UI-only update, skipping focusOnPoint")
+                return
+            }
 
             // v2.12.0-05: Eye-AF throttle gate (Step 3) — replaces lastAutoFocusTime check.
             // Evaluates: FOCUSING guard + delta-px + cooldown + backoff in one call.
