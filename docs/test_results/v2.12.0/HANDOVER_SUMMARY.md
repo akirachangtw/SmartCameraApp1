@@ -163,6 +163,79 @@ Focus successful at (x, y)
 
 ---
 
+## v2.12.0-11 AF 防禦修復 — 交接給 Work NB（2026-03-10）
+
+**Date built**: 2026-03-10
+**Commit**: `17d6f91`
+**Branch**: `feature/camera-core-v2.12.0`
+**Target device**: Sony XQ-BT52 (`HQ616R2713`) + Pixel 9a (`59131JEBF17244`)
+**Test guide**: `docs/test_results/v2.12.0/v2.12.0-11_work_nb_execution.md`
+
+### What Was Fixed (Home NB, 2026-03-10)
+
+| Sub-fix | Description |
+|---------|-------------|
+| P0-B/C | `isFixedFocusLens: StateFlow<Boolean>` — Repository → CameraState 傳遞路徑 |
+| P0-D | `autoFocusOnSalientTarget()` grow-only `maxOf` 移除 — UI 框直接跟隨 ML Kit bbox |
+| P1-A | Fixed-focus 永久鎖定分流 — `AfState.Locked` 後跳過 `focusOnPoint()` |
+| P1-B | `switchCamera()` 補強 — `afState=Idle` + `eyeAfThrottle.reset()` |
+| P2-A | `AfTriggerThrottleController` Suspended 模式（連續 3 次失敗 → 暫停） |
+| P2-B | Hysteresis 2.5x 擴大（`AfState.Locked` 時 54px → 135px） |
+| P2-C | UserTap 解除 Suspended — `focusOnPoint(isUserTap=true)` 呼叫 `eyeAfThrottle.reset()` |
+
+### Test Cases for v2.12.0-11
+
+| TC | Description | 預期行為 | 驗證版本 |
+|----|-------------|---------|---------|
+| TC-06a-v2 | 前鏡頭：對焦框隨人臉距離縮放 | 框大小跟隨人臉 bbox，不固定 | P0-D + P1-A |
+| TC-06b | 後鏡頭：非人臉點擊顯示 72dp 正方形 | 72dp 正方形（已 v2.12.0-10 PASS） | Regression |
+| TC-07 | AF Hunting 消除（前鏡頭） | Logcat 出現 `Fixed-focus Locked — UI-only update`，無持續 AF 觸發 | P1-A |
+| TC-08 | AF Hunting 消除（後鏡頭） | Logcat 出現 `Hysteresis gate (Locked)` 阻擋微抖動，AF 不過度觸發 | P2-B |
+| TC-09 | Suspended 模式（後鏡頭遮蔽 → 連續失敗） | Logcat: `Auto-retry suspended (failCount=3)` | P2-A |
+| TC-10 | UserTap 解除 Suspended | Tap 後 Logcat: `UserTap: eyeAfThrottle.reset()` | P2-C |
+| TC-11 | 鏡頭切換後 AF 狀態乾淨 | 切換後無 Locked/Failed 殘留，`switchCamera: eyeAfThrottle.reset()` | P1-B |
+| TC-05 | Regression：正常 AF lock/dwell | 人臉 → 自動對焦 → Locked → dwell 動畫 | Regression |
+
+### Key Logcat Patterns for v2.12.0-11
+
+```
+# P1-A: 前鏡頭 fixed-focus Locked 後跳過 HAL
+[v2.12.0-11] Fixed-focus Locked — UI-only update, skipping focusOnPoint
+
+# P1-B: 鏡頭切換重置
+[v2.12.0-11] switchCamera: eyeAfThrottle.reset() + afState=Idle
+
+# P2-A: Suspended 模式觸發
+[v2.12.0-11] Auto-retry suspended (failCount=3) — awaiting UserTap
+
+# P2-B: Hysteresis 阻擋微抖動（DEBUG log）
+[v2.12.0-11] Hysteresis gate (Locked): delta=XXpx < 135px — skip
+
+# P2-C: UserTap 解除 Suspended
+[v2.12.0-11] UserTap: eyeAfThrottle.reset() — Suspended state cleared
+
+# StateFlow 確認（啟動時）
+[v2.12.0-11] isFixedFocusLens updated: false → CameraState synced   ← Sony 後鏡頭
+[v2.12.0-11] isFixedFocusLens updated: true  → CameraState synced   ← 前鏡頭（Pixel 9a）
+```
+
+### Test Results — Sony XQ-BT52 (v2.12.0-11, ⏳ 待測試)
+
+| TC | Description | Result | Notes |
+|----|-------------|--------|-------|
+| TC-06a-v2 | 前鏡頭：框隨距離縮放 | ⏳ | |
+| TC-06b | 後鏡頭：72dp 正方形 | ⏳ | |
+| TC-07 | 前鏡頭 AF Hunting 消除 | ⏳ | |
+| TC-08 | 後鏡頭 Hysteresis 抑制 | ⏳ | |
+| TC-09 | Suspended 模式觸發 | ⏳ | |
+| TC-10 | UserTap 解除 Suspended | ⏳ | |
+| TC-11 | 鏡頭切換 AF 重置 | ⏳ | |
+| TC-05 | Regression AF lock/dwell | ⏳ | |
+
+**Overall Result**: ⏳ 待 Work NB 測試
+
+---
+
 ## v2.12.0 Full Roadmap Status
 
 | Version | Content | Status |
@@ -174,11 +247,11 @@ Focus successful at (x, y)
 | v2.12.0-05 | Eye-AF throttle + 4-way AfState + CancellationException fix | ✅ |
 | v2.12.0-06 | AF UI fixes: FLAG_AE + grow-only frame + AR clamp + per-type scale | ✅ |
 | v2.12.0-07 | Fixed-focus bypass (Pixel 9a front cam) + FixedFocusDetector | ✅ |
-| v2.12.0-08 | Focus frame AR clamp uniform scale-up | ✅ Built — **⏳ Pending test** |
-| v2.12.0-09 | OperationCanceledException → Idle (no backoff) | ✅ Built — **⏳ Pending test** |
-| v2.12.0-10 | Bug A+B fix: resolveTapTarget + 72dp generic tap + frame state reset | ✅ Built — **⏳ Pending test** |
-| v2.12.0-11 | ObjectTrackingPipeline + FocusUiSmoother integration | ⏳ Not yet built |
-| v2.12.0 | Stable tag — dual-camera AF complete | ⏳ Pending v2.12.0-11 |
+| v2.12.0-08 | Focus frame AR clamp uniform scale-up | ✅ PASS (Sony 2026-03-06) |
+| v2.12.0-09 | OperationCanceledException → Idle (no backoff) | ✅ PASS (Sony 2026-03-06) |
+| v2.12.0-10 | Bug A+B fix: resolveTapTarget + 72dp generic tap + frame state reset | ⚠️ PARTIAL — TC-06a FAIL (Sony 2026-03-09) |
+| v2.12.0-11 | AF 防禦修復：Fixed-focus 永久鎖定 + Suspended 模式（commit `17d6f91`） | ⏳ **Pending Work NB test** |
+| v2.12.0 | Stable tag — dual-camera AF complete | ⏳ Pending v2.12.0-11 PASS |
 
 ---
 
