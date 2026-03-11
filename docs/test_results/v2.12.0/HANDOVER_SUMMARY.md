@@ -303,6 +303,84 @@ FocusClamp: Clamp RESET (focusSuccess=null, isLocked=false)     ← 動畫被重
 
 ---
 
+---
+
+## v2.12.0-12 AF Race Condition 修復 — 交接給 Work NB（2026-03-10）
+
+**Date built**: 2026-03-10
+**Commit**: `f13462f`（含 v2.12.0-12 + v2.12.0-13）
+**Branch**: `feature/camera-core-v2.12.0`
+
+### What Was Fixed
+
+| Bug | Description | Fix |
+|-----|-------------|-----|
+| Bug #1 | `FocusClamp isLocked=false` UI 斷路 — Eye-AF Locked 動畫 + dwell 未觸發 | `CameraState.isFocusIndicatorLocked = isAEAFLocked`（僅 AE/AF Lock = Yellow，不含 Eye-AF Locked） |
+| Bug #2 | `switchCamera()` Race Condition — in-flight HAL callback 覆蓋 Idle，前鏡頭 AF 死鎖 | `resetFocusState()` 強制順序：`focusJob?.cancel()` → `_state.update(Idle)` → `eyeAfThrottle.reset()` |
+| HAL guard | Stale HAL callback 在 cancel 後仍可穿透 | `if (_state.value.afState !is AfState.Focusing) return@launch` |
+
+### v2.12.0-13 同 commit 包含
+
+| Sub-fix | Description |
+|---------|-------------|
+| T1 | `updateTrackedObjectPosition()` bbox 原子更新（同一 `_state.update` 同時寫 `focusPoint + focusFrameWidthPx/HeightPx`） |
+| T2 | `FocusIndicator` 雙視覺路徑分離：新增 `isEyeAfLocked` 參數（Cyan），`isLocked` 嚴格保留 `isAEAFLocked`（Yellow）|
+| T3 | `focusSessionId` Session ID 第二道防線：HAL success/failure 路徑各加 session ID 校驗 |
+
+---
+
+## v2.12.0-14 Coordinate Truth + PreviewView 對齊 — 交接給 Work NB（2026-03-11）
+
+**Date built**: 2026-03-11
+**Commit**: `7187406`
+**Branch**: `feature/camera-core-v2.12.0`
+**APK**: 已由 Home NB 安裝至 Sony XQ-BT52（`HQ616R2713`）
+
+### What Was Fixed
+
+| Sub-fix | Description |
+|---------|-------------|
+| T1 | `updateContentBounds()` bootstrap 快取（`lastKnownImageWidth/Height`）— 解決 App 啟動時 transformer-null 問題 |
+| T1 | `resolveTapTarget()` transformer null → `TapTargetInfo.Generic`（移除 raw coords fallback）|
+| T1 | `focusOnPoint()` OF 路徑兩個 legacy fallback → `return@launch`（移除 CoordinateMapper 退路）|
+| T2 | `app/build.gradle.kts` release `USE_PREVIEWVIEW_DISPLAY = "true"` — 幾何與 debug build 對齊 |
+| T2 | `LiveCameraSource.kt` metering fallback 升級為 `Log.e` CRITICAL |
+| SV-F1 | `resolvedH` guard 修正（`effectiveImageHeight > 0`，非 `effectiveImageWidth`）|
+| SV-F1 | `CameraScreen.kt` alpha 優先序回滾至 SSOT 正確順序（`isEyeAfLocked` 回到 `isFading` 之前）|
+
+---
+
+## 待驗收 TC 清單（v2.12.0-12/13/14，2026-03-11）
+
+**測試文件**: `docs/test_results/v2.12.0/v2.12.0-13-14_work_nb_execution.md`
+
+### 核心回歸（v2.12.0-12 修復 v2.12.0-11 新 Bug）
+
+| TC | 描述 | 預期行為 |
+|----|------|---------|
+| TC-05 | 後鏡頭 Eye-AF Locked 動畫 + dwell 淡出 | Cyan 框 → Locked 動畫 → alpha=0.4 淡出 ✅ |
+| TC-11 | 鏡頭切換後 AF 不死鎖 | 切換後可正常對焦，無 Locked 殘留 ✅ |
+
+### v2.12.0-13 新功能驗收
+
+| TC | 描述 | 預期行為 |
+|----|------|---------|
+| TC-13-T1 | bbox 追蹤框隨人臉縮放 | 後鏡頭人臉靠近/遠離，框連續縮放不凍結 |
+| TC-13-T2 | Eye-AF Cyan vs AE/AF Yellow 分離 | Eye-AF 成功 → Cyan；長按鎖定 → Yellow；互不干擾 |
+| TC-13-T3 | Session ID 防禦（快速切換後無 stale callback）| Logcat `Stale HAL dropped` 為正常；不出現 AfState 汙染 |
+
+### v2.12.0-14 Coordinate Truth 驗收
+
+| TC | 描述 | 預期行為 |
+|----|------|---------|
+| TC-14-T1-01 | App 啟動立即點擊（bootstrap） | Generic 72dp 框；不 crash；Logcat `transformer=created` 或 `not ready, returning Generic` |
+| TC-14-T1-02 | 前鏡頭 tap 精準度 | 對焦框貼合人臉，不偏移 |
+| TC-14-T1-03 | 後鏡頭 tap 精準度 | 對焦框貼合目標，不偏移 |
+| TC-14-T1-04 | legacy fallback 已消失 | Logcat **不得**出現 `using raw screen coords` / `fallback to CoordinateMapper` |
+| TC-14-SV-01 | Alpha 優先序正確 | Yellow 長按 > Cyan Eye-AF > Dwell 0.4；順序不混淆 |
+
+---
+
 ## v2.12.0 Full Roadmap Status
 
 | Version | Content | Status |
@@ -317,8 +395,11 @@ FocusClamp: Clamp RESET (focusSuccess=null, isLocked=false)     ← 動畫被重
 | v2.12.0-08 | Focus frame AR clamp uniform scale-up | ✅ PASS (Sony 2026-03-06) |
 | v2.12.0-09 | OperationCanceledException → Idle (no backoff) | ✅ PASS (Sony 2026-03-06) |
 | v2.12.0-10 | Bug A+B fix: resolveTapTarget + 72dp generic tap + frame state reset | ⚠️ PARTIAL — TC-06a FAIL (Sony 2026-03-09) |
-| v2.12.0-11 | AF 防禦修復：Fixed-focus 永久鎖定 + Suspended 模式（commit `17d6f91`） | ❌ FAIL — 2 新 Bug，需重啟 PDCA（2026-03-10） |
-| v2.12.0 | Stable tag — dual-camera AF complete | ⏳ Pending v2.12.0-11 PASS |
+| v2.12.0-11 | AF 防禦修復：Fixed-focus 永久鎖定 + Suspended 模式 | ❌ FAIL — 2 新 Bug（2026-03-10） |
+| v2.12.0-12 | Bug #1: isFocusIndicatorLocked + Bug #2: resetFocusState() + HAL guard | ⏳ 待實機驗收 |
+| v2.12.0-13 | T1: bbox原子更新 + T2: FocusIndicator雙路徑 + T3: Session ID第二道防線 | ⏳ 待實機驗收 |
+| v2.12.0-14 | T1: Coordinate Truth + T2: Release PreviewView + SV-F1: resolvedH guard | ⏳ 待實機驗收（APK 已安裝 Sony） |
+| v2.12.0 | Stable tag — dual-camera AF complete | ⏳ Pending 實機驗收 PASS |
 
 ---
 
@@ -327,10 +408,12 @@ FocusClamp: Clamp RESET (focusSuccess=null, isLocked=false)     ← 動畫被重
 **If PASS**: Update results table above, then Work NB push:
 ```bash
 git add docs/test_results/v2.12.0/
-git commit -m "[Test] v2.12.0-08+09: Pixel 9a verification — PASS
+git commit -m "[Test] v2.12.0-13/14: Sony XQ-BT52 verification — PASS
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 git push origin feature/camera-core-v2.12.0
 ```
 
-**If FAIL**: Document failure in results table + logcat filename, push, then notify Home NB.
+**If FAIL / PARTIAL**: Document failure in results table + logcat filename, push, then notify Home NB.
+- PARTIAL → 帶回 Home NB，Traycer `trigger-workflow` 重啟 PDCA
+- FAIL → ⚠️ 架構防禦啟動，帶 Logcat 回 Step 1（trigger-workflow）
