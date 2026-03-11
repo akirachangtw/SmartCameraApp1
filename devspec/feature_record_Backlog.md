@@ -600,6 +600,90 @@ Focus successful at (x, y)
 
 ---
 
+## Coordinate Truth Consolidation + PreviewView Alignment（v2.12.0-14）
+
+### 📋 問題背景（2026-03-11）
+
+1. **Coordinate fallback 導致幾何失準**：`resolveTapTarget()` 與 `focusOnPoint()` OF 路徑在 `coordinateTransformer == null` 時，退回 `CoordinateMapper`（CENTER_CROP 幾何）或 raw screen coords，導致 Eye-AF 框偏移與 hit-test 失準
+2. **雞生蛋問題（bootstrap deadlock）**：`updateContentBounds()` 在 App 啟動時（ML Kit 尚未回傳第一幀）`detectionResult == null` → `effectiveImageWidth = 0` → `transformer = null`；後續所有 tap 均走 legacy fallback
+3. **Release build 幾何不一致**：`USE_PREVIEWVIEW_DISPLAY = false`（release）vs `true`（debug），導致 Release build 使用 `ContentScale.Crop`（bitmap path），4 個幾何真相（overlay / tap / HAL metering / OF）全部不對齊
+
+### ✅ 已確認的防禦決策（v2.12.0-14，2026-03-11）
+
+#### A. CoordinateTransformer 為唯一幾何真相來源
+
+**鐵律**：`CoordinateTransformer`（FIT_CENTER 幾何）是唯一正確的座標真相來源。禁止在任何路徑回退 `CoordinateMapper`（CENTER_CROP 幾何）或 raw screen coords。
+
+**已清除的 3 個 legacy fallback（`CameraViewModel.kt`）**：
+
+| 位置 | 舊行為 | 新行為 |
+|------|--------|--------|
+| `resolveTapTarget()` — `transformer == null` | `x to y`（raw coords hit-test，幾何錯誤） | `return TapTargetInfo.Generic` |
+| `focusOnPoint()` OF — tap 在 content bounds 外 | `startOpticalFlowTracking(x, y)`（CoordinateMapper） | `return@launch` |
+| `focusOnPoint()` OF — `transformer == null` | `startOpticalFlowTracking(x, y)`（CoordinateMapper） | `return@launch` |
+
+**Bootstrap 快取機制**（解決雞生蛋問題）：
+```kotlin
+// CameraViewModel.kt — updateContentBounds()
+private var lastKnownImageWidth: Int = 0   // v2.12.0-14
+private var lastKnownImageHeight: Int = 0  // v2.12.0-14
+
+if (effectiveImageWidth > 0 && effectiveImageHeight > 0) {
+    lastKnownImageWidth  = effectiveImageWidth
+    lastKnownImageHeight = effectiveImageHeight
+}
+val resolvedW = if (effectiveImageWidth > 0) effectiveImageWidth else lastKnownImageWidth
+val resolvedH = if (effectiveImageHeight > 0) effectiveImageHeight else lastKnownImageHeight
+// ⚠️ resolvedH 的 guard 必須用 effectiveImageHeight > 0，不可誤用 effectiveImageWidth
+```
+
+#### B. Release/Debug 對齊 USE_PREVIEWVIEW_DISPLAY
+
+**問題根因**：v2.8.6 出於保守考量，release build 關閉 `USE_PREVIEWVIEW_DISPLAY`。但事實上 PreviewView 路徑（FIT_CENTER + `contentBounds`）記憶體更穩定（~95 MB vs bitmap path ~215 MB），且必須與 debug build 一致才能確保幾何真相對齊。
+
+**修復**：`app/build.gradle.kts` release buildType 改為：
+```kotlin
+// v2.12.0-14: Enabled for release — geometry truth aligned with debug build
+buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "true")
+```
+
+**鏈式邏輯**：`USE_PREVIEWVIEW_DISPLAY && supportsNativePreview`（`LiveCameraSource` 永遠回傳 `true`）→ `useNativePreview = true` → `CameraPreview.kt:64` 走 PreviewView 路徑
+
+#### C. Scope Discipline：UI 層禁止被座標票據連帶改動
+
+**鐵律**：座標修復票據（Coordinate Truth / CoordinateMapper cleanup）**只允許修改 ViewModel 層**，絕對禁止在同一 ticket 改動：
+- `CameraScreen.kt`
+- `FocusIndicator` / `FocusClamp` composable
+- 任何動畫邏輯、顏色邏輯
+- `CoordinateTransformer` 類別本身
+
+**v2.12.0-14 SV-F1 案例**：T1/T2 驗收中發現 `CameraScreen.kt` 的 alpha 優先序被連帶調換（`isFading` 移至 `isEyeAfLocked` 之前），SV-F1 票據要求立即回滾。正確順序：
+```
+isLocked(Yellow) → isEyeAfLocked(Cyan) → isFading(0.4) → isTracking → else
+```
+
+#### D. SV-Fix 票據模式（Strict Verification Fix）
+
+**模式說明**：`strict_verification` Quality Gate 發現 implementation drift 後，產出 `SV-Fxx` 票據，Claude Code 依票據僅修復偏移點，不做範圍外改動。Build 後立即停止，等待下一輪 QG 驗收。
+
+**本輪效果**：
+- SV-F1 修復 2 個偏移（`resolvedH` guard 邏輯 + `CameraScreen.kt` 回滾），build 19s 即收斂
+- 閉環總耗時：< 5 分鐘，zero side-effect
+
+### ⚠️ Critical Warnings
+
+1. **`resolvedH` guard 必須對應高度**：`if (effectiveImageHeight > 0)` — 禁止複製貼上時誤用 `effectiveImageWidth`
+2. **Metering fallback 已升級為 `Log.e`**：`[v2.12.0-14] CRITICAL: PreviewView not set` 若在 Logcat 出現，表示 PreviewView 未正常注入，必須調查
+3. **OF fallback 已硬性移除**：`transformer == null` 或 tap 在 content bounds 外時，OF 路徑直接 `return@launch`，不再靜默走舊路徑，tap 無反應為預期行為（等待 transformer 就緒）
+
+### 📋 Backlog
+
+- [x] T1: Coordinate Truth Consolidation — 移除 3 個 legacy fallback + bootstrap 快取機制 ✅
+- [x] T2: Release build `USE_PREVIEWVIEW_DISPLAY = true` + Metering fallback 升級 `Log.e` ✅
+- [x] SV-F1: `resolvedH` guard 修正 + `CameraScreen.kt` alpha 順序回滾 ✅
+
+---
+
 ## Camera Core Features (v2.11.0 / v3.5.0) - 從 v2.9.9 延後
 
 ### 📋 Backlog

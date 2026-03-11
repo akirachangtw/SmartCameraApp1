@@ -666,7 +666,7 @@ class LiveCameraSource @Inject constructor(
             } else {
                 // Fallback to SurfaceOrientedMeteringPointFactory (legacy behavior)
                 // ⚠️ WARNING: This does NOT account for FIT_CENTER letterboxing
-                Log.w(TAG, "[v2.11.1 P0-1] PreviewView not set - using legacy factory (letterbox not handled)")
+                Log.e(TAG, "[v2.12.0-14] CRITICAL: PreviewView not set — metering point uses legacy SurfaceOrientedFactory (letterbox NOT handled). Focus accuracy degraded.")
                 val factory = androidx.camera.core.SurfaceOrientedMeteringPointFactory(
                     viewWidth.toFloat(),
                     viewHeight.toFloat()

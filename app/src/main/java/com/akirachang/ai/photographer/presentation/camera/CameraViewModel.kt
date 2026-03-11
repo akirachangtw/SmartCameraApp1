@@ -151,6 +151,8 @@ class CameraViewModel @Inject constructor(
     // Prevents race condition where stale delay(500) clears focusPoint after lockAEAF sets it.
     private var focusJob: Job? = null
     private var focusSessionId: Int = 0  // v2.12.0-13: Session ID for HAL callback validation
+    private var lastKnownImageWidth: Int = 0   // v2.12.0-14: Cache for transformer bootstrap
+    private var lastKnownImageHeight: Int = 0  // v2.12.0-14: Cache for transformer bootstrap
 
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
@@ -499,12 +501,20 @@ class CameraViewModel @Inject constructor(
             rawImageWidth to rawImageHeight
         }
 
-        // Create coordinate transformer if image dimensions are available
-        val transformer = if (effectiveImageWidth > 0 && effectiveImageHeight > 0) {
+        // v2.12.0-14: Update cache when fresh dims are available
+        if (effectiveImageWidth > 0 && effectiveImageHeight > 0) {
+            lastKnownImageWidth  = effectiveImageWidth
+            lastKnownImageHeight = effectiveImageHeight
+        }
+        val resolvedW = if (effectiveImageWidth > 0) effectiveImageWidth else lastKnownImageWidth
+        val resolvedH = if (effectiveImageHeight > 0) effectiveImageHeight else lastKnownImageHeight
+
+        // Create coordinate transformer if image dimensions are available (use cached dims as fallback)
+        val transformer = if (resolvedW > 0 && resolvedH > 0) {
             com.akirachang.ai.photographer.presentation.camera.components.CoordinateTransformer(
                 contentBounds = bounds,
-                imageWidth = effectiveImageWidth,
-                imageHeight = effectiveImageHeight,
+                imageWidth = resolvedW,
+                imageHeight = resolvedH,
                 isFrontCamera = isFrontCamera
             )
         } else {
@@ -524,6 +534,7 @@ class CameraViewModel @Inject constructor(
                 "width=${bounds.width()}, height=${bounds.height()}, " +
                 "rawImage=${rawImageWidth}x${rawImageHeight}, rotation=${rotation}°, " +
                 "effectiveImage=${effectiveImageWidth}x${effectiveImageHeight}, " +
+                "cached=${lastKnownImageWidth}x${lastKnownImageHeight}, " +
                 "transformer=${if (transformer != null) "created" else "null (no image dims)"}")
     }
 
@@ -779,8 +790,8 @@ class CameraViewModel @Inject constructor(
                 return TapTargetInfo.Generic
             }
         } else {
-            Log.w(TAG, "resolveTapTarget: no coordinateTransformer, using raw screen coords (legacy fallback)")
-            x to y
+            Log.w(TAG, "[v2.12.0-14] resolveTapTarget: transformer not ready, returning Generic")
+            return TapTargetInfo.Generic
         }
 
         Log.d(TAG, "resolveTapTarget: screen=($x, $y) → image=($imageX, $imageY)")
@@ -1102,14 +1113,12 @@ class CameraViewModel @Inject constructor(
                             cameraRepository.startOpticalFlowTrackingImageCoords(imageCoords.first, imageCoords.second)
                             Log.i(TAG, "[Fix G] OF start: screen=($x, $y) → image=(${imageCoords.first}, ${imageCoords.second}) via CoordinateTransformer")
                         } else {
-                            // Tap outside content bounds (letterbox area) — fallback to old path
-                            cameraRepository.startOpticalFlowTracking(x, y)
-                            Log.w(TAG, "[Fix G] OF start: tap outside content bounds, fallback to CoordinateMapper")
+                            Log.w(TAG, "[v2.12.0-14] OF start skipped: tap outside content bounds")
+                            return@launch
                         }
                     } else {
-                        // Transformer not ready — fallback to old path (may drift)
-                        cameraRepository.startOpticalFlowTracking(x, y)
-                        Log.w(TAG, "[Fix G] OF start: no coordinateTransformer, fallback to CoordinateMapper")
+                        Log.w(TAG, "[v2.12.0-14] OF start skipped: transformer not ready")
+                        return@launch
                     }
 
                 } else {
