@@ -1,0 +1,26 @@
+--------- beginning of main
+03-13 16:25:40.598 I/CameraViewModel(20289): [v2.8.4 Guideline] Lines=6, OpenCV=44ms, Total=65.4ms
+03-13 16:25:40.740 I/CameraViewModel(20289): [v2.8.4 Guideline] Lines=6, OpenCV=77ms, Total=85.3ms
+03-13 16:25:40.883 D/DefaultTargetTracker(20289): [v2.12.0-15] update: 1 targets, primary=face_97
+03-13 16:25:40.883 I/DefaultEyeAfPolicyResolver(20289): [v2.12.0-15] SYNTHETIC_LOCK: fixed-focus, anchor=BOTH_EYES_CENTER, visual=VisualLocked
+03-13 16:25:40.883 D/CameraViewModel(20289): [v2.12.0-15] Pipeline: visual=VisualLocked, lens=NotFocused
+03-13 16:25:40.901 I/CameraViewModel(20289): Detection result updated: 1 faces, 0 objects
+03-13 16:25:40.916 D/CameraViewModel(20289): Lighting state updated: HighContrast
+03-13 16:25:40.920 I/CameraViewModel(20289): [v2.8.4 E2E] Total=336.7ms (Convert=0.1ms, MLKit=302.4ms, Composition=17.7ms, Lighting=14.7ms)
+03-13 16:25:40.925 I/CameraViewModel(20289): [v2.8.4 Guideline] Lines=6, OpenCV=113ms, Total=158.2ms
+03-13 16:25:41.055 D/CameraViewModel(20289): Unlocking AE/AF skipped — not locked
+03-13 16:25:41.111 D/DefaultTargetTracker(20289): [v2.12.0-15] update: 1 targets, primary=face_97
+03-13 16:25:41.111 I/DefaultEyeAfPolicyResolver(20289): [v2.12.0-15] SYNTHETIC_LOCK: fixed-focus, anchor=BOTH_EYES_CENTER, visual=VisualLocked
+03-13 16:25:41.111 D/CameraViewModel(20289): [v2.12.0-15] Pipeline: visual=VisualLocked, lens=NotFocused
+03-13 16:25:41.121 I/CameraViewModel(20289): Detection result updated: 1 faces, 0 objects
+03-13 16:25:41.157 D/CameraViewModel(20289): Lighting state updated: HighContrast
+03-13 16:25:41.162 I/CameraViewModel(20289): [v2.8.4 E2E] Total=236.4ms (Convert=0.1ms, MLKit=188.4ms, Composition=10.4ms, Lighting=35.1ms)
+03-13 16:25:41.174 I/CameraViewModel(20289): [v2.8.4 Guideline] Lines=6, OpenCV=200ms, Total=246.9ms
+03-13 16:25:41.297 I/CameraViewModel(20289): [v2.8.4 Guideline] Lines=6, OpenCV=119ms, Total=122.0ms
+03-13 16:25:41.348 D/DefaultTargetTracker(20289): [v2.12.0-15] update: 1 targets, primary=face_97
+03-13 16:25:41.348 I/DefaultEyeAfPolicyResolver(20289): [v2.12.0-15] SYNTHETIC_LOCK: fixed-focus, anchor=BOTH_EYES_CENTER, visual=VisualLocked
+03-13 16:25:41.348 D/CameraViewModel(20289): [v2.12.0-15] Pipeline: visual=VisualLocked, lens=NotFocused
+03-13 16:25:41.364 I/CameraViewModel(20289): Detection result updated: 1 faces, 0 objects
+03-13 16:25:41.428 D/CameraViewModel(20289): Lighting state updated: HighContrast
+03-13 16:25:41.435 I/CameraViewModel(20289): [v2.8.4 E2E] Total=224.3ms (Convert=0.1ms, MLKit=141.2ms, Composition=16.3ms, Lighting=63.7ms)
+03-13 16:25:41.466 I/CameraViewModel(20289): [v2.8.4 Guideline] Lines=6, OpenCV=164ms, Total=165.7ms
