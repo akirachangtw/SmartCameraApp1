@@ -684,6 +684,67 @@ isLocked(Yellow) → isEyeAfLocked(Cyan) → isFading(0.4) → isTracking → el
 
 ---
 
+## domain.model.focus 純資料模型建立（v2.12.0-15 Step 1）
+
+### ✅ Confirmed
+
+- **12 個純資料模型檔案**已建立於 `domain/model/focus/`，Build PASS | 2026-03-13
+  - `FramePacket`, `DetectionFrameContext`, `FocusTarget`（+ `TargetType`/`TargetSource`）
+  - `FocusStates`（`VisualTargetState`/`LensFocusState`/`ExposureLockState`）
+  - `GeometryContext`, `LensCapability`, `TrackedTargetState`, `UserIntentState`
+  - `EyeAfPolicyModels`（`EyeAfPolicyInput`/`EyeAfDecision`/`MeteringAnchor`）
+  - `FocusControllerResult`（+ `OpticalFocusState`）, `FocusStateInput`（+ `SystemEvent`）, `OverlayModel`（+ `OverlayColor`/`OverlayAnimation`）
+  - 規格依據：`plans/proposals/focus_l2_feasibility_spec.md` §17.11 + §17.12.3
+
+### ⚠️ Critical Warnings — Scope Discipline（兩條鐵律，不可違背）
+
+#### 鐵律 1：Step 1 = 只新增 `domain.model.focus`，舊邏輯零修改
+
+**本輪案例**：Step 1 驗收時，`SmartCameraAnalyzer.kt` 與 `CameraViewModel.kt` 含有前一個 ticket（T3 Eye-AF chain repair）的 `eyePositions` 修改，被 Quality Gate 判定為 scope drift。
+
+**處理流程**：
+1. `git checkout HEAD -- SmartCameraAnalyzer.kt CameraViewModel.kt`（直接還原）
+2. `FocusOrchestrator.kt`（untracked）→ 刪除，徹底退出變更集合
+3. Build 重新驗收，變更集合只剩 `domain/model/focus/` 12 檔
+
+**預防原則**：
+- Step 開始前先確認 `git status` 為乾淨（或只含本 Step 應有的檔案）
+- Step 完成後，`git diff HEAD --stat` 必須**只顯示本 Step 的新增檔案**，無任何 M（修改）
+- 不同 ticket 的修改不可混入同一 Step 驗收
+
+#### 鐵律 2：遇到 scope drift → SV 單點修復票快速收斂，比重做更穩定
+
+**模式說明**（與 v2.12.0-14 SV-F1 相同）：
+- Quality Gate 發現偏移後，產出 `SV-Sxx` / `SV-Fxx` 票據
+- Claude Code 依票據**只修復偏移點**，不做範圍外任何改動
+- Build 後立即停止，等待下一輪 QG 驗收
+
+**本輪案例（SV-S1 + SV-S1.1）**：
+| 票據 | 偏移點 | 修復動作 |
+|------|--------|---------|
+| SV-S1 | `SmartCameraAnalyzer.kt` + `CameraViewModel.kt` 含範圍外 `eyePositions` 修改 | `git checkout HEAD --` 還原兩檔 |
+| SV-S1.1 | `FocusOrchestrator.kt` 出現在 untracked（不屬 Step 1） | 刪除檔案 |
+
+**為什麼比重做更穩定**：
+- 每個 SV 票據只處理一個偏移點，範圍清晰，不引入新邏輯
+- 每次 SV 後都重跑 Build + `git diff HEAD --stat` 確認乾淨，可重複驗收
+
+### 🔍 Code Locations
+
+- `domain/model/focus/`: `app/src/main/java/com/akirachang/ai/photographer/domain/model/focus/`
+- 規格來源: `plans/proposals/focus_l2_feasibility_spec.md` §17.11.2 ~ §17.11.10
+
+### 📋 Backlog
+
+- [x] Step 1: `domain/model/focus/` 12 個純資料模型 ✅ Build PASS 2026-03-13
+- [x] SV-S1: 還原 `SmartCameraAnalyzer.kt` + `CameraViewModel.kt` 範圍外修改 ✅
+- [x] SV-S1.1: 移除 `FocusOrchestrator.kt` 出現在變更集合 ✅
+- [ ] Step 2: GeometryMapper 介面 + `CoordinateTransformer` 橋接
+- [ ] Step 3: EyeAfPolicyResolver 實作
+- [ ] Step 4: FocusStateMachine 拆分
+
+---
+
 ## Camera Core Features (v2.11.0 / v3.5.0) - 從 v2.9.9 延後
 
 ### 📋 Backlog
@@ -752,6 +813,140 @@ isLocked(Yellow) → isEyeAfLocked(Cyan) → isFading(0.4) → isTracking → el
 - 校正文檔: `devspec/VERSION_CORRECTION_v2.9.9_to_v2.11.0.md`
 - 版本定位: v2.11.0 = "補完 v2.9.9 原規劃功能 + 新增基礎功能"
 - 方案選擇: 採用方案 B（積極方案，6 項功能，2-3 週）
+
+---
+
+## Focus Domain Model Pipeline — 架構守則（v2.12.0-15 SV-S5-Final）
+
+### ✅ Confirmed（2026-03-13）
+
+本節記錄 v2.12.0-15 SV-S5-Final + SV-S5-Final-R2 兩輪 Quality Gate 收斂後確立的三條架構守則。
+
+---
+
+#### 守則 1：SmartCameraAnalyzer 是「Dumb Pipe」— 職責邊界鐵律
+
+**定義**（`SmartCameraAnalyzer.kt` KDoc §17.12.5）：
+
+| 職責 | 允許 ✅ | 禁止 ❌ |
+|------|---------|---------|
+| 資料輸入 | 接收 CameraX ImageProxy / Bitmap | — |
+| 偵測 | ML Kit Face + Object 偵測 | Target ranking / saliency scoring |
+| 輸出 | `DetectionResult`（image-space coords）+ `LightingState` | UI state 決策 / UI geometry 計算 |
+| 光流 | OF 原始追蹤結果（image-space coords）via callback | 轉換至 preview-space（CoordinateMapper 路徑）|
+
+**CoordinateMapper 退役結論**（SV-S5-Final-R2，2026-03-13）：
+
+- `import com.akirachang.ai.photographer.util.CoordinateMapper` — **已從 SmartCameraAnalyzer 移除**
+- `previewWidth / previewHeight` 欄位 — **已移除**（純粹為 CoordinateMapper 服務）
+- `setPreviewSize(width, height)` — **已從 SmartCameraAnalyzer 移除**；`CameraRepositoryImpl.setPreviewSize()` 降格為 no-op + `Log.d`
+- `startOpticalFlowTracking(x: Float, y: Float)`（preview-coord 路徑）— **已從 SmartCameraAnalyzer 移除**；`CameraRepositoryImpl.startOpticalFlowTracking()` 降格為 no-op + `Log.w`
+
+**正確路徑**：
+```
+CameraViewModel（tap 事件）
+  → CoordinateTransformer.mapToImageCoords()   ← FIT_CENTER 幾何，唯一真相
+  → cameraRepository.startOpticalFlowTrackingImageCoords(imageX, imageY)
+  → SmartCameraAnalyzer.startOpticalFlowTrackingImageCoords()   ← image-space，no mapping
+```
+
+**⚠️ 絕對禁止**：在 SmartCameraAnalyzer 內部做任何座標轉換（`previewToImage`、`imageToPreview`）或 UI 決策。Analyzer 只見 image-space 數據。
+
+---
+
+#### 守則 2：幾何單一真相 — GeometryMapper（取代 CoordinateMapper）
+
+**v2.12.0-15 確立的幾何層次**：
+
+| 組件 | 職責 | 幾何模型 |
+|------|------|---------|
+| `CoordinateTransformer`（legacy ViewModel 路徑）| tap → image-space 座標 | FIT_CENTER |
+| `GeometryMapper`（新 pipeline 介面）| `FocusTarget` bbox → 螢幕座標 | FIT_CENTER |
+| `PreviewViewGeometryMapper`（`GeometryMapper` 實作）| image-space RectF → screen RectF | FIT_CENTER + ViewPort |
+| ~~`CoordinateMapper`~~（已退役）| preview ↔ image-space | CENTER_CROP（幾何錯誤）|
+
+**`CoordinateMapper` 退役完整清單**（截至 2026-03-13）：
+
+| 位置 | 狀態 |
+|------|------|
+| `SmartCameraAnalyzer.kt` import | ✅ 已移除 |
+| `SmartCameraAnalyzer.startOpticalFlowTracking()` 呼叫 | ✅ 整個函式已移除 |
+| `SmartCameraAnalyzer.trackFromBitmap()` else 分支 | ✅ 已改為 discard + `Log.w` |
+| `CameraViewModel.focusOnPoint()` OF fallback 路徑 | ✅ 已於 v2.12.0-14 改為 `return@launch` |
+| `CameraRepositoryImpl.setPreviewSize()` | ✅ 已降格為 no-op |
+| `CameraRepositoryImpl.startOpticalFlowTracking()` | ✅ 已降格為 no-op |
+
+**唯一殘留**：`CoordinateMapper` 類別本身保留（未刪除），作為 OF legacy bitmap path 的靜態工具。若未來 OF 全面升級，可整體移除。
+
+---
+
+#### 守則 3：Focus Pipeline 硬體 Provider — Lifecycle-Safe 接線模式
+
+**問題根源**：`CameraControl` 與 `MeteringPointFactory` 均依附 camera lifecycle，不可在 ViewModel init 時提前取值（camera 未 bind）。
+
+**v2.12.0-15 SV-S5a-R2 + SV-S5-Final 確立的正確接線模式**：
+
+```kotlin
+// ✅ 正確：Lambda 懶取值 — 呼叫時才解析，lifecycle-safe
+CameraXFocusController(
+    getCameraControl      = { cameraRepository.getCameraControl() },
+    getMeteringPointFactory = { cameraRepository.getMeteringPointFactory() },
+)
+
+// 接線路徑（每層均 nullable，lifecycle-safe）：
+// CameraXFocusController
+//   → CameraRepository.getCameraControl()        (interface)
+//   → CameraRepositoryImpl.getCameraControl()     (delegates to LiveCameraSource if available)
+//   → LiveCameraSource.getCameraControl()         = if (::camera.isInitialized) camera.cameraControl else null
+//
+// CameraXFocusController
+//   → CameraRepository.getMeteringPointFactory()  (interface)
+//   → CameraRepositoryImpl.getMeteringPointFactory() (delegates to LiveCameraSource if available)
+//   → LiveCameraSource.getMeteringPointFactory()  = previewView?.meteringPointFactory
+```
+
+**禁止的模式**：
+```kotlin
+// ❌ 錯誤：在 ViewModel init block 直接取值 — camera 尚未 bind，得到 null 後永遠不更新
+private val cameraControl = cameraRepository.getCameraControl()  // ← 永遠是 null
+
+// ❌ 錯誤：在 constructor 存硬體物件 — 造成 lifecycle leak
+CameraXFocusController(cameraControl = liveCameraSource.camera.cameraControl)
+```
+
+**FocusModule DI 綁定**（`di/FocusModule.kt`，`@InstallIn(ViewModelComponent::class)`）：
+- 4 組 `@Provides` 綁定：`GeometryMapper`、`TargetTracker`、`EyeAfPolicyResolver`、`FocusController`
+- `provideFocusController` 透過 `CameraRepository` 注入，確保 lazy lambda 接線模式在 DI 圖中一致
+
+### ⚠️ Critical Warnings
+
+1. **`CoordinateMapper` 路徑已完全退役**：任何新增 OF 追蹤入口必須使用 `startOpticalFlowTrackingImageCoords()`，禁止復活 `startOpticalFlowTracking(x, y)`（preview-coord）路徑
+2. **Analyzer 無 preview 尺寸概念**：`SmartCameraAnalyzer` 不再持有 `previewWidth/Height`，呼叫 `setPreviewSize()` 為 no-op。座標轉換由 ViewModel 層的 `CoordinateTransformer` / `GeometryMapper` 負責
+3. **硬體 Provider 必須 lazy**：`getCameraControl()` 與 `getMeteringPointFactory()` 任一在 camera bind 前呼叫均回傳 `null`（lifecycle-safe）；`CameraXFocusController` 必須在 `apply()` 時才呼叫，不可在 constructor 預取
+
+### 🔍 Code Locations
+
+| 組件 | 路徑 |
+|------|------|
+| SmartCameraAnalyzer（Dumb Pipe）| `data/source/camera/SmartCameraAnalyzer.kt` |
+| GeometryMapper 介面 | `domain/focus/geometry/GeometryMapper.kt` |
+| PreviewViewGeometryMapper 實作 | `data/focus/geometry/PreviewViewGeometryMapper.kt` |
+| CameraXFocusController（Lazy Provider）| `data/focus/control/CameraXFocusController.kt` |
+| LiveCameraSource.getCameraControl() | `LiveCameraSource.kt` ~line 1446 |
+| LiveCameraSource.getMeteringPointFactory() | `LiveCameraSource.kt` ~line 1456 |
+| CameraRepository 介面新增方法 | `domain/repository/CameraRepository.kt` ~line 302-311 |
+| FocusModule DI | `di/FocusModule.kt` |
+| CameraViewModel FOCUS_PIPELINE_V2 flag | `presentation/camera/CameraViewModel.kt:159` |
+
+### 📋 Backlog
+
+- [x] SV-S5-Final: FocusModule DI 綁定（4 組）+ `getMeteringPointFactory()` 接線 ✅ 2026-03-13
+- [x] SV-S5-Final: `FOCUS_PIPELINE_V2 = BuildConfig.DEBUG`（DEBUG 啟用 / RELEASE 關閉）✅ 2026-03-13
+- [x] SV-S5-Final-R2: SmartCameraAnalyzer CoordinateMapper 退役（import + 3 函式 + else 分支）✅ 2026-03-13
+- [x] SV-S5-Final-R2: CameraRepositoryImpl 連帶修復（setPreviewSize / startOpticalFlowTracking no-op）✅ 2026-03-13
+- [ ] Step 6: FocusOverlay Composable（消費 `CameraState.focusUiState.overlayModel`）
+- [ ] Step 6: CameraScreen.kt 接入 FocusOverlay（`FOCUS_PIPELINE_V2=true` 條件下）
+- [ ] 實機驗收：Sony HQ616R2713 Logcat `[v2.12.0-15] Pipeline: visual=TrackingStable` + `FocusController result: triggerSent=true`
 
 ---
 

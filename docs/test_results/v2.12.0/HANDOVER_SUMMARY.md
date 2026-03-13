@@ -398,8 +398,50 @@ FocusClamp: Clamp RESET (focusSuccess=null, isLocked=false)     ← 動畫被重
 | v2.12.0-11 | AF 防禦修復：Fixed-focus 永久鎖定 + Suspended 模式 | ❌ FAIL — 2 新 Bug（2026-03-10） |
 | v2.12.0-12 | Bug #1: isFocusIndicatorLocked + Bug #2: resetFocusState() + HAL guard | ⏳ 待實機驗收 |
 | v2.12.0-13 | T1: bbox原子更新 + T2: FocusIndicator雙路徑 + T3: Session ID第二道防線 | ⏳ 待實機驗收 |
-| v2.12.0-14 | T1: Coordinate Truth + T2: Release PreviewView + SV-F1: resolvedH guard | ⏳ 待實機驗收（APK 已安裝 Sony） |
+| v2.12.0-14 | T1: Coordinate Truth + T2: Release PreviewView + SV-F1: resolvedH guard | ⏳ 待實機驗收 |
+| v2.12.0-15 | SV-S5-Final: FocusModule DI + FOCUS_PIPELINE_V2 flag + Dumb Pipe cleanup | ⏳ 待實機驗收（Build PASS 2026-03-13）|
 | v2.12.0 | Stable tag — dual-camera AF complete | ⏳ Pending 實機驗收 PASS |
+
+---
+
+## v2.12.0-15 Focus Domain Model Pipeline — 交接給 Work NB（2026-03-13）
+
+**Date built**: 2026-03-13
+**Branch**: `feature/camera-core-v2.12.0`
+**Target device**: Sony XQ-BT52 (`HQ616R2713`)
+**Test guide**: `docs/test_results/v2.12.0/v2.12.0-15_work_nb_execution.md`
+
+### What Was Done (Home NB, 2026-03-13)
+
+| Sub-fix | Description |
+|---------|-------------|
+| SV-S5-Final | `di/FocusModule.kt` 新增（`@InstallIn(ViewModelComponent::class)`，4 組 `@Provides`）|
+| SV-S5-Final | `FOCUS_PIPELINE_V2 = BuildConfig.DEBUG`（DEBUG 啟用新 pipeline，RELEASE 保留舊路徑）|
+| SV-S5-Final | `getMeteringPointFactory()` 新增至 LiveCameraSource / CameraRepositoryImpl / CameraRepository |
+| SV-S5-Final-R2 | `SmartCameraAnalyzer` Dumb Pipe 清理（移除 CoordinateMapper / previewWidth/Height / setPreviewSize / startOpticalFlowTracking preview-coord）|
+| SV-S5-Final-R2 | `CameraRepositoryImpl.setPreviewSize()` → no-op；`startOpticalFlowTracking(x,y)` → no-op |
+
+### Test Cases for v2.12.0-15
+
+| TC | 描述 | 預期行為 |
+|----|------|---------|
+| TC-15-S1 | App 啟動不 crash（DI 圖正確）| 啟動後 Logcat 無 Hilt injection exception |
+| TC-15-S2 | 新 pipeline 啟動確認 | Logcat 出現 `FOCUS_PIPELINE_V2=true` 或 `[v2.12.0-15] Pipeline:` |
+| TC-15-S3 | FocusController 觸發（人臉 tap） | Logcat 出現 `[v2.12.0-15] FocusController result: triggerSent=true` |
+| TC-15-S4 | Dumb Pipe no-op 確認 | Logcat 出現 `[v2.12.0-15] setPreviewSize no-op`（若有相關呼叫路徑）|
+| TC-R-12~14 | v2.12.0-12/13/14 核心 Regression | TC-05, TC-11, TC-13-T1/T2, TC-14-T1-02/03 行為正常 |
+
+### Key Logcat Patterns for v2.12.0-15
+
+```
+# 新 pipeline 啟動路徑
+[v2.12.0-15] Pipeline: visual=TrackingStable    ← CameraViewModel
+[v2.12.0-15] FocusController result: triggerSent=true    ← CameraXFocusController
+
+# Dumb Pipe no-op（若有呼叫）
+[v2.12.0-15] setPreviewSize no-op    ← CameraRepositoryImpl
+[v2.12.0-15] startOpticalFlowTracking(preview-coord) no-op — use startOpticalFlowTrackingImageCoords()    ← CameraRepositoryImpl
+```
 
 ---
 

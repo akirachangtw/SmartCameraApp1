@@ -58,6 +58,12 @@ internal class StabilityTracker {
 // Gates Eye-AF startFocusAndMetering() frequency.
 // User Tap bypasses all throttle — call focusOnPoint() directly.
 
+/**
+ * @deprecated Use FocusTriggerThrottle (presentation/camera/focus/) instead.
+ * Kept for backward compatibility with CameraViewModel until Step 5 migration.
+ * v2.12.0-15
+ */
+@Deprecated("Use FocusTriggerThrottle instead", level = DeprecationLevel.WARNING)
 internal class AfTriggerThrottleController(
     private val stabilityTracker:    StabilityTracker,
     private val preLockThrottleMs:   Long  = 1_500L,  // unarmed: min ms between attempts

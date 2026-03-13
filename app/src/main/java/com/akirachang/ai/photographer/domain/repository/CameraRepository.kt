@@ -291,4 +291,22 @@ interface CameraRepository {
      * @return ExifInfo object with all metadata, or null if reading fails
      */
     suspend fun readExifInfo(uri: Uri): com.akirachang.ai.photographer.domain.model.ExifInfo?
+
+    /**
+     * Get CameraControl for direct hardware focus/metering operations.
+     * v2.12.0-15 SV-S5a-R2: Exposed for CameraXFocusController in new focus pipeline.
+     *
+     * Returns null if camera is not yet bound to lifecycle (lifecycle-safe).
+     * For StaticImageSource: always returns null (no hardware camera).
+     */
+    fun getCameraControl(): androidx.camera.core.CameraControl?
+
+    /**
+     * Get MeteringPointFactory from PreviewView for accurate focus point mapping.
+     * v2.12.0-15 SV-S5-Final: Exposed for CameraXFocusController in FocusModule DI binding.
+     *
+     * Returns null if PreviewView is not set or camera is not yet bound.
+     * For StaticImageSource: always returns null (no hardware camera).
+     */
+    fun getMeteringPointFactory(): androidx.camera.core.MeteringPointFactory?
 }

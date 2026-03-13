@@ -578,12 +578,7 @@ class CameraRepositoryImpl @Inject constructor(
                 pendingOpticalFlowCallback = null
                 Log.d(TAG, "Applied pending optical flow callback")
             }
-            if (pendingPreviewWidth > 0 && pendingPreviewHeight > 0) {
-                smartAnalyzer!!.setPreviewSize(pendingPreviewWidth, pendingPreviewHeight)
-                Log.d(TAG, "Applied pending preview size: ${pendingPreviewWidth}x${pendingPreviewHeight}")
-                pendingPreviewWidth = 0
-                pendingPreviewHeight = 0
-            }
+            // v2.12.0-15 SV-S5-Final-R2: setPreviewSize removed from SmartCameraAnalyzer (CoordinateMapper retired)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start image analysis", e)
         }
@@ -800,13 +795,9 @@ class CameraRepositoryImpl @Inject constructor(
      * Delegates to SmartCameraAnalyzer for coordinate transformation
      */
     override fun setPreviewSize(width: Int, height: Int) {
-        if (smartAnalyzer != null) {
-            smartAnalyzer!!.setPreviewSize(width, height)
-        } else {
-            pendingPreviewWidth = width
-            pendingPreviewHeight = height
-            Log.d(TAG, "Preview size pending: ${width}x${height}, analyzer not yet initialized")
-        }
+        // v2.12.0-15 SV-S5-Final-R2: setPreviewSize removed from SmartCameraAnalyzer.
+        // CoordinateMapper (CENTER_CROP) retired — preview-coord tracking no longer supported.
+        Log.d(TAG, "[v2.12.0-15] setPreviewSize no-op: CoordinateMapper path retired")
     }
 
     /**
@@ -816,14 +807,9 @@ class CameraRepositoryImpl @Inject constructor(
      * Delegates to SmartCameraAnalyzer to start tracking
      */
     override fun startOpticalFlowTracking(x: Float, y: Float) {
-        // v2.x.x Phase 6: Lazy init SmartCameraAnalyzer if not yet created
-        // (bitmap-based analysis path does not call startImageAnalysis automatically)
-        if (smartAnalyzer == null) {
-            Log.d(TAG, "Lazy initializing SmartCameraAnalyzer for optical flow tracking")
-            startImageAnalysis()
-        }
-        smartAnalyzer?.startOpticalFlowTracking(x, y)
-            ?: Log.w(TAG, "Cannot start optical flow tracking: analyzer not initialized")
+        // v2.12.0-15 SV-S5-Final-R2: startOpticalFlowTracking(preview-coord) removed from SmartCameraAnalyzer.
+        // Callers must use startOpticalFlowTrackingImageCoords() — CameraViewModel already does.
+        Log.w(TAG, "[v2.12.0-15] startOpticalFlowTracking(preview-coord) no-op: use startOpticalFlowTrackingImageCoords()")
     }
 
     /**
@@ -966,6 +952,18 @@ class CameraRepositoryImpl @Inject constructor(
             Log.e(TAG, "Failed to read EXIF info from $uri", e)
             null
         }
+    }
+
+    override fun getCameraControl(): androidx.camera.core.CameraControl? {
+        // v2.12.0-15 SV-S5a-R2: Delegate to LiveCameraSource if available
+        return (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)
+            ?.getCameraControl()
+    }
+
+    override fun getMeteringPointFactory(): androidx.camera.core.MeteringPointFactory? {
+        // v2.12.0-15 SV-S5-Final: Delegate to LiveCameraSource if available
+        return (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)
+            ?.getMeteringPointFactory()
     }
 
 }

@@ -154,6 +154,49 @@ class CameraViewModel @Inject constructor(
     private var lastKnownImageWidth: Int = 0   // v2.12.0-14: Cache for transformer bootstrap
     private var lastKnownImageHeight: Int = 0  // v2.12.0-14: Cache for transformer bootstrap
 
+    // v2.12.0-15 SV-S5-Final: New focus pipeline feature flag
+    // DEBUG=true (validation), RELEASE=false (safety guard)
+    private val FOCUS_PIPELINE_V2: Boolean = BuildConfig.DEBUG
+
+    private val focusTargetTracker = com.akirachang.ai.photographer.data.focus.tracking.DefaultTargetTracker(
+        iouThreshold = 0.5f,
+        targetTtlMs = 300L,
+    )
+
+    private val eyeAfPolicyResolver = com.akirachang.ai.photographer.data.focus.policy.DefaultEyeAfPolicyResolver()
+
+    private val focusStateMachine = com.akirachang.ai.photographer.presentation.camera.focus.DefaultFocusStateMachine()
+
+    private val newFocusTriggerThrottle = com.akirachang.ai.photographer.presentation.camera.focus.FocusTriggerThrottle(
+        targetLostGraceMs = 500L,
+    )
+
+    private val newPipelineGeometryMapper = com.akirachang.ai.photographer.data.focus.geometry.PreviewViewGeometryMapper()
+
+    private val cameraXFocusController = com.akirachang.ai.photographer.data.focus.control.CameraXFocusController(
+        getCameraControl = {
+            // v2.12.0-15 SV-S5a-R2: Dynamic provider via CameraRepository.getCameraControl()
+            // Lifecycle-safe: returns null if camera not yet bound (no crash on cold start)
+            cameraRepository.getCameraControl()
+        },
+        getMeteringPointFactory = {
+            // v2.12.0-15 SV-S5b: Use PreviewView.meteringPointFactory via WeakReference
+            // This mirrors the approach used in LiveCameraSource.focusOnPoint()
+            previewViewRef?.get()?.meteringPointFactory
+        },
+    )
+
+    private var lastNewPipelineTriggerMs: Long? = null
+
+    // v2.12.0-15 SV-S5b: WeakReference to PreviewView for CameraXFocusController metering
+    // Lifecycle-safe: WeakReference prevents memory leak; null-checked before use
+    private var previewViewRef: java.lang.ref.WeakReference<androidx.camera.view.PreviewView>? = null
+
+    // v2.12.0-15 SV-S5b: Single Job for FocusController to prevent unbounded coroutine spawning
+    private var focusControllerJob: kotlinx.coroutines.Job? = null
+    // Last FocusControllerResult for StateMachine re-reduce after async completion
+    private var lastFocusControllerResult: com.akirachang.ai.photographer.domain.model.focus.FocusControllerResult? = null
+
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
 
@@ -585,6 +628,17 @@ class CameraViewModel @Inject constructor(
             // v2.12.0-12: cancel focusJob BEFORE state reset to prevent Race Condition
             resetFocusState()
             Log.i(TAG, "[v2.12.0-12] switchCamera: resetFocusState() called")
+
+            // v2.12.0-15: Reset new pipeline components on camera switch
+            if (FOCUS_PIPELINE_V2) {
+                focusTargetTracker.reset()
+                newFocusTriggerThrottle.reset()
+                focusControllerJob?.cancel()
+                lastNewPipelineTriggerMs = null
+                lastFocusControllerResult = null
+                _state.update { it.copy(focusUiState = com.akirachang.ai.photographer.domain.model.focus.FocusUiState.EMPTY) }
+                Log.d(TAG, "[v2.12.0-15] New pipeline reset on camera switch")
+            }
 
             // v2.9.10: Clear tracking state before switching camera
             // v2.9.9 Day 1-2: Clear AE/AF lock state before switching camera
@@ -1410,6 +1464,12 @@ class CameraViewModel @Inject constructor(
      * Priority: Manual tap > Eye-AF > Smart Subject Focus > None
      */
     private fun autoFocusOnSalientTarget() {
+        // v2.12.0-15: New focus pipeline (Step 5b) — feature flag controlled
+        if (FOCUS_PIPELINE_V2) {
+            runNewFocusPipeline()
+            return
+        }
+        // Legacy path continues below...
         val currentState = _state.value
         val now = System.currentTimeMillis()
 
@@ -1534,6 +1594,310 @@ class CameraViewModel @Inject constructor(
                 Log.d(TAG, "Smart Subject Focus: score=${topCandidate.score}, image=(${topCandidate.imageX}, ${topCandidate.imageY}), screen=($screenX, $screenY), frame=${focusWidthPx}x${focusHeightPx}px")
             }
         }
+    }
+
+    /**
+     * v2.12.0-15: New focus pipeline (Step 5b).
+     * Pipeline: DetectionResult → GeometryMapper → TargetTracker → EyeAfPolicyResolver
+     *           → FocusController → FocusStateMachine → FocusUiState
+     *
+     * Called from autoFocusOnSalientTarget() when FOCUS_PIPELINE_V2=true.
+     * Does NOT replace focusOnPoint() — manual tap still uses the legacy path.
+     */
+    private fun runNewFocusPipeline() {
+        val currentState = _state.value
+        val nowMs = System.currentTimeMillis()
+
+        // ── Step A: Get current DetectionResult ──────────────────────────────────
+        val detectionResult = currentState.detectionResult
+        if (detectionResult == null) {
+            val trackedState = focusTargetTracker.update(emptyList(), nowMs)
+            val emptyDecision = com.akirachang.ai.photographer.domain.model.focus.EyeAfDecision(
+                anchor = com.akirachang.ai.photographer.domain.model.focus.MeteringAnchor.NONE,
+                visualState = com.akirachang.ai.photographer.domain.model.focus.VisualTargetState.None,
+                shouldTriggerFocus = false,
+                shouldTriggerMetering = false,
+                allowOpticalState = false,
+            )
+            val focusInput = com.akirachang.ai.photographer.domain.model.focus.FocusStateInput(
+                trackedTargetState = trackedState,
+                eyeAfDecision = emptyDecision,
+                focusControllerResult = null,
+                userIntent = buildUserIntentState(currentState),
+                systemEvent = com.akirachang.ai.photographer.domain.model.focus.SystemEvent.NORMAL_UPDATE,
+                nowMs = nowMs,
+            )
+            val newFocusUiState = focusStateMachine.reduce(focusInput)
+            _state.update { it.copy(focusUiState = newFocusUiState) }
+            return
+        }
+
+        // ── Step B: Build FocusTarget list from DetectionResult ──────────────────
+        val rawTargets = buildFocusTargetsFromDetection(detectionResult, currentState, nowMs)
+
+        // ── Step C: TargetTracker.update() ───────────────────────────────────────
+        val trackedState = focusTargetTracker.update(rawTargets, nowMs)
+
+        // ── Step D: Build LensCapability ─────────────────────────────────────────
+        val lensCapability = buildNewPipelineLensCapability(currentState)
+
+        // ── Step E: Build UserIntentState ────────────────────────────────────────
+        val userIntent = buildUserIntentState(currentState)
+
+        // ── Step F: EyeAfPolicyResolver.resolve() ────────────────────────────────
+        val policyInput = com.akirachang.ai.photographer.domain.model.focus.EyeAfPolicyInput(
+            primaryTarget = trackedState.primaryTarget,
+            lensCapability = lensCapability,
+            userIntent = userIntent,
+            nowMs = nowMs,
+            lastFocusTriggerMs = lastNewPipelineTriggerMs,
+        )
+        val eyeAfDecision = eyeAfPolicyResolver.resolve(policyInput)
+
+        // ── Step F.5: FocusTriggerThrottle gate ──────────────────────────────────
+        // v2.12.0-15 SV-S5b: Throttle gate prevents over-triggering and handles target-lost grace period
+        val primaryTarget = trackedState.primaryTarget
+        if (primaryTarget == null) {
+            newFocusTriggerThrottle.onTargetLost()
+        } else {
+            newFocusTriggerThrottle.onTargetReacquired()
+        }
+
+        val eyeX = primaryTarget?.leftEyeView?.x
+            ?: primaryTarget?.rightEyeView?.x
+            ?: primaryTarget?.rectView?.centerX()
+            ?: 0f
+        val eyeY = primaryTarget?.leftEyeView?.y
+            ?: primaryTarget?.rightEyeView?.y
+            ?: primaryTarget?.rectView?.centerY()
+            ?: 0f
+
+        val shouldTrigger = (eyeAfDecision.shouldTriggerFocus || eyeAfDecision.shouldTriggerMetering) &&
+            newFocusTriggerThrottle.shouldTrigger(
+                eyeScreenX = eyeX,
+                eyeScreenY = eyeY,
+                currentVisualState = eyeAfDecision.visualState,
+            )
+
+        val effectiveDecision = if (!shouldTrigger) {
+            eyeAfDecision.copy(shouldTriggerFocus = false, shouldTriggerMetering = false)
+        } else {
+            eyeAfDecision
+        }
+
+        // ── Step G: FocusController.apply() (Job-controlled async) ───────────────
+        if (effectiveDecision.shouldTriggerFocus || effectiveDecision.shouldTriggerMetering) {
+            val geometryContext = buildNewPipelineGeometryContext(currentState)
+            // v2.12.0-15 SV-S5b: Cancel previous job to prevent unbounded coroutine spawning
+            focusControllerJob?.cancel()
+            focusControllerJob = viewModelScope.launch {
+                try {
+                    val result = cameraXFocusController.apply(
+                        decision = effectiveDecision,
+                        primaryTarget = trackedState.primaryTarget,
+                        geometryContext = geometryContext,
+                    )
+                    lastNewPipelineTriggerMs = nowMs
+                    lastFocusControllerResult = result
+                    Log.d(TAG, "[v2.12.0-15] FocusController result: triggerSent=${result.triggerSent}, optical=${result.opticalResult}")
+                    // v2.12.0-15 SV-S5b: onSuccess/onFailure throttle feedback
+                    if (result.triggerSent) {
+                        when (result.opticalResult) {
+                            com.akirachang.ai.photographer.domain.model.focus.OpticalFocusState.FOCUSED ->
+                                newFocusTriggerThrottle.onSuccess()
+                            com.akirachang.ai.photographer.domain.model.focus.OpticalFocusState.NOT_FOCUSED ->
+                                newFocusTriggerThrottle.onFailure(1)
+                            else -> Unit
+                        }
+                    }
+                    // v2.12.0-15 SV-S5b: Re-reduce StateMachine with actual controller result
+                    val updatedInput = com.akirachang.ai.photographer.domain.model.focus.FocusStateInput(
+                        trackedTargetState = trackedState,
+                        eyeAfDecision = effectiveDecision,
+                        focusControllerResult = result,
+                        userIntent = buildUserIntentState(_state.value),
+                        systemEvent = com.akirachang.ai.photographer.domain.model.focus.SystemEvent.NORMAL_UPDATE,
+                        nowMs = System.currentTimeMillis(),
+                    )
+                    val updatedUiState = focusStateMachine.reduce(updatedInput)
+                    _state.update { it.copy(focusUiState = updatedUiState) }
+                    Log.d(TAG, "[v2.12.0-15] Re-reduced after FocusController: lens=${updatedUiState.lensFocusState}")
+                } catch (e: Exception) {
+                    Log.w(TAG, "[v2.12.0-15] FocusController.apply() failed: ${e.message}")
+                }
+            }
+        }
+
+        // ── Step H: FocusStateMachine.reduce() (sync, uses last known controller result) ──
+        val focusInput = com.akirachang.ai.photographer.domain.model.focus.FocusStateInput(
+            trackedTargetState = trackedState,
+            eyeAfDecision = effectiveDecision,
+            focusControllerResult = lastFocusControllerResult,  // v2.12.0-15 SV-S5b: use last known result
+            userIntent = userIntent,
+            systemEvent = com.akirachang.ai.photographer.domain.model.focus.SystemEvent.NORMAL_UPDATE,
+            nowMs = nowMs,
+        )
+        val newFocusUiState = focusStateMachine.reduce(focusInput)
+
+        // ── Step I: Update state ──────────────────────────────────────────────────
+        _state.update { it.copy(focusUiState = newFocusUiState) }
+        Log.d(TAG, "[v2.12.0-15] Pipeline: visual=${newFocusUiState.visualTargetState}, lens=${newFocusUiState.lensFocusState}")
+    }
+
+    /**
+     * v2.12.0-15: Build FocusTarget list from current DetectionResult.
+     * DetectionResult.faces is List<Face> (ML Kit), face.boundingBox is in image coordinates.
+     * Uses CoordinateTransformer.imageToScreen() to derive view-space RectF.
+     */
+    private fun buildFocusTargetsFromDetection(
+        detectionResult: DetectionResult,
+        currentState: CameraState,
+        nowMs: Long,
+    ): List<com.akirachang.ai.photographer.domain.model.focus.FocusTarget> {
+        val targets = mutableListOf<com.akirachang.ai.photographer.domain.model.focus.FocusTarget>()
+        // v2.12.0-15 SV-S5b: Use GeometryMapper (SSOT) instead of legacy coordinateTransformer
+        val geometryContext = buildNewPipelineGeometryContext(currentState)
+
+        // Convert faces
+        detectionResult.faces.forEachIndexed { index, face ->
+            val box = face.boundingBox
+            val stableId = if (face.trackingId != null) "face_${face.trackingId}"
+            else "face_gen_${nowMs}_$index"
+
+            val rectImage = android.graphics.RectF(box)
+            val rectView = newPipelineGeometryMapper.mapRectImageToView(
+                android.graphics.RectF(box),
+                geometryContext,
+            )
+
+            val leftEyeView = face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_EYE)
+                ?.position
+                ?.let { pt ->
+                    newPipelineGeometryMapper.mapPointImageToView(
+                        android.graphics.PointF(pt.x, pt.y),
+                        geometryContext,
+                    )
+                }
+            val rightEyeView = face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_EYE)
+                ?.position
+                ?.let { pt ->
+                    newPipelineGeometryMapper.mapPointImageToView(
+                        android.graphics.PointF(pt.x, pt.y),
+                        geometryContext,
+                    )
+                }
+
+            targets.add(
+                com.akirachang.ai.photographer.domain.model.focus.FocusTarget(
+                    stableId = stableId,
+                    type = com.akirachang.ai.photographer.domain.model.focus.TargetType.FACE,
+                    rectImage = rectImage,
+                    rectView = rectView,
+                    leftEyeView = leftEyeView,
+                    rightEyeView = rightEyeView,
+                    confidence = 1.0f,  // ML Kit Face has no per-face confidence score
+                    priorityScore = 1.5f,  // Faces have higher priority than objects
+                    trackingId = face.trackingId,
+                    firstSeenMs = nowMs,
+                    lastSeenMs = nowMs,
+                    source = com.akirachang.ai.photographer.domain.model.focus.TargetSource.ML_KIT_FACE,
+                )
+            )
+        }
+
+        // Convert objects
+        detectionResult.objects.forEachIndexed { index, obj ->
+            val box = obj.boundingBox
+            val stableId = if (obj.trackingId != null) "object_${obj.trackingId}"
+            else "object_gen_${nowMs}_$index"
+
+            val rectImage = android.graphics.RectF(box)
+            val rectView = newPipelineGeometryMapper.mapRectImageToView(
+                android.graphics.RectF(box),
+                geometryContext,
+            )
+
+            val confidence = obj.labels.firstOrNull()?.confidence ?: 0.5f
+
+            targets.add(
+                com.akirachang.ai.photographer.domain.model.focus.FocusTarget(
+                    stableId = stableId,
+                    type = com.akirachang.ai.photographer.domain.model.focus.TargetType.OBJECT,
+                    rectImage = rectImage,
+                    rectView = rectView,
+                    leftEyeView = null,
+                    rightEyeView = null,
+                    confidence = confidence,
+                    priorityScore = confidence,
+                    trackingId = obj.trackingId,
+                    firstSeenMs = nowMs,
+                    lastSeenMs = nowMs,
+                    source = com.akirachang.ai.photographer.domain.model.focus.TargetSource.ML_KIT_OBJECT,
+                )
+            )
+        }
+
+        return targets
+    }
+
+    /**
+     * v2.12.0-15: Build LensCapability from current camera state.
+     */
+    private fun buildNewPipelineLensCapability(
+        currentState: CameraState,
+    ): com.akirachang.ai.photographer.domain.model.focus.LensCapability {
+        return com.akirachang.ai.photographer.domain.model.focus.LensCapability(
+            isFrontCamera = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
+            isFixedFocus = currentState.isFixedFocusLens,
+            supportsAutoFocus = !currentState.isFixedFocusLens,
+            supportsContinuousAf = !currentState.isFixedFocusLens,
+            supportsAeAfLock = true,
+        )
+    }
+
+    /**
+     * v2.12.0-15: Build UserIntentState from current camera state.
+     */
+    private fun buildUserIntentState(
+        currentState: CameraState,
+    ): com.akirachang.ai.photographer.domain.model.focus.UserIntentState {
+        val tapPoint = currentState.focusPoint?.let {
+            android.graphics.PointF(it.first, it.second)
+        }
+        val isTapActive = currentState.isAEAFLocked ||
+            (currentState.focusPoint != null && currentState.afState is AfState.Locked)
+        return com.akirachang.ai.photographer.domain.model.focus.UserIntentState(
+            tapPointView = tapPoint,
+            tapTimestampMs = if (tapPoint != null) System.currentTimeMillis() else null,
+            isTapToFocusActive = isTapActive,
+            isAeAfLockRequested = currentState.isAEAFLocked,
+        )
+    }
+
+    /**
+     * v2.12.0-15: Build GeometryContext from current camera state.
+     * Note: CameraState.coordinateTransformer is the legacy presentation-layer transformer.
+     * sensorToViewMatrix is not available from it — PreviewViewGeometryMapper falls back to FIT_CENTER.
+     */
+    private fun buildNewPipelineGeometryContext(
+        currentState: CameraState,
+    ): com.akirachang.ai.photographer.domain.model.focus.GeometryContext {
+        val detection = currentState.detectionResult
+        val rawImgW = detection?.imageWidth ?: lastKnownImageWidth
+        val rawImgH = detection?.imageHeight ?: lastKnownImageHeight
+        val rotation = detection?.rotationDegrees ?: 0
+        val effectiveImgW = if (rotation == 90 || rotation == 270) rawImgH else rawImgW
+        val effectiveImgH = if (rotation == 90 || rotation == 270) rawImgW else rawImgH
+        return com.akirachang.ai.photographer.domain.model.focus.GeometryContext(
+            imageWidth = effectiveImgW,
+            imageHeight = effectiveImgH,
+            previewWidth = previewWidth ?: 0,
+            previewHeight = previewHeight ?: 0,
+            sensorToBufferMatrix = null,
+            sensorToViewMatrix = null,  // TODO: wire from CameraX SensorToBufferTransformMatrix when available
+            isFrontCamera = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
+            isMirroredPreview = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
+        )
     }
 
     /**
@@ -2037,6 +2401,9 @@ class CameraViewModel @Inject constructor(
     fun setPreviewView(previewView: androidx.camera.view.PreviewView?) {
         Log.d(TAG, "[v2.11.1 P0-1] setPreviewView called")
         cameraRepository.setPreviewView(previewView)
+        // v2.12.0-15 SV-S5b: Store WeakReference for CameraXFocusController
+        previewViewRef = if (previewView != null) java.lang.ref.WeakReference(previewView) else null
+        Log.d(TAG, "[v2.12.0-15] previewViewRef updated: ${previewView != null}")
 
         // v2.11.1 P0-3 FIX: Get actual PreviewView content bounds after layout
         previewView?.post {
@@ -2143,6 +2510,15 @@ class CameraViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "[v2.9.5] Unexpected error during detection: ${e.message}", e)
             }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // v2.12.0-15: Reset new pipeline components on ViewModel cleared
+        if (FOCUS_PIPELINE_V2) {
+            focusTargetTracker.reset()
+            newFocusTriggerThrottle.reset()
         }
     }
 

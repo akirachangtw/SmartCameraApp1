@@ -42,7 +42,6 @@ import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 import com.akirachang.ai.photographer.data.opencv.OpticalFlowTracker
 import com.akirachang.ai.photographer.data.opencv.TrackingResult
-import com.akirachang.ai.photographer.util.CoordinateMapper
 import org.opencv.core.Mat
 import org.opencv.core.Point
 import android.graphics.Bitmap
@@ -69,6 +68,13 @@ private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { conti
 
 /**
  * Custom analyzer that performs both ML Kit detection and lighting analysis
+ *
+ * v2.12.0-15 §17.12.5: Dumb Pipe — only responsibility is:
+ *   1. Receive CameraX frame
+ *   2. Feed to ML Kit
+ *   3. Output raw DetectionResult (image-space coords) + LightingState via callbacks
+ *   4. Optical flow: output raw tracking result (image-space coords) via callback
+ * All coordinate mapping, target ranking, and policy decisions are handled upstream (CameraViewModel).
  *
  * @param faceDetector ML Kit face detector
  * @param objectDetector ML Kit object detector
@@ -122,8 +128,6 @@ class SmartCameraAnalyzer(
     private var onOpticalFlowResult: ((TrackingResult) -> Unit)? = null
     private var imageWidth: Int = 0
     private var imageHeight: Int = 0
-    private var previewWidth: Int = 0
-    private var previewHeight: Int = 0
 
     // v2.11.3 Fix H: Dedicated analyze-pipeline dimensions (always = ImageProxy size, e.g. 1920×1920 for 1:1 mode).
     // Separate from imageWidth/imageHeight which may be set first by trackFromBitmap() (bitmap ~720px).
@@ -146,58 +150,6 @@ class SmartCameraAnalyzer(
      */
     fun setOpticalFlowCallback(callback: (TrackingResult) -> Unit) {
         onOpticalFlowResult = callback
-    }
-
-    /**
-     * Set preview size for coordinate mapping
-     * v2.x.x Phase 4: Required for PreviewView ↔ ImageAnalysis coordinate conversion
-     *
-     * @param width Preview width in pixels
-     * @param height Preview height in pixels
-     */
-    fun setPreviewSize(width: Int, height: Int) {
-        previewWidth = width
-        previewHeight = height
-        Log.d(TAG, "Preview size set: ${width}x${height}")
-    }
-
-    /**
-     * Start optical flow tracking at a specific point
-     * v2.x.x Phase 4: Tap-to-track point feature
-     *
-     * @param x X coordinate in PreviewView (0.0 to previewWidth)
-     * @param y Y coordinate in PreviewView (0.0 to previewHeight)
-     */
-    fun startOpticalFlowTracking(x: Float, y: Float) {
-        if (previewWidth == 0 || previewHeight == 0) {
-            Log.w(TAG, "Cannot start tracking: preview size not set")
-            return
-        }
-
-        if (imageWidth == 0 || imageHeight == 0) {
-            // v2.x.x Phase 6: Store as pending - applied when first frame sets image size
-            pendingTrackX = x
-            pendingTrackY = y
-            hasPendingTrack = true
-            Log.d(TAG, "Tracking start pending: preview ($x, $y), waiting for first frame")
-            return
-        }
-
-        // Convert PreviewView coordinates to ImageAnalysis coordinates
-        val imagePoint = CoordinateMapper.previewToImage(
-            x, y,
-            previewWidth, previewHeight,
-            imageWidth, imageHeight
-        )
-
-        // Create tracker if needed
-        if (opticalFlowTracker == null) {
-            opticalFlowTracker = OpticalFlowTracker()
-        }
-
-        // Start tracking
-        opticalFlowTracker?.startTracking(imagePoint, imageWidth, imageHeight)
-        Log.i(TAG, "Optical flow tracking started at preview ($x, $y) -> image (${imagePoint.x}, ${imagePoint.y})")
     }
 
     /**
@@ -279,18 +231,12 @@ class SmartCameraAnalyzer(
                 opticalFlowTracker?.startTracking(imagePoint, bitmap.width, bitmap.height)
                 Log.i(TAG, "[Fix H] Applied pending image-coord track: (${imagePoint.x}, ${imagePoint.y}), bitmapSize=${bitmap.width}x${bitmap.height}")
             } else {
-                // Legacy preview-coord path: use bitmap dimensions (imageWidth set by this path)
+                // v2.12.0-15 SV-S5-Final-R2: Legacy preview-coord path removed.
+                // startOpticalFlowTracking(x, y) has been removed — callers must use
+                // startOpticalFlowTrackingImageCoords() which sets isPendingInImageCoords=true.
+                // If we reach here, the pending coords are stale/invalid — discard safely.
                 hasPendingTrack = false
-                val imagePoint = CoordinateMapper.previewToImage(
-                    pendingTrackX, pendingTrackY,
-                    previewWidth, previewHeight,
-                    imageWidth, imageHeight
-                )
-                if (opticalFlowTracker == null) {
-                    opticalFlowTracker = OpticalFlowTracker()
-                }
-                opticalFlowTracker?.startTracking(imagePoint, imageWidth, imageHeight)
-                Log.i(TAG, "Applied pending preview-coord track: image (${imagePoint.x}, ${imagePoint.y})")
+                Log.w(TAG, "[v2.12.0-15] Discarded stale preview-coord pending track — use startOpticalFlowTrackingImageCoords() instead")
             }
         }
 

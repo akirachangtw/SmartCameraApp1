@@ -7,6 +7,7 @@ import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.presentation.camera.components.CoordinateTransformer
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.presentation.camera.model.HDRMode
+import com.akirachang.ai.photographer.domain.model.focus.FocusUiState
 
 /**
  * Camera UI State
@@ -63,7 +64,10 @@ data class CameraState(
     // v2.12.0-05: 4-way AF state machine (Eye-AF throttle + withTimeout)
     val afState: AfState = AfState.Idle,
     // v2.12.0-11: true when current lens is fixed-focus (no VCM / AF hardware)
-    val isFixedFocusLens: Boolean = false
+    val isFixedFocusLens: Boolean = false,
+    // v2.12.0-15: New focus pipeline output (Step 5b)
+    // When newFocusPipelineEnabled=true, UI should read this instead of legacy focus fields.
+    val focusUiState: FocusUiState = FocusUiState.EMPTY,
 ) {
     // v2.12.0-12: UDF-clean derived state for FocusIndicator
     // AE/AF long-press lock ONLY. Eye-AF success (afState=Locked) uses Cyan, NOT Yellow.

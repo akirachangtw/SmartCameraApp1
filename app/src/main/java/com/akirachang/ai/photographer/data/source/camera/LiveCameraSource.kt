@@ -1439,6 +1439,22 @@ class LiveCameraSource @Inject constructor(
     /**
      * Set exposure compensation (for HDR mode simulation)
      */
+    /**
+     * v2.12.0-15 SV-S5a-R2: Expose CameraControl for CameraXFocusController.
+     * Lifecycle-safe: returns null if camera is not yet initialized.
+     */
+    fun getCameraControl(): androidx.camera.core.CameraControl? {
+        return if (::camera.isInitialized) camera.cameraControl else null
+    }
+
+    /**
+     * v2.12.0-15 SV-S5-Final: Expose MeteringPointFactory for CameraXFocusController DI binding.
+     * Lifecycle-safe: returns null if PreviewView is not yet set.
+     */
+    fun getMeteringPointFactory(): androidx.camera.core.MeteringPointFactory? {
+        return previewView?.meteringPointFactory
+    }
+
     fun setExposureCompensation(value: Int) {
         if (::camera.isInitialized) {
             try {
