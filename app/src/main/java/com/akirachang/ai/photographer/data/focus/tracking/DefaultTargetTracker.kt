@@ -60,7 +60,20 @@ class DefaultTargetTracker(
         }
         if (primary != null) primaryStableId = primary.stableId
 
-        Log.d(TAG, "[v2.12.0-15] update: ${assignedTargets.size} targets, primary=${primaryStableId}")
+        val primaryType = primary?.type?.name ?: "none"
+        val primaryHasEyes = primary?.let { it.leftEyeView != null || it.rightEyeView != null } ?: false
+        val primaryScore = primary?.let { t ->
+            val eyeBonus = if (t.leftEyeView != null || t.rightEyeView != null) 2.0f else 0f
+            val typeBonus = when (t.type) {
+                com.akirachang.ai.photographer.domain.model.focus.TargetType.TAP_SUBJECT,
+                com.akirachang.ai.photographer.domain.model.focus.TargetType.TAP_TEXTURE -> 10.0f
+                com.akirachang.ai.photographer.domain.model.focus.TargetType.FACE -> 1.0f
+                com.akirachang.ai.photographer.domain.model.focus.TargetType.OBJECT -> 0.5f
+            }
+            t.priorityScore + eyeBonus + typeBonus
+        } ?: 0f
+        // SSOT Priority: Tap(+10) > Face+Eyes(+1+2) > Face-only(+1) > Object(+0.5)
+        Log.d(TAG, "[v2.12.0-15 T4-F1] update: ${assignedTargets.size} targets, primary=$primaryStableId type=$primaryType hasEyes=$primaryHasEyes effectiveScore=$primaryScore")
 
         return TrackedTargetState(
             allTargets = assignedTargets,

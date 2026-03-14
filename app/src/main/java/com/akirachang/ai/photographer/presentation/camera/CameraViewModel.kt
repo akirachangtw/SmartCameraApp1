@@ -1642,6 +1642,7 @@ class CameraViewModel @Inject constructor(
                 userIntent = buildUserIntentState(currentState),
                 systemEvent = com.akirachang.ai.photographer.domain.model.focus.SystemEvent.NORMAL_UPDATE,
                 nowMs = nowMs,
+                isFrontCamera = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
             )
             val newFocusUiState = focusStateMachine.reduce(focusInput)
             _state.update { it.copy(focusUiState = newFocusUiState) }
@@ -1746,6 +1747,7 @@ class CameraViewModel @Inject constructor(
                         userIntent = buildUserIntentState(_state.value),
                         systemEvent = com.akirachang.ai.photographer.domain.model.focus.SystemEvent.NORMAL_UPDATE,
                         nowMs = System.currentTimeMillis(),
+                        isFrontCamera = _state.value.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
                     )
                     val updatedUiState = focusStateMachine.reduce(updatedInput)
                     _state.update { it.copy(focusUiState = updatedUiState) }
@@ -1764,6 +1766,7 @@ class CameraViewModel @Inject constructor(
             userIntent = userIntent,
             systemEvent = com.akirachang.ai.photographer.domain.model.focus.SystemEvent.NORMAL_UPDATE,
             nowMs = nowMs,
+            isFrontCamera = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
         )
         val newFocusUiState = focusStateMachine.reduce(focusInput)
 

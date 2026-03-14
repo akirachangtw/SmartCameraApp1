@@ -11,6 +11,8 @@ data class FocusStateInput(
     val userIntent: UserIntentState,
     val systemEvent: SystemEvent,
     val nowMs: Long,
+    // v2.12.0-15 Phase 2 T3-F2: Front camera guard for ExposureLockState
+    val isFrontCamera: Boolean = false,
 )
 
 enum class SystemEvent {

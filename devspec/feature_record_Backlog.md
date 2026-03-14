@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-02-25
+Last updated: 2026-03-14
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -1012,6 +1012,122 @@ if (context.isFrontCamera && context.isMirroredPreview) {
 - 任何修改 `PreviewViewGeometryMapper.transformPoints()` 時，`matrix == null` 條件是**絕對必要的**，不可移除
 - 相同守則適用於任何直接操作前鏡頭座標反轉的位置
 - 修改前必須確認：「此路徑的 sensorToViewMatrix 是否已含鏡像？」
+
+---
+
+## v2.12.0-15 Phase 2 SV-BatchB — Learnings（2026-03-14）
+
+> SV-BatchB 驗收通過。三張票涵蓋：Compose 視覺生命週期、前鏡頭 Yellow 防線、多人目標優先序驗證 Log。
+
+---
+
+### §C. Compose 動畫視覺生命週期守則（FocusOverlay VisualLocked 進入事件）
+
+**Rule**: FocusOverlay 的動畫 alpha 必須由 Compose 狀態機（`LaunchedEffect` + `animateFloatAsState`）驅動，禁止直接讀取 `overlayModel.alpha`（靜態值，無法反映生命週期轉換）。
+
+**VisualLocked 視覺生命週期**（SSOT 定義，勿修改）：
+```
+進入 VisualLocked
+  └→ showClawAnimation = true
+  └→ alphaTarget = 1.0f（animateFloatAsState tween(400ms)）
+  └→ delay(1000ms)
+  └→ 仍在 VisualLocked？→ alphaTarget = 0.4f + showClawAnimation = false
+                         → 否（已切換）→ 不執行（自然消滅）
+```
+
+**Key design decisions**:
+
+| 決策 | 原因 |
+|------|------|
+| `LaunchedEffect(visualTargetState, overlayModel.primaryBox)` 雙 key | primaryBox 變化（同 state 下框移動）也需重觸發，確保夾爪跟隨新目標 |
+| `prevVisualState` 區分「新進入」vs「持續」 | 防止 box 位置更新時（primaryBox key 觸發）誤重置 1000ms 計時器 |
+| `animateFloatAsState(tween(400))` 而非 `Thread.sleep` | Compose 動畫在 recomposition 中安全，`Thread.sleep` 會阻塞主執行緒並導致 ANR |
+| `showClawAnimation` 獨立 flag | 夾爪（corner brackets）與 alpha 生命週期解耦，可獨立控制消滅時機 |
+
+**Canvas drawLine API 正確簽名（防錯）**:
+```kotlin
+// ✅ 正確：最後參數是 strokeWidth: Float
+drawLine(color, start: Offset, end: Offset, strokeWidth: Float)
+
+// ❌ 錯誤：drawLine 不接受 Stroke 物件
+drawLine(color, start, end, Stroke(width = ...))   // 編譯失敗
+```
+
+**Code Location**: `FocusOverlay.kt` — `LaunchedEffect` block + `showClawAnimation` Canvas section
+
+**How to apply**:
+- 修改 FocusOverlay 動畫行為時，**只改 `alphaTarget` 的賦值與 `delay()` 時長**，不動 `animateFloatAsState` 架構
+- 新增 `VisualTargetState` 枚舉值時，必須在 `LaunchedEffect when` block 中補齊對應分支（否則 Kotlin `when` exhaustive 警告）
+- `prevVisualState` 更新必須在 `LaunchedEffect` 最後一行（所有分支之後），確保每次都記錄最新狀態
+
+---
+
+### §D. 前鏡頭 Yellow Lock 三層防禦架構
+
+**Rule**: 前鏡頭（`isFrontCamera=true`）在系統中存在三道獨立防線，任一層皆可阻止 Yellow Lock 出現。三層防禦**不可互相替代**，必須全部保留。
+
+**三層防禦表**：
+
+| 層級 | 檔案 | 機制 | 觸發條件 |
+|------|------|------|---------|
+| L1 Policy | `DefaultEyeAfPolicyResolver.kt` Rule 1 | `isAeAfLockRequested → REJECT（return None）` | 最早攔截，阻止 HAL 觸發 |
+| L2 StateMachine | `DefaultFocusStateMachine.reduceExposureState()` | `isFrontCamera → return Unlocked + Log.w` | Policy 漏網時的第二道防線 |
+| L3 UI（現有）| `CameraScreen.kt` FocusIndicator | `isLocked = isAEAFLocked`（Yellow 只在後鏡頭） | 視覺層最終保護 |
+
+**為什麼需要三層**：
+- L1 是 intent 層攔截（policy 決策），但若 `userIntent` 組裝有誤（未傳入正確 `isAeAfLockRequested`），L1 可能漏網
+- L2 是狀態機層強制覆寫，即使 L1 未攔截，`ExposureLockState` 仍強制為 `Unlocked`
+- L3 是 UI 層的最終保護，確保即使 state 層有 `AEAFLocked`，前鏡頭也不渲染 Yellow
+
+**`FocusStateInput.isFrontCamera` 傳遞守則**：
+- `runNewFocusPipeline()` 中所有三個 `FocusStateInput` 建構點必須傳入 `isFrontCamera`
+- 使用 `currentState.currentCamera == CameraLens.FRONT`（early return 路徑）
+- 使用 `_state.value.currentCamera == CameraLens.FRONT`（async coroutine callback 路徑）
+- `isFrontCamera = false` default 值只作為防呆，現有呼叫點必須明確傳入
+
+**Log 識別**（Logcat 驗證用）：
+```
+# L1 攔截（Policy 層）
+[v2.12.0-15] REJECT: front camera — manual tap or AE/AF lock not allowed (isManualTap=false, isAeAfLock=true)
+
+# L2 攔截（StateMachine 層）
+[v2.12.0-15 T3-F2] Front camera AE/AF lock request rejected — forced Unlocked
+```
+
+**How to apply**:
+- 新增 `FocusStateInput` 建構點時，必須檢查是否在 `runNewFocusPipeline()` 內，若是則必須補入 `isFrontCamera`
+- 修改 `reduceExposureState()` 時，前鏡頭 guard 必須置於函式最頂端（在 `isAeAfLockRequested` 判斷之前）
+- 禁止將 L2 guard 移入 `buildOverlayModel()`（顏色層）—— ExposureLockState 本身必須正確，不只是顏色正確
+
+---
+
+### §E. Multi-Face 優先序驗證 Log 守則（DefaultTargetTracker）
+
+**Rule**: `DefaultTargetTracker.update()` 的 primary 選擇必須同時輸出 `effectiveScore`（含 eyeBonus + typeBonus 加權後的最終分數），以便 Logcat 驗證優先序是否符合 SSOT。
+
+**SSOT 優先序**（數值為 typeBonus，eyeBonus 額外 +2.0f）：
+
+| 類型 | typeBonus | 有眼睛加成 | 最終 effective score 範例 |
+|------|-----------|-----------|--------------------------|
+| TAP_SUBJECT / TAP_TEXTURE | +10.0f | +2.0f | priorityScore + 12.0f |
+| FACE（有眼睛） | +1.0f | +2.0f | priorityScore + 3.0f |
+| FACE（無眼睛） | +1.0f | — | priorityScore + 1.0f |
+| OBJECT | +0.5f | — | priorityScore + 0.5f |
+
+**Log 格式**（Logcat tag: `DefaultTargetTracker`）：
+```
+[v2.12.0-15 T4-F1] update: 3 targets, primary=face_123 type=FACE hasEyes=true effectiveScore=4.2
+```
+
+**為什麼 Log 要重算 score（不直接用 maxByOrNull 的中間值）**：
+- `maxByOrNull` 的 lambda 是內聯計算，結果不儲存
+- Log 區塊獨立重算確保 log 與 selection 邏輯完全一致（copy 而非 reference）
+- 日後修改 typeBonus 係數時，Log 和 selection 需同步更新（兩處）
+
+**How to apply**:
+- 修改 typeBonus 係數時，必須同步更新 `maxByOrNull` 和 Log 兩個 `when` block
+- 若新增 `TargetType` enum 值，兩個 `when` block 均需補齊（否則編譯 exhaustive 錯誤）
+- `primaryScore` log 精度預設為 Float 預設輸出，若需要更精確可用 `"%.2f".format(primaryScore)`
 
 ---
 

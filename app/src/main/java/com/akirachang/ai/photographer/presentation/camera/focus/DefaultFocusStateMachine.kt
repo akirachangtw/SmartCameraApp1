@@ -84,6 +84,14 @@ class DefaultFocusStateMachine : FocusStateMachine {
 
     // ── Axis 3: ExposureLockState reducer ─────────────────────────────────────
     private fun reduceExposureState(input: FocusStateInput): ExposureLockState {
+        // v2.12.0-15 Phase 2 T3-F2: Front camera NEVER allows Yellow lock (SSOT §3.2)
+        // Only Cyan Eye-AF is permitted on front camera.
+        if (input.isFrontCamera) {
+            if (input.userIntent.isAeAfLockRequested) {
+                Log.w(TAG, "[v2.12.0-15 T3-F2] Front camera AE/AF lock request rejected — forced Unlocked")
+            }
+            return ExposureLockState.Unlocked
+        }
         return if (input.userIntent.isAeAfLockRequested) {
             ExposureLockState.AEAFLocked
         } else {
