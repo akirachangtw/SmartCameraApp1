@@ -944,9 +944,74 @@ CameraXFocusController(cameraControl = liveCameraSource.camera.cameraControl)
 - [x] SV-S5-Final: `FOCUS_PIPELINE_V2 = BuildConfig.DEBUG`（DEBUG 啟用 / RELEASE 關閉）✅ 2026-03-13
 - [x] SV-S5-Final-R2: SmartCameraAnalyzer CoordinateMapper 退役（import + 3 函式 + else 分支）✅ 2026-03-13
 - [x] SV-S5-Final-R2: CameraRepositoryImpl 連帶修復（setPreviewSize / startOpticalFlowTracking no-op）✅ 2026-03-13
-- [ ] Step 6: FocusOverlay Composable（消費 `CameraState.focusUiState.overlayModel`）
-- [ ] Step 6: CameraScreen.kt 接入 FocusOverlay（`FOCUS_PIPELINE_V2=true` 條件下）
+- [x] Step 6: FocusOverlay Composable（消費 `CameraState.focusUiState.overlayModel`）✅ 2026-03-14
+- [x] Step 6: CameraScreen.kt 接入 FocusOverlay（`FOCUS_PIPELINE_V2=true` 條件下）✅ 2026-03-14
+- [x] SV-BatchA: FocusOverlay 三重透明防禦 + GeometryMapper matrix-aware mirror 修復 ✅ 2026-03-14
+- [ ] T3b Ghost Box: 定點/物件對焦框切換時 36dp 殘留（`focusFrameWidthPx/HeightPx` 未清零）— 待 Traycer PDCA
 - [ ] 實機驗收：Sony HQ616R2713 Logcat `[v2.12.0-15] Pipeline: visual=TrackingStable` + `FocusController result: triggerSent=true`
+
+---
+
+## v2.12.0-15 Phase 2 SV-BatchA — 關鍵防禦守則（2026-03-14）
+
+### §A. FocusOverlay 三重透明防禦守則
+
+**Rule**: `FocusOverlay.kt` 必須在 Canvas 繪製前通過三道獨立 guard，缺一不可。
+
+```kotlin
+if (overlayModel == null) return          // Guard 1: 無 model → 絕對不渲染
+if (visualTargetState == VisualTargetState.None) return  // Guard 2: None 狀態 → 絕對不渲染
+if (overlayModel.primaryBox == null) return  // Guard 3: 無主框 → 連 secondary 也不渲染
+```
+
+**Why (SV-BatchA Fix A 案例)**:
+- 初始實作只有 Guard 1 + 2，缺少 Guard 3
+- 當 `primaryBox == null` 但 `secondaryBoxes` 非空時，仍會在畫面上繪製候選框（ghost secondary brackets）
+- 根因：`secondaryBoxes` 是候選框集合，沒有主框時不應存在任何視覺輸出
+
+**How to apply**:
+- 任何 Composable 消費 `OverlayModel` 時，三道 guard 必須完整保留，不可合併或省略
+- Guard 3 必須在「有 overlayModel 但 primaryBox 為 null」的 partial 狀態下攔截所有渲染
+- 禁止改為「如無 primaryBox 就用 fallback 36dp 框」— 這是 v2.12.0-15 設計紅線
+
+---
+
+### §B. PreviewViewGeometryMapper Matrix-Aware Mirror 防雙重鏡像守則
+
+**Rule**: 前鏡頭手動鏡像 `pts[i] = previewW - pts[i]` 必須附帶 `&& matrix == null` 條件。
+
+```kotlin
+// ✅ 正確（matrix-aware）
+if (context.isFrontCamera && context.isMirroredPreview && matrix == null) {
+    val previewW = context.previewWidth.toFloat()
+    for (i in pts.indices step 2) {
+        pts[i] = previewW - pts[i]
+    }
+}
+
+// ❌ 錯誤（會造成雙重鏡像）
+if (context.isFrontCamera && context.isMirroredPreview) {
+    // matrix != null 時 sensorToViewMatrix 已包含鏡像，再次反轉 = 雙重鏡像
+}
+```
+
+**Why (SV-BatchA Fix B 案例)**:
+- `sensorToViewMatrix`（由 CameraX CoordinateTransformer 提供）**已包含**前鏡頭的鏡像轉換
+- T2 實作時移除了 `&& matrix == null` 條件，目的是「確保前鏡頭一定鏡像」
+- 結果：matrix 存在時套用兩次反轉 → 前鏡頭 bounding box 顯示在畫面錯誤側
+- Fix B 還原 `&& matrix == null`，確保手動鏡像只在 FIT_CENTER fallback 路徑（matrix=null）執行
+
+**兩條路徑明確分工**:
+
+| 路徑 | matrix 狀態 | 鏡像來源 | 手動反轉 |
+|------|------------|---------|---------|
+| CameraX CoordinateTransformer | `matrix != null` | `sensorToViewMatrix` 內建 | ❌ 不執行 |
+| FIT_CENTER Fallback | `matrix == null` | 無 | ✅ 手動執行 |
+
+**How to apply**:
+- 任何修改 `PreviewViewGeometryMapper.transformPoints()` 時，`matrix == null` 條件是**絕對必要的**，不可移除
+- 相同守則適用於任何直接操作前鏡頭座標反轉的位置
+- 修改前必須確認：「此路徑的 sensorToViewMatrix 是否已含鏡像？」
 
 ---
 

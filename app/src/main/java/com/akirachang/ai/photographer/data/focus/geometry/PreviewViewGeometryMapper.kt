@@ -71,7 +71,12 @@ class PreviewViewGeometryMapper : GeometryMapper {
         val expandX = w * EXPAND_ALPHA / 2f
         val expandY = h * EXPAND_BETA  / 2f
 
-        return RectF(minX - expandX, minY - expandY, maxX + expandX, maxY + expandY)
+        // v2.12.0-15 Phase 2: AR-preserving clamp — prevent box from exceeding preview bounds
+        val clampedLeft   = (minX - expandX).coerceAtLeast(0f)
+        val clampedTop    = (minY - expandY).coerceAtLeast(0f)
+        val clampedRight  = (maxX + expandX).coerceAtMost(context.previewWidth.toFloat())
+        val clampedBottom = (maxY + expandY).coerceAtMost(context.previewHeight.toFloat())
+        return RectF(clampedLeft, clampedTop, clampedRight, clampedBottom)
     }
 
     /**
@@ -100,12 +105,15 @@ class PreviewViewGeometryMapper : GeometryMapper {
             applyFitCenterFallback(pts, context)
         }
 
-        // §8.4: front-camera mirror — only when underlying mapping has not handled it
+        // §8.4: front-camera mirror — matrix-aware strategy
+        // v2.12.0-15 SV-BatchA Fix B: Only apply manual mirror when matrix == null (FIT_CENTER fallback).
+        // When matrix != null, sensorToViewMatrix already includes mirror — applying again causes double-mirror.
         if (context.isFrontCamera && context.isMirroredPreview && matrix == null) {
+            val previewW = context.previewWidth.toFloat()
             for (i in pts.indices step 2) {
-                pts[i] = context.previewWidth - pts[i]
+                pts[i] = previewW - pts[i]
             }
-            Log.v(TAG, "Front-camera mirror applied (FIT_CENTER fallback path)")
+            Log.v(TAG, "Front-camera mirror applied (FIT_CENTER fallback path, matrix=null)")
         }
     }
 

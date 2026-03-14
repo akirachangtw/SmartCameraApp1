@@ -400,6 +400,15 @@ fun CameraScreen(
                     )
                 }
 
+                // v2.12.0-15 Phase 2: New pipeline FocusOverlay (FOCUS_PIPELINE_V2 path)
+                // Reads FocusUiState from new pipeline. Legacy FocusIndicator above handles old path.
+                // When FOCUS_PIPELINE_V2=true, both may render — new overlay takes visual precedence.
+                val focusUiState = state.focusUiState
+                FocusOverlay(
+                    overlayModel = focusUiState.overlayModel,
+                    visualTargetState = focusUiState.visualTargetState,
+                )
+
                 // v2.9.9 Day 1-2 Optimize Round 3: Lock indicator removed (use FocusIndicator yellow color instead)
 
                 // 簡易計數顯示（可選，保留用於調試）
