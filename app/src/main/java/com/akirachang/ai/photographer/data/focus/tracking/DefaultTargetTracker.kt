@@ -45,8 +45,19 @@ class DefaultTargetTracker(
         // Evict expired targets (TTL exceeded)
         evictExpired(nowMs)
 
-        // Select primary target (highest priorityScore among current detections)
-        val primary = assignedTargets.maxByOrNull { it.priorityScore }
+        // v2.12.0-15 Phase 2: Primary selection with SSOT priority weights
+        // Priority: Tap > Face+Eyes > Face-only > Object
+        // hasEyes bonus: +2.0f to ensure face with eyes always beats face-only
+        val primary = assignedTargets.maxByOrNull { target ->
+            val eyeBonus = if (target.leftEyeView != null || target.rightEyeView != null) 2.0f else 0f
+            val typeBonus = when (target.type) {
+                com.akirachang.ai.photographer.domain.model.focus.TargetType.TAP_SUBJECT,
+                com.akirachang.ai.photographer.domain.model.focus.TargetType.TAP_TEXTURE -> 10.0f
+                com.akirachang.ai.photographer.domain.model.focus.TargetType.FACE -> 1.0f
+                com.akirachang.ai.photographer.domain.model.focus.TargetType.OBJECT -> 0.5f
+            }
+            target.priorityScore + eyeBonus + typeBonus
+        }
         if (primary != null) primaryStableId = primary.stableId
 
         Log.d(TAG, "[v2.12.0-15] update: ${assignedTargets.size} targets, primary=${primaryStableId}")

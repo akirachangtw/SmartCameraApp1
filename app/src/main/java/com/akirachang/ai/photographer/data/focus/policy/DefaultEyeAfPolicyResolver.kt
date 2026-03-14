@@ -43,9 +43,12 @@ class DefaultEyeAfPolicyResolver : EyeAfPolicyResolver {
         val hasTarget = input.primaryTarget != null
         val hasEyes = input.primaryTarget?.leftEyeView != null || input.primaryTarget?.rightEyeView != null
 
-        // Rule 1: Front camera manual tap — Reject
-        if (isFront && isManualTap) {
-            Log.i(TAG, "[v2.12.0-15] REJECT: front camera manual tap not allowed")
+        // Rule 1: Front camera — Reject manual tap AND AE/AF Lock (SSOT: front camera = Cyan Eye-AF only)
+        // v2.12.0-15 Phase 2: Front camera must NEVER trigger Yellow lock (ExposureLockState.AEAFLocked).
+        // Only Cyan Eye-AF is allowed on front camera.
+        val isAeAfLockRequested = input.userIntent.isAeAfLockRequested
+        if (isFront && (isManualTap || isAeAfLockRequested)) {
+            Log.i(TAG, "[v2.12.0-15] REJECT: front camera — manual tap or AE/AF lock not allowed (isManualTap=$isManualTap, isAeAfLock=$isAeAfLockRequested)")
             return EyeAfDecision(
                 anchor = MeteringAnchor.NONE,
                 visualState = VisualTargetState.None,
@@ -87,6 +90,29 @@ class DefaultEyeAfPolicyResolver : EyeAfPolicyResolver {
                 shouldTriggerFocus = false,
                 shouldTriggerMetering = false,
                 allowOpticalState = true,
+            )
+        }
+
+        // Rule 4a: Front camera Eye-AF path (v2.12.0-15 Phase 2)
+        // Front camera with eyes detected → VisualLocked (Cyan), no HAL trigger (fixed-focus or passive)
+        if (isFront && hasEyes) {
+            Log.d(TAG, "[v2.12.0-15] FRONT EYE-AF: eyes detected, VisualLocked (Cyan only)")
+            return EyeAfDecision(
+                anchor = MeteringAnchor.BOTH_EYES_CENTER,
+                visualState = VisualTargetState.VisualLocked,
+                shouldTriggerFocus = false,   // front camera: no manual HAL trigger
+                shouldTriggerMetering = true,
+                allowOpticalState = false,
+            )
+        }
+        if (isFront && hasTarget) {
+            Log.d(TAG, "[v2.12.0-15] FRONT FACE-ONLY: face box, TrackingStable (Cyan)")
+            return EyeAfDecision(
+                anchor = MeteringAnchor.UPPER_FACE,
+                visualState = VisualTargetState.TrackingStable,
+                shouldTriggerFocus = false,
+                shouldTriggerMetering = true,
+                allowOpticalState = false,
             )
         }
 
