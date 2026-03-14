@@ -482,7 +482,10 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.StopAnalysis -> stopAnalysis()
             is CameraUiEvent.ShowError -> showError(event.message)
             is CameraUiEvent.FocusOnPoint -> focusOnPoint(event.x, event.y, event.viewWidth, event.viewHeight)  // v2.9.9
-            is CameraUiEvent.LockAEAF -> lockAEAF(event.x, event.y, event.viewWidth, event.viewHeight)  // v2.9.9 Day 1-2
+            is CameraUiEvent.LockAEAF -> {
+                Log.i(TAG, "[v2.12.0-15 Fix] LockAEAF event received: (${event.x}, ${event.y}), isAEAFLocked=${_state.value.isAEAFLocked}")
+                lockAEAF(event.x, event.y, event.viewWidth, event.viewHeight)
+            }  // v2.9.9 Day 1-2
             is CameraUiEvent.UnlockAEAF -> unlockAEAF()  // v2.9.9 Day 1-2
             is CameraUiEvent.SetPreviewSize -> setPreviewSize(event.width, event.height)  // v2.x.x Phase 5
             is CameraUiEvent.ShowPhotoInfo -> showPhotoInfo(event.uri)  // v2.11.0 Phase 3
@@ -611,9 +614,22 @@ class CameraViewModel @Inject constructor(
     private fun resetFocusState() {
         focusJob?.cancel()
         focusSessionId++  // v2.12.0-13: Invalidate all in-flight HAL callbacks
-        _state.update { it.copy(afState = AfState.Idle, isFocusing = false, focusSuccess = null) }
+        // v2.12.0-15 Fix: Atomic clear — include focusPoint + focusUiState to prevent ghost box
+        // on camera switch. Previously focusPoint was cleared in a separate _state.update in
+        // switchCamera(), leaving a 1-frame gap where Compose could render a stale Cyan box.
+        _state.update {
+            it.copy(
+                afState = AfState.Idle,
+                isFocusing = false,
+                focusSuccess = null,
+                focusPoint = null,          // v2.12.0-15 Fix: clear immediately (0ms TTL)
+                focusIndicatorFading = false,
+                focusUiState = com.akirachang.ai.photographer.domain.model.focus.FocusUiState.EMPTY,  // v2.12.0-15 Fix: clear new pipeline output
+            )
+        }
         eyeAfThrottle.reset()
         eyeAfStabilityTracker.reset()
+        Log.d(TAG, "[v2.12.0-15 Fix] resetFocusState: focusPoint cleared, focusUiState=EMPTY, sessionId=$focusSessionId")
     }
 
     /**
@@ -1371,7 +1387,7 @@ class CameraViewModel @Inject constructor(
                             focusPoint = Pair(x, y)  // v2.11.2 Fix E: Restore in case focusJob cancel arrived late
                         )
                     }
-                    Log.i(TAG, "AE/AF locked successfully at ($x, $y)")
+                    Log.i(TAG, "[v2.12.0-15 Fix] AE/AF locked successfully at ($x, $y), isAEAFLocked=${_state.value.isAEAFLocked}, isFocusIndicatorLocked=${_state.value.isFocusIndicatorLocked}")
 
                 } else {
                     _state.update {
@@ -1672,12 +1688,20 @@ class CameraViewModel @Inject constructor(
             ?: primaryTarget?.rectView?.centerY()
             ?: 0f
 
-        val shouldTrigger = (eyeAfDecision.shouldTriggerFocus || eyeAfDecision.shouldTriggerMetering) &&
+        // v2.12.0-15 Fix: VisualLocked short-circuit — do NOT spam HAL when already locked.
+        // Sony XQ-BT52 Continuous AF: isFocusSuccessful=false → throttle never armed → infinite loop.
+        val isAlreadyVisualLocked = eyeAfDecision.visualState ==
+            com.akirachang.ai.photographer.domain.model.focus.VisualTargetState.VisualLocked
+        val shouldTrigger = !isAlreadyVisualLocked &&
+            (eyeAfDecision.shouldTriggerFocus || eyeAfDecision.shouldTriggerMetering) &&
             newFocusTriggerThrottle.shouldTrigger(
                 eyeScreenX = eyeX,
                 eyeScreenY = eyeY,
                 currentVisualState = eyeAfDecision.visualState,
             )
+        if (isAlreadyVisualLocked) {
+            Log.d(TAG, "[v2.12.0-15 Fix] VisualLocked short-circuit — skipping HAL trigger")
+        }
 
         val effectiveDecision = if (!shouldTrigger) {
             eyeAfDecision.copy(shouldTriggerFocus = false, shouldTriggerMetering = false)
@@ -1707,6 +1731,10 @@ class CameraViewModel @Inject constructor(
                                 newFocusTriggerThrottle.onSuccess()
                             com.akirachang.ai.photographer.domain.model.focus.OpticalFocusState.NOT_FOCUSED ->
                                 newFocusTriggerThrottle.onFailure(1)
+                            // v2.12.0-15 Fix: Continuous AF (PASSIVE_CONTINUOUS) — arm throttle to prevent
+                            // infinite re-trigger. Sony XQ-BT52 returns PASSIVE_CONTINUOUS, not FOCUSED.
+                            com.akirachang.ai.photographer.domain.model.focus.OpticalFocusState.PASSIVE_CONTINUOUS ->
+                                newFocusTriggerThrottle.onSuccess()
                             else -> Unit
                         }
                     }
@@ -1915,7 +1943,9 @@ class CameraViewModel @Inject constructor(
                 // causing unnecessary cancelFocusAndMetering() + Camera2 option changes that disturb
                 // the HAL and introduce a delay on the next long-press lock attempt after screen unlock.
                 if (!_state.value.isAEAFLocked) {
-                    Log.d(TAG, "Unlocking AE/AF skipped — not locked")
+                    // v2.12.0-15 Fix: Upgrade to WARNING to distinguish from normal skip (ON_STOP lifecycle)
+                    // If this fires after a long-press, it means lockAEAF() failed to set isAEAFLocked=true.
+                    Log.w(TAG, "[v2.12.0-15 Fix] unlockAEAF skipped — isAEAFLocked=false (expected if ON_STOP lifecycle, UNEXPECTED if after long-press)")
                     return@launch
                 }
 
