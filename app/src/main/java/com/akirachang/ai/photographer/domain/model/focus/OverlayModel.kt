@@ -10,6 +10,7 @@ import android.graphics.RectF
  * fully transparent/hidden. No fallback 36dp box is ever permitted.
  */
 data class OverlayModel(
+    val primaryStableId: String?,
     val primaryBox: RectF?,
     val secondaryBoxes: List<RectF>,
     val primaryColor: OverlayColor,

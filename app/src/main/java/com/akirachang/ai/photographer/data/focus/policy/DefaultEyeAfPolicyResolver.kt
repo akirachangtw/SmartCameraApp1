@@ -48,13 +48,23 @@ class DefaultEyeAfPolicyResolver : EyeAfPolicyResolver {
         // Only Cyan Eye-AF is allowed on front camera.
         val isAeAfLockRequested = input.userIntent.isAeAfLockRequested
         if (isFront && (isManualTap || isAeAfLockRequested)) {
-            Log.i(TAG, "[v2.12.0-15] REJECT: front camera — manual tap or AE/AF lock not allowed (isManualTap=$isManualTap, isAeAfLock=$isAeAfLockRequested)")
+            val visual = when {
+                hasEyes   -> VisualTargetState.VisualLocked
+                hasTarget -> VisualTargetState.TrackingStable
+                else      -> VisualTargetState.None
+            }
+            val anchor = when {
+                hasEyes   -> MeteringAnchor.BOTH_EYES_CENTER
+                hasTarget -> MeteringAnchor.UPPER_FACE
+                else      -> MeteringAnchor.NONE
+            }
+            Log.i(TAG, "[v2.12.0-16] FRONT INTERCEPT: manual tap / AEAF lock rejected for hardware, visual preserved (isManualTap=$isManualTap, isAeAfLock=$isAeAfLockRequested, visual=$visual)")
             return EyeAfDecision(
-                anchor = MeteringAnchor.NONE,
-                visualState = VisualTargetState.None,
+                anchor = anchor,
+                visualState = visual,
                 shouldTriggerFocus = false,
                 shouldTriggerMetering = false,
-                allowOpticalState = false,
+                allowOpticalState = true,
             )
         }
 
@@ -76,7 +86,7 @@ class DefaultEyeAfPolicyResolver : EyeAfPolicyResolver {
                 visualState = visual,
                 shouldTriggerFocus = false,   // bypass HAL
                 shouldTriggerMetering = hasTarget,
-                allowOpticalState = false,
+                allowOpticalState = true,
             )
         }
 
@@ -102,7 +112,7 @@ class DefaultEyeAfPolicyResolver : EyeAfPolicyResolver {
                 visualState = VisualTargetState.VisualLocked,
                 shouldTriggerFocus = false,   // front camera: no manual HAL trigger
                 shouldTriggerMetering = true,
-                allowOpticalState = false,
+                allowOpticalState = true,
             )
         }
         if (isFront && hasTarget) {
@@ -112,7 +122,7 @@ class DefaultEyeAfPolicyResolver : EyeAfPolicyResolver {
                 visualState = VisualTargetState.TrackingStable,
                 shouldTriggerFocus = false,
                 shouldTriggerMetering = true,
-                allowOpticalState = false,
+                allowOpticalState = true,
             )
         }
 
@@ -134,7 +144,7 @@ class DefaultEyeAfPolicyResolver : EyeAfPolicyResolver {
             visualState = visual,
             shouldTriggerFocus = hasTarget || isManualTap,
             shouldTriggerMetering = hasTarget || isManualTap,
-            allowOpticalState = !isFront,
+            allowOpticalState = true,
         )
     }
 }

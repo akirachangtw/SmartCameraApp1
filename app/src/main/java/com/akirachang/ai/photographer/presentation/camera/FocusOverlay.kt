@@ -68,7 +68,7 @@ fun FocusOverlay(
     var showClawAnimation by remember { mutableStateOf(false) }
 
     // 視覺生命週期狀態機：VisualLocked 進入時觸發夾爪 + 1s 後漸變至 0.4
-    LaunchedEffect(visualTargetState, overlayModel.primaryBox) {
+    LaunchedEffect(visualTargetState, overlayModel.primaryStableId) {
         when (visualTargetState) {
             VisualTargetState.VisualLocked -> {
                 if (prevVisualState != VisualTargetState.VisualLocked) {

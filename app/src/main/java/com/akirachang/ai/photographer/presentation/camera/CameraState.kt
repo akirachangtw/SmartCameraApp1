@@ -41,7 +41,11 @@ data class CameraState(
     val isAEAFLocked: Boolean = false,  // True when AE/AF is locked (long press)
     val lockPoint: Pair<Float, Float>? = null,  // Lock point coordinates for yellow square indicator, null if not locked
     // v2.9.9 Day 1-2 Optimize: Focus indicator fade-out animation
+    // v2.12.0-16 SB-F3: @Deprecated — legacy FocusIndicator fade animation.
+    // V2 pipeline uses FocusOverlay.kt with Compose animateFloatAsState instead.
+    // Keep for legacy path compatibility until FOCUS_PIPELINE_V2 is permanently enabled.
     val focusIndicatorFading: Boolean = false,  // True when fading out
+    // v2.12.0-16 SB-F3: @Deprecated — legacy FocusIndicator fade timestamp.
     val focusIndicatorFadeStartTime: Long = 0L,  // Timestamp when fade started
     // v2.x.x Phase 1: Optical Flow Point Tracking state
     val trackedPoint: Pair<Float, Float>? = null,  // Tracked point coordinates (ImageAnalysis coordinate system)
@@ -56,6 +60,8 @@ data class CameraState(
     val coordinateTransformer: CoordinateTransformer? = null,  // Coordinate transformer for Image ↔ Preview ↔ Screen mapping
     // v2.12.0-06: Adaptive focus frame dimensions in screen pixels (0f = use default size).
     // Separate W/H replaces the single focusFrameSizePx to enable non-square (rectangle) frames.
+    // v2.12.0-16 SB-F3: @Deprecated — legacy FocusIndicator frame size.
+    // V2 pipeline derives frame size from FocusTarget.rectView via GeometryMapper.
     val focusFrameWidthPx: Float = 0f,
     val focusFrameHeightPx: Float = 0f,
     // v2.12.0-10: True when tap has no ML Kit subject (Optical Flow / Static generic tap).
@@ -71,6 +77,9 @@ data class CameraState(
 ) {
     // v2.12.0-12: UDF-clean derived state for FocusIndicator
     // AE/AF long-press lock ONLY. Eye-AF success (afState=Locked) uses Cyan, NOT Yellow.
+    // v2.12.0-16 SB-F3: @Deprecated — legacy FocusIndicator lock state proxy.
+    // V2 pipeline uses ExposureLockState from DefaultFocusStateMachine instead.
+    // Kept for CameraState.isAEAFLocked backward compatibility.
     val isFocusIndicatorLocked: Boolean
         get() = isAEAFLocked
 }

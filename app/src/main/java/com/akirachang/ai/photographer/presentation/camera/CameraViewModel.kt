@@ -1,6 +1,7 @@
 package com.akirachang.ai.photographer.presentation.camera
 
 import android.graphics.Bitmap
+import android.graphics.PointF
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
@@ -90,7 +91,13 @@ class CameraViewModel @Inject constructor(
         // Face bboxes are stable; object bboxes hug contours → needs more padding.
         const val BBOX_SCALE_FACE   = 1.5f
         const val BBOX_SCALE_OBJECT = 1.8f
+        private const val TAP_INTENT_WINDOW_MS = 750L
     }
+
+    private data class TapToFocusIntent(
+        val pointView: PointF,
+        val timestampMs: Long,
+    )
 
     private val _state = MutableStateFlow(CameraState())
     val state: StateFlow<CameraState> = _state.asStateFlow()
@@ -136,8 +143,7 @@ class CameraViewModel @Inject constructor(
     private val MANUAL_TAP_OVERRIDE_DURATION = 5000L  // 5 seconds
     // v2.12.0-05: Eye-AF dynamic throttle + 4-way state machine (Step 3+4)
     // Replaces lastAutoFocusTime / AUTO_FOCUS_THROTTLE_MS (simple 2 s gate).
-    private val eyeAfStabilityTracker = StabilityTracker()
-    private val eyeAfThrottle = AfTriggerThrottleController(stabilityTracker = eyeAfStabilityTracker)
+    private val eyeAfThrottle = com.akirachang.ai.photographer.presentation.camera.focus.FocusTriggerThrottle()
     // v2.12.0-06 H2.2: 4500ms > CameraX autoCancelDuration(4s) — withTimeout fires only if HAL
     // is truly stuck. Previously 3000ms caused premature TIMEOUT before CameraX could deliver
     // success (e.g. rear-camera face focus succeeds at ~3.5s on some devices).
@@ -196,6 +202,8 @@ class CameraViewModel @Inject constructor(
     private var focusControllerJob: kotlinx.coroutines.Job? = null
     // Last FocusControllerResult for StateMachine re-reduce after async completion
     private var lastFocusControllerResult: com.akirachang.ai.photographer.domain.model.focus.FocusControllerResult? = null
+    private var pendingTapToFocusIntent: TapToFocusIntent? = null
+    private var latestSensorToViewMatrix: android.graphics.Matrix? = null
 
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
@@ -481,7 +489,19 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.StartAnalysis -> startAnalysis()
             is CameraUiEvent.StopAnalysis -> stopAnalysis()
             is CameraUiEvent.ShowError -> showError(event.message)
-            is CameraUiEvent.FocusOnPoint -> focusOnPoint(event.x, event.y, event.viewWidth, event.viewHeight)  // v2.9.9
+            is CameraUiEvent.FocusOnPoint -> {
+                // v2.12.0-16 SB-F1: Route tap intent through V2 pipeline when enabled.
+                // Legacy focusOnPoint() is only called when FOCUS_PIPELINE_V2=false.
+                if (FOCUS_PIPELINE_V2) {
+                    // Register tap intent for V2 pipeline to consume on next frame
+                    setTapToFocusIntent(event.x, event.y, event.viewWidth, event.viewHeight)
+                    Log.i(TAG, "[v2.12.0-16 SB-F1] FocusOnPoint → V2 pipeline tap intent registered (${event.x}, ${event.y})")
+                } else {
+                    // Legacy path (FOCUS_PIPELINE_V2=false only)
+                    Log.i(TAG, "[v2.12.0-16 SB-F1] FocusOnPoint → legacy focusOnPoint() (V2 disabled)")
+                    focusOnPoint(event.x, event.y, event.viewWidth, event.viewHeight)
+                }
+            }
             is CameraUiEvent.LockAEAF -> {
                 Log.i(TAG, "[v2.12.0-15 Fix] LockAEAF event received: (${event.x}, ${event.y}), isAEAFLocked=${_state.value.isAEAFLocked}")
                 lockAEAF(event.x, event.y, event.viewWidth, event.viewHeight)
@@ -573,6 +593,7 @@ class CameraViewModel @Inject constructor(
                 coordinateTransformer = transformer
             )
         }
+        rebuildNewPipelineSensorToViewMatrix(detection, _state.value)
 
         Log.d(TAG, "[v2.11.2 Fix D] Content bounds updated: " +
                 "left=${bounds.left}, top=${bounds.top}, " +
@@ -614,6 +635,8 @@ class CameraViewModel @Inject constructor(
     private fun resetFocusState() {
         focusJob?.cancel()
         focusSessionId++  // v2.12.0-13: Invalidate all in-flight HAL callbacks
+        clearTapToFocusIntent()
+        latestSensorToViewMatrix = null
         // v2.12.0-15 Fix: Atomic clear — include focusPoint + focusUiState to prevent ghost box
         // on camera switch. Previously focusPoint was cleared in a separate _state.update in
         // switchCamera(), leaving a 1-frame gap where Compose could render a stale Cyan box.
@@ -628,7 +651,6 @@ class CameraViewModel @Inject constructor(
             )
         }
         eyeAfThrottle.reset()
-        eyeAfStabilityTracker.reset()
         Log.d(TAG, "[v2.12.0-15 Fix] resetFocusState: focusPoint cleared, focusUiState=EMPTY, sessionId=$focusSessionId")
     }
 
@@ -870,9 +892,7 @@ class CameraViewModel @Inject constructor(
         detectionResult.faces.forEachIndexed { index, face ->
             if (face.boundingBox.contains(imageX.toInt(), imageY.toInt())) {
                 val trackingId = face.trackingId ?: (index + 10000)
-                val screenBox = if (transformer != null)
-                    imageRectToScreenRectF(face.boundingBox, transformer)
-                else android.graphics.RectF(face.boundingBox)
+                val screenBox = imageRectToScreenRectF(face.boundingBox, transformer)
                 Log.i(TAG, "resolveTapTarget: face trackingId=$trackingId, bbox=${face.boundingBox}")
                 return TapTargetInfo.Subject(trackingId, TrackedObjectType.FACE, screenBox)
             }
@@ -882,9 +902,7 @@ class CameraViewModel @Inject constructor(
         detectionResult.objects.forEachIndexed { index, obj ->
             if (obj.boundingBox.contains(imageX.toInt(), imageY.toInt())) {
                 val trackingId = obj.trackingId ?: (index + 20000)
-                val screenBox = if (transformer != null)
-                    imageRectToScreenRectF(obj.boundingBox, transformer)
-                else android.graphics.RectF(obj.boundingBox)
+                val screenBox = imageRectToScreenRectF(obj.boundingBox, transformer)
                 Log.i(TAG, "resolveTapTarget: object trackingId=$trackingId, bbox=${obj.boundingBox}")
                 return TapTargetInfo.Subject(trackingId, TrackedObjectType.OBJECT, screenBox)
             }
@@ -901,6 +919,10 @@ class CameraViewModel @Inject constructor(
      * Called after each new DetectionResult to update focus indicator position
      */
     private fun updateTrackedObjectPosition(detectionResult: DetectionResult) {
+        if (FOCUS_PIPELINE_V2) {
+            Log.v(TAG, "[v2.12.0-16] updateTrackedObjectPosition ignored: Focus Pipeline V2 owns overlay coordinates")
+            return
+        }
         val trackedId = _state.value.trackedObjectId ?: return
         val trackedType = _state.value.trackedObjectType ?: return
 
@@ -1082,8 +1104,13 @@ class CameraViewModel @Inject constructor(
         // autoFocusOnSalientTarget() could read the stale value and cancel this tap job.
         if (isUserTap) {
             lastManualTapTime = System.currentTimeMillis()
+            registerTapToFocusIntent(x, y)
             eyeAfThrottle.reset()
             Log.i(TAG, "[v2.12.0-11] UserTap: eyeAfThrottle.reset() — Suspended state cleared")
+        }
+        if (_state.value.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT) {
+            Log.i(TAG, "[v2.12.0-16] focusOnPoint intercepted on front camera — legacy HAL path blocked")
+            return
         }
         focusJob = viewModelScope.launch {
             try {
@@ -1340,6 +1367,7 @@ class CameraViewModel @Inject constructor(
         // v2.11.2 Fix E: Cancel stale focusOnPoint() coroutine to prevent its delay(500) → focusPoint=null
         // from firing AFTER this lockAEAF sets focusPoint=B (race window: ~800ms for focus failure path).
         focusJob?.cancel()
+        clearTapToFocusIntent()
         Log.i(TAG, "focusJob cancelled for AE/AF lock at ($x, $y)")
 
         viewModelScope.launch {
@@ -1603,7 +1631,7 @@ class CameraViewModel @Inject constructor(
 
             // v2.12.0-05: Eye-AF throttle gate (Step 3) — replaces lastAutoFocusTime check.
             // Evaluates: FOCUSING guard + delta-px + cooldown + backoff in one call.
-            if (!eyeAfThrottle.shouldTrigger(screenX, screenY, currentState.afState)) return
+            if (!eyeAfThrottle.shouldTrigger(screenX, screenY, currentState.afState.toLegacyVisualState())) return
 
             focusOnPoint(screenX, screenY, viewWidth, viewHeight, isUserTap = false)
             if (BuildConfig.DEBUG) {
@@ -1672,7 +1700,7 @@ class CameraViewModel @Inject constructor(
         val eyeAfDecision = eyeAfPolicyResolver.resolve(policyInput)
 
         // ── Step F.5: FocusTriggerThrottle gate ──────────────────────────────────
-        // v2.12.0-15 SV-S5b: Throttle gate prevents over-triggering and handles target-lost grace period
+        // v2.12.0-16: VisualLocked no longer bypasses HAL. Throttle is the only trigger gate.
         val primaryTarget = trackedState.primaryTarget
         if (primaryTarget == null) {
             newFocusTriggerThrottle.onTargetLost()
@@ -1691,18 +1719,13 @@ class CameraViewModel @Inject constructor(
 
         // v2.12.0-15 Fix: VisualLocked short-circuit — do NOT spam HAL when already locked.
         // Sony XQ-BT52 Continuous AF: isFocusSuccessful=false → throttle never armed → infinite loop.
-        val isAlreadyVisualLocked = eyeAfDecision.visualState ==
-            com.akirachang.ai.photographer.domain.model.focus.VisualTargetState.VisualLocked
-        val shouldTrigger = !isAlreadyVisualLocked &&
+        val shouldTrigger =
             (eyeAfDecision.shouldTriggerFocus || eyeAfDecision.shouldTriggerMetering) &&
             newFocusTriggerThrottle.shouldTrigger(
                 eyeScreenX = eyeX,
                 eyeScreenY = eyeY,
                 currentVisualState = eyeAfDecision.visualState,
             )
-        if (isAlreadyVisualLocked) {
-            Log.d(TAG, "[v2.12.0-15 Fix] VisualLocked short-circuit — skipping HAL trigger")
-        }
 
         val effectiveDecision = if (!shouldTrigger) {
             eyeAfDecision.copy(shouldTriggerFocus = false, shouldTriggerMetering = false)
@@ -1893,14 +1916,13 @@ class CameraViewModel @Inject constructor(
         currentState: CameraState,
     ): com.akirachang.ai.photographer.domain.model.focus.UserIntentState {
         val tapPoint = currentState.focusPoint?.let {
-            android.graphics.PointF(it.first, it.second)
+            PointF(it.first, it.second)
         }
-        val isTapActive = currentState.isAEAFLocked ||
-            (currentState.focusPoint != null && currentState.afState is AfState.Locked)
+        val tapIntent = currentTapToFocusIntent()
         return com.akirachang.ai.photographer.domain.model.focus.UserIntentState(
-            tapPointView = tapPoint,
-            tapTimestampMs = if (tapPoint != null) System.currentTimeMillis() else null,
-            isTapToFocusActive = isTapActive,
+            tapPointView = tapIntent?.pointView ?: tapPoint,
+            tapTimestampMs = tapIntent?.timestampMs,
+            isTapToFocusActive = tapIntent != null,
             isAeAfLockRequested = currentState.isAEAFLocked,
         )
     }
@@ -1919,13 +1941,14 @@ class CameraViewModel @Inject constructor(
         val rotation = detection?.rotationDegrees ?: 0
         val effectiveImgW = if (rotation == 90 || rotation == 270) rawImgH else rawImgW
         val effectiveImgH = if (rotation == 90 || rotation == 270) rawImgW else rawImgH
+        val contentBounds = currentState.contentBounds
         return com.akirachang.ai.photographer.domain.model.focus.GeometryContext(
             imageWidth = effectiveImgW,
             imageHeight = effectiveImgH,
-            previewWidth = previewWidth ?: 0,
-            previewHeight = previewHeight ?: 0,
+            previewWidth = max(previewWidth ?: 0, contentBounds.right.toInt()),
+            previewHeight = max(previewHeight ?: 0, contentBounds.bottom.toInt()),
             sensorToBufferMatrix = null,
-            sensorToViewMatrix = null,  // TODO: wire from CameraX SensorToBufferTransformMatrix when available
+            sensorToViewMatrix = latestSensorToViewMatrix?.let { android.graphics.Matrix(it) },
             isFrontCamera = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
             isMirroredPreview = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
         )
@@ -2016,15 +2039,18 @@ class CameraViewModel @Inject constructor(
                 if (result != null) {
                     // v2.2.1: Stabilization logic to prevent flickering overlays
                     val hasFaces = result.faces.isNotEmpty()
+                    val hasSubjects = hasFaces || result.objects.isNotEmpty()
 
-                    if (hasFaces) {
-                        consecutiveFaceDetections++
+                    if (hasSubjects) {
+                        consecutiveFaceDetections = if (hasFaces) consecutiveFaceDetections + 1 else 0
                         consecutiveNoFaceDetections = 0
 
                         // Only update state if we have enough consecutive detections
                         // or if we already have a stable detection
-                        if (consecutiveFaceDetections >= MIN_DETECTIONS_TO_SHOW ||
-                            _state.value.detectionResult?.faces?.isNotEmpty() == true) {
+                        val shouldPublish = !hasFaces ||
+                            consecutiveFaceDetections >= MIN_DETECTIONS_TO_SHOW ||
+                            _state.value.detectionResult?.faces?.isNotEmpty() == true
+                        if (shouldPublish) {
                             _state.update { it.copy(detectionResult = result) }
 
                             // v2.11.2 Fix F: Rebuild CoordinateTransformer on first detection with valid dims.
@@ -2034,9 +2060,11 @@ class CameraViewModel @Inject constructor(
                                 _state.value.contentBounds.width() > 0) {
                                 updateContentBounds(_state.value.contentBounds)
                             }
+                            rebuildNewPipelineSensorToViewMatrix(result, _state.value)
 
                             // Perform composition analysis (v1.5.0)
                             analyzeComposition(result)
+                            autoFocusOnSalientTarget()
 
                             Log.i(
                                 TAG,
@@ -2134,14 +2162,17 @@ class CameraViewModel @Inject constructor(
 
                     if (detectionResult != null) {
                         val hasFaces = detectionResult.faces.isNotEmpty()
+                        val hasSubjects = hasFaces || detectionResult.objects.isNotEmpty()
 
-                        if (hasFaces) {
-                            consecutiveFaceDetections++
+                        if (hasSubjects) {
+                            consecutiveFaceDetections = if (hasFaces) consecutiveFaceDetections + 1 else 0
                             consecutiveNoFaceDetections = 0
 
                             // Only update state if we have enough consecutive detections
-                            if (consecutiveFaceDetections >= MIN_DETECTIONS_TO_SHOW ||
-                                _state.value.detectionResult?.faces?.isNotEmpty() == true) {
+                            val shouldPublish = !hasFaces ||
+                                consecutiveFaceDetections >= MIN_DETECTIONS_TO_SHOW ||
+                                _state.value.detectionResult?.faces?.isNotEmpty() == true
+                            if (shouldPublish) {
                                 _state.update { it.copy(detectionResult = detectionResult) }
 
                                 // v2.11.2 Fix F: Rebuild CoordinateTransformer on first detection with valid dims
@@ -2149,6 +2180,7 @@ class CameraViewModel @Inject constructor(
                                     _state.value.contentBounds.width() > 0) {
                                     updateContentBounds(_state.value.contentBounds)
                                 }
+                                rebuildNewPipelineSensorToViewMatrix(detectionResult, _state.value)
 
                                 // v2.9.10: Update tracked object position (Traycer)
                                 updateTrackedObjectPosition(detectionResult)
@@ -2179,6 +2211,7 @@ class CameraViewModel @Inject constructor(
                                     _state.value.contentBounds.width() > 0) {
                                     updateContentBounds(_state.value.contentBounds)
                                 }
+                                rebuildNewPipelineSensorToViewMatrix(detectionResult, _state.value)
 
                                 // v2.9.10: Update tracking (will clear if target lost)
                                 updateTrackedObjectPosition(detectionResult)
@@ -2443,6 +2476,7 @@ class CameraViewModel @Inject constructor(
             val contentBounds = getActualPreviewContentBounds(previewView)
             if (contentBounds != null) {
                 updateContentBounds(contentBounds)
+                rebuildNewPipelineSensorToViewMatrix(_state.value.detectionResult, _state.value)
                 Log.d(TAG, "[v2.11.1 P0-3 FIX] Actual preview content bounds: " +
                         "left=${contentBounds.left}, top=${contentBounds.top}, " +
                         "right=${contentBounds.right}, bottom=${contentBounds.bottom}")
@@ -2501,6 +2535,131 @@ class CameraViewModel @Inject constructor(
             }
         }
         return null
+    }
+
+    private fun registerTapToFocusIntent(x: Float, y: Float) {
+        pendingTapToFocusIntent = TapToFocusIntent(
+            pointView = PointF(x, y),
+            timestampMs = SystemClock.elapsedRealtime(),
+        )
+    }
+
+    private fun clearTapToFocusIntent() {
+        pendingTapToFocusIntent = null
+    }
+
+    /**
+     * v2.12.0-16 SB-F1: Register a tap-to-focus intent for V2 pipeline consumption.
+     * Called from handleEvent(FocusOnPoint) when FOCUS_PIPELINE_V2=true.
+     * The intent is consumed by runNewFocusPipeline() on the next analysis frame.
+     * Note: TapToFocusIntent stores pointView (PointF) only; viewWidth/viewHeight are
+     * accepted for API symmetry with FocusOnPoint event but are not stored in the intent.
+     */
+    private fun setTapToFocusIntent(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
+        pendingTapToFocusIntent = TapToFocusIntent(
+            pointView = PointF(x, y),
+            timestampMs = SystemClock.elapsedRealtime(),
+        )
+        Log.d(TAG, "[v2.12.0-16 SB-F1] Tap intent set: ($x, $y) viewSize=${viewWidth}x${viewHeight}")
+    }
+
+    private fun currentTapToFocusIntent(nowMs: Long = SystemClock.elapsedRealtime()): TapToFocusIntent? {
+        val intent = pendingTapToFocusIntent ?: return null
+        if ((nowMs - intent.timestampMs) > TAP_INTENT_WINDOW_MS) {
+            pendingTapToFocusIntent = null
+            return null
+        }
+        return intent
+    }
+
+    private fun rebuildNewPipelineSensorToViewMatrix(
+        detectionResult: DetectionResult?,
+        currentState: CameraState,
+    ) {
+        val rawImgW = detectionResult?.imageWidth ?: lastKnownImageWidth
+        val rawImgH = detectionResult?.imageHeight ?: lastKnownImageHeight
+        val rotation = detectionResult?.rotationDegrees ?: 0
+        val effectiveImgW = if (rotation == 90 || rotation == 270) rawImgH else rawImgW
+        val effectiveImgH = if (rotation == 90 || rotation == 270) rawImgW else rawImgH
+
+        if (effectiveImgW <= 0 || effectiveImgH <= 0) {
+            latestSensorToViewMatrix = null
+            Log.w(TAG, "[v2.12.0-16 SB-F2] No image dimensions — sensorToViewMatrix=null")
+            return
+        }
+
+        // v2.12.0-16 SB-F2 Fix-1: Prefer CoordinateTransformer-derived matrix for geometric consistency.
+        // CoordinateTransformer is the SSOT for FIT_CENTER geometry in this project.
+        // Using it ensures V2 pipeline geometry matches legacy path exactly.
+        val transformer = currentState.coordinateTransformer
+        if (transformer != null) {
+            // Derive matrix from CoordinateTransformer by sampling 3 image-space corners.
+            // This gives us the full affine transform (scale + translation + front-camera mirror).
+            val (sx0, sy0) = transformer.imageToScreen(0f, 0f)
+            val (sx1, sy1) = transformer.imageToScreen(effectiveImgW.toFloat(), 0f)
+            val (sx2, sy2) = transformer.imageToScreen(0f, effectiveImgH.toFloat())
+
+            // Guard: imageToScreen() may return NaN if transformer was built with zero-size image.
+            if (!sx0.isFinite() || !sy0.isFinite() || !sx1.isFinite() ||
+                !sy1.isFinite() || !sx2.isFinite() || !sy2.isFinite()) {
+                Log.w(TAG, "[v2.12.0-16 SB-F2] imageToScreen() returned non-finite values — " +
+                    "falling back to FIT_CENTER approximation")
+                // Fall through to FIT_CENTER fallback below
+            } else {
+                // Build affine matrix from 3-point correspondence.
+                // android.graphics.Matrix.setValues() row-major layout:
+                // | MSCALE_X  MSKEW_X   MTRANS_X |   | (sx1-sx0)/W   (sx2-sx0)/H   sx0 |
+                // | MSKEW_Y   MSCALE_Y  MTRANS_Y | = | (sy1-sy0)/W   (sy2-sy0)/H   sy0 |
+                // | MPERSP_0  MPERSP_1  MPERSP_2 |   | 0             0             1   |
+                latestSensorToViewMatrix = android.graphics.Matrix().apply {
+                    setValues(floatArrayOf(
+                        (sx1 - sx0) / effectiveImgW, // MSCALE_X (negative for front mirror)
+                        (sx2 - sx0) / effectiveImgH, // MSKEW_X  (~0 for axis-aligned)
+                        sx0,                          // MTRANS_X
+                        (sy1 - sy0) / effectiveImgW, // MSKEW_Y  (~0 for axis-aligned)
+                        (sy2 - sy0) / effectiveImgH, // MSCALE_Y
+                        sy0,                          // MTRANS_Y
+                        0f,                           // MPERSP_0 (identity perspective)
+                        0f,                           // MPERSP_1
+                        1f,                           // MPERSP_2
+                    ))
+                }
+                Log.d(TAG, "[v2.12.0-16 SB-F2] Matrix derived from CoordinateTransformer: " +
+                    "origin=($sx0,$sy0), imgW→($sx1,$sy1), imgH→($sx2,$sy2)")
+                return
+            }
+        }
+
+        // Fallback: CoordinateTransformer not yet available — use FIT_CENTER approximation.
+        // This is a geometric approximation; transformer-derived geometry takes over once available.
+        // TODO(SB-F2-future): Replace with real matrix from CameraX when API is available.
+        val bounds = currentState.contentBounds
+        if (bounds.isEmpty) {
+            latestSensorToViewMatrix = null
+            Log.w(TAG, "[v2.12.0-16 SB-F2] No contentBounds — sensorToViewMatrix=null (fallback path)")
+            return
+        }
+        val scaleX = bounds.width() / effectiveImgW.toFloat()
+        val scaleY = bounds.height() / effectiveImgH.toFloat()
+        latestSensorToViewMatrix = android.graphics.Matrix().apply {
+            if (currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT) {
+                setScale(-scaleX, scaleY)
+                postTranslate(bounds.right, bounds.top)
+            } else {
+                setScale(scaleX, scaleY)
+                postTranslate(bounds.left, bounds.top)
+            }
+        }
+        Log.w(TAG, "[v2.12.0-16 SB-F2] FALLBACK: FIT_CENTER approximation (transformer not ready). " +
+            "scaleX=$scaleX, scaleY=$scaleY")
+    }
+
+    private fun AfState.toLegacyVisualState(): com.akirachang.ai.photographer.domain.model.focus.VisualTargetState {
+        return when (this) {
+            is AfState.Focusing -> com.akirachang.ai.photographer.domain.model.focus.VisualTargetState.Candidate
+            is AfState.Locked -> com.akirachang.ai.photographer.domain.model.focus.VisualTargetState.VisualLocked
+            else -> com.akirachang.ai.photographer.domain.model.focus.VisualTargetState.None
+        }
     }
 
     /**

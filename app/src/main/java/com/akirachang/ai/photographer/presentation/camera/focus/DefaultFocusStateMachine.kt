@@ -137,6 +137,7 @@ class DefaultFocusStateMachine : FocusStateMachine {
             .map { it.rectView }
 
         return OverlayModel(
+            primaryStableId = primary?.stableId,
             primaryBox = primaryBox,
             secondaryBoxes = secondaryBoxes,
             primaryColor = color,
