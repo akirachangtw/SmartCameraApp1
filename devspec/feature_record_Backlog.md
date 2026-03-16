@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-03-14
+Last updated: 2026-03-15
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -1128,6 +1128,337 @@ drawLine(color, start, end, Stroke(width = ...))   // 編譯失敗
 - 修改 typeBonus 係數時，必須同步更新 `maxByOrNull` 和 Log 兩個 `when` block
 - 若新增 `TargetType` enum 值，兩個 `when` block 均需補齊（否則編譯 exhaustive 錯誤）
 - `primaryScore` log 精度預設為 Float 預設輸出，若需要更精確可用 `"%.2f".format(primaryScore)`
+
+---
+
+## SV-FIX-1R 焦土清除準則 — Dead Code 反向掃描（v2.12.0-17，2026-03-15）
+
+> **背景**：v2.12.0-16 以 `runNewFocusPipeline()` 取代整個 legacy 自動對焦流程，但留下了兩個死亡殘骸：`autoFocusOnSalientTarget()` 的 `return` 後 legacy 區塊（~100 行），以及不再有有效呼叫點的 `focusOnPoint()` 函式（~200 行）。SV-FIX-1R 的任務是完全清除這些殘骸。
+
+### §F. 焦土清除四條準則
+
+**準則 1 — `return` 後的 dead code 必須立即刪除，不得「暫存參考」**
+
+```kotlin
+// ❌ 禁止此模式：
+private fun autoFocusOnSalientTarget() {
+    runNewFocusPipeline()
+    return          // ← return 後方的所有程式碼為不可達 dead code
+    val currentState = _state.value   // 永遠不會執行
+    // ... 100 行 legacy 邏輯 ...
+}
+
+// ✅ 正確清除：
+private fun autoFocusOnSalientTarget() {
+    runNewFocusPipeline()
+}
+```
+
+- **為什麼不能「暫存參考」**：dead code 在編譯器 / IDE 靜態分析下不會觸發警告（Kotlin 對不可達程式碼的告警只在確定性 return 之後），容易在數個版本後遺忘其存在，最終成為永久殭屍。
+- **判斷標準**：只要函式開頭執行後 `return` 是無條件的（不在 if 分支內），其後所有程式碼即為 dead code，一律刪除。
+
+**準則 2 — 無有效呼叫點的私有函式必須整體刪除（含 KDoc 與輔助邏輯）**
+
+刪除步驟：
+1. 全文搜尋目標函式名稱（含型態相同的函式呼叫）
+2. 確認所有呼叫點均位於 dead code 路徑或本函式自身
+3. 同步刪除：函式本體 + 雙層 KDoc + 僅此函式使用的 helper 函式
+
+本次案例：
+- 刪除 `focusOnPoint()` 本體（~200 行，含雙層 KDoc）
+- 連帶刪除 `registerTapToFocusIntent()`（唯一呼叫點在 `focusOnPoint()` 內）
+
+**準則 3 — 詞彙歸零：函式名稱、欄位名稱必須從所有位置清除（含註解與 KDoc）**
+
+刪除主函式後，必須執行全域 Grep 掃描：
+```
+搜尋詞彙                          預期結果
+focusOnPoint                    → 0 結果（含 KDoc 引用、log 說明）
+focusFrameWidthPx               → 0 結果（含多行 // 註解）
+FOCUS_PIPELINE_V2               → 0 結果（已在 v2.12.0-16 清除）
+```
+
+殘留位置類型（常被忽略）：
+- 其他函式頂端的 `// Fix E: Cancel stale focusOnPoint() coroutine` 類說明
+- `private var focusJob` 欄位的說明性註解
+- 其他函式的 KDoc `@see` 或行內參照
+- `getMeteringPointFactory` 的實作說明（`// mirrors LiveCameraSource.focusOnPoint()`）
+
+**準則 4 — 修正後的 KDoc 與註解必須仍為真陳述，不可刪除語意**
+
+刪除被引用函式後，引用該函式的 KDoc 段落不應直接刪除整行，而應改寫為仍成立的語意：
+
+| 原始（已失效）| 修正後（仍成立）|
+|---|---|
+| `set the initial focusFrameWidthPx/HeightPx immediately` | `update focus frame dimensions immediately` |
+| `Does NOT replace focusOnPoint() — manual tap still uses the legacy path` | `Manual tap uses setTapToFocusIntent() which is consumed on the next analysis frame` |
+| `Cancel stale focusOnPoint() coroutine to prevent its delay(500) → focusPoint=null` | `Cancel any in-flight focus coroutine to prevent stale state updates racing with lockAEAF` |
+
+---
+
+### §G. 反向掃描清單（Dead Code 清除驗收用）
+
+每次執行 legacy 清除後，依序掃描以下清單，**全部通過才算驗收完成**：
+
+#### Step 1 — 呼叫點掃描
+```bash
+# 在目標檔案內搜尋被刪除的函式名稱
+grep -n "deletedFunctionName" CameraViewModel.kt
+# 預期：0 結果
+```
+
+#### Step 2 — 欄位/符號掃描（同時搜尋所有舊符號名稱）
+```bash
+grep -rn "focusFrameWidthPx\|FOCUS_PIPELINE_V2\|focusOnPoint" \
+  app/src/main/java/
+# 預期：0 結果於 CameraViewModel.kt；其他檔案的 repository 介面定義保留（不在清除範圍）
+```
+
+#### Step 3 — 孤兒 Helper 掃描
+- 列出被刪除主函式所呼叫的全部 private helper 函式
+- 逐一確認每個 helper 是否仍有其他呼叫點
+- 無其他呼叫點 → 連帶刪除
+
+#### Step 4 — KDoc / 註解一致性確認
+- 全文搜尋已刪除的函式名稱（含在字串中）
+- 確認沒有任何 `// ... focusOnPoint ...` 風格的行內說明殘留
+- 確認 `focusJob` 等關聯欄位的說明性註解已更新
+
+#### Step 5 — 編譯驗證
+```bash
+./gradlew assembleDeviceDebug
+# 預期：BUILD SUCCESSFUL，0 errors
+```
+
+**本次 SV-FIX-1R 執行結果**（2026-03-15）：
+
+| 掃描項目 | 結果 |
+|---|---|
+| `focusOnPoint` in CameraViewModel.kt | ✅ 0 matches |
+| `focusFrameWidthPx` 全域 | ✅ 0 matches |
+| `FOCUS_PIPELINE_V2` 全域 | ✅ 0 matches（v2.12.0-16 已清除）|
+| 孤兒 helper `registerTapToFocusIntent()` | ✅ 連帶刪除 |
+| `assembleDeviceDebug` | ✅ BUILD SUCCESSFUL |
+
+---
+
+## SV-FIX-2 Front/Fixed-Focus 硬體契約 — FLAG_AF 防線（v2.12.0-17，2026-03-15）
+
+> **背景**：`CameraXFocusController.apply()` 使用單參數 `FocusMeteringAction.Builder(cxPoint)`，CameraX 預設行為是 `FLAG_AF | FLAG_AE | FLAG_AWB` 全部啟用。前鏡頭無 AF 馬達，送出 `FLAG_AF` 後 HAL 靜默失敗或產生 AF Hunting，但不拋出例外，難以從 Logcat 直接定位根因。
+
+### §H. Front-Camera FLAG_AF 硬體契約守則
+
+**核心規則**：`FocusMeteringAction.Builder` 第二參數（flags）**必須明確指定**，絕對禁止使用無參數的單參數建構子讓 CameraX 自行選擇 flags。
+
+```kotlin
+// ❌ 禁止此模式：
+FocusMeteringAction.Builder(cxPoint).build()
+// → CameraX 預設 FLAG_AF | FLAG_AE | FLAG_AWB，前鏡頭收到 FLAG_AF 後 HAL 靜默失敗
+
+// ✅ 正確：依硬體能力明確指定
+if (geometryContext.isFrontCamera || !decision.shouldTriggerFocus) {
+    FocusMeteringAction.Builder(cxPoint, FocusMeteringAction.FLAG_AE or FocusMeteringAction.FLAG_AWB)
+        .build()   // 不設 autoCancelDuration — 前鏡頭無 AF 馬達，不需 timeout
+} else {
+    FocusMeteringAction.Builder(cxPoint, FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE)
+        .apply { setAutoCancelDuration(AF_TIMEOUT_SEC, TimeUnit.SECONDS) }
+        .build()
+}
+```
+
+**判斷優先序**（`isFrontCamera` 為主要守門條件）：
+
+| 條件 | Flags | `setAutoCancelDuration` | 理由 |
+|------|-------|------------------------|------|
+| `isFrontCamera == true`（無論 policy）| `FLAG_AE \| FLAG_AWB` | ❌ 不設定 | 硬體無 AF 馬達；即使 policy 誤送 `shouldTriggerFocus=true` 也強制攔截 |
+| `shouldTriggerFocus == false`（後鏡頭）| `FLAG_AE \| FLAG_AWB` | ❌ 不設定 | 純曝光調整，不觸發 AF 掃描 |
+| 後鏡頭 + `shouldTriggerFocus == true` | `FLAG_AF \| FLAG_AE` | ✅ `AF_TIMEOUT_SEC` | 完整 AF 流程，需 timeout 防 HAL 死鎖 |
+
+**為什麼 `isFrontCamera` 必須是主要守門條件（而非 `shouldTriggerFocus`）**：
+- `shouldTriggerFocus` 由 `EyeAfPolicyResolver` 決定，policy 邏輯複雜，未來改動可能誤送 `true`
+- `isFrontCamera` 是硬體事實，不受 policy 層影響，永遠不會誤判
+- 將硬體契約防線置於最靠近 HAL 呼叫點處（`CameraXFocusController`），確保即使 policy 層出錯也能兜底
+
+**`setAutoCancelDuration` 不設定於前鏡頭的原因**：
+- 前鏡頭走 AE-only 路徑，`FLAG_AF` 不送出，HAL 無 AF 掃描動作，無需 timeout guard
+- 若對 AE-only action 設定 `setAutoCancelDuration`，部分 HAL 實作可能在 timeout 後強制 cancel metering，反而中斷曝光收斂
+
+### §I. FLAG_AF 防線在架構中的位置
+
+```
+User Tap / Eye-AF Detection
+        ↓
+EyeAfPolicyResolver.resolve()    ← shouldTriggerFocus 決策層（可能誤判）
+        ↓
+FocusTriggerThrottle gate
+        ↓
+CameraXFocusController.apply()   ← 🔴 FLAG_AF 最終防線（isFrontCamera 硬體守門）
+        ↓
+cameraControl.startFocusAndMetering(action)
+```
+
+**守則**：任何修改 `CameraXFocusController.apply()` flags 邏輯的 PR，必須確認：
+1. `FocusMeteringAction.Builder` 在整個檔案中出現次數為 **2**（if 分支 + else 分支），不多不少
+2. 前鏡頭分支（`isFrontCamera == true`）的 Builder 第二參數絕對不含 `FLAG_AF`
+3. 後鏡頭分支（`shouldTriggerFocus == true`）的 Builder 第二參數包含 `FLAG_AF`
+
+**Log 識別**（Logcat 驗證執行路徑用）：
+```
+# 前鏡頭 / AE-only 路徑
+[v2.12.0-17][SV-FIX-2] AE+AWB only (front/fixed-focus) isFrontCamera=true shouldTriggerFocus=false
+
+# 後鏡頭 AF 路徑
+[v2.12.0-17][SV-FIX-2] AF+AE (rear camera) shouldTriggerFocus=true
+```
+
+**Code Location**：`CameraXFocusController.kt:88-102`（`// Build CameraX MeteringAction` 區塊）
+
+**參考實作**（既有正確範例）：`LiveCameraSource.kt` 的 `aeOnlyAction` 建構（`FLAG_AE | FLAG_AWB`）
+
+**How to apply**：
+- 每次觸碰 `FocusMeteringAction.Builder` 相關程式碼時，先確認 `isFrontCamera` 是否為最外層判斷
+- 新增相機鏡頭類型（如超廣角、長焦）時，確認其 AF 能力後再決定 flags；有疑慮時默認 `FLAG_AE | FLAG_AWB`
+- 禁止在 Policy 層（`EyeAfPolicyResolver`）或 ViewModel 層修改 flags——flags 邏輯只屬於 `CameraXFocusController`
+
+---
+
+## SV-FIX-3 Matrix Truth — ViewModel / Mapper 職責邊界（v2.12.0-17，2026-03-15）
+
+> **背景**：`rebuildNewPipelineSensorToViewMatrix()` 在 `CoordinateTransformer` 尚未就緒時，自行用 `bounds.width() / effectiveImgW` 計算 FIT_CENTER 近似 matrix。這段 fallback 與 `PreviewViewGeometryMapper` 既有的 `matrix == null` FIT_CENTER fallback 形成職責重疊，且在旋轉 90°/270° 時 scale ratio 計算錯誤（bounds 與 effectiveImgW 的座標系不一致），並留有 `TODO(SB-F2-future)` 違反零 TODO 政策。
+
+### §J. ViewModel / Mapper 幾何職責邊界守則
+
+**核心規則**：ViewModel 只負責「有 transformer 時提供精確 matrix」，Mapper 負責「無 matrix 時的 FIT_CENTER fallback」。兩層職責不得重疊。
+
+```
+CameraViewModel.rebuildNewPipelineSensorToViewMatrix()
+    ├── transformer 可用  → latestSensorToViewMatrix = 三點反推 affine matrix  ✅ ViewModel 職責
+    └── transformer 不可用 → latestSensorToViewMatrix = null                   ✅ ViewModel 職責止於此
+
+PreviewViewGeometryMapper.mapRectImageToView()
+    ├── context.sensorToViewMatrix != null → matrix.mapPoints(pts)             ✅ Mapper 主路徑
+    └── context.sensorToViewMatrix == null → FIT_CENTER scale + letterbox       ✅ Mapper fallback 職責
+```
+
+**禁止模式**（已在 SV-FIX-3 清除）：
+
+```kotlin
+// ❌ ViewModel 自行實作 FIT_CENTER 近似 — 職責錯置，且計算有誤
+val scaleX = bounds.width() / effectiveImgW.toFloat()   // ← contentBounds 與 image 座標系不一致
+val scaleY = bounds.height() / effectiveImgH.toFloat()  //   旋轉 90°/270° 時產生錯誤 scale ratio
+latestSensorToViewMatrix = android.graphics.Matrix().apply {
+    if (isFront) { setScale(-scaleX, scaleY); postTranslate(bounds.right, bounds.top) }
+    else         { setScale(scaleX, scaleY);  postTranslate(bounds.left,  bounds.top) }
+}
+// TODO(SB-F2-future): Replace with real matrix ... ← 違反零 TODO 政策
+
+// ✅ 正確：transformer 不可用時直接歸零，職責還給 Mapper
+latestSensorToViewMatrix = null
+Log.d(TAG, "[v2.12.0-17] transformer not ready — sensorToViewMatrix=null, Mapper will use FIT_CENTER fallback")
+```
+
+**為什麼 ViewModel 的 FIT_CENTER 近似計算是錯的**：
+
+| 旋轉角度 | `effectiveImgW` 語意 | `bounds.width()` 語意 | scaleX 結果 |
+|----------|---------------------|-----------------------|------------|
+| 0° / 180° | sensor 寬（橫向） | PreviewView 寬（橫向）| 近似正確 |
+| 90° / 270° | sensor 高（已 swap，變成「縱向寬」）| PreviewView 寬（橫向）| **錯誤**：用縱向尺寸除橫向尺寸 |
+
+Pixel 9a 主鏡頭預設旋轉 90°，因此此近似在實機上必然產生錯誤的幾何映射。
+
+**`TODO` 作為技術債指示器的問題**：
+- `TODO(SB-F2-future)` 表示「等待 CameraX API」，但實際上正確解法就是「transformer 不可用時讓 Mapper fallback」，不需要任何新 API
+- 帶有遠期標籤的 TODO 容易在數個版本後成為永久殭屍，且掩蓋了「當下已有正確解」的事實
+
+**How to apply**：
+- 任何涉及 sensor→view 座標轉換的新邏輯，必須先確認職責歸屬：「需要精確幾何 → ViewModel 三點反推 matrix」，「需要 fallback → Mapper 已有實作，不重複」
+- 修改 `rebuildNewPipelineSensorToViewMatrix()` 時，確認函式末尾只有一種 null 路徑（transformer 不可用），不得新增任何近似計算分支
+- `PreviewViewGeometryMapper` 的 `matrix == null` fallback 路徑是此設計的底板，**禁止刪除或弱化**
+
+**Code Location**：`CameraViewModel.kt` `rebuildNewPipelineSensorToViewMatrix()` 末段（`// transformer not ready` 區塊）
+
+---
+
+## SV-FIX-3R Matrix Truth 最終收斂 — 三點反推移除與 toMatrix() 直接建構（v2.12.0-17，2026-03-16）
+
+> **背景**：`rebuildNewPipelineSensorToViewMatrix()` 原先以 `CoordinateTransformer.imageToScreen()` 採樣 3 個角點，再用 `Matrix.setValues()` 反推仿射矩陣。此方法需要 NaN guard（`isFinite()` 檢查），且邏輯間接；矩陣來源不透明。SV-FIX-3R 將此移除，改在 `CoordinateTransformer` 加入 `toMatrix()` 方法，直接從已知幾何欄位建構矩陣，消除採樣誤差與 NaN 風險。
+
+### §K. 三點反推 vs 直接建構守則
+
+**核心規則**：若目標 Transform 持有所有幾何欄位（scale、translate、mirror），應直接建構 `android.graphics.Matrix`，不得以採樣 + 反推方式繞行。
+
+**三點反推的問題（已清除）**：
+
+```kotlin
+// ❌ 三點採樣反推 — 間接、需 NaN guard、不透明
+val (sx0, sy0) = transformer.imageToScreen(0f, 0f)
+val (sx1, sy1) = transformer.imageToScreen(effectiveImgW.toFloat(), 0f)
+val (sx2, sy2) = transformer.imageToScreen(0f, effectiveImgH.toFloat())
+if (!sx0.isFinite() || ...) { /* fallback */ }
+// Build affine matrix from 3-point correspondence.
+latestSensorToViewMatrix = android.graphics.Matrix().apply {
+    setValues(floatArrayOf(
+        (sx1 - sx0) / effectiveImgW, (sx2 - sx0) / effectiveImgH, sx0,
+        (sy1 - sy0) / effectiveImgW, (sy2 - sy0) / effectiveImgH, sy0,
+        0f, 0f, 1f,
+    ))
+}
+```
+
+**正確實作（CoordinateTransformer.toMatrix()）**：
+
+```kotlin
+// ✅ 直接建構 — 透明、無 NaN 風險、職責歸屬明確
+fun toMatrix(): android.graphics.Matrix {
+    val scaleX = contentBounds.width() / imageWidth
+    val scaleY = contentBounds.height() / imageHeight
+    return android.graphics.Matrix().apply {
+        if (isFrontCamera) {
+            setValues(floatArrayOf(
+                -scaleX, 0f, contentBounds.right,   // mirror: translateX = right boundary
+                0f, scaleY, contentBounds.top,
+                0f, 0f, 1f,
+            ))
+        } else {
+            setValues(floatArrayOf(
+                scaleX, 0f, contentBounds.left,
+                0f, scaleY, contentBounds.top,
+                0f, 0f, 1f,
+            ))
+        }
+    }
+}
+```
+
+**呼叫端（rebuildNewPipelineSensorToViewMatrix）**：
+
+```kotlin
+// ✅ 一行完成，無 NaN guard 需求
+val transformer = currentState.coordinateTransformer
+if (transformer != null) {
+    latestSensorToViewMatrix = transformer.toMatrix()
+    Log.d(TAG, "[v2.12.0-17][SV-FIX-3R] sensorToViewMatrix set from CoordinateTransformer.toMatrix()")
+    return
+}
+// transformer not ready → null → Mapper fallback（職責邊界同 §J）
+latestSensorToViewMatrix = null
+```
+
+**為何三點反推數學等價但不應使用**：
+
+| | 三點採樣反推 | toMatrix() 直接建構 |
+|---|---|---|
+| NaN 風險 | 有（需 isFinite() guard） | 無（除數 imageWidth/Height > 0 已在建構時驗證）|
+| 透明度 | 低（中間浮點誤差累積） | 高（直接對應幾何欄位）|
+| 維護性 | 差（新增座標系需重新驗證公式）| 好（字面對應 contentBounds / scale）|
+| 職責歸屬 | ViewModel 重複 Transformer 邏輯 | Transformer 自身持有，ViewModel 只呼叫 |
+
+**How to apply**：
+- 任何需要從 `CoordinateTransformer` 取矩陣的場景，呼叫 `toMatrix()`，禁止再用 `imageToScreen()` 三點採樣
+- 新增幾何欄位到 `CoordinateTransformer` 時，同步更新 `toMatrix()` 的對應項（新增 skew、perspective 等）
+- `toMatrix()` 是 `CoordinateTransformer` 的「矩陣形式輸出」，與 `imageToScreen()` 的「點轉換輸出」並列存在，兩者數學等價但使用場景不同
+
+**Code Location**：`PreviewViewportContainer.kt` `CoordinateTransformer.toMatrix()`（新增）；`CameraViewModel.kt` `rebuildNewPipelineSensorToViewMatrix()`（移除三點反推，改呼叫 `toMatrix()`）
 
 ---
 

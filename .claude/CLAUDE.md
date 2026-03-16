@@ -1,3 +1,27 @@
+# ⚠️ 最高憲法（ABSOLUTE PRIORITY — 所有規範中最優先，不可覆蓋）
+
+> **這是本專案的最高開發紀律。任何操作前必須先遵守以下條款，優先順序高於所有其他章節。**
+
+## 🛑 零容忍執行紀律 (Zero-Tolerance Constraints)
+
+1. **零偷懶政策**：絕對禁止留下 `// TODO`、`return null // implement later`，必須真實接線。
+2. **焦土政策**：重構時，必須主動搜尋並刪除舊管線的廢棄變數與 UI 元件。
+3. **錯誤防禦**：必須處理可能導致 Crash 的 null 狀態與陣列越界。
+4. **架構純潔**：嚴格遵守 UDF (Unidirectional Data Flow)，狀態層與 UI 層絕對分離。
+
+## 🛠️ 本地 Skills（開發必用）
+
+| 命令 | 檔案 | 觸發方式 | 用途 |
+|------|------|----------|------|
+| `/sv` | `.claude/skills/sv/SKILL.md` | **人工觸發**（`disable-model-invocation: true`）| 無情法官：殘骸掃描 + Anti-Lazy + UI 互斥檢查 |
+| `/qa` | `.claude/skills/qa/SKILL.md` | **人工 or Claude 自動**（`disable-model-invocation: false`）| 自動化 QA：編譯 + Log 分析 + Warning 清理 |
+
+**標準使用順序**（每次 Phase 3 完成後強制執行）：`/sv` → `/qa` → Traycer `strict_verification`
+
+詳細整合流程：`devspec/MERGE_SOP.md` → 🛠️ 本地 Skills 章節
+
+---
+
 # SmartCameraApp1 - AI Photographer Assistant
 
 ## Project Overview
@@ -587,3 +611,4 @@ docs/test_results/<version>/
 ---
 
 **完整規範請參考**: `devspec/.clinerules`
+

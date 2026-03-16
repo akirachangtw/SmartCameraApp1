@@ -573,5 +573,59 @@ git merge feature-name  # 可能是舊的本地分支
 
 ---
 
-**最後更新**: 2026-03-07（Phase 2.5 更新：Workflow Prompt Generator 升級至 v4 終極防禦閉環版）
+**最後更新**: 2026-03-16（新增本地 Slash Commands：/sv + /qa）
 **維護者**: Claude Sonnet 4.6 + Akira Chang
+
+---
+
+## 🛠️ 本地 Skills（節省 Traycer 費用）
+
+在提交 Traycer 終審前，可先用本地 Skills 完成初步驗收與編譯驗證，節省 API 費用。
+
+### `/sv` — 本地無情法官 ⛔ 人工觸發限定
+
+**檔案**：`.claude/skills/sv/SKILL.md`（`disable-model-invocation: true`）
+**用途**：執行反向驗證，掃描代碼殘骸與偷懶行為
+
+觸發方式：**只能由人工**在 Claude Code 聊天中輸入 `/sv`（Claude 無法自動呼叫）
+
+執行項目：
+1. **殘骸掃描 (Orphan Check)**：舊邏輯、feature flag、廢棄 import 是否徹底刪除
+2. **Mock 偵測 (Anti-Lazy Check)**：無意義預設值或 `TODO` 是否存在
+3. **UI 互斥 (State Exclusive)**：UI 雙重渲染風險、`return` 防線穩固性
+
+通過回報：「本地 SV 驗收通過，準備提交 Traycer 終審。」
+
+**建議觸發時機**：Phase 3 代碼合併完成後、Phase 4 Build 驗證前
+
+---
+
+### `/qa` — 本地自動化 QA 守護 ✅ 人工 or Claude 自動觸發
+
+**檔案**：`.claude/skills/qa/SKILL.md`（`disable-model-invocation: false`）
+**用途**：啟動本地編譯、擷取 Log、提出修復建議
+
+觸發方式：人工輸入 `/qa`，或 Claude 修改核心邏輯後**主動自動呼叫**
+
+執行項目：
+1. 執行 `./gradlew assembleDebug`
+2. 編譯失敗時：立刻擷取錯誤 Log 並提出修復方案，禁止沉默失敗
+3. 編譯成功時：檢視 Warning，評估是否需要立即清理
+
+**建議觸發時機**：Phase 4.1 Build 驗證階段；或 Claude 完成核心邏輯修改後自動觸發
+
+---
+
+### Skills 整合到 Merge 流程
+
+```
+Phase 3 完成
+    ↓
+/sv  ← 無情法官（人工觸發，disable-model-invocation=true）
+    ↓ 通過
+/qa  ← 自動化 QA（人工或 Claude 自動，disable-model-invocation=false）
+    ↓ BUILD SUCCESSFUL
+Phase 4 實機驗證
+    ↓ 全 PASS
+Traycer strict_verification 終審
+```
