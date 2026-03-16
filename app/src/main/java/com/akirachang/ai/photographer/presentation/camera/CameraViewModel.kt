@@ -97,6 +97,7 @@ class CameraViewModel @Inject constructor(
     private data class TapToFocusIntent(
         val pointView: PointF,
         val timestampMs: Long,
+        val density: Float = 3f,  // v2.12.0-18: for optimistic tap box pixel sizing
     )
 
     private val _state = MutableStateFlow(CameraState())
@@ -173,6 +174,14 @@ class CameraViewModel @Inject constructor(
     )
 
     private val newPipelineGeometryMapper = com.akirachang.ai.photographer.data.focus.geometry.PreviewViewGeometryMapper()
+
+    // v2.12.0-18 Task 3: 1-Euro Filter for primary target monopoly (visual-only smoothing)
+    // Secondary targets always use raw ML Kit coords (no smoothing — saves CPU).
+    private val primaryTargetSmoother = com.akirachang.ai.photographer.data.source.camera.RectFilter(
+        minCutoff = 1.0f,
+        beta = 0.007f,
+    )
+    private var lastSmoothedPrimaryId: String? = null
 
     private val cameraXFocusController = com.akirachang.ai.photographer.data.focus.control.CameraXFocusController(
         getCameraControl = {
@@ -480,7 +489,7 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.StopAnalysis -> stopAnalysis()
             is CameraUiEvent.ShowError -> showError(event.message)
             is CameraUiEvent.FocusOnPoint -> {
-                setTapToFocusIntent(event.x, event.y, event.viewWidth, event.viewHeight)
+                setTapToFocusIntent(event.x, event.y, event.viewWidth, event.viewHeight, event.density)
                 Log.i(TAG, "[SV-FIX-1] FocusOnPoint → V2 pipeline tap intent registered (${event.x}, ${event.y})")
             }
             is CameraUiEvent.LockAEAF -> {
@@ -618,6 +627,9 @@ class CameraViewModel @Inject constructor(
         focusSessionId++  // v2.12.0-13: Invalidate all in-flight HAL callbacks
         clearTapToFocusIntent()
         latestSensorToViewMatrix = null
+        // v2.12.0-18: Reset 1-Euro smoother to prevent stale interpolation
+        primaryTargetSmoother.reset()
+        lastSmoothedPrimaryId = null
         _state.update {
             it.copy(
                 afState = AfState.Idle,
@@ -647,6 +659,9 @@ class CameraViewModel @Inject constructor(
             focusControllerJob?.cancel()
             lastNewPipelineTriggerMs = null
             lastFocusControllerResult = null
+            // v2.12.0-18: Reset 1-Euro smoother (Task 3) — prevent cross-camera interpolation
+            primaryTargetSmoother.reset()
+            lastSmoothedPrimaryId = null
             _state.update { it.copy(focusUiState = com.akirachang.ai.photographer.domain.model.focus.FocusUiState.EMPTY) }
             Log.d(TAG, "[SV-FIX-1] New pipeline reset on camera switch")
 
@@ -1128,6 +1143,7 @@ class CameraViewModel @Inject constructor(
                 systemEvent = com.akirachang.ai.photographer.domain.model.focus.SystemEvent.NORMAL_UPDATE,
                 nowMs = nowMs,
                 isFrontCamera = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
+                isFixedFocus = currentState.isFixedFocusLens,
             )
             val newFocusUiState = focusStateMachine.reduce(focusInput)
             _state.update { it.copy(focusUiState = newFocusUiState) }
@@ -1220,17 +1236,21 @@ class CameraViewModel @Inject constructor(
                         }
                     }
                     // v2.12.0-15 SV-S5b: Re-reduce StateMachine with actual controller result
+                    val nowMsAsync = System.currentTimeMillis()
                     val updatedInput = com.akirachang.ai.photographer.domain.model.focus.FocusStateInput(
                         trackedTargetState = trackedState,
                         eyeAfDecision = effectiveDecision,
                         focusControllerResult = result,
                         userIntent = buildUserIntentState(_state.value),
                         systemEvent = com.akirachang.ai.photographer.domain.model.focus.SystemEvent.NORMAL_UPDATE,
-                        nowMs = System.currentTimeMillis(),
+                        nowMs = nowMsAsync,
                         isFrontCamera = _state.value.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
+                        isFixedFocus = _state.value.isFixedFocusLens,
                     )
                     val updatedUiState = focusStateMachine.reduce(updatedInput)
-                    _state.update { it.copy(focusUiState = updatedUiState) }
+                    // v2.12.0-18 Task 3: Apply 1-Euro smoother (async path)
+                    val smoothedAsync = applySmoother(updatedUiState, trackedState.primaryTarget?.stableId, nowMsAsync)
+                    _state.update { it.copy(focusUiState = smoothedAsync) }
                     Log.d(TAG, "[v2.12.0-15] Re-reduced after FocusController: lens=${updatedUiState.lensFocusState}")
                 } catch (e: Exception) {
                     Log.w(TAG, "[v2.12.0-15] FocusController.apply() failed: ${e.message}")
@@ -1247,11 +1267,15 @@ class CameraViewModel @Inject constructor(
             systemEvent = com.akirachang.ai.photographer.domain.model.focus.SystemEvent.NORMAL_UPDATE,
             nowMs = nowMs,
             isFrontCamera = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
+            isFixedFocus = currentState.isFixedFocusLens,
         )
         val newFocusUiState = focusStateMachine.reduce(focusInput)
 
-        // ── Step I: Update state ──────────────────────────────────────────────────
-        _state.update { it.copy(focusUiState = newFocusUiState) }
+        // ── Step I: Apply 1-Euro smoother then update state ───────────────────────
+        // v2.12.0-18 Task 3: Primary monopoly — only primaryTarget gets smooth filter.
+        // Secondary boxes in OverlayModel use raw ML Kit coords (no smoothing).
+        val smoothedUiState = applySmoother(newFocusUiState, trackedState.primaryTarget?.stableId, nowMs)
+        _state.update { it.copy(focusUiState = smoothedUiState) }
         Log.d(TAG, "[v2.12.0-15] Pipeline: visual=${newFocusUiState.visualTargetState}, lens=${newFocusUiState.lensFocusState}")
     }
 
@@ -1990,18 +2014,72 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
-     * v2.12.0-16 SB-F1: Register a tap-to-focus intent for V2 pipeline consumption.
-     * Called from handleEvent(FocusOnPoint) — V2 pipeline only (v2.12.0-16).
-     * The intent is consumed by runNewFocusPipeline() on the next analysis frame.
-     * Note: TapToFocusIntent stores pointView (PointF) only; viewWidth/viewHeight are
-     * accepted for API symmetry with FocusOnPoint event but are not stored in the intent.
+     * v2.12.0-18 Task 3: Apply 1-Euro Filter to primary target box (visual rendering only).
+     *
+     * Primary monopoly rule:
+     *   - primaryTarget.rectView → smoothed via RectFilter (jitter suppression + motion tracking)
+     *   - secondaryBoxes remain as-is (raw ML Kit coords, no CPU overhead)
+     *
+     * Resets filter when primaryStableId changes (avoids interpolation across different subjects).
      */
-    private fun setTapToFocusIntent(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
+    private fun applySmoother(
+        uiState: com.akirachang.ai.photographer.domain.model.focus.FocusUiState,
+        primaryStableId: String?,
+        nowMs: Long,
+    ): com.akirachang.ai.photographer.domain.model.focus.FocusUiState {
+        val primaryBox = uiState.overlayModel?.primaryBox
+        if (uiState.visualTargetState == com.akirachang.ai.photographer.domain.model.focus.VisualTargetState.None || primaryBox == null) {
+            primaryTargetSmoother.reset()
+            lastSmoothedPrimaryId = null
+            return uiState
+        }
+        // Reset when target identity changes to prevent cross-subject interpolation
+        if (primaryStableId != lastSmoothedPrimaryId) {
+            primaryTargetSmoother.reset()
+            lastSmoothedPrimaryId = primaryStableId
+        }
+        val smoothedBox = primaryTargetSmoother.filter(primaryBox, nowMs)
+        return uiState.copy(
+            overlayModel = uiState.overlayModel.copy(primaryBox = smoothedBox)
+        )
+    }
+
+    /**
+     * v2.12.0-16 SB-F1: Register a tap-to-focus intent for V2 pipeline consumption.
+     * v2.12.0-18: Immediately push optimistic 72dp Yellow placeholder (0ms delay, Task 1).
+     *
+     * Yellow here signals "tap registered / pending face confirmation", NOT AE/AF Lock.
+     * The next pipeline frame (~100ms) replaces this with Cyan VisualLocked (if face found)
+     * or Cyan TrackingStable (texture/tap) via the normal FocusStateMachine path.
+     */
+    private fun setTapToFocusIntent(x: Float, y: Float, viewWidth: Int, viewHeight: Int, density: Float = 3f) {
         pendingTapToFocusIntent = TapToFocusIntent(
             pointView = PointF(x, y),
             timestampMs = SystemClock.elapsedRealtime(),
+            density = density,
         )
-        Log.d(TAG, "[v2.12.0-16 SB-F1] Tap intent set: ($x, $y) viewSize=${viewWidth}x${viewHeight}")
+        // v2.12.0-18 Task 1: Optimistic UI — zero-delay Yellow 72dp placeholder at tap coords.
+        val halfPx = 72f * density / 2f
+        val placeholder = android.graphics.RectF(x - halfPx, y - halfPx, x + halfPx, y + halfPx)
+        _state.update {
+            it.copy(
+                focusUiState = com.akirachang.ai.photographer.domain.model.focus.FocusUiState(
+                    visualTargetState = com.akirachang.ai.photographer.domain.model.focus.VisualTargetState.TrackingStable,
+                    lensFocusState = com.akirachang.ai.photographer.domain.model.focus.LensFocusState.ActiveScan,
+                    exposureLockState = com.akirachang.ai.photographer.domain.model.focus.ExposureLockState.Unlocked,
+                    overlayModel = com.akirachang.ai.photographer.domain.model.focus.OverlayModel(
+                        primaryStableId = "tap_optimistic",
+                        primaryBox = placeholder,
+                        secondaryBoxes = emptyList(),
+                        primaryColor = com.akirachang.ai.photographer.domain.model.focus.OverlayColor.YELLOW,
+                        alpha = 1.0f,
+                        showLockIcon = false,
+                        animation = com.akirachang.ai.photographer.domain.model.focus.OverlayAnimation.PULSE,
+                    ),
+                )
+            )
+        }
+        Log.d(TAG, "[v2.12.0-18] Optimistic tap: Yellow 72dp at ($x, $y) density=$density halfPx=$halfPx")
     }
 
     private fun currentTapToFocusIntent(nowMs: Long = SystemClock.elapsedRealtime()): TapToFocusIntent? {

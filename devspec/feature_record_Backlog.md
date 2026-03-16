@@ -1561,3 +1561,221 @@ latestSensorToViewMatrix = null  // Mapper fallback 接手
 
 ---
 
+## Phase 3 UX Polish — 專業相機體驗最終語義收斂（v2.12.0-18，2026-03-16）
+
+> **背景**：Focus Pipeline V2 地基清理完畢（v2.12.0-17）後，進入 UX 拋光階段。
+> 本節記錄三項設計決策的最終語義，作為後續版本的 SSOT 驗收基線。
+
+---
+
+### §M. Fixed-Focus LensFocusState 語義正規化（SV-PH3-FIX）
+
+#### 問題根源
+v2.12.0-18 初版（Task 2）將 `isFixedFocus && primaryTarget != null` 對應到 `UnsupportedFixedFocus`。
+這導致 `FocusOverlay` 的夾爪動畫在前鏡頭永遠不觸發，因為 `LensFocusState` 語義傳遞到 UI 層時
+`UnsupportedFixedFocus` 表示「硬體不支援」而非「已鎖定」。
+
+#### 正確語義（SV-PH3-FIX，最終定版）
+
+```kotlin
+// DefaultFocusStateMachine.reduceLensState()
+if (input.isFixedFocus) {
+    return if (input.trackedTargetState.primaryTarget != null) {
+        LensFocusState.Focused        // 視覺欺騙：直接宣告鎖定，不等待 HAL
+    } else {
+        LensFocusState.NotRequested   // 無目標：靜默，不顯示任何鎖定狀態
+    }
+}
+```
+
+#### 架構純潔性保證
+- `isFixedFocus == true` 路徑在 `focusControllerResult` 被讀取之前就已 `return`
+- HAL AF 回調路徑（`focusControllerResult?.opticalResult`）只在 `isFixedFocus == false` 時執行
+- `UnsupportedFixedFocus` 語義保留給 HAL 主動回報 `OpticalFocusState.UNSUPPORTED` 的情境（非固定焦距、但 HAL 無法執行 AF）
+
+#### 三軸狀態在固定焦距下的完整行為
+
+| 軸 | 輸入條件 | 輸出 |
+|----|---------|------|
+| VisualTargetState | 由 `DefaultEyeAfPolicyResolver` 決定（SYNTHETIC_LOCK → VisualLocked） | 正常流程 |
+| LensFocusState | `isFixedFocus=true && primaryTarget != null` | `Focused`（**§M 新定義**） |
+| LensFocusState | `isFixedFocus=true && primaryTarget == null` | `NotRequested` |
+| ExposureLockState | `isFrontCamera=true` | 強制 `Unlocked`（§D 守則不變） |
+
+**How to apply**：
+- 修改 `reduceLensState()` 時，`isFixedFocus` guard 必須是第一個判斷，且必須提前 return
+- 禁止在 `isFixedFocus == true` 路徑中讀取 `focusControllerResult`（同步純潔性）
+- `UnsupportedFixedFocus` 不代表「固定焦距鏡頭」—— 它代表「HAL 告知 AF 不支援」，兩者語義不同
+
+---
+
+### §N. 樂觀點擊 UI — 零延遲 Yellow→Cyan 過渡（Task 1）
+
+#### 設計決策
+使用者點擊畫面時，在硬體 AF 啟動前先顯示 Yellow 72dp 佔位框（`TrackingStable` 狀態），
+約 100ms 後由正常 pipeline 升級為 Cyan `VisualLocked`（夾爪觸發）。
+
+- **Yellow 在此情境的語義**：「系統已收到指令、正在確認目標」，與 AE/AF Lock Yellow 不同
+- **非 AE/AF Lock 語義**：不觸發 `ExposureLockState.AEAFLocked`，Yellow 只存活於 `pendingTapToFocusIntent` 有效期內（≤750ms）
+- `FocusOverlay` 的 `animateColorAsState(tween 200ms)` 負責 Yellow→Cyan 顏色動畫
+
+#### 實作邊界規則
+
+```
+setTapToFocusIntent() 的職責：
+  1. 設定 pendingTapToFocusIntent（供 pipeline 消費）
+  2. 立即 push 一個 FocusUiState(TrackingStable, YELLOW, 72dp box at tap coords)
+  → 不觸發任何 HAL 呼叫
+  → 不修改 isAEAFLocked 欄位
+
+runNewFocusPipeline() 在下一幀（~100ms）自然覆蓋此狀態
+```
+
+**SV 驗收線**：`tap_optimistic` stableId 只出現在 `setTapToFocusIntent()` 的 push 中，
+`runNewFocusPipeline()` 的任何輸出絕不應產生 `primaryStableId = "tap_optimistic"`。
+
+**How to apply**：
+- `setTapToFocusIntent()` 是唯一允許直接 push Yellow FocusUiState 的地方
+- `DefaultFocusStateMachine` 禁止在 `buildOverlayModel()` 中產生 YELLOW unless `ExposureLockState.AEAFLocked`
+- 如需調整 72dp 大小，修改 `halfPx = 72f * density / 2f` 算式；density 來自 `FocusOnPoint.density`
+
+---
+
+### §O. Primary Monopoly — 1-Euro Filter 主目標壟斷守則（Task 3）
+
+#### 設計決策
+只有 `primaryTarget` 的 `rectView`（映射至 OverlayModel.primaryBox）經過 `RectFilter`（1-Euro Filter）平滑。
+`secondaryBoxes` 使用 ML Kit 原始座標，不平滑，渲染為 10dp 四角括號、固定 alpha 0.3。
+
+#### 架構邊界
+
+```
+ML Kit 偵測 → TargetTracker.update() → TrackedTargetState（所有 target 均為原始座標）
+                                              ↓
+                               FocusStateMachine.reduce()
+                                              ↓
+                                       FocusUiState
+                                              ↓
+                                applySmoother()          ← 唯一平滑點（ViewModel）
+                                  ├── primaryBox → RectFilter.filter()  ← 1-Euro 平滑
+                                  └── secondaryBoxes → 原樣傳遞（不觸碰）
+                                              ↓
+                               _state.update(focusUiState = smoothedUiState)
+```
+
+#### 不變量（Invariant）
+
+1. `applySmoother()` 只修改 `overlayModel.primaryBox`，不修改 `secondaryBoxes`
+2. `primaryStableId` 改變時，`primaryTargetSmoother.reset()` 必須先於下一次 `filter()` 呼叫
+3. `resetFocusState()` 與 `switchCamera()` 兩個路徑均須呼叫 `primaryTargetSmoother.reset()`
+4. 平滑後的 `primaryBox` 僅用於 UI 渲染；AF 硬體座標（`primaryTarget.rectView` 原始值）不受影響
+
+#### FocusOverlay Secondary 渲染規格
+
+```kotlin
+// 固定規格（不得動態化）
+val secondaryColor = Color(0xFF00F2FF).copy(alpha = 0.3f)  // 固定 Cyan, 固定 0.3
+val bracketSize = 10.dp.toPx()   // 四角括號長度
+val bracketStroke = strokeWidthPx * 0.7f  // 比 primary 細
+// 繪製：四角 [ ] 線段（不是完整矩形框）
+// 不使用 animatedAlpha（secondary 沒有生命週期動畫）
+```
+
+**SV 驗收線**：`FocusOverlay` 內禁止對 `secondaryBoxes` 呼叫任何 `animateXxx` 或 `LaunchedEffect`。
+
+**How to apply**：
+- 新增平滑邏輯時，只能在 `applySmoother()` 函式內操作
+- 禁止在 `DefaultTargetTracker`、`FocusStateMachine` 或 `EyeAfPolicyResolver` 中進行座標平滑
+- `RectFilter` 參數（`minCutoff=1.0f, beta=0.007f`）為調校基線；若需調整，同步更新此節
+
+**Code Location**：
+- `CameraViewModel.kt` `applySmoother()`（新增，主平滑入口）
+- `CameraViewModel.kt` `primaryTargetSmoother: RectFilter`（欄位）
+- `FocusUiSmoother.kt` `RectFilter` / `OneEuroFilter`（已有實作，§O 正式啟用）
+- `FocusOverlay.kt` secondary brackets 渲染區塊
+
+---
+
+## 🚀 [Phase 3] 專業相機 UX 拋光 (Pragmatic Refactor) 結案與架構真理
+
+**結案日期**: 2026-03-16
+**版本**: v2.12.0-18
+
+**核心成就**: 完成「樂觀 UI」、「前鏡頭視覺欺騙」與「主從壟斷」實作，並通過 Traycer 最終無情法官驗收 (Path A)。
+
+在 Phase 3 的實戰與驗收中，我們確立了以下 3 項絕對不可破壞的 SSOT 驗收基線。未來的任何重構或功能迭代，皆不得違反此處定義的語義與效能邊界。
+
+---
+
+### ⚖️ 真理一：前鏡頭「視覺欺騙」與狀態語義正規化 (Fixed-Focus Normalization)
+
+**硬體現實**：前鏡頭 (Fixed-Focus) 物理上不支援 AF，若向 HAL 送出 `FLAG_AF` 將導致狀態機死鎖。
+
+**狀態機語義 (SSOT)**：為支援 UI 的「鎖定成功（極光藍夾爪）」視覺回饋，`DefaultFocusStateMachine.reduceLensState()` 在處理 `isFixedFocus == true` 時，絕對不可回傳 `UnsupportedFixedFocus`。
+
+**強制映射**：
+
+| 條件 | 強制輸出 |
+|------|---------|
+| `isFixedFocus == true && primaryTarget != null` | `LensFocusState.Focused` |
+| `isFixedFocus == true && primaryTarget == null` | `LensFocusState.NotRequested` |
+
+**防禦目的**：解耦底層物理限制與上層 UI 渲染，透過合法的狀態偽裝達成完美的「樂觀 UX 體驗」。
+
+> **SV 驗收線**：`reduceLensState()` 內 `isFixedFocus` guard 必須是第一個判斷並提前 return，禁止在此路徑中讀取 `focusControllerResult`（HAL 同步純潔性）。`UnsupportedFixedFocus` 的語義是「HAL 告知 AF 不支援」，非「這是固定焦距鏡頭」——兩者語義不同，不可混用。
+
+---
+
+### ⚡ 真理二：HAL 回調解耦 (No Waiting for HAL)
+
+**同步路徑優先**：在 Tap-to-Focus（點擊對焦）或前鏡頭 AE 鎖定場景中，狀態機必須在發起硬體 Action 後的同步路徑中立刻推進狀態，瞬間在畫面上畫出 72dp 黃色預設框或觸發鎖定動畫。
+
+**絕對禁區**：
+- 嚴禁使用 `Thread.sleep` 進行任何 UI 延遲過渡
+- 嚴禁前鏡頭狀態機「等待（Await/Suspend）」來自 CameraX HAL 的 `FocusControllerResult` 回調才更新畫面
+
+**實作邊界**：
+
+```
+setTapToFocusIntent() 同步路徑：
+  1. 設定 pendingTapToFocusIntent（供 pipeline 消費）
+  2. 立即 push FocusUiState(TrackingStable, YELLOW, 72dp box at tap coords)
+  → 不觸發任何 HAL 呼叫
+  → 不修改 isAEAFLocked 欄位
+
+runNewFocusPipeline() 在下一幀（~100ms）自然覆蓋此狀態
+
+FocusOverlay.animateColorAsState(tween 200ms) 自動處理 Yellow→Cyan 顏色過渡
+```
+
+> **SV 驗收線**：`tap_optimistic` stableId 只出現在 `setTapToFocusIntent()` 的 push 中。`runNewFocusPipeline()` 的任何輸出絕不應產生 `primaryStableId = "tap_optimistic"`。`DefaultFocusStateMachine.buildOverlayModel()` 禁止產生 `OverlayColor.YELLOW` unless `ExposureLockState == AEAFLocked`。
+
+---
+
+### 👑 真理三：主從壟斷與效能壁壘 (Primary Monopoly & Smoothing Isolation)
+
+**算力分配不平等**：手機 CPU 算力必須極端傾斜給 `primaryTarget`（主目標）。
+
+**架構邊界 (SSOT)**：
+
+| 對象 | 平滑 | Alpha 動畫 | 渲染格式 |
+|------|------|-----------|---------|
+| Primary Target | ✅ 1-Euro Filter（`RectFilter`） | ✅ 完整呼吸/漸變動畫 | 完整矩形框 + 夾爪 |
+| Secondary Targets | ❌ 嚴禁傳入平滑器 | ❌ 嚴禁 `animateXxx` | 10dp 四角 `[ ]` brackets，固定 alpha=0.3 |
+
+**不變量（Invariant）**：
+1. `applySmoother()` 是唯一平滑閘門，只修改 `overlayModel.primaryBox`，不修改 `secondaryBoxes`
+2. `primaryStableId` 改變時，`primaryTargetSmoother.reset()` 必須先於下一次 `filter()` 呼叫
+3. `resetFocusState()` 與 `switchCamera()` 兩個路徑均須呼叫 `primaryTargetSmoother.reset()`
+4. 平滑後的 `primaryBox` 僅用於 UI 渲染；AF 硬體座標（`primaryTarget.rectView` 原始值）不受影響
+
+**防禦目的**：防止未來 AI 模型產生「公平對待所有目標」的 Additive Bias，導致多目標場景下發生嚴重的 UI 掉幀與設備發燙。
+
+> **SV 驗收線**：`FocusOverlay` 內禁止對 `secondaryBoxes` 呼叫任何 `animateXxx` 或 `LaunchedEffect`。禁止在 `DefaultTargetTracker`、`FocusStateMachine` 或 `EyeAfPolicyResolver` 中進行座標平滑。
+
+---
+
+**Phase 3 結案聲明**：以上三條真理構成 v2.12.0 對焦系統的最終架構護城河。任何未來版本（無論是 Claude 5.0、GPT-6 或其他 AI）在修改對焦系統前，必須先閱讀並遵守此三條真理。違反者視為架構污染，應立即回滾。
+
+---
+

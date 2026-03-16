@@ -54,8 +54,7 @@ data class CameraState(
     val afState: AfState = AfState.Idle,
     // v2.12.0-11: true when current lens is fixed-focus (no VCM / AF hardware)
     val isFixedFocusLens: Boolean = false,
-    // v2.12.0-15: New focus pipeline output (Step 5b)
-    // When newFocusPipelineEnabled=true, UI should read this instead of legacy focus fields.
+    // v2.12.0-15: New focus pipeline output — V2 pipeline is now the single path (v2.12.0-16).
     val focusUiState: FocusUiState = FocusUiState.EMPTY,
 )
 
@@ -73,7 +72,9 @@ sealed class CameraUiEvent {
         val x: Float,
         val y: Float,
         val viewWidth: Int,
-        val viewHeight: Int
+        val viewHeight: Int,
+        // v2.12.0-18: screen density (dp→px) for zero-delay optimistic tap box sizing
+        val density: Float = 3f,
     ) : CameraUiEvent()
     // v2.9.9 Day 1-2: Traycer v2 AE/AF Lock events
     data class LockAEAF(

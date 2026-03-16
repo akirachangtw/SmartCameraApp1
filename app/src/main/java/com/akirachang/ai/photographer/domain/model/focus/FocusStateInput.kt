@@ -13,6 +13,8 @@ data class FocusStateInput(
     val nowMs: Long,
     // v2.12.0-15 Phase 2 T3-F2: Front camera guard for ExposureLockState
     val isFrontCamera: Boolean = false,
+    // v2.12.0-18 Task 2: Fixed-focus lens → skip HAL wait, instant UnsupportedFixedFocus
+    val isFixedFocus: Boolean = false,
 )
 
 enum class SystemEvent {

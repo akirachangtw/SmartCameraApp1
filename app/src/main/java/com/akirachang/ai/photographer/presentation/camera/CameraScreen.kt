@@ -142,6 +142,8 @@ fun CameraScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+    // v2.12.0-18: Capture density here (composable scope) so pointerInput lambda can use it
+    val screenDensity = LocalDensity.current.density
 
     // v2.6.1: Bind camera to lifecycle for LiveCameraSource
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -230,7 +232,8 @@ fun CameraScreen(
                                             x = offset.x,
                                             y = offset.y,
                                             viewWidth = previewSize.width,
-                                            viewHeight = previewSize.height
+                                            viewHeight = previewSize.height,
+                                            density = screenDensity,  // v2.12.0-18: for 72dp optimistic box
                                         )
                                     )
                                 }
@@ -387,7 +390,7 @@ fun CameraScreen(
                     visualTargetState = focusUiState.visualTargetState,
                 )
 
-                // v2.9.9 Day 1-2 Optimize Round 3: Lock indicator removed (use FocusIndicator yellow color instead)
+                // v2.12.0-16: Lock overlay unified into FocusOverlay (Yellow AE/AF Lock via OverlayColor.YELLOW)
 
                 // 簡易計數顯示（可選，保留用於調試）
                 state.detectionResult?.let { result ->

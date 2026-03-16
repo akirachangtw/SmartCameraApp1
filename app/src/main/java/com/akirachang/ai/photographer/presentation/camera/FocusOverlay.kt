@@ -1,5 +1,6 @@
 package com.akirachang.ai.photographer.presentation.camera
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -25,12 +26,15 @@ import kotlinx.coroutines.delay
 /**
  * New focus overlay composable driven by FocusUiState / OverlayModel.
  * v2.12.0-15 Phase 2
+ * v2.12.0-18: Color animation (Yellow→Cyan transition) + secondary bracket rendering.
  *
  * Rules:
  * - If overlayModel is null OR visualTargetState is None → render NOTHING (fully transparent).
  * - No hardcoded 36dp fallback box is ever permitted.
- * - Primary box: Cyan (Eye-AF) or Yellow (AE/AF Lock).
- * - Secondary boxes: rendered at 40% alpha as candidate brackets.
+ * - Primary box: Cyan (Eye-AF) or Yellow (AE/AF Lock or optimistic tap placeholder).
+ *   Yellow→Cyan transition animates over 200ms when target is confirmed.
+ * - Secondary boxes: rendered as corner [ ] brackets at fixed 0.3 alpha (primary monopoly rule).
+ *   Secondary targets use raw ML Kit coords — no 1-Euro smoothing (CPU saving).
  */
 @Composable
 fun FocusOverlay(
@@ -45,10 +49,18 @@ fun FocusOverlay(
     if (visualTargetState == VisualTargetState.None) return
     if (overlayModel.primaryBox == null) return
 
-    val primaryColor = when (overlayModel.primaryColor) {
+    val primaryColorTarget = when (overlayModel.primaryColor) {
         OverlayColor.CYAN   -> Color(0xFF00F2FF)
         OverlayColor.YELLOW -> Color(0xFFFFD700)
     }
+
+    // v2.12.0-18 Task 1: Animate color transition (Yellow → Cyan) over 200ms.
+    // Handles optimistic tap placeholder (Yellow) fading to confirmed Eye-AF (Cyan).
+    val animatedPrimaryColor by animateColorAsState(
+        targetValue = primaryColorTarget,
+        animationSpec = tween(durationMillis = 200),
+        label = "focusPrimaryColor",
+    )
 
     // ── Compose 動畫狀態機（SSOT 視覺生命週期）────────────────────────────────
     // 追蹤上一個 visualState，用於偵測 VisualLocked 進入事件
@@ -117,7 +129,7 @@ fun FocusOverlay(
         // ── Primary box ───────────────────────────────────────────────────────
         overlayModel.primaryBox?.let { rect ->
             drawRect(
-                color = primaryColor.copy(alpha = animatedAlpha),
+                color = animatedPrimaryColor.copy(alpha = animatedAlpha),
                 topLeft = Offset(rect.left, rect.top),
                 size = Size(rect.width(), rect.height()),
                 style = Stroke(width = strokeWidthPx),
@@ -129,7 +141,7 @@ fun FocusOverlay(
             overlayModel.primaryBox?.let { rect ->
                 val clawSize = 12.dp.toPx()
                 val clawStrokeWidth = strokeWidthPx * 1.5f
-                val clawColor = primaryColor.copy(alpha = animatedAlpha)
+                val clawColor = animatedPrimaryColor.copy(alpha = animatedAlpha)
                 // 四角夾爪：左上
                 drawLine(clawColor, Offset(rect.left, rect.top + clawSize), Offset(rect.left, rect.top), clawStrokeWidth)
                 drawLine(clawColor, Offset(rect.left, rect.top), Offset(rect.left + clawSize, rect.top), clawStrokeWidth)
@@ -145,14 +157,27 @@ fun FocusOverlay(
             }
         }
 
-        // ── Secondary boxes (multi-face candidates) ───────────────────────────
+        // ── Secondary boxes (non-primary faces): corner [ ] brackets only ─────
+        // v2.12.0-18 Task 3: Primary monopoly rule.
+        // - Fixed alpha 0.3 (never animated — secondary targets are not primary)
+        // - Always Cyan corner brackets (candidates waiting for primary selection)
+        // - Raw ML Kit coordinates (no 1-Euro smoothing — CPU saving)
+        val secondaryColor = Color(0xFF00F2FF).copy(alpha = 0.3f)
+        val bracketSize = 10.dp.toPx()
+        val bracketStroke = strokeWidthPx * 0.7f
         overlayModel.secondaryBoxes.forEach { rect ->
-            drawRect(
-                color = primaryColor.copy(alpha = animatedAlpha * 0.4f),
-                topLeft = Offset(rect.left, rect.top),
-                size = Size(rect.width(), rect.height()),
-                style = Stroke(width = strokeWidthPx * 0.7f),
-            )
+            // Top-left corner
+            drawLine(secondaryColor, Offset(rect.left, rect.top + bracketSize), Offset(rect.left, rect.top), bracketStroke)
+            drawLine(secondaryColor, Offset(rect.left, rect.top), Offset(rect.left + bracketSize, rect.top), bracketStroke)
+            // Top-right corner
+            drawLine(secondaryColor, Offset(rect.right - bracketSize, rect.top), Offset(rect.right, rect.top), bracketStroke)
+            drawLine(secondaryColor, Offset(rect.right, rect.top), Offset(rect.right, rect.top + bracketSize), bracketStroke)
+            // Bottom-left corner
+            drawLine(secondaryColor, Offset(rect.left, rect.bottom - bracketSize), Offset(rect.left, rect.bottom), bracketStroke)
+            drawLine(secondaryColor, Offset(rect.left, rect.bottom), Offset(rect.left + bracketSize, rect.bottom), bracketStroke)
+            // Bottom-right corner
+            drawLine(secondaryColor, Offset(rect.right - bracketSize, rect.bottom), Offset(rect.right, rect.bottom), bracketStroke)
+            drawLine(secondaryColor, Offset(rect.right, rect.bottom - bracketSize), Offset(rect.right, rect.bottom), bracketStroke)
         }
 
         // ── Lock icon (AE/AF locked) ──────────────────────────────────────────

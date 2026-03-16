@@ -70,6 +70,18 @@ class DefaultFocusStateMachine : FocusStateMachine {
 
     // ── Axis 2: LensFocusState reducer ───────────────────────────────────────
     private fun reduceLensState(input: FocusStateInput): LensFocusState {
+        // v2.12.0-18 Task 2 / SV-PH3-FIX: Fixed-focus lens — visual deception path.
+        // No HAL AF callback ever fires for fixed-focus; we synthesize the lens state directly.
+        //   primaryTarget != null → Focused  (UI shows lock animation immediately)
+        //   primaryTarget == null → NotRequested  (no target, no lock display)
+        if (input.isFixedFocus) {
+            return if (input.trackedTargetState.primaryTarget != null) {
+                LensFocusState.Focused
+            } else {
+                LensFocusState.NotRequested
+            }
+        }
+
         val optical = input.focusControllerResult?.opticalResult
             ?: return LensFocusState.NotRequested
 
