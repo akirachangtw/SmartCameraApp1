@@ -153,16 +153,11 @@ class CameraViewModel @Inject constructor(
     private var lastFaceSeenMs = 0L
     private val FACE_GRACE_PERIOD_MS = 500L
 
-    // v2.11.2 Fix E: Track the active focusOnPoint() coroutine to cancel stale jobs.
-    // Prevents race condition where stale delay(500) clears focusPoint after lockAEAF sets it.
+    // Track the active focus coroutine to cancel stale jobs (camera switch, lock, etc.).
     private var focusJob: Job? = null
     private var focusSessionId: Int = 0  // v2.12.0-13: Session ID for HAL callback validation
     private var lastKnownImageWidth: Int = 0   // v2.12.0-14: Cache for transformer bootstrap
     private var lastKnownImageHeight: Int = 0  // v2.12.0-14: Cache for transformer bootstrap
-
-    // v2.12.0-15 SV-S5-Final: New focus pipeline feature flag
-    // DEBUG=true (validation), RELEASE=false (safety guard)
-    private val FOCUS_PIPELINE_V2: Boolean = BuildConfig.DEBUG
 
     private val focusTargetTracker = com.akirachang.ai.photographer.data.focus.tracking.DefaultTargetTracker(
         iouThreshold = 0.5f,
@@ -187,7 +182,7 @@ class CameraViewModel @Inject constructor(
         },
         getMeteringPointFactory = {
             // v2.12.0-15 SV-S5b: Use PreviewView.meteringPointFactory via WeakReference
-            // This mirrors the approach used in LiveCameraSource.focusOnPoint()
+            // Mirrors the factory access pattern in LiveCameraSource
             previewViewRef?.get()?.meteringPointFactory
         },
     )
@@ -343,10 +338,8 @@ class CameraViewModel @Inject constructor(
                 }
 
                 // Update tracking state with screen-space coordinates
-                // Note: Do NOT reset focusIndicatorFading here — fade sequence controls it
                 _state.update {
                     it.copy(
-                        focusPoint = Pair(screenX, screenY),
                         trackedPointActive = true,
                         trackedPointQuality = trackingResult.quality,
                         trackedPointLost = false
@@ -365,7 +358,6 @@ class CameraViewModel @Inject constructor(
                     it.copy(
                         trackedPointActive = false,
                         trackedPointLost = true,
-                        focusIndicatorFading = true  // Fade to Alpha 0.4
                     )
                 }
                 Log.w(TAG, "Optical flow tracking lost — starting fade-out")
@@ -375,8 +367,6 @@ class CameraViewModel @Inject constructor(
                     delay(1500)
                     _state.update {
                         it.copy(
-                            focusPoint = null,
-                            focusIndicatorFading = false,
                             trackedPointLost = false
                         )
                     }
@@ -490,17 +480,8 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.StopAnalysis -> stopAnalysis()
             is CameraUiEvent.ShowError -> showError(event.message)
             is CameraUiEvent.FocusOnPoint -> {
-                // v2.12.0-16 SB-F1: Route tap intent through V2 pipeline when enabled.
-                // Legacy focusOnPoint() is only called when FOCUS_PIPELINE_V2=false.
-                if (FOCUS_PIPELINE_V2) {
-                    // Register tap intent for V2 pipeline to consume on next frame
-                    setTapToFocusIntent(event.x, event.y, event.viewWidth, event.viewHeight)
-                    Log.i(TAG, "[v2.12.0-16 SB-F1] FocusOnPoint → V2 pipeline tap intent registered (${event.x}, ${event.y})")
-                } else {
-                    // Legacy path (FOCUS_PIPELINE_V2=false only)
-                    Log.i(TAG, "[v2.12.0-16 SB-F1] FocusOnPoint → legacy focusOnPoint() (V2 disabled)")
-                    focusOnPoint(event.x, event.y, event.viewWidth, event.viewHeight)
-                }
+                setTapToFocusIntent(event.x, event.y, event.viewWidth, event.viewHeight)
+                Log.i(TAG, "[SV-FIX-1] FocusOnPoint → V2 pipeline tap intent registered (${event.x}, ${event.y})")
             }
             is CameraUiEvent.LockAEAF -> {
                 Log.i(TAG, "[v2.12.0-15 Fix] LockAEAF event received: (${event.x}, ${event.y}), isAEAFLocked=${_state.value.isAEAFLocked}")
@@ -637,21 +618,14 @@ class CameraViewModel @Inject constructor(
         focusSessionId++  // v2.12.0-13: Invalidate all in-flight HAL callbacks
         clearTapToFocusIntent()
         latestSensorToViewMatrix = null
-        // v2.12.0-15 Fix: Atomic clear — include focusPoint + focusUiState to prevent ghost box
-        // on camera switch. Previously focusPoint was cleared in a separate _state.update in
-        // switchCamera(), leaving a 1-frame gap where Compose could render a stale Cyan box.
         _state.update {
             it.copy(
                 afState = AfState.Idle,
-                isFocusing = false,
-                focusSuccess = null,
-                focusPoint = null,          // v2.12.0-15 Fix: clear immediately (0ms TTL)
-                focusIndicatorFading = false,
-                focusUiState = com.akirachang.ai.photographer.domain.model.focus.FocusUiState.EMPTY,  // v2.12.0-15 Fix: clear new pipeline output
+                focusUiState = com.akirachang.ai.photographer.domain.model.focus.FocusUiState.EMPTY,
             )
         }
         eyeAfThrottle.reset()
-        Log.d(TAG, "[v2.12.0-15 Fix] resetFocusState: focusPoint cleared, focusUiState=EMPTY, sessionId=$focusSessionId")
+        Log.d(TAG, "[v2.12.0-15 Fix] resetFocusState: focusUiState=EMPTY, sessionId=$focusSessionId")
     }
 
     /**
@@ -668,15 +642,13 @@ class CameraViewModel @Inject constructor(
             Log.i(TAG, "[v2.12.0-12] switchCamera: resetFocusState() called")
 
             // v2.12.0-15: Reset new pipeline components on camera switch
-            if (FOCUS_PIPELINE_V2) {
-                focusTargetTracker.reset()
-                newFocusTriggerThrottle.reset()
-                focusControllerJob?.cancel()
-                lastNewPipelineTriggerMs = null
-                lastFocusControllerResult = null
-                _state.update { it.copy(focusUiState = com.akirachang.ai.photographer.domain.model.focus.FocusUiState.EMPTY) }
-                Log.d(TAG, "[v2.12.0-15] New pipeline reset on camera switch")
-            }
+            focusTargetTracker.reset()
+            newFocusTriggerThrottle.reset()
+            focusControllerJob?.cancel()
+            lastNewPipelineTriggerMs = null
+            lastFocusControllerResult = null
+            _state.update { it.copy(focusUiState = com.akirachang.ai.photographer.domain.model.focus.FocusUiState.EMPTY) }
+            Log.d(TAG, "[SV-FIX-1] New pipeline reset on camera switch")
 
             // v2.9.10: Clear tracking state before switching camera
             // v2.9.9 Day 1-2: Clear AE/AF lock state before switching camera
@@ -685,13 +657,9 @@ class CameraViewModel @Inject constructor(
                 it.copy(
                     trackedObjectId = null,
                     trackedObjectType = null,
-                    focusPoint = null,
                     isAEAFLocked = false,
                     lockPoint = null,
                     isGenericTapActive = false,
-                    focusFrameWidthPx = 0f,
-                    focusFrameHeightPx = 0f
-                    // afState=Idle、isFocusing=false、focusSuccess=null 已由 resetFocusState() 處理
                 )
             }
 
@@ -831,7 +799,7 @@ class CameraViewModel @Inject constructor(
     }
 
     // v2.12.0-10: Tap resolution result — carries screen-space bbox so the ML Kit branch can
-    // set the initial focusFrameWidthPx/HeightPx immediately (no 1-frame delay waiting for
+    // update focus frame dimensions immediately (no 1-frame delay waiting for
     // updateTrackedObjectPosition), fixing Bug A (front-cam fixed frame size across distances).
     private sealed class TapTargetInfo {
         /** Tap landed on an ML Kit face or object. */
@@ -865,7 +833,7 @@ class CameraViewModel @Inject constructor(
      * Resolve tap into a typed TapTargetInfo (v2.12.0-10, replaces findTappedTarget).
      *
      * Returns [TapTargetInfo.Subject] when the tap hits an ML Kit face or object, carrying
-     * the screen-space bounding box so callers can set focusFrameWidthPx/HeightPx immediately.
+     * the screen-space bounding box so callers can update focus frame dimensions immediately.
      * Returns [TapTargetInfo.Generic] when no subject is hit (OF / static focus path).
      *
      * @param x Tap X in PreviewView (screen) coordinates
@@ -919,19 +887,12 @@ class CameraViewModel @Inject constructor(
      * Called after each new DetectionResult to update focus indicator position
      */
     private fun updateTrackedObjectPosition(detectionResult: DetectionResult) {
-        if (FOCUS_PIPELINE_V2) {
-            Log.v(TAG, "[v2.12.0-16] updateTrackedObjectPosition ignored: Focus Pipeline V2 owns overlay coordinates")
-            return
-        }
         val trackedId = _state.value.trackedObjectId ?: return
         val trackedType = _state.value.trackedObjectType ?: return
 
         // Find target by type and calculate focus position
         var centerX: Float? = null
         var centerY: Float? = null
-        // v2.12.0-13: frame size update alongside position — keeps bbox in sync every tracking frame
-        var newFrameW: Float? = null
-        var newFrameH: Float? = null
 
         when (trackedType) {
             TrackedObjectType.FACE -> {
@@ -958,13 +919,6 @@ class CameraViewModel @Inject constructor(
                             Log.v(TAG, "Face tracking (no eye): Face $trackedId at center ($centerX, $centerY)")
                         }
                     }
-                    // v2.12.0-13: calculate screen-space frame size from face bbox
-                    val transformer = _state.value.coordinateTransformer
-                    if (transformer != null) {
-                        val screenBox = imageRectToScreenRectF(face.boundingBox, transformer)
-                        newFrameW = screenBox.width() * BBOX_SCALE_FACE
-                        newFrameH = screenBox.height() * BBOX_SCALE_FACE
-                    }
                 }
             }
             TrackedObjectType.OBJECT -> {
@@ -975,88 +929,15 @@ class CameraViewModel @Inject constructor(
                 if (obj != null) {
                     centerX = obj.boundingBox.exactCenterX()
                     centerY = obj.boundingBox.exactCenterY()
-                    // v2.12.0-13: calculate screen-space frame size from object bbox
-                    val transformer = _state.value.coordinateTransformer
-                    if (transformer != null) {
-                        val screenBox = imageRectToScreenRectF(obj.boundingBox, transformer)
-                        newFrameW = screenBox.width() * BBOX_SCALE_OBJECT
-                        newFrameH = screenBox.height() * BBOX_SCALE_OBJECT
-                    }
                 }
             }
         }
 
         if (centerX != null && centerY != null) {
-            // Target found — convert image-space center to screen space for FocusIndicator.
-            // centerX/centerY are in ML Kit image coordinates; focusPoint must be in screen space.
-            val transformer = _state.value.coordinateTransformer
-            val (screenX, screenY) = if (transformer != null) {
-                transformer.imageToScreen(centerX, centerY)
-            } else {
-                Log.w(TAG, "updateTrackedObjectPosition: no coordinateTransformer, using raw image coords (legacy fallback)")
-                centerX to centerY
+            // Target found — V2 pipeline owns overlay coords; just log and reset lost counter.
+            if (BuildConfig.DEBUG) {
+                Log.v(TAG, "Tracking update: ID=$trackedId, image=($centerX, $centerY)")
             }
-
-            // v2.11.0 Fade-out optimization: Reset on significant motion during dwell state
-            // Comparison uses screen-space coordinates on both sides now.
-            if (_state.value.focusIndicatorFading) {
-                val oldFocusPoint = _state.value.focusPoint
-                if (oldFocusPoint != null) {
-                    val positionDelta = kotlin.math.sqrt(
-                        (screenX - oldFocusPoint.first) * (screenX - oldFocusPoint.first) +
-                        (screenY - oldFocusPoint.second) * (screenY - oldFocusPoint.second)
-                    )
-
-                    // Motion threshold: 30 pixels (about 1cm on typical phone screen)
-                    val motionThreshold = 30f
-
-                    if (positionDelta > motionThreshold) {
-                        // Significant motion detected: reset fade and refocus using screen coords
-                        // v2.11.4-01 Fix Bug 2: TOCTOU guard — abort if trackedObjectId changed
-                        // since the start of updateTrackedObjectPosition() (path B).
-                        _state.update { current ->
-                            if (current.trackedObjectId != trackedId) return@update current
-                            current.copy(focusIndicatorFading = false, isFocusing = true)
-                        }
-
-                        val viewWidth = previewWidth ?: return
-                        val viewHeight = previewHeight ?: return
-                        // v2.11.4: isUserTap=false — motion-triggered refocus, not manual tap
-                        focusOnPoint(screenX, screenY, viewWidth, viewHeight, isUserTap = false)
-
-                        if (BuildConfig.DEBUG) {
-                            Log.d(TAG, "Fade-out reset: object moved ${positionDelta.toInt()}px (threshold: ${motionThreshold.toInt()}px)")
-                        }
-                        return  // Skip normal position update since we just refocused
-                    }
-                }
-            }
-
-            // Prevent excessive updates: only update if position changed > 5 pixels
-            val currentFocusPoint = _state.value.focusPoint
-            val shouldUpdate = currentFocusPoint == null ||
-                kotlin.math.abs(currentFocusPoint.first - screenX) > 5f ||
-                kotlin.math.abs(currentFocusPoint.second - screenY) > 5f
-
-            if (shouldUpdate) {
-                // v2.11.4-01 Fix Bug 2: TOCTOU guard — abort if trackedObjectId changed
-                // since the start of updateTrackedObjectPosition() (path A).
-                _state.update { current ->
-                    if (current.trackedObjectId != trackedId) return@update current
-                    current.copy(
-                        focusPoint = Pair(screenX, screenY),
-                        focusFrameWidthPx  = newFrameW ?: current.focusFrameWidthPx,
-                        focusFrameHeightPx = newFrameH ?: current.focusFrameHeightPx
-                    )
-                }
-                if (BuildConfig.DEBUG) {
-                    Log.v(TAG, "Tracking update: ID=$trackedId, image=($centerX, $centerY), screen=($screenX, $screenY)")
-                }
-                if (BuildConfig.DEBUG && newFrameW != null && newFrameH != null) {
-                    Log.d(TAG, "[v2.12.0-13] Frame size update: ID=$trackedId, W=${newFrameW}px, H=${newFrameH}px")
-                }
-            }
-
             // Reset lost frame counter
             targetLostFrameCount = 0
 
@@ -1070,287 +951,9 @@ class CameraViewModel @Inject constructor(
                     it.copy(
                         trackedObjectId = null,
                         trackedObjectType = null,
-                        focusPoint = null,
-                        isFocusing = false,
-                        focusSuccess = null
                     )
                 }
                 targetLostFrameCount = 0
-            }
-        }
-    }
-
-    /**
-     * Focus on a specific point in the preview
-     * v2.9.9: Tap-to-Focus implementation
-     * v2.9.10: Traycer tracking integration
-     *
-     * @param x X coordinate in pixels
-     * @param y Y coordinate in pixels
-     * @param viewWidth View width in pixels
-     * @param viewHeight View height in pixels
-     */
-    /**
-     * @param isUserTap v2.11.4: true = user manual tap (sets lastManualTapTime to suppress auto-focus
-     *   for 5s), false = auto-focus or motion-triggered refocus (does NOT set lastManualTapTime).
-     */
-    private fun focusOnPoint(x: Float, y: Float, viewWidth: Int, viewHeight: Int, isUserTap: Boolean = true) {
-        // v2.11.2 Fix E: Cancel any stale focusOnPoint() coroutine before launching new one.
-        // Prevents stale delay(500) → focusPoint=null from racing with lockAEAF state update.
-        focusJob?.cancel()
-        // v2.11.4-01 Fix Bug 2: Set lastManualTapTime synchronously BEFORE launch{} so
-        // autoFocusOnSalientTarget() always sees the updated timestamp when the ML Kit
-        // analysis resumes on Main thread. Eliminates the ~0.1ms race window where
-        // autoFocusOnSalientTarget() could read the stale value and cancel this tap job.
-        if (isUserTap) {
-            lastManualTapTime = System.currentTimeMillis()
-            registerTapToFocusIntent(x, y)
-            eyeAfThrottle.reset()
-            Log.i(TAG, "[v2.12.0-11] UserTap: eyeAfThrottle.reset() — Suspended state cleared")
-        }
-        if (_state.value.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT) {
-            Log.i(TAG, "[v2.12.0-16] focusOnPoint intercepted on front camera — legacy HAL path blocked")
-            return
-        }
-        focusJob = viewModelScope.launch {
-            try {
-                val capturedSessionId = ++focusSessionId
-                Log.d(TAG, "[v2.12.0-13] focusOnPoint: sessionId=$capturedSessionId captured")
-
-                // 🔍 DIAGNOSTIC: Log tap coordinates and view size
-                Log.d(TAG, "🔍 [Coordinate Debug] Tap: ($x, $y), View: ${viewWidth}x${viewHeight}")
-
-                // v2.11.4-05 (rev2): On tap while locked, unlock and return.
-                // Fall-through (v2.11.4-05 rev1) failed: AF_MODE=OFF (set in v2.11.4-03) requires
-                // ~500-1000ms to exit after clearCaptureRequestOptions(). FocusMeteringAction at
-                // 150ms silently fails — user still saw 2 taps needed.
-                // Fix: return@launch after unlock. v2.11.4-04's CONTINUOUS_PICTURE cleanup ensures
-                // passive AF resumes immediately. 1 tap = unlock; 2nd tap = explicit point focus.
-                if (_state.value.isAEAFLocked) {
-                    // v2.11.4-06: Update state BEFORE the suspend call to close the race window.
-                    // Without this, a 2nd focusOnPoint() coroutine (double-gesture) starts,
-                    // sees isAEAFLocked=true, and calls cancelFocusAndMetering() a second time
-                    // while coroutine A is suspended — causing "superseded" + double-cancel.
-                    // Moving _state.update first means the 2nd coroutine sees isAEAFLocked=false
-                    // and skips the unlock branch entirely.
-                    _state.update {
-                        it.copy(
-                            isAEAFLocked = false,
-                            lockPoint = null,
-                            focusPoint = null,
-                            focusIndicatorFading = false
-                        )
-                    }
-                    cameraRepository.cancelFocusAndMetering()
-                    Log.i(TAG, "AE/AF unlocked by tap — passive AF resumed")
-                    return@launch
-                }
-
-                // v2.12.0-10: Resolve tap target (replaces findTappedTarget).
-                val tapInfo = resolveTapTarget(x, y)
-                // v2.11.4 Fix 3: Track which branch was taken at the START of the coroutine.
-                // Cannot rely on _state.value.trackedObjectId at focus-success time because:
-                //   (a) ML Kit detection may briefly clear trackedObjectId during the 1-2s focus window
-                //   (b) Even on empty-area taps, ML Kit detection keeps setting trackedObjectId for
-                //       any face present in the frame — making the state check unreliable.
-                // Using a local variable ensures the fade decision matches the branch entered here.
-                var enteredMLKitTrackingMode = false
-
-                if (tapInfo is TapTargetInfo.Subject && FeatureFlags.enableFocusTracking) {
-                    // ML Kit Tracking mode: Start continuous tracking
-                    enteredMLKitTrackingMode = true
-                    val trackingId = tapInfo.trackingId
-                    val targetType = tapInfo.type
-                    // v2.12.0-10 Bug A fix: set initial frame dims from tap bbox immediately,
-                    // before updateTrackedObjectPosition fires (avoids 1-frame 48dp flash on
-                    // front cam and grow-only stale size after unlock).
-                    val scaleFactor = if (targetType == TrackedObjectType.FACE) BBOX_SCALE_FACE else BBOX_SCALE_OBJECT
-                    val initialW = tapInfo.screenBoxPx.width() * scaleFactor
-                    val initialH = tapInfo.screenBoxPx.height() * scaleFactor
-                    _state.update {
-                        it.copy(
-                            focusPoint = Pair(x, y),
-                            isFocusing = true,
-                            focusSuccess = null,
-                            trackedObjectId = trackingId,
-                            trackedObjectType = targetType,
-                            focusIndicatorFading = false,  // Reset fade animation
-                            isGenericTapActive = false,
-                            focusFrameWidthPx = initialW,
-                            focusFrameHeightPx = initialH
-                        )
-                    }
-                    Log.i(TAG, "ML Kit tracking started: ID=$trackingId, type=$targetType")
-
-                } else if (tapInfo is TapTargetInfo.Generic && FeatureFlags.enableOpticalFlowTracking) {
-                    // v2.x.x Phase 5: Optical Flow tracking mode (tap-to-track arbitrary point)
-                    // v2.12.0-10 Bug B fix: reset frame dims so stale face bbox doesn't persist.
-                    _state.update {
-                        it.copy(
-                            focusPoint = Pair(x, y),
-                            isFocusing = true,
-                            focusSuccess = null,
-                            trackedObjectId = null,
-                            trackedObjectType = null,
-                            trackedPointActive = true,
-                            trackedPointLost = false,
-                            focusIndicatorFading = false,  // Reset fade animation
-                            isGenericTapActive = true,
-                            focusFrameWidthPx = 0f,
-                            focusFrameHeightPx = 0f
-                        )
-                    }
-
-                    // [v2.11.2 Fix G] Convert screen → image via CoordinateTransformer (FIT_CENTER, correct scale).
-                    // Bypasses CoordinateMapper CENTER_CROP to eliminate 2.24x scale error.
-                    val transformer = _state.value.coordinateTransformer
-                    if (transformer != null) {
-                        val imageCoords = transformer.screenToImage(x, y)
-                        if (imageCoords != null) {
-                            cameraRepository.startOpticalFlowTrackingImageCoords(imageCoords.first, imageCoords.second)
-                            Log.i(TAG, "[Fix G] OF start: screen=($x, $y) → image=(${imageCoords.first}, ${imageCoords.second}) via CoordinateTransformer")
-                        } else {
-                            Log.w(TAG, "[v2.12.0-14] OF start skipped: tap outside content bounds")
-                            return@launch
-                        }
-                    } else {
-                        Log.w(TAG, "[v2.12.0-14] OF start skipped: transformer not ready")
-                        return@launch
-                    }
-
-                } else {
-                    // Static focus mode: Traditional tap-to-focus
-                    // v2.12.0-10 Bug B fix: reset frame dims so stale face bbox doesn't persist.
-                    _state.update {
-                        it.copy(
-                            focusPoint = Pair(x, y),
-                            isFocusing = true,
-                            focusSuccess = null,
-                            trackedObjectId = null,
-                            trackedObjectType = null,
-                            focusIndicatorFading = false,  // Reset fade animation
-                            isGenericTapActive = true,
-                            focusFrameWidthPx = 0f,
-                            focusFrameHeightPx = 0f
-                        )
-                    }
-                    Log.d(TAG, "Static focus mode at ($x, $y)")
-                }
-
-                // Execute CameraX focus (both modes)
-                // v2.12.0-05 Step 4: Transition to FOCUSING state + withTimeout HAL deadlock guard.
-                _state.update { it.copy(afState = AfState.Focusing) }
-
-                val result = try {
-                    withTimeout(FOCUS_TIMEOUT_MS) {
-                        cameraRepository.focusOnPoint(x, y, viewWidth, viewHeight)
-                    }
-                } catch (e: TimeoutCancellationException) {
-                    Log.w(TAG, "focusOnPoint: HAL timeout after ${FOCUS_TIMEOUT_MS}ms at ($x, $y)")
-                    val prevCount = (_state.value.afState as? AfState.Failed)?.failCount ?: 0
-                    val newCount  = prevCount + 1
-                    _state.update { it.copy(isFocusing = false, focusSuccess = false, afState = AfState.Failed(FailReason.TIMEOUT, newCount)) }
-                    eyeAfThrottle.onFailure(newCount)
-                    delay(500)
-                    _state.update { it.copy(focusPoint = null, focusSuccess = null, trackedObjectId = null, trackedObjectType = null, afState = AfState.Idle) }
-                    return@launch
-                }
-
-                if (result.isSuccess) {
-                    // v2.12.0-12: State validity guard — drop stale HAL callback if no longer Focusing
-                    if (_state.value.afState !is AfState.Focusing) {
-                        Log.w(TAG, "[v2.12.0-12] Stale HAL success dropped (afState=${_state.value.afState})")
-                        return@launch
-                    }
-                    // v2.12.0-13: Session ID guard — drop stale HAL callback from previous focus session
-                    if (capturedSessionId != focusSessionId) {
-                        Log.w(TAG, "[v2.12.0-13] Stale HAL success dropped (captured=$capturedSessionId, current=$focusSessionId)")
-                        return@launch
-                    }
-                    _state.update { it.copy(isFocusing = false, focusSuccess = true, afState = AfState.Locked) }
-                    eyeAfThrottle.onSuccess()  // v2.12.0-05: arm throttle + start postLockCooldown
-                    Log.d(TAG, "Focus successful at ($x, $y)")
-
-                    // v2.11.4 Fix 3: Skip dwell fade when ML Kit continuous tracking is active.
-                    // enteredMLKitTrackingMode is captured at coroutine START (not at success time)
-                    // to avoid race conditions where ML Kit reassigns trackedObjectId during the
-                    // 1-2s focus window, making the state check at this point unreliable.
-                    // ML Kit tracking: keep alpha 1.0 (indicator stays visible while tracking).
-                    // OF/Static: alpha 1.0 for 1s → fade 500ms → alpha 0.4 (dwell indicator).
-                    if (!enteredMLKitTrackingMode) {
-                        delay(1000)  // Keep for 1 second
-                        _state.update {
-                            it.copy(
-                                focusIndicatorFading = true,
-                                focusIndicatorFadeStartTime = System.currentTimeMillis(),
-                                // v2.12.0-06: reset both axes to default 48dp on dwell fade
-                                focusFrameWidthPx = 0f,
-                                focusFrameHeightPx = 0f
-                            )
-                        }
-                        delay(500)   // Fade out for 500ms
-                        // Keep focusIndicatorFading=true to maintain alpha 0.4 (reset on next tap)
-                    }
-                    // else: ML Kit tracking — no fade, indicator stays bright (alpha 1.0)
-
-                } else {
-                    val ex = result.exceptionOrNull()
-                    // v2.12.0-09: OperationCanceledException is a CameraX internal cancellation
-                    // (e.g., a new startFocusAndMetering() overrode the current one, or camera
-                    // switched). Not a HAL failure — reset to Idle without penalising eyeAfThrottle.
-                    val isOperationCancelled =
-                        ex is androidx.camera.core.CameraControl.OperationCanceledException ||
-                        ex?.cause is androidx.camera.core.CameraControl.OperationCanceledException
-                    if (isOperationCancelled) {
-                        Log.d(TAG, "[v2.12.0-09] OperationCanceledException — reset to Idle (no backoff)")
-                        _state.update { it.copy(isFocusing = false, focusSuccess = false, afState = AfState.Idle) }
-                        return@launch
-                    }
-                    // v2.12.0-13: Session ID guard — drop stale HAL failure from previous focus session
-                    if (capturedSessionId != focusSessionId) {
-                        Log.w(TAG, "[v2.12.0-13] Stale HAL failure dropped (captured=$capturedSessionId, current=$focusSessionId)")
-                        return@launch
-                    }
-                    val prevCount = (_state.value.afState as? AfState.Failed)?.failCount ?: 0
-                    val newCount  = prevCount + 1
-                    _state.update { it.copy(isFocusing = false, focusSuccess = false, afState = AfState.Failed(FailReason.HAL_FAILED, newCount)) }
-                    eyeAfThrottle.onFailure(newCount)  // v2.12.0-05: backoff on HAL failure
-                    Log.w(TAG, "Focus failed at ($x, $y): ${ex?.message}")
-                    delay(500)
-                    _state.update {
-                        it.copy(
-                            focusPoint = null,
-                            focusSuccess = null,
-                            trackedObjectId = null,
-                            trackedObjectType = null,
-                            afState = AfState.Idle  // v2.12.0-05
-                        )
-                    }
-                }
-
-            } catch (e: Exception) {
-                if (e is CancellationException) {
-                    // v2.12.0-05 Fix: Job cancelled by focusJob.cancel() (new tap / camera switch).
-                    // Not a HAL failure — must NOT penalise eyeAfThrottle with onFailure().
-                    Log.d(TAG, "focusOnPoint cancelled (new tap / camera switch)")
-                    _state.update { it.copy(isFocusing = false, focusSuccess = false, afState = AfState.Idle) }
-                    throw e  // Re-throw to preserve coroutine cancellation semantics
-                }
-                Log.e(TAG, "Focus error", e)
-                val prevCount = (_state.value.afState as? AfState.Failed)?.failCount ?: 0
-                val newCount  = prevCount + 1
-                _state.update {
-                    it.copy(
-                        isFocusing = false,
-                        focusSuccess = false,
-                        trackedObjectId = null,
-                        trackedObjectType = null,
-                        afState = AfState.Failed(FailReason.EXCEPTION, newCount)  // v2.12.0-05
-                    )
-                }
-                eyeAfThrottle.onFailure(newCount)
-                delay(500)
-                _state.update { it.copy(focusPoint = null, focusSuccess = null, afState = AfState.Idle) }
             }
         }
     }
@@ -1364,8 +967,7 @@ class CameraViewModel @Inject constructor(
      * Displays yellow square indicator at lock point.
      */
     private fun lockAEAF(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
-        // v2.11.2 Fix E: Cancel stale focusOnPoint() coroutine to prevent its delay(500) → focusPoint=null
-        // from firing AFTER this lockAEAF sets focusPoint=B (race window: ~800ms for focus failure path).
+        // Cancel any in-flight focus coroutine to prevent stale state updates racing with lockAEAF.
         focusJob?.cancel()
         clearTapToFocusIntent()
         Log.i(TAG, "focusJob cancelled for AE/AF lock at ($x, $y)")
@@ -1383,23 +985,17 @@ class CameraViewModel @Inject constructor(
                 }
 
                 // Single atomic update: clear ALL tracking state + set lock indicator.
-                // trackedPointActive=false ensures OF callback no longer writes focusPoint.
+                // trackedPointActive=false ensures OF callback no longer writes legacy focusPoint.
                 // v2.12.0-10: Clear generic tap flag so lock indicator uses neutral frame sizing.
                 _state.update {
                     it.copy(
                         trackedObjectId = null,       // Clear ML Kit tracking
                         trackedObjectType = null,
-                        trackedPointActive = false,   // Stop OF callback from overwriting focusPoint
+                        trackedPointActive = false,   // Stop OF callback
                         trackedPointLost = false,
-                        focusIndicatorFading = false, // Reset dwell fade for fresh lock indicator
-                        focusPoint = Pair(x, y),      // B point (safe: OF already stopped)
-                        isFocusing = true,
-                        focusSuccess = null,
                         lockPoint = Pair(x, y),
                         isAEAFLocked = false,         // Will be set to true after successful lock
                         isGenericTapActive = false,
-                        focusFrameWidthPx = 0f,
-                        focusFrameHeightPx = 0f
                     )
                 }
 
@@ -1409,40 +1005,29 @@ class CameraViewModel @Inject constructor(
                 if (result.isSuccess) {
                     _state.update {
                         it.copy(
-                            isFocusing = false,
-                            focusSuccess = true,
-                            isAEAFLocked = true,  // Lock successful
-                            focusPoint = Pair(x, y)  // v2.11.2 Fix E: Restore in case focusJob cancel arrived late
+                            isAEAFLocked = true,
                         )
                     }
-                    Log.i(TAG, "[v2.12.0-15 Fix] AE/AF locked successfully at ($x, $y), isAEAFLocked=${_state.value.isAEAFLocked}, isFocusIndicatorLocked=${_state.value.isFocusIndicatorLocked}")
+                    Log.i(TAG, "[v2.12.0-15 Fix] AE/AF locked successfully at ($x, $y), isAEAFLocked=${_state.value.isAEAFLocked}")
 
                 } else {
                     _state.update {
                         it.copy(
-                            isFocusing = false,
-                            focusSuccess = false,
                             lockPoint = null,
                             isAEAFLocked = false
                         )
                     }
                     Log.w(TAG, "AE/AF lock failed: ${result.exceptionOrNull()?.message}")
-                    delay(500)
-                    _state.update { it.copy(focusPoint = null, focusSuccess = null) }
                 }
 
             } catch (e: Exception) {
                 Log.e(TAG, "AE/AF lock error", e)
                 _state.update {
                     it.copy(
-                        isFocusing = false,
-                        focusSuccess = false,
                         lockPoint = null,
                         isAEAFLocked = false
                     )
                 }
-                delay(500)
-                _state.update { it.copy(focusPoint = null, focusSuccess = null) }
             }
         }
     }
@@ -1508,136 +1093,8 @@ class CameraViewModel @Inject constructor(
      * Priority: Manual tap > Eye-AF > Smart Subject Focus > None
      */
     private fun autoFocusOnSalientTarget() {
-        // v2.12.0-15: New focus pipeline (Step 5b) — feature flag controlled
-        if (FOCUS_PIPELINE_V2) {
-            runNewFocusPipeline()
-            return
-        }
-        // Legacy path continues below...
-        val currentState = _state.value
-        val now = System.currentTimeMillis()
-
-        // Don't auto-focus if:
-        // 1. AE/AF is locked
-        // 2. Manual tap occurred within last 5 seconds (user has override priority)
-        // Note: isFocusing / lastAutoFocusTime checks removed — AfTriggerThrottleController
-        //       handles FOCUSING guard and cooldown via shouldTrigger() (v2.12.0-05 Step 3).
-        val canAutoFocus = !currentState.isAEAFLocked &&
-            (now - lastManualTapTime) > MANUAL_TAP_OVERRIDE_DURATION
-
-        if (!canAutoFocus) return
-
-        val detectionResult = currentState.detectionResult ?: return
-        val viewWidth = previewWidth ?: return
-        val viewHeight = previewHeight ?: return
-
-        // v2.11.4-01 Fix Bug 1: Use rotation-aware effective image dimensions for saliency score.
-        // ML Kit bboxes are in ROTATED (portrait-upright) image space: for rotation=90°,
-        // effectiveImgW = rawImageHeight (480), effectiveImgH = rawImageWidth (640).
-        // Matches the same swap logic in updateContentBounds() / CoordinateTransformer.
-        // Without this fix: score uses viewWidth=1080 vs bbox≤640 → score≈42 < threshold 50 → never fires.
-        val effectiveImgW = if (detectionResult.rotationDegrees == 90 || detectionResult.rotationDegrees == 270)
-            detectionResult.imageHeight else detectionResult.imageWidth
-        val effectiveImgH = if (detectionResult.rotationDegrees == 90 || detectionResult.rotationDegrees == 270)
-            detectionResult.imageWidth else detectionResult.imageHeight
-
-        // v2.12.0-06 Bug C: Face-first candidate selection with grace period.
-        // When faces are present → use ONLY faces (never mix with objects).
-        // When faces drop to 0 → wait FACE_GRACE_PERIOD_MS before falling through to objects,
-        // preventing target ping-pong on partial occlusion / head turns.
-        // v2.12.0-06 H3.2: isFace added — drives per-type bbox scale factor below.
-        data class FocusCandidate(
-            val imageX: Float, val imageY: Float,
-            val score: Float,
-            val box: android.graphics.Rect,
-            val isFace: Boolean = false
-        )
-        val candidates = mutableListOf<FocusCandidate>()
-
-        val transformer = _state.value.coordinateTransformer
-        val nowMs = System.currentTimeMillis()
-
-        // Phase 1 — Faces (highest priority)
-        detectionResult.faces.forEach { face ->
-            val score = calculateSaliencyScore(face.boundingBox, true, effectiveImgW, effectiveImgH)
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Saliency score: face bbox=${face.boundingBox}, effectiveImage=${effectiveImgW}x${effectiveImgH}, score=$score")
-            }
-            val eyePosition = detectionResult.eyePositions.firstOrNull { it.faceId == face.trackingId }
-            val imageCenterX = eyePosition?.nearestEye?.x ?: face.boundingBox.exactCenterX()
-            val imageCenterY = eyePosition?.nearestEye?.y ?: face.boundingBox.exactCenterY()
-            candidates.add(FocusCandidate(imageCenterX, imageCenterY, score, face.boundingBox, isFace = true))
-        }
-        if (detectionResult.faces.isNotEmpty()) {
-            lastFaceSeenMs = nowMs
-        }
-
-        // Phase 2 — Objects (only when no face found AND grace period has expired)
-        if (candidates.isEmpty()) {
-            val graceExpired = (nowMs - lastFaceSeenMs) >= FACE_GRACE_PERIOD_MS
-            if (graceExpired) {
-                detectionResult.objects.forEach { obj ->
-                    val score = calculateSaliencyScore(obj.boundingBox, false, effectiveImgW, effectiveImgH)
-                    val imageCenterX = obj.boundingBox.exactCenterX()
-                    val imageCenterY = obj.boundingBox.exactCenterY()
-                    candidates.add(FocusCandidate(imageCenterX, imageCenterY, score, obj.boundingBox))
-                }
-            }
-            // else: grace period active — skip this frame, keep current AF state
-        }
-
-        // Find top candidate
-        val topCandidate = candidates.maxByOrNull { it.score }
-
-        // Auto-focus if score is above threshold
-        if (topCandidate != null && topCandidate.score > 50f) {
-            // Convert image-space center to screen space before calling focusOnPoint.
-            val (screenX, screenY) = if (transformer != null) {
-                transformer.imageToScreen(topCandidate.imageX, topCandidate.imageY)
-            } else {
-                topCandidate.imageX to topCandidate.imageY  // Legacy fallback
-            }
-
-            // v2.12.0-06 Bug A: Separate screenW/screenH for non-square focus frame.
-            // v2.12.0-06 H3.2: Face=1.5x (stable, close bbox), Object=1.8x (tight ML Kit bbox).
-            // Object bboxes from ML Kit Object Detection tend to hug the contour, making 1.5x
-            // too small to be visible as an indicator at normal shooting distances.
-            val bboxScaleFactor = if (topCandidate.isFace) BBOX_SCALE_FACE else BBOX_SCALE_OBJECT
-            val (focusWidthPx, focusHeightPx) = if (transformer != null) {
-                val box = topCandidate.box
-                val (sLeft, sTop) = transformer.imageToScreen(box.left.toFloat(), box.top.toFloat())
-                val (sRight, sBottom) = transformer.imageToScreen(box.right.toFloat(), box.bottom.toFloat())
-                abs(sRight - sLeft) * bboxScaleFactor to abs(sBottom - sTop) * bboxScaleFactor
-            } else 0f to 0f  // 0f = FocusIndicator uses default 48dp
-
-            // v2.12.0-06 H1.2: Grow-only size update during AfState.Locked (postLockCooldown).
-            // Bug B fix (frozen-small) — only shrink is blocked; the frame can still grow.
-            // Scenario: front camera close-up, user moves in after lock → face bbox grows larger
-            //   than the frame captured at lock time → frame must expand to reflect proximity.
-            // v2.12.0-11: Removed grow-only maxOf — UI frame always follows ML Kit bbox directly.
-            // Spring animation (StiffnessMedium) provides sufficient visual smoothing.
-            val updatedW = focusWidthPx
-            val updatedH = focusHeightPx
-            _state.update { it.copy(focusFrameWidthPx = updatedW, focusFrameHeightPx = updatedH) }
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "[v2.12.0-11] UI frame update: ${updatedW}x${updatedH}px (AfState=${currentState.afState})")
-            }
-
-            // v2.12.0-11: Fixed-focus permanent lock — UI-only update, skip HAL calls
-            if (currentState.isFixedFocusLens && currentState.afState is AfState.Locked) {
-                Log.i(TAG, "[v2.12.0-11] Fixed-focus Locked — UI-only update, skipping focusOnPoint")
-                return
-            }
-
-            // v2.12.0-05: Eye-AF throttle gate (Step 3) — replaces lastAutoFocusTime check.
-            // Evaluates: FOCUSING guard + delta-px + cooldown + backoff in one call.
-            if (!eyeAfThrottle.shouldTrigger(screenX, screenY, currentState.afState.toLegacyVisualState())) return
-
-            focusOnPoint(screenX, screenY, viewWidth, viewHeight, isUserTap = false)
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Smart Subject Focus: score=${topCandidate.score}, image=(${topCandidate.imageX}, ${topCandidate.imageY}), screen=($screenX, $screenY), frame=${focusWidthPx}x${focusHeightPx}px")
-            }
-        }
+        // v2.12.0-16: V2 pipeline is the only path.
+        runNewFocusPipeline()
     }
 
     /**
@@ -1645,8 +1102,8 @@ class CameraViewModel @Inject constructor(
      * Pipeline: DetectionResult → GeometryMapper → TargetTracker → EyeAfPolicyResolver
      *           → FocusController → FocusStateMachine → FocusUiState
      *
-     * Called from autoFocusOnSalientTarget() when FOCUS_PIPELINE_V2=true.
-     * Does NOT replace focusOnPoint() — manual tap still uses the legacy path.
+     * Called from autoFocusOnSalientTarget() (V2 pipeline, v2.12.0-16).
+     * Manual tap uses setTapToFocusIntent() which is consumed on the next analysis frame.
      */
     private fun runNewFocusPipeline() {
         val currentState = _state.value
@@ -1915,12 +1372,9 @@ class CameraViewModel @Inject constructor(
     private fun buildUserIntentState(
         currentState: CameraState,
     ): com.akirachang.ai.photographer.domain.model.focus.UserIntentState {
-        val tapPoint = currentState.focusPoint?.let {
-            PointF(it.first, it.second)
-        }
         val tapIntent = currentTapToFocusIntent()
         return com.akirachang.ai.photographer.domain.model.focus.UserIntentState(
-            tapPointView = tapIntent?.pointView ?: tapPoint,
+            tapPointView = tapIntent?.pointView,
             tapTimestampMs = tapIntent?.timestampMs,
             isTapToFocusActive = tapIntent != null,
             isAeAfLockRequested = currentState.isAEAFLocked,
@@ -1986,12 +1440,7 @@ class CameraViewModel @Inject constructor(
                     it.copy(
                         isAEAFLocked = false,
                         lockPoint = null,
-                        focusPoint = null,
-                        isFocusing = false,
-                        focusSuccess = null,
                         isGenericTapActive = false,
-                        focusFrameWidthPx = 0f,
-                        focusFrameHeightPx = 0f
                     )
                 }
 
@@ -2024,7 +1473,6 @@ class CameraViewModel @Inject constructor(
                     // v2.9.10: Clear tracking state when stopping analysis
                     trackedObjectId = null,
                     trackedObjectType = null,
-                    focusPoint = null
                 )
             }
             Log.i(TAG, "ML Kit analysis stopped")
@@ -2537,20 +1985,13 @@ class CameraViewModel @Inject constructor(
         return null
     }
 
-    private fun registerTapToFocusIntent(x: Float, y: Float) {
-        pendingTapToFocusIntent = TapToFocusIntent(
-            pointView = PointF(x, y),
-            timestampMs = SystemClock.elapsedRealtime(),
-        )
-    }
-
     private fun clearTapToFocusIntent() {
         pendingTapToFocusIntent = null
     }
 
     /**
      * v2.12.0-16 SB-F1: Register a tap-to-focus intent for V2 pipeline consumption.
-     * Called from handleEvent(FocusOnPoint) when FOCUS_PIPELINE_V2=true.
+     * Called from handleEvent(FocusOnPoint) — V2 pipeline only (v2.12.0-16).
      * The intent is consumed by runNewFocusPipeline() on the next analysis frame.
      * Note: TapToFocusIntent stores pointView (PointF) only; viewWidth/viewHeight are
      * accepted for API symmetry with FocusOnPoint event but are not stored in the intent.
@@ -2588,70 +2029,24 @@ class CameraViewModel @Inject constructor(
             return
         }
 
-        // v2.12.0-16 SB-F2 Fix-1: Prefer CoordinateTransformer-derived matrix for geometric consistency.
-        // CoordinateTransformer is the SSOT for FIT_CENTER geometry in this project.
-        // Using it ensures V2 pipeline geometry matches legacy path exactly.
-        val transformer = currentState.coordinateTransformer
-        if (transformer != null) {
-            // Derive matrix from CoordinateTransformer by sampling 3 image-space corners.
-            // This gives us the full affine transform (scale + translation + front-camera mirror).
-            val (sx0, sy0) = transformer.imageToScreen(0f, 0f)
-            val (sx1, sy1) = transformer.imageToScreen(effectiveImgW.toFloat(), 0f)
-            val (sx2, sy2) = transformer.imageToScreen(0f, effectiveImgH.toFloat())
-
-            // Guard: imageToScreen() may return NaN if transformer was built with zero-size image.
-            if (!sx0.isFinite() || !sy0.isFinite() || !sx1.isFinite() ||
-                !sy1.isFinite() || !sx2.isFinite() || !sy2.isFinite()) {
-                Log.w(TAG, "[v2.12.0-16 SB-F2] imageToScreen() returned non-finite values — " +
-                    "falling back to FIT_CENTER approximation")
-                // Fall through to FIT_CENTER fallback below
-            } else {
-                // Build affine matrix from 3-point correspondence.
-                // android.graphics.Matrix.setValues() row-major layout:
-                // | MSCALE_X  MSKEW_X   MTRANS_X |   | (sx1-sx0)/W   (sx2-sx0)/H   sx0 |
-                // | MSKEW_Y   MSCALE_Y  MTRANS_Y | = | (sy1-sy0)/W   (sy2-sy0)/H   sy0 |
-                // | MPERSP_0  MPERSP_1  MPERSP_2 |   | 0             0             1   |
-                latestSensorToViewMatrix = android.graphics.Matrix().apply {
-                    setValues(floatArrayOf(
-                        (sx1 - sx0) / effectiveImgW, // MSCALE_X (negative for front mirror)
-                        (sx2 - sx0) / effectiveImgH, // MSKEW_X  (~0 for axis-aligned)
-                        sx0,                          // MTRANS_X
-                        (sy1 - sy0) / effectiveImgW, // MSKEW_Y  (~0 for axis-aligned)
-                        (sy2 - sy0) / effectiveImgH, // MSCALE_Y
-                        sy0,                          // MTRANS_Y
-                        0f,                           // MPERSP_0 (identity perspective)
-                        0f,                           // MPERSP_1
-                        1f,                           // MPERSP_2
-                    ))
-                }
-                Log.d(TAG, "[v2.12.0-16 SB-F2] Matrix derived from CoordinateTransformer: " +
-                    "origin=($sx0,$sy0), imgW→($sx1,$sy1), imgH→($sx2,$sy2)")
-                return
-            }
-        }
-
-        // Fallback: CoordinateTransformer not yet available — use FIT_CENTER approximation.
-        // This is a geometric approximation; transformer-derived geometry takes over once available.
-        // TODO(SB-F2-future): Replace with real matrix from CameraX when API is available.
-        val bounds = currentState.contentBounds
-        if (bounds.isEmpty) {
-            latestSensorToViewMatrix = null
-            Log.w(TAG, "[v2.12.0-16 SB-F2] No contentBounds — sensorToViewMatrix=null (fallback path)")
+        // [v2.12.0-17][SV-FIX-3R-FINAL] Delegate matrix construction to PreviewViewGeometryMapper.
+        // V2 pipeline owns its own geometry logic — no dependency on presentation-layer CoordinateTransformer.
+        val contentBounds = currentState.contentBounds
+        val isFrontCamera = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT
+        if (!contentBounds.isEmpty) {
+            latestSensorToViewMatrix = newPipelineGeometryMapper.createSensorToViewMatrix(
+                contentBounds  = contentBounds,
+                imageWidth     = effectiveImgW,
+                imageHeight    = effectiveImgH,
+                isFrontCamera  = isFrontCamera,
+            )
+            Log.d(TAG, "[v2.12.0-17][SV-FIX-3R-FINAL] sensorToViewMatrix from Mapper.createSensorToViewMatrix()")
             return
         }
-        val scaleX = bounds.width() / effectiveImgW.toFloat()
-        val scaleY = bounds.height() / effectiveImgH.toFloat()
-        latestSensorToViewMatrix = android.graphics.Matrix().apply {
-            if (currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT) {
-                setScale(-scaleX, scaleY)
-                postTranslate(bounds.right, bounds.top)
-            } else {
-                setScale(scaleX, scaleY)
-                postTranslate(bounds.left, bounds.top)
-            }
-        }
-        Log.w(TAG, "[v2.12.0-16 SB-F2] FALLBACK: FIT_CENTER approximation (transformer not ready). " +
-            "scaleX=$scaleX, scaleY=$scaleY")
+
+        // contentBounds not ready: do not set matrix — PreviewViewGeometryMapper owns the FIT_CENTER fallback.
+        latestSensorToViewMatrix = null
+        Log.d(TAG, "[v2.12.0-17] contentBounds not ready — sensorToViewMatrix=null, Mapper will use FIT_CENTER fallback")
     }
 
     private fun AfState.toLegacyVisualState(): com.akirachang.ai.photographer.domain.model.focus.VisualTargetState {
@@ -2707,11 +2102,9 @@ class CameraViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        // v2.12.0-15: Reset new pipeline components on ViewModel cleared
-        if (FOCUS_PIPELINE_V2) {
-            focusTargetTracker.reset()
-            newFocusTriggerThrottle.reset()
-        }
+        // Reset new pipeline components on ViewModel cleared
+        focusTargetTracker.reset()
+        newFocusTriggerThrottle.reset()
     }
 
 }

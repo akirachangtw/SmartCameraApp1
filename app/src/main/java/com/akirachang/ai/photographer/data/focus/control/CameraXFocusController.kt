@@ -85,12 +85,21 @@ class CameraXFocusController(
         }
 
         // Build CameraX MeteringAction
+        // isFrontCamera is the primary hardware gate: front cameras have no AF motor,
+        // so FLAG_AF must never be sent regardless of policy decisions.
         val cxPoint = factory.createPoint(meteringPoint.x, meteringPoint.y)
-        val action = FocusMeteringAction.Builder(cxPoint).apply {
-            if (decision.shouldTriggerFocus) {
-                setAutoCancelDuration(AF_TIMEOUT_SEC, TimeUnit.SECONDS)
-            }
-        }.build()
+        val action = if (geometryContext.isFrontCamera || !decision.shouldTriggerFocus) {
+            // [v2.12.0-17][SV-FIX-2] AE+AWB only (front/fixed-focus): no AF motor
+            Log.i(TAG, "[v2.12.0-17][SV-FIX-2] AE+AWB only (front/fixed-focus) isFrontCamera=${geometryContext.isFrontCamera} shouldTriggerFocus=${decision.shouldTriggerFocus}")
+            FocusMeteringAction.Builder(cxPoint, FocusMeteringAction.FLAG_AE or FocusMeteringAction.FLAG_AWB)
+                .build()
+        } else {
+            // [v2.12.0-17][SV-FIX-2] AF+AE (rear camera): full autofocus with timeout
+            Log.i(TAG, "[v2.12.0-17][SV-FIX-2] AF+AE (rear camera) shouldTriggerFocus=${decision.shouldTriggerFocus}")
+            FocusMeteringAction.Builder(cxPoint, FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE)
+                .apply { setAutoCancelDuration(AF_TIMEOUT_SEC, TimeUnit.SECONDS) }
+                .build()
+        }
 
         // Execute startFocusAndMetering via suspendCancellableCoroutine
         // (No ListenableFuture.await() extension in this project — use manual wrapping)

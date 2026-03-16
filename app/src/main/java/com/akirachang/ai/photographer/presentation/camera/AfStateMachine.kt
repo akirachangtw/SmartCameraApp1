@@ -12,8 +12,7 @@ enum class FailReason { TIMEOUT, HAL_FAILED, EXCEPTION }
 // ── 4-way AF State  (v2.12.0-05: Step 3+4)  ──────────────────────────────────
 //
 // Replaces the two-boolean (isFocusing + focusSuccess) pattern with a proper
-// sealed hierarchy.  isFocusing / focusSuccess in CameraState are kept in sync
-// for backward-compat with FocusIndicator / CameraScreen composables.
+// sealed hierarchy.
 //
 // State transitions (per L2 §2.1):
 //   IDLE      → FOCUSING   on valid Eye-AF / User-Tap trigger (throttle gate passed)

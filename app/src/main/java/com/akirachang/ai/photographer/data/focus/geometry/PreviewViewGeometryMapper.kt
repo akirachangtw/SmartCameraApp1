@@ -89,6 +89,50 @@ class PreviewViewGeometryMapper : GeometryMapper {
     }
 
     // -------------------------------------------------------------------------
+    // Matrix factory
+    // -------------------------------------------------------------------------
+
+    /**
+     * Build the affine sensor→view matrix directly from geometry inputs.
+     * v2.12.0-17 / SV-FIX-3R-FINAL
+     *
+     * Eliminates dependency on presentation-layer CoordinateTransformer for matrix construction.
+     * Math is identical to CoordinateTransformer.toMatrix() but lives in the data/domain layer.
+     *
+     * Row-major layout (android.graphics.Matrix.setValues):
+     *   | MSCALE_X  MSKEW_X   MTRANS_X |
+     *   | MSKEW_Y   MSCALE_Y  MTRANS_Y |
+     *   | MPERSP_0  MPERSP_1  MPERSP_2 |
+     *
+     * Front camera: scaleX = -cW/imgW, translateX = contentBounds.right (mirror)
+     * Rear camera:  scaleX =  cW/imgW, translateX = contentBounds.left
+     */
+    fun createSensorToViewMatrix(
+        contentBounds: RectF,
+        imageWidth: Int,
+        imageHeight: Int,
+        isFrontCamera: Boolean,
+    ): Matrix {
+        val scaleX = contentBounds.width() / imageWidth
+        val scaleY = contentBounds.height() / imageHeight
+        return Matrix().apply {
+            if (isFrontCamera) {
+                setValues(floatArrayOf(
+                    -scaleX, 0f, contentBounds.right,
+                    0f, scaleY, contentBounds.top,
+                    0f, 0f, 1f,
+                ))
+            } else {
+                setValues(floatArrayOf(
+                    scaleX, 0f, contentBounds.left,
+                    0f, scaleY, contentBounds.top,
+                    0f, 0f, 1f,
+                ))
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Internal helpers
     // -------------------------------------------------------------------------
 

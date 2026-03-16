@@ -255,6 +255,40 @@ class CoordinateTransformer(
         val contentCoords = screenToContent(x, y) ?: return null
         return contentToImage(contentCoords.first, contentCoords.second)
     }
+
+    /**
+     * Build the affine matrix encoding the image→screen (sensor→view) transform.
+     *
+     * Directly constructs the matrix from measured contentBounds and image dimensions —
+     * no 3-point sampling, no NaN risk.
+     *
+     * For rear camera:   scaleX = cW/imgW, translateX = contentBounds.left
+     * For front camera:  scaleX = -cW/imgW (mirror), translateX = contentBounds.right
+     *
+     * android.graphics.Matrix row-major layout:
+     *   | MSCALE_X  MSKEW_X   MTRANS_X |
+     *   | MSKEW_Y   MSCALE_Y  MTRANS_Y |
+     *   | MPERSP_0  MPERSP_1  MPERSP_2 |
+     */
+    fun toMatrix(): android.graphics.Matrix {
+        val scaleX = contentBounds.width() / imageWidth
+        val scaleY = contentBounds.height() / imageHeight
+        return android.graphics.Matrix().apply {
+            if (isFrontCamera) {
+                setValues(floatArrayOf(
+                    -scaleX, 0f, contentBounds.right,   // mirror: x→(right - x*scaleX)
+                    0f, scaleY, contentBounds.top,
+                    0f, 0f, 1f,
+                ))
+            } else {
+                setValues(floatArrayOf(
+                    scaleX, 0f, contentBounds.left,
+                    0f, scaleY, contentBounds.top,
+                    0f, 0f, 1f,
+                ))
+            }
+        }
+    }
 }
 
 private const val TAG = "PreviewViewportContainer"

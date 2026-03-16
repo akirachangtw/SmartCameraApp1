@@ -1462,3 +1462,102 @@ latestSensorToViewMatrix = null
 
 ---
 
+## SV-FIX-3R-FINAL Geometry Truth 架構收斂 — Matrix 建構遷移至 PreviewViewGeometryMapper（v2.12.0-17，2026-03-16）
+
+> **背景**：SV-FIX-3R 將三點反推移除後，`toMatrix()` 仍住在 `CoordinateTransformer`（presentation 層）。架構複審確立此為層次邊界違規：V2 管線（`PreviewViewGeometryMapper`）不應依賴 presentation 層提供矩陣。SV-FIX-3R-FINAL 將 matrix 建構邏輯遷移至 `PreviewViewGeometryMapper.createSensorToViewMatrix()`，使 V2 管線完全自治。
+
+### §L. ViewModel 僅接線、Mapper 承接幾何與 Fallback（SSOT 邊界）
+
+**這是本專案幾何管線最重要的一條邊界守則，違反此守則將造成職責重疊、坐標系混亂與層次污染。**
+
+#### 邊界定義
+
+```
+【ViewModel 的唯一職責】
+CameraViewModel.rebuildNewPipelineSensorToViewMatrix()
+    ├── contentBounds 有效 + imageDims 有效
+    │       → newPipelineGeometryMapper.createSensorToViewMatrix(bounds, w, h, isFront)
+    │       → latestSensorToViewMatrix = 結果
+    └── 任一無效
+            → latestSensorToViewMatrix = null
+            → 不計算任何幾何，交棒給 Mapper
+
+【Mapper 的完整職責】
+PreviewViewGeometryMapper.mapRectImageToView(rect, context)
+    ├── context.sensorToViewMatrix != null
+    │       → matrix.mapPoints(pts)              ← 精確路徑
+    └── context.sensorToViewMatrix == null
+            → applyFitCenterFallback(pts, context) ← FIT_CENTER fallback（禁止刪除）
+
+【PreviewViewGeometryMapper.createSensorToViewMatrix()】
+    ← matrix 建構邏輯唯一來源（v2.12.0-17 起）
+    ← ViewModel 只呼叫，不計算幾何
+```
+
+#### 為何 ViewModel 不應自行建構 Matrix
+
+| 場景 | ViewModel 自行建構的問題 |
+|------|------------------------|
+| transformer 可用 | ViewModel 重複 Transformer/Mapper 的幾何邏輯 → 兩份邏輯需同步維護 |
+| transformer 不可用 | ViewModel 用 `bounds.width() / imgW` 近似 → 旋轉 90°/270° 時 scale 計算錯誤（§J 已記錄）|
+| 前鏡頭 mirror | ViewModel 手工 `setScale(-scaleX, ...)` → 與 Mapper mirror 邏輯重複，不一致時產生雙重 mirror |
+
+#### SV-FIX-3R-FINAL 後的正確實作
+
+**`PreviewViewGeometryMapper.createSensorToViewMatrix()`（新增，data 層）**：
+
+```kotlin
+// ✅ Matrix 建構唯一來源 — data/domain 層，V2 管線自治
+fun createSensorToViewMatrix(
+    contentBounds: RectF,
+    imageWidth: Int,
+    imageHeight: Int,
+    isFrontCamera: Boolean,
+): Matrix {
+    val scaleX = contentBounds.width() / imageWidth
+    val scaleY = contentBounds.height() / imageHeight
+    return Matrix().apply {
+        if (isFrontCamera) {
+            setValues(floatArrayOf(-scaleX, 0f, contentBounds.right, 0f, scaleY, contentBounds.top, 0f, 0f, 1f))
+        } else {
+            setValues(floatArrayOf(scaleX, 0f, contentBounds.left, 0f, scaleY, contentBounds.top, 0f, 0f, 1f))
+        }
+    }
+}
+```
+
+**`CameraViewModel.rebuildNewPipelineSensorToViewMatrix()`（接線，presentation 層）**：
+
+```kotlin
+// ✅ ViewModel 僅接線：取 contentBounds + isFrontCamera，呼叫 Mapper，不計算幾何
+val contentBounds = currentState.contentBounds
+val isFrontCamera = currentState.currentCamera == CameraLens.FRONT
+if (!contentBounds.isEmpty) {
+    latestSensorToViewMatrix = newPipelineGeometryMapper.createSensorToViewMatrix(
+        contentBounds, effectiveImgW, effectiveImgH, isFrontCamera
+    )
+    return
+}
+latestSensorToViewMatrix = null  // Mapper fallback 接手
+```
+
+#### 層次邊界遷移歷史（§J → §K → §L）
+
+| 版本 | 問題 | 修復 |
+|------|------|------|
+| SV-FIX-3（§J）| ViewModel 自行 FIT_CENTER 近似，旋轉 90° scale 錯誤 | 移除近似，transformer 不可用時直接 null |
+| SV-FIX-3R（§K）| 三點採樣反推（imageToScreen × 3 + setValues），NaN 風險 | 改 `CoordinateTransformer.toMatrix()` 直接建構 |
+| SV-FIX-3R-FINAL（§L）| `toMatrix()` 住在 presentation 層，V2 管線依賴外層 | 將建構邏輯遷移至 `PreviewViewGeometryMapper.createSensorToViewMatrix()`，ViewModel 僅接線 |
+
+**How to apply**：
+- **新增幾何轉換需求時**：邏輯寫在 `PreviewViewGeometryMapper`，ViewModel 只提供輸入參數並接收結果
+- **修改 `rebuildNewPipelineSensorToViewMatrix()` 時**：函式內只允許「取 state 欄位 → 呼叫 `newPipelineGeometryMapper.createSensorToViewMatrix()`」，不允許任何 scale/translate 計算
+- **`applyFitCenterFallback()` 是 Mapper 的底板**：禁止刪除、弱化或在 ViewModel 複製此邏輯
+- **`CoordinateTransformer.toMatrix()`**：仍保留供 OF 路徑（legacy）使用，但 V2 管線禁止呼叫
+
+**Code Location**：
+- `PreviewViewGeometryMapper.kt:110` `createSensorToViewMatrix()`（新增）
+- `CameraViewModel.kt` `rebuildNewPipelineSensorToViewMatrix()`（改呼叫 `createSensorToViewMatrix`，不再依賴 `coordinateTransformer`）
+
+---
+
