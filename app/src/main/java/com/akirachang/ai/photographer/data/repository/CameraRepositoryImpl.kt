@@ -117,16 +117,19 @@ class CameraRepositoryImpl @Inject constructor(
 
     // ML Kit 偵測器（延遲初始化）
     private val faceDetector: FaceDetector by lazy {
+        // v2.12.0: LANDMARK_MODE_NONE — prevents "Unknown landmark type" crash on certain devices.
+        // Eye-AF degrades gracefully to face bbox center (CameraViewModel:929 fallback).
         val options = FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+            .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
             .setMinFaceSize(MIN_FACE_SIZE)
             .enableTracking()
             .build()
 
         FaceDetection.getClient(options).also {
-            Log.i(TAG, "Face detector initialized with LANDMARK_MODE_ALL for v2.3.0 eye position analysis")
+            Log.i(TAG, "[v2.12.0] Face detector initialized: LANDMARK_MODE_NONE (crash-safe)")
         }
     }
 
@@ -138,7 +141,7 @@ class CameraRepositoryImpl @Inject constructor(
             .build()
 
         ObjectDetection.getClient(options).also {
-            Log.i(TAG, "Object detector initialized")
+            Log.i(TAG, "[v2.12.0] Object detector initialized: STREAM_MODE + multipleObjects + classification")
         }
     }
 

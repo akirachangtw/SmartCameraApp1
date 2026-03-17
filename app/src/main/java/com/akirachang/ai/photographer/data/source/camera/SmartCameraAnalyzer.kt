@@ -76,6 +76,11 @@ private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { conti
  *   4. Optical flow: output raw tracking result (image-space coords) via callback
  * All coordinate mapping, target ranking, and policy decisions are handled upstream (CameraViewModel).
  *
+ * SSOT Route B (v2.12.0): This class is the **Emulator analysis path**.
+ *   faceDetector/objectDetector are injected from CameraRepositoryImpl.
+ *   The Device/legacy path uses ImageAnalyzer → MLKitDetector (see ImageAnalyzer.kt).
+ *   These two paths are intentionally isolated — do NOT merge or cross-wire.
+ *
  * @param faceDetector ML Kit face detector
  * @param objectDetector ML Kit object detector
  * @param analyzeLightingUseCase Lighting analysis use case
@@ -113,6 +118,11 @@ class SmartCameraAnalyzer(
     private val analysisScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val isProcessing = AtomicBoolean(false)
     private var lastAnalysisTime = 0L
+
+    // v2.12.0 L0 frame-skip: every 3rd frame enters ML Kit (~10 FPS at 30 FPS camera).
+    // Skipped frames MUST call imageProxy.close() immediately to prevent pipeline stall.
+    private var frameCount = 0
+    private val analysisInterval = 3
 
     // v2.12.0-03: Adaptive throttle state
     private val adaptiveThrottleMs = AtomicLong(DEFAULT_THROTTLE_MS)
@@ -259,7 +269,15 @@ class SmartCameraAnalyzer(
 
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
-        // v2.12.0-03: Adaptive throttle gate (replaces hardcoded THROTTLE_INTERVAL_MS)
+        // v2.12.0 L0: Frame-skip gate — reject 2 out of every 3 frames before any ML work.
+        // MUST close imageProxy immediately on skip to prevent CameraX pipeline stall.
+        frameCount++
+        if (frameCount % analysisInterval != 0) {
+            imageProxy.close()
+            return
+        }
+
+        // v2.12.0-03: Adaptive throttle gate (L1) — time-based back-pressure after L0.
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastAnalysisTime < adaptiveThrottleMs.get()) {
             imageProxy.close()
@@ -291,9 +309,14 @@ class SmartCameraAnalyzer(
                 analyzeImageWidth = imageProxy.width
                 analyzeImageHeight = imageProxy.height
 
+                // Null-safe: if mediaImage is null, return@launch — finally block closes imageProxy.
+                val mediaImage = imageProxy.image ?: run {
+                    Log.w(TAG, "[v2.12.0] mediaImage null — aborting (imageProxy.close() in finally)")
+                    return@launch
+                }
                 // Create InputImage for ML Kit
                 val inputImage = InputImage.fromMediaImage(
-                    imageProxy.image!!,
+                    mediaImage,
                     imageProxy.imageInfo.rotationDegrees
                 )
 

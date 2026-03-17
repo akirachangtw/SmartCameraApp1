@@ -43,6 +43,11 @@
         android:theme="@style/Theme.SmartCameraApp1"
         android:pageSizeCompat="enabled"
         tools:targetApi="31">
+        <!-- ML Kit: auto-download face and object detection models at install time -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ica,face" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
