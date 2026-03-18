@@ -23,36 +23,13 @@ import android.util.Log
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlin.math.abs
 import com.akirachang.ai.photographer.domain.sensor.DeviceSensorManager
 import com.akirachang.ai.photographer.domain.sensor.GyroscopeData
+import com.akirachang.ai.photographer.domain.sensor.OrientationData
+import com.akirachang.ai.photographer.domain.sensor.OrientationSensorManager
 
 /**
- * Data class representing device orientation
- *
- * @property roll Device roll angle in degrees (-180 to 180)
- *                - Positive: device tilted to the right
- *                - Negative: device tilted to the left
- *                - 0: device is level (horizon aligned)
- * @property pitch Device pitch angle in degrees (-180 to 180)
- * @property azimuth Device azimuth angle in degrees (0 to 360)
- */
-data class OrientationData(
-    val roll: Float,
-    val pitch: Float,
-    val azimuth: Float
-) {
-    /**
-     * Checks if device is approximately level
-     * @param threshold Tolerance in degrees (default: 2.0°)
-     */
-    fun isLevel(threshold: Float = 2.0f): Boolean {
-        return abs(roll) <= threshold
-    }
-}
-
-/**
- * Concrete implementation of [DeviceSensorManager].
+ * Concrete implementation of [DeviceSensorManager] and [OrientationSensorManager].
  *
  * Manages accelerometer + magnetometer for orientation (LevelIndicator)
  * and gyroscope for IMU motion compensation (ImuCompensator pipeline).
@@ -66,7 +43,7 @@ data class OrientationData(
  *     }
  * ```
  */
-class DeviceSensorManagerImpl(context: Context) : DeviceSensorManager {
+class DeviceSensorManagerImpl(context: Context) : DeviceSensorManager, OrientationSensorManager {
 
     companion object {
         private const val TAG = "DeviceSensorManagerImpl"
@@ -106,7 +83,7 @@ class DeviceSensorManagerImpl(context: Context) : DeviceSensorManager {
      *
      * @return true if both accelerometer and magnetometer are available
      */
-    fun areSensorsAvailable(): Boolean {
+    override fun areSensorsAvailable(): Boolean {
         val hasAccelerometer = accelerometer != null
         val hasMagnetometer = magnetometer != null
 
@@ -128,7 +105,7 @@ class DeviceSensorManagerImpl(context: Context) : DeviceSensorManager {
      *
      * @return Flow emitting OrientationData updates
      */
-    fun startOrientationTracking(): Flow<OrientationData> = callbackFlow {
+    override fun startOrientationTracking(): Flow<OrientationData> = callbackFlow {
         if (!areSensorsAvailable()) {
             Log.e(TAG, "Cannot start orientation tracking: sensors not available")
             close()

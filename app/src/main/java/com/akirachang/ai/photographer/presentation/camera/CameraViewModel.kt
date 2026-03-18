@@ -34,8 +34,10 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import kotlin.math.min
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
-import com.akirachang.ai.photographer.data.sensor.DeviceSensorManagerImpl
-import com.akirachang.ai.photographer.data.sensor.OrientationData
+import com.akirachang.ai.photographer.domain.camera.ImuCompensator
+import com.akirachang.ai.photographer.domain.sensor.DeviceSensorManager
+import com.akirachang.ai.photographer.domain.sensor.OrientationData
+import com.akirachang.ai.photographer.domain.sensor.OrientationSensorManager
 // v2.5.2 Phase 7: Removed CameraSelector import - using CameraLens instead
 import com.akirachang.ai.photographer.domain.model.CaptureResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
@@ -57,9 +59,11 @@ class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
     private val analyzeCompositionUseCase: AnalyzeCompositionUseCase,
     private val analyzeLightingUseCase: AnalyzeLightingUseCase,
-    private val sensorManager: DeviceSensorManagerImpl,
+    private val deviceSensorManager: DeviceSensorManager,
+    private val orientationSensorManager: OrientationSensorManager,
     private val overlayPreferences: OverlayPreferences,
-    private val capabilityDetector: com.akirachang.ai.photographer.data.source.camera.CameraCapabilityDetector
+    private val capabilityDetector: com.akirachang.ai.photographer.data.source.camera.CameraCapabilityDetector,
+    private val imuCompensator: ImuCompensator
 ) : ViewModel() {
 
     companion object {
@@ -291,6 +295,9 @@ class CameraViewModel @Inject constructor(
         // 訂閱感測器方向資料 (v2.1.0)
         observeOrientation()
 
+        // [v2.12.0-23] 啟動陀螺儀收集 → 餵入 ImuCompensator
+        startImuCompensation()
+
         // ML 偵測需手動啟動（透過 CameraUiEvent.StartAnalysis）
         // 或根據需求自動啟動
         // startAnalysis()  // Deprecated - now using bitmap-based analysis
@@ -478,12 +485,12 @@ class CameraViewModel @Inject constructor(
      * Only tracks if sensors are available.
      */
     private fun observeOrientation() {
-        if (!sensorManager.areSensorsAvailable()) {
+        if (!orientationSensorManager.areSensorsAvailable()) {
             Log.w(TAG, "Orientation sensors not available - LevelIndicator will be disabled")
             return
         }
 
-        sensorManager.startOrientationTracking()
+        orientationSensorManager.startOrientationTracking()
             .onEach { orientation ->
                 _orientationState.value = orientation
             }
@@ -492,6 +499,23 @@ class CameraViewModel @Inject constructor(
         Log.i(TAG, "Orientation tracking initialized")
     }
 
+    /**
+     * [v2.12.0-23] Starts gyroscope data collection and feeds each sample into ImuCompensator.
+     *
+     * Lifecycle: tied to viewModelScope — when the ViewModel is cleared (Activity/Fragment
+     * destruction), the coroutine is automatically cancelled and the sensor listener
+     * unregistered, preventing battery drain.
+     *
+     * Graceful degradation: [DeviceSensorManager.startGyroscopeTracking] closes the flow
+     * immediately when no gyroscope hardware is present — no hasGyroscope() guard needed here.
+     * Downstream ImuCompensator.consumeCameraMotion() returns (0f, 0f) when no data accumulated.
+     */
+    private fun startImuCompensation() {
+        deviceSensorManager.startGyroscopeTracking()
+            .onEach { data -> imuCompensator.accumulate(data) }
+            .launchIn(viewModelScope)
+        Log.i(TAG, "[v2.12.0-23] IMU compensation started")
+    }
 
     fun onEvent(event: CameraUiEvent) {
         when (event) {
@@ -695,6 +719,11 @@ class CameraViewModel @Inject constructor(
 
             // Cancel focus metering if locked
             cameraRepository.cancelFocusAndMetering()
+
+            // [v2.12.0-23] Reset IMU accumulator — new lens has different coordinate system;
+            // stale gyro integration from the previous camera session is invalid.
+            imuCompensator.reset()
+            Log.i(TAG, "[v2.12.0-23] switchCamera: imuCompensator.reset()")
 
             cameraRepository.switchCamera()
             _state.update {

@@ -2098,6 +2098,42 @@ abstract class AppModule {
 ### 📋 Backlog
 
 - [x] DeviceSensorManager 介面抽取 — ✅ 完成 (v2.12.0-22, 2026-03-18) | Build PASS、SV PASS
-- [ ] IMU 整合接線（Ticket 2）：`ImuCompensator` 接入 OF 管線（`observePreviewForOpticalFlow` → `processOpticalFlowFrame` → `OpticalFlowTracker.track`）
+- [x] IMU 整合接線（Ticket 2 + Fix 2A）：`ImuCompensator` 注入 `OpticalFlowTracker` ✅ 完成 (v2.12.0-23, 2026-03-18) | Build PASS、SV PASS
+- [x] IMU ViewModel 接線（Ticket 3 + Fix 3A-R）：`CameraViewModel` 收集陀螺儀 Flow → `accumulate()`；`OrientationSensorManager` 介面隔離；Presentation 層完全切斷對 `DeviceSensorManagerImpl` 的直接依賴 ✅ 完成 (v2.12.0-24, 2026-03-18) | Build PASS、SV PASS
+
+---
+
+### [v2.12.0] IMU 補償與感測器架構 (Architecture Learnings)
+
+- **介面隔離原則 (Interface Segregation Principle)**：在重構 `DeviceSensorManagerImpl` 時，嚴格區分了 `DeviceSensorManager`（專供 IMU 陀螺儀高頻積分）與 `OrientationSensorManager`（專供裝置方向旋轉）。ViewModel 僅依賴需要的介面，徹底切斷對 Impl 的具體依賴。
+- **Hilt 多重綁定單例 (Multi-Binding Singleton)**：在 `AppModule` 中，透過多個 `@Binds` 將不同的 Domain 介面指向同一個 `@Singleton` 的 `DeviceSensorManagerImpl`，既滿足了 Clean Architecture，又避免了重複註冊硬體 Sensor 的效能浪費。
+- **IMU 狀態機防禦**：`ImuCompensator.reset()` 必須在 `startTracking()`（防 re-tap spike）、`stopTracking()`/LOST（防垃圾積分污染下次追蹤）、`switchCamera()`（切鏡頭後運動向量失效）三個時機呼叫。
+- **焦距預設值**：`focalLengthPx = 2000f` 為暫定常數；後續 Ticket 需從 `CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS` 動態讀取並轉換為像素（`fPx = f_mm / sensorPixelPitch_mm`）。
+
+---
+
+### 🔑 v2.12.0-23 關鍵學習（IMU 積分狀態機守則）
+
+**守則：`startTracking()` 開頭必須呼叫 `imuCompensator.reset()`**
+
+**背景**：`ImuCompensator` 在後台持續累積陀螺儀積分。若追蹤因 LOST 停止後，使用者在短時間內重新點擊（re-tap），此時 `startTracking()` 建立新 Session，但前次 LOST 到 re-tap 之間累積的 IMU 積分尚未被消費。下一幀 `consumeCameraMotion()` 將一次性吐出這段積分，造成 `compensatedDx/compensatedDy` 出現大幅偏移，導致追蹤框瞬移（Coordinate Spike）。
+
+**正確的三點 reset 策略**：
+
+| 時機 | 位置 | 作用 |
+|------|------|------|
+| 新 Session 啟動（re-tap） | `startTracking()` **第一行** | 清除前次 LOST→tap 間隙的垃圾積分，防 Spike |
+| 追蹤正常/異常停止 | `stopTracking()` | 清除追蹤中殘留積分，防下次 startTracking 前繼續累積 |
+| 相機切換 | 外部呼叫 `imuCompensator.reset()` | 新鏡頭坐標系不同，舊積分無效 |
+
+**關鍵坐標換算（downsampled space）**：
+```
+imuDx/imuDy = consumeCameraMotion(focalLengthPx)  // 原始圖像像素空間
+compensatedDx = medDx - imuDx * scaleX             // 轉換至 downsampled 空間再相減
+compensatedDy = medDy - imuDy * scaleY
+```
+`medDx/medDy` 是 LK 在 downsampled frame 的位移；`imuDx/imuDy` 是原始解析度空間的位移；必須乘以 `scaleX/scaleY` 才能對齊坐標系後相減。
+
+**L3 Strict Verification 判決**（2026-03-18）：Fix 2A 補上 `startTracking()` 漏缺的 reset，消除狀態機漏洞。
 
 ---

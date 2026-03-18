@@ -23,8 +23,10 @@ import dagger.hilt.components.SingletonComponent
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
 import com.akirachang.ai.photographer.data.repository.CameraRepositoryImpl
 import com.akirachang.ai.photographer.data.sensor.DeviceSensorManagerImpl
+import com.akirachang.ai.photographer.domain.camera.ImuCompensator
 import com.akirachang.ai.photographer.domain.repository.CameraRepository
 import com.akirachang.ai.photographer.domain.sensor.DeviceSensorManager
+import com.akirachang.ai.photographer.domain.sensor.OrientationSensorManager
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import javax.inject.Qualifier
@@ -71,6 +73,18 @@ abstract class AppModule {
         impl: DeviceSensorManagerImpl
     ): DeviceSensorManager
 
+    /**
+     * v2.12.0 Fix 3A-R: Bind concrete impl to OrientationSensorManager domain interface.
+     *
+     * CameraViewModel injects this interface for orientation/LevelIndicator tracking,
+     * removing the direct dependency on DeviceSensorManagerImpl from the Presentation layer.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindOrientationSensorManager(
+        impl: DeviceSensorManagerImpl
+    ): OrientationSensorManager
+
     companion object {
         /**
          * 提供單執行緒 Executor 供 ML 分析使用
@@ -92,10 +106,8 @@ abstract class AppModule {
         /**
          * 提供 DeviceSensorManagerImpl 單例 (v2.1.0 / v2.12.0 Ticket 1.5)
          *
-         * Returns the concrete implementation so callers that need
-         * orientation-specific methods (areSensorsAvailable / startOrientationTracking)
-         * can inject DeviceSensorManagerImpl directly.
-         * The domain interface binding is handled by bindDeviceSensorManager().
+         * Hilt uses this concrete singleton as the backing instance for
+         * [DeviceSensorManager] and [OrientationSensorManager] bindings.
          */
         @Provides
         @Singleton
@@ -117,6 +129,17 @@ abstract class AppModule {
         ): OverlayPreferences {
             return OverlayPreferences(context)
         }
+
+        /**
+         * [v2.12.0-23] 提供 ImuCompensator 單例
+         *
+         * Shared between CameraViewModel (gyroscope accumulation) and OpticalFlowTracker
+         * (camera-motion cancellation).  Must be @Singleton so both sides operate on the
+         * same accumulator instance — two separate instances would break compensation math.
+         */
+        @Provides
+        @Singleton
+        fun provideImuCompensator(): ImuCompensator = ImuCompensator()
 
         /**
          * 提供 Application-scoped CoroutineScope (v2.9.8)
