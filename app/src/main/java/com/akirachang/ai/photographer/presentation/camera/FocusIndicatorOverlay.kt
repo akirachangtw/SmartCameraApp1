@@ -19,6 +19,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.akirachang.ai.photographer.domain.model.focus.FocusUiState
+import kotlinx.coroutines.flow.StateFlow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -66,19 +69,32 @@ internal object FocusTokens {
  *   2. Tracking   — Mechanical clamp tween (3-phase, 350ms) + dwell fade to 0.4 after 1000ms.
  *   3. Locked     — Static golden frame (GoldenFocus, 6dp corners, 15% fill). Zero animation.
  *
- * SSOT Route: This composable is the NEW spec-conformant implementation.
- *   FocusOverlay.kt remains the active CameraScreen path until wire-over ticket is executed.
- *   DO NOT wire this into CameraScreen.kt without a dedicated wiring ticket.
+ * SSOT Route: This composable is the ACTIVE CameraScreen focus path (v2.12.0-19 wiring complete).
+ *   FocusOverlay.kt has been deleted (焦土政策 — zero call sites after wire-over).
+ *   This file is now the single focus rendering truth — do not re-introduce FocusOverlay.
  *
  * Performance rule: all animated State reads are deferred into the Canvas draw lambda
  * (draw phase) via Animatable.value — no Composition-phase state reads on hot path.
  */
+/**
+ * Entry point for CameraScreen wiring.
+ *
+ * Accepts a [StateFlow<FocusUiState>] and collects it **internally** via
+ * [collectAsStateWithLifecycle]. This isolates all focus coordinate recompositions
+ * inside this composable — CameraScreen is never recomposed by focus updates.
+ *
+ * v2.12.0-19: Local recomposition defense — do NOT change this signature back to
+ * receiving raw (overlayModel, visualTargetState) at the call site.
+ */
 @Composable
 fun FocusIndicatorOverlay(
-    overlayModel: OverlayModel?,
-    visualTargetState: VisualTargetState,
+    focusUiStateFlow: StateFlow<FocusUiState>,
     modifier: Modifier = Modifier,
 ) {
+    val focusUiState by focusUiStateFlow.collectAsStateWithLifecycle()
+    val overlayModel = focusUiState.overlayModel
+    val visualTargetState = focusUiState.visualTargetState
+
     // Guard: render nothing when model absent or state is None.
     if (overlayModel == null) return
     if (visualTargetState == VisualTargetState.None) return

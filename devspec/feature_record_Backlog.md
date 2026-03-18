@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-03-15
+Last updated: 2026-03-18
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -1779,3 +1779,217 @@ FocusOverlay.animateColorAsState(tween 200ms) 自動處理 Yellow→Cyan 顏色�
 
 ---
 
+## ML Kit 安全基線 (v2.12.0-19)
+
+**確立日期**: 2026-03-18
+**版本**: v2.12.0-19（SV-MLKIT-FIX-01）
+
+本節記錄三條因實機 Crash 確立的 ML Kit 鐵律。任何修改 ML Kit 偵測器初始化或 ImageProxy 處理的 PR，必須逐條核對。
+
+---
+
+### ✅ 鐵律 A：LANDMARK_MODE_NONE 為安全基線（禁止回退 ALL）
+
+**問題根因**：`LANDMARK_MODE_ALL` 要求 ML Kit 從裝置自動下載 landmark 模型。若下載失敗、模型不相容或裝置型號不在 Google Play Services 支援列表，`FaceDetector` 在推論時拋出 `"Unknown landmark type"` Exception，導致靜默 Crash（無 ANR，直接 skip frame，但 detection pipeline 死亡）。
+
+**強制基線**：
+
+| 參數 | 禁止值 | 強制值 | 原因 |
+|------|--------|--------|------|
+| `setLandmarkMode` | `LANDMARK_MODE_ALL` | `LANDMARK_MODE_NONE` | 設備相容性 Crash |
+| `setContourMode` | `CONTOUR_MODE_ALL` | `CONTOUR_MODE_NONE` | 同上，contour 模型更重 |
+
+**降級路徑（Eye-AF 不受影響）**：Eye-AF 的「眼睛座標」由 `CameraViewModel:929` 的 face bbox center fallback 提供，精度略降但功能完整。`EyePosition` domain model 保留（forward compat），但 `extractEyePositions()` 已刪除。
+
+**禁止行為**：
+- ❌ 任何情況下重新啟用 `LANDMARK_MODE_ALL`（包括「特定設備優化」flag）
+- ❌ 用 `try-catch` 包住 `LANDMARK_MODE_ALL` 然後 fallback — 這會掩蓋問題並使 Crash 變成性能劣化
+
+> **SV 驗收線**：`MLKitDetector.kt` 與 `CameraRepositoryImpl.kt` 兩個偵測器初始化路徑必須同步為 `LANDMARK_MODE_NONE`。任一路徑回退 ALL 即觸發 SV 失敗。
+
+**Code Locations**：
+- `MLKitDetector.kt` `faceDetector` lazy init（Device/legacy path）
+- `CameraRepositoryImpl.kt` `faceDetector` lazy init（Emulator/SmartCameraAnalyzer path）
+
+---
+
+### ✅ 鐵律 B：imageProxy.close() 必須在跳幀路徑同步呼叫
+
+**問題根因**：CameraX ImageAnalysis 的 backpressure 策略（`STRATEGY_KEEP_ONLY_LATEST`）要求每個 `ImageProxy` 必須被 `close()`。若 frame-skip 路徑忘記呼叫，CameraX 管線會在下一幀等待舊 buffer 釋放，直到 timeout 觸發 `IllegalStateException` 或相機凍結。
+
+**Frame-skip 模式（SmartCameraAnalyzer L0 gate）**：
+
+```kotlin
+// CORRECT — skip 路徑必須立即 close
+frameCount++
+if (frameCount % analysisInterval != 0) {
+    imageProxy.close()   // ← 這行不可省略
+    return
+}
+```
+
+**三個必須 close 的路徑**：
+
+| 路徑 | close 位置 | 備注 |
+|------|-----------|------|
+| L0 frame-skip | `imageProxy.close()` 在 `return` 前 | 同步，不進入 coroutine |
+| L1 time-gate skip | `imageProxy.close()` 在 `return` 前 | 同步，不進入 coroutine |
+| 正常分析路徑 | `finally { imageProxy.close() }` | 在 `launch` coroutine 的 finally |
+
+**禁止行為**：
+- ❌ 在 skip 路徑漏掉 `imageProxy.close()`
+- ❌ 把 `imageProxy.close()` 放在 coroutine launch 之外的 `finally` 然後 launch 內又 close（double close）
+- ❌ 在 L0/L1 skip 路徑進入任何 suspend 函式再 close
+
+> **SV 驗收線**：`analyze()` 函式中每一個 `return` 語句前方（在相同 scope 層級）必須有 `imageProxy.close()`。唯一例外是 `return` 在 coroutine 內部且 finally 已覆蓋。
+
+**Code Location**：`SmartCameraAnalyzer.kt` `analyze()` — L0 gate（line ~272）、L1 gate（line ~280）、launch finally block。
+
+---
+
+### ✅ 鐵律 C：mediaImage null-safe guard（!! 絕對禁止）
+
+**問題根因**：`imageProxy.image` 在以下情況返回 null：裝置記憶體壓力、ImageReader buffer 已被 recycle、或 YUV_420_888 buffer 在 CameraX internal 時序邊界被釋放。`imageProxy.image!!` 在此情況拋出 NPE，導致 `analyze()` 協程死亡，CameraX pipeline 進入不可恢復狀態直到 unbind。
+
+**強制寫法**：
+
+```kotlin
+// CORRECT
+val mediaImage = imageProxy.image ?: run {
+    Log.w(TAG, "[v2.12.0] mediaImage null — aborting")
+    return@launch   // 讓 finally 執行 imageProxy.close()
+}
+val inputImage = InputImage.fromMediaImage(mediaImage, ...)
+
+// FORBIDDEN
+val inputImage = InputImage.fromMediaImage(imageProxy.image!!, ...)
+```
+
+**適用範圍**：所有呼叫 `imageProxy.image` 的位置，包括 `MLKitDetector.detect()`、`SmartCameraAnalyzer.analyze()`、未來任何新增的 analyzer。
+
+> **SV 驗收線**：全專案禁止 `imageProxy.image!!`。Grep `image!!` 零容忍。
+
+**Code Locations**：
+- `SmartCameraAnalyzer.kt` `analyze()` launch block（line ~310）
+- `MLKitDetector.kt` `detect()` — null guard + caller 負責 close 的 KDoc 已確立
+
+---
+
+### 📋 ML Kit 初始化參數總覽（v2.12.0-19 基線）
+
+| 參數 | 人臉偵測器 | 物件偵測器 |
+|------|-----------|-----------|
+| mode | `PERFORMANCE_MODE_FAST` | `STREAM_MODE` |
+| landmark | `LANDMARK_MODE_NONE` 🔴 | N/A |
+| contour | `CONTOUR_MODE_NONE` 🔴 | N/A |
+| classification | `CLASSIFICATION_MODE_NONE` | ✅ enabled |
+| tracking | `enableTracking()` | `enableMultipleObjects()` |
+| minFaceSize | `0.15f`（MLKitDetector）/ `MIN_FACE_SIZE`（CameraRepositoryImpl） | N/A |
+
+🔴 = 不可修改的 Crash 防禦參數
+
+---
+
+## Compose 局部重組防禦模式 (v2.12.0-19)
+
+**確立日期**: 2026-03-18
+**版本**: v2.12.0-19（FocusIndicatorOverlay 接線票據）
+
+本節記錄「StateFlow 傳入子 Composable 後內部 collect」的局部重組防禦模式，防止高頻 UI 狀態（如每幀更新的對焦座標）污染父層 Composable 的重組節奏。
+
+---
+
+### ✅ Confirmed：局部重組防禦三步驟
+
+**問題根因**：`CameraScreen` 頂層 `val state by viewModel.state.collectAsState()` 訂閱整個 `CameraState`。若 `focusUiState`（包含 X/Y 座標、bbox）在每幀更新，`CameraState.equals()` 每幀都不同，導致 `CameraScreen` 整體（包括快門按鈕、Grid、HDR 按鈕）以 60fps 全量重組——CPU 爆炸的根本原因。
+
+**解法三步驟**：
+
+#### Step 1：ViewModel 暴露孤立 StateFlow
+
+```kotlin
+// CameraViewModel.kt
+val focusUiStateFlow: StateFlow<FocusUiState> =
+    _state.map { it.focusUiState }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = FocusUiState.EMPTY,
+        )
+```
+
+**Why Eagerly**：`Eagerly` 確保 ViewModel 建立時立即訂閱 `_state`，無 cold start delay。`WhileSubscribed` 在 screen 旋轉時會重新訂閱，造成一幀閃爍。
+
+#### Step 2：子 Composable 接受 StateFlow，內部 collect
+
+```kotlin
+// FocusIndicatorOverlay.kt
+@Composable
+fun FocusIndicatorOverlay(
+    focusUiStateFlow: StateFlow<FocusUiState>,  // ← Flow ref，非展開值
+    modifier: Modifier = Modifier,
+) {
+    val focusUiState by focusUiStateFlow.collectAsStateWithLifecycle()
+    // 所有後續讀取 focusUiState.overlayModel / .visualTargetState
+    // 產生的 recomposition 只影響此 composable 及其子樹
+}
+```
+
+**Why collectAsStateWithLifecycle（非 collectAsState）**：lifecycle-aware，App 進入後台時自動取消訂閱，避免在不可見狀態下持續消費 CPU。
+
+#### Step 3：父層 CameraScreen 傳遞 Flow 引用，不展開
+
+```kotlin
+// CameraScreen.kt — 正確
+FocusIndicatorOverlay(
+    focusUiStateFlow = viewModel.focusUiStateFlow,  // ← 傳 Flow 物件
+    modifier = Modifier.fillMaxSize(),
+)
+
+// CameraScreen.kt — 禁止
+val focusUiState = state.focusUiState               // ← 從頂層 state 展開
+FocusOverlay(
+    overlayModel = focusUiState.overlayModel,        // ← 傳展開值 → 頂層重組
+    visualTargetState = focusUiState.visualTargetState,
+)
+```
+
+---
+
+### ⚠️ Critical Warning：此模式的適用邊界
+
+**何時應用此模式**（高頻 + 獨立）：
+- 對焦 UI（每幀更新座標）✅
+- Optical Flow 追蹤點（每幀更新）✅
+- FPS 計數器（每秒更新）✅
+
+**何時不需要此模式**（低頻 or 已有頂層依賴）：
+- Flash mode、HDR mode（使用者操作才變更，頂層讀取 OK）
+- isCapturing（拍照瞬間觸發，影響快門按鈕外觀，本來就需要頂層重組）
+- Error state（低頻）
+
+**禁止行為**：
+- ❌ 為了「看起來整潔」把所有狀態都拆成獨立 StateFlow 並傳下去——過度拆分增加 ViewModel 複雜度且無益
+- ❌ 在 `CameraScreen` 頂層 `val focusUiState by viewModel.focusUiStateFlow.collectAsState()` 然後把展開值傳下去——這等於沒做防禦（頂層仍然每幀重組）
+- ❌ 將 `SharingStarted.WhileSubscribed(5000)` 用於視覺座標 Flow——5秒 timeout 在畫面旋轉時造成動畫 glitch
+
+---
+
+### 🔍 Code Locations（v2.12.0-19）
+
+| 組件 | 位置 | 作用 |
+|------|------|------|
+| `focusUiStateFlow` 定義 | `CameraViewModel.kt:106-117` | 孤立 Focus StateFlow |
+| 內部 collect | `FocusIndicatorOverlay.kt:92` | `collectAsStateWithLifecycle()` |
+| CameraScreen 接線 | `CameraScreen.kt:388-392` | 傳 Flow 引用，不展開 |
+| 舊 FocusOverlay（已刪） | 焦土政策刪除（v2.12.0-19 SV） | 零呼叫站點 → 刪除 |
+
+---
+
+### 📋 Backlog
+
+- [x] FocusIndicatorOverlay 接線 — ✅ 完成 (v2.12.0-19, 2026-03-18) | 局部重組防禦已驗證（Build PASS）
+- [ ] 評估 Optical Flow 追蹤點是否需要同樣模式（`trackedPoint` / `trackedPointActive`）
+- [ ] `currentFps` StateFlow 考慮同樣模式（FPSOverlay 目前從頂層讀取）
+
+---

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -102,6 +103,20 @@ class CameraViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(CameraState())
     val state: StateFlow<CameraState> = _state.asStateFlow()
+
+    /**
+     * Dedicated focus UI state flow for FocusIndicatorOverlay.
+     * v2.12.0-19: Pass directly to FocusIndicatorOverlay — collect inside the overlay
+     * to prevent CameraScreen top-level recomposition on every focus coordinate update.
+     */
+    val focusUiStateFlow: StateFlow<com.akirachang.ai.photographer.domain.model.focus.FocusUiState> =
+        _state.map { it.focusUiState }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = com.akirachang.ai.photographer.domain.model.focus.FocusUiState.EMPTY,
+            )
+
 
     // Composition analysis state (v1.5.0)
     private val _compositionState = MutableStateFlow<CompositionState>(CompositionState.NoSubject)

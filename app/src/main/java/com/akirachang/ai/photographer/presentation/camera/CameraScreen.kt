@@ -15,6 +15,7 @@
  * - 2025-12-08: Added CompositionGuideOverlay for visual composition guidance (v2.4.0)
  * - 2026-02-16: Fixed mechanical clamp animation timing: 500ms → 150ms (v2.11.1 D-008)
  * - 2026-03-15: Removed FocusIndicator (legacy), replaced with FocusOverlay (V2 pipeline) (v2.12.0-16)
+ * - 2026-03-18: Replaced FocusOverlay with FocusIndicatorOverlay (SPEC impl, local recomposition defense) (v2.12.0-19)
  */
 package com.akirachang.ai.photographer.presentation.camera
 
@@ -382,15 +383,15 @@ fun CameraScreen(
                         .padding(end = 16.dp, bottom = 16.dp)
                 )
 
-                // v2.12.0-16: Focus UI is owned exclusively by FocusOverlay (V2 pipeline only).
-                // FocusIndicator (legacy) has been removed. No split-brain rendering.
-                val focusUiState = state.focusUiState
-                FocusOverlay(
-                    overlayModel = focusUiState.overlayModel,
-                    visualTargetState = focusUiState.visualTargetState,
+                // v2.12.0-19: FocusIndicatorOverlay (SPEC impl) replaces FocusOverlay.
+                // focusUiStateFlow passed directly — collects internally (local recomposition defense).
+                // Z-order: above CameraPreview, Canvas does not consume pointer events.
+                FocusIndicatorOverlay(
+                    focusUiStateFlow = viewModel.focusUiStateFlow,
+                    modifier = Modifier.fillMaxSize(),
                 )
 
-                // v2.12.0-16: Lock overlay unified into FocusOverlay (Yellow AE/AF Lock via OverlayColor.YELLOW)
+                // v2.12.0-19: Lock overlay unified into FocusIndicatorOverlay (Yellow via OverlayColor.YELLOW)
 
                 // 簡易計數顯示（可選，保留用於調試）
                 state.detectionResult?.let { result ->
