@@ -1,0 +1,4 @@
+interface:
+  display_name: "trigger_workflow"
+  short_description: "Build shared context and scope boundaries"
+  default_prompt: "Use $trigger-workflow to explore the codebase, validate the stated problem, and produce an L1 Context before $architecture-review."
