@@ -1,12 +1,13 @@
 /**
  * ClassName: DeviceSensorManager
- * Description: Manages device orientation sensors for level indicator functionality
+ * Description: Manages device orientation and gyroscope sensors
  * Author: Claude Code
  * Date: 2025-12-01
- * Version: 2.1.0
+ * Version: 2.2.0
  *
  * Modifications:
  * - 2025-12-01: Initial creation for V1.0 completion (LevelIndicator feature)
+ * - 2026-03-18: v2.12.0 — Added TYPE_GYROSCOPE support for ImuCompensator foundation
  */
 package com.akirachang.ai.photographer.data.sensor
 
@@ -20,6 +21,26 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlin.math.abs
+
+/**
+ * Raw gyroscope sample from TYPE_GYROSCOPE.
+ *
+ * All values are in rad/s using the Android sensor coordinate system:
+ *   X axis = right edge of device (pitch)
+ *   Y axis = top edge of device  (roll/yaw in portrait)
+ *   Z axis = out of screen face  (yaw in flat orientation)
+ *
+ * @property x Angular velocity around X axis (rad/s) — pitch rate
+ * @property y Angular velocity around Y axis (rad/s) — yaw rate (portrait)
+ * @property z Angular velocity around Z axis (rad/s) — roll rate
+ * @property timestamp Sensor event timestamp in nanoseconds (System.nanoTime epoch)
+ */
+data class GyroscopeData(
+    val x: Float,
+    val y: Float,
+    val z: Float,
+    val timestamp: Long,
+)
 
 /**
  * Data class representing device orientation
@@ -80,6 +101,10 @@ class DeviceSensorManager(context: Context) {
 
     private val magnetometer: Sensor? =
         sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
+
+    // v2.12.0: Gyroscope for IMU motion compensation
+    private val gyroscope: Sensor? =
+        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
     // Sensor data buffers
     private val accelerometerReading = FloatArray(3)
@@ -225,5 +250,71 @@ class DeviceSensorManager(context: Context) {
      */
     private fun applySmoothing(previous: Float, current: Float): Float {
         return (previous * (1 - SMOOTHING_FACTOR)) + (current * SMOOTHING_FACTOR)
+    }
+
+    // ── v2.12.0: Gyroscope API ─────────────────────────────────────────────
+
+    /**
+     * Returns true if a hardware gyroscope is available.
+     *
+     * Callers should gracefully degrade (disable IMU compensation) when false.
+     */
+    fun hasGyroscope(): Boolean = gyroscope != null
+
+    /**
+     * Starts raw gyroscope tracking and returns a cold [Flow] of [GyroscopeData].
+     *
+     * Graceful degradation: if no gyroscope hardware is found the Flow closes
+     * immediately without emitting — callers MUST handle the empty stream.
+     *
+     * Listener lifecycle: registered on collection start, unregistered in
+     * [awaitClose] so there is zero risk of battery/memory leak on cancellation.
+     *
+     * Sampling rate: [SensorManager.SENSOR_DELAY_FASTEST] — ImuCompensator
+     * does its own dt-based integration so higher frequency = better accuracy.
+     */
+    fun startGyroscopeTracking(): Flow<GyroscopeData> = callbackFlow {
+        if (gyroscope == null) {
+            Log.w(TAG, "[v2.12.0] Gyroscope not available — IMU compensation disabled (graceful degradation)")
+            close()
+            return@callbackFlow
+        }
+
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                // event.values[0..2] guaranteed non-null for TYPE_GYROSCOPE
+                trySend(
+                    GyroscopeData(
+                        x = event.values[0],
+                        y = event.values[1],
+                        z = event.values[2],
+                        timestamp = event.timestamp,
+                    )
+                )
+            }
+
+            override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
+                // Gyroscope accuracy changes are informational only
+            }
+        }
+
+        val registered = sensorManager.registerListener(
+            listener,
+            gyroscope,
+            SensorManager.SENSOR_DELAY_FASTEST,
+        )
+
+        if (!registered) {
+            Log.e(TAG, "[v2.12.0] Failed to register gyroscope listener — closing flow")
+            close()
+            return@callbackFlow
+        }
+
+        Log.i(TAG, "[v2.12.0] Gyroscope tracking started (SENSOR_DELAY_FASTEST)")
+
+        awaitClose {
+            sensorManager.unregisterListener(listener)
+            Log.i(TAG, "[v2.12.0] Gyroscope tracking stopped — listener unregistered")
+        }
     }
 }
