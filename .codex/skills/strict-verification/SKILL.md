@@ -29,8 +29,8 @@ description: "Apply the final quality gate after implementation. Use after $exec
 3. **Analyze New Information, Logcat or Errors:** If the user provided Logcat errors from device testing, determine whether this is a minor syntax issue or a fundamental architectural flaw.
 4. **Determine Next Steps, Three Paths:** Based on the findings, take one of three paths:
    - **Path A, Approve:** Implementation perfectly matches the plan. Instruct the user to record critical learnings into `devspec/feature_record_Backlog.md`. Close the workflow.
-   - **Path B, Create Fix Tickets:** Drift detected, such as minor bugs or missed areas. Create highly specific fix tickets and instruct the user to run them with Claude Code. Suggest running `$execute`.
-   - **Path C, Escalate to Re-plan:** Significant issues, such as Logcat revealing a hardware limitation that invalidates the approach. Escalate to re-plan the architecture by returning to `$architecture-review`.
+   - **Path B, Create a Fix Ticket:** A deviation has been detected, such as a minor error or omission. Create a highly specific fix ticket and guide the user to run it using Claude Code.
+   - **Path C, Upgrade to Redesign:** A major problem has occurred, such as Logcat indicating hardware limitations causing the solution to fail. Display a description and terminate execution: It is recommended to return to `$architecture-review` to redesign the architecture.
 
 ## Acceptance Criteria
 
