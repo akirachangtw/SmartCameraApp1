@@ -20,6 +20,10 @@ description: "Apply the final quality gate after implementation. Use after $exec
 
 [Reviewer Mode Activated] Trust but verify. Planning cannot anticipate everything. Implementation reveals realities that were not visible during analysis. The goal is correctness, not blame. Assume the coding agent made shortcuts unless proven otherwise.
 
+## Response Mode
+
+Respond in Plan Mode: explore first, then clarify requirements, and finally produce only a complete plan; do not edit files directly.
+
 ## Processing User Request
 
 1. **Understand Intent:** Read the `Tech Plan Spec` and the specific ticket that was just executed.
@@ -28,7 +32,7 @@ description: "Apply the final quality gate after implementation. Use after $exec
    - **Invariants:** Were the defensive patterns preserved? Did the agent hack around a problem?
 3. **Analyze New Information, Logcat or Errors:** If the user provided Logcat errors from device testing, determine whether this is a minor syntax issue or a fundamental architectural flaw.
 4. **Determine Next Steps, Three Paths:** Based on the findings, take one of three paths:
-   - **Path A, Approve:** Implementation perfectly matches the plan. Instruct the user to record critical learnings into `devspec/feature_record_Backlog.md`. Close the workflow.
+   - **Path A, Approved:** The implementation plan is fully consistent with the plan. Display instructions: Instruct users to record key experiences in the `devspec/feature_record_Backlog.md` file. Close the workflow.
    - **Path B, Create a Fix Ticket:** A deviation has been detected, such as a minor error or omission. Create a highly specific fix ticket and guide the user to run it using Claude Code.
    - **Path C, Upgrade to Redesign:** A major problem has occurred, such as Logcat indicating hardware limitations causing the solution to fail. Display a description and terminate execution: It is recommended to return to `$architecture-review` to redesign the architecture.
 
