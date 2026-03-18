@@ -12,7 +12,7 @@
 package com.akirachang.ai.photographer.domain.camera
 
 import android.util.Log
-import com.akirachang.ai.photographer.data.sensor.GyroscopeData
+import com.akirachang.ai.photographer.domain.sensor.GyroscopeData
 
 /**
  * Pure math engine: converts raw gyroscope samples into a pixel-space camera motion vector.

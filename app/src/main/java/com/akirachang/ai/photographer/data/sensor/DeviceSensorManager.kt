@@ -21,26 +21,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlin.math.abs
-
-/**
- * Raw gyroscope sample from TYPE_GYROSCOPE.
- *
- * All values are in rad/s using the Android sensor coordinate system:
- *   X axis = right edge of device (pitch)
- *   Y axis = top edge of device  (roll/yaw in portrait)
- *   Z axis = out of screen face  (yaw in flat orientation)
- *
- * @property x Angular velocity around X axis (rad/s) — pitch rate
- * @property y Angular velocity around Y axis (rad/s) — yaw rate (portrait)
- * @property z Angular velocity around Z axis (rad/s) — roll rate
- * @property timestamp Sensor event timestamp in nanoseconds (System.nanoTime epoch)
- */
-data class GyroscopeData(
-    val x: Float,
-    val y: Float,
-    val z: Float,
-    val timestamp: Long,
-)
+import com.akirachang.ai.photographer.domain.sensor.GyroscopeData
 
 /**
  * Data class representing device orientation
