@@ -1993,3 +1993,111 @@ FocusOverlay(
 - [ ] `currentFps` StateFlow 考慮同樣模式（FPSOverlay 目前從頂層讀取）
 
 ---
+
+## Clean Architecture Sensor DI 模式 (v2.12.0-22 Ticket 1.5)
+
+**確立日期**: 2026-03-18
+**版本**: v2.12.0-22（Ticket 1.5 — DeviceSensorManager 介面抽取）
+**Commit**: `725f04c`
+
+本節記錄「Domain 純介面 + Data 具體實作 + Hilt @Binds/@Provides 雙路徑」的標準模式，適用於所有需要 Android 硬體隔離的 Domain 合約。
+
+---
+
+### ✅ Confirmed：Domain 介面抽取三步驟
+
+#### Step 1：Domain 層定義純介面（零 Android import）
+
+```kotlin
+// domain/sensor/DeviceSensorManager.kt
+package com.akirachang.ai.photographer.domain.sensor
+
+import kotlinx.coroutines.flow.Flow
+
+interface DeviceSensorManager {
+    fun startGyroscopeTracking(): Flow<GyroscopeData>
+}
+```
+
+**不變量（Invariant）**：
+- 介面宣告體內**絕對禁止** `import android.*`
+- 唯一允許的 import 是 Kotlin/KotlinX 標準庫（`Flow`、`kotlinx.coroutines.*`）
+- 領域模型（如 `GyroscopeData`）獨立拆到同 package 的獨立檔案（`GyroscopeData.kt`）
+
+#### Step 2：Data 層具體實作 implement 介面
+
+```kotlin
+// data/sensor/DeviceSensorManagerImpl.kt
+class DeviceSensorManagerImpl(context: Context) : DeviceSensorManager {
+    // Android SensorManager 實作細節全在此層
+    override fun startGyroscopeTracking(): Flow<GyroscopeData> = callbackFlow { ... }
+
+    // 非介面方法（Presentation 層特有需求）保留在 Impl
+    fun areSensorsAvailable(): Boolean = ...
+    fun startOrientationTracking(): Flow<OrientationData> = ...
+    fun hasGyroscope(): Boolean = ...
+}
+```
+
+**設計決策**：presentation 層特有方法（`areSensorsAvailable`、`startOrientationTracking`）**不放進 domain 介面**，CameraViewModel 注入具體型別即可存取。
+
+#### Step 3：DI 雙路徑 — @Provides 具體型 + @Binds 介面
+
+```kotlin
+// di/AppModule.kt
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class AppModule {
+
+    // Domain 介面綁定（供 domain-layer 或 future 組件注入）
+    @Binds @Singleton
+    abstract fun bindDeviceSensorManager(impl: DeviceSensorManagerImpl): DeviceSensorManager
+
+    companion object {
+        // 具體型提供（供 CameraViewModel 等需要完整 API 的 caller 注入）
+        @Provides @Singleton
+        fun provideDeviceSensorManagerImpl(@ApplicationContext context: Context): DeviceSensorManagerImpl =
+            DeviceSensorManagerImpl(context)
+    }
+}
+```
+
+**Hilt 雙路徑規則**：
+- `@Provides` 回傳具體型 `DeviceSensorManagerImpl` → Hilt 能注入具體型
+- `@Binds` 將具體型映射至介面 `DeviceSensorManager` → Hilt 能注入介面
+- **`@Provides` 必須在 `companion object`**（Hilt abstract module 限制）
+- **`@Binds` 必須在 abstract class 本體**（不可在 companion object）
+
+---
+
+### ⚠️ Critical Warning：Hilt @Binds 陷阱
+
+**禁止行為**：
+- ❌ `@Provides` 和 `@Binds` 都在 companion object 或都在 abstract class 外 → Hilt 編譯錯誤
+- ❌ `@Provides` 回傳介面型別、自行 `return impl` → 語意模糊，應改用 `@Binds`
+- ❌ 在 domain 介面引入 `android.hardware.*` — 破壞 Clean Architecture 隔離
+
+**CameraViewModel 注入策略**：
+- CameraViewModel 注入 **`DeviceSensorManagerImpl`**（具體型），可使用全部 API
+- 未來 domain UseCase 注入 **`DeviceSensorManager`**（介面型），只用 `startGyroscopeTracking()`
+
+---
+
+### 🔍 Code Locations（v2.12.0-22 基線）
+
+| 組件 | 位置 | 作用 |
+|------|------|------|
+| Domain 介面 | `domain/sensor/DeviceSensorManager.kt` | 純合約，零 Android import |
+| 領域模型 | `domain/sensor/GyroscopeData.kt` | 獨立 data class，同 package |
+| 具體實作 | `data/sensor/DeviceSensorManagerImpl.kt` | 全部 Android 實作細節 |
+| DI 綁定 | `di/AppModule.kt` | `@Binds` 介面 + `@Provides` 具體型 |
+| ViewModel 注入點 | `CameraViewModel.kt:60` | `DeviceSensorManagerImpl`（具體型） |
+
+---
+
+### 📋 Backlog
+
+- [x] DeviceSensorManager 介面抽取 — ✅ 完成 (v2.12.0-22, 2026-03-18) | Build PASS、SV PASS
+- [ ] IMU 整合接線（Ticket 2）：`ImuCompensator` 接入 OF 管線（`observePreviewForOpticalFlow` → `processOpticalFlowFrame` → `OpticalFlowTracker.track`）
+
+---
