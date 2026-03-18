@@ -1,14 +1,6 @@
 package com.akirachang.ai.photographer.domain.sensor
 
-import android.content.Context
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
-import android.util.Log
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 
 /**
  * Raw gyroscope sample from TYPE_GYROSCOPE.
@@ -26,71 +18,25 @@ data class GyroscopeData(
 )
 
 /**
- * Hardware sensor wrapper for IMU gyroscope data.
+ * Domain contract for hardware gyroscope data stream.
  *
- * Responsibilities:
- * - Register/unregister TYPE_GYROSCOPE listener
- * - Provide graceful degradation when gyroscope is unavailable
- * - Convert SensorEvent into Flow<GyroscopeData>
+ * Implementations must provide a cold [Flow] of gyroscope samples.
+ * Graceful degradation (no gyroscope hardware) is handled by the
+ * implementation — callers receive an empty Flow and require no
+ * special handling.
+ *
+ * v2.12.0 Ticket 1.5: Extracted as pure domain interface to enforce
+ * Clean Architecture dependency inversion.
  */
-class DeviceSensorManager(context: Context) {
-
-    companion object {
-        private const val TAG = "DomainSensorManager"
-    }
-
-    private val sensorManager: SensorManager =
-        context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-
-    private val gyroscope: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
-
-    fun hasGyroscope(): Boolean = gyroscope != null
+interface DeviceSensorManager {
 
     /**
-     * Starts gyroscope tracking and emits samples as Flow<GyroscopeData>.
+     * Returns a cold [Flow] of [GyroscopeData] samples at
+     * [android.hardware.SensorManager.SENSOR_DELAY_FASTEST] rate.
      *
-     * Graceful degradation:
-     * - If gyroscope hardware is unavailable, this flow closes without throwing.
-     *
-     * Defensive lifecycle:
-     * - Listener is always unregistered in awaitClose to prevent leaks.
+     * The Flow closes without error if gyroscope hardware is absent.
+     * The listener is guaranteed to be unregistered when collection
+     * is cancelled.
      */
-    fun startGyroscopeTracking(): Flow<GyroscopeData> = callbackFlow {
-        val gyroSensor = gyroscope
-        if (gyroSensor == null) {
-            Log.w(TAG, "Gyroscope not available, close flow safely")
-            close()
-            return@callbackFlow
-        }
-
-        val listener = object : SensorEventListener {
-            override fun onSensorChanged(event: SensorEvent) {
-                trySend(
-                    GyroscopeData(
-                        x = event.values[0],
-                        y = event.values[1],
-                        z = event.values[2],
-                        timestamp = event.timestamp,
-                    ),
-                )
-            }
-
-            override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) = Unit
-        }
-
-        val registered = sensorManager.registerListener(
-            listener,
-            gyroSensor,
-            SensorManager.SENSOR_DELAY_FASTEST,
-        )
-        if (!registered) {
-            Log.e(TAG, "Failed to register gyroscope listener")
-            close()
-            return@callbackFlow
-        }
-
-        awaitClose {
-            sensorManager.unregisterListener(listener)
-        }
-    }
+    fun startGyroscopeTracking(): Flow<GyroscopeData>
 }

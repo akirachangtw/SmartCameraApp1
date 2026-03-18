@@ -34,7 +34,7 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import kotlin.math.min
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
-import com.akirachang.ai.photographer.data.sensor.DeviceSensorManager
+import com.akirachang.ai.photographer.data.sensor.DeviceSensorManagerImpl
 import com.akirachang.ai.photographer.data.sensor.OrientationData
 // v2.5.2 Phase 7: Removed CameraSelector import - using CameraLens instead
 import com.akirachang.ai.photographer.domain.model.CaptureResult
@@ -57,7 +57,7 @@ class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
     private val analyzeCompositionUseCase: AnalyzeCompositionUseCase,
     private val analyzeLightingUseCase: AnalyzeLightingUseCase,
-    private val sensorManager: DeviceSensorManager,
+    private val sensorManager: DeviceSensorManagerImpl,
     private val overlayPreferences: OverlayPreferences,
     private val capabilityDetector: com.akirachang.ai.photographer.data.source.camera.CameraCapabilityDetector
 ) : ViewModel() {

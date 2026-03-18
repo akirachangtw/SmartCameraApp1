@@ -1,6 +1,7 @@
 /**
- * ClassName: DeviceSensorManager
- * Description: Manages device orientation and gyroscope sensors
+ * ClassName: DeviceSensorManagerImpl
+ * Description: Concrete Android implementation of the domain DeviceSensorManager interface.
+ *              Manages device orientation (accelerometer + magnetometer) and gyroscope sensors.
  * Author: Claude Code
  * Date: 2025-12-01
  * Version: 2.2.0
@@ -8,6 +9,8 @@
  * Modifications:
  * - 2025-12-01: Initial creation for V1.0 completion (LevelIndicator feature)
  * - 2026-03-18: v2.12.0 — Added TYPE_GYROSCOPE support for ImuCompensator foundation
+ * - 2026-03-18: v2.12.0 Ticket 1.5 — Renamed from DeviceSensorManager to DeviceSensorManagerImpl;
+ *               now implements domain.sensor.DeviceSensorManager interface
  */
 package com.akirachang.ai.photographer.data.sensor
 
@@ -21,6 +24,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlin.math.abs
+import com.akirachang.ai.photographer.domain.sensor.DeviceSensorManager
 import com.akirachang.ai.photographer.domain.sensor.GyroscopeData
 
 /**
@@ -48,25 +52,24 @@ data class OrientationData(
 }
 
 /**
- * Manages device sensors for orientation tracking
+ * Concrete implementation of [DeviceSensorManager].
  *
- * Uses accelerometer and magnetometer to compute device orientation.
- * Provides a Flow-based API for reactive orientation updates.
+ * Manages accelerometer + magnetometer for orientation (LevelIndicator)
+ * and gyroscope for IMU motion compensation (ImuCompensator pipeline).
  *
  * Usage:
  * ```
- * val sensorManager = DeviceSensorManager(context)
+ * val sensorManager = DeviceSensorManagerImpl(context)
  * sensorManager.startOrientationTracking()
  *     .collect { orientation ->
- *         // Update UI with roll angle
  *         updateLevelIndicator(orientation.roll)
  *     }
  * ```
  */
-class DeviceSensorManager(context: Context) {
+class DeviceSensorManagerImpl(context: Context) : DeviceSensorManager {
 
     companion object {
-        private const val TAG = "DeviceSensorManager"
+        private const val TAG = "DeviceSensorManagerImpl"
 
         // Smoothing factor for exponential moving average (0.0 - 1.0)
         // Lower = smoother but slower response
@@ -233,7 +236,7 @@ class DeviceSensorManager(context: Context) {
         return (previous * (1 - SMOOTHING_FACTOR)) + (current * SMOOTHING_FACTOR)
     }
 
-    // ── v2.12.0: Gyroscope API ─────────────────────────────────────────────
+    // ── v2.12.0: Gyroscope API (implements DeviceSensorManager) ──────────────
 
     /**
      * Returns true if a hardware gyroscope is available.
@@ -245,6 +248,8 @@ class DeviceSensorManager(context: Context) {
     /**
      * Starts raw gyroscope tracking and returns a cold [Flow] of [GyroscopeData].
      *
+     * Implements [DeviceSensorManager.startGyroscopeTracking].
+     *
      * Graceful degradation: if no gyroscope hardware is found the Flow closes
      * immediately without emitting — callers MUST handle the empty stream.
      *
@@ -254,7 +259,7 @@ class DeviceSensorManager(context: Context) {
      * Sampling rate: [SensorManager.SENSOR_DELAY_FASTEST] — ImuCompensator
      * does its own dt-based integration so higher frequency = better accuracy.
      */
-    fun startGyroscopeTracking(): Flow<GyroscopeData> = callbackFlow {
+    override fun startGyroscopeTracking(): Flow<GyroscopeData> = callbackFlow {
         if (gyroscope == null) {
             Log.w(TAG, "[v2.12.0] Gyroscope not available — IMU compensation disabled (graceful degradation)")
             close()
