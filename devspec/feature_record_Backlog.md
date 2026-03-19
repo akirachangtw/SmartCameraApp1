@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-03-18
+Last updated: 2026-03-20
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -2137,3 +2137,65 @@ compensatedDy = medDy - imuDy * scaleY
 **L3 Strict Verification 判決**（2026-03-18）：Fix 2A 補上 `startTracking()` 漏缺的 reset，消除狀態機漏洞。
 
 ---
+
+
+---
+
+### 🔑 v2.12.0-26 關鍵學習（幾何管線防禦守則）
+
+**守則 1：無效幾何必須傳播為 null，絕對不可回傳 Identity Matrix**
+
+**背景**：`createSensorToViewMatrix()` 早期版本在 `imageWidth <= 0` 或 `contentBounds.width() <= 0f` 時回傳 `Matrix()`（單位矩陣）。單位矩陣是「外觀無害的偽裝者」——它不會拋出 Exception，但會讓所有座標對應到 (0, 0)，導致對焦框靜默地定位到畫面左上角，**而非觸發可觀察的錯誤**。這種沉默失敗比 Crash 更危險，因為它在 Logcat 中不留任何痕跡。
+
+**正確做法**：
+- `createSensorToViewMatrix()` 回傳 `Matrix?`，無效輸入時 `return null`
+- `buildNewPipelineGeometryContext()` 回傳 `GeometryContext?`，`effectiveImgW/H <= 0` 時 `return null`
+- 呼叫端使用 `?: return` 或 `?: return emptyList()` 明確中斷執行
+- `latestSensorToViewMatrix = null` 讓 `PreviewViewGeometryMapper` 自然退回 FIT_CENTER fallback，這是已驗證的安全路徑
+
+**禁止行為**：
+- ❌ `return Matrix()` — 偽裝成功，座標靜默歸零
+- ❌ `return GeometryContext(imageWidth=0, ...)` — 下游除法仍會產生 Infinity
+- ❌ 在 Log.e 之後繼續往下建構 Context — Log 警告無效，仍執行危險運算
+
+---
+
+**守則 2：影像分析管線存活性必須有心跳 Log**
+
+**背景**：在 Sony XQ-BT52 實機測試中，發生了「管線靜默死亡」現象——AF hunting loop 讓 `StandaloneCoroutine was cancelled` 洗板，但 `[v2.8.4 E2E]` 完全消失。純靠 `[v2.8.4 E2E]` 無法區分「管線正常但無人臉」與「管線已死亡」兩種狀態，導致診斷時間大幅延長。
+
+**正確做法**：在 `observePreviewForAnalysis()` 的 `onEach` 最開頭，加入週期性心跳 log：
+```kotlin
+if (mlkitProcessedFrames % 30L == 0L) {
+    Log.i("SmartCameraAnalyzer", "[SP-A Heartbeat] bitmap analysis alive frame=$mlkitProcessedFrames")
+}
+```
+- **心跳間隔**：每 30 幀（約 3–9 秒，依 EWMA throttle 而定）
+- **驗收標準**：Sony 實機見到 `frame=90→120→150…` 穩定遞增 = 管線存活
+- **心跳消失診斷路徑**：`previewBitmap` flow 未發幀 → 檢查相機權限（重新安裝後權限被清除）→ 或相機 binding 失敗
+
+**此心跳為強制性診斷基礎設施，不可在未來重構中移除。**
+
+---
+
+**守則 3：SP-C In-Flight 鎖定 — 被動 AF 不得自我取消**
+
+**背景**：ML Kit 以 ~3 FPS 更新 DetectionResult，每次更新都觸發 `runNewFocusPipeline()`。舊版 Step G 無條件執行 `focusControllerJob?.cancel()`，導致 Sony HAL 的 AF 請求在完成前就被取消，下一幀又立即觸發新請求，形成 `StandaloneCoroutine was cancelled` 的自我取消無限迴圈。
+
+**正確做法**：
+```kotlin
+val isJobActive = focusControllerJob?.isActive == true
+if (isJobActive && !userIntent.isTapToFocusActive) {
+    Log.v(TAG, "[SP-C] Skipping AF request: previous job still in-flight")
+    // fall through to Step H for UI update — do NOT cancel active job
+} else {
+    focusControllerJob?.cancel()
+    focusControllerJob = viewModelScope.launch { ... }
+}
+```
+同時，`catch (CancellationException)` 必須在 `catch (Exception)` 之前攔截，`throw e` 重新拋出，確保 coroutine 正確標記為 cancelled 狀態，且不汙染 throttle 狀態機的 `onFailure()` 計數。
+
+**`CancellationException` 黃金原則**（延伸自 v2.12.0-05）：
+- Passive AF 被 user tap 中斷 → `CancellationException` → `throw e`，不呼叫 `onFailure()`
+- Sony HAL 取消 future → `CancellationException` → 同上
+- 真正的硬體錯誤 → `Exception`（非 Cancellation）→ `onFailure()`，顯示錯誤
