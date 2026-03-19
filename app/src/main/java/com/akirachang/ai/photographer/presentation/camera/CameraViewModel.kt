@@ -51,7 +51,6 @@ import com.akirachang.ai.photographer.data.source.analysis.GuidelineAnalyzer
 import com.akirachang.ai.photographer.BuildConfig
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import kotlin.math.abs
-import kotlin.math.max
 import javax.inject.Inject
 
 @HiltViewModel
@@ -1461,19 +1460,33 @@ class CameraViewModel @Inject constructor(
         val rawImgW = detection?.imageWidth ?: lastKnownImageWidth
         val rawImgH = detection?.imageHeight ?: lastKnownImageHeight
         val rotation = detection?.rotationDegrees ?: 0
+        // SP-1: effectiveImgW/H derived from imageProxy dimensions with rotation swap — never from UI layer
         val effectiveImgW = if (rotation == 90 || rotation == 270) rawImgH else rawImgW
         val effectiveImgH = if (rotation == 90 || rotation == 270) rawImgW else rawImgH
         val contentBounds = currentState.contentBounds
-        return com.akirachang.ai.photographer.domain.model.focus.GeometryContext(
+        // SP-3: Use only true PreviewView size; drop the erroneous max(previewWidth, contentBounds.right) fallback
+        val resolvedPreviewW = previewWidth ?: 0
+        val resolvedPreviewH = previewHeight ?: 0
+        if (resolvedPreviewW == 0 || resolvedPreviewH == 0) {
+            Log.w(TAG, "[CoordSystem] PreviewView size is unknown, fallback path triggered")
+        }
+        val context = com.akirachang.ai.photographer.domain.model.focus.GeometryContext(
             imageWidth = effectiveImgW,
             imageHeight = effectiveImgH,
-            previewWidth = max(previewWidth ?: 0, contentBounds.right.toInt()),
-            previewHeight = max(previewHeight ?: 0, contentBounds.bottom.toInt()),
+            previewWidth = resolvedPreviewW,
+            previewHeight = resolvedPreviewH,
             sensorToBufferMatrix = null,
             sensorToViewMatrix = latestSensorToViewMatrix?.let { android.graphics.Matrix(it) },
             isFrontCamera = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
             isMirroredPreview = currentState.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
         )
+        // SP-4: Mandatory diagnostic log — coordinate system ground truth snapshot
+        Log.i(TAG, "[CoordSystem] imageProxy=${effectiveImgW}x${effectiveImgH} " +
+            "(raw=${rawImgW}x${rawImgH}, rot=${rotation}°) " +
+            "preview=${resolvedPreviewW}x${resolvedPreviewH} " +
+            "contentBounds=[L=${contentBounds.left}, T=${contentBounds.top}, " +
+            "W=${contentBounds.width()}, H=${contentBounds.height()}]")
+        return context
     }
 
     /**
