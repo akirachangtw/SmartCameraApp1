@@ -1,9 +1,27 @@
 # Handover Summary — v2.12.0 AF Focus Fixes
 
-**Date**: 2026-03-06
+**Date**: 2026-03-19 (updated)
 **Branch**: `feature/camera-core-v2.12.0`
 **Test Device**: Pixel 9a (Device ID: `59131JEBF17244`)
-**Current Status**: ⏳ **Pending Work NB Testing — v2.12.0-08 + v2.12.0-09**
+**Current Status**: ⏳ **Pending Work NB Testing — v2.12.0-25 [CoordSystem] log capture**
+
+---
+
+## v2.12.0-25 交接（2026-03-19）
+
+**Commit**: `9a830c0`
+**執行指南**: [`v2.12.0-25_work_nb_execution.md`](v2.12.0-25_work_nb_execution.md)
+
+| Ticket | 內容 | 狀態 |
+|--------|------|------|
+| 1A | `HIGH_SAMPLING_RATE_SENSORS` 權限 | ✅ Home NB BUILD PASS |
+| SP-1/3/4 | `buildNewPipelineGeometryContext` 幾何資料來源修復 + `[CoordSystem]` log | ✅ Home NB BUILD PASS |
+
+**Work NB 任務**：
+1. 安裝 v2.12.0-25 APK
+2. 捕獲 `[CoordSystem]` log（TC-25-01 ~ TC-25-03）
+3. 確認無 `SecurityException: HIGH_SAMPLING_RATE_SENSORS`
+4. 結果存至 `docs/test_results/v2.12.0/logcat_v2.12.0-25_pixel9a_<日期>.log`
 
 ---
 
