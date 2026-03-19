@@ -1252,51 +1252,67 @@ class CameraViewModel @Inject constructor(
         // ── Step G: FocusController.apply() (Job-controlled async) ───────────────
         if (effectiveDecision.shouldTriggerFocus || effectiveDecision.shouldTriggerMetering) {
             val geometryContext = buildNewPipelineGeometryContext(currentState) ?: return
-            // v2.12.0-15 SV-S5b: Cancel previous job to prevent unbounded coroutine spawning
-            focusControllerJob?.cancel()
-            focusControllerJob = viewModelScope.launch {
-                try {
-                    val result = cameraXFocusController.apply(
-                        decision = effectiveDecision,
-                        primaryTarget = trackedState.primaryTarget,
-                        geometryContext = geometryContext,
-                    )
-                    lastNewPipelineTriggerMs = nowMs
-                    lastFocusControllerResult = result
-                    Log.d(TAG, "[v2.12.0-15] FocusController result: triggerSent=${result.triggerSent}, optical=${result.opticalResult}")
-                    // v2.12.0-15 SV-S5b: onSuccess/onFailure throttle feedback
-                    if (result.triggerSent) {
-                        when (result.opticalResult) {
-                            com.akirachang.ai.photographer.domain.model.focus.OpticalFocusState.FOCUSED ->
-                                newFocusTriggerThrottle.onSuccess()
-                            com.akirachang.ai.photographer.domain.model.focus.OpticalFocusState.NOT_FOCUSED ->
-                                newFocusTriggerThrottle.onFailure(1)
-                            // v2.12.0-15 Fix: Continuous AF (PASSIVE_CONTINUOUS) — arm throttle to prevent
-                            // infinite re-trigger. Sony XQ-BT52 returns PASSIVE_CONTINUOUS, not FOCUSED.
-                            com.akirachang.ai.photographer.domain.model.focus.OpticalFocusState.PASSIVE_CONTINUOUS ->
-                                newFocusTriggerThrottle.onSuccess()
-                            else -> Unit
+
+            // SP-C: In-Flight lock — skip passive AF re-trigger if HAL job is still active.
+            // Only a user tap (isTapToFocusActive) may preempt and cancel the running job.
+            // This prevents the self-cancellation loop on Sony XQ-BT52 where each ML Kit frame
+            // cancels the previous AF coroutine before it completes.
+            val isJobActive = focusControllerJob?.isActive == true
+            if (isJobActive && !userIntent.isTapToFocusActive) {
+                Log.v(TAG, "[SP-C] Skipping AF request: previous job still in-flight (passive tracking)")
+                // Fall through to Step H for synchronous UI update — do NOT cancel the active job
+            } else {
+                // v2.12.0-15 SV-S5b: Cancel previous job to prevent unbounded coroutine spawning
+                focusControllerJob?.cancel()
+                focusControllerJob = viewModelScope.launch {
+                    try {
+                        val result = cameraXFocusController.apply(
+                            decision = effectiveDecision,
+                            primaryTarget = trackedState.primaryTarget,
+                            geometryContext = geometryContext,
+                        )
+                        lastNewPipelineTriggerMs = nowMs
+                        lastFocusControllerResult = result
+                        Log.d(TAG, "[v2.12.0-15] FocusController result: triggerSent=${result.triggerSent}, optical=${result.opticalResult}")
+                        // v2.12.0-15 SV-S5b: onSuccess/onFailure throttle feedback
+                        if (result.triggerSent) {
+                            when (result.opticalResult) {
+                                com.akirachang.ai.photographer.domain.model.focus.OpticalFocusState.FOCUSED ->
+                                    newFocusTriggerThrottle.onSuccess()
+                                com.akirachang.ai.photographer.domain.model.focus.OpticalFocusState.NOT_FOCUSED ->
+                                    newFocusTriggerThrottle.onFailure(1)
+                                // v2.12.0-15 Fix: Continuous AF (PASSIVE_CONTINUOUS) — arm throttle to prevent
+                                // infinite re-trigger. Sony XQ-BT52 returns PASSIVE_CONTINUOUS, not FOCUSED.
+                                com.akirachang.ai.photographer.domain.model.focus.OpticalFocusState.PASSIVE_CONTINUOUS ->
+                                    newFocusTriggerThrottle.onSuccess()
+                                else -> Unit
+                            }
                         }
+                        // v2.12.0-15 SV-S5b: Re-reduce StateMachine with actual controller result
+                        val nowMsAsync = System.currentTimeMillis()
+                        val updatedInput = com.akirachang.ai.photographer.domain.model.focus.FocusStateInput(
+                            trackedTargetState = trackedState,
+                            eyeAfDecision = effectiveDecision,
+                            focusControllerResult = result,
+                            userIntent = buildUserIntentState(_state.value),
+                            systemEvent = com.akirachang.ai.photographer.domain.model.focus.SystemEvent.NORMAL_UPDATE,
+                            nowMs = nowMsAsync,
+                            isFrontCamera = _state.value.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
+                            isFixedFocus = _state.value.isFixedFocusLens,
+                        )
+                        val updatedUiState = focusStateMachine.reduce(updatedInput)
+                        // v2.12.0-18 Task 3: Apply 1-Euro smoother (async path)
+                        val smoothedAsync = applySmoother(updatedUiState, trackedState.primaryTarget?.stableId, nowMsAsync)
+                        _state.update { it.copy(focusUiState = smoothedAsync) }
+                        Log.d(TAG, "[v2.12.0-15] Re-reduced after FocusController: lens=${updatedUiState.lensFocusState}")
+                    } catch (e: CancellationException) {
+                        // SP-C Task 2: Graceful degradation — CancellationException means a user tap
+                        // preempted this passive AF job. Not a HAL failure; do NOT update throttle state.
+                        Log.d(TAG, "[SP-C] FocusController job cancelled gracefully — not a HAL failure")
+                        throw e  // re-throw to properly mark coroutine as cancelled
+                    } catch (e: Exception) {
+                        Log.w(TAG, "[v2.12.0-15] FocusController.apply() failed: ${e.message}")
                     }
-                    // v2.12.0-15 SV-S5b: Re-reduce StateMachine with actual controller result
-                    val nowMsAsync = System.currentTimeMillis()
-                    val updatedInput = com.akirachang.ai.photographer.domain.model.focus.FocusStateInput(
-                        trackedTargetState = trackedState,
-                        eyeAfDecision = effectiveDecision,
-                        focusControllerResult = result,
-                        userIntent = buildUserIntentState(_state.value),
-                        systemEvent = com.akirachang.ai.photographer.domain.model.focus.SystemEvent.NORMAL_UPDATE,
-                        nowMs = nowMsAsync,
-                        isFrontCamera = _state.value.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT,
-                        isFixedFocus = _state.value.isFixedFocusLens,
-                    )
-                    val updatedUiState = focusStateMachine.reduce(updatedInput)
-                    // v2.12.0-18 Task 3: Apply 1-Euro smoother (async path)
-                    val smoothedAsync = applySmoother(updatedUiState, trackedState.primaryTarget?.stableId, nowMsAsync)
-                    _state.update { it.copy(focusUiState = smoothedAsync) }
-                    Log.d(TAG, "[v2.12.0-15] Re-reduced after FocusController: lens=${updatedUiState.lensFocusState}")
-                } catch (e: Exception) {
-                    Log.w(TAG, "[v2.12.0-15] FocusController.apply() failed: ${e.message}")
                 }
             }
         }
