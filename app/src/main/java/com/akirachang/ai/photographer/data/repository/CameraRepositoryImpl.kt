@@ -31,6 +31,7 @@ import android.location.Location
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
 import com.akirachang.ai.photographer.data.source.camera.CameraInputSource
 import com.akirachang.ai.photographer.data.source.camera.SmartCameraAnalyzer
+import com.akirachang.ai.photographer.domain.camera.ImuCompensator
 import com.akirachang.ai.photographer.data.source.ml.ImageAnalyzer
 import com.akirachang.ai.photographer.data.opencv.TrackingResult
 import com.akirachang.ai.photographer.domain.model.CameraLens
@@ -64,7 +65,8 @@ class CameraRepositoryImpl @Inject constructor(
     private val analyzeLightingUseCase: AnalyzeLightingUseCase,
     private val cameraInputSource: CameraInputSource,
     private val overlayPreferences: OverlayPreferences,  // v2.9.7 Day 1-2: GPS settings
-    @ApplicationScope private val applicationScope: CoroutineScope  // v2.9.8: Async GPS tagging
+    @ApplicationScope private val applicationScope: CoroutineScope,  // v2.9.8: Async GPS tagging
+    private val imuCompensator: ImuCompensator  // [v2.12.0-23] Shared IMU math engine
 ) : CameraRepository {
 
     companion object {
@@ -563,7 +565,8 @@ class CameraRepositoryImpl @Inject constructor(
                     // Update lighting state on main thread
                     _lightingResults.value = lightingState
                 },
-                minObjectConfidence = MIN_OBJECT_CONFIDENCE
+                minObjectConfidence = MIN_OBJECT_CONFIDENCE,
+                imuCompensator = imuCompensator  // [v2.12.0-23] Shared IMU engine
             )
 
             // Attach analyzer to camera controller

@@ -25,6 +25,7 @@ import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.data.opencv.OpticalFlowTracker
 import com.akirachang.ai.photographer.data.opencv.TrackingResult
 import com.akirachang.ai.photographer.data.source.camera.toGrayMat
+import com.akirachang.ai.photographer.domain.camera.ImuCompensator
 import com.akirachang.ai.photographer.util.CoordinateMapper
 import org.opencv.core.Point
 import javax.inject.Inject
@@ -42,7 +43,8 @@ import javax.inject.Inject
  * - v2.x.x Phase 3: Optical flow point tracking
  */
 class ImageAnalyzer @Inject constructor(
-    private val mlKitDetector: MLKitDetector
+    private val mlKitDetector: MLKitDetector,
+    private val imuCompensator: ImuCompensator  // [v2.12.0-23] Shared IMU engine
 ) : ImageAnalysis.Analyzer {
 
     companion object {
@@ -134,7 +136,10 @@ class ImageAnalyzer @Inject constructor(
 
         // Create tracker if needed
         if (opticalFlowTracker == null) {
-            opticalFlowTracker = OpticalFlowTracker()
+            // [v2.12.0-23] Inject shared ImuCompensator for camera-motion cancellation
+            opticalFlowTracker = OpticalFlowTracker(imuCompensator = imuCompensator)
+            // TODO: 後續 Ticket 從 CameraCharacteristics 動態讀取實際焦距並設定 opticalFlowTracker.focalLengthPx
+            opticalFlowTracker!!.focalLengthPx = 2000f
         }
 
         // Start tracking

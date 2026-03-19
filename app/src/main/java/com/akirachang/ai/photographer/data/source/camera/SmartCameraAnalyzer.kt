@@ -41,6 +41,7 @@ import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 import com.akirachang.ai.photographer.data.opencv.OpticalFlowTracker
+import com.akirachang.ai.photographer.domain.camera.ImuCompensator
 import com.akirachang.ai.photographer.data.opencv.TrackingResult
 import org.opencv.core.Mat
 import org.opencv.core.Point
@@ -94,7 +95,8 @@ class SmartCameraAnalyzer(
     private val analyzeLightingUseCase: AnalyzeLightingUseCase,
     private val onDetectionResult: (DetectionResult) -> Unit,
     private val onLightingResult: (LightingState) -> Unit,
-    private val minObjectConfidence: Float = 0.5f
+    private val minObjectConfidence: Float = 0.5f,
+    private val imuCompensator: ImuCompensator = ImuCompensator()  // [v2.12.0-23] Shared IMU engine; default only for tests
 ) : ImageAnalysis.Analyzer {
 
     companion object {
@@ -187,7 +189,10 @@ class SmartCameraAnalyzer(
             return
         }
         if (opticalFlowTracker == null) {
-            opticalFlowTracker = OpticalFlowTracker()
+            // [v2.12.0-23] Inject shared ImuCompensator so the tracker cancels camera motion
+            opticalFlowTracker = OpticalFlowTracker(imuCompensator = imuCompensator)
+            // TODO: 後續 Ticket 從 CameraCharacteristics 動態讀取實際焦距並設定 opticalFlowTracker.focalLengthPx
+            opticalFlowTracker!!.focalLengthPx = 2000f
         }
         opticalFlowTracker?.startTracking(Point(imageX.toDouble(), imageY.toDouble()), imageWidth, imageHeight)
         Log.i(TAG, "[Fix H] OF tracking started at image ($imageX, $imageY), imageSize=${imageWidth}x${imageHeight}")
@@ -236,7 +241,10 @@ class SmartCameraAnalyzer(
                 isPendingInImageCoords = false
                 val imagePoint = Point(pendingTrackX.toDouble(), pendingTrackY.toDouble())
                 if (opticalFlowTracker == null) {
-                    opticalFlowTracker = OpticalFlowTracker()
+                    // [v2.12.0-23] Inject shared ImuCompensator (bitmap path)
+                    opticalFlowTracker = OpticalFlowTracker(imuCompensator = imuCompensator)
+                    // TODO: 後續 Ticket 從 CameraCharacteristics 動態讀取實際焦距並設定 opticalFlowTracker.focalLengthPx
+                    opticalFlowTracker!!.focalLengthPx = 2000f
                 }
                 opticalFlowTracker?.startTracking(imagePoint, bitmap.width, bitmap.height)
                 Log.i(TAG, "[Fix H] Applied pending image-coord track: (${imagePoint.x}, ${imagePoint.y}), bitmapSize=${bitmap.width}x${bitmap.height}")
