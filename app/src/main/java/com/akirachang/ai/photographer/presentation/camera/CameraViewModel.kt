@@ -1251,7 +1251,7 @@ class CameraViewModel @Inject constructor(
 
         // ── Step G: FocusController.apply() (Job-controlled async) ───────────────
         if (effectiveDecision.shouldTriggerFocus || effectiveDecision.shouldTriggerMetering) {
-            val geometryContext = buildNewPipelineGeometryContext(currentState)
+            val geometryContext = buildNewPipelineGeometryContext(currentState) ?: return
             // v2.12.0-15 SV-S5b: Cancel previous job to prevent unbounded coroutine spawning
             focusControllerJob?.cancel()
             focusControllerJob = viewModelScope.launch {
@@ -1334,7 +1334,7 @@ class CameraViewModel @Inject constructor(
     ): List<com.akirachang.ai.photographer.domain.model.focus.FocusTarget> {
         val targets = mutableListOf<com.akirachang.ai.photographer.domain.model.focus.FocusTarget>()
         // v2.12.0-15 SV-S5b: Use GeometryMapper (SSOT) instead of legacy coordinateTransformer
-        val geometryContext = buildNewPipelineGeometryContext(currentState)
+        val geometryContext = buildNewPipelineGeometryContext(currentState) ?: return emptyList()
 
         // Convert faces
         detectionResult.faces.forEachIndexed { index, face ->
@@ -1455,7 +1455,7 @@ class CameraViewModel @Inject constructor(
      */
     private fun buildNewPipelineGeometryContext(
         currentState: CameraState,
-    ): com.akirachang.ai.photographer.domain.model.focus.GeometryContext {
+    ): com.akirachang.ai.photographer.domain.model.focus.GeometryContext? {
         val detection = currentState.detectionResult
         val rawImgW = detection?.imageWidth ?: lastKnownImageWidth
         val rawImgH = detection?.imageHeight ?: lastKnownImageHeight
@@ -1467,6 +1467,12 @@ class CameraViewModel @Inject constructor(
         // SP-3: Use only true PreviewView size; drop the erroneous max(previewWidth, contentBounds.right) fallback
         val resolvedPreviewW = previewWidth ?: 0
         val resolvedPreviewH = previewHeight ?: 0
+        // SP-A guard: abort early on degenerate image dimensions — do not construct a poisoned GeometryContext
+        if (effectiveImgW <= 0 || effectiveImgH <= 0) {
+            Log.e(TAG, "[CoordSystem] Invalid image dimensions: img=${effectiveImgW}x${effectiveImgH} " +
+                "(raw=${rawImgW}x${rawImgH}, rot=${rotation}°) — returning null, caller must skip geometry ops")
+            return null
+        }
         if (resolvedPreviewW == 0 || resolvedPreviewH == 0) {
             Log.w(TAG, "[CoordSystem] PreviewView size is unknown, fallback path triggered")
         }
@@ -1669,6 +1675,11 @@ class CameraViewModel @Inject constructor(
             .sample(ADAPTIVE_THROTTLE_MIN_MS)
             .onEach { bitmap ->
                 try {
+                    // SP-A Heartbeat: log every 30 frames to confirm analysis pipeline is alive
+                    if (mlkitProcessedFrames % 30L == 0L) {
+                        Log.i("SmartCameraAnalyzer", "[SP-A Heartbeat] bitmap analysis alive frame=$mlkitProcessedFrames")
+                    }
+
                     // v2.8.4: End-to-end profiling
                     val e2eStart = System.nanoTime()
 

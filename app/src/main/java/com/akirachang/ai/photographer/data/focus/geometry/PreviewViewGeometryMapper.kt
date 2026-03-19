@@ -112,7 +112,17 @@ class PreviewViewGeometryMapper : GeometryMapper {
         imageWidth: Int,
         imageHeight: Int,
         isFrontCamera: Boolean,
-    ): Matrix {
+    ): Matrix? {
+        // SP-A guard: reject degenerate inputs before division to prevent NaN/Infinity poisoning the Matrix.
+        // Returns null (not identity) so caller can set latestSensorToViewMatrix=null and fall back to FIT_CENTER.
+        if (imageWidth <= 0 || imageHeight <= 0 ||
+            contentBounds.width() <= 0f || contentBounds.height() <= 0f
+        ) {
+            Log.e(TAG, "[CoordSystem] Invalid dimensions for matrix calc: " +
+                "img=${imageWidth}x${imageHeight}, " +
+                "bounds=${contentBounds.width()}x${contentBounds.height()} — returning null")
+            return null
+        }
         val scale = minOf(
             contentBounds.width()  / imageWidth.toFloat(),
             contentBounds.height() / imageHeight.toFloat(),
