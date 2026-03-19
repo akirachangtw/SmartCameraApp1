@@ -94,18 +94,18 @@ class PreviewViewGeometryMapper : GeometryMapper {
 
     /**
      * Build the affine sensor→view matrix directly from geometry inputs.
-     * v2.12.0-17 / SV-FIX-3R-FINAL
+     * v2.12.0-25 / Ticket-2: Uniform FIT_CENTER scaling
      *
-     * Eliminates dependency on presentation-layer CoordinateTransformer for matrix construction.
-     * Math is identical to CoordinateTransformer.toMatrix() but lives in the data/domain layer.
+     * Replaces the non-uniform (scaleX = cW/imgW, scaleY = cH/imgH) formula that caused
+     * coordinate drift when the image AR differs from the preview AR (e.g. 480×640 → 1080×1920).
      *
-     * Row-major layout (android.graphics.Matrix.setValues):
-     *   | MSCALE_X  MSKEW_X   MTRANS_X |
-     *   | MSKEW_Y   MSCALE_Y  MTRANS_Y |
-     *   | MPERSP_0  MPERSP_1  MPERSP_2 |
+     * Math:
+     *   scale   = min(contentBounds.width() / imgW, contentBounds.height() / imgH)
+     *   offsetX = (contentBounds.width()  - imgW * scale) / 2  + contentBounds.left
+     *   offsetY = (contentBounds.height() - imgH * scale) / 2  + contentBounds.top
      *
-     * Front camera: scaleX = -cW/imgW, translateX = contentBounds.right (mirror)
-     * Rear camera:  scaleX =  cW/imgW, translateX = contentBounds.left
+     * Rear camera:  postScale(scale, scale)  → postTranslate(offsetX, offsetY)
+     * Front camera: postScale(-scale, scale) → postTranslate(contentBounds.right - offsetX + contentBounds.left, offsetY)
      */
     fun createSensorToViewMatrix(
         contentBounds: RectF,
@@ -113,21 +113,19 @@ class PreviewViewGeometryMapper : GeometryMapper {
         imageHeight: Int,
         isFrontCamera: Boolean,
     ): Matrix {
-        val scaleX = contentBounds.width() / imageWidth
-        val scaleY = contentBounds.height() / imageHeight
+        val scale = minOf(
+            contentBounds.width()  / imageWidth.toFloat(),
+            contentBounds.height() / imageHeight.toFloat(),
+        )
+        val offsetX = (contentBounds.width()  - imageWidth  * scale) / 2f + contentBounds.left
+        val offsetY = (contentBounds.height() - imageHeight * scale) / 2f + contentBounds.top
         return Matrix().apply {
             if (isFrontCamera) {
-                setValues(floatArrayOf(
-                    -scaleX, 0f, contentBounds.right,
-                    0f, scaleY, contentBounds.top,
-                    0f, 0f, 1f,
-                ))
+                postScale(-scale, scale)
+                postTranslate(contentBounds.right - offsetX + contentBounds.left, offsetY)
             } else {
-                setValues(floatArrayOf(
-                    scaleX, 0f, contentBounds.left,
-                    0f, scaleY, contentBounds.top,
-                    0f, 0f, 1f,
-                ))
+                postScale(scale, scale)
+                postTranslate(offsetX, offsetY)
             }
         }
     }
