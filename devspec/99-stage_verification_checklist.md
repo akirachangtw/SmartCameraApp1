@@ -68,11 +68,20 @@ git diff --stat
 
 ## Phase 3: 16KB Compatibility
 
+> 🔴 **重要工具**: `tools/check_elf_alignment.sh`
+> Android 16KB Page Size 強制合規檢測腳本（Google 官方）。
+> 所有含 `.so` 的 APK 在合併前必須通過此檢測。
+
 ### 3.1 執行 Google 官方檢測工具
 
 ```bash
-bash docs/test_results/v2.9.6-Phase2.6/Google-check_elf_alignment.sh \
+# Emulator APK
+bash tools/check_elf_alignment.sh \
   app/build/outputs/apk/emulator/debug/app-emulator-debug.apk
+
+# Device APK
+bash tools/check_elf_alignment.sh \
+  app/build/outputs/apk/device/debug/app-device-debug.apk
 ```
 
 **檢查項目**:
@@ -86,6 +95,10 @@ bash docs/test_results/v2.9.6-Phase2.6/Google-check_elf_alignment.sh \
 ELF Verification Successful
 =====================
 ```
+
+**NOTICE（非阻擋）**:
+- `Zip alignment check requires build-tools ≥ 35.0.0-rc3` — 僅略過 zip 對齊部分，ELF 驗證仍有效
+- 安裝方式：`sdkmanager "build-tools;35.0.0-rc3"`（可選）
 
 **Fail 處理**:
 - 檢查 NDK 版本（建議 r27+ 或 r28+）
@@ -200,7 +213,7 @@ adb -s emulator-5554 logcat -v time > docs/test_results/<version>/emulator_test_
 ### 5.2 16KB Check（Device APK）
 
 ```bash
-bash docs/test_results/v2.9.6-Phase2.6/Google-check_elf_alignment.sh \
+bash tools/check_elf_alignment.sh \
   app/build/outputs/apk/device/debug/app-device-debug.apk
 ```
 
@@ -452,8 +465,12 @@ adb -s emulator-5554 emu kill
 ### 16KB 檢測
 
 ```bash
-# Google 官方工具
-bash docs/test_results/v2.9.6-Phase2.6/Google-check_elf_alignment.sh <apk-path>
+# 🔴 重要工具 — tools/check_elf_alignment.sh（已從 docs/ 搬移至 tools/）
+bash tools/check_elf_alignment.sh <apk-path>
+
+# 範例
+bash tools/check_elf_alignment.sh app/build/outputs/apk/device/debug/app-device-debug.apk
+bash tools/check_elf_alignment.sh app/build/outputs/apk/emulator/debug/app-emulator-debug.apk
 ```
 
 ### ADB 相關
