@@ -256,6 +256,35 @@ git merge origin/<branch-name> --no-edit
 git merge v<version>-final --no-edit
 ```
 
+#### `check_merge_readiness.py` 功能說明
+
+**用途**：在 `git merge` 前自動驗證 MERGE_SOP Phase 2 文件同步是否完成，防止「合了卻沒有任何文件佐證」的技術債累積。
+
+**6 項檢查邏輯**：
+
+| Step | 檢查項目 | 通過條件 | 失敗影響 |
+|------|---------|---------|---------|
+| 1 | `app/build.gradle.kts` 版本偵測 | `versionName = "X.Y.Z"` 可解析 | 中止，無法繼續 |
+| 2 | `docs/features/v<version>/` | 目錄存在且含 L0/L1/L2/Traycer `.md` | ❌ 阻擋合併 |
+| 3 | `docs/test_results/v<version>/` | 目錄存在且含 `.md` 測試報告 | ❌ 阻擋合併 |
+| 4 | `devspec/BRANCH_RELEASES.md` | 包含 `v<version>` 字串 | ❌ 阻擋合併 |
+| 5 | `devspec/feature_record_Backlog.md` | 包含 `v<version>` 字串 | ❌ 阻擋合併 |
+| 6 | `devspec/DOCS_SYNC_LOG_*.md` | 存在任一同步日誌 | ⚠️ 警告（不阻擋） |
+
+**輸出結果**：
+- `✅ READY TO MERGE` → 可安全執行 `git merge`
+- `⚠️ NOT READY - 發現 N 個問題` → 依提示修正後重新執行
+
+**緊急旁路**（風險自負）：
+```bash
+python tools/check_merge_readiness.py --bypass
+```
+
+**套用到新專案**：
+1. 複製 `tools/check_merge_readiness.py` 至新專案
+2. 依專案實際目錄結構調整 `check_feature_docs()` 和 `check_test_results()` 的 glob 路徑
+3. 在 Git pre-merge hook 或 CI pipeline 中呼叫此腳本，實現自動化守門
+
 ---
 
 ### 12. SV 驗收三項檢查
