@@ -22,6 +22,44 @@
 
 ---
 
+# 🛡️ 防禦型工作流鐵律 (Global Rules — AI Agent Behavioral Contract)
+
+> **適用對象**: Claude Code、Cursor、Traycer 等所有 AI 代理。
+> 優先順序：本節 < 最高憲法（最高憲法仍最優先）。
+
+## 鐵律 1 — SSOT 優先 (Single Source of Truth)
+
+在修改任何核心邏輯前，必須優先查閱 `devspec/` 目錄下的相關文件（`feature_record_Backlog.md`、`BRANCH_RELEASES.md`）。文件是架構的唯一真理，程式碼的解釋以文件為準。
+
+## 鐵律 2 — 原子化提交 (Atomic Commits)
+
+嚴禁在同一個 Ticket 或 Commit 中混合修改「原始碼（`.kt`、`.java`、`.xml`）」與「專案文件/Log（`.md`、`.log`）」。
+
+```
+✅ Commit 1: [Fix]  程式碼修復（.kt）
+✅ Commit 2: [Docs] 文件與 Log 歸檔（.md / .log）
+❌ 禁止: 一個 Commit 同時含兩類檔案
+```
+
+## 鐵律 3 — Android 邊界防禦 (Boundary Defense)
+
+處理 Coroutine、CameraX 管線或 Sensor 邏輯時，必須主動考慮 Edge Cases。預設加上 Guard Clause（數值檢查）或 `try-catch`，嚴防靜默死亡（Silent Death）：
+
+- 無效幾何尺寸（`<= 0`）→ `return null`，絕不回傳 `Matrix()` 偽裝者
+- Flow / Coroutine 加 `.catch { }` 或 `try-catch` 並印出 `Log.e`
+- 心跳 Log（每 N 幀）確認管線存活
+
+參考守則：`devspec/DEFENSIVE_PIPELINE_AND_WORKFLOW_PLAYBOOK.md`
+
+## 鐵律 4 — 禁止越權 (No Scope Drift)
+
+嚴格遵守 Ticket / Prompt 指定的修改範圍，絕對禁止「順手」修改未授權的檔案或重構無關邏輯。
+
+- 發現超出授權範圍：立即暫停並回報，等待指令
+- SV 驗收（`/sv`）偵測到越權修改：強制退回，Scope 必須乾淨
+
+---
+
 # SmartCameraApp1 - AI Photographer Assistant
 
 ## Project Overview
