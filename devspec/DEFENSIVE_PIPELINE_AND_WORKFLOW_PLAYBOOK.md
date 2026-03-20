@@ -405,6 +405,53 @@ adb -s <DEVICE_ID> logcat *:E | grep "SecurityException\|Permission denied"
 
 ---
 
-**文件版本**: v2.12.0-27 rev.3 (2026-03-20)
+### `devspec/99-stage_verification_checklist.md` — 階段驗收清單
+
+**定位**：Level 3 實作完成後、提交 PR 之前的全面驗收 SOP。提供可手動勾選的 6 Phase 結構化清單。
+
+**核心內容（6 Phases）**：
+
+| Phase | 內容 | 強制 / 條件 |
+|-------|------|------------|
+| 1 Pre-Build | Git status 清潔、命名規範、無硬編碼 | 強制 |
+| 2 Build 驗證 | `./gradlew clean assembleEmulatorDebug` + Lint | 強制 |
+| 3 16KB Compatibility | ELF alignment 檢測（`check_elf_alignment.sh`） | 強制 |
+| 4 Emulator Testing | 功能 + 穩定性（可跳過：實機已連線時） | 條件 |
+| 5 Device Testing | 實機安裝、Logcat 收集、Test Handoff | 條件 |
+| 6 Merge Readiness | `check_merge_readiness.py` 輸出 ✅ READY | 合併前 |
+
+**快速路徑**：實機已連線時可跳過 Phase 4，完成 Phase 1-3 後直接執行 Phase 5。
+
+**套用到新專案**：
+1. 複製文件後修改 Phase 3 的 ELF alignment 腳本路徑
+2. Phase 4/5 的 package name 與裝置 ID 替換為新專案值
+3. Phase 6 的 `check_merge_readiness.py` 路徑保持不變（tools/ 目錄下）
+
+---
+
+### `devspec/99-handoff-prompt.md` — 對話交接提示詞模板
+
+**定位**：Context Window 即將用盡時，生成「給下一位 Claude 的交接指令」的標準格式，確保跨對話記憶完整傳遞。
+
+**核心內容（5 章節結構）**：
+
+| 章節 | 內容 | 用途 |
+|------|------|------|
+| 專案背景 (Context) | 正在解決的問題 | 讓下一位 Claude 快速定位 |
+| 語言規範 | 程式碼用英文、對話用繁體中文 | 防止語言切換造成理解錯誤 |
+| 目前狀態 | 已完成項目、已解決的關鍵錯誤 | 避免重複實作 |
+| 最新交付成果 | **完整可執行程式碼**（禁止 `// ...` 省略） | 新對話立即可用 |
+| 下一步行動 | 新對話中立即執行的任務 | 無縫銜接 |
+
+**交接文件命名規則**：`chat_logs/handofflog_YYYYMMDD_HHMMSS.md`
+
+**套用到新專案**：
+- 修改「專案背景」章節的問題描述
+- 「語言規範」章節可依團隊慣例調整
+- 結構與命名規則通用，無需其他修改
+
+---
+
+**文件版本**: v2.12.0-27 rev.4 (2026-03-20)
 **維護者**: Claude Sonnet 4.6 + Akira Chang
 **適用範圍**: Part I / II / III 為通用 Android APP 守則；Part IV SSOT 文件可依專案結構調整路徑
