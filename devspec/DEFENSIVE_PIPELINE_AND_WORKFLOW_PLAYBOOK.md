@@ -211,74 +211,7 @@ abstract class SensorModule {
 
 ---
 
-## Part II — 相機 APP 專用守則（CameraX / ML Kit）
-
-### 7. 幾何座標管線
-
-**守則 7-A：FIT_CENTER 等比例縮放公式**
-
-```kotlin
-// 將 imageProxy 座標映射至 PreviewView 座標
-val scale = minOf(previewW / imgW.toFloat(), previewH / imgH.toFloat())
-val offsetX = (previewW - imgW * scale) / 2f
-val offsetY = (previewH - imgH * scale) / 2f
-
-viewX = imageX * scale + offsetX
-viewY = imageY * scale + offsetY
-```
-
-禁止非等比例：`scaleX = previewW / imgW, scaleY = previewH / imgH`
-（當 imageProxy AR ≠ PreviewView AR 時，座標將漂移）
-
-**守則 7-B：前鏡頭水平鏡像處理**
-
-```kotlin
-// 前鏡頭：postScale(-scale, scale) 後平移補正
-matrix.postScale(-scale, scale)
-matrix.postTranslate(contentBounds.right - offsetX + contentBounds.left, offsetY)
-
-// 後鏡頭：一般等比例
-matrix.postScale(scale, scale)
-matrix.postTranslate(offsetX, offsetY)
-```
-
-注意：前鏡頭鏡像**只能套用一次**。若 CameraX 的 CoordinateTransformer 已處理，不可再手動鏡像（double-mirror）。
-
-**守則 7-C：imageProxy 方向因裝置而異**
-
-| 裝置 | rotation | 需要 swap W/H |
-|------|---------|--------------|
-| Pixel 9a (後鏡頭) | 90° | 是（H→W, W→H） |
-| Sony XQ-BT52 | 0° | 否（已是直立） |
-
----
-
-### 8. 硬體操作（CameraX AF / AE）
-
-**守則 8-A：視覺追蹤與硬體馬達呼叫必須脫鉤**
-
-```
-30fps 畫面分析（ML Kit / OpenCV）
-    ↓ 視覺追蹤（每幀更新 UI 框位置）
-
-1~2fps 硬體呼叫（startFocusAndMetering）
-    ↓ 只在條件滿足時（穩定追蹤 N 幀）才發送 HAL 請求
-```
-
-**守則 8-B：Fixed-Focus 前鏡頭不等待物理對焦**
-
-Pixel 9a / 部分 Sony 型號的前鏡頭為 Fixed-Focus（`afModes=[0]`）。
-偵測到 `isFixedFocus=true` 時，直接回傳視覺成功，跳過 `startFocusAndMetering`。
-
-**守則 8-C：Sony HAL 特有行為**
-
-- `OperationCanceledException` → 不視為錯誤，直接回到 Idle，不啟動 backoff
-- `clearCaptureRequestOptions()` 在 `ON_STOP` 可能被 HAL 忽略（坑點）
-- 最小 YUV 解析度 = 1280×720（無 640×360），設定 AR 約束會使 ResolutionStrategy 失效
-
----
-
-## Part III — 開發流程
+## Part II — 開發流程
 
 ### 9. 標準開發循環
 
@@ -337,7 +270,7 @@ git merge v<version>-final --no-edit
 
 ---
 
-## Part IV — 診斷速查
+## Part III — 診斷速查
 
 ### 13. Logcat 快速診斷模板
 
@@ -367,20 +300,82 @@ adb -s <DEVICE_ID> logcat *:E | grep "SecurityException\|Permission denied"
 
 ---
 
-## Part V — SSOT 索引（SmartCameraApp1 專用）
+## Part IV — 核心 SSOT 文件索引與摘要
 
-| 需要查什麼 | 去哪裡找 |
-|-----------|---------|
-| 防禦型守則（最新版） | `devspec/feature_record_Backlog.md` |
-| 對焦顏色規範（Cyan vs Yellow） | `plans/proposals/Camera_focus_specification_SSOT.md` |
-| Branch 穩定版與 tag | `devspec/BRANCH_RELEASES.md` |
-| 合併 SOP（完整） | `devspec/MERGE_SOP.md` |
-| 合併 SOP（快速參考） | `devspec/MERGE_SOP_QUICK_REFERENCE.md` |
-| Sony 實機 AF Hunting 證據 | `docs/test_results/v2.12.0/logcat_v2.12.0-26_sony_20260319.log` |
-| 終極防禦工作流指引 | `devspec/Ultimate-Defensive-Hybrid-Workflow_Guide.md` |
+> 以下五份文件構成本專案的防禦型開發骨架。
+> 套用到其他 APP 專案時，依相同結構建立對應文件即可。
 
 ---
 
-**文件版本**: v2.12.0-27 rev.2 (2026-03-20)
+### `devspec/feature_record_Backlog.md` — 防禦型守則 SSOT
+
+**定位**：專案最高決議文件。記錄每個版本迭代中「從失敗中燒出的守則」、Critical Warning、及架構決策。
+
+**核心內容**：
+- 每個 Fix 版本的「禁止再犯清單」
+- 狀態機決策（哪些路徑不可走、為什麼）
+- 已知的硬體坑點（HAL 行為、裝置差異）
+
+**套用到新專案**：建立同名文件，以版本號分 section，每次出現 regression 或 critical bug 必須在此留下決議，作為後續 Code Review 的對照依據。
+
+---
+
+### `devspec/BRANCH_RELEASES.md` — 分支版本記錄
+
+**定位**：記錄每條 feature branch 的「穩定版 tag」、「已知問題」、「關鍵 commit」、「合併狀態」。
+
+**核心內容**：
+- 每條 branch 的 `-final` tag（最終可合併版本）
+- 合併前/後的狀態標記（`✅ 穩定` / `⚠️ 待驗收`）
+- 關鍵修復的 commit hash（防止合併錯版本）
+
+**套用到新專案**：合併前永遠查此文件確認 tag，禁止直接 merge 本地分支（可能過時）。
+
+---
+
+### `devspec/MERGE_SOP.md` — 合併標準作業程序（完整版）
+
+**定位**：5 個 Phase 的完整合併流程，防止因「跳步驟」導致文件遺失或 regression 重現。
+
+**核心內容**：
+- Phase 1：確認來源（`git fetch --tags`、讀 BRANCH_RELEASES.md）
+- Phase 2：文件同步（`docs/features/`、`docs/test_results/` 必須同步）
+- Phase 3：代碼合併（解決衝突時參考 feature_record_Backlog.md）
+- Phase 4：驗證（build + 16KB ELF 對齊 + 實機測試）
+- Phase 5：記錄（更新 BRANCH_RELEASES.md）
+
+**套用到新專案**：保留 Phase 結構，將 Phase 4 的驗證指令換成該專案的測試方式。
+
+---
+
+### `devspec/MERGE_SOP_QUICK_REFERENCE.md` — 合併 SOP 快速參考
+
+**定位**：MERGE_SOP.md 的 1-2 頁濃縮版，日常合併操作的即查手冊。
+
+**核心內容**：
+- 5 步驟流程（fetch → 文件同步 → merge → 驗證 → 記錄）
+- 常見錯誤與預防（本地分支過時、衝突解決刪掉關鍵修復）
+- 緊急回滾指令
+
+**套用到新專案**：直接複製後修改第 4 步的驗證指令，其餘流程通用。
+
+---
+
+### `devspec/Ultimate-Defensive-Hybrid-Workflow_Guide.md` — 終極防禦工作流指引
+
+**定位**：定義 AI 協作角色（架構師顧問）與 PDCA 防禦閉環流程，適用於 Claude + ChatGPT/Traycer 混合開發模式。
+
+**核心內容**：
+- **Plan**：讀規格書、採 Strangler Fig 模式拆解 God Object
+- **Design**：產出精確交接指令（含 Scope Ban 絕對禁區）
+- **Code**：最小修改原則，發現超出授權範圍立即暫停回報
+- **Act/Verify**：Scope Cleanup（git diff 檢查）+ 生命週期審查
+- Anti-Pattern 零容忍清單（預設值陷阱、狀態機死鎖、模型漂移、Ping-pong ID 碰撞）
+
+**套用到新專案**：直接作為 Claude Code 的 System Prompt 補充，或貼入 Traycer 自訂工作流設定。
+
+---
+
+**文件版本**: v2.12.0-27 rev.3 (2026-03-20)
 **維護者**: Claude Sonnet 4.6 + Akira Chang
-**適用範圍**: SmartCameraApp1（Part II/V 專用）；Part I/III/IV 適用一般 Android APP 專案
+**適用範圍**: Part I / II / III 為通用 Android APP 守則；Part IV SSOT 文件可依專案結構調整路徑
