@@ -299,10 +299,46 @@ git commit -m "$(cat <<'EOF'
 詳細變更內容:
 - 加入 in-flight 鎖定防禦
 
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
+
+### 交接提示詞（Handoff Prompt）
+
+**交接前必確認（避免提示詞填錯資訊）**：
+```bash
+git branch --show-current   # 確認目前 branch 名稱
+git log --oneline -1        # 確認最後一個 commit hash 與說明
+```
+
+**交接文件正確存放位置與命名**：
+
+| 項目 | 說明 |
+|------|------|
+| ✅ 正確路徑 | `docs/session_handoff/SESSION_HANDOFF_YYYYMMDD_HHMM.md` |
+| ✅ 命名範例 | `SESSION_HANDOFF_20260213_1635.md` |
+| ❌ 捨棄 | `chat_logs/`（已廢棄，不再使用） |
+| 🗑️ 已刪除 | `.codex/skills/conversation-lifecycle/references/trigger-matrix.md` |
+
+**交接提示詞最小必要內容**（給下一個 Claude）：
+```
+【交接提示詞】
+
+請先讀取：
+1. memory/MEMORY.md
+2. devspec/feature_record_Backlog.md（相關 section）
+
+目前狀態：
+- Branch: <git branch --show-current 的輸出>
+- 上一輪最後 commit: <git log --oneline -1 的輸出>
+
+下一步任務：<具體描述>
+
+語言規範：程式碼英文，對話繁體中文。
+```
+
+> 完整格式見：`devspec/99-handoff-prompt.md`
 
 ---
 
