@@ -225,6 +225,7 @@ class CameraViewModel @Inject constructor(
     // Last FocusControllerResult for StateMachine re-reduce after async completion
     private var lastFocusControllerResult: com.akirachang.ai.photographer.domain.model.focus.FocusControllerResult? = null
     private var pendingTapToFocusIntent: TapToFocusIntent? = null
+    private var tapClearJob: Job? = null  // SP-B: TTL active cleanup for optimistic Yellow box
     private var latestSensorToViewMatrix: android.graphics.Matrix? = null
 
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
@@ -2094,7 +2095,38 @@ class CameraViewModel @Inject constructor(
     }
 
     private fun clearTapToFocusIntent() {
+        tapClearJob?.cancel()  // SP-B: Disarm TTL timer when intent is consumed or reset
+        tapClearJob = null
         pendingTapToFocusIntent = null
+    }
+
+    /**
+     * SP-B: Expire manual tap intent and clear the optimistic yellow placeholder if it is still visible.
+     *
+     * This path is shared by the TTL coroutine and any late read that notices the intent already aged out,
+     * so UI cleanup still happens even if pendingTapToFocusIntent was cleared first.
+     */
+    private fun expireTapToFocusIntent(reason: String, cancelTimer: Boolean) {
+        if (cancelTimer) {
+            tapClearJob?.cancel()
+            tapClearJob = null
+        }
+
+        val hadPendingIntent = pendingTapToFocusIntent != null
+        pendingTapToFocusIntent = null
+
+        val isStillPlaceholder =
+            _state.value.focusUiState.overlayModel?.primaryStableId == "tap_optimistic"
+        if (isStillPlaceholder) {
+            Log.v(TAG, "[SP-B] $reason — clearing optimistic Yellow box.")
+            _state.update {
+                it.copy(
+                    focusUiState = com.akirachang.ai.photographer.domain.model.focus.FocusUiState.EMPTY,
+                )
+            }
+        } else if (hadPendingIntent) {
+            Log.v(TAG, "[SP-B] $reason — real tracking active, placeholder already replaced.")
+        }
     }
 
     /**
@@ -2164,12 +2196,27 @@ class CameraViewModel @Inject constructor(
             )
         }
         Log.d(TAG, "[v2.12.0-18] Optimistic tap: Yellow 72dp at ($x, $y) density=$density halfPx=$halfPx")
+
+        // [SP-B] Active TTL cleanup: if no detection consumes this intent within TAP_INTENT_WINDOW_MS,
+        // proactively clear the optimistic Yellow box so it never freezes on screen.
+        // Guard: only wipe UI if the placeholder is still showing — real tracking (Cyan) must NOT be cleared.
+        tapClearJob?.cancel()
+        tapClearJob = viewModelScope.launch {
+            delay(TAP_INTENT_WINDOW_MS)
+            expireTapToFocusIntent(
+                reason = "Tap intent TTL expired",
+                cancelTimer = false,
+            )
+        }
     }
 
     private fun currentTapToFocusIntent(nowMs: Long = SystemClock.elapsedRealtime()): TapToFocusIntent? {
         val intent = pendingTapToFocusIntent ?: return null
         if ((nowMs - intent.timestampMs) > TAP_INTENT_WINDOW_MS) {
-            pendingTapToFocusIntent = null
+            expireTapToFocusIntent(
+                reason = "Tap intent expired during pipeline read",
+                cancelTimer = true,
+            )
             return null
         }
         return intent
