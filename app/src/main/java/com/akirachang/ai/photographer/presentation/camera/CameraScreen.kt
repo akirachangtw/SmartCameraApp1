@@ -14,6 +14,8 @@
  * - 2025-12-01: Added LevelIndicator overlay with sensor integration (v2.1.0)
  * - 2025-12-08: Added CompositionGuideOverlay for visual composition guidance (v2.4.0)
  * - 2026-02-16: Fixed mechanical clamp animation timing: 500ms → 150ms (v2.11.1 D-008)
+ * - 2026-03-15: Removed FocusIndicator (legacy), replaced with FocusOverlay (V2 pipeline) (v2.12.0-16)
+ * - 2026-03-18: Replaced FocusOverlay with FocusIndicatorOverlay (SPEC impl, local recomposition defense) (v2.12.0-19)
  */
 package com.akirachang.ai.photographer.presentation.camera
 
@@ -71,11 +73,15 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.getValue
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.coerceIn
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -137,6 +143,8 @@ fun CameraScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+    // v2.12.0-18: Capture density here (composable scope) so pointerInput lambda can use it
+    val screenDensity = LocalDensity.current.density
 
     // v2.6.1: Bind camera to lifecycle for LiveCameraSource
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -225,7 +233,8 @@ fun CameraScreen(
                                             x = offset.x,
                                             y = offset.y,
                                             viewWidth = previewSize.width,
-                                            viewHeight = previewSize.height
+                                            viewHeight = previewSize.height,
+                                            density = screenDensity,  // v2.12.0-18: for 72dp optimistic box
                                         )
                                     )
                                 }
@@ -374,25 +383,15 @@ fun CameraScreen(
                         .padding(end = 16.dp, bottom = 16.dp)
                 )
 
-                // v2.9.9: Focus indicator overlay
-                // v2.9.10: Shows white circle in tracking mode, color change in static mode
-                // v2.9.9 Day 1-2: Shows dashed 3-segment arc, yellow square when locked
-                // v2.x.x Phase 1: Supports both ML Kit tracking and Optical Flow tracking
-                state.focusPoint?.let { (x, y) ->
-                    FocusIndicator(
-                        x = x,
-                        y = y,
-                        isFocusing = state.isFocusing,
-                        focusSuccess = state.focusSuccess,
-                        isTracking = state.trackedObjectId != null || state.trackedPointActive,  // v2.9.10/v2.x.x: ML Kit + Optical Flow tracking
-                        isLocked = state.isAEAFLocked,  // v2.9.9 Day 1-2: Lock mode flag
-                        isFading = state.focusIndicatorFading,  // v2.9.9 Day 1-2 Optimize: Fade-out animation
-                        fadeStartTime = state.focusIndicatorFadeStartTime,  // v2.9.9 Day 1-2 Optimize: Fade start time
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                // v2.12.0-19: FocusIndicatorOverlay (SPEC impl) replaces FocusOverlay.
+                // focusUiStateFlow passed directly — collects internally (local recomposition defense).
+                // Z-order: above CameraPreview, Canvas does not consume pointer events.
+                FocusIndicatorOverlay(
+                    focusUiStateFlow = viewModel.focusUiStateFlow,
+                    modifier = Modifier.fillMaxSize(),
+                )
 
-                // v2.9.9 Day 1-2 Optimize Round 3: Lock indicator removed (use FocusIndicator yellow color instead)
+                // v2.12.0-19: Lock overlay unified into FocusIndicatorOverlay (Yellow via OverlayColor.YELLOW)
 
                 // 簡易計數顯示（可選，保留用於調試）
                 state.detectionResult?.let { result ->
@@ -557,355 +556,4 @@ fun CameraScreen(
     }
 }
 
-/**
- * Rectangle Focus Indicator with Corner Brackets (v2.11.1)
- * - Searching: Rectangle only, Cyan neon glow
- * - Success: Rectangle + Corner brackets, Cyan, mechanical clamp animation (350ms: 150ms shrink + 200ms bounce)
- * - Dwell: Rectangle + Corner brackets, Cyan Alpha 0.4, stroke 1.5dp
- * - Locked: Rectangle + Corner brackets, Cyber Yellow neon glow
- *
- * Visual Languages (4 items only - D-007, D-008):
- * 1. Mechanical clamp animation (350ms)
- * 2. Fade-out Alpha + Stroke thinning (500ms)
- * 3. Color change (Cyan ↔ Cyber Yellow)
- * 4. Static Glow effect (dual-layer rendering, alpha=0.3)
- */
-@Composable
-private fun FocusIndicator(
-    x: Float,
-    y: Float,
-    isFocusing: Boolean,
-    focusSuccess: Boolean?,
-    isTracking: Boolean,
-    isLocked: Boolean = false,
-    isFading: Boolean = false,
-    fadeStartTime: Long = 0L,
-    modifier: Modifier = Modifier
-) {
-    // Position tracking with smooth animation
-    // v2.11.4-01 Fix 3: Reverted to StiffnessHigh (from StiffnessMedium introduced in v2.11.4).
-    // StiffnessMedium (~400ms settle) is too slow for ML Kit bbox update rate (~100ms per frame),
-    // causing the indicator to visibly lag behind the subject. StiffnessHigh (~100-150ms) matches
-    // the update frequency and restores v2.11.1 verified behavior.
-    val animatedX by animateFloatAsState(
-        targetValue = x,
-        animationSpec = if (isTracking) {
-            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh)
-        } else {
-            tween(0)
-        },
-        label = "focus_x"
-    )
 
-    val animatedY by animateFloatAsState(
-        targetValue = y,
-        animationSpec = if (isTracking) {
-            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh)
-        } else {
-            tween(0)
-        },
-        label = "focus_y"
-    )
-
-    // Mechanical clamp animation
-    val scale = remember { Animatable(1.0f) }
-
-    // v2.11.1 fix: Split into two separate LaunchedEffects
-    // Problem: isFocusing in the key caused re-trigger during the 150ms shrink phase.
-    // ViewModel motion detection can set isFocusing=true within 150ms of focus success,
-    // which re-triggered the effect and jumped to `isFocusing -> scale.animateTo(1.2f)`,
-    // cancelling the bounce-back before it could run.
-    //
-    // Fix: LaunchedEffect(focusSuccess) = clamp ONLY — not cancellable by isFocusing/isTracking
-    //      LaunchedEffect(isFocusing, isLocked) = search/locked states — guards against focusSuccess
-
-    // Clamp: keyed on focusSuccess + isLocked — ensures 3-phase fires on each AE/AF lock success.
-    // v2.11.2 fix Bug B: Previously keyed on focusSuccess only. If focusSuccess=true before and after
-    // the lock sequence, the key doesn't change and LaunchedEffect won't refire. Adding isLocked
-    // guarantees the effect fires when isLocked changes from false→true (lock success), and again
-    // when it goes true→false (unlock via tap), which resets scale correctly.
-    LaunchedEffect(focusSuccess, isLocked) {
-        android.util.Log.d("FocusClamp", "LaunchedEffect(focusSuccess=$focusSuccess, isLocked=$isLocked) triggered, isFocusing=$isFocusing, isTracking=$isTracking")
-        when {
-            focusSuccess == true && isLocked -> {
-                // AE/AF Lock success — mechanical clamp animation
-                android.util.Log.d("FocusClamp", "Clamp LOCK START: shrink to 0.75 (locked)")
-                scale.animateTo(0.75f, tween(150, easing = FastOutLinearInEasing))
-                android.util.Log.d("FocusClamp", "Clamp MID: shrink done (scale=${scale.value}), expanding to 1.2")
-                scale.animateTo(1.2f, tween(120, easing = FastOutSlowInEasing))
-                android.util.Log.d("FocusClamp", "Clamp SETTLE: settling to 1.0 (scale=${scale.value})")
-                scale.animateTo(1.0f, tween(80, easing = LinearOutSlowInEasing))
-                android.util.Log.d("FocusClamp", "Clamp DONE: animation complete (scale=${scale.value})")
-            }
-            focusSuccess == true && !isLocked -> {
-                // Regular focus success (tap) — same mechanical clamp
-                android.util.Log.d("FocusClamp", "Clamp TAP START: shrink to 0.75")
-                scale.animateTo(0.75f, tween(150, easing = FastOutLinearInEasing))
-                android.util.Log.d("FocusClamp", "Clamp MID: shrink done (scale=${scale.value}), expanding to 1.2")
-                scale.animateTo(1.2f, tween(120, easing = FastOutSlowInEasing))
-                android.util.Log.d("FocusClamp", "Clamp SETTLE: settling to 1.0 (scale=${scale.value})")
-                scale.animateTo(1.0f, tween(80, easing = LinearOutSlowInEasing))
-                android.util.Log.d("FocusClamp", "Clamp DONE: animation complete (scale=${scale.value})")
-            }
-            else -> {
-                android.util.Log.d("FocusClamp", "Clamp RESET (focusSuccess=$focusSuccess, isLocked=$isLocked)")
-                scale.snapTo(1.0f)
-            }
-        }
-    }
-
-    // Searching / Locked states — only when not in a focus-success clamp
-    LaunchedEffect(isFocusing, isLocked) {
-        android.util.Log.d("FocusClamp", "LaunchedEffect(isFocusing=$isFocusing, isLocked=$isLocked) triggered, focusSuccess=$focusSuccess")
-        if (focusSuccess != true) {
-            when {
-                isLocked -> scale.snapTo(1.0f)
-                isFocusing -> scale.animateTo(1.2f, tween(300))
-                else -> scale.snapTo(1.0f)
-            }
-        }
-    }
-
-    // Stroke width (Dwell: 2.5dp → 1.5dp)
-    val animatedStrokeWidth by animateFloatAsState(
-        targetValue = if (isFading) 1.5f else 2.5f,
-        animationSpec = tween(500),
-        label = "focus_stroke"
-    )
-
-    // Alpha
-    // v2.11.1 fix: isFading takes priority over isTracking
-    // Previously isTracking || isLocked -> 1.0f blocked the dwell fade during ML Kit tracking
-    val alpha by animateFloatAsState(
-        targetValue = when {
-            isLocked -> 1.0f           // Lock state: always full alpha
-            isFading -> 0.4f           // Dwell fade: applies even during tracking
-            isTracking -> 1.0f         // Tracking (not fading): full alpha
-            focusSuccess == false -> 0.6f
-            else -> 1.0f
-        },
-        animationSpec = tween(500),
-        label = "focus_alpha"
-    )
-
-    // Color: Cyan neon glow or Cyber Yellow (locked)
-    val color = when {
-        isLocked -> Color(0xFFFFD700)  // Cyber Yellow (#FFD700)
-        else -> Color(0xFF00E5FF)      // Cyan neon glow (#00E5FF)
-    }
-
-    // Corner brackets appear only on success/locked
-    val showCornerBrackets = focusSuccess == true || isLocked
-
-    Canvas(modifier = modifier) {
-        val size = 48.dp.toPx() * scale.value
-        val halfSize = size / 2
-        val strokeWidth = animatedStrokeWidth.dp.toPx()
-
-        // Glow Layer (Bottom) - Neon effect
-        drawRect(
-            color = color,
-            topLeft = Offset(animatedX - halfSize, animatedY - halfSize),
-            size = Size(size, size),
-            alpha = alpha * 0.3f,
-            style = Stroke(width = strokeWidth * 2.4f)
-        )
-
-        // Core Layer (Top)
-        drawRect(
-            color = color,
-            topLeft = Offset(animatedX - halfSize, animatedY - halfSize),
-            size = Size(size, size),
-            alpha = alpha,
-            style = Stroke(width = strokeWidth)
-        )
-
-        // Corner Brackets (Conditional)
-        if (showCornerBrackets) {
-            val bracketLength = 12.dp.toPx()
-            // Glow brackets
-            drawCornerBrackets(
-                centerX = animatedX,
-                centerY = animatedY,
-                halfSize = halfSize,
-                bracketLength = bracketLength,
-                strokeWidth = strokeWidth * 2.4f,
-                color = color,
-                alpha = alpha * 0.3f
-            )
-            // Core brackets
-            drawCornerBrackets(
-                centerX = animatedX,
-                centerY = animatedY,
-                halfSize = halfSize,
-                bracketLength = bracketLength,
-                strokeWidth = strokeWidth,
-                color = color,
-                alpha = alpha
-            )
-        }
-    }
-}
-
-/**
- * Draw L-shaped corner brackets (v2.11.0)
- */
-private fun DrawScope.drawCornerBrackets(
-    centerX: Float,
-    centerY: Float,
-    halfSize: Float,
-    bracketLength: Float,
-    strokeWidth: Float,
-    color: Color,
-    alpha: Float
-) {
-    // Top-left corner
-    drawLine(
-        color = color,
-        start = Offset(centerX - halfSize, centerY - halfSize),
-        end = Offset(centerX - halfSize + bracketLength, centerY - halfSize),
-        strokeWidth = strokeWidth,
-        alpha = alpha
-    )
-    drawLine(
-        color = color,
-        start = Offset(centerX - halfSize, centerY - halfSize),
-        end = Offset(centerX - halfSize, centerY - halfSize + bracketLength),
-        strokeWidth = strokeWidth,
-        alpha = alpha
-    )
-
-    // Top-right corner
-    drawLine(
-        color = color,
-        start = Offset(centerX + halfSize, centerY - halfSize),
-        end = Offset(centerX + halfSize - bracketLength, centerY - halfSize),
-        strokeWidth = strokeWidth,
-        alpha = alpha
-    )
-    drawLine(
-        color = color,
-        start = Offset(centerX + halfSize, centerY - halfSize),
-        end = Offset(centerX + halfSize, centerY - halfSize + bracketLength),
-        strokeWidth = strokeWidth,
-        alpha = alpha
-    )
-
-    // Bottom-left corner
-    drawLine(
-        color = color,
-        start = Offset(centerX - halfSize, centerY + halfSize),
-        end = Offset(centerX - halfSize + bracketLength, centerY + halfSize),
-        strokeWidth = strokeWidth,
-        alpha = alpha
-    )
-    drawLine(
-        color = color,
-        start = Offset(centerX - halfSize, centerY + halfSize),
-        end = Offset(centerX - halfSize, centerY + halfSize - bracketLength),
-        strokeWidth = strokeWidth,
-        alpha = alpha
-    )
-
-    // Bottom-right corner
-    drawLine(
-        color = color,
-        start = Offset(centerX + halfSize, centerY + halfSize),
-        end = Offset(centerX + halfSize - bracketLength, centerY + halfSize),
-        strokeWidth = strokeWidth,
-        alpha = alpha
-    )
-    drawLine(
-        color = color,
-        start = Offset(centerX + halfSize, centerY + halfSize),
-        end = Offset(centerX + halfSize, centerY + halfSize - bracketLength),
-        strokeWidth = strokeWidth,
-        alpha = alpha
-    )
-}
-
-/**
- * Lock Indicator - Shows yellow dashed square when AE/AF is locked
- * v2.9.9 Day 1-2: Traycer v2 AE/AF Lock visual feedback
- *
- * @param x X coordinate of lock point
- * @param y Y coordinate of lock point
- * @param modifier Modifier for the canvas
- */
-@Composable
-private fun LockIndicator(
-    x: Float,
-    y: Float,
-    modifier: Modifier = Modifier
-) {
-    Canvas(modifier = modifier) {
-        val size = 62.dp.toPx()  // v2.9.9 Day 1-2 Optimize Round 2: 70dp → 62dp (1.1x new circle diameter 28dp)
-        val strokeWidth = 2.5.dp.toPx()  // v2.9.9 Day 1-2 Optimize: Match FocusIndicator strokeWidth
-        val color = Color(0xFFFFC107)  // Yellow (#FFC107) - Professional standard
-
-        // v2.9.9 Day 1-2: Dashed path effect (dash: 16dp, gap: 12dp) - Round 2: Increased gap for clarity
-        val dashEffect = PathEffect.dashPathEffect(
-            floatArrayOf(16.dp.toPx(), 12.dp.toPx()),  // v2.9.9 Day 1-2 Optimize Round 2: 12dp/10dp → 16dp/12dp
-            phase = 0f
-        )
-
-        // Draw dashed square frame
-        drawRect(
-            color = color,
-            topLeft = Offset(x - size / 2, y - size / 2),
-            size = Size(size, size),
-            style = Stroke(width = strokeWidth, pathEffect = dashEffect)
-        )
-    }
-}
-
-/**
- * Calculate content bounds for FIT_CENTER layout
- *
- * v2.11.1 P0-3: Helper function to calculate preview content bounds
- * excluding FIT_CENTER letterbox (black bars).
- *
- * @param screenWidth Screen width in pixels
- * @param screenHeight Screen height in pixels
- * @param targetAspectRatio Target aspect ratio mode
- * @return RectF representing content bounds
- */
-private fun calculateContentBoundsForAspectRatio(
-    screenWidth: Int,
-    screenHeight: Int,
-    targetAspectRatio: AspectRatioMode
-): android.graphics.RectF {
-    val screenAspect = screenWidth.toFloat() / screenHeight.toFloat()
-    val rational = targetAspectRatio.toRational()
-
-    // v2.11.1 P0-3 FIX: Handle portrait mode (height > width)
-    // AspectRatioMode defines landscape ratios (e.g., 16:9 = width:height)
-    // For portrait screens, we need to invert the ratio
-    val isPortrait = screenHeight > screenWidth
-    val targetAspect = if (isPortrait) {
-        // Invert ratio for portrait: 16:9 becomes 9:16
-        rational.denominator.toFloat() / rational.numerator.toFloat()
-    } else {
-        rational.numerator.toFloat() / rational.denominator.toFloat()
-    }
-
-    val (contentWidth, contentHeight) = if (screenAspect > targetAspect) {
-        // Screen is wider than target → letterbox on left/right
-        val width = screenHeight * targetAspect
-        val height = screenHeight.toFloat()
-        Pair(width, height)
-    } else {
-        // Screen is taller than target → letterbox on top/bottom
-        val width = screenWidth.toFloat()
-        val height = screenWidth / targetAspect
-        Pair(width, height)
-    }
-
-    // Center content within screen
-    val left = (screenWidth - contentWidth) / 2f
-    val top = (screenHeight - contentHeight) / 2f
-    val right = left + contentWidth
-    val bottom = top + contentHeight
-
-    return android.graphics.RectF(left, top, right, bottom)
-}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "execute"
+  short_description: "Manage ticket execution and drift control"
+  default_prompt: "Use $execute to batch tickets, prepare Claude handoff prompts, and review completed work against the Tech Plan."

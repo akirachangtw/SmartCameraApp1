@@ -8,6 +8,8 @@
  * Modifications:
  * - 2025-11-17: Add BackgroundExecutor for ML Kit processing
  * - 2025-12-01: Add DeviceSensorManager provider for LevelIndicator feature
+ * - 2026-03-18: v2.12.0 Ticket 1.5 — Split sensor DI: @Provides concrete impl +
+ *               @Binds domain interface for Clean Architecture inversion
  */
 package com.akirachang.ai.photographer.di
 
@@ -20,8 +22,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
 import com.akirachang.ai.photographer.data.repository.CameraRepositoryImpl
-import com.akirachang.ai.photographer.data.sensor.DeviceSensorManager
+import com.akirachang.ai.photographer.data.sensor.DeviceSensorManagerImpl
+import com.akirachang.ai.photographer.domain.camera.ImuCompensator
 import com.akirachang.ai.photographer.domain.repository.CameraRepository
+import com.akirachang.ai.photographer.domain.sensor.DeviceSensorManager
+import com.akirachang.ai.photographer.domain.sensor.OrientationSensorManager
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import javax.inject.Qualifier
@@ -56,6 +61,30 @@ abstract class AppModule {
         cameraRepositoryImpl: CameraRepositoryImpl
     ): CameraRepository
 
+    /**
+     * v2.12.0 Ticket 1.5: Bind concrete impl to domain interface.
+     *
+     * Allows domain-layer and future components to inject
+     * [DeviceSensorManager] without coupling to Android hardware details.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindDeviceSensorManager(
+        impl: DeviceSensorManagerImpl
+    ): DeviceSensorManager
+
+    /**
+     * v2.12.0 Fix 3A-R: Bind concrete impl to OrientationSensorManager domain interface.
+     *
+     * CameraViewModel injects this interface for orientation/LevelIndicator tracking,
+     * removing the direct dependency on DeviceSensorManagerImpl from the Presentation layer.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindOrientationSensorManager(
+        impl: DeviceSensorManagerImpl
+    ): OrientationSensorManager
+
     companion object {
         /**
          * 提供單執行緒 Executor 供 ML 分析使用
@@ -75,16 +104,17 @@ abstract class AppModule {
         }
 
         /**
-         * 提供 DeviceSensorManager 單例 (v2.1.0)
+         * 提供 DeviceSensorManagerImpl 單例 (v2.1.0 / v2.12.0 Ticket 1.5)
          *
-         * 用於 LevelIndicator 功能的設備方向追蹤
+         * Hilt uses this concrete singleton as the backing instance for
+         * [DeviceSensorManager] and [OrientationSensorManager] bindings.
          */
         @Provides
         @Singleton
-        fun provideDeviceSensorManager(
+        fun provideDeviceSensorManagerImpl(
             @ApplicationContext context: Context
-        ): DeviceSensorManager {
-            return DeviceSensorManager(context)
+        ): DeviceSensorManagerImpl {
+            return DeviceSensorManagerImpl(context)
         }
 
         /**
@@ -99,6 +129,17 @@ abstract class AppModule {
         ): OverlayPreferences {
             return OverlayPreferences(context)
         }
+
+        /**
+         * [v2.12.0-23] 提供 ImuCompensator 單例
+         *
+         * Shared between CameraViewModel (gyroscope accumulation) and OpticalFlowTracker
+         * (camera-motion cancellation).  Must be @Singleton so both sides operate on the
+         * same accumulator instance — two separate instances would break compensation math.
+         */
+        @Provides
+        @Singleton
+        fun provideImuCompensator(): ImuCompensator = ImuCompensator()
 
         /**
          * 提供 Application-scoped CoroutineScope (v2.9.8)

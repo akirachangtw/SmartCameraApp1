@@ -31,6 +31,7 @@ import android.location.Location
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
 import com.akirachang.ai.photographer.data.source.camera.CameraInputSource
 import com.akirachang.ai.photographer.data.source.camera.SmartCameraAnalyzer
+import com.akirachang.ai.photographer.domain.camera.ImuCompensator
 import com.akirachang.ai.photographer.data.source.ml.ImageAnalyzer
 import com.akirachang.ai.photographer.data.opencv.TrackingResult
 import com.akirachang.ai.photographer.domain.model.CameraLens
@@ -64,7 +65,8 @@ class CameraRepositoryImpl @Inject constructor(
     private val analyzeLightingUseCase: AnalyzeLightingUseCase,
     private val cameraInputSource: CameraInputSource,
     private val overlayPreferences: OverlayPreferences,  // v2.9.7 Day 1-2: GPS settings
-    @ApplicationScope private val applicationScope: CoroutineScope  // v2.9.8: Async GPS tagging
+    @ApplicationScope private val applicationScope: CoroutineScope,  // v2.9.8: Async GPS tagging
+    private val imuCompensator: ImuCompensator  // [v2.12.0-23] Shared IMU math engine
 ) : CameraRepository {
 
     companion object {
@@ -99,6 +101,11 @@ class CameraRepositoryImpl @Inject constructor(
     private val _guidelineResults = MutableStateFlow<GuidelineAnalysisResult?>(null)
     override val guidelineResults: StateFlow<GuidelineAnalysisResult?> = _guidelineResults.asStateFlow()
 
+    // v2.12.0-11: Fixed-focus lens StateFlow — delegates to LiveCameraSource when available
+    override val isFixedFocusLens: StateFlow<Boolean> =
+        (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)?.isFixedFocusLens
+            ?: MutableStateFlow(false)
+
     // 分析是否已啟動
     private var isAnalysisStarted = false
 
@@ -112,16 +119,19 @@ class CameraRepositoryImpl @Inject constructor(
 
     // ML Kit 偵測器（延遲初始化）
     private val faceDetector: FaceDetector by lazy {
+        // v2.12.0: LANDMARK_MODE_NONE — prevents "Unknown landmark type" crash on certain devices.
+        // Eye-AF degrades gracefully to face bbox center (CameraViewModel:929 fallback).
         val options = FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+            .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
             .setMinFaceSize(MIN_FACE_SIZE)
             .enableTracking()
             .build()
 
         FaceDetection.getClient(options).also {
-            Log.i(TAG, "Face detector initialized with LANDMARK_MODE_ALL for v2.3.0 eye position analysis")
+            Log.i(TAG, "[v2.12.0] Face detector initialized: LANDMARK_MODE_NONE (crash-safe)")
         }
     }
 
@@ -133,7 +143,7 @@ class CameraRepositoryImpl @Inject constructor(
             .build()
 
         ObjectDetection.getClient(options).also {
-            Log.i(TAG, "Object detector initialized")
+            Log.i(TAG, "[v2.12.0] Object detector initialized: STREAM_MODE + multipleObjects + classification")
         }
     }
 
@@ -555,7 +565,8 @@ class CameraRepositoryImpl @Inject constructor(
                     // Update lighting state on main thread
                     _lightingResults.value = lightingState
                 },
-                minObjectConfidence = MIN_OBJECT_CONFIDENCE
+                minObjectConfidence = MIN_OBJECT_CONFIDENCE,
+                imuCompensator = imuCompensator  // [v2.12.0-23] Shared IMU engine
             )
 
             // Attach analyzer to camera controller
@@ -573,12 +584,7 @@ class CameraRepositoryImpl @Inject constructor(
                 pendingOpticalFlowCallback = null
                 Log.d(TAG, "Applied pending optical flow callback")
             }
-            if (pendingPreviewWidth > 0 && pendingPreviewHeight > 0) {
-                smartAnalyzer!!.setPreviewSize(pendingPreviewWidth, pendingPreviewHeight)
-                Log.d(TAG, "Applied pending preview size: ${pendingPreviewWidth}x${pendingPreviewHeight}")
-                pendingPreviewWidth = 0
-                pendingPreviewHeight = 0
-            }
+            // v2.12.0-15 SV-S5-Final-R2: setPreviewSize removed from SmartCameraAnalyzer (CoordinateMapper retired)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start image analysis", e)
         }
@@ -795,13 +801,9 @@ class CameraRepositoryImpl @Inject constructor(
      * Delegates to SmartCameraAnalyzer for coordinate transformation
      */
     override fun setPreviewSize(width: Int, height: Int) {
-        if (smartAnalyzer != null) {
-            smartAnalyzer!!.setPreviewSize(width, height)
-        } else {
-            pendingPreviewWidth = width
-            pendingPreviewHeight = height
-            Log.d(TAG, "Preview size pending: ${width}x${height}, analyzer not yet initialized")
-        }
+        // v2.12.0-15 SV-S5-Final-R2: setPreviewSize removed from SmartCameraAnalyzer.
+        // CoordinateMapper (CENTER_CROP) retired — preview-coord tracking no longer supported.
+        Log.d(TAG, "[v2.12.0-15] setPreviewSize no-op: CoordinateMapper path retired")
     }
 
     /**
@@ -811,14 +813,9 @@ class CameraRepositoryImpl @Inject constructor(
      * Delegates to SmartCameraAnalyzer to start tracking
      */
     override fun startOpticalFlowTracking(x: Float, y: Float) {
-        // v2.x.x Phase 6: Lazy init SmartCameraAnalyzer if not yet created
-        // (bitmap-based analysis path does not call startImageAnalysis automatically)
-        if (smartAnalyzer == null) {
-            Log.d(TAG, "Lazy initializing SmartCameraAnalyzer for optical flow tracking")
-            startImageAnalysis()
-        }
-        smartAnalyzer?.startOpticalFlowTracking(x, y)
-            ?: Log.w(TAG, "Cannot start optical flow tracking: analyzer not initialized")
+        // v2.12.0-15 SV-S5-Final-R2: startOpticalFlowTracking(preview-coord) removed from SmartCameraAnalyzer.
+        // Callers must use startOpticalFlowTrackingImageCoords() — CameraViewModel already does.
+        Log.w(TAG, "[v2.12.0-15] startOpticalFlowTracking(preview-coord) no-op: use startOpticalFlowTrackingImageCoords()")
     }
 
     /**
@@ -961,6 +958,18 @@ class CameraRepositoryImpl @Inject constructor(
             Log.e(TAG, "Failed to read EXIF info from $uri", e)
             null
         }
+    }
+
+    override fun getCameraControl(): androidx.camera.core.CameraControl? {
+        // v2.12.0-15 SV-S5a-R2: Delegate to LiveCameraSource if available
+        return (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)
+            ?.getCameraControl()
+    }
+
+    override fun getMeteringPointFactory(): androidx.camera.core.MeteringPointFactory? {
+        // v2.12.0-15 SV-S5-Final: Delegate to LiveCameraSource if available
+        return (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)
+            ?.getMeteringPointFactory()
     }
 
 }

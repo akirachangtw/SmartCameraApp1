@@ -33,7 +33,7 @@
 
 ---
 
-## 📋 完整流程：v2.10.2-final → v2.11.0
+## 📋 完整流程：v2.12.0 → main
 
 ### Phase 1: 準備階段 (15 分鐘)
 
@@ -44,19 +44,19 @@
 git fetch origin --tags
 
 # 2. 查看所有相關 tags
-git tag -l "v2.10*"
+git tag -l "v2.12*"
 
-# 3. 查看最終版本的詳細信息
-git show v2.10.2-final
+# 3. 查看最終版本的詳細信息（以最新 stable tag 為準）
+git show v2.12.0
 
 # 4. 確認 tag 指向的 commit
-git log v2.10.2-final --oneline -5
+git log origin/feature/camera-core-v2.12.0 --oneline -8
 ```
 
 **檢查點**:
-- [ ] Tag 存在且名稱正確（`v2.10.2-final`）
-- [ ] Tag 指向遠端分支（`origin/feature/aspect-ratio-usecasegroup-v2.10.0`）
-- [ ] Tag 包含關鍵修復（如 `6501ac2` for v2.10.2 Bug fixes）
+- [ ] Tag 存在且名稱正確（`v2.12.0` 或 `v2.12.0-final`）
+- [ ] Tag 指向遠端分支（`origin/feature/camera-core-v2.12.0`）
+- [ ] 最新 commits 包含 v2.12.0-01 ～ v2.12.0-04 的所有功能
 
 #### 1.2 檢查分支版本記錄
 
@@ -66,8 +66,8 @@ cat devspec/BRANCH_RELEASES.md
 ```
 
 **確認**:
-- [ ] v2.10.2-final 的狀態為「✅ 穩定，可安全合併」
-- [ ] 已閱讀「包含功能」清單
+- [ ] v2.12.0 的狀態為「✅ 穩定，可安全合併」
+- [ ] 已閱讀「包含功能」清單（v2.12.0-01 ~ -04）
 - [ ] 已閱讀「已知問題」（應為「無」）
 - [ ] 已閱讀「關鍵提交」清單
 
@@ -75,30 +75,39 @@ cat devspec/BRANCH_RELEASES.md
 
 ```bash
 # 閱讀 feature_record_Backlog.md 的相關章節
-# - Preview / Resolution / Aspect Ratio (v2.10.0)
-# - Photo Capture Feedback (v2.9.8 → v2.10.2)
+# - v2.12.0 Sony HAL Quirk / analysisSelector cap
+# - v2.12.0 Adaptive EWMA throttle
+# - v2.12.0 Focus Indicator Dynamic Resize
 
 # 特別注意 Critical Warnings
 grep -A 20 "Critical Warning" devspec/feature_record_Backlog.md
 ```
 
 **確認**:
-- [ ] 已閱讀 v2.10.0 的 Aspect Ratio 功能說明
-- [ ] 已閱讀 v2.10.2 的 Photo Capture Feedback 修復
-- [ ] ⚠️ **已理解** "DO NOT re-add Snackbar" 警告
-- [ ] ⚠️ **已理解** "DO NOT add photo info button" 警告
+- [ ] 已閱讀 v2.12.0-01/02 的 analysisSelector + Sony 16:9 HAL 說明
+- [ ] 已閱讀 v2.12.0-03 的 EWMA throttle 設計（conflate 陷阱）
+- [ ] 已閱讀 v2.12.0-04 的 FocusIndicator 動態縮放說明
+- [ ] ⚠️ **已理解** Optical Flow Alpha=0.4 的設計（不要添加 guard）
+- [ ] ⚠️ **已理解** Focus Indicator 4 種 Visual Language（禁止新增）
 
 #### 1.4 閱讀測試報告
 
+> 📖 **測試報告來源**：測試結果由 Work NB 透過「雙機測試交接工作流」產出。
+> 完整流程規範：`devspec/99-test_handoff.md`
+> 工具：`python tools/test_handoff_gui.pyw`
+
 ```bash
-# 閱讀 v2.10.2 的測試報告
-cat docs/test_results/v2.10.2/PIXEL9A_TEST_REPORT.md
+# 閱讀 v2.12.0 的測試報告
+ls docs/test_results/v2.12.0/
+cat docs/test_results/v2.12.0/HANDOVER_SUMMARY.md
 ```
 
 **確認**:
-- [ ] 所有測試通過（100% PASSED）
+- [ ] `docs/test_results/<version>/HANDOVER_SUMMARY.md` 存在（SSOT）
+- [ ] 所有測試通過（PASS）— 非 PARTIAL / FAIL
 - [ ] 無阻塞性 Bug
-- [ ] 實機測試已完成（Pixel 9a, Sony XQ-BT52）
+- [ ] 實機測試已完成（Pixel 9a: 59131JEBF17244, Sony XQ-BT52: HQ616R2713）
+- [ ] Logcat 日誌已存至 `docs/test_results/<version>/`
 
 ---
 
@@ -119,38 +128,40 @@ cat devspec/DOCS_SYNC_CHECKLIST.md
 git diff HEAD v2.10.2-final -- devspec/
 ```
 
-#### 2.3 同步 docs/plan/ 文檔
+#### 2.3 同步 docs/features/ 文檔
 
 ```bash
-# 複製 v2.10.0 相關的計劃文檔
-git checkout v2.10.2-final -- docs/plan/v2.10.0_*
-git checkout v2.10.2-final -- docs/plan/V2.10.0_*
+# ⚠️ v2.11.0+ 起，功能文檔改存放於 docs/features/<版本>/（非舊的 docs/plan/）
+# 命名格式：{version}_{topic}-L0.md / -L1.md / -L2.md（prompt_generator_gui 生成）
 
-# 確認文檔已複製
-ls docs/plan/v2.10.0_* docs/plan/V2.10.0_*
+# 確認 v2.12.0 功能文檔存在
+ls docs/features/v2.12.0/
+
+# 預期看到（至少）：
+# v2.12.0-01_dynamic_mlkit_fps_throttle_adj-L0/L1/L2.md
+# v2.12.0-04_focus_indicator_dynamic_resize-L0/L1/L2.md
+# v2.12.0_sony_16_9_camera_low_fps-L0/L1/L2.md
 ```
 
 **檢查點**:
-- [ ] 所有 v2.10.0 相關計劃文檔已複製
+- [ ] `docs/features/v2.12.0/` 存在且有 L0/L1/L2 文檔
+- [ ] check_merge_readiness.py 驗證通過（含 L0 計數）
 - [ ] 無遺漏的決議文檔
 
 #### 2.4 同步 docs/test_results/ 文檔
 
 ```bash
-# 複製測試報告
-git checkout v2.10.2-final -- docs/test_results/v2.10.0/
-git checkout v2.10.2-final -- docs/test_results/v2.10.0-fix/
-git checkout v2.10.2-final -- docs/test_results/v2.10.2/
+# 確認測試報告存在
+ls docs/test_results/v2.12.0/
 
-# 確認測試報告已複製
-ls docs/test_results/v2.10.0/
-ls docs/test_results/v2.10.2/
+# 預期看到：
+# TEST_REPORT_v2.12.0-02.md（模擬器 + Sony 驗測報告）
 ```
 
 **檢查點**:
-- [ ] v2.10.0 測試報告已複製
-- [ ] v2.10.2 測試報告已複製
-- [ ] Logcat 日誌已複製
+- [ ] v2.12.0 測試報告存在
+- [ ] 含 Pixel 9a 與 Sony XQ-BT52 驗測記錄
+- [ ] Logcat 日誌（frameSizePx 驗證記錄）已存
 
 #### 2.5 驗證 tools/ 目錄關鍵工具
 
@@ -180,20 +191,25 @@ grep "Hybrid: L1" .vscode/tasks.json                 # 📋 Hybrid L1/L2/PR task
 ```
 
 **詳細清單**: `tools/.gitkeep_critical_files`（三級分類：Tier 1 / 2 / 3）
+**測試交接流程**: `devspec/99-test_handoff.md`（Home NB ↔ Work NB 四步驟 SOP）
 
 **VSCode Tasks 保護清單** (`.vscode/tasks.json`):
 | Task | 用途 |
 |------|------|
 | 🚀 Test Handoff Manager | Home↔Work NB 測試交接 GUI |
 | 🧪 Stage Verification GUI | 階段驗證 GUI |
-| 🤖 Workflow Prompt Generator | Gemini API 分步提示生成（tabbed GUI） |
+| 🤖 Workflow Prompt Generator | 終極防禦型混合工作流提示詞生成器（Custom Workflow 版：trigger-workflow→Gemini L2→ticket_breakdown/execute→Claude+strict_verification） |
 | 📋 Hybrid: L1/L2/PR (inline + file) | L1/L2/PR 計劃文檔生成 |
+
+> 📖 **工作流規範**: `devspec/ultimate_defensive_hybrid_workflow.md`（2026-03-09 升級至 Custom Workflow 版）
+> Claude Code 在此工作流中扮演 **The Finisher**，僅依 Traycer `execute` 的 Handoff Instructions 執行單一 Ticket，完成後必須暫停等待 Traycer `strict_verification` 驗收。
 
 **檢查點**:
 - [ ] Tier 1 工具（5 個）全部存在
 - [ ] feature branch 新增的工具未因 merge 遺失
 - [ ] 無 tools/ 相關 merge conflict 遺留
 - [ ] `.vscode/tasks.json` 包含 Workflow Prompt Generator + Hybrid Tasks
+- [ ] `devspec/ultimate_defensive_hybrid_workflow.md` 存在（終極防禦工作流規範）
 
 ---
 
@@ -263,22 +279,22 @@ git log --oneline -5
 # 更新所有遠端分支的信息
 git fetch origin --tags
 
-# 確認遠端分支最新
-git log origin/feature/aspect-ratio-usecasegroup-v2.10.0 --oneline -10
+# 確認遠端分支包含所有 v2.12.0 commits
+git log origin/feature/camera-core-v2.12.0 --oneline -10
 ```
 
 **檢查點**:
-- [ ] 遠端分支包含 `6501ac2` (v2.10.2 修復)
-- [ ] 遠端分支包含 `d7db1e5` (v2.10.0 EXIF)
+- [ ] 遠端分支包含 v2.12.0-04 的最新 commits（`22b0d02`, `610d143`）
+- [ ] 遠端分支包含 v2.12.0-03 EWMA throttle commit（`bdc65c0`）
 
 #### 3.3 執行合併
 
 ```bash
-# 方法 1: 使用 tag（推薦）
-git merge v2.10.2-final --no-edit
+# 方法 1: 使用 tag（推薦，待打 tag 後）
+git merge v2.12.0-final --no-edit
 
 # 方法 2: 使用遠端分支
-# git merge origin/feature/aspect-ratio-usecasegroup-v2.10.0 --no-edit
+git merge origin/feature/camera-core-v2.12.0 --no-edit
 ```
 
 **如果有衝突**，參考下一步。
@@ -287,32 +303,33 @@ git merge v2.10.2-final --no-edit
 
 **常見衝突檔案**:
 1. `app/src/main/java/com/akirachang/ai/photographer/presentation/camera/CameraScreen.kt`
-2. `devspec/feature_record_Backlog.md`
+2. `app/src/main/java/com/akirachang/ai/photographer/presentation/camera/CameraState.kt`
+3. `devspec/feature_record_Backlog.md`
 
 **解決策略**:
 
-**CameraScreen.kt**:
+**CameraScreen.kt / CameraState.kt / CameraViewModel.kt**:
 ```bash
-# 檢查衝突內容
-git diff CameraScreen.kt
-
-# 策略：保留 StiffnessHigh（v2.10.2 的優化）
-# 使用 v2.10.2 的版本
+# 策略：保留 feature/camera-core-v2.12.0 版本（包含最新修復）
 git checkout --theirs app/src/main/java/com/akirachang/ai/photographer/presentation/camera/CameraScreen.kt
-git add app/src/main/java/com/akirachang/ai/photographer/presentation/camera/CameraScreen.kt
+git checkout --theirs app/src/main/java/com/akirachang/ai/photographer/presentation/camera/CameraState.kt
+git checkout --theirs app/src/main/java/com/akirachang/ai/photographer/presentation/camera/CameraViewModel.kt
+git add app/src/main/java/com/akirachang/ai/photographer/presentation/camera/
 ```
 
 **feature_record_Backlog.md**:
 ```bash
-# 策略：保留兩邊的內容（v2.11.0 + v2.10.2）
-# 使用當前分支（v2.11.0）的版本（包含所有章節）
+# 策略：保留兩邊的內容（main + v2.12.0）
+# 使用當前分支（v2.12.0）的版本（包含所有章節）
 git checkout --ours devspec/feature_record_Backlog.md
 git add devspec/feature_record_Backlog.md
 ```
 
 **檢查點**:
 - [ ] 所有衝突已解決
-- [ ] StiffnessHigh 已保留（CameraScreen.kt）
+- [ ] `StiffnessHigh` 保留於 position tracking（CameraScreen.kt）
+- [ ] `focusFrameSizePx` 欄位存在（CameraState.kt）
+- [ ] `VISUAL_PADDING_SCALE = 1.5f` 保留（CameraViewModel.kt）
 - [ ] feature_record_Backlog.md 包含所有章節
 
 #### 3.5 完成合併
@@ -320,42 +337,35 @@ git add devspec/feature_record_Backlog.md
 ```bash
 # 提交合併
 git commit -m "$(cat <<'EOF'
-Merge tag 'v2.10.2-final' into feature/camera-core-v2.11.0
+Merge origin/feature/camera-core-v2.12.0 into main
 
-整合 v2.10.0 + v2.10.2 的完整功能和修復到 v2.11.0
+整合 v2.12.0-01 ~ v2.12.0-04 的完整功能到 main
 
 ## 整合內容
 
-### v2.10.0 功能
-- ✅ Aspect Ratio Toggle (4:3/16:9/1:1) + UseCaseGroup + ViewPort
-- ✅ EXIF 資訊顯示 (GPS, 曝光參數, 裝置資訊)
-- ✅ Settings UI 現代化 (可摺疊卡片, 位置權限管理)
+### v2.12.0-01
+- ✅ Remove 1:1 Aspect Ratio + analysisSelector cap ≤640×480
 
-### v2.10.2 修復
-- ✅ Permission UX 改善（啟動時一次性請求）
-- ✅ Aspect Ratio 切換立即生效修復
-- ✅ Toast Regression 修正（移除 Snackbar）
+### v2.12.0-02
+- ✅ Remove analysisSelector setAspectRatioStrategy (Sony HAL quirk fix)
 
-### v2.11.0 功能（保留）
-- ✅ Eye-AF (眼睛優先自動對焦)
-- ✅ Smart Subject Focus (智能主體對焦)
-- ✅ Rectangle + Corner Brackets 視覺設計
+### v2.12.0-03
+- ✅ Adaptive ML Kit throttle (EWMA) in CameraViewModel device mode
+- ✅ .sample() replaces conflate() to avoid BitmapPool reuse issue
 
-## 衝突解決
-1. CameraScreen.kt: 採用 StiffnessHigh (v2.10.2 優化)
-   - 理由: v2.11.0 的 Eye-AF 需要快速響應
-2. feature_record_Backlog.md: 保留所有章節
-   - 合併 v2.10.0/v2.10.2 + v2.11.0 的完整記錄
+### v2.12.0-04
+- ✅ FocusIndicator adaptive frame 48-120dp from ML Kit bounding box
+- ✅ VISUAL_PADDING_SCALE=1.5 for normal-distance visibility
+- ✅ Spring animation (DampingRatioMediumBouncy + StiffnessMediumLow)
 
 ## 文檔同步
-- ✅ docs/plan/v2.10.0_* (決議文檔)
-- ✅ docs/test_results/v2.10.0/ (測試報告)
-- ✅ docs/test_results/v2.10.2/ (測試報告)
+- ✅ docs/features/v2.12.0/ (L0/L1/L2 文檔共 9 個)
+- ✅ docs/test_results/v2.12.0/ (測試報告)
 
-來源: v2.10.2-final (tag)
+來源: origin/feature/camera-core-v2.12.0
 參考: devspec/MERGE_SOP.md
 
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -390,23 +400,117 @@ bash docs/test_results/v2.9.6-Phase2.6/Google-check_elf_alignment.sh \
 **檢查點**:
 - [ ] `ELF Verification Successful`
 
+#### 4.2b Phase 4: Emulator Testing（正確操作流程）
+
+> ⚠️ **經驗記錄（2026-03-01）**：以下為實際測試驗證的正確指令，避免重踩錯誤操作。
+
+##### Step 1：Build Emulator APK
+
+```bash
+# Emulator 與 Device 使用不同 flavor，必須分別 Build
+./gradlew assembleEmulatorDebug
+
+# APK 路徑（與 Device 不同）
+# app/build/outputs/apk/emulator/debug/app-emulator-debug.apk
+```
+
+##### Step 2：啟動模擬器（Bash 正確方式）
+
+```bash
+# ✅ 正確：使用 & 背景執行（不佔用 terminal）
+emulator -avd Pixel_5 -gpu host &
+
+# ❌ 錯誤：不要用以下方式（會造成 terminal 卡住或被 user 拒絕）
+# cmd /c "start /min emulator..."          ← Windows cmd，在 bash 環境不一致
+# Start-Process emulator ... -NoNewWindow  ← PowerShell 語法，bash 不適用
+```
+
+> 可用 AVD 清單：`emulator -list-avds`
+> 目前專案可用：`MPhone_A11`, `Medium_Phone_API_36.1`, `Pixel9a-16KB`, `Pixel9a-virtual`, `Pixel_5`
+
+##### Step 3：等待開機完成
+
+```bash
+# 輪詢 boot_completed（不要用 sleep 死等）
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  BOOT=$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+  echo "  boot_completed=$BOOT attempt $i/10"
+  [ "$BOOT" = "1" ] && echo "✅ Boot completed!" && break
+  sleep 5
+done
+
+# 確認裝置上線
+adb devices
+# 預期: emulator-5554    device
+```
+
+##### Step 4：安裝 APK 並授予權限
+
+```bash
+# 安裝（注意：Emulator APK 路徑）
+adb -s emulator-5554 install -r app/build/outputs/apk/emulator/debug/app-emulator-debug.apk
+
+# ⚠️ Emulator package 名稱與 Device 不同！
+# Device:   com.akirachang.ai.photographer
+# Emulator: com.akirachang.ai.photographer.emulator
+
+# 一次性授予所有必要權限（避免每次點選彈窗）
+adb -s emulator-5554 shell pm grant com.akirachang.ai.photographer.emulator android.permission.CAMERA
+adb -s emulator-5554 shell pm grant com.akirachang.ai.photographer.emulator android.permission.READ_MEDIA_IMAGES 2>/dev/null
+adb -s emulator-5554 shell pm grant com.akirachang.ai.photographer.emulator android.permission.READ_EXTERNAL_STORAGE 2>/dev/null
+```
+
+##### Step 5：啟動 App
+
+```bash
+# ✅ 正確：使用 monkey（自動找 LAUNCHER activity，不需知道完整 class 名稱）
+adb -s emulator-5554 shell "monkey -p com.akirachang.ai.photographer.emulator -c android.intent.category.LAUNCHER 1"
+
+# ❌ 錯誤：不要用 am start -n，Emulator flavor 的 Activity class 路徑與 Device 不同
+# adb -s emulator-5554 shell am start -n com.akirachang.ai.photographer.emulator/.MainActivity
+# → Error type 3: Activity class does not exist
+```
+
+##### Step 6：截圖（正確方法）
+
+```bash
+# ⚠️ 遵守 CLAUDE.md ADB 截圖規範（禁止直接 > 重導向）
+adb -s emulator-5554 shell "screencap -p > /sdcard/Download/screenshot.png"
+adb -s emulator-5554 pull //sdcard//Download//screenshot.png tmp/screenshot.png
+adb -s emulator-5554 shell "rm /sdcard/Download/screenshot.png"
+```
+
+**檢查點**:
+- [ ] Emulator APK Build 成功（`assembleEmulatorDebug`）
+- [ ] 模擬器以 `emulator -avd <name> -gpu host &` 背景啟動
+- [ ] `sys.boot_completed=1` 確認開機完成
+- [ ] Package 名稱使用 `com.akirachang.ai.photographer.emulator`
+- [ ] App 以 `monkey` 指令啟動（非 `am start -n`）
+- [ ] App 功能正常、無 Crash
+
+---
+
 #### 4.3 Phase 5: Device Testing
 
 ```bash
-# 卸載舊版本
-adb -s 59131JEBF17244 uninstall com.akirachang.ai.photographer
+# 安裝新版本（Pixel 9a）
+adb -s 59131JEBF17244 install -r app/build/outputs/apk/device/debug/app-device-debug.apk
 
-# 安裝新版本
-adb -s 59131JEBF17244 install app/build/outputs/apk/device/debug/app-device-debug.apk
+# 安裝新版本（Sony XQ-BT52）
+adb -s HQ616R2713 install -r app/build/outputs/apk/device/debug/app-device-debug.apk
 
 # 驗證版本號
 adb -s 59131JEBF17244 shell dumpsys package com.akirachang.ai.photographer | grep version
+# 預期：versionName=2.12.0-04  versionCode=85
 ```
 
 **功能驗證**:
-- [ ] **v2.11.0 功能**: Eye-AF, Smart Subject Focus, Rectangle UI
-- [ ] **v2.10.0 功能**: Aspect Ratio Toggle (4:3/16:9/1:1) ⭐ **重要**
-- [ ] **v2.10.2 修復**: Permission UX, Toast (無 Snackbar)
+- [ ] **v2.12.0-01/02**: analysisSelector cap 生效，Sony 16:9 低 FPS 修復
+- [ ] **v2.12.0-03**: EWMA throttle log 可見（`[v2.12.0-03] throttle=Xms`）
+- [ ] **v2.12.0-04**: FocusIndicator 框隨人臉距離縮放（48-120dp）
+- [ ] **Eye-AF**: 對焦點落在眼睛位置（非臉部中心）
+- [ ] **Smart Subject Focus**: `frameSizePx` log 值正確（正常距離 >130px）
+- [ ] **FocusClamp**: 機械夾緊動畫 3-phase 正常（shrink→expand→settle）
 
 ---
 
@@ -417,20 +521,30 @@ adb -s 59131JEBF17244 shell dumpsys package com.akirachang.ai.photographer | gre
 編輯 `devspec/BRANCH_RELEASES.md`：
 
 ```markdown
-### v2.11.0 (2026-02-13) ✅ 穩定
-- **Status**: ✅ 穩定，包含 v2.10.2-final 的所有功能
-- **已整合**: v2.10.2-final (2026-02-13)
+### v2.12.0 (2026-03-XX) ✅ 穩定
+- **Status**: ✅ 穩定，v2.12.0-01 ~ v2.12.0-04 全部完成
+- **版本號**: 2.12.0-04 (versionCode=85)
+- **包含功能**:
+  - v2.12.0-01: Remove 1:1 AR + analysisSelector cap ≤640×480
+  - v2.12.0-02: Remove analysisSelector setAspectRatioStrategy (Sony HAL)
+  - v2.12.0-03: Adaptive EWMA throttle (device mode)
+  - v2.12.0-04: FocusIndicator adaptive 48-120dp (VISUAL_PADDING_SCALE=1.5)
 - 測試狀態:
-  - ✅ Pixel 9a: PASS
+  - ✅ Emulator (Pixel_5): ELF 16KB PASS, 無 crash
+  - ✅ Sony XQ-BT52 (HQ616R2713): frameSizePx 驗測 PASS
+  - ✅ Pixel 9a (59131JEBF17244): PASS
 ```
 
 #### 5.2 推送到遠端
 
 ```bash
-# 推送分支
-git push origin feature/camera-core-v2.11.0
+# 打 final tag
+git tag v2.12.0-final
 
-# 推送 tag（如果創建了新 tag）
+# 推送分支
+git push origin feature/camera-core-v2.12.0
+
+# 推送 tag
 git push origin --tags
 ```
 
@@ -459,5 +573,59 @@ git merge feature-name  # 可能是舊的本地分支
 
 ---
 
-**最後更新**: 2026-02-25
+**最後更新**: 2026-03-16（新增本地 Slash Commands：/sv + /qa）
 **維護者**: Claude Sonnet 4.6 + Akira Chang
+
+---
+
+## 🛠️ 本地 Skills（節省 Traycer 費用）
+
+在提交 Traycer 終審前，可先用本地 Skills 完成初步驗收與編譯驗證，節省 API 費用。
+
+### `/sv` — 本地無情法官 ⛔ 人工觸發限定
+
+**檔案**：`.claude/skills/sv/SKILL.md`（`disable-model-invocation: true`）
+**用途**：執行反向驗證，掃描代碼殘骸與偷懶行為
+
+觸發方式：**只能由人工**在 Claude Code 聊天中輸入 `/sv`（Claude 無法自動呼叫）
+
+執行項目：
+1. **殘骸掃描 (Orphan Check)**：舊邏輯、feature flag、廢棄 import 是否徹底刪除
+2. **Mock 偵測 (Anti-Lazy Check)**：無意義預設值或 `TODO` 是否存在
+3. **UI 互斥 (State Exclusive)**：UI 雙重渲染風險、`return` 防線穩固性
+
+通過回報：「本地 SV 驗收通過，準備提交 Traycer 終審。」
+
+**建議觸發時機**：Phase 3 代碼合併完成後、Phase 4 Build 驗證前
+
+---
+
+### `/qa` — 本地自動化 QA 守護 ✅ 人工 or Claude 自動觸發
+
+**檔案**：`.claude/skills/qa/SKILL.md`（`disable-model-invocation: false`）
+**用途**：啟動本地編譯、擷取 Log、提出修復建議
+
+觸發方式：人工輸入 `/qa`，或 Claude 修改核心邏輯後**主動自動呼叫**
+
+執行項目：
+1. 執行 `./gradlew assembleDebug`
+2. 編譯失敗時：立刻擷取錯誤 Log 並提出修復方案，禁止沉默失敗
+3. 編譯成功時：檢視 Warning，評估是否需要立即清理
+
+**建議觸發時機**：Phase 4.1 Build 驗證階段；或 Claude 完成核心邏輯修改後自動觸發
+
+---
+
+### Skills 整合到 Merge 流程
+
+```
+Phase 3 完成
+    ↓
+/sv  ← 無情法官（人工觸發，disable-model-invocation=true）
+    ↓ 通過
+/qa  ← 自動化 QA（人工或 Claude 自動，disable-model-invocation=false）
+    ↓ BUILD SUCCESSFUL
+Phase 4 實機驗證
+    ↓ 全 PASS
+Traycer strict_verification 終審
+```

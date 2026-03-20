@@ -17,8 +17,8 @@ android {
         applicationId = "com.akirachang.ai.photographer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 83
-        versionName = "2.11.4"
+        versionCode = 85
+        versionName = "2.12.0"
 
         // v2.8.2 Phase C: RenderScript GPU YUV conversion (support mode for API 31+)
         // v2.8.3 Phase D: Transform fast path optimizations
@@ -89,8 +89,8 @@ android {
             // v2.8.4 Plan B: Fused YUV+Transform RenderScript kernel (default: false for safe release)
             buildConfigField("Boolean", "ENABLE_FUSED_TRANSFORM", "false")
 
-            // v2.8.6 Phase 2: PreviewView migration for Graphics memory fix (disabled in release for now)
-            buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "false")
+            // v2.12.0-14: Enabled for release — geometry truth aligned with debug build
+            buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "true")
 
             // v2.x.x Phase 1: Optical Flow Point Tracking (default: false, disabled in release)
             buildConfigField("Boolean", "ENABLE_OPTICAL_FLOW_TRACKING", "true")

@@ -115,6 +115,16 @@ class LiveCameraSource @Inject constructor(
     @Volatile
     private var aeAfLockState: AeAfLockState = AeAfLockState.UNLOCKED
 
+    // v2.12.0-07: Fixed-focus lens detection (set after bindToLifecycle).
+    // Front cameras on many devices (incl. Pixel 9a) have no VCM — startFocusAndMetering()
+    // always returns isFocusSuccessful=false, causing endless FAILED→backoff loops.
+    @Volatile
+    private var isFixedFocus = false
+
+    // v2.12.0-11: StateFlow path for ViewModel to observe fixed-focus capability.
+    private val _isFixedFocusLens = MutableStateFlow(false)
+    val isFixedFocusLens: StateFlow<Boolean> = _isFixedFocusLens.asStateFlow()
+
     // v2.11.4-08: Increments on every bindToLifecycle call.
     // Future callbacks capture this value at submission time; if it diverges (camera switched),
     // the stale callback is discarded, preventing LOCKED state from a recycled session.
@@ -656,7 +666,7 @@ class LiveCameraSource @Inject constructor(
             } else {
                 // Fallback to SurfaceOrientedMeteringPointFactory (legacy behavior)
                 // ⚠️ WARNING: This does NOT account for FIT_CENTER letterboxing
-                Log.w(TAG, "[v2.11.1 P0-1] PreviewView not set - using legacy factory (letterbox not handled)")
+                Log.e(TAG, "[v2.12.0-14] CRITICAL: PreviewView not set — metering point uses legacy SurfaceOrientedFactory (letterbox NOT handled). Focus accuracy degraded.")
                 val factory = androidx.camera.core.SurfaceOrientedMeteringPointFactory(
                     viewWidth.toFloat(),
                     viewHeight.toFloat()
@@ -664,13 +674,36 @@ class LiveCameraSource @Inject constructor(
                 factory.createPoint(x, y)
             }
 
-            // Build focus metering action
+            // v2.12.0-07: Fixed-focus bypass — skip FLAG_AF entirely.
+            // Fixed-focus lenses (e.g. Pixel 9a front camera) have no VCM motor;
+            // startFocusAndMetering(FLAG_AF) always returns isFocusSuccessful=false,
+            // causing AfState to enter endless FAILED→backoff loops.
+            // Instead: trigger AE+AWB only (exposure/white-balance still benefit from
+            // metering point) and return success immediately so ViewModel sets AfState.Locked.
+            if (isFixedFocus) {
+                Log.i(TAG, "[v2.12.0-07] Fixed-focus lens — AE/AWB metering only at ($x, $y)")
+                val aeOnlyAction = androidx.camera.core.FocusMeteringAction.Builder(
+                    focusPoint,
+                    androidx.camera.core.FocusMeteringAction.FLAG_AE or
+                            androidx.camera.core.FocusMeteringAction.FLAG_AWB
+                ).apply {
+                    setAutoCancelDuration(4, java.util.concurrent.TimeUnit.SECONDS)
+                }.build()
+                cameraControl.startFocusAndMetering(aeOnlyAction)
+                continuation.resume(Result.success(Unit))
+                return@suspendCancellableCoroutine
+            }
+
+            // Build focus metering action (autofocus-capable lenses)
+            // v2.12.0-06 H2.1: Add FLAG_AE so rear-camera HAL can gate exposure before locking AF.
+            // v2.12.0-06 H2.2: autoCancelDuration 5s→4s — CameraX must deliver result BEFORE
+            //   ViewModel's withTimeout(4500ms) fires, preventing premature TIMEOUT state + backoff.
             val action = androidx.camera.core.FocusMeteringAction.Builder(
                 focusPoint,
-                androidx.camera.core.FocusMeteringAction.FLAG_AF
+                androidx.camera.core.FocusMeteringAction.FLAG_AF or
+                        androidx.camera.core.FocusMeteringAction.FLAG_AE
             ).apply {
-                // Auto-cancel after 5 seconds
-                setAutoCancelDuration(5, java.util.concurrent.TimeUnit.SECONDS)
+                setAutoCancelDuration(4, java.util.concurrent.TimeUnit.SECONDS)
             }.build()
 
             // Start focus and metering
@@ -1028,51 +1061,47 @@ class LiveCameraSource @Inject constructor(
                               "filter≤${maxFilterWidth}x${maxFilterHeight}")
 
                     // v2.10.0: Unified AspectRatioStrategy for UseCaseGroup + ViewPort architecture
-                    // v2.11.1: 1:1 mode uses ResolutionFilter (Traycer Plan A) to prefer true square resolutions.
-                    //   Priority: exact square (width==height, nearest to 1920×1920) → fallback to nearest 1:1 aspect
-                    //   ViewPort Rational(1,1) + FIT ensures WYSIWYG (Preview = Capture = 1:1 square)
-                    //   See: docs/features/v2.10.0/v2.10.0_aspect-ratio-wysiwyg-fix_Traycer.md
-                    val commonSelector = if (currentAspectRatioMode == AspectRatioMode.RATIO_1_1) {
-                        // 1:1 mode: prefer true square resolution, fallback to nearest 1:1 aspect
-                        androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
-                            .setResolutionFilter { supportedSizes, _ ->
-                                val squareSizes = supportedSizes.filter { it.width == it.height }
-                                if (squareSizes.isNotEmpty()) {
-                                    // Select closest to 1920×1920 square
-                                    val selected = squareSizes.minByOrNull {
-                                        kotlin.math.abs(it.width - 1920)
-                                    } ?: squareSizes.first()
-                                    Log.i(TAG, "[v2.11.1] 1:1 ResolutionFilter: true square found → ${selected.width}x${selected.height}")
-                                    listOf(selected)
-                                } else {
-                                    // Fallback: nearest aspect ratio to 1:1
-                                    val fallback = supportedSizes.minByOrNull { size ->
-                                        kotlin.math.abs(size.width.toFloat() / size.height - 1.0f)
-                                    } ?: supportedSizes.first()
-                                    Log.w(TAG, "[v2.11.1] 1:1 ResolutionFilter: no square found, fallback → ${fallback.width}x${fallback.height} (ratio=${fallback.width.toFloat()/fallback.height})")
-                                    listOf(fallback)
-                                }
-                            }
-                            .build()
-                    } else {
-                        // 4:3 / 16:9 modes: use standard AspectRatioStrategy
-                        val targetAspectRatio = when (currentAspectRatioMode) {
-                            AspectRatioMode.RATIO_4_3 -> androidx.camera.core.AspectRatio.RATIO_4_3
-                            AspectRatioMode.RATIO_16_9 -> androidx.camera.core.AspectRatio.RATIO_16_9
-                            else -> androidx.camera.core.AspectRatio.RATIO_4_3
-                        }
-                        androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
-                            .setAspectRatioStrategy(
-                                androidx.camera.core.resolutionselector.AspectRatioStrategy(
-                                    targetAspectRatio,
-                                    androidx.camera.core.resolutionselector.AspectRatioStrategy.FALLBACK_RULE_AUTO
-                                )
-                            )
-                            .build()
-                            .also {
-                                Log.i(TAG, "[v2.11.1] ResolutionSelector: ${currentAspectRatioMode.displayName} → RATIO_$targetAspectRatio")
-                            }
+                    // v2.12.0: Simplified to 4:3 / 16:9 only — removed 1:1 digital crop mode
+                    //   4:3 = sensor native, 16:9 = display fill; no square ResolutionFilter needed
+                    val targetAspectRatio = when (currentAspectRatioMode) {
+                        AspectRatioMode.RATIO_4_3 -> androidx.camera.core.AspectRatio.RATIO_4_3
+                        AspectRatioMode.RATIO_16_9 -> androidx.camera.core.AspectRatio.RATIO_16_9
                     }
+                    val commonSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                        .setAspectRatioStrategy(
+                            androidx.camera.core.resolutionselector.AspectRatioStrategy(
+                                targetAspectRatio,
+                                androidx.camera.core.resolutionselector.AspectRatioStrategy.FALLBACK_RULE_AUTO
+                            )
+                        )
+                        .build()
+                        .also {
+                            Log.i(TAG, "[v2.12.0] ResolutionSelector: ${currentAspectRatioMode.displayName} → RATIO_$targetAspectRatio")
+                        }
+
+                    // v2.12.0-02: Dedicated analysisSelector for ImageAnalysis — capped at ≤640×480
+                    // Rationale: commonSelector lets HAL pick any resolution (e.g. Sony selects 1920×1080
+                    //   for 16:9 → FPS drops below 20). ML Kit analysis does not need high resolution.
+                    //   Separating selectors: Preview+Capture keep full quality; Analysis stays small.
+                    // v2.12.0-02 fix: Remove AspectRatioStrategy from analysisSelector.
+                    //   Root cause: Sony XQ-BT52 HAL has no 16:9 YUV_420_888 resolution < 1280×720.
+                    //   AspectRatioStrategy(16:9) filtered to 16:9-only resolutions → Sony minimum =
+                    //   1280×720 → ResolutionStrategy cap(640×480) failed (no lower 16:9 found).
+                    //   Fix: AR-free selector → HAL picks 640×480 (4:3 physical) for both 4:3 and 16:9
+                    //   modes. ViewPort cropRect handles the 16:9 visible region.
+                    //   Impact: ML Kit analyzes full 640×480 in 16:9 mode (slight letterbox FOV).
+                    //   imageProxy.width=640, imageProxy.height=480 for all modes → coordinate mapping OK.
+                    val analysisSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                        .setResolutionStrategy(
+                            androidx.camera.core.resolutionselector.ResolutionStrategy(
+                                android.util.Size(640, 480),
+                                androidx.camera.core.resolutionselector.ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER
+                            )
+                        )
+                        .build()
+                        .also {
+                            Log.i(TAG, "[v2.12.0-02] analysisSelector: AR-free, capped ≤640×480 (both modes)")
+                        }
 
                     // Store target for diagnostic logging
                     selectedResolution = targetResolution
@@ -1137,8 +1166,9 @@ class LiveCameraSource @Inject constructor(
 
                     // 2. Build ImageAnalysis UseCase (for Bitmap stream to UI)
                     // v2.10.0: Use unified AspectRatioStrategy for consistency with ViewPort
+                    // v2.12.0: Use analysisSelector (≤640×480 cap) — prevents HAL-dependent FPS drop
                     imageAnalysis = ImageAnalysis.Builder()
-                        .setResolutionSelector(commonSelector)
+                        .setResolutionSelector(analysisSelector)
                         .setTargetRotation(Surface.ROTATION_0)  // Set target rotation for proper orientation
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
@@ -1172,10 +1202,9 @@ class LiveCameraSource @Inject constructor(
                     // 5. Create ViewPort for WYSIWYG guarantee (v2.10.0: Gemini approach)
                     // ViewPort ensures Preview, ImageAnalysis, and ImageCapture see the same cropped region
                     // v2.10.0-fix: Use FIT ScaleType to prevent double-cropping (ViewPort FILL + PreviewView FILL)
-                    // v2.11.1: 1:1 mode uses Rational(1,1) ViewPort — Preview displays 1:1 square (WYSIWYG)
-                    //   ResolutionFilter provides true square resolution; ViewPort crops to 1:1 if fallback to 4:3
+                    // v2.12.0: Only 4:3 and 16:9 supported — ViewPort uses Rational(4,3) or Rational(16,9)
                     val viewPort = ViewPort.Builder(
-                        currentAspectRatioMode.toRational(),  // Rational(4,3) / Rational(16,9) / Rational(1,1)
+                        currentAspectRatioMode.toRational(),  // Rational(4,3) / Rational(16,9)
                         currentRotation  // Current device rotation (Surface.ROTATION_*)
                     )
                         .setScaleType(ViewPort.FIT)  // ✅ Preserve full FOV, prevent over-cropping
@@ -1200,6 +1229,16 @@ class LiveCameraSource @Inject constructor(
                     )
 
                     Log.i(TAG, "✅ Camera bound successfully with UseCaseGroup (${currentAspectRatioMode.displayName}): Preview + ImageAnalysis + ImageCapture + ViewPort WYSIWYG")
+
+                    // v2.12.0-07: Detect fixed-focus lens and store for focusOnPoint() bypass
+                    isFixedFocus = FixedFocusDetector.isFixedFocus(camera.cameraInfo)
+                    val afModes = FixedFocusDetector.getAfModes(camera.cameraInfo)
+                    val hwLevel = FixedFocusDetector.getHardwareLevel(camera.cameraInfo)
+                    Log.i(TAG, "[v2.12.0-07] isFixedFocus=$isFixedFocus, afModes=[${afModes.joinToString()}], hwLevel=$hwLevel")
+
+                    // v2.12.0-11: Emit to StateFlow so ViewModel can observe fixed-focus capability
+                    _isFixedFocusLens.value = isFixedFocus
+                    Log.i(TAG, "[v2.12.0-11] isFixedFocusLens updated: $isFixedFocus → StateFlow emitted")
 
                     // v2.11.4-06 Bug 2: Clear any lingering Camera2 interop options from previous session.
                     // When screen locks while AE_LOCK=true + AF_MODE=OFF are active, the
@@ -1400,6 +1439,22 @@ class LiveCameraSource @Inject constructor(
     /**
      * Set exposure compensation (for HDR mode simulation)
      */
+    /**
+     * v2.12.0-15 SV-S5a-R2: Expose CameraControl for CameraXFocusController.
+     * Lifecycle-safe: returns null if camera is not yet initialized.
+     */
+    fun getCameraControl(): androidx.camera.core.CameraControl? {
+        return if (::camera.isInitialized) camera.cameraControl else null
+    }
+
+    /**
+     * v2.12.0-15 SV-S5-Final: Expose MeteringPointFactory for CameraXFocusController DI binding.
+     * Lifecycle-safe: returns null if PreviewView is not yet set.
+     */
+    fun getMeteringPointFactory(): androidx.camera.core.MeteringPointFactory? {
+        return previewView?.meteringPointFactory
+    }
+
     fun setExposureCompensation(value: Int) {
         if (::camera.isInitialized) {
             try {

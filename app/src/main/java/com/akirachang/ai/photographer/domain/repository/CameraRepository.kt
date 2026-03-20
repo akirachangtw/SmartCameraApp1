@@ -91,6 +91,16 @@ interface CameraRepository {
     val guidelineResults: StateFlow<GuidelineAnalysisResult?>
 
     /**
+     * Whether the current lens is fixed-focus (no VCM / AF hardware)
+     * v2.12.0-11: StateFlow path for ViewModel to observe fixed-focus capability
+     *
+     * Emits true after bindToLifecycle() when FixedFocusDetector confirms the lens
+     * cannot perform autofocus (e.g. Pixel 9a front camera).
+     * Emits false for emulator / StaticImageSource.
+     */
+    val isFixedFocusLens: StateFlow<Boolean>
+
+    /**
      * 啟用 HDR 模式（透過曝光補償）
      * v2.3.0: 逆光場景自動 HDR
      */
@@ -281,4 +291,22 @@ interface CameraRepository {
      * @return ExifInfo object with all metadata, or null if reading fails
      */
     suspend fun readExifInfo(uri: Uri): com.akirachang.ai.photographer.domain.model.ExifInfo?
+
+    /**
+     * Get CameraControl for direct hardware focus/metering operations.
+     * v2.12.0-15 SV-S5a-R2: Exposed for CameraXFocusController in new focus pipeline.
+     *
+     * Returns null if camera is not yet bound to lifecycle (lifecycle-safe).
+     * For StaticImageSource: always returns null (no hardware camera).
+     */
+    fun getCameraControl(): androidx.camera.core.CameraControl?
+
+    /**
+     * Get MeteringPointFactory from PreviewView for accurate focus point mapping.
+     * v2.12.0-15 SV-S5-Final: Exposed for CameraXFocusController in FocusModule DI binding.
+     *
+     * Returns null if PreviewView is not set or camera is not yet bound.
+     * For StaticImageSource: always returns null (no hardware camera).
+     */
+    fun getMeteringPointFactory(): androidx.camera.core.MeteringPointFactory?
 }

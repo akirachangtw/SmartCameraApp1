@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 prompt_generator_gui.pyw
-Hybrid Workflow Prompt Generator — AI-powered step-by-step prompt generation
-使用 Gemini API 自動生成 Hybrid Workflow 四步驟提示詞，每步驟輸出獨立分頁。
+Ultimate Defensive Hybrid Workflow Prompt Generator (Custom Workflow Edition)
+使用 Gemini API 自動生成「終極防禦型混合工作流」四步驟提示詞，
+並完美對接 Traycer Custom Workflow 的 5 大 Commands。
 """
 
 import os
 import re
 import sys
-import json
 import datetime
 import threading
 import tkinter as tk
@@ -25,50 +25,60 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
 
-# ── Color scheme (same as stage_verification_gui.pyw) ──────────────────────
+# ── Color scheme ─────────────────────────────────────────────────────────────
 class Colors:
     PRIMARY    = "#2980b9"
     SUCCESS    = "#27ae60"
-    WARNING    = "#f39c12"
+    WARNING    = "#f39c12"  # Gemini
     DANGER     = "#e74c3c"
     BACKGROUND = "#ecf0f1"
     CARD_BG    = "#ffffff"
     TEXT_DARK  = "#2c3e50"
     TEXT_LIGHT = "#ffffff"
     BORDER     = "#bdc3c7"
-    ACCENT     = "#8e44ad"   # Purple for AI-related actions
+    ACCENT     = "#8e44ad"  # Claude
+    TRAYCER    = "#16a085"  # Traycer Trigger
+    PLANNER    = "#34495e"  # Traycer Planner
+    VERIFY     = "#1abc9c"  # Traycer Verify
 
 
 # ── Step metadata ────────────────────────────────────────────────────────────
 STEPS = [
-    {"key": "Step 0", "label": "Step 0 — 探索與定位",  "tool": "Traycer",            "color": "#16a085"},
-    {"key": "Step 1", "label": "Step 1 — L1 規劃摘要", "tool": "OpenAI / Gemini",    "color": Colors.PRIMARY},
-    {"key": "Step 2", "label": "Step 2 — L2 可行性",   "tool": "Gemini",             "color": Colors.WARNING},
-    {"key": "Step 3", "label": "Step 3 — Claude Code", "tool": "Claude Code",        "color": Colors.ACCENT},
+    {"key": "Step 1", "label": "Step 1 — 宏觀防禦 (Traycer)",    "tool": "Traycer Trigger", "color": Colors.TRAYCER},
+    {"key": "Step 2", "label": "Step 2 — 微觀防禦 (Gemini)",     "tool": "Gemini Architect", "color": Colors.WARNING},
+    {"key": "Step 3", "label": "Step 3 — 匯入與排程 (Traycer)",  "tool": "Traycer Planner", "color": Colors.PLANNER},
+    {"key": "Step 4", "label": "Step 4 — 實作與驗收 (雙重指令)", "tool": "Claude + Traycer", "color": Colors.VERIFY},
 ]
 
-MODEL_NAME = "gemini-2.5-flash"
-API_URL    = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent"
+MODEL_NAME   = "gemini-2.5-flash"
+API_URL      = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent"
+PROJECT_ROOT = Path(__file__).parent.parent   # tools/../ → project root
 
 SYSTEM_INSTRUCTION = """\
-你是一位開發工作流架構師。根據使用者的問題，生成 4 個步驟的 Hybrid Workflow 提示詞。
-嚴格按照以下格式輸出，每個 Step 必須以 "Step N:" 開頭（N 為 0-3）：
+你是一位「終極防禦型混合工作流」的系統架構導師。根據使用者的問題，生成 4 個步驟的防禦性開發提示詞。
+嚴格按照以下格式輸出，首先輸出 FileName 行，再依序輸出 Step 1-4：
 
-Step 0: 探索與定位 (Traycer)
-目的：說明此步驟的目的。
-建議提示詞：提供給 Traycer 的具體英文提示詞。
+FileName: [英文 snake_case，最多 30 字元，精確描述問題核心，例如 aeaf_lock_focus_delay]
 
-Step 1: L1 規劃摘要 (OpenAI/Gemini)
-目的：說明此步驟的目的。
-建議提示詞：具體的 L1 生成提示詞。
+Step 1: 宏觀防禦 (Traycer)
+目的：說明此步驟的目的（釐清現況、驗證問題、確立邊界）。
+建議提示詞：提供給 Traycer 的指令。內容必須包含：「我需要開發/重構 [問題相關功能]。請啟動 Ultimate Defensive Workflow 並執行 `trigger-workflow`。在規劃代碼前，請先探索專案現有邏輯，並進行 Spec-Driven 的釐清。請與我確認：1. 我的需求是否符合現實？ 2. 這次修改的 Scope IN 與 Scope OUT 邊界？ 確認後，請產出 L1 現況與需求報告。」
 
-Step 2: L2 可行性檢視 (Gemini)
-目的：說明此步驟的目的。
-建議提示詞：具體的 L2 檢視提示詞。
+Step 2: 微觀防禦 (Gemini)
+目的：說明此步驟的目的（嚴格架構審查、防禦邊界條件）。
+建議提示詞：提供給 Gemini 的指令。內容必須包含：「你現在是一位擁有 10 年經驗的頂尖 Android 架構師。這是 Traycer 產出的 L1 需求：[貼上 L1]。請對此進行『嚴格的技術設計審查』。請根據：1. 軟硬體能力矩陣 2. Sealed Class 狀態機防禦 3. UDF 解耦 4. 破壞性邊界條件，來拷問這個需求。審查完畢後，產出一份給 Claude Code 參考的英文 `Claude_Implementation_Guide_L2.md` 防禦架構指南。」
 
-Step 3: Claude Code 終端落地 (Claude Code)
-目的：說明此步驟的目的。
-建議提示詞：具體的 CLI 執行指令。
+Step 3: 匯入與排程 (Traycer Planner)
+目的：說明此步驟的目的（讓 Traycer 吸收 L2 架構，並進入 Planner Mode 拆解票據與產生交接指令）。
+建議提示詞：提供給 Traycer 的指令。內容必須包含：「請執行 `architectural_review`。這是我準備好的 L2 防禦架構指南：[貼上 Gemini 產出的 L2]。請吸收這份指南並產出正式的 Tech Plan Spec。確認無誤後，請接續執行 `ticket_breakdown` 將其拆解為 Scoped Tickets，最後啟動 `execute` 為我產出第一批要交接給 Claude Code 的【精確交接指令 (Handoff Instructions)】。」
+
+Step 4: 實作落地與驗收閉環 (Claude & Traycer)
+目的：說明此步驟的目的（交接給 Claude 實作，完成後用 Traycer 的 Reviewer Mode 驗收）。
+建議提示詞：提供實作與驗收的雙重指令。內容必須包含：
+「【第一步：貼給 Claude Code】
+請根據以下 Traycer 的交接指令執行任務：[貼上 Traycer 產出的 Handoff Instructions]。請嚴格遵守 Ticket 範圍與 Acceptance Criteria，絕不可進行大重寫。實作並編譯無誤後，請立即暫停並回報。
+【第二步：Claude 完成後，貼回給 Traycer】
+Claude Code 已完成實作。請執行 `strict_verification`。請嚴格比對 Tech Plan 與實際代碼，檢查狀態機制是否如實建立？是否有 Implementation drift (代碼偏移)？請給出最終裁決：Path A (批准), Path B (開立 Fix Tickets) 或 Path C (升級重新規劃)。」
 """
 
 
@@ -77,14 +87,14 @@ class PromptGeneratorApp:
 
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("Hybrid Workflow — 提示詞生成器")
-        self.root.geometry("960x820")
-        self.root.minsize(800, 640)
+        self.root.title("Ultimate Defensive Hybrid Workflow — 提示詞生成器")
+        self.root.geometry("1050x820")
+        self.root.minsize(850, 640)
         self.root.configure(bg=Colors.BACKGROUND)
         self.root.resizable(True, True)
 
         self._setup_ui()
-        self.write_log("🤖 Workflow Prompt Generator 已啟動", "Success")
+        self.write_log("🤖 終極防禦工作流 Generator (自訂工作流版) 已啟動", "Success")
 
         if requests is None:
             self.write_log("❌ 缺少 requests 套件，請執行：pip install requests", "Error")
@@ -104,27 +114,27 @@ class PromptGeneratorApp:
         self._create_statusbar()
 
     def _create_header(self):
-        header = tk.Frame(self.root, bg=Colors.ACCENT, height=52)
+        header = tk.Frame(self.root, bg=Colors.TEXT_DARK, height=52)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
 
         tk.Label(
             header,
-            text="🤖  Hybrid Workflow — 提示詞生成器",
+            text="🛡️  終極防禦型混合工作流 — 提示詞生成器 (Custom Workflow 版)",
             font=("Microsoft JhengHei UI", 14, "bold"),
-            fg=Colors.TEXT_LIGHT, bg=Colors.ACCENT
+            fg=Colors.TEXT_LIGHT, bg=Colors.TEXT_DARK
         ).pack(side=tk.LEFT, padx=20, pady=13)
 
         tk.Label(
             header,
-            text=f"Model: {MODEL_NAME}  •  Step 0 Traycer → Step 1 L1 → Step 2 L2 → Step 3 Claude Code",
+            text=f"Model: {MODEL_NAME}  •  Trigger → Design → Planner → Code/Verify",
             font=("Microsoft JhengHei UI", 9),
-            fg=Colors.TEXT_LIGHT, bg=Colors.ACCENT
+            fg="#bdc3c7", bg=Colors.TEXT_DARK
         ).pack(side=tk.LEFT, padx=(0, 20), pady=13)
 
     def _create_input_section(self):
         frame = tk.LabelFrame(
-            self.root, text=" 📝 輸入問題描述 ",
+            self.root, text=" 📝 輸入問題或重構需求 ",
             font=("Microsoft JhengHei UI", 10, "bold"),
             bg=Colors.CARD_BG, fg=Colors.TEXT_DARK,
             relief=tk.RIDGE, bd=1
@@ -164,31 +174,66 @@ class PromptGeneratorApp:
             fg="gray", bg=Colors.CARD_BG
         ).pack(side=tk.LEFT)
 
+        # Version + Topic row
+        ver_row = tk.Frame(frame, bg=Colors.CARD_BG)
+        ver_row.pack(padx=10, pady=(2, 2), fill=tk.X)
+
+        tk.Label(
+            ver_row, text="版本:",
+            font=("Microsoft JhengHei UI", 9),
+            bg=Colors.CARD_BG, width=9, anchor=tk.W
+        ).pack(side=tk.LEFT)
+
+        self.version_var = tk.StringVar(value="v2.12.0")
+        tk.Entry(
+            ver_row, textvariable=self.version_var,
+            font=("Consolas", 9), width=12
+        ).pack(side=tk.LEFT, padx=(0, 12))
+
+        tk.Label(
+            ver_row, text="檔名 (自動):",
+            font=("Microsoft JhengHei UI", 9),
+            bg=Colors.CARD_BG
+        ).pack(side=tk.LEFT)
+
+        self.topic_var = tk.StringVar()
+        tk.Entry(
+            ver_row, textvariable=self.topic_var,
+            font=("Consolas", 9), width=32
+        ).pack(side=tk.LEFT, padx=(0, 5))
+
+        tk.Label(
+            ver_row,
+            text="  (由 AI 依需求自動生成，可手動覆蓋)",
+            font=("Microsoft JhengHei UI", 8),
+            fg="gray", bg=Colors.CARD_BG
+        ).pack(side=tk.LEFT)
+
         # Problem description
         desc_row = tk.Frame(frame, bg=Colors.CARD_BG)
         desc_row.pack(padx=10, pady=(4, 4), fill=tk.X)
 
         tk.Label(
-            desc_row, text="問題描述:",
+            desc_row, text="需求描述:",
             font=("Microsoft JhengHei UI", 9),
             bg=Colors.CARD_BG, width=9, anchor=tk.NW
         ).pack(side=tk.LEFT, anchor=tk.N)
 
         self.input_text = scrolledtext.ScrolledText(
-            desc_row, height=5,
+            desc_row, height=4,
             font=("Microsoft JhengHei UI", 10),
             wrap=tk.WORD
         )
         self.input_text.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.input_text.insert(tk.END, "例如：AE/AF Lock 後對焦鎖定延遲 5 秒，有時需重啟 APP 才能恢復")
+        self.input_text.insert(tk.END, "例如：重構相機對焦模組，解決前鏡頭 Fixed-Focus 對焦框不動的 Bug A，以及後鏡頭切換目標的 Bug B，並導入 Sealed Class 防禦。")
 
         # Buttons
         btn_row = tk.Frame(frame, bg=Colors.CARD_BG)
         btn_row.pack(padx=10, pady=(4, 10), fill=tk.X)
 
         self._gen_btn = self._create_button(
-            btn_row, "🚀 生成提示詞 (Gemini API)",
-            Colors.ACCENT, self._on_generate
+            btn_row, "🚀 生成閉環防禦提示詞",
+            Colors.PRIMARY, self._on_generate
         )
         self._gen_btn.pack(side=tk.LEFT, padx=(0, 8))
 
@@ -206,7 +251,7 @@ class PromptGeneratorApp:
 
     def _create_output_tabs(self):
         outer = tk.LabelFrame(
-            self.root, text=" 📋 生成結果 (每步驟獨立分頁) ",
+            self.root, text=" 📋 四部曲提示詞 (自訂工作流適配版) ",
             font=("Microsoft JhengHei UI", 10, "bold"),
             bg=Colors.CARD_BG, fg=Colors.TEXT_DARK,
             relief=tk.RIDGE, bd=1
@@ -229,7 +274,7 @@ class PromptGeneratorApp:
 
             tk.Label(
                 info_row,
-                text=f"  🔧 {step['label']}  │  Tool: {step['tool']}",
+                text=f"  🛡️ {step['label']}  │  Tool: {step['tool']}",
                 font=("Microsoft JhengHei UI", 9, "bold"),
                 fg=Colors.TEXT_LIGHT, bg=step["color"]
             ).pack(side=tk.LEFT, padx=8, pady=5)
@@ -294,17 +339,14 @@ class PromptGeneratorApp:
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
-    def _create_button(self, parent, text, bg_color, command,
-                       fg=Colors.TEXT_LIGHT, width=None):
+    def _create_button(self, parent, text, bg_color, command, fg=Colors.TEXT_LIGHT, width=None):
         return tk.Button(
             parent, text=text,
             font=("Microsoft JhengHei UI", 9),
             bg=bg_color, fg=fg,
             activebackground=bg_color, activeforeground=fg,
-            relief=tk.FLAT, cursor="hand2",
-            command=command,
-            padx=10, pady=7,
-            width=width
+            relief=tk.FLAT, cursor="hand2", command=command,
+            padx=10, pady=7, width=width
         )
 
     def write_log(self, message: str, level: str = "Info"):
@@ -338,8 +380,6 @@ class PromptGeneratorApp:
                 self.root.clipboard_clear()
                 self.root.clipboard_append(content)
                 self.write_log(f"📋 已複製 {step_key} 內容到剪貼簿", "Success")
-            else:
-                self.write_log(f"⚠️ {step_key} 尚無內容可複製", "Warning")
 
     def _set_step_content(self, step_key: str, content: str):
         txt = self._step_texts.get(step_key)
@@ -351,45 +391,79 @@ class PromptGeneratorApp:
             txt.insert(tk.END, content)
         txt.config(state=tk.DISABLED)
 
+    # ── Path Computation & File Creation ─────────────────────────────────────
+
+    def _compute_paths(self) -> dict:
+        version     = self.version_var.get().strip() or "v0.0.0"
+        dir_version = re.sub(r'-\d+$', '', version)
+        topic       = self.topic_var.get().strip()[:30]
+        topic       = re.sub(r'[\\/*?:"<>|]', '_', topic).replace(' ', '_')
+        base        = f"{version}_{topic}" if topic else version
+        rel_dir     = Path("docs") / "features" / dir_version
+        return {
+            "abs_dir": PROJECT_ROOT / rel_dir,
+            "L1": rel_dir / f"{base}-L1_Context.md",
+            "L2": rel_dir / f"Claude_Implementation_Guide_{base}_L2.md",
+        }
+
+    def _create_doc_files(self, paths: dict):
+        try:
+            paths["abs_dir"].mkdir(parents=True, exist_ok=True)
+            for key in ("L1", "L2"):
+                abs_fp = PROJECT_ROOT / paths[key]
+                if not abs_fp.exists():
+                    abs_fp.write_text("", encoding="utf-8")
+            rel = paths["abs_dir"].relative_to(PROJECT_ROOT).as_posix()
+            self.write_log(f"📁 已確保規劃書目錄存在：{rel}", "Success")
+        except Exception as exc:
+            self.write_log(f"⚠️ 確保規劃書檔案失敗：{exc}", "Warning")
+
+    def _postprocess_step(self, step_key: str, content: str, paths: dict) -> str:
+        content = content.replace("建議提示詞：", "").replace("建議提示詞:", "")
+        fwd = lambda p: p.as_posix()
+
+        if step_key == "Step 1":
+            content = content.rstrip() + f"\n\n[💡 系統建議] 請要求 Traycer 將輸出的 L1 現況報告儲存為：\n@{fwd(paths['L1'])}"
+        elif step_key == "Step 2":
+            content = content.rstrip() + f"\n\n[💡 系統建議] 請提供 @{fwd(paths['L1'])} 讓 Gemini 審查，並要求其產出：\n@{fwd(paths['L2'])}"
+        elif step_key == "Step 3":
+            content = content.rstrip() + f"\n\n[💡 系統建議] 將 @{fwd(paths['L2'])} 餵給 Traycer，讓其自動執行審查 (`architectural_review`)、拆解票據 (`ticket_breakdown`)，並產出給 Claude 的交接指令 (`execute`)。"
+        elif step_key == "Step 4":
+            content = content.rstrip() + f"\n\n[💡 系統建議] 第一步讓 Claude 依循 Handoff 指令實作；第二步在 Traycer 啟動 `strict_verification` 驗收。若通過 (Path A)，再寫入 feature_record_Backlog.md。"
+        return content
+
     # ── API Call & Parsing ────────────────────────────────────────────────────
 
     def _on_generate(self):
         query = self.input_text.get("1.0", tk.END).strip()
         if not query:
-            messagebox.showwarning("警告", "請輸入問題描述。")
+            messagebox.showwarning("警告", "請輸入需求描述。")
             return
 
         api_key = self.api_key_var.get().strip() or os.getenv("GEMINI_API_KEY", "")
         if not api_key:
-            messagebox.showerror("錯誤", "未設定 API Key。\n請在欄位輸入或設定 GEMINI_API_KEY 環境變數。")
+            messagebox.showerror("錯誤", "未設定 API Key。")
             return
 
         if requests is None:
-            messagebox.showerror("錯誤", "缺少 requests 套件。\n請執行：pip install requests")
+            messagebox.showerror("錯誤", "缺少 requests 套件。")
             return
 
-        self._gen_btn.config(state=tk.DISABLED, text="⏳ 生成中…")
-        self._update_status("呼叫 Gemini API 中…")
-        self.write_log(f"🚀 開始生成提示詞：{query[:60]}…", "Info")
+        self._gen_btn.config(state=tk.DISABLED, text="⏳ 生成防禦提示詞中…")
+        self._update_status("呼叫 Gemini API 進行架構推理中…")
         self._clear_outputs()
 
-        threading.Thread(
-            target=self._call_api,
-            args=(query, api_key),
-            daemon=True
-        ).start()
+        threading.Thread(target=self._call_api, args=(query, api_key), daemon=True).start()
 
     def _call_api(self, query: str, api_key: str):
         payload = {
-            "contents": [{"parts": [{"text": f"問題描述：{query}\n\n請根據以上問題生成優化後的工作流提示詞。"}]}],
+            "contents": [{"parts": [{"text": f"開發需求描述：{query}\n\n請根據以上需求，生成終極防禦型混合工作流 (適配 Traycer Custom Workflow 版) 的四步驟提示詞。"}]}],
             "systemInstruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]}
         }
-
         try:
             response_text = self._call_with_retry(payload, api_key)
-            steps = self._parse_steps(response_text)
-
-            self.root.after(0, self._on_api_success, steps, response_text)
+            steps, filename = self._parse_steps(response_text)
+            self.root.after(0, self._on_api_success, steps, response_text, filename)
         except Exception as exc:
             self.root.after(0, self._on_api_error, str(exc))
 
@@ -400,69 +474,70 @@ class PromptGeneratorApp:
                 url = f"{API_URL}?key={api_key}"
                 resp = requests.post(url, json=payload, timeout=45)
                 data = resp.json()
-
                 if resp.status_code == 200:
                     return data["candidates"][0]["content"]["parts"][0]["text"]
-
-                err_msg = data.get("error", {}).get("message", "未知錯誤")
                 if resp.status_code == 429:
-                    wait = 2 ** attempt
-                    self.root.after(0, self.write_log, f"⚠️ Rate limit，{wait}s 後重試 (attempt {attempt+1})", "Warning")
-                    time.sleep(wait)
+                    time.sleep(2 ** attempt)
                     continue
-                raise Exception(f"API 錯誤 ({resp.status_code}): {err_msg}")
-
+                raise Exception(f"API 錯誤 ({resp.status_code})")
             except requests.exceptions.RequestException as exc:
-                if attempt == retries - 1:
-                    raise exc
+                if attempt == retries - 1: raise exc
                 time.sleep(2 ** attempt)
+        raise Exception("重試失敗")
 
-        raise Exception("所有重試均失敗")
+    def _parse_steps(self, text: str) -> tuple:
+        filename = ""
+        fn_match = re.search(r'^FileName:\s*(\S+)', text, re.IGNORECASE | re.MULTILINE)
+        if fn_match:
+            filename = re.sub(r'[\\/*?:"<>|]', '_', fn_match.group(1).strip())[:30]
 
-    def _parse_steps(self, text: str) -> dict:
-        """Split Gemini response into per-step sections."""
         result = {}
-        # Split on 'Step N:' boundaries
         parts = re.split(r'(?=Step\s+\d+\s*:)', text, flags=re.IGNORECASE)
         for part in parts:
-            part = part.strip()
-            if not part:
-                continue
-            match = re.match(r'Step\s+(\d+)\s*:', part, re.IGNORECASE)
+            match = re.match(r'Step\s+(\d+)\s*:', part.strip(), re.IGNORECASE)
             if match:
-                idx = int(match.group(1))
-                result[f"Step {idx}"] = part
-        return result
+                result[f"Step {match.group(1)}"] = part.strip()
+        return result, filename
 
-    def _on_api_success(self, steps: dict, raw: str):
+    def _on_api_success(self, steps: dict, raw: str, filename: str = ""):
+        if filename: self.topic_var.set(filename)
+        paths = self._compute_paths()
+        self._create_doc_files(paths)
+
         for step in STEPS:
             key = step["key"]
-            content = steps.get(key, f"（{key} 內容未從 API 回應中解析出來）\n\n原始回應：\n{raw}")
-            self._set_step_content(key, content)
+            content = steps.get(key, f"（解析失敗）\n{raw}")
+            self._set_step_content(key, self._postprocess_step(key, content, paths))
 
-        parsed_count = len([k for k in steps if any(s["key"] == k for s in STEPS)])
-        self.write_log(f"✅ 生成完成，成功解析 {parsed_count}/4 個步驟", "Success")
-        self._update_status(f"✅ 完成 — 已解析 {parsed_count}/4 步驟")
-        self._gen_btn.config(state=tk.NORMAL, text="🚀 生成提示詞 (Gemini API)")
+        self.write_log("✅ 生成完成", "Success")
+        self._update_status("✅ 完成")
+        self._gen_btn.config(state=tk.NORMAL, text="🚀 生成閉環防禦提示詞")
+        self._save_log(paths)
 
-        # Auto-switch to first populated step
         for idx, step in enumerate(STEPS):
             if steps.get(step["key"]):
                 self.notebook.select(idx)
                 break
 
+    def _save_log(self, paths: dict):
+        try:
+            log_path = PROJECT_ROOT / "tmp" / "prompt_generator_gui.log"
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            lines = [f"# Workflow Log\n# Topic: {self.topic_var.get()}"]
+            for step in STEPS:
+                txt = self._step_texts.get(step["key"])
+                lines += [f"## {step['label']}", txt.get("1.0", tk.END).strip() if txt else "", ""]
+            log_path.write_text("\n".join(lines), encoding="utf-8")
+        except Exception:
+            pass
+
     def _on_api_error(self, error_msg: str):
-        self.write_log(f"❌ API 呼叫失敗：{error_msg}", "Error")
+        self.write_log(f"❌ 失敗：{error_msg}", "Error")
         self._update_status("❌ 生成失敗")
-        self._gen_btn.config(state=tk.NORMAL, text="🚀 生成提示詞 (Gemini API)")
-        messagebox.showerror("API 錯誤", f"呼叫 Gemini API 失敗：\n\n{error_msg}")
-
-
-def main():
-    root = tk.Tk()
-    app = PromptGeneratorApp(root)
-    root.mainloop()
-
+        self._gen_btn.config(state=tk.NORMAL, text="🚀 生成閉環防禦提示詞")
+        messagebox.showerror("錯誤", error_msg)
 
 if __name__ == "__main__":
-    main()
+    root = tk.Tk()
+    PromptGeneratorApp(root)
+    root.mainloop()

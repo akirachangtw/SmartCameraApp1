@@ -68,11 +68,20 @@ git diff --stat
 
 ## Phase 3: 16KB Compatibility
 
+> 🔴 **重要工具**: `tools/check_elf_alignment.sh`
+> Android 16KB Page Size 強制合規檢測腳本（Google 官方）。
+> 所有含 `.so` 的 APK 在合併前必須通過此檢測。
+
 ### 3.1 執行 Google 官方檢測工具
 
 ```bash
-bash docs/test_results/v2.9.6-Phase2.6/Google-check_elf_alignment.sh \
+# Emulator APK
+bash tools/check_elf_alignment.sh \
   app/build/outputs/apk/emulator/debug/app-emulator-debug.apk
+
+# Device APK
+bash tools/check_elf_alignment.sh \
+  app/build/outputs/apk/device/debug/app-device-debug.apk
 ```
 
 **檢查項目**:
@@ -87,6 +96,10 @@ ELF Verification Successful
 =====================
 ```
 
+**NOTICE（非阻擋）**:
+- `Zip alignment check requires build-tools ≥ 35.0.0-rc3` — 僅略過 zip 對齊部分，ELF 驗證仍有效
+- 安裝方式：`sdkmanager "build-tools;35.0.0-rc3"`（可選）
+
 **Fail 處理**:
 - 檢查 NDK 版本（建議 r27+ 或 r28+）
 - 添加 CMake 參數：`-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON`
@@ -94,23 +107,38 @@ ELF Verification Successful
 
 ---
 
-## Phase 4: Emulator Testing
+## Phase 4: Emulator Testing（可跳過條件）
+
+> 💡 **可跳過 Phase 4 的情境**：實體裝置已連線（Sony XQ-BT52 / Pixel 9a）時，可直接進行 Phase 5 Device Testing，以節省時間。
+> 僅在「無實體裝置可用」或「需要模擬器特定場景（虛擬攝影機、旋轉測試）」時才執行 Phase 4。
 
 ### 4.1 啟動模擬器
 
-**方法 1: 使用 GUI**
+> ⚠️ **經驗記錄（2026-03-01）**：以下為實際驗證的正確指令，避免重踩錯誤操作。
+
+**方法 1: Bash 背景啟動（推薦）**
 ```bash
-python tools/stage_verification_gui.pyw
-# Tab 4 → 選擇模擬器 → 點擊 "🚀 啟動模擬器"
+# ✅ 正確：& 背景執行，不佔用 terminal
+emulator -avd Pixel_5 -gpu host &
+
+# 可用 AVD 清單
+emulator -list-avds
+# 目前可用: MPhone_A11, Medium_Phone_API_36.1, Pixel9a-16KB, Pixel9a-virtual, Pixel_5
 ```
 
-**方法 2: 命令列（Windows PowerShell）**
-```powershell
-# 列出可用模擬器
-emulator -list-avds
+```
+# ❌ 不要用以下方式：
+# cmd /c "start /min emulator..."   ← 在 bash 環境行為不一致
+```
 
-# 啟動模擬器
-Start-Process emulator -ArgumentList "-avd", "Medium_Phone_API_36.1", "-gpu", "host" -NoNewWindow
+**等待開機完成（輪詢，勿用 sleep 死等）**:
+```bash
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  BOOT=$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+  echo "  boot_completed=$BOOT attempt $i/10"
+  [ "$BOOT" = "1" ] && echo "✅ Boot completed!" && break
+  sleep 5
+done
 ```
 
 **驗證模擬器已啟動**:
@@ -119,11 +147,30 @@ adb devices
 # 預期輸出: emulator-5554    device
 ```
 
-### 4.2 安裝與 Logcat 監控
+**方法 2: 使用 GUI**
+```bash
+python tools/stage_verification_gui.pyw
+# Tab 4 → 選擇模擬器 → 點擊 "🚀 啟動模擬器"
+```
+
+### 4.2 安裝、授權與啟動
 
 ```bash
+# ⚠️ Emulator flavor 的 package 名稱與 Device 不同！
+# Device:   com.akirachang.ai.photographer
+# Emulator: com.akirachang.ai.photographer.emulator
+
 # 安裝 APK
 adb -s emulator-5554 install -r app/build/outputs/apk/emulator/debug/app-emulator-debug.apk
+
+# 一次性授予必要權限（避免每次點選彈窗）
+adb -s emulator-5554 shell pm grant com.akirachang.ai.photographer.emulator android.permission.CAMERA
+adb -s emulator-5554 shell pm grant com.akirachang.ai.photographer.emulator android.permission.READ_MEDIA_IMAGES 2>/dev/null
+adb -s emulator-5554 shell pm grant com.akirachang.ai.photographer.emulator android.permission.READ_EXTERNAL_STORAGE 2>/dev/null
+
+# ✅ 啟動 App（用 monkey，不要用 am start -n）
+adb -s emulator-5554 shell "monkey -p com.akirachang.ai.photographer.emulator -c android.intent.category.LAUNCHER 1"
+# ❌ 不要用 am start -n → Error type 3: Activity class does not exist
 
 # 啟動 Logcat
 adb -s emulator-5554 logcat -c
@@ -154,7 +201,8 @@ adb -s emulator-5554 logcat -v time > docs/test_results/<version>/emulator_test_
 
 ## Phase 5: Device Testing（條件觸發）
 
-> ⚠️ **觸發條件**: Phase 1-4 全部通過
+> ⚠️ **觸發條件**: Phase 1-3 全部通過（Phase 4 Emulator 可跳過，見上方說明）
+> 🚀 **快速路徑**：有實體裝置連線時，完成 Phase 1-3 後直接執行 Phase 5
 
 ### 5.1 Build Device APK
 
@@ -165,7 +213,7 @@ adb -s emulator-5554 logcat -v time > docs/test_results/<version>/emulator_test_
 ### 5.2 16KB Check（Device APK）
 
 ```bash
-bash docs/test_results/v2.9.6-Phase2.6/Google-check_elf_alignment.sh \
+bash tools/check_elf_alignment.sh \
   app/build/outputs/apk/device/debug/app-device-debug.apk
 ```
 
@@ -378,11 +426,21 @@ python tools/check_merge_readiness.py --bypass
 # 列出可用模擬器
 emulator -list-avds
 
-# 啟動模擬器（PowerShell）
-Start-Process emulator -ArgumentList "-avd", "<avd-name>", "-gpu", "host" -NoNewWindow
+# ✅ 啟動模擬器（Bash 背景）
+emulator -avd Pixel_5 -gpu host &
+
+# 等待開機完成
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  BOOT=$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+  [ "$BOOT" = "1" ] && echo "✅ Boot completed!" && break
+  sleep 5
+done
 
 # 檢查裝置
 adb devices
+
+# ✅ 啟動 App（Emulator package）
+adb -s emulator-5554 shell "monkey -p com.akirachang.ai.photographer.emulator -c android.intent.category.LAUNCHER 1"
 
 # 關閉模擬器
 adb -s emulator-5554 emu kill
@@ -407,8 +465,12 @@ adb -s emulator-5554 emu kill
 ### 16KB 檢測
 
 ```bash
-# Google 官方工具
-bash docs/test_results/v2.9.6-Phase2.6/Google-check_elf_alignment.sh <apk-path>
+# 🔴 重要工具 — tools/check_elf_alignment.sh（已從 docs/ 搬移至 tools/）
+bash tools/check_elf_alignment.sh <apk-path>
+
+# 範例
+bash tools/check_elf_alignment.sh app/build/outputs/apk/device/debug/app-device-debug.apk
+bash tools/check_elf_alignment.sh app/build/outputs/apk/emulator/debug/app-emulator-debug.apk
 ```
 
 ### ADB 相關

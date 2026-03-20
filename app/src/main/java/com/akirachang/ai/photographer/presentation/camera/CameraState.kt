@@ -7,6 +7,7 @@ import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.presentation.camera.components.CoordinateTransformer
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.presentation.camera.model.HDRMode
+import com.akirachang.ai.photographer.domain.model.focus.FocusUiState
 
 /**
  * Camera UI State
@@ -27,21 +28,14 @@ data class CameraState(
     val detectionResult: DetectionResult? = null,
     val isAnalysisEnabled: Boolean = false,
     val hdrMode: HDRMode = HDRMode.AUTO,  // v2.6.1: Manual HDR control
-    val aspectRatioMode: AspectRatioMode = AspectRatioMode.RATIO_16_9,  // v2.10.0: Aspect ratio toggle (4:3/16:9/1:1)
+    val aspectRatioMode: AspectRatioMode = AspectRatioMode.RATIO_16_9,  // v2.10.0: Aspect ratio toggle (4:3/16:9)
     val isRebindingCamera: Boolean = false,  // v2.10.0: True when rebinding camera after aspect ratio change
-    // v2.9.9: Focus state
-    val focusPoint: Pair<Float, Float>? = null,  // (x, y) coordinates in pixels, null if no active focus
-    val isFocusing: Boolean = false,  // True while focus animation is showing
-    val focusSuccess: Boolean? = null,  // True if last focus succeeded, false if failed, null if no focus yet
     // v2.9.10: Traycer tracking state
     val trackedObjectId: Int? = null,  // ML Kit trackingId of tracked target, null if not tracking
     val trackedObjectType: TrackedObjectType? = null,  // FACE or OBJECT, null if not tracking
     // v2.9.9 Day 1-2: Traycer v2 AE/AF Lock state
     val isAEAFLocked: Boolean = false,  // True when AE/AF is locked (long press)
     val lockPoint: Pair<Float, Float>? = null,  // Lock point coordinates for yellow square indicator, null if not locked
-    // v2.9.9 Day 1-2 Optimize: Focus indicator fade-out animation
-    val focusIndicatorFading: Boolean = false,  // True when fading out
-    val focusIndicatorFadeStartTime: Long = 0L,  // Timestamp when fade started
     // v2.x.x Phase 1: Optical Flow Point Tracking state
     val trackedPoint: Pair<Float, Float>? = null,  // Tracked point coordinates (ImageAnalysis coordinate system)
     val trackedPointActive: Boolean = false,       // True when optical flow tracking is active
@@ -52,7 +46,16 @@ data class CameraState(
     val currentPhotoExifInfo: com.akirachang.ai.photographer.domain.model.ExifInfo? = null,  // EXIF data for display
     // v2.11.1 P0-2: Coordinate system unification
     val contentBounds: RectF = RectF(0f, 0f, 0f, 0f),  // Actual preview content bounds (excludes FIT_CENTER letterbox)
-    val coordinateTransformer: CoordinateTransformer? = null  // Coordinate transformer for Image ↔ Preview ↔ Screen mapping
+    val coordinateTransformer: CoordinateTransformer? = null,  // Coordinate transformer for Image ↔ Preview ↔ Screen mapping
+    // v2.12.0-10: True when tap has no ML Kit subject (Optical Flow / Static generic tap).
+    // FocusIndicator uses GENERIC_TAP_FRAME_DP (72dp square) instead of the 48dp fallback.
+    val isGenericTapActive: Boolean = false,
+    // v2.12.0-05: 4-way AF state machine (Eye-AF throttle + withTimeout)
+    val afState: AfState = AfState.Idle,
+    // v2.12.0-11: true when current lens is fixed-focus (no VCM / AF hardware)
+    val isFixedFocusLens: Boolean = false,
+    // v2.12.0-15: New focus pipeline output — V2 pipeline is now the single path (v2.12.0-16).
+    val focusUiState: FocusUiState = FocusUiState.EMPTY,
 )
 
 sealed class CameraUiEvent {
@@ -69,7 +72,9 @@ sealed class CameraUiEvent {
         val x: Float,
         val y: Float,
         val viewWidth: Int,
-        val viewHeight: Int
+        val viewHeight: Int,
+        // v2.12.0-18: screen density (dp→px) for zero-delay optimistic tap box sizing
+        val density: Float = 3f,
     ) : CameraUiEvent()
     // v2.9.9 Day 1-2: Traycer v2 AE/AF Lock events
     data class LockAEAF(

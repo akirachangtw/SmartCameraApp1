@@ -1,5 +1,5 @@
 # Feature Record & Backlog
-Last updated: 2026-02-25
+Last updated: 2026-03-20
 
 全項目功能開發的唯一議題入口。
 - **Confirmed**: 測試驗證過的行為（修改前必須有新測試依據）
@@ -39,21 +39,20 @@ Last updated: 2026-02-25
 ### ✅ Confirmed
 - Preview 固定 16:9 AspectRatioStrategy — 修正 1.6x FOV 放大問題 | Verified: 2026-02-07 (Phase A)
 - ImageCapture 同步 16:9 — WYSIWYG 拍照 | Verified: 2026-02-07 (Phase A)
-- **長寬比 Toggle (4:3/16:9/1:1)** — UseCaseGroup + ViewPort 架構 | Verified: 2026-02-08 (v2.10.0-fix)
+- **長寬比 Toggle (4:3/16:9)** — UseCaseGroup + ViewPort 架構 | Verified: 2026-02-08 (v2.10.0-fix)
 - **ViewPort.FIT** — 保留完整 FOV，避免雙層裁切 | Verified: 2026-02-08 (Sony + Pixel 9a)
 - **PreviewView.FIT_CENTER 統一** — 所有模式避免額外裁切 | Verified: 2026-02-08 (Sony + Pixel 9a)
-- **1:1 ResolutionFilter** — 動態選擇正方形解析度（Sony: 2448², Pixel 9a: 1920²）| Verified: 2026-02-08
+- ~~**1:1 ResolutionFilter**~~ — **已移除**（v2.12.0，commit b93d181）：1:1 為數位裁切非 sensor 原生；Pixel 9a 1920×1920 ImageProxy 造成 FPS 崩潰
 
 ### 🔍 Code Locations
 - ViewPort.FIT:                `LiveCameraSource.kt:932-940`
-- 1:1 ResolutionFilter:        `LiveCameraSource.kt:868-888`
 - PreviewView.ScaleType:       `AspectRatioMode.kt:132-133`
-- AspectRatioMode enum:        `AspectRatioMode.kt:19-68`
+- AspectRatioMode enum:        `AspectRatioMode.kt:19-68` （僅 RATIO_4_3 / RATIO_16_9）
 - Toggle logic:                `CameraViewModel.kt` (aspect ratio state)
 
 ### 📋 Backlog
-- [x] [Phase B] 長寬比 Toggle UI (4:3/16:9/1:1) — ✅ 完成 (v2.10.0-fix, 2026-02-08)
-- [ ] 建立設備解析度資料庫 — 記錄不同設備的 1:1 解析度選擇
+- [x] [Phase B] 長寬比 Toggle UI (4:3/16:9) — ✅ 完成 (v2.10.0-fix, 2026-02-08)
+- [x] ~~建立設備解析度資料庫 — 記錄不同設備的 1:1 解析度選擇~~ — 已取消（1:1 移除）
 - [ ] 新增 UI 提示 — 首次使用說明黑邊（letterbox）是正常行為
 
 ---
@@ -71,7 +70,8 @@ Last updated: 2026-02-25
 
 - **長寬比 UI 簡化（Settings）** — SettingsScreen.kt 長寬比選項改為單行並排 + 簡短標籤 | Verified: 2026-02-17 (Pixel 9a)
   - **Before**: 垂直排列（3 行），標籤含長說明文字（如 "1:1 - 正方形"）
-  - **After**: 水平單行並排（`◯ 4:3  ◯ 16:9  ◯ 1:1`），標籤僅顯示比例數字
+  - **After (v2.11.1)**: 水平單行並排（`◯ 4:3  ◯ 16:9  ◯ 1:1`），標籤僅顯示比例數字
+  - **After (v2.12.0)**: 移除 1:1，僅保留（`◯ 4:3  ◯ 16:9`）— commit b93d181
   - **File**: `SettingsScreen.kt` - AspectRatio section
 
 ### ⚠️ Critical Warning
@@ -267,26 +267,24 @@ Last updated: 2026-02-25
 - [x] [v2.11.4] Fix 1: `calculateSaliencyScore()` 公式 0.6f→60f, 0.4f→40f — ML Kit auto-focus 從未觸發根本原因
 - [x] [v2.11.4] Fix 2: `focusOnPoint(isUserTap)` 參數 + `lastAutoFocusTime` 獨立節流 — auto-focus 自我封鎖問題
 - [x] [v2.11.4] Fix 3: `enteredMLKitTrackingMode` 本地變數 — ML Kit 追蹤中 focus indicator 不應淡出
-- [ ] [v2.12.0] 自適應對焦框大小 — `boundingBox.width() × 0.8` → `coerceIn(48dp, 120dp)` | 分析: `v2.11.1_Camera_Autofocus_Issues-Final.md` P2 Fix 2.1
-- [ ] [v2.12.0] PreviewViewportContainer — 統一 Overlay 座標系統（Grid / Detection / Focus 全部限制在 contentBounds）| 分析: `v2.11.1_Camera_Autofocus_Issues-Final.md` P2
+- [x] [v2.12.0-04] 自適應對焦框大小 — `boundingBox.width() × 0.8` → `coerceIn(48dp, 120dp)` ✅ 完成 commit `610d143` + VISUAL_PADDING_SCALE=1.5 `22b0d02`
+- [x] [v2.11.1] PreviewViewportContainer — 統一 Overlay 座標系統（Grid / Detection / Focus 全部限制在 contentBounds）✅ 早在 v2.11.1 完整實作（非 v2.12.0 待辦，Roadmap 標記有誤）| 驗證: emulator Pixel_5 16:9 + Sony XQ-BT52 4:3 黑邊排除正確
 
 ---
 
-## FPS 1:1 Analysis Pipeline (v2.12.0) - 研究分析完成
+## ~~FPS 1:1 Analysis Pipeline~~ → 移除 1:1 模式（v2.12.0）✅ 已完成
 
-### 📋 狀態
-- **研究文件**: `docs/features/v2.11.3/v2.11.3_FPS_1to1_L1.md`, `v2.11.3_fps_1to1_l1_L2.md` + Gemini/Traycer 版本
-- **核心結論**: 需先確認 FPS 來源（Preview UseCase vs ImageAnalysis callback rate）再選方案
-  - 若 Analysis FPS 問題 → 方案 A（Guideline 縮圖上限 960px）優先，最小 diff
-  - 若 Preview FPS 問題 → 查 CameraX UseCase 組合 / HAL stream config / ResolutionSelector
-- **高風險點**: 1:1 ↔ 4:3 切換 rebind UseCase → HAL 可能降 FPS；1920×1920 bitmap 14MB/幀 GC 壓力
-- **待實作**: v2.12.0（需獨立 L3 計劃）
+### 📋 決議（2026-02-27）
+- **設計決策**: 移除 1:1 模式，只保留 4:3（sensor 原生）和 16:9（螢幕填充）
+- **根因**: Pixel 9a 1:1 模式 ImageProxy 為 1920×1920（3.69 MP，比 4:3 大 12 倍）→ FPS 崩潰
+- **決策理由**: 1:1 為數位裁切，非 sensor 原生比例；現代主流手機螢幕只支援 4:3/16:9 為核心
+- **Commit**: `b93d181` [Refactor] v2.12.0: Remove 1:1 aspect ratio mode
+- **研究文件（保留供參考）**: `docs/features/v2.11.3/v2.11.3_FPS_1to1_L1.md`, `docs/features/v2.11.4/v2.11.4-06_Pinpoint_FPS_Bottleneck-L2.md`
 
 ### 📋 Backlog
-- [ ] [v2.12.0] Step 0: FPS 指標來源確認（log 標注 Preview FPS vs Analysis rate）
-- [ ] [v2.12.0] Step 1: 若 Analysis 問題 → Guideline 縮圖上限 960px（方案 A，最小 diff）
-- [ ] [v2.12.0] Step 2: 若 ML Kit 仍瓶頸 → ImageAnalysis cap 960×960（方案 B）
-- [ ] [v2.12.0] Step 3: 若 Preview FPS 問題 → ResolutionSelector + HAL stream 排查
+- [x] ~~FPS 指標來源確認~~ — 已取消（根本方案為移除 1:1）
+- [x] ~~ImageAnalysis cap~~ — 已取消（根本方案為移除 1:1）
+- [x] ~~ResolutionSelector 排查~~ — 已取消（根本方案為移除 1:1）
 
 ---
 
@@ -428,6 +426,325 @@ Last updated: 2026-02-25
 
 ---
 
+## AF 防禦修復 — Fixed-focus 永久鎖定 + Suspended 保護（v2.12.0-11）
+
+### 📋 問題背景（2026-03-10）
+
+v2.12.0-10 Sony 實機測試發現兩個互相關聯的 AF 問題：
+1. **AF Hunting（前鏡頭）**：Pixel 9a 前鏡頭為 fixed-focus（無 VCM），`startFocusAndMetering()` 永遠回傳 `isFocusSuccessful=false` → `onFailure()` 觸發指數退避（2s→4s→8s→repeat），形成無限循環
+2. **grow-only 框阻擋縮小**：`autoFocusOnSalientTarget()` 中 `AfState.Locked` 時 `maxOf()` 阻止框縮小 → ML Kit 新一幀更小 bbox 無法反映到 UI
+
+### ✅ 已確認的防禦決策（v2.12.0-11，2026-03-10）
+
+#### A. Fixed-focus 識別路徑（StateFlow 傳遞）
+
+| 層 | 實作 | 說明 |
+|---|------|------|
+| `LiveCameraSource` | `FixedFocusDetector.isFixedFocus(camera.cameraInfo)` | `bindToLifecycle()` 後立即偵測，結果同步到 `_isFixedFocusLens: MutableStateFlow` |
+| `CameraRepository` | `val isFixedFocusLens: StateFlow<Boolean>` | 介面宣告，`CameraRepositoryImpl` 代理 `LiveCameraSource`；`StaticImageSource` 回傳 `MutableStateFlow(false)` |
+| `CameraState` | `val isFixedFocusLens: Boolean = false` | ViewModel `init` 透過 `collect` 同步 |
+
+**⚠️ 注意**：`@Volatile private var isFixedFocus`（`LiveCameraSource` 內部）保留不動，`_isFixedFocusLens.value = isFixedFocus` 複用同一次查詢結果（不重複呼叫 `FixedFocusDetector`）。
+
+#### B. Fixed-focus 永久鎖定分流
+
+```
+autoFocusOnSalientTarget() 中：
+  ML Kit bbox → 更新 UI 框（直接，不再 maxOf）
+  ↓
+  if (isFixedFocusLens && AfState.Locked) → return  ← 跳過 HAL 呼叫
+  ↓
+  eyeAfThrottle.shouldTrigger() → focusOnPoint()
+```
+
+- **前鏡頭（fixed-focus）**：第一次成功對焦進入 `AfState.Locked` 後，後續 ML Kit 幀只更新 UI 框，完全不呼叫 `startFocusAndMetering()`
+- **後鏡頭（AF 鏡頭）**：`isFixedFocusLens=false`，走原有完整 AF 路徑
+
+#### C. grow-only maxOf 移除
+
+- **移除前**：`AfState.Locked` 時 `maxOf(focusWidthPx, currentState.focusFrameWidthPx)` → 框只能長大，不能縮小
+- **移除後**：`updatedW = focusWidthPx`，UI 框直接跟隨 ML Kit bbox
+- **視覺平滑**：由 `animateDpAsState(Spring(StiffnessMedium))` 提供，不需要 grow-only 保護
+
+#### D. AfTriggerThrottleController — Suspended 模式
+
+```
+連續失敗 ≥ 3 次 → consecutiveFailCount >= maxFailCount → shouldTrigger() 永遠 false
+解除途徑：UserTap → focusOnPoint(isUserTap=true) → eyeAfThrottle.reset()
+         鏡頭切換 → switchCamera() → eyeAfThrottle.reset()
+```
+
+- **目的**：防止 AF 無限 backoff 循環（2s→4s→8s→2s→...）
+- **`onSuccess()`**：`consecutiveFailCount = 0`（成功後自動解除）
+- **`reset()`**：`consecutiveFailCount = 0`（UserTap / 鏡頭切換後解除）
+
+#### E. Hysteresis 擴大（AfState.Locked 時）
+
+- **條件**：`isArmed && AfState.Locked`
+- **門檻**：`effectiveThreshold = rescanThresholdPx * 2.5f`（約 135px，原 54px）
+- **目的**：抑制 ML Kit bbox 微抖動（< 54px）在 Locked 後誤觸發重新對焦
+
+#### F. switchCamera() 補強
+
+| 新增 | 說明 |
+|------|------|
+| `afState = AfState.Idle` | 切換後 AF 狀態歸零，避免 Locked/Failed 殘留 |
+| `eyeAfThrottle.reset()` | 清除 isArmed / cooldown / consecutiveFailCount |
+| `eyeAfStabilityTracker.reset()` | 清除舊鏡頭座標，避免第一幀 delta 偏大 |
+
+### ⚠️ Critical Warnings
+
+1. **固定 `@Volatile private var isFixedFocus` 不可刪除**：`LiveCameraSource.focusOnPoint()` 仍使用此變數作為 bypass 判斷（line ~683）；`_isFixedFocusLens StateFlow` 是額外的觀察路徑，不是替代品
+2. **Fixed-focus guard 位置**：必須在 `_state.update { focusFrameWidthPx }` **之後**、`shouldTrigger()` **之前** — 確保 UI 框仍然更新，只跳過 HAL 呼叫
+3. **Suspended 模式不影響 UserTap**：`focusOnPoint(isUserTap=true)` 在進入 `focusJob launch` 前呼叫 `eyeAfThrottle.reset()`，確保使用者手動點擊永遠有效
+4. **Sony HAL 特性**：Sony XQ-BT52 後鏡頭 `afModes=[0,1,3]`（無 CONTINUOUS_PICTURE=4），但 `FixedFocusDetector.isFixedFocus()` 檢查 `afModes.isEmpty()` 或全為 `AF_MODE_OFF(0)`，Sony 不觸發 fixed-focus 路徑 ✅
+
+### 📋 Backlog
+
+- [x] P0-B `isFixedFocusLens` StateFlow 傳遞路徑（Repository 層） ✅
+- [x] P0-C `CameraState.isFixedFocusLens` + ViewModel init collect ✅
+- [x] P0-D `autoFocusOnSalientTarget()` grow-only maxOf 移除 ✅
+- [x] P1-A Fixed-focus 永久鎖定分流（跳過 focusOnPoint） ✅
+- [x] P1-B `switchCamera()` 補強（afState reset + eyeAfThrottle.reset） ✅
+- [x] P2-A `AfTriggerThrottleController` Suspended 模式（consecutiveFailCount） ✅
+- [x] P2-B Hysteresis 擴大 2.5x（AfState.Locked） ✅
+- [x] P2-C UserTap 解除 Suspended（focusOnPoint isUserTap=true 路徑） ✅
+
+---
+
+## AF 視覺語義雙路徑 + Session ID 第二道防線（v2.12.0-13）
+
+### 📋 問題背景（2026-03-10）
+
+v2.12.0-12 Build PASS 後，實機測試（Sony XQ-BT52）發現：
+1. **Bug #1（FocusClamp 未觸發）**：Eye-AF 成功（`afState=Locked`）後，`FocusClamp` LaunchedEffect 進入 `else → scale.snapTo(1.0f)`，機械夾爪動畫未執行，dwell fade 未啟動
+2. **Bug #1b（updateTrackedObjectPosition bbox 不更新）**：ML Kit 追蹤時，`_state.update` 只更新 `focusPoint`，未同步更新 `focusFrameWidthPx/HeightPx`，對焦框大小凍結在 tap 時的初始值
+3. **Bug #2（Session ID 穿透）**：v2.12.0-12 的 `afState !is Focusing` 守衛是協作式取消的第一道防線，但 HAL callback 在 `cancel()` 與 `afState=Idle` 之間的極小視窗仍可穿透
+
+### ✅ 已確認的防禦決策（v2.12.0-13，2026-03-10）
+
+#### A. FocusIndicator 雙視覺路徑分離
+
+**SSOT 規範**（不可違背）：
+
+| 視覺路徑 | 觸發條件 | 顏色 | 框大小 |
+|---------|---------|------|--------|
+| Eye-AF / 物件對焦 | `afState is AfState.Locked` | Cyan `#00F2FF` | 動態 bbox |
+| AE/AF 長按鎖定 | `isAEAFLocked = true` | Yellow `#FFD700` | 固定 72dp |
+
+**實作要點**：
+- `CameraState.isFocusIndicatorLocked = isAEAFLocked`（**只對應 Yellow**，`afState=Locked` 不加入此條件）
+- `FocusIndicator` 新增 `isEyeAfLocked: Boolean` 參數，由呼叫處傳入 `state.afState is AfState.Locked`
+- `alpha when` 優先順序：`isLocked(Yellow) → isEyeAfLocked(Cyan) → isFading(0.4) → isTracking → else`
+- `showCornerBrackets = focusSuccess == true || isLocked || isEyeAfLocked`
+
+**⚠️ 禁止違背**：`isLocked` 與 `isEyeAfLocked` 語義嚴格分離。Eye-AF 成功絕不走 Yellow 路徑。Composable 不得在內部自行做 `|| afState is Locked` 合併。
+
+#### B. updateTrackedObjectPosition — 原子性 bbox + focusPoint 同步
+
+**問題根因**：`shouldUpdate` 區塊的 `_state.update` 只更新 `focusPoint`，ML Kit 追蹤期間 `focusFrameWidthPx/HeightPx` 凍結在 tap 初始值。
+
+**修復方式**：在 `when (trackedType)` 各分支中，於計算 `centerX/centerY` 的同時，透過 `imageRectToScreenRectF()` 計算 `newFrameW/newFrameH`，並在同一個 `_state.update` 呼叫中一次寫入：
+
+```kotlin
+current.copy(
+    focusPoint = Pair(screenX, screenY),
+    focusFrameWidthPx  = newFrameW ?: current.focusFrameWidthPx,
+    focusFrameHeightPx = newFrameH ?: current.focusFrameHeightPx
+)
+```
+
+- `newFrameW ?: current.focusFrameWidthPx`：transformer 不可用時保留現有值，不破壞 legacy fallback
+- FACE 使用 `BBOX_SCALE_FACE (1.5f)`；OBJECT 使用 `BBOX_SCALE_OBJECT (1.8f)`
+- 兩個 `transformer` 讀取在各自的 `when` 分支內（避免跨分支 race）
+
+#### C. Session ID 第二道防線（HAL callback 穿透防禦）
+
+**防禦層次**：
+
+| 層 | 機制 | 版本 |
+|---|------|------|
+| 第一道 | `afState !is AfState.Focusing` 狀態校驗 | v2.12.0-12 |
+| 第二道 | `capturedSessionId != focusSessionId` Session ID 校驗 | v2.12.0-13 |
+
+**實作要點**：
+- `private var focusSessionId: Int = 0`（Main thread 存取，無需 AtomicInteger）
+- `resetFocusState()` 中：`focusJob?.cancel()` → `focusSessionId++` → `_state.update(Idle)`（順序不可調換）
+- `focusOnPoint()` coroutine 最開頭：`val capturedSessionId = ++focusSessionId`
+- HAL 成功/失敗路徑：在 `afState !is Focusing` 守衛之後，再加 `capturedSessionId != focusSessionId` 校驗
+- `isOperationCancelled` 與 `TimeoutCancellationException` 路徑**不需要** Session ID 守衛（本地取消，非 HAL 穿透）
+
+**Logcat 驗證模式**：
+```
+# 正常對焦（Session ID 匹配）
+[v2.12.0-13] focusOnPoint: sessionId=5 captured
+Focus successful at (x, y)
+
+# 切換鏡頭後的過期回調（Session ID 不匹配）
+[v2.12.0-12] switchCamera: resetFocusState() called
+[v2.12.0-13] Stale HAL success dropped (captured=5, current=6)
+```
+
+### ⚠️ Critical Warnings
+
+1. **`isFocusIndicatorLocked` 語義永遠是 `isAEAFLocked`**：v2.12.0-12 L2 指南曾建議 `|| afState is Locked`，但已確認錯誤，SSOT 規範和 CameraState 批注均明確說明 Eye-AF Locked 為 Cyan，不切 Yellow
+2. **`updateTrackedObjectPosition` bbox 必須原子更新**：禁止拆成兩次 `_state.update`，否則 UI 會在兩幀之間看到位置已更新但框大小未更新的不一致狀態
+3. **Session ID `++` 順序**：`resetFocusState()` 中 `focusSessionId++` 必須在 `focusJob?.cancel()` 之後、`_state.update` 之前，確保遞增發生在 cancel 之後（即使協作取消有延遲）
+4. **`focusOnPoint()` 的 `capturedSessionId` 作用域**：在 `try { }` 最開頭宣告，整個 coroutine 的 HAL 回調均可存取；不可在 `withTimeout` 之後才宣告
+
+### 📋 Backlog
+
+- [x] T1: `updateTrackedObjectPosition()` bbox 原子更新（`newFrameW/H` + 同一 `_state.update`） ✅
+- [x] T2: `FocusIndicator` 雙路徑分離（`isEyeAfLocked` 參數 + alpha/showCornerBrackets 更新） ✅
+- [x] T3: `focusSessionId` Session ID 防禦（5 個插入點）✅
+
+---
+
+## Coordinate Truth Consolidation + PreviewView Alignment（v2.12.0-14）
+
+### 📋 問題背景（2026-03-11）
+
+1. **Coordinate fallback 導致幾何失準**：`resolveTapTarget()` 與 `focusOnPoint()` OF 路徑在 `coordinateTransformer == null` 時，退回 `CoordinateMapper`（CENTER_CROP 幾何）或 raw screen coords，導致 Eye-AF 框偏移與 hit-test 失準
+2. **雞生蛋問題（bootstrap deadlock）**：`updateContentBounds()` 在 App 啟動時（ML Kit 尚未回傳第一幀）`detectionResult == null` → `effectiveImageWidth = 0` → `transformer = null`；後續所有 tap 均走 legacy fallback
+3. **Release build 幾何不一致**：`USE_PREVIEWVIEW_DISPLAY = false`（release）vs `true`（debug），導致 Release build 使用 `ContentScale.Crop`（bitmap path），4 個幾何真相（overlay / tap / HAL metering / OF）全部不對齊
+
+### ✅ 已確認的防禦決策（v2.12.0-14，2026-03-11）
+
+#### A. CoordinateTransformer 為唯一幾何真相來源
+
+**鐵律**：`CoordinateTransformer`（FIT_CENTER 幾何）是唯一正確的座標真相來源。禁止在任何路徑回退 `CoordinateMapper`（CENTER_CROP 幾何）或 raw screen coords。
+
+**已清除的 3 個 legacy fallback（`CameraViewModel.kt`）**：
+
+| 位置 | 舊行為 | 新行為 |
+|------|--------|--------|
+| `resolveTapTarget()` — `transformer == null` | `x to y`（raw coords hit-test，幾何錯誤） | `return TapTargetInfo.Generic` |
+| `focusOnPoint()` OF — tap 在 content bounds 外 | `startOpticalFlowTracking(x, y)`（CoordinateMapper） | `return@launch` |
+| `focusOnPoint()` OF — `transformer == null` | `startOpticalFlowTracking(x, y)`（CoordinateMapper） | `return@launch` |
+
+**Bootstrap 快取機制**（解決雞生蛋問題）：
+```kotlin
+// CameraViewModel.kt — updateContentBounds()
+private var lastKnownImageWidth: Int = 0   // v2.12.0-14
+private var lastKnownImageHeight: Int = 0  // v2.12.0-14
+
+if (effectiveImageWidth > 0 && effectiveImageHeight > 0) {
+    lastKnownImageWidth  = effectiveImageWidth
+    lastKnownImageHeight = effectiveImageHeight
+}
+val resolvedW = if (effectiveImageWidth > 0) effectiveImageWidth else lastKnownImageWidth
+val resolvedH = if (effectiveImageHeight > 0) effectiveImageHeight else lastKnownImageHeight
+// ⚠️ resolvedH 的 guard 必須用 effectiveImageHeight > 0，不可誤用 effectiveImageWidth
+```
+
+#### B. Release/Debug 對齊 USE_PREVIEWVIEW_DISPLAY
+
+**問題根因**：v2.8.6 出於保守考量，release build 關閉 `USE_PREVIEWVIEW_DISPLAY`。但事實上 PreviewView 路徑（FIT_CENTER + `contentBounds`）記憶體更穩定（~95 MB vs bitmap path ~215 MB），且必須與 debug build 一致才能確保幾何真相對齊。
+
+**修復**：`app/build.gradle.kts` release buildType 改為：
+```kotlin
+// v2.12.0-14: Enabled for release — geometry truth aligned with debug build
+buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "true")
+```
+
+**鏈式邏輯**：`USE_PREVIEWVIEW_DISPLAY && supportsNativePreview`（`LiveCameraSource` 永遠回傳 `true`）→ `useNativePreview = true` → `CameraPreview.kt:64` 走 PreviewView 路徑
+
+#### C. Scope Discipline：UI 層禁止被座標票據連帶改動
+
+**鐵律**：座標修復票據（Coordinate Truth / CoordinateMapper cleanup）**只允許修改 ViewModel 層**，絕對禁止在同一 ticket 改動：
+- `CameraScreen.kt`
+- `FocusIndicator` / `FocusClamp` composable
+- 任何動畫邏輯、顏色邏輯
+- `CoordinateTransformer` 類別本身
+
+**v2.12.0-14 SV-F1 案例**：T1/T2 驗收中發現 `CameraScreen.kt` 的 alpha 優先序被連帶調換（`isFading` 移至 `isEyeAfLocked` 之前），SV-F1 票據要求立即回滾。正確順序：
+```
+isLocked(Yellow) → isEyeAfLocked(Cyan) → isFading(0.4) → isTracking → else
+```
+
+#### D. SV-Fix 票據模式（Strict Verification Fix）
+
+**模式說明**：`strict_verification` Quality Gate 發現 implementation drift 後，產出 `SV-Fxx` 票據，Claude Code 依票據僅修復偏移點，不做範圍外改動。Build 後立即停止，等待下一輪 QG 驗收。
+
+**本輪效果**：
+- SV-F1 修復 2 個偏移（`resolvedH` guard 邏輯 + `CameraScreen.kt` 回滾），build 19s 即收斂
+- 閉環總耗時：< 5 分鐘，zero side-effect
+
+### ⚠️ Critical Warnings
+
+1. **`resolvedH` guard 必須對應高度**：`if (effectiveImageHeight > 0)` — 禁止複製貼上時誤用 `effectiveImageWidth`
+2. **Metering fallback 已升級為 `Log.e`**：`[v2.12.0-14] CRITICAL: PreviewView not set` 若在 Logcat 出現，表示 PreviewView 未正常注入，必須調查
+3. **OF fallback 已硬性移除**：`transformer == null` 或 tap 在 content bounds 外時，OF 路徑直接 `return@launch`，不再靜默走舊路徑，tap 無反應為預期行為（等待 transformer 就緒）
+
+### 📋 Backlog
+
+- [x] T1: Coordinate Truth Consolidation — 移除 3 個 legacy fallback + bootstrap 快取機制 ✅
+- [x] T2: Release build `USE_PREVIEWVIEW_DISPLAY = true` + Metering fallback 升級 `Log.e` ✅
+- [x] SV-F1: `resolvedH` guard 修正 + `CameraScreen.kt` alpha 順序回滾 ✅
+
+---
+
+## domain.model.focus 純資料模型建立（v2.12.0-15 Step 1）
+
+### ✅ Confirmed
+
+- **12 個純資料模型檔案**已建立於 `domain/model/focus/`，Build PASS | 2026-03-13
+  - `FramePacket`, `DetectionFrameContext`, `FocusTarget`（+ `TargetType`/`TargetSource`）
+  - `FocusStates`（`VisualTargetState`/`LensFocusState`/`ExposureLockState`）
+  - `GeometryContext`, `LensCapability`, `TrackedTargetState`, `UserIntentState`
+  - `EyeAfPolicyModels`（`EyeAfPolicyInput`/`EyeAfDecision`/`MeteringAnchor`）
+  - `FocusControllerResult`（+ `OpticalFocusState`）, `FocusStateInput`（+ `SystemEvent`）, `OverlayModel`（+ `OverlayColor`/`OverlayAnimation`）
+  - 規格依據：`plans/proposals/focus_l2_feasibility_spec.md` §17.11 + §17.12.3
+
+### ⚠️ Critical Warnings — Scope Discipline（兩條鐵律，不可違背）
+
+#### 鐵律 1：Step 1 = 只新增 `domain.model.focus`，舊邏輯零修改
+
+**本輪案例**：Step 1 驗收時，`SmartCameraAnalyzer.kt` 與 `CameraViewModel.kt` 含有前一個 ticket（T3 Eye-AF chain repair）的 `eyePositions` 修改，被 Quality Gate 判定為 scope drift。
+
+**處理流程**：
+1. `git checkout HEAD -- SmartCameraAnalyzer.kt CameraViewModel.kt`（直接還原）
+2. `FocusOrchestrator.kt`（untracked）→ 刪除，徹底退出變更集合
+3. Build 重新驗收，變更集合只剩 `domain/model/focus/` 12 檔
+
+**預防原則**：
+- Step 開始前先確認 `git status` 為乾淨（或只含本 Step 應有的檔案）
+- Step 完成後，`git diff HEAD --stat` 必須**只顯示本 Step 的新增檔案**，無任何 M（修改）
+- 不同 ticket 的修改不可混入同一 Step 驗收
+
+#### 鐵律 2：遇到 scope drift → SV 單點修復票快速收斂，比重做更穩定
+
+**模式說明**（與 v2.12.0-14 SV-F1 相同）：
+- Quality Gate 發現偏移後，產出 `SV-Sxx` / `SV-Fxx` 票據
+- Claude Code 依票據**只修復偏移點**，不做範圍外任何改動
+- Build 後立即停止，等待下一輪 QG 驗收
+
+**本輪案例（SV-S1 + SV-S1.1）**：
+| 票據 | 偏移點 | 修復動作 |
+|------|--------|---------|
+| SV-S1 | `SmartCameraAnalyzer.kt` + `CameraViewModel.kt` 含範圍外 `eyePositions` 修改 | `git checkout HEAD --` 還原兩檔 |
+| SV-S1.1 | `FocusOrchestrator.kt` 出現在 untracked（不屬 Step 1） | 刪除檔案 |
+
+**為什麼比重做更穩定**：
+- 每個 SV 票據只處理一個偏移點，範圍清晰，不引入新邏輯
+- 每次 SV 後都重跑 Build + `git diff HEAD --stat` 確認乾淨，可重複驗收
+
+### 🔍 Code Locations
+
+- `domain/model/focus/`: `app/src/main/java/com/akirachang/ai/photographer/domain/model/focus/`
+- 規格來源: `plans/proposals/focus_l2_feasibility_spec.md` §17.11.2 ~ §17.11.10
+
+### 📋 Backlog
+
+- [x] Step 1: `domain/model/focus/` 12 個純資料模型 ✅ Build PASS 2026-03-13
+- [x] SV-S1: 還原 `SmartCameraAnalyzer.kt` + `CameraViewModel.kt` 範圍外修改 ✅
+- [x] SV-S1.1: 移除 `FocusOrchestrator.kt` 出現在變更集合 ✅
+- [ ] Step 2: GeometryMapper 介面 + `CoordinateTransformer` 橋接
+- [ ] Step 3: EyeAfPolicyResolver 實作
+- [ ] Step 4: FocusStateMachine 拆分
+
+---
+
 ## Camera Core Features (v2.11.0 / v3.5.0) - 從 v2.9.9 延後
 
 ### 📋 Backlog
@@ -499,3 +816,1475 @@ Last updated: 2026-02-25
 
 ---
 
+## Focus Domain Model Pipeline — 架構守則（v2.12.0-15 SV-S5-Final）
+
+### ✅ Confirmed（2026-03-13）
+
+本節記錄 v2.12.0-15 SV-S5-Final + SV-S5-Final-R2 兩輪 Quality Gate 收斂後確立的三條架構守則。
+
+---
+
+#### 守則 1：SmartCameraAnalyzer 是「Dumb Pipe」— 職責邊界鐵律
+
+**定義**（`SmartCameraAnalyzer.kt` KDoc §17.12.5）：
+
+| 職責 | 允許 ✅ | 禁止 ❌ |
+|------|---------|---------|
+| 資料輸入 | 接收 CameraX ImageProxy / Bitmap | — |
+| 偵測 | ML Kit Face + Object 偵測 | Target ranking / saliency scoring |
+| 輸出 | `DetectionResult`（image-space coords）+ `LightingState` | UI state 決策 / UI geometry 計算 |
+| 光流 | OF 原始追蹤結果（image-space coords）via callback | 轉換至 preview-space（CoordinateMapper 路徑）|
+
+**CoordinateMapper 退役結論**（SV-S5-Final-R2，2026-03-13）：
+
+- `import com.akirachang.ai.photographer.util.CoordinateMapper` — **已從 SmartCameraAnalyzer 移除**
+- `previewWidth / previewHeight` 欄位 — **已移除**（純粹為 CoordinateMapper 服務）
+- `setPreviewSize(width, height)` — **已從 SmartCameraAnalyzer 移除**；`CameraRepositoryImpl.setPreviewSize()` 降格為 no-op + `Log.d`
+- `startOpticalFlowTracking(x: Float, y: Float)`（preview-coord 路徑）— **已從 SmartCameraAnalyzer 移除**；`CameraRepositoryImpl.startOpticalFlowTracking()` 降格為 no-op + `Log.w`
+
+**正確路徑**：
+```
+CameraViewModel（tap 事件）
+  → CoordinateTransformer.mapToImageCoords()   ← FIT_CENTER 幾何，唯一真相
+  → cameraRepository.startOpticalFlowTrackingImageCoords(imageX, imageY)
+  → SmartCameraAnalyzer.startOpticalFlowTrackingImageCoords()   ← image-space，no mapping
+```
+
+**⚠️ 絕對禁止**：在 SmartCameraAnalyzer 內部做任何座標轉換（`previewToImage`、`imageToPreview`）或 UI 決策。Analyzer 只見 image-space 數據。
+
+---
+
+#### 守則 2：幾何單一真相 — GeometryMapper（取代 CoordinateMapper）
+
+**v2.12.0-15 確立的幾何層次**：
+
+| 組件 | 職責 | 幾何模型 |
+|------|------|---------|
+| `CoordinateTransformer`（legacy ViewModel 路徑）| tap → image-space 座標 | FIT_CENTER |
+| `GeometryMapper`（新 pipeline 介面）| `FocusTarget` bbox → 螢幕座標 | FIT_CENTER |
+| `PreviewViewGeometryMapper`（`GeometryMapper` 實作）| image-space RectF → screen RectF | FIT_CENTER + ViewPort |
+| ~~`CoordinateMapper`~~（已退役）| preview ↔ image-space | CENTER_CROP（幾何錯誤）|
+
+**`CoordinateMapper` 退役完整清單**（截至 2026-03-13）：
+
+| 位置 | 狀態 |
+|------|------|
+| `SmartCameraAnalyzer.kt` import | ✅ 已移除 |
+| `SmartCameraAnalyzer.startOpticalFlowTracking()` 呼叫 | ✅ 整個函式已移除 |
+| `SmartCameraAnalyzer.trackFromBitmap()` else 分支 | ✅ 已改為 discard + `Log.w` |
+| `CameraViewModel.focusOnPoint()` OF fallback 路徑 | ✅ 已於 v2.12.0-14 改為 `return@launch` |
+| `CameraRepositoryImpl.setPreviewSize()` | ✅ 已降格為 no-op |
+| `CameraRepositoryImpl.startOpticalFlowTracking()` | ✅ 已降格為 no-op |
+
+**唯一殘留**：`CoordinateMapper` 類別本身保留（未刪除），作為 OF legacy bitmap path 的靜態工具。若未來 OF 全面升級，可整體移除。
+
+---
+
+#### 守則 3：Focus Pipeline 硬體 Provider — Lifecycle-Safe 接線模式
+
+**問題根源**：`CameraControl` 與 `MeteringPointFactory` 均依附 camera lifecycle，不可在 ViewModel init 時提前取值（camera 未 bind）。
+
+**v2.12.0-15 SV-S5a-R2 + SV-S5-Final 確立的正確接線模式**：
+
+```kotlin
+// ✅ 正確：Lambda 懶取值 — 呼叫時才解析，lifecycle-safe
+CameraXFocusController(
+    getCameraControl      = { cameraRepository.getCameraControl() },
+    getMeteringPointFactory = { cameraRepository.getMeteringPointFactory() },
+)
+
+// 接線路徑（每層均 nullable，lifecycle-safe）：
+// CameraXFocusController
+//   → CameraRepository.getCameraControl()        (interface)
+//   → CameraRepositoryImpl.getCameraControl()     (delegates to LiveCameraSource if available)
+//   → LiveCameraSource.getCameraControl()         = if (::camera.isInitialized) camera.cameraControl else null
+//
+// CameraXFocusController
+//   → CameraRepository.getMeteringPointFactory()  (interface)
+//   → CameraRepositoryImpl.getMeteringPointFactory() (delegates to LiveCameraSource if available)
+//   → LiveCameraSource.getMeteringPointFactory()  = previewView?.meteringPointFactory
+```
+
+**禁止的模式**：
+```kotlin
+// ❌ 錯誤：在 ViewModel init block 直接取值 — camera 尚未 bind，得到 null 後永遠不更新
+private val cameraControl = cameraRepository.getCameraControl()  // ← 永遠是 null
+
+// ❌ 錯誤：在 constructor 存硬體物件 — 造成 lifecycle leak
+CameraXFocusController(cameraControl = liveCameraSource.camera.cameraControl)
+```
+
+**FocusModule DI 綁定**（`di/FocusModule.kt`，`@InstallIn(ViewModelComponent::class)`）：
+- 4 組 `@Provides` 綁定：`GeometryMapper`、`TargetTracker`、`EyeAfPolicyResolver`、`FocusController`
+- `provideFocusController` 透過 `CameraRepository` 注入，確保 lazy lambda 接線模式在 DI 圖中一致
+
+### ⚠️ Critical Warnings
+
+1. **`CoordinateMapper` 路徑已完全退役**：任何新增 OF 追蹤入口必須使用 `startOpticalFlowTrackingImageCoords()`，禁止復活 `startOpticalFlowTracking(x, y)`（preview-coord）路徑
+2. **Analyzer 無 preview 尺寸概念**：`SmartCameraAnalyzer` 不再持有 `previewWidth/Height`，呼叫 `setPreviewSize()` 為 no-op。座標轉換由 ViewModel 層的 `CoordinateTransformer` / `GeometryMapper` 負責
+3. **硬體 Provider 必須 lazy**：`getCameraControl()` 與 `getMeteringPointFactory()` 任一在 camera bind 前呼叫均回傳 `null`（lifecycle-safe）；`CameraXFocusController` 必須在 `apply()` 時才呼叫，不可在 constructor 預取
+
+### 🔍 Code Locations
+
+| 組件 | 路徑 |
+|------|------|
+| SmartCameraAnalyzer（Dumb Pipe）| `data/source/camera/SmartCameraAnalyzer.kt` |
+| GeometryMapper 介面 | `domain/focus/geometry/GeometryMapper.kt` |
+| PreviewViewGeometryMapper 實作 | `data/focus/geometry/PreviewViewGeometryMapper.kt` |
+| CameraXFocusController（Lazy Provider）| `data/focus/control/CameraXFocusController.kt` |
+| LiveCameraSource.getCameraControl() | `LiveCameraSource.kt` ~line 1446 |
+| LiveCameraSource.getMeteringPointFactory() | `LiveCameraSource.kt` ~line 1456 |
+| CameraRepository 介面新增方法 | `domain/repository/CameraRepository.kt` ~line 302-311 |
+| FocusModule DI | `di/FocusModule.kt` |
+| CameraViewModel FOCUS_PIPELINE_V2 flag | `presentation/camera/CameraViewModel.kt:159` |
+
+### 📋 Backlog
+
+- [x] SV-S5-Final: FocusModule DI 綁定（4 組）+ `getMeteringPointFactory()` 接線 ✅ 2026-03-13
+- [x] SV-S5-Final: `FOCUS_PIPELINE_V2 = BuildConfig.DEBUG`（DEBUG 啟用 / RELEASE 關閉）✅ 2026-03-13
+- [x] SV-S5-Final-R2: SmartCameraAnalyzer CoordinateMapper 退役（import + 3 函式 + else 分支）✅ 2026-03-13
+- [x] SV-S5-Final-R2: CameraRepositoryImpl 連帶修復（setPreviewSize / startOpticalFlowTracking no-op）✅ 2026-03-13
+- [x] Step 6: FocusOverlay Composable（消費 `CameraState.focusUiState.overlayModel`）✅ 2026-03-14
+- [x] Step 6: CameraScreen.kt 接入 FocusOverlay（`FOCUS_PIPELINE_V2=true` 條件下）✅ 2026-03-14
+- [x] SV-BatchA: FocusOverlay 三重透明防禦 + GeometryMapper matrix-aware mirror 修復 ✅ 2026-03-14
+- [ ] T3b Ghost Box: 定點/物件對焦框切換時 36dp 殘留（`focusFrameWidthPx/HeightPx` 未清零）— 待 Traycer PDCA
+- [ ] 實機驗收：Sony HQ616R2713 Logcat `[v2.12.0-15] Pipeline: visual=TrackingStable` + `FocusController result: triggerSent=true`
+
+---
+
+## v2.12.0-15 Phase 2 SV-BatchA — 關鍵防禦守則（2026-03-14）
+
+### §A. FocusOverlay 三重透明防禦守則
+
+**Rule**: `FocusOverlay.kt` 必須在 Canvas 繪製前通過三道獨立 guard，缺一不可。
+
+```kotlin
+if (overlayModel == null) return          // Guard 1: 無 model → 絕對不渲染
+if (visualTargetState == VisualTargetState.None) return  // Guard 2: None 狀態 → 絕對不渲染
+if (overlayModel.primaryBox == null) return  // Guard 3: 無主框 → 連 secondary 也不渲染
+```
+
+**Why (SV-BatchA Fix A 案例)**:
+- 初始實作只有 Guard 1 + 2，缺少 Guard 3
+- 當 `primaryBox == null` 但 `secondaryBoxes` 非空時，仍會在畫面上繪製候選框（ghost secondary brackets）
+- 根因：`secondaryBoxes` 是候選框集合，沒有主框時不應存在任何視覺輸出
+
+**How to apply**:
+- 任何 Composable 消費 `OverlayModel` 時，三道 guard 必須完整保留，不可合併或省略
+- Guard 3 必須在「有 overlayModel 但 primaryBox 為 null」的 partial 狀態下攔截所有渲染
+- 禁止改為「如無 primaryBox 就用 fallback 36dp 框」— 這是 v2.12.0-15 設計紅線
+
+---
+
+### §B. PreviewViewGeometryMapper Matrix-Aware Mirror 防雙重鏡像守則
+
+**Rule**: 前鏡頭手動鏡像 `pts[i] = previewW - pts[i]` 必須附帶 `&& matrix == null` 條件。
+
+```kotlin
+// ✅ 正確（matrix-aware）
+if (context.isFrontCamera && context.isMirroredPreview && matrix == null) {
+    val previewW = context.previewWidth.toFloat()
+    for (i in pts.indices step 2) {
+        pts[i] = previewW - pts[i]
+    }
+}
+
+// ❌ 錯誤（會造成雙重鏡像）
+if (context.isFrontCamera && context.isMirroredPreview) {
+    // matrix != null 時 sensorToViewMatrix 已包含鏡像，再次反轉 = 雙重鏡像
+}
+```
+
+**Why (SV-BatchA Fix B 案例)**:
+- `sensorToViewMatrix`（由 CameraX CoordinateTransformer 提供）**已包含**前鏡頭的鏡像轉換
+- T2 實作時移除了 `&& matrix == null` 條件，目的是「確保前鏡頭一定鏡像」
+- 結果：matrix 存在時套用兩次反轉 → 前鏡頭 bounding box 顯示在畫面錯誤側
+- Fix B 還原 `&& matrix == null`，確保手動鏡像只在 FIT_CENTER fallback 路徑（matrix=null）執行
+
+**兩條路徑明確分工**:
+
+| 路徑 | matrix 狀態 | 鏡像來源 | 手動反轉 |
+|------|------------|---------|---------|
+| CameraX CoordinateTransformer | `matrix != null` | `sensorToViewMatrix` 內建 | ❌ 不執行 |
+| FIT_CENTER Fallback | `matrix == null` | 無 | ✅ 手動執行 |
+
+**How to apply**:
+- 任何修改 `PreviewViewGeometryMapper.transformPoints()` 時，`matrix == null` 條件是**絕對必要的**，不可移除
+- 相同守則適用於任何直接操作前鏡頭座標反轉的位置
+- 修改前必須確認：「此路徑的 sensorToViewMatrix 是否已含鏡像？」
+
+---
+
+## v2.12.0-15 Phase 2 SV-BatchB — Learnings（2026-03-14）
+
+> SV-BatchB 驗收通過。三張票涵蓋：Compose 視覺生命週期、前鏡頭 Yellow 防線、多人目標優先序驗證 Log。
+
+---
+
+### §C. Compose 動畫視覺生命週期守則（FocusOverlay VisualLocked 進入事件）
+
+**Rule**: FocusOverlay 的動畫 alpha 必須由 Compose 狀態機（`LaunchedEffect` + `animateFloatAsState`）驅動，禁止直接讀取 `overlayModel.alpha`（靜態值，無法反映生命週期轉換）。
+
+**VisualLocked 視覺生命週期**（SSOT 定義，勿修改）：
+```
+進入 VisualLocked
+  └→ showClawAnimation = true
+  └→ alphaTarget = 1.0f（animateFloatAsState tween(400ms)）
+  └→ delay(1000ms)
+  └→ 仍在 VisualLocked？→ alphaTarget = 0.4f + showClawAnimation = false
+                         → 否（已切換）→ 不執行（自然消滅）
+```
+
+**Key design decisions**:
+
+| 決策 | 原因 |
+|------|------|
+| `LaunchedEffect(visualTargetState, overlayModel.primaryBox)` 雙 key | primaryBox 變化（同 state 下框移動）也需重觸發，確保夾爪跟隨新目標 |
+| `prevVisualState` 區分「新進入」vs「持續」 | 防止 box 位置更新時（primaryBox key 觸發）誤重置 1000ms 計時器 |
+| `animateFloatAsState(tween(400))` 而非 `Thread.sleep` | Compose 動畫在 recomposition 中安全，`Thread.sleep` 會阻塞主執行緒並導致 ANR |
+| `showClawAnimation` 獨立 flag | 夾爪（corner brackets）與 alpha 生命週期解耦，可獨立控制消滅時機 |
+
+**Canvas drawLine API 正確簽名（防錯）**:
+```kotlin
+// ✅ 正確：最後參數是 strokeWidth: Float
+drawLine(color, start: Offset, end: Offset, strokeWidth: Float)
+
+// ❌ 錯誤：drawLine 不接受 Stroke 物件
+drawLine(color, start, end, Stroke(width = ...))   // 編譯失敗
+```
+
+**Code Location**: `FocusOverlay.kt` — `LaunchedEffect` block + `showClawAnimation` Canvas section
+
+**How to apply**:
+- 修改 FocusOverlay 動畫行為時，**只改 `alphaTarget` 的賦值與 `delay()` 時長**，不動 `animateFloatAsState` 架構
+- 新增 `VisualTargetState` 枚舉值時，必須在 `LaunchedEffect when` block 中補齊對應分支（否則 Kotlin `when` exhaustive 警告）
+- `prevVisualState` 更新必須在 `LaunchedEffect` 最後一行（所有分支之後），確保每次都記錄最新狀態
+
+---
+
+### §D. 前鏡頭 Yellow Lock 三層防禦架構
+
+**Rule**: 前鏡頭（`isFrontCamera=true`）在系統中存在三道獨立防線，任一層皆可阻止 Yellow Lock 出現。三層防禦**不可互相替代**，必須全部保留。
+
+**三層防禦表**：
+
+| 層級 | 檔案 | 機制 | 觸發條件 |
+|------|------|------|---------|
+| L1 Policy | `DefaultEyeAfPolicyResolver.kt` Rule 1 | `isAeAfLockRequested → REJECT（return None）` | 最早攔截，阻止 HAL 觸發 |
+| L2 StateMachine | `DefaultFocusStateMachine.reduceExposureState()` | `isFrontCamera → return Unlocked + Log.w` | Policy 漏網時的第二道防線 |
+| L3 UI（現有）| `CameraScreen.kt` FocusIndicator | `isLocked = isAEAFLocked`（Yellow 只在後鏡頭） | 視覺層最終保護 |
+
+**為什麼需要三層**：
+- L1 是 intent 層攔截（policy 決策），但若 `userIntent` 組裝有誤（未傳入正確 `isAeAfLockRequested`），L1 可能漏網
+- L2 是狀態機層強制覆寫，即使 L1 未攔截，`ExposureLockState` 仍強制為 `Unlocked`
+- L3 是 UI 層的最終保護，確保即使 state 層有 `AEAFLocked`，前鏡頭也不渲染 Yellow
+
+**`FocusStateInput.isFrontCamera` 傳遞守則**：
+- `runNewFocusPipeline()` 中所有三個 `FocusStateInput` 建構點必須傳入 `isFrontCamera`
+- 使用 `currentState.currentCamera == CameraLens.FRONT`（early return 路徑）
+- 使用 `_state.value.currentCamera == CameraLens.FRONT`（async coroutine callback 路徑）
+- `isFrontCamera = false` default 值只作為防呆，現有呼叫點必須明確傳入
+
+**Log 識別**（Logcat 驗證用）：
+```
+# L1 攔截（Policy 層）
+[v2.12.0-15] REJECT: front camera — manual tap or AE/AF lock not allowed (isManualTap=false, isAeAfLock=true)
+
+# L2 攔截（StateMachine 層）
+[v2.12.0-15 T3-F2] Front camera AE/AF lock request rejected — forced Unlocked
+```
+
+**How to apply**:
+- 新增 `FocusStateInput` 建構點時，必須檢查是否在 `runNewFocusPipeline()` 內，若是則必須補入 `isFrontCamera`
+- 修改 `reduceExposureState()` 時，前鏡頭 guard 必須置於函式最頂端（在 `isAeAfLockRequested` 判斷之前）
+- 禁止將 L2 guard 移入 `buildOverlayModel()`（顏色層）—— ExposureLockState 本身必須正確，不只是顏色正確
+
+---
+
+### §E. Multi-Face 優先序驗證 Log 守則（DefaultTargetTracker）
+
+**Rule**: `DefaultTargetTracker.update()` 的 primary 選擇必須同時輸出 `effectiveScore`（含 eyeBonus + typeBonus 加權後的最終分數），以便 Logcat 驗證優先序是否符合 SSOT。
+
+**SSOT 優先序**（數值為 typeBonus，eyeBonus 額外 +2.0f）：
+
+| 類型 | typeBonus | 有眼睛加成 | 最終 effective score 範例 |
+|------|-----------|-----------|--------------------------|
+| TAP_SUBJECT / TAP_TEXTURE | +10.0f | +2.0f | priorityScore + 12.0f |
+| FACE（有眼睛） | +1.0f | +2.0f | priorityScore + 3.0f |
+| FACE（無眼睛） | +1.0f | — | priorityScore + 1.0f |
+| OBJECT | +0.5f | — | priorityScore + 0.5f |
+
+**Log 格式**（Logcat tag: `DefaultTargetTracker`）：
+```
+[v2.12.0-15 T4-F1] update: 3 targets, primary=face_123 type=FACE hasEyes=true effectiveScore=4.2
+```
+
+**為什麼 Log 要重算 score（不直接用 maxByOrNull 的中間值）**：
+- `maxByOrNull` 的 lambda 是內聯計算，結果不儲存
+- Log 區塊獨立重算確保 log 與 selection 邏輯完全一致（copy 而非 reference）
+- 日後修改 typeBonus 係數時，Log 和 selection 需同步更新（兩處）
+
+**How to apply**:
+- 修改 typeBonus 係數時，必須同步更新 `maxByOrNull` 和 Log 兩個 `when` block
+- 若新增 `TargetType` enum 值，兩個 `when` block 均需補齊（否則編譯 exhaustive 錯誤）
+- `primaryScore` log 精度預設為 Float 預設輸出，若需要更精確可用 `"%.2f".format(primaryScore)`
+
+---
+
+## SV-FIX-1R 焦土清除準則 — Dead Code 反向掃描（v2.12.0-17，2026-03-15）
+
+> **背景**：v2.12.0-16 以 `runNewFocusPipeline()` 取代整個 legacy 自動對焦流程，但留下了兩個死亡殘骸：`autoFocusOnSalientTarget()` 的 `return` 後 legacy 區塊（~100 行），以及不再有有效呼叫點的 `focusOnPoint()` 函式（~200 行）。SV-FIX-1R 的任務是完全清除這些殘骸。
+
+### §F. 焦土清除四條準則
+
+**準則 1 — `return` 後的 dead code 必須立即刪除，不得「暫存參考」**
+
+```kotlin
+// ❌ 禁止此模式：
+private fun autoFocusOnSalientTarget() {
+    runNewFocusPipeline()
+    return          // ← return 後方的所有程式碼為不可達 dead code
+    val currentState = _state.value   // 永遠不會執行
+    // ... 100 行 legacy 邏輯 ...
+}
+
+// ✅ 正確清除：
+private fun autoFocusOnSalientTarget() {
+    runNewFocusPipeline()
+}
+```
+
+- **為什麼不能「暫存參考」**：dead code 在編譯器 / IDE 靜態分析下不會觸發警告（Kotlin 對不可達程式碼的告警只在確定性 return 之後），容易在數個版本後遺忘其存在，最終成為永久殭屍。
+- **判斷標準**：只要函式開頭執行後 `return` 是無條件的（不在 if 分支內），其後所有程式碼即為 dead code，一律刪除。
+
+**準則 2 — 無有效呼叫點的私有函式必須整體刪除（含 KDoc 與輔助邏輯）**
+
+刪除步驟：
+1. 全文搜尋目標函式名稱（含型態相同的函式呼叫）
+2. 確認所有呼叫點均位於 dead code 路徑或本函式自身
+3. 同步刪除：函式本體 + 雙層 KDoc + 僅此函式使用的 helper 函式
+
+本次案例：
+- 刪除 `focusOnPoint()` 本體（~200 行，含雙層 KDoc）
+- 連帶刪除 `registerTapToFocusIntent()`（唯一呼叫點在 `focusOnPoint()` 內）
+
+**準則 3 — 詞彙歸零：函式名稱、欄位名稱必須從所有位置清除（含註解與 KDoc）**
+
+刪除主函式後，必須執行全域 Grep 掃描：
+```
+搜尋詞彙                          預期結果
+focusOnPoint                    → 0 結果（含 KDoc 引用、log 說明）
+focusFrameWidthPx               → 0 結果（含多行 // 註解）
+FOCUS_PIPELINE_V2               → 0 結果（已在 v2.12.0-16 清除）
+```
+
+殘留位置類型（常被忽略）：
+- 其他函式頂端的 `// Fix E: Cancel stale focusOnPoint() coroutine` 類說明
+- `private var focusJob` 欄位的說明性註解
+- 其他函式的 KDoc `@see` 或行內參照
+- `getMeteringPointFactory` 的實作說明（`// mirrors LiveCameraSource.focusOnPoint()`）
+
+**準則 4 — 修正後的 KDoc 與註解必須仍為真陳述，不可刪除語意**
+
+刪除被引用函式後，引用該函式的 KDoc 段落不應直接刪除整行，而應改寫為仍成立的語意：
+
+| 原始（已失效）| 修正後（仍成立）|
+|---|---|
+| `set the initial focusFrameWidthPx/HeightPx immediately` | `update focus frame dimensions immediately` |
+| `Does NOT replace focusOnPoint() — manual tap still uses the legacy path` | `Manual tap uses setTapToFocusIntent() which is consumed on the next analysis frame` |
+| `Cancel stale focusOnPoint() coroutine to prevent its delay(500) → focusPoint=null` | `Cancel any in-flight focus coroutine to prevent stale state updates racing with lockAEAF` |
+
+---
+
+### §G. 反向掃描清單（Dead Code 清除驗收用）
+
+每次執行 legacy 清除後，依序掃描以下清單，**全部通過才算驗收完成**：
+
+#### Step 1 — 呼叫點掃描
+```bash
+# 在目標檔案內搜尋被刪除的函式名稱
+grep -n "deletedFunctionName" CameraViewModel.kt
+# 預期：0 結果
+```
+
+#### Step 2 — 欄位/符號掃描（同時搜尋所有舊符號名稱）
+```bash
+grep -rn "focusFrameWidthPx\|FOCUS_PIPELINE_V2\|focusOnPoint" \
+  app/src/main/java/
+# 預期：0 結果於 CameraViewModel.kt；其他檔案的 repository 介面定義保留（不在清除範圍）
+```
+
+#### Step 3 — 孤兒 Helper 掃描
+- 列出被刪除主函式所呼叫的全部 private helper 函式
+- 逐一確認每個 helper 是否仍有其他呼叫點
+- 無其他呼叫點 → 連帶刪除
+
+#### Step 4 — KDoc / 註解一致性確認
+- 全文搜尋已刪除的函式名稱（含在字串中）
+- 確認沒有任何 `// ... focusOnPoint ...` 風格的行內說明殘留
+- 確認 `focusJob` 等關聯欄位的說明性註解已更新
+
+#### Step 5 — 編譯驗證
+```bash
+./gradlew assembleDeviceDebug
+# 預期：BUILD SUCCESSFUL，0 errors
+```
+
+**本次 SV-FIX-1R 執行結果**（2026-03-15）：
+
+| 掃描項目 | 結果 |
+|---|---|
+| `focusOnPoint` in CameraViewModel.kt | ✅ 0 matches |
+| `focusFrameWidthPx` 全域 | ✅ 0 matches |
+| `FOCUS_PIPELINE_V2` 全域 | ✅ 0 matches（v2.12.0-16 已清除）|
+| 孤兒 helper `registerTapToFocusIntent()` | ✅ 連帶刪除 |
+| `assembleDeviceDebug` | ✅ BUILD SUCCESSFUL |
+
+---
+
+## SV-FIX-2 Front/Fixed-Focus 硬體契約 — FLAG_AF 防線（v2.12.0-17，2026-03-15）
+
+> **背景**：`CameraXFocusController.apply()` 使用單參數 `FocusMeteringAction.Builder(cxPoint)`，CameraX 預設行為是 `FLAG_AF | FLAG_AE | FLAG_AWB` 全部啟用。前鏡頭無 AF 馬達，送出 `FLAG_AF` 後 HAL 靜默失敗或產生 AF Hunting，但不拋出例外，難以從 Logcat 直接定位根因。
+
+### §H. Front-Camera FLAG_AF 硬體契約守則
+
+**核心規則**：`FocusMeteringAction.Builder` 第二參數（flags）**必須明確指定**，絕對禁止使用無參數的單參數建構子讓 CameraX 自行選擇 flags。
+
+```kotlin
+// ❌ 禁止此模式：
+FocusMeteringAction.Builder(cxPoint).build()
+// → CameraX 預設 FLAG_AF | FLAG_AE | FLAG_AWB，前鏡頭收到 FLAG_AF 後 HAL 靜默失敗
+
+// ✅ 正確：依硬體能力明確指定
+if (geometryContext.isFrontCamera || !decision.shouldTriggerFocus) {
+    FocusMeteringAction.Builder(cxPoint, FocusMeteringAction.FLAG_AE or FocusMeteringAction.FLAG_AWB)
+        .build()   // 不設 autoCancelDuration — 前鏡頭無 AF 馬達，不需 timeout
+} else {
+    FocusMeteringAction.Builder(cxPoint, FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE)
+        .apply { setAutoCancelDuration(AF_TIMEOUT_SEC, TimeUnit.SECONDS) }
+        .build()
+}
+```
+
+**判斷優先序**（`isFrontCamera` 為主要守門條件）：
+
+| 條件 | Flags | `setAutoCancelDuration` | 理由 |
+|------|-------|------------------------|------|
+| `isFrontCamera == true`（無論 policy）| `FLAG_AE \| FLAG_AWB` | ❌ 不設定 | 硬體無 AF 馬達；即使 policy 誤送 `shouldTriggerFocus=true` 也強制攔截 |
+| `shouldTriggerFocus == false`（後鏡頭）| `FLAG_AE \| FLAG_AWB` | ❌ 不設定 | 純曝光調整，不觸發 AF 掃描 |
+| 後鏡頭 + `shouldTriggerFocus == true` | `FLAG_AF \| FLAG_AE` | ✅ `AF_TIMEOUT_SEC` | 完整 AF 流程，需 timeout 防 HAL 死鎖 |
+
+**為什麼 `isFrontCamera` 必須是主要守門條件（而非 `shouldTriggerFocus`）**：
+- `shouldTriggerFocus` 由 `EyeAfPolicyResolver` 決定，policy 邏輯複雜，未來改動可能誤送 `true`
+- `isFrontCamera` 是硬體事實，不受 policy 層影響，永遠不會誤判
+- 將硬體契約防線置於最靠近 HAL 呼叫點處（`CameraXFocusController`），確保即使 policy 層出錯也能兜底
+
+**`setAutoCancelDuration` 不設定於前鏡頭的原因**：
+- 前鏡頭走 AE-only 路徑，`FLAG_AF` 不送出，HAL 無 AF 掃描動作，無需 timeout guard
+- 若對 AE-only action 設定 `setAutoCancelDuration`，部分 HAL 實作可能在 timeout 後強制 cancel metering，反而中斷曝光收斂
+
+### §I. FLAG_AF 防線在架構中的位置
+
+```
+User Tap / Eye-AF Detection
+        ↓
+EyeAfPolicyResolver.resolve()    ← shouldTriggerFocus 決策層（可能誤判）
+        ↓
+FocusTriggerThrottle gate
+        ↓
+CameraXFocusController.apply()   ← 🔴 FLAG_AF 最終防線（isFrontCamera 硬體守門）
+        ↓
+cameraControl.startFocusAndMetering(action)
+```
+
+**守則**：任何修改 `CameraXFocusController.apply()` flags 邏輯的 PR，必須確認：
+1. `FocusMeteringAction.Builder` 在整個檔案中出現次數為 **2**（if 分支 + else 分支），不多不少
+2. 前鏡頭分支（`isFrontCamera == true`）的 Builder 第二參數絕對不含 `FLAG_AF`
+3. 後鏡頭分支（`shouldTriggerFocus == true`）的 Builder 第二參數包含 `FLAG_AF`
+
+**Log 識別**（Logcat 驗證執行路徑用）：
+```
+# 前鏡頭 / AE-only 路徑
+[v2.12.0-17][SV-FIX-2] AE+AWB only (front/fixed-focus) isFrontCamera=true shouldTriggerFocus=false
+
+# 後鏡頭 AF 路徑
+[v2.12.0-17][SV-FIX-2] AF+AE (rear camera) shouldTriggerFocus=true
+```
+
+**Code Location**：`CameraXFocusController.kt:88-102`（`// Build CameraX MeteringAction` 區塊）
+
+**參考實作**（既有正確範例）：`LiveCameraSource.kt` 的 `aeOnlyAction` 建構（`FLAG_AE | FLAG_AWB`）
+
+**How to apply**：
+- 每次觸碰 `FocusMeteringAction.Builder` 相關程式碼時，先確認 `isFrontCamera` 是否為最外層判斷
+- 新增相機鏡頭類型（如超廣角、長焦）時，確認其 AF 能力後再決定 flags；有疑慮時默認 `FLAG_AE | FLAG_AWB`
+- 禁止在 Policy 層（`EyeAfPolicyResolver`）或 ViewModel 層修改 flags——flags 邏輯只屬於 `CameraXFocusController`
+
+---
+
+## SV-FIX-3 Matrix Truth — ViewModel / Mapper 職責邊界（v2.12.0-17，2026-03-15）
+
+> **背景**：`rebuildNewPipelineSensorToViewMatrix()` 在 `CoordinateTransformer` 尚未就緒時，自行用 `bounds.width() / effectiveImgW` 計算 FIT_CENTER 近似 matrix。這段 fallback 與 `PreviewViewGeometryMapper` 既有的 `matrix == null` FIT_CENTER fallback 形成職責重疊，且在旋轉 90°/270° 時 scale ratio 計算錯誤（bounds 與 effectiveImgW 的座標系不一致），並留有 `TODO(SB-F2-future)` 違反零 TODO 政策。
+
+### §J. ViewModel / Mapper 幾何職責邊界守則
+
+**核心規則**：ViewModel 只負責「有 transformer 時提供精確 matrix」，Mapper 負責「無 matrix 時的 FIT_CENTER fallback」。兩層職責不得重疊。
+
+```
+CameraViewModel.rebuildNewPipelineSensorToViewMatrix()
+    ├── transformer 可用  → latestSensorToViewMatrix = 三點反推 affine matrix  ✅ ViewModel 職責
+    └── transformer 不可用 → latestSensorToViewMatrix = null                   ✅ ViewModel 職責止於此
+
+PreviewViewGeometryMapper.mapRectImageToView()
+    ├── context.sensorToViewMatrix != null → matrix.mapPoints(pts)             ✅ Mapper 主路徑
+    └── context.sensorToViewMatrix == null → FIT_CENTER scale + letterbox       ✅ Mapper fallback 職責
+```
+
+**禁止模式**（已在 SV-FIX-3 清除）：
+
+```kotlin
+// ❌ ViewModel 自行實作 FIT_CENTER 近似 — 職責錯置，且計算有誤
+val scaleX = bounds.width() / effectiveImgW.toFloat()   // ← contentBounds 與 image 座標系不一致
+val scaleY = bounds.height() / effectiveImgH.toFloat()  //   旋轉 90°/270° 時產生錯誤 scale ratio
+latestSensorToViewMatrix = android.graphics.Matrix().apply {
+    if (isFront) { setScale(-scaleX, scaleY); postTranslate(bounds.right, bounds.top) }
+    else         { setScale(scaleX, scaleY);  postTranslate(bounds.left,  bounds.top) }
+}
+// TODO(SB-F2-future): Replace with real matrix ... ← 違反零 TODO 政策
+
+// ✅ 正確：transformer 不可用時直接歸零，職責還給 Mapper
+latestSensorToViewMatrix = null
+Log.d(TAG, "[v2.12.0-17] transformer not ready — sensorToViewMatrix=null, Mapper will use FIT_CENTER fallback")
+```
+
+**為什麼 ViewModel 的 FIT_CENTER 近似計算是錯的**：
+
+| 旋轉角度 | `effectiveImgW` 語意 | `bounds.width()` 語意 | scaleX 結果 |
+|----------|---------------------|-----------------------|------------|
+| 0° / 180° | sensor 寬（橫向） | PreviewView 寬（橫向）| 近似正確 |
+| 90° / 270° | sensor 高（已 swap，變成「縱向寬」）| PreviewView 寬（橫向）| **錯誤**：用縱向尺寸除橫向尺寸 |
+
+Pixel 9a 主鏡頭預設旋轉 90°，因此此近似在實機上必然產生錯誤的幾何映射。
+
+**`TODO` 作為技術債指示器的問題**：
+- `TODO(SB-F2-future)` 表示「等待 CameraX API」，但實際上正確解法就是「transformer 不可用時讓 Mapper fallback」，不需要任何新 API
+- 帶有遠期標籤的 TODO 容易在數個版本後成為永久殭屍，且掩蓋了「當下已有正確解」的事實
+
+**How to apply**：
+- 任何涉及 sensor→view 座標轉換的新邏輯，必須先確認職責歸屬：「需要精確幾何 → ViewModel 三點反推 matrix」，「需要 fallback → Mapper 已有實作，不重複」
+- 修改 `rebuildNewPipelineSensorToViewMatrix()` 時，確認函式末尾只有一種 null 路徑（transformer 不可用），不得新增任何近似計算分支
+- `PreviewViewGeometryMapper` 的 `matrix == null` fallback 路徑是此設計的底板，**禁止刪除或弱化**
+
+**Code Location**：`CameraViewModel.kt` `rebuildNewPipelineSensorToViewMatrix()` 末段（`// transformer not ready` 區塊）
+
+---
+
+## SV-FIX-3R Matrix Truth 最終收斂 — 三點反推移除與 toMatrix() 直接建構（v2.12.0-17，2026-03-16）
+
+> **背景**：`rebuildNewPipelineSensorToViewMatrix()` 原先以 `CoordinateTransformer.imageToScreen()` 採樣 3 個角點，再用 `Matrix.setValues()` 反推仿射矩陣。此方法需要 NaN guard（`isFinite()` 檢查），且邏輯間接；矩陣來源不透明。SV-FIX-3R 將此移除，改在 `CoordinateTransformer` 加入 `toMatrix()` 方法，直接從已知幾何欄位建構矩陣，消除採樣誤差與 NaN 風險。
+
+### §K. 三點反推 vs 直接建構守則
+
+**核心規則**：若目標 Transform 持有所有幾何欄位（scale、translate、mirror），應直接建構 `android.graphics.Matrix`，不得以採樣 + 反推方式繞行。
+
+**三點反推的問題（已清除）**：
+
+```kotlin
+// ❌ 三點採樣反推 — 間接、需 NaN guard、不透明
+val (sx0, sy0) = transformer.imageToScreen(0f, 0f)
+val (sx1, sy1) = transformer.imageToScreen(effectiveImgW.toFloat(), 0f)
+val (sx2, sy2) = transformer.imageToScreen(0f, effectiveImgH.toFloat())
+if (!sx0.isFinite() || ...) { /* fallback */ }
+// Build affine matrix from 3-point correspondence.
+latestSensorToViewMatrix = android.graphics.Matrix().apply {
+    setValues(floatArrayOf(
+        (sx1 - sx0) / effectiveImgW, (sx2 - sx0) / effectiveImgH, sx0,
+        (sy1 - sy0) / effectiveImgW, (sy2 - sy0) / effectiveImgH, sy0,
+        0f, 0f, 1f,
+    ))
+}
+```
+
+**正確實作（CoordinateTransformer.toMatrix()）**：
+
+```kotlin
+// ✅ 直接建構 — 透明、無 NaN 風險、職責歸屬明確
+fun toMatrix(): android.graphics.Matrix {
+    val scaleX = contentBounds.width() / imageWidth
+    val scaleY = contentBounds.height() / imageHeight
+    return android.graphics.Matrix().apply {
+        if (isFrontCamera) {
+            setValues(floatArrayOf(
+                -scaleX, 0f, contentBounds.right,   // mirror: translateX = right boundary
+                0f, scaleY, contentBounds.top,
+                0f, 0f, 1f,
+            ))
+        } else {
+            setValues(floatArrayOf(
+                scaleX, 0f, contentBounds.left,
+                0f, scaleY, contentBounds.top,
+                0f, 0f, 1f,
+            ))
+        }
+    }
+}
+```
+
+**呼叫端（rebuildNewPipelineSensorToViewMatrix）**：
+
+```kotlin
+// ✅ 一行完成，無 NaN guard 需求
+val transformer = currentState.coordinateTransformer
+if (transformer != null) {
+    latestSensorToViewMatrix = transformer.toMatrix()
+    Log.d(TAG, "[v2.12.0-17][SV-FIX-3R] sensorToViewMatrix set from CoordinateTransformer.toMatrix()")
+    return
+}
+// transformer not ready → null → Mapper fallback（職責邊界同 §J）
+latestSensorToViewMatrix = null
+```
+
+**為何三點反推數學等價但不應使用**：
+
+| | 三點採樣反推 | toMatrix() 直接建構 |
+|---|---|---|
+| NaN 風險 | 有（需 isFinite() guard） | 無（除數 imageWidth/Height > 0 已在建構時驗證）|
+| 透明度 | 低（中間浮點誤差累積） | 高（直接對應幾何欄位）|
+| 維護性 | 差（新增座標系需重新驗證公式）| 好（字面對應 contentBounds / scale）|
+| 職責歸屬 | ViewModel 重複 Transformer 邏輯 | Transformer 自身持有，ViewModel 只呼叫 |
+
+**How to apply**：
+- 任何需要從 `CoordinateTransformer` 取矩陣的場景，呼叫 `toMatrix()`，禁止再用 `imageToScreen()` 三點採樣
+- 新增幾何欄位到 `CoordinateTransformer` 時，同步更新 `toMatrix()` 的對應項（新增 skew、perspective 等）
+- `toMatrix()` 是 `CoordinateTransformer` 的「矩陣形式輸出」，與 `imageToScreen()` 的「點轉換輸出」並列存在，兩者數學等價但使用場景不同
+
+**Code Location**：`PreviewViewportContainer.kt` `CoordinateTransformer.toMatrix()`（新增）；`CameraViewModel.kt` `rebuildNewPipelineSensorToViewMatrix()`（移除三點反推，改呼叫 `toMatrix()`）
+
+---
+
+## SV-FIX-3R-FINAL Geometry Truth 架構收斂 — Matrix 建構遷移至 PreviewViewGeometryMapper（v2.12.0-17，2026-03-16）
+
+> **背景**：SV-FIX-3R 將三點反推移除後，`toMatrix()` 仍住在 `CoordinateTransformer`（presentation 層）。架構複審確立此為層次邊界違規：V2 管線（`PreviewViewGeometryMapper`）不應依賴 presentation 層提供矩陣。SV-FIX-3R-FINAL 將 matrix 建構邏輯遷移至 `PreviewViewGeometryMapper.createSensorToViewMatrix()`，使 V2 管線完全自治。
+
+### §L. ViewModel 僅接線、Mapper 承接幾何與 Fallback（SSOT 邊界）
+
+**這是本專案幾何管線最重要的一條邊界守則，違反此守則將造成職責重疊、坐標系混亂與層次污染。**
+
+#### 邊界定義
+
+```
+【ViewModel 的唯一職責】
+CameraViewModel.rebuildNewPipelineSensorToViewMatrix()
+    ├── contentBounds 有效 + imageDims 有效
+    │       → newPipelineGeometryMapper.createSensorToViewMatrix(bounds, w, h, isFront)
+    │       → latestSensorToViewMatrix = 結果
+    └── 任一無效
+            → latestSensorToViewMatrix = null
+            → 不計算任何幾何，交棒給 Mapper
+
+【Mapper 的完整職責】
+PreviewViewGeometryMapper.mapRectImageToView(rect, context)
+    ├── context.sensorToViewMatrix != null
+    │       → matrix.mapPoints(pts)              ← 精確路徑
+    └── context.sensorToViewMatrix == null
+            → applyFitCenterFallback(pts, context) ← FIT_CENTER fallback（禁止刪除）
+
+【PreviewViewGeometryMapper.createSensorToViewMatrix()】
+    ← matrix 建構邏輯唯一來源（v2.12.0-17 起）
+    ← ViewModel 只呼叫，不計算幾何
+```
+
+#### 為何 ViewModel 不應自行建構 Matrix
+
+| 場景 | ViewModel 自行建構的問題 |
+|------|------------------------|
+| transformer 可用 | ViewModel 重複 Transformer/Mapper 的幾何邏輯 → 兩份邏輯需同步維護 |
+| transformer 不可用 | ViewModel 用 `bounds.width() / imgW` 近似 → 旋轉 90°/270° 時 scale 計算錯誤（§J 已記錄）|
+| 前鏡頭 mirror | ViewModel 手工 `setScale(-scaleX, ...)` → 與 Mapper mirror 邏輯重複，不一致時產生雙重 mirror |
+
+#### SV-FIX-3R-FINAL 後的正確實作
+
+**`PreviewViewGeometryMapper.createSensorToViewMatrix()`（新增，data 層）**：
+
+```kotlin
+// ✅ Matrix 建構唯一來源 — data/domain 層，V2 管線自治
+fun createSensorToViewMatrix(
+    contentBounds: RectF,
+    imageWidth: Int,
+    imageHeight: Int,
+    isFrontCamera: Boolean,
+): Matrix {
+    val scaleX = contentBounds.width() / imageWidth
+    val scaleY = contentBounds.height() / imageHeight
+    return Matrix().apply {
+        if (isFrontCamera) {
+            setValues(floatArrayOf(-scaleX, 0f, contentBounds.right, 0f, scaleY, contentBounds.top, 0f, 0f, 1f))
+        } else {
+            setValues(floatArrayOf(scaleX, 0f, contentBounds.left, 0f, scaleY, contentBounds.top, 0f, 0f, 1f))
+        }
+    }
+}
+```
+
+**`CameraViewModel.rebuildNewPipelineSensorToViewMatrix()`（接線，presentation 層）**：
+
+```kotlin
+// ✅ ViewModel 僅接線：取 contentBounds + isFrontCamera，呼叫 Mapper，不計算幾何
+val contentBounds = currentState.contentBounds
+val isFrontCamera = currentState.currentCamera == CameraLens.FRONT
+if (!contentBounds.isEmpty) {
+    latestSensorToViewMatrix = newPipelineGeometryMapper.createSensorToViewMatrix(
+        contentBounds, effectiveImgW, effectiveImgH, isFrontCamera
+    )
+    return
+}
+latestSensorToViewMatrix = null  // Mapper fallback 接手
+```
+
+#### 層次邊界遷移歷史（§J → §K → §L）
+
+| 版本 | 問題 | 修復 |
+|------|------|------|
+| SV-FIX-3（§J）| ViewModel 自行 FIT_CENTER 近似，旋轉 90° scale 錯誤 | 移除近似，transformer 不可用時直接 null |
+| SV-FIX-3R（§K）| 三點採樣反推（imageToScreen × 3 + setValues），NaN 風險 | 改 `CoordinateTransformer.toMatrix()` 直接建構 |
+| SV-FIX-3R-FINAL（§L）| `toMatrix()` 住在 presentation 層，V2 管線依賴外層 | 將建構邏輯遷移至 `PreviewViewGeometryMapper.createSensorToViewMatrix()`，ViewModel 僅接線 |
+
+**How to apply**：
+- **新增幾何轉換需求時**：邏輯寫在 `PreviewViewGeometryMapper`，ViewModel 只提供輸入參數並接收結果
+- **修改 `rebuildNewPipelineSensorToViewMatrix()` 時**：函式內只允許「取 state 欄位 → 呼叫 `newPipelineGeometryMapper.createSensorToViewMatrix()`」，不允許任何 scale/translate 計算
+- **`applyFitCenterFallback()` 是 Mapper 的底板**：禁止刪除、弱化或在 ViewModel 複製此邏輯
+- **`CoordinateTransformer.toMatrix()`**：仍保留供 OF 路徑（legacy）使用，但 V2 管線禁止呼叫
+
+**Code Location**：
+- `PreviewViewGeometryMapper.kt:110` `createSensorToViewMatrix()`（新增）
+- `CameraViewModel.kt` `rebuildNewPipelineSensorToViewMatrix()`（改呼叫 `createSensorToViewMatrix`，不再依賴 `coordinateTransformer`）
+
+---
+
+## Phase 3 UX Polish — 專業相機體驗最終語義收斂（v2.12.0-18，2026-03-16）
+
+> **背景**：Focus Pipeline V2 地基清理完畢（v2.12.0-17）後，進入 UX 拋光階段。
+> 本節記錄三項設計決策的最終語義，作為後續版本的 SSOT 驗收基線。
+
+---
+
+### §M. Fixed-Focus LensFocusState 語義正規化（SV-PH3-FIX）
+
+#### 問題根源
+v2.12.0-18 初版（Task 2）將 `isFixedFocus && primaryTarget != null` 對應到 `UnsupportedFixedFocus`。
+這導致 `FocusOverlay` 的夾爪動畫在前鏡頭永遠不觸發，因為 `LensFocusState` 語義傳遞到 UI 層時
+`UnsupportedFixedFocus` 表示「硬體不支援」而非「已鎖定」。
+
+#### 正確語義（SV-PH3-FIX，最終定版）
+
+```kotlin
+// DefaultFocusStateMachine.reduceLensState()
+if (input.isFixedFocus) {
+    return if (input.trackedTargetState.primaryTarget != null) {
+        LensFocusState.Focused        // 視覺欺騙：直接宣告鎖定，不等待 HAL
+    } else {
+        LensFocusState.NotRequested   // 無目標：靜默，不顯示任何鎖定狀態
+    }
+}
+```
+
+#### 架構純潔性保證
+- `isFixedFocus == true` 路徑在 `focusControllerResult` 被讀取之前就已 `return`
+- HAL AF 回調路徑（`focusControllerResult?.opticalResult`）只在 `isFixedFocus == false` 時執行
+- `UnsupportedFixedFocus` 語義保留給 HAL 主動回報 `OpticalFocusState.UNSUPPORTED` 的情境（非固定焦距、但 HAL 無法執行 AF）
+
+#### 三軸狀態在固定焦距下的完整行為
+
+| 軸 | 輸入條件 | 輸出 |
+|----|---------|------|
+| VisualTargetState | 由 `DefaultEyeAfPolicyResolver` 決定（SYNTHETIC_LOCK → VisualLocked） | 正常流程 |
+| LensFocusState | `isFixedFocus=true && primaryTarget != null` | `Focused`（**§M 新定義**） |
+| LensFocusState | `isFixedFocus=true && primaryTarget == null` | `NotRequested` |
+| ExposureLockState | `isFrontCamera=true` | 強制 `Unlocked`（§D 守則不變） |
+
+**How to apply**：
+- 修改 `reduceLensState()` 時，`isFixedFocus` guard 必須是第一個判斷，且必須提前 return
+- 禁止在 `isFixedFocus == true` 路徑中讀取 `focusControllerResult`（同步純潔性）
+- `UnsupportedFixedFocus` 不代表「固定焦距鏡頭」—— 它代表「HAL 告知 AF 不支援」，兩者語義不同
+
+---
+
+### §N. 樂觀點擊 UI — 零延遲 Yellow→Cyan 過渡（Task 1）
+
+#### 設計決策
+使用者點擊畫面時，在硬體 AF 啟動前先顯示 Yellow 72dp 佔位框（`TrackingStable` 狀態），
+約 100ms 後由正常 pipeline 升級為 Cyan `VisualLocked`（夾爪觸發）。
+
+- **Yellow 在此情境的語義**：「系統已收到指令、正在確認目標」，與 AE/AF Lock Yellow 不同
+- **非 AE/AF Lock 語義**：不觸發 `ExposureLockState.AEAFLocked`，Yellow 只存活於 `pendingTapToFocusIntent` 有效期內（≤750ms）
+- `FocusOverlay` 的 `animateColorAsState(tween 200ms)` 負責 Yellow→Cyan 顏色動畫
+
+#### 實作邊界規則
+
+```
+setTapToFocusIntent() 的職責：
+  1. 設定 pendingTapToFocusIntent（供 pipeline 消費）
+  2. 立即 push 一個 FocusUiState(TrackingStable, YELLOW, 72dp box at tap coords)
+  → 不觸發任何 HAL 呼叫
+  → 不修改 isAEAFLocked 欄位
+
+runNewFocusPipeline() 在下一幀（~100ms）自然覆蓋此狀態
+```
+
+**SV 驗收線**：`tap_optimistic` stableId 只出現在 `setTapToFocusIntent()` 的 push 中，
+`runNewFocusPipeline()` 的任何輸出絕不應產生 `primaryStableId = "tap_optimistic"`。
+
+**How to apply**：
+- `setTapToFocusIntent()` 是唯一允許直接 push Yellow FocusUiState 的地方
+- `DefaultFocusStateMachine` 禁止在 `buildOverlayModel()` 中產生 YELLOW unless `ExposureLockState.AEAFLocked`
+- 如需調整 72dp 大小，修改 `halfPx = 72f * density / 2f` 算式；density 來自 `FocusOnPoint.density`
+
+---
+
+### §O. Primary Monopoly — 1-Euro Filter 主目標壟斷守則（Task 3）
+
+#### 設計決策
+只有 `primaryTarget` 的 `rectView`（映射至 OverlayModel.primaryBox）經過 `RectFilter`（1-Euro Filter）平滑。
+`secondaryBoxes` 使用 ML Kit 原始座標，不平滑，渲染為 10dp 四角括號、固定 alpha 0.3。
+
+#### 架構邊界
+
+```
+ML Kit 偵測 → TargetTracker.update() → TrackedTargetState（所有 target 均為原始座標）
+                                              ↓
+                               FocusStateMachine.reduce()
+                                              ↓
+                                       FocusUiState
+                                              ↓
+                                applySmoother()          ← 唯一平滑點（ViewModel）
+                                  ├── primaryBox → RectFilter.filter()  ← 1-Euro 平滑
+                                  └── secondaryBoxes → 原樣傳遞（不觸碰）
+                                              ↓
+                               _state.update(focusUiState = smoothedUiState)
+```
+
+#### 不變量（Invariant）
+
+1. `applySmoother()` 只修改 `overlayModel.primaryBox`，不修改 `secondaryBoxes`
+2. `primaryStableId` 改變時，`primaryTargetSmoother.reset()` 必須先於下一次 `filter()` 呼叫
+3. `resetFocusState()` 與 `switchCamera()` 兩個路徑均須呼叫 `primaryTargetSmoother.reset()`
+4. 平滑後的 `primaryBox` 僅用於 UI 渲染；AF 硬體座標（`primaryTarget.rectView` 原始值）不受影響
+
+#### FocusOverlay Secondary 渲染規格
+
+```kotlin
+// 固定規格（不得動態化）
+val secondaryColor = Color(0xFF00F2FF).copy(alpha = 0.3f)  // 固定 Cyan, 固定 0.3
+val bracketSize = 10.dp.toPx()   // 四角括號長度
+val bracketStroke = strokeWidthPx * 0.7f  // 比 primary 細
+// 繪製：四角 [ ] 線段（不是完整矩形框）
+// 不使用 animatedAlpha（secondary 沒有生命週期動畫）
+```
+
+**SV 驗收線**：`FocusOverlay` 內禁止對 `secondaryBoxes` 呼叫任何 `animateXxx` 或 `LaunchedEffect`。
+
+**How to apply**：
+- 新增平滑邏輯時，只能在 `applySmoother()` 函式內操作
+- 禁止在 `DefaultTargetTracker`、`FocusStateMachine` 或 `EyeAfPolicyResolver` 中進行座標平滑
+- `RectFilter` 參數（`minCutoff=1.0f, beta=0.007f`）為調校基線；若需調整，同步更新此節
+
+**Code Location**：
+- `CameraViewModel.kt` `applySmoother()`（新增，主平滑入口）
+- `CameraViewModel.kt` `primaryTargetSmoother: RectFilter`（欄位）
+- `FocusUiSmoother.kt` `RectFilter` / `OneEuroFilter`（已有實作，§O 正式啟用）
+- `FocusOverlay.kt` secondary brackets 渲染區塊
+
+---
+
+## 🚀 [Phase 3] 專業相機 UX 拋光 (Pragmatic Refactor) 結案與架構真理
+
+**結案日期**: 2026-03-16
+**版本**: v2.12.0-18
+
+**核心成就**: 完成「樂觀 UI」、「前鏡頭視覺欺騙」與「主從壟斷」實作，並通過 Traycer 最終無情法官驗收 (Path A)。
+
+在 Phase 3 的實戰與驗收中，我們確立了以下 3 項絕對不可破壞的 SSOT 驗收基線。未來的任何重構或功能迭代，皆不得違反此處定義的語義與效能邊界。
+
+---
+
+### ⚖️ 真理一：前鏡頭「視覺欺騙」與狀態語義正規化 (Fixed-Focus Normalization)
+
+**硬體現實**：前鏡頭 (Fixed-Focus) 物理上不支援 AF，若向 HAL 送出 `FLAG_AF` 將導致狀態機死鎖。
+
+**狀態機語義 (SSOT)**：為支援 UI 的「鎖定成功（極光藍夾爪）」視覺回饋，`DefaultFocusStateMachine.reduceLensState()` 在處理 `isFixedFocus == true` 時，絕對不可回傳 `UnsupportedFixedFocus`。
+
+**強制映射**：
+
+| 條件 | 強制輸出 |
+|------|---------|
+| `isFixedFocus == true && primaryTarget != null` | `LensFocusState.Focused` |
+| `isFixedFocus == true && primaryTarget == null` | `LensFocusState.NotRequested` |
+
+**防禦目的**：解耦底層物理限制與上層 UI 渲染，透過合法的狀態偽裝達成完美的「樂觀 UX 體驗」。
+
+> **SV 驗收線**：`reduceLensState()` 內 `isFixedFocus` guard 必須是第一個判斷並提前 return，禁止在此路徑中讀取 `focusControllerResult`（HAL 同步純潔性）。`UnsupportedFixedFocus` 的語義是「HAL 告知 AF 不支援」，非「這是固定焦距鏡頭」——兩者語義不同，不可混用。
+
+---
+
+### ⚡ 真理二：HAL 回調解耦 (No Waiting for HAL)
+
+**同步路徑優先**：在 Tap-to-Focus（點擊對焦）或前鏡頭 AE 鎖定場景中，狀態機必須在發起硬體 Action 後的同步路徑中立刻推進狀態，瞬間在畫面上畫出 72dp 黃色預設框或觸發鎖定動畫。
+
+**絕對禁區**：
+- 嚴禁使用 `Thread.sleep` 進行任何 UI 延遲過渡
+- 嚴禁前鏡頭狀態機「等待（Await/Suspend）」來自 CameraX HAL 的 `FocusControllerResult` 回調才更新畫面
+
+**實作邊界**：
+
+```
+setTapToFocusIntent() 同步路徑：
+  1. 設定 pendingTapToFocusIntent（供 pipeline 消費）
+  2. 立即 push FocusUiState(TrackingStable, YELLOW, 72dp box at tap coords)
+  → 不觸發任何 HAL 呼叫
+  → 不修改 isAEAFLocked 欄位
+
+runNewFocusPipeline() 在下一幀（~100ms）自然覆蓋此狀態
+
+FocusOverlay.animateColorAsState(tween 200ms) 自動處理 Yellow→Cyan 顏色過渡
+```
+
+> **SV 驗收線**：`tap_optimistic` stableId 只出現在 `setTapToFocusIntent()` 的 push 中。`runNewFocusPipeline()` 的任何輸出絕不應產生 `primaryStableId = "tap_optimistic"`。`DefaultFocusStateMachine.buildOverlayModel()` 禁止產生 `OverlayColor.YELLOW` unless `ExposureLockState == AEAFLocked`。
+
+---
+
+### 👑 真理三：主從壟斷與效能壁壘 (Primary Monopoly & Smoothing Isolation)
+
+**算力分配不平等**：手機 CPU 算力必須極端傾斜給 `primaryTarget`（主目標）。
+
+**架構邊界 (SSOT)**：
+
+| 對象 | 平滑 | Alpha 動畫 | 渲染格式 |
+|------|------|-----------|---------|
+| Primary Target | ✅ 1-Euro Filter（`RectFilter`） | ✅ 完整呼吸/漸變動畫 | 完整矩形框 + 夾爪 |
+| Secondary Targets | ❌ 嚴禁傳入平滑器 | ❌ 嚴禁 `animateXxx` | 10dp 四角 `[ ]` brackets，固定 alpha=0.3 |
+
+**不變量（Invariant）**：
+1. `applySmoother()` 是唯一平滑閘門，只修改 `overlayModel.primaryBox`，不修改 `secondaryBoxes`
+2. `primaryStableId` 改變時，`primaryTargetSmoother.reset()` 必須先於下一次 `filter()` 呼叫
+3. `resetFocusState()` 與 `switchCamera()` 兩個路徑均須呼叫 `primaryTargetSmoother.reset()`
+4. 平滑後的 `primaryBox` 僅用於 UI 渲染；AF 硬體座標（`primaryTarget.rectView` 原始值）不受影響
+
+**防禦目的**：防止未來 AI 模型產生「公平對待所有目標」的 Additive Bias，導致多目標場景下發生嚴重的 UI 掉幀與設備發燙。
+
+> **SV 驗收線**：`FocusOverlay` 內禁止對 `secondaryBoxes` 呼叫任何 `animateXxx` 或 `LaunchedEffect`。禁止在 `DefaultTargetTracker`、`FocusStateMachine` 或 `EyeAfPolicyResolver` 中進行座標平滑。
+
+---
+
+**Phase 3 結案聲明**：以上三條真理構成 v2.12.0 對焦系統的最終架構護城河。任何未來版本（無論是 Claude 5.0、GPT-6 或其他 AI）在修改對焦系統前，必須先閱讀並遵守此三條真理。違反者視為架構污染，應立即回滾。
+
+---
+
+## ML Kit 安全基線 (v2.12.0-19)
+
+**確立日期**: 2026-03-18
+**版本**: v2.12.0-19（SV-MLKIT-FIX-01）
+
+本節記錄三條因實機 Crash 確立的 ML Kit 鐵律。任何修改 ML Kit 偵測器初始化或 ImageProxy 處理的 PR，必須逐條核對。
+
+---
+
+### ✅ 鐵律 A：LANDMARK_MODE_NONE 為安全基線（禁止回退 ALL）
+
+**問題根因**：`LANDMARK_MODE_ALL` 要求 ML Kit 從裝置自動下載 landmark 模型。若下載失敗、模型不相容或裝置型號不在 Google Play Services 支援列表，`FaceDetector` 在推論時拋出 `"Unknown landmark type"` Exception，導致靜默 Crash（無 ANR，直接 skip frame，但 detection pipeline 死亡）。
+
+**強制基線**：
+
+| 參數 | 禁止值 | 強制值 | 原因 |
+|------|--------|--------|------|
+| `setLandmarkMode` | `LANDMARK_MODE_ALL` | `LANDMARK_MODE_NONE` | 設備相容性 Crash |
+| `setContourMode` | `CONTOUR_MODE_ALL` | `CONTOUR_MODE_NONE` | 同上，contour 模型更重 |
+
+**降級路徑（Eye-AF 不受影響）**：Eye-AF 的「眼睛座標」由 `CameraViewModel:929` 的 face bbox center fallback 提供，精度略降但功能完整。`EyePosition` domain model 保留（forward compat），但 `extractEyePositions()` 已刪除。
+
+**禁止行為**：
+- ❌ 任何情況下重新啟用 `LANDMARK_MODE_ALL`（包括「特定設備優化」flag）
+- ❌ 用 `try-catch` 包住 `LANDMARK_MODE_ALL` 然後 fallback — 這會掩蓋問題並使 Crash 變成性能劣化
+
+> **SV 驗收線**：`MLKitDetector.kt` 與 `CameraRepositoryImpl.kt` 兩個偵測器初始化路徑必須同步為 `LANDMARK_MODE_NONE`。任一路徑回退 ALL 即觸發 SV 失敗。
+
+**Code Locations**：
+- `MLKitDetector.kt` `faceDetector` lazy init（Device/legacy path）
+- `CameraRepositoryImpl.kt` `faceDetector` lazy init（Emulator/SmartCameraAnalyzer path）
+
+---
+
+### ✅ 鐵律 B：imageProxy.close() 必須在跳幀路徑同步呼叫
+
+**問題根因**：CameraX ImageAnalysis 的 backpressure 策略（`STRATEGY_KEEP_ONLY_LATEST`）要求每個 `ImageProxy` 必須被 `close()`。若 frame-skip 路徑忘記呼叫，CameraX 管線會在下一幀等待舊 buffer 釋放，直到 timeout 觸發 `IllegalStateException` 或相機凍結。
+
+**Frame-skip 模式（SmartCameraAnalyzer L0 gate）**：
+
+```kotlin
+// CORRECT — skip 路徑必須立即 close
+frameCount++
+if (frameCount % analysisInterval != 0) {
+    imageProxy.close()   // ← 這行不可省略
+    return
+}
+```
+
+**三個必須 close 的路徑**：
+
+| 路徑 | close 位置 | 備注 |
+|------|-----------|------|
+| L0 frame-skip | `imageProxy.close()` 在 `return` 前 | 同步，不進入 coroutine |
+| L1 time-gate skip | `imageProxy.close()` 在 `return` 前 | 同步，不進入 coroutine |
+| 正常分析路徑 | `finally { imageProxy.close() }` | 在 `launch` coroutine 的 finally |
+
+**禁止行為**：
+- ❌ 在 skip 路徑漏掉 `imageProxy.close()`
+- ❌ 把 `imageProxy.close()` 放在 coroutine launch 之外的 `finally` 然後 launch 內又 close（double close）
+- ❌ 在 L0/L1 skip 路徑進入任何 suspend 函式再 close
+
+> **SV 驗收線**：`analyze()` 函式中每一個 `return` 語句前方（在相同 scope 層級）必須有 `imageProxy.close()`。唯一例外是 `return` 在 coroutine 內部且 finally 已覆蓋。
+
+**Code Location**：`SmartCameraAnalyzer.kt` `analyze()` — L0 gate（line ~272）、L1 gate（line ~280）、launch finally block。
+
+---
+
+### ✅ 鐵律 C：mediaImage null-safe guard（!! 絕對禁止）
+
+**問題根因**：`imageProxy.image` 在以下情況返回 null：裝置記憶體壓力、ImageReader buffer 已被 recycle、或 YUV_420_888 buffer 在 CameraX internal 時序邊界被釋放。`imageProxy.image!!` 在此情況拋出 NPE，導致 `analyze()` 協程死亡，CameraX pipeline 進入不可恢復狀態直到 unbind。
+
+**強制寫法**：
+
+```kotlin
+// CORRECT
+val mediaImage = imageProxy.image ?: run {
+    Log.w(TAG, "[v2.12.0] mediaImage null — aborting")
+    return@launch   // 讓 finally 執行 imageProxy.close()
+}
+val inputImage = InputImage.fromMediaImage(mediaImage, ...)
+
+// FORBIDDEN
+val inputImage = InputImage.fromMediaImage(imageProxy.image!!, ...)
+```
+
+**適用範圍**：所有呼叫 `imageProxy.image` 的位置，包括 `MLKitDetector.detect()`、`SmartCameraAnalyzer.analyze()`、未來任何新增的 analyzer。
+
+> **SV 驗收線**：全專案禁止 `imageProxy.image!!`。Grep `image!!` 零容忍。
+
+**Code Locations**：
+- `SmartCameraAnalyzer.kt` `analyze()` launch block（line ~310）
+- `MLKitDetector.kt` `detect()` — null guard + caller 負責 close 的 KDoc 已確立
+
+---
+
+### 📋 ML Kit 初始化參數總覽（v2.12.0-19 基線）
+
+| 參數 | 人臉偵測器 | 物件偵測器 |
+|------|-----------|-----------|
+| mode | `PERFORMANCE_MODE_FAST` | `STREAM_MODE` |
+| landmark | `LANDMARK_MODE_NONE` 🔴 | N/A |
+| contour | `CONTOUR_MODE_NONE` 🔴 | N/A |
+| classification | `CLASSIFICATION_MODE_NONE` | ✅ enabled |
+| tracking | `enableTracking()` | `enableMultipleObjects()` |
+| minFaceSize | `0.15f`（MLKitDetector）/ `MIN_FACE_SIZE`（CameraRepositoryImpl） | N/A |
+
+🔴 = 不可修改的 Crash 防禦參數
+
+---
+
+## Compose 局部重組防禦模式 (v2.12.0-19)
+
+**確立日期**: 2026-03-18
+**版本**: v2.12.0-19（FocusIndicatorOverlay 接線票據）
+
+本節記錄「StateFlow 傳入子 Composable 後內部 collect」的局部重組防禦模式，防止高頻 UI 狀態（如每幀更新的對焦座標）污染父層 Composable 的重組節奏。
+
+---
+
+### ✅ Confirmed：局部重組防禦三步驟
+
+**問題根因**：`CameraScreen` 頂層 `val state by viewModel.state.collectAsState()` 訂閱整個 `CameraState`。若 `focusUiState`（包含 X/Y 座標、bbox）在每幀更新，`CameraState.equals()` 每幀都不同，導致 `CameraScreen` 整體（包括快門按鈕、Grid、HDR 按鈕）以 60fps 全量重組——CPU 爆炸的根本原因。
+
+**解法三步驟**：
+
+#### Step 1：ViewModel 暴露孤立 StateFlow
+
+```kotlin
+// CameraViewModel.kt
+val focusUiStateFlow: StateFlow<FocusUiState> =
+    _state.map { it.focusUiState }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = FocusUiState.EMPTY,
+        )
+```
+
+**Why Eagerly**：`Eagerly` 確保 ViewModel 建立時立即訂閱 `_state`，無 cold start delay。`WhileSubscribed` 在 screen 旋轉時會重新訂閱，造成一幀閃爍。
+
+#### Step 2：子 Composable 接受 StateFlow，內部 collect
+
+```kotlin
+// FocusIndicatorOverlay.kt
+@Composable
+fun FocusIndicatorOverlay(
+    focusUiStateFlow: StateFlow<FocusUiState>,  // ← Flow ref，非展開值
+    modifier: Modifier = Modifier,
+) {
+    val focusUiState by focusUiStateFlow.collectAsStateWithLifecycle()
+    // 所有後續讀取 focusUiState.overlayModel / .visualTargetState
+    // 產生的 recomposition 只影響此 composable 及其子樹
+}
+```
+
+**Why collectAsStateWithLifecycle（非 collectAsState）**：lifecycle-aware，App 進入後台時自動取消訂閱，避免在不可見狀態下持續消費 CPU。
+
+#### Step 3：父層 CameraScreen 傳遞 Flow 引用，不展開
+
+```kotlin
+// CameraScreen.kt — 正確
+FocusIndicatorOverlay(
+    focusUiStateFlow = viewModel.focusUiStateFlow,  // ← 傳 Flow 物件
+    modifier = Modifier.fillMaxSize(),
+)
+
+// CameraScreen.kt — 禁止
+val focusUiState = state.focusUiState               // ← 從頂層 state 展開
+FocusOverlay(
+    overlayModel = focusUiState.overlayModel,        // ← 傳展開值 → 頂層重組
+    visualTargetState = focusUiState.visualTargetState,
+)
+```
+
+---
+
+### ⚠️ Critical Warning：此模式的適用邊界
+
+**何時應用此模式**（高頻 + 獨立）：
+- 對焦 UI（每幀更新座標）✅
+- Optical Flow 追蹤點（每幀更新）✅
+- FPS 計數器（每秒更新）✅
+
+**何時不需要此模式**（低頻 or 已有頂層依賴）：
+- Flash mode、HDR mode（使用者操作才變更，頂層讀取 OK）
+- isCapturing（拍照瞬間觸發，影響快門按鈕外觀，本來就需要頂層重組）
+- Error state（低頻）
+
+**禁止行為**：
+- ❌ 為了「看起來整潔」把所有狀態都拆成獨立 StateFlow 並傳下去——過度拆分增加 ViewModel 複雜度且無益
+- ❌ 在 `CameraScreen` 頂層 `val focusUiState by viewModel.focusUiStateFlow.collectAsState()` 然後把展開值傳下去——這等於沒做防禦（頂層仍然每幀重組）
+- ❌ 將 `SharingStarted.WhileSubscribed(5000)` 用於視覺座標 Flow——5秒 timeout 在畫面旋轉時造成動畫 glitch
+
+---
+
+### 🔍 Code Locations（v2.12.0-19）
+
+| 組件 | 位置 | 作用 |
+|------|------|------|
+| `focusUiStateFlow` 定義 | `CameraViewModel.kt:106-117` | 孤立 Focus StateFlow |
+| 內部 collect | `FocusIndicatorOverlay.kt:92` | `collectAsStateWithLifecycle()` |
+| CameraScreen 接線 | `CameraScreen.kt:388-392` | 傳 Flow 引用，不展開 |
+| 舊 FocusOverlay（已刪） | 焦土政策刪除（v2.12.0-19 SV） | 零呼叫站點 → 刪除 |
+
+---
+
+### 📋 Backlog
+
+- [x] FocusIndicatorOverlay 接線 — ✅ 完成 (v2.12.0-19, 2026-03-18) | 局部重組防禦已驗證（Build PASS）
+- [ ] 評估 Optical Flow 追蹤點是否需要同樣模式（`trackedPoint` / `trackedPointActive`）
+- [ ] `currentFps` StateFlow 考慮同樣模式（FPSOverlay 目前從頂層讀取）
+
+---
+
+## Clean Architecture Sensor DI 模式 (v2.12.0-22 Ticket 1.5)
+
+**確立日期**: 2026-03-18
+**版本**: v2.12.0-22（Ticket 1.5 — DeviceSensorManager 介面抽取）
+**Commit**: `725f04c`
+
+本節記錄「Domain 純介面 + Data 具體實作 + Hilt @Binds/@Provides 雙路徑」的標準模式，適用於所有需要 Android 硬體隔離的 Domain 合約。
+
+---
+
+### ✅ Confirmed：Domain 介面抽取三步驟
+
+#### Step 1：Domain 層定義純介面（零 Android import）
+
+```kotlin
+// domain/sensor/DeviceSensorManager.kt
+package com.akirachang.ai.photographer.domain.sensor
+
+import kotlinx.coroutines.flow.Flow
+
+interface DeviceSensorManager {
+    fun startGyroscopeTracking(): Flow<GyroscopeData>
+}
+```
+
+**不變量（Invariant）**：
+- 介面宣告體內**絕對禁止** `import android.*`
+- 唯一允許的 import 是 Kotlin/KotlinX 標準庫（`Flow`、`kotlinx.coroutines.*`）
+- 領域模型（如 `GyroscopeData`）獨立拆到同 package 的獨立檔案（`GyroscopeData.kt`）
+
+#### Step 2：Data 層具體實作 implement 介面
+
+```kotlin
+// data/sensor/DeviceSensorManagerImpl.kt
+class DeviceSensorManagerImpl(context: Context) : DeviceSensorManager {
+    // Android SensorManager 實作細節全在此層
+    override fun startGyroscopeTracking(): Flow<GyroscopeData> = callbackFlow { ... }
+
+    // 非介面方法（Presentation 層特有需求）保留在 Impl
+    fun areSensorsAvailable(): Boolean = ...
+    fun startOrientationTracking(): Flow<OrientationData> = ...
+    fun hasGyroscope(): Boolean = ...
+}
+```
+
+**設計決策**：presentation 層特有方法（`areSensorsAvailable`、`startOrientationTracking`）**不放進 domain 介面**，CameraViewModel 注入具體型別即可存取。
+
+#### Step 3：DI 雙路徑 — @Provides 具體型 + @Binds 介面
+
+```kotlin
+// di/AppModule.kt
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class AppModule {
+
+    // Domain 介面綁定（供 domain-layer 或 future 組件注入）
+    @Binds @Singleton
+    abstract fun bindDeviceSensorManager(impl: DeviceSensorManagerImpl): DeviceSensorManager
+
+    companion object {
+        // 具體型提供（供 CameraViewModel 等需要完整 API 的 caller 注入）
+        @Provides @Singleton
+        fun provideDeviceSensorManagerImpl(@ApplicationContext context: Context): DeviceSensorManagerImpl =
+            DeviceSensorManagerImpl(context)
+    }
+}
+```
+
+**Hilt 雙路徑規則**：
+- `@Provides` 回傳具體型 `DeviceSensorManagerImpl` → Hilt 能注入具體型
+- `@Binds` 將具體型映射至介面 `DeviceSensorManager` → Hilt 能注入介面
+- **`@Provides` 必須在 `companion object`**（Hilt abstract module 限制）
+- **`@Binds` 必須在 abstract class 本體**（不可在 companion object）
+
+---
+
+### ⚠️ Critical Warning：Hilt @Binds 陷阱
+
+**禁止行為**：
+- ❌ `@Provides` 和 `@Binds` 都在 companion object 或都在 abstract class 外 → Hilt 編譯錯誤
+- ❌ `@Provides` 回傳介面型別、自行 `return impl` → 語意模糊，應改用 `@Binds`
+- ❌ 在 domain 介面引入 `android.hardware.*` — 破壞 Clean Architecture 隔離
+
+**CameraViewModel 注入策略**：
+- CameraViewModel 注入 **`DeviceSensorManagerImpl`**（具體型），可使用全部 API
+- 未來 domain UseCase 注入 **`DeviceSensorManager`**（介面型），只用 `startGyroscopeTracking()`
+
+---
+
+### 🔍 Code Locations（v2.12.0-22 基線）
+
+| 組件 | 位置 | 作用 |
+|------|------|------|
+| Domain 介面 | `domain/sensor/DeviceSensorManager.kt` | 純合約，零 Android import |
+| 領域模型 | `domain/sensor/GyroscopeData.kt` | 獨立 data class，同 package |
+| 具體實作 | `data/sensor/DeviceSensorManagerImpl.kt` | 全部 Android 實作細節 |
+| DI 綁定 | `di/AppModule.kt` | `@Binds` 介面 + `@Provides` 具體型 |
+| ViewModel 注入點 | `CameraViewModel.kt:60` | `DeviceSensorManagerImpl`（具體型） |
+
+---
+
+### 📋 Backlog
+
+- [x] DeviceSensorManager 介面抽取 — ✅ 完成 (v2.12.0-22, 2026-03-18) | Build PASS、SV PASS
+- [x] IMU 整合接線（Ticket 2 + Fix 2A）：`ImuCompensator` 注入 `OpticalFlowTracker` ✅ 完成 (v2.12.0-23, 2026-03-18) | Build PASS、SV PASS
+- [x] IMU ViewModel 接線（Ticket 3 + Fix 3A-R）：`CameraViewModel` 收集陀螺儀 Flow → `accumulate()`；`OrientationSensorManager` 介面隔離；Presentation 層完全切斷對 `DeviceSensorManagerImpl` 的直接依賴 ✅ 完成 (v2.12.0-24, 2026-03-18) | Build PASS、SV PASS
+
+---
+
+### [v2.12.0] IMU 補償與感測器架構 (Architecture Learnings)
+
+- **介面隔離原則 (Interface Segregation Principle)**：在重構 `DeviceSensorManagerImpl` 時，嚴格區分了 `DeviceSensorManager`（專供 IMU 陀螺儀高頻積分）與 `OrientationSensorManager`（專供裝置方向旋轉）。ViewModel 僅依賴需要的介面，徹底切斷對 Impl 的具體依賴。
+- **Hilt 多重綁定單例 (Multi-Binding Singleton)**：在 `AppModule` 中，透過多個 `@Binds` 將不同的 Domain 介面指向同一個 `@Singleton` 的 `DeviceSensorManagerImpl`，既滿足了 Clean Architecture，又避免了重複註冊硬體 Sensor 的效能浪費。
+- **IMU 狀態機防禦**：`ImuCompensator.reset()` 必須在 `startTracking()`（防 re-tap spike）、`stopTracking()`/LOST（防垃圾積分污染下次追蹤）、`switchCamera()`（切鏡頭後運動向量失效）三個時機呼叫。
+- **焦距預設值**：`focalLengthPx = 2000f` 為暫定常數；後續 Ticket 需從 `CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS` 動態讀取並轉換為像素（`fPx = f_mm / sensorPixelPitch_mm`）。
+
+---
+
+### 🔑 v2.12.0-23 關鍵學習（IMU 積分狀態機守則）
+
+**守則：`startTracking()` 開頭必須呼叫 `imuCompensator.reset()`**
+
+**背景**：`ImuCompensator` 在後台持續累積陀螺儀積分。若追蹤因 LOST 停止後，使用者在短時間內重新點擊（re-tap），此時 `startTracking()` 建立新 Session，但前次 LOST 到 re-tap 之間累積的 IMU 積分尚未被消費。下一幀 `consumeCameraMotion()` 將一次性吐出這段積分，造成 `compensatedDx/compensatedDy` 出現大幅偏移，導致追蹤框瞬移（Coordinate Spike）。
+
+**正確的三點 reset 策略**：
+
+| 時機 | 位置 | 作用 |
+|------|------|------|
+| 新 Session 啟動（re-tap） | `startTracking()` **第一行** | 清除前次 LOST→tap 間隙的垃圾積分，防 Spike |
+| 追蹤正常/異常停止 | `stopTracking()` | 清除追蹤中殘留積分，防下次 startTracking 前繼續累積 |
+| 相機切換 | 外部呼叫 `imuCompensator.reset()` | 新鏡頭坐標系不同，舊積分無效 |
+
+**關鍵坐標換算（downsampled space）**：
+```
+imuDx/imuDy = consumeCameraMotion(focalLengthPx)  // 原始圖像像素空間
+compensatedDx = medDx - imuDx * scaleX             // 轉換至 downsampled 空間再相減
+compensatedDy = medDy - imuDy * scaleY
+```
+`medDx/medDy` 是 LK 在 downsampled frame 的位移；`imuDx/imuDy` 是原始解析度空間的位移；必須乘以 `scaleX/scaleY` 才能對齊坐標系後相減。
+
+**L3 Strict Verification 判決**（2026-03-18）：Fix 2A 補上 `startTracking()` 漏缺的 reset，消除狀態機漏洞。
+
+---
+
+
+---
+
+### 🔑 v2.12.0-26 關鍵學習（幾何管線防禦守則）
+
+**守則 1：無效幾何必須傳播為 null，絕對不可回傳 Identity Matrix**
+
+**背景**：`createSensorToViewMatrix()` 早期版本在 `imageWidth <= 0` 或 `contentBounds.width() <= 0f` 時回傳 `Matrix()`（單位矩陣）。單位矩陣是「外觀無害的偽裝者」——它不會拋出 Exception，但會讓所有座標對應到 (0, 0)，導致對焦框靜默地定位到畫面左上角，**而非觸發可觀察的錯誤**。這種沉默失敗比 Crash 更危險，因為它在 Logcat 中不留任何痕跡。
+
+**正確做法**：
+- `createSensorToViewMatrix()` 回傳 `Matrix?`，無效輸入時 `return null`
+- `buildNewPipelineGeometryContext()` 回傳 `GeometryContext?`，`effectiveImgW/H <= 0` 時 `return null`
+- 呼叫端使用 `?: return` 或 `?: return emptyList()` 明確中斷執行
+- `latestSensorToViewMatrix = null` 讓 `PreviewViewGeometryMapper` 自然退回 FIT_CENTER fallback，這是已驗證的安全路徑
+
+**禁止行為**：
+- ❌ `return Matrix()` — 偽裝成功，座標靜默歸零
+- ❌ `return GeometryContext(imageWidth=0, ...)` — 下游除法仍會產生 Infinity
+- ❌ 在 Log.e 之後繼續往下建構 Context — Log 警告無效，仍執行危險運算
+
+---
+
+**守則 2：影像分析管線存活性必須有心跳 Log**
+
+**背景**：在 Sony XQ-BT52 實機測試中，發生了「管線靜默死亡」現象——AF hunting loop 讓 `StandaloneCoroutine was cancelled` 洗板，但 `[v2.8.4 E2E]` 完全消失。純靠 `[v2.8.4 E2E]` 無法區分「管線正常但無人臉」與「管線已死亡」兩種狀態，導致診斷時間大幅延長。
+
+**正確做法**：在 `observePreviewForAnalysis()` 的 `onEach` 最開頭，加入週期性心跳 log：
+```kotlin
+if (mlkitProcessedFrames % 30L == 0L) {
+    Log.i("SmartCameraAnalyzer", "[SP-A Heartbeat] bitmap analysis alive frame=$mlkitProcessedFrames")
+}
+```
+- **心跳間隔**：每 30 幀（約 3–9 秒，依 EWMA throttle 而定）
+- **驗收標準**：Sony 實機見到 `frame=90→120→150…` 穩定遞增 = 管線存活
+- **心跳消失診斷路徑**：`previewBitmap` flow 未發幀 → 檢查相機權限（重新安裝後權限被清除）→ 或相機 binding 失敗
+
+**此心跳為強制性診斷基礎設施，不可在未來重構中移除。**
+
+---
+
+**守則 3：SP-C In-Flight 鎖定 — 被動 AF 不得自我取消**
+
+**背景**：ML Kit 以 ~3 FPS 更新 DetectionResult，每次更新都觸發 `runNewFocusPipeline()`。舊版 Step G 無條件執行 `focusControllerJob?.cancel()`，導致 Sony HAL 的 AF 請求在完成前就被取消，下一幀又立即觸發新請求，形成 `StandaloneCoroutine was cancelled` 的自我取消無限迴圈。
+
+**正確做法**：
+```kotlin
+val isJobActive = focusControllerJob?.isActive == true
+if (isJobActive && !userIntent.isTapToFocusActive) {
+    Log.v(TAG, "[SP-C] Skipping AF request: previous job still in-flight")
+    // fall through to Step H for UI update — do NOT cancel active job
+} else {
+    focusControllerJob?.cancel()
+    focusControllerJob = viewModelScope.launch { ... }
+}
+```
+同時，`catch (CancellationException)` 必須在 `catch (Exception)` 之前攔截，`throw e` 重新拋出，確保 coroutine 正確標記為 cancelled 狀態，且不汙染 throttle 狀態機的 `onFailure()` 計數。
+
+**`CancellationException` 黃金原則**（延伸自 v2.12.0-05）：
+- Passive AF 被 user tap 中斷 → `CancellationException` → `throw e`，不呼叫 `onFailure()`
+- Sony HAL 取消 future → `CancellationException` → 同上
+- 真正的硬體錯誤 → `Exception`（非 Cancellation）→ `onFailure()`，顯示錯誤
+
+---
+
+### 🔑 v2.12.0-27 關鍵學習（Tap Intent TTL 主動清除 — SP-B 雙保險設計）
+
+**背景**：使用者點擊畫面時，`setTapToFocusIntent()` 立刻發出樂觀 UI（72dp 黃色佔位框）並設定 `pendingTapToFocusIntent`。若該位置無任何可追蹤特徵（空白牆壁、純色背景），ML Kit 不會偵測到任何目標，`clearTapToFocusIntent()` 也不會被呼叫，導致黃框永久凍結在畫面上，無法自動清除。
+
+---
+
+**守則 1：Tap Intent 必須同時具備被動 TTL 與主動 TTL 兩道防線**
+
+舊版設計只有「被動 TTL」：`currentTapToFocusIntent()` 在每一幀被呼叫時檢查是否超過 750ms。但如果管線沒有新幀進來（場景靜止、ML Kit 不觸發），被動 TTL 永遠不被執行。
+
+**正確做法（雙保險）**：
+
+```kotlin
+// 第一道：被動 TTL（既有）— 每幀讀取時檢查
+private fun currentTapToFocusIntent(nowMs: Long = ...): TapToFocusIntent? {
+    val intent = pendingTapToFocusIntent ?: return null
+    if ((nowMs - intent.timestampMs) > TAP_INTENT_WINDOW_MS) {
+        pendingTapToFocusIntent = null
+        return null
+    }
+    return intent
+}
+
+// 第二道：主動 TTL（SP-B 新增）— 計時器主動清除
+private var tapClearJob: Job? = null
+
+private fun setTapToFocusIntent(...) {
+    pendingTapToFocusIntent = TapToFocusIntent(...)
+    // ... 發出樂觀 UI ...
+
+    tapClearJob?.cancel()
+    tapClearJob = viewModelScope.launch {
+        delay(TAP_INTENT_WINDOW_MS)
+        if (pendingTapToFocusIntent != null) {
+            pendingTapToFocusIntent = null
+            val isStillPlaceholder = _state.value.focusUiState.overlayModel?.primaryStableId == "tap_optimistic"
+            if (isStillPlaceholder) {
+                Log.v(TAG, "[SP-B] Tap intent TTL expired — clearing optimistic Yellow box.")
+                _state.update { it.copy(focusUiState = FocusUiState.EMPTY) }
+            } else {
+                Log.v(TAG, "[SP-B] Tap intent TTL expired — real tracking active, placeholder already replaced.")
+            }
+        }
+    }
+}
+```
+
+**禁止行為**：
+- ❌ 只依賴被動 TTL：場景靜止時 ML Kit 不發幀，被動 TTL 永不執行 → 黃框永久殘留
+- ❌ `tapClearJob` 不取消舊計時器就啟動新計時器：快速連點導致舊計時器誤刪新的點擊佔位框
+
+---
+
+**守則 2：主動 TTL 清除前必須以 `primaryStableId` 確認 UI 狀態，禁止盲目覆蓋**
+
+**核心問題**：`runNewFocusPipeline()` 消費 tap intent 後，只更新 `focusUiState`（發出 Cyan），但**不呼叫** `clearTapToFocusIntent()`，因此 `pendingTapToFocusIntent` 在真實追蹤接管後依然非 null。若 `tapClearJob` 在 750ms 後盲目執行 `FocusUiState.EMPTY`，將覆蓋已經顯示中的 Cyan 追蹤框。
+
+**正確做法（primaryStableId 互斥判斷）**：
+
+| `primaryStableId` 值 | 含義 | tapClearJob 應執行動作 |
+|---|---|---|
+| `"tap_optimistic"` | 仍在顯示樂觀佔位框，無真實追蹤 | ✅ 清空，emit `FocusUiState.EMPTY` |
+| 其他值（stableId, face_xxx）| 真實追蹤已接管 | ⛔ 跳過，不動 UI state |
+| `null`（overlayModel = null）| 狀態已是 None | ⛔ 跳過，已無需清除 |
+
+樂觀 UI 的 `primaryStableId = "tap_optimistic"` 是設計上刻意標記的哨兵值，讓下游可以安全區分「佔位符」與「真實追蹤目標」。
+
+**`clearTapToFocusIntent()` 的責任邊界**：
+- 必須同時 cancel `tapClearJob`，確保計時器在 `resetFocusState()` / `lockAEAF()` 時被解除
+- `pendingTapToFocusIntent = null` 只是清除 ViewModel 內部意圖，不直接影響 `focusUiState`
+- UI 的清除責任由 `tapClearJob`（主動）或 `FocusStateMachine`（正常流程）負責
+
+```kotlin
+private fun clearTapToFocusIntent() {
+    tapClearJob?.cancel()  // SP-B: Disarm TTL timer when intent is consumed or reset
+    tapClearJob = null
+    pendingTapToFocusIntent = null
+}
+```
+
+---
+
+**驗收標準（The Blank Wall Test）**：
+1. 對空白牆壁點擊 → 黃框出現
+2. 靜止等待 ~750ms → 黃框**自動消失**（SP-B 主動清除）
+3. 對有人臉的場景點擊 → 黃框出現 → ~100ms 後轉為 Cyan → **Cyan 保持不消失**（primaryStableId guard 生效）

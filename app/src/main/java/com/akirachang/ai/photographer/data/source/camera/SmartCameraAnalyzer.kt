@@ -9,7 +9,7 @@
  * - ML Kit face and object detection
  * - Lighting analysis with histogram calculation
  * - Exposure detection (backlight, overexposure, low light)
- * - Throttled analysis for performance (10 FPS)
+ * - Adaptive throttle via EWMA (v2.12.0-03): auto-tunes interval per device (100–500ms)
  * - Proper resource management
  * - v2.x.x Phase 4: Optical flow point tracking integration
  *
@@ -20,7 +20,6 @@
  */
 package com.akirachang.ai.photographer.data.source.camera
 
-import android.os.Build
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
@@ -42,12 +41,14 @@ import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 import com.akirachang.ai.photographer.data.opencv.OpticalFlowTracker
+import com.akirachang.ai.photographer.domain.camera.ImuCompensator
 import com.akirachang.ai.photographer.data.opencv.TrackingResult
-import com.akirachang.ai.photographer.util.CoordinateMapper
 import org.opencv.core.Mat
 import org.opencv.core.Point
 import android.graphics.Bitmap
+import android.os.SystemClock
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -69,6 +70,18 @@ private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { conti
 /**
  * Custom analyzer that performs both ML Kit detection and lighting analysis
  *
+ * v2.12.0-15 §17.12.5: Dumb Pipe — only responsibility is:
+ *   1. Receive CameraX frame
+ *   2. Feed to ML Kit
+ *   3. Output raw DetectionResult (image-space coords) + LightingState via callbacks
+ *   4. Optical flow: output raw tracking result (image-space coords) via callback
+ * All coordinate mapping, target ranking, and policy decisions are handled upstream (CameraViewModel).
+ *
+ * SSOT Route B (v2.12.0): This class is the **Emulator analysis path**.
+ *   faceDetector/objectDetector are injected from CameraRepositoryImpl.
+ *   The Device/legacy path uses ImageAnalyzer → MLKitDetector (see ImageAnalyzer.kt).
+ *   These two paths are intentionally isolated — do NOT merge or cross-wire.
+ *
  * @param faceDetector ML Kit face detector
  * @param objectDetector ML Kit object detector
  * @param analyzeLightingUseCase Lighting analysis use case
@@ -82,20 +95,42 @@ class SmartCameraAnalyzer(
     private val analyzeLightingUseCase: AnalyzeLightingUseCase,
     private val onDetectionResult: (DetectionResult) -> Unit,
     private val onLightingResult: (LightingState) -> Unit,
-    private val minObjectConfidence: Float = 0.5f
+    private val minObjectConfidence: Float = 0.5f,
+    private val imuCompensator: ImuCompensator = ImuCompensator()  // [v2.12.0-23] Shared IMU engine; default only for tests
 ) : ImageAnalysis.Analyzer {
 
     companion object {
         private const val TAG = "SmartCameraAnalyzer"
 
-        // Pixel 9a: Increase throttle to 500ms (2 FPS) to reduce ML Kit TPU memory usage
-        // Other devices: Keep at 100ms (10 FPS) for responsive AI analysis
-        private val THROTTLE_INTERVAL_MS = if (Build.MODEL == "Pixel 9a") 500L else 100L
+        // v2.12.0-03: Adaptive ML Kit throttle — replaces per-device hardcoded values
+        private const val DEFAULT_THROTTLE_MS    = 200L   // initial interval
+        private const val MIN_THROTTLE_MS        = 100L   // fastest allowed (10 FPS)
+        private const val MAX_THROTTLE_MS        = 500L   // slowest allowed (2 FPS)
+        private const val WARMUP_FRAMES          = 3      // frames skipped from EWMA
+        private const val EMA_ALPHA              = 0.2    // EWMA smoothing factor
+        private const val SAFETY_FACTOR          = 1.25   // headroom multiplier
+        private const val DEADBAND_RATIO         = 0.10   // ±10% change ignored
+        private const val MAX_EXPAND_PER_FRAME   = 50L    // ms max increase per frame
+        private const val MAX_CONTRACT_PER_FRAME = 20L    // ms max decrease per frame
+        private const val PANIC_RATIO            = 1.5    // measured > interval×1.5 → panic
+        private const val PANIC_SCALE            = 1.2    // panic: interval × 1.2
+        private const val LOG_EVERY_N_FRAMES     = 30     // logcat throttle interval
     }
 
     private val analysisScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val isProcessing = AtomicBoolean(false)
     private var lastAnalysisTime = 0L
+
+    // v2.12.0 L0 frame-skip: every 3rd frame enters ML Kit (~10 FPS at 30 FPS camera).
+    // Skipped frames MUST call imageProxy.close() immediately to prevent pipeline stall.
+    private var frameCount = 0
+    private val analysisInterval = 3
+
+    // v2.12.0-03: Adaptive throttle state
+    private val adaptiveThrottleMs = AtomicLong(DEFAULT_THROTTLE_MS)
+    private var emaMs = 0.0
+    private var warmupCount = 0
+    private var processedFrames = 0L
 
     // Cached detection results for lighting analysis
     private var cachedDetectionResult: DetectionResult? = null
@@ -105,8 +140,6 @@ class SmartCameraAnalyzer(
     private var onOpticalFlowResult: ((TrackingResult) -> Unit)? = null
     private var imageWidth: Int = 0
     private var imageHeight: Int = 0
-    private var previewWidth: Int = 0
-    private var previewHeight: Int = 0
 
     // v2.11.3 Fix H: Dedicated analyze-pipeline dimensions (always = ImageProxy size, e.g. 1920×1920 for 1:1 mode).
     // Separate from imageWidth/imageHeight which may be set first by trackFromBitmap() (bitmap ~720px).
@@ -129,58 +162,6 @@ class SmartCameraAnalyzer(
      */
     fun setOpticalFlowCallback(callback: (TrackingResult) -> Unit) {
         onOpticalFlowResult = callback
-    }
-
-    /**
-     * Set preview size for coordinate mapping
-     * v2.x.x Phase 4: Required for PreviewView ↔ ImageAnalysis coordinate conversion
-     *
-     * @param width Preview width in pixels
-     * @param height Preview height in pixels
-     */
-    fun setPreviewSize(width: Int, height: Int) {
-        previewWidth = width
-        previewHeight = height
-        Log.d(TAG, "Preview size set: ${width}x${height}")
-    }
-
-    /**
-     * Start optical flow tracking at a specific point
-     * v2.x.x Phase 4: Tap-to-track point feature
-     *
-     * @param x X coordinate in PreviewView (0.0 to previewWidth)
-     * @param y Y coordinate in PreviewView (0.0 to previewHeight)
-     */
-    fun startOpticalFlowTracking(x: Float, y: Float) {
-        if (previewWidth == 0 || previewHeight == 0) {
-            Log.w(TAG, "Cannot start tracking: preview size not set")
-            return
-        }
-
-        if (imageWidth == 0 || imageHeight == 0) {
-            // v2.x.x Phase 6: Store as pending - applied when first frame sets image size
-            pendingTrackX = x
-            pendingTrackY = y
-            hasPendingTrack = true
-            Log.d(TAG, "Tracking start pending: preview ($x, $y), waiting for first frame")
-            return
-        }
-
-        // Convert PreviewView coordinates to ImageAnalysis coordinates
-        val imagePoint = CoordinateMapper.previewToImage(
-            x, y,
-            previewWidth, previewHeight,
-            imageWidth, imageHeight
-        )
-
-        // Create tracker if needed
-        if (opticalFlowTracker == null) {
-            opticalFlowTracker = OpticalFlowTracker()
-        }
-
-        // Start tracking
-        opticalFlowTracker?.startTracking(imagePoint, imageWidth, imageHeight)
-        Log.i(TAG, "Optical flow tracking started at preview ($x, $y) -> image (${imagePoint.x}, ${imagePoint.y})")
     }
 
     /**
@@ -208,7 +189,10 @@ class SmartCameraAnalyzer(
             return
         }
         if (opticalFlowTracker == null) {
-            opticalFlowTracker = OpticalFlowTracker()
+            // [v2.12.0-23] Inject shared ImuCompensator so the tracker cancels camera motion
+            opticalFlowTracker = OpticalFlowTracker(imuCompensator = imuCompensator)
+            // TODO: 後續 Ticket 從 CameraCharacteristics 動態讀取實際焦距並設定 opticalFlowTracker.focalLengthPx
+            opticalFlowTracker!!.focalLengthPx = 2000f
         }
         opticalFlowTracker?.startTracking(Point(imageX.toDouble(), imageY.toDouble()), imageWidth, imageHeight)
         Log.i(TAG, "[Fix H] OF tracking started at image ($imageX, $imageY), imageSize=${imageWidth}x${imageHeight}")
@@ -257,23 +241,20 @@ class SmartCameraAnalyzer(
                 isPendingInImageCoords = false
                 val imagePoint = Point(pendingTrackX.toDouble(), pendingTrackY.toDouble())
                 if (opticalFlowTracker == null) {
-                    opticalFlowTracker = OpticalFlowTracker()
+                    // [v2.12.0-23] Inject shared ImuCompensator (bitmap path)
+                    opticalFlowTracker = OpticalFlowTracker(imuCompensator = imuCompensator)
+                    // TODO: 後續 Ticket 從 CameraCharacteristics 動態讀取實際焦距並設定 opticalFlowTracker.focalLengthPx
+                    opticalFlowTracker!!.focalLengthPx = 2000f
                 }
                 opticalFlowTracker?.startTracking(imagePoint, bitmap.width, bitmap.height)
                 Log.i(TAG, "[Fix H] Applied pending image-coord track: (${imagePoint.x}, ${imagePoint.y}), bitmapSize=${bitmap.width}x${bitmap.height}")
             } else {
-                // Legacy preview-coord path: use bitmap dimensions (imageWidth set by this path)
+                // v2.12.0-15 SV-S5-Final-R2: Legacy preview-coord path removed.
+                // startOpticalFlowTracking(x, y) has been removed — callers must use
+                // startOpticalFlowTrackingImageCoords() which sets isPendingInImageCoords=true.
+                // If we reach here, the pending coords are stale/invalid — discard safely.
                 hasPendingTrack = false
-                val imagePoint = CoordinateMapper.previewToImage(
-                    pendingTrackX, pendingTrackY,
-                    previewWidth, previewHeight,
-                    imageWidth, imageHeight
-                )
-                if (opticalFlowTracker == null) {
-                    opticalFlowTracker = OpticalFlowTracker()
-                }
-                opticalFlowTracker?.startTracking(imagePoint, imageWidth, imageHeight)
-                Log.i(TAG, "Applied pending preview-coord track: image (${imagePoint.x}, ${imagePoint.y})")
+                Log.w(TAG, "[v2.12.0-15] Discarded stale preview-coord pending track — use startOpticalFlowTrackingImageCoords() instead")
             }
         }
 
@@ -296,9 +277,17 @@ class SmartCameraAnalyzer(
 
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
-        // Throttle analysis to 10 FPS
+        // v2.12.0 L0: Frame-skip gate — reject 2 out of every 3 frames before any ML work.
+        // MUST close imageProxy immediately on skip to prevent CameraX pipeline stall.
+        frameCount++
+        if (frameCount % analysisInterval != 0) {
+            imageProxy.close()
+            return
+        }
+
+        // v2.12.0-03: Adaptive throttle gate (L1) — time-based back-pressure after L0.
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastAnalysisTime < THROTTLE_INTERVAL_MS) {
+        if (currentTime - lastAnalysisTime < adaptiveThrottleMs.get()) {
             imageProxy.close()
             return
         }
@@ -312,6 +301,7 @@ class SmartCameraAnalyzer(
         lastAnalysisTime = currentTime
 
         analysisScope.launch {
+            val startNs = SystemClock.elapsedRealtimeNanos() // v2.12.0-03: measure ML Kit latency
             try {
                 // v2.x.x Phase 4: Store image dimensions for coordinate mapping
                 if (imageWidth == 0 || imageHeight == 0) {
@@ -327,9 +317,14 @@ class SmartCameraAnalyzer(
                 analyzeImageWidth = imageProxy.width
                 analyzeImageHeight = imageProxy.height
 
+                // Null-safe: if mediaImage is null, return@launch — finally block closes imageProxy.
+                val mediaImage = imageProxy.image ?: run {
+                    Log.w(TAG, "[v2.12.0] mediaImage null — aborting (imageProxy.close() in finally)")
+                    return@launch
+                }
                 // Create InputImage for ML Kit
                 val inputImage = InputImage.fromMediaImage(
-                    imageProxy.image!!,
+                    mediaImage,
                     imageProxy.imageInfo.rotationDegrees
                 )
 
@@ -416,9 +411,72 @@ class SmartCameraAnalyzer(
             } catch (e: Exception) {
                 Log.e(TAG, "Analysis error", e)
             } finally {
+                val elapsedNs = SystemClock.elapsedRealtimeNanos() - startNs // v2.12.0-03
+                updateAdaptiveThrottle(elapsedNs)
                 imageProxy.close()
                 isProcessing.set(false)
             }
+        }
+    }
+
+    /**
+     * v2.12.0-03: Update adaptive throttle interval based on measured ML Kit latency.
+     *
+     * Algorithm:
+     *   1. Warmup: skip first WARMUP_FRAMES to exclude JIT/cold-start spikes
+     *   2. EWMA: smooth measured latency with α=0.2
+     *   3. Panic backoff: if measured > interval×PANIC_RATIO → immediate scale-up
+     *   4. Target = EWMA × SAFETY_FACTOR
+     *   5. Deadband: skip update if |target - current| < current × DEADBAND_RATIO
+     *   6. Step-rate limit: cap change to ±MAX_EXPAND/MAX_CONTRACT per frame
+     *   7. Clamp: [MIN_THROTTLE_MS, MAX_THROTTLE_MS]
+     */
+    private fun updateAdaptiveThrottle(measuredNs: Long) {
+        val measuredMs = measuredNs / 1_000_000.0
+
+        // 1. Warmup — skip noisy first frames
+        if (warmupCount < WARMUP_FRAMES) {
+            warmupCount++
+            return
+        }
+
+        // 2. EWMA smoothing
+        emaMs = if (emaMs == 0.0) measuredMs
+                else EMA_ALPHA * measuredMs + (1.0 - EMA_ALPHA) * emaMs
+
+        val currentMs = adaptiveThrottleMs.get().toDouble()
+        processedFrames++
+
+        // 3. Panic backoff: measured far exceeds current interval
+        if (measuredMs > currentMs * PANIC_RATIO) {
+            val panicMs = (currentMs * PANIC_SCALE).toLong()
+                .coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
+            adaptiveThrottleMs.set(panicMs)
+            if (processedFrames % LOG_EVERY_N_FRAMES == 0L) {
+                Log.i(TAG, "[v2.12.0-03] PANIC throttle=${panicMs}ms measured=${measuredMs.toInt()}ms EMA=${emaMs.toInt()}ms")
+            }
+            return
+        }
+
+        // 4. Target with safety headroom
+        val targetMs = (emaMs * SAFETY_FACTOR).toLong()
+            .coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
+
+        // 5. Deadband — ignore tiny fluctuations
+        if (Math.abs(targetMs - currentMs) < currentMs * DEADBAND_RATIO) return
+
+        // 6. Step-rate limit
+        val newMs = when {
+            targetMs > currentMs -> (currentMs + MAX_EXPAND_PER_FRAME).toLong()
+                .coerceAtMost(targetMs).coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
+            else                 -> (currentMs - MAX_CONTRACT_PER_FRAME).toLong()
+                .coerceAtLeast(targetMs).coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
+        }
+
+        adaptiveThrottleMs.set(newMs)
+
+        if (processedFrames % LOG_EVERY_N_FRAMES == 0L) {
+            Log.i(TAG, "[v2.12.0-03] throttle=${newMs}ms EMA=${emaMs.toInt()}ms measured=${measuredMs.toInt()}ms frames=$processedFrames")
         }
     }
 

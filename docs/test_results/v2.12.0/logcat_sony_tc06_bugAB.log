@@ -1,0 +1,473 @@
+03-06 16:14:16.591 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:17.928 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:19.244 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:20.407 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:21.668 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:22.875 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:24.119 I/CameraViewModel( 2709): [v2.12.0-03] throttle=304ms target=320ms EMA=256ms measured=347ms frames=5880
+03-06 16:14:24.138 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:25.306 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:26.556 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:27.807 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:28.991 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:30.189 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:31.382 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:32.618 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:33.554 I/CameraViewModel( 2709): [v2.12.0-03] throttle=304ms target=297ms EMA=237ms measured=186ms frames=5910
+03-06 16:14:33.921 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:35.159 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:36.388 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:37.730 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:38.958 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:40.083 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:41.331 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:42.609 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:43.102 I/CameraViewModel( 2709): [v2.12.0-03] throttle=304ms target=314ms EMA=251ms measured=191ms frames=5940
+03-06 16:14:43.812 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:44.991 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:46.247 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:47.447 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:48.608 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:49.912 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:51.132 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:52.325 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:53.134 I/CameraViewModel( 2709): [v2.12.0-03] throttle=313ms target=300ms EMA=240ms measured=199ms frames=5970
+03-06 16:14:53.511 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:54.702 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:55.981 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:57.292 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:58.480 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:14:59.612 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:00.852 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:02.054 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:02.999 I/CameraViewModel( 2709): [v2.12.0-03] throttle=313ms target=309ms EMA=247ms measured=207ms frames=6000
+03-06 16:15:03.313 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:04.632 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:05.808 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:07.125 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:08.460 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:09.639 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:10.914 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:12.140 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:12.375 I/CameraViewModel( 2709): [v2.12.0-03] throttle=293ms target=255ms EMA=204ms measured=105ms frames=6030
+03-06 16:15:12.620 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(137, 92 - 273, 228), effectiveImage=480x640, score=57.23416
+03-06 16:15:12.620 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (461.25, 727.5), View: 1080x2415
+03-06 16:15:12.620 I/CameraViewModel( 2709): findTappedTarget: tapped face trackingId=427, bbox=Rect(137, 92 - 273, 228)
+03-06 16:15:12.621 D/CameraViewModel( 2709): Smart Subject Focus: score=57.23416, image=(205.0, 160.0), screen=(461.25, 727.5), frame=459.0x612.0px
+03-06 16:15:12.658 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=null, isLocked=false) triggered, isFocusing=true, isTracking=true
+03-06 16:15:12.658 D/FocusClamp( 2709): Clamp RESET (focusSuccess=null, isLocked=false)
+03-06 16:15:12.658 D/FocusClamp( 2709): LaunchedEffect(isFocusing=true, isLocked=false) triggered, focusSuccess=null
+03-06 16:15:12.895 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(136, 89 - 273, 226), effectiveImage=480x640, score=57.03257
+03-06 16:15:13.308 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(130, 85 - 280, 235), effectiveImage=480x640, score=58.016193
+03-06 16:15:13.369 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:13.447 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(130, 85 - 279, 234), effectiveImage=480x640, score=57.89822
+03-06 16:15:13.662 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(131, 87 - 279, 236), effectiveImage=480x640, score=58.075195
+03-06 16:15:13.901 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=true, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:15:13.901 D/FocusClamp( 2709): Clamp TAP START: shrink to 0.75
+03-06 16:15:13.901 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=true
+03-06 16:15:13.922 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(140, 90 - 278, 229), effectiveImage=480x640, score=57.39985
+03-06 16:15:14.068 D/FocusClamp( 2709): Clamp MID: shrink done (scale=0.75), expanding to 1.2
+03-06 16:15:14.163 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(140, 90 - 278, 229), effectiveImage=480x640, score=57.39985
+03-06 16:15:14.224 D/FocusClamp( 2709): Clamp SETTLE: settling to 1.0 (scale=1.2)
+03-06 16:15:14.314 D/FocusClamp( 2709): Clamp DONE: animation complete (scale=1.0)
+03-06 16:15:14.422 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:14.428 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(134, 88 - 278, 232), effectiveImage=480x640, score=57.692738
+03-06 16:15:14.493 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (344.0, 809.0), View: 1080x2520
+03-06 16:15:14.493 I/CameraViewModel( 2709): findTappedTarget: tapped face trackingId=427, bbox=Rect(134, 88 - 278, 232)
+03-06 16:15:14.515 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=null, isLocked=false) triggered, isFocusing=true, isTracking=true
+03-06 16:15:14.515 D/FocusClamp( 2709): Clamp RESET (focusSuccess=null, isLocked=false)
+03-06 16:15:14.515 D/FocusClamp( 2709): LaunchedEffect(isFocusing=true, isLocked=false) triggered, focusSuccess=null
+03-06 16:15:15.689 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:16.296 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=true, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:15:16.296 D/FocusClamp( 2709): Clamp TAP START: shrink to 0.75
+03-06 16:15:16.297 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=true
+03-06 16:15:16.463 D/FocusClamp( 2709): Clamp MID: shrink done (scale=0.75), expanding to 1.2
+03-06 16:15:16.617 D/FocusClamp( 2709): Clamp SETTLE: settling to 1.0 (scale=1.2)
+03-06 16:15:16.759 D/FocusClamp( 2709): Clamp DONE: animation complete (scale=1.0)
+03-06 16:15:16.959 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:18.196 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:18.517 I/CameraViewModel( 2709): [v2.12.0-03] throttle=175ms target=150ms EMA=120ms measured=74ms frames=6060
+03-06 16:15:19.189 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (465.0, 1799.5), View: 1080x2520
+03-06 16:15:19.197 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=null, isLocked=false) triggered, isFocusing=true, isTracking=true
+03-06 16:15:19.197 D/FocusClamp( 2709): Clamp RESET (focusSuccess=null, isLocked=false)
+03-06 16:15:19.197 D/FocusClamp( 2709): LaunchedEffect(isFocusing=true, isLocked=false) triggered, focusSuccess=null
+03-06 16:15:19.440 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:20.382 D/CameraViewModel( 2709): focusOnPoint cancelled (new tap / camera switch)
+03-06 16:15:20.383 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (863.0, 1900.0), View: 1080x2520
+03-06 16:15:20.418 E/LiveCameraSource( 2709): java.util.concurrent.ExecutionException: androidx.camera.core.CameraControl$OperationCanceledException: Cancelled by another startFocusAndMetering()
+03-06 16:15:20.418 E/LiveCameraSource( 2709): 	at com.akirachang.ai.photographer.data.source.camera.LiveCameraSource$focusOnPoint$2$1.run(LiveCameraSource.kt:711)
+03-06 16:15:20.418 E/LiveCameraSource( 2709): Caused by: androidx.camera.core.CameraControl$OperationCanceledException: Cancelled by another startFocusAndMetering()
+03-06 16:15:20.647 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:21.426 D/CameraViewModel( 2709): focusOnPoint cancelled (new tap / camera switch)
+03-06 16:15:21.426 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (308.0, 1847.0), View: 1080x2520
+03-06 16:15:21.453 E/LiveCameraSource( 2709): java.util.concurrent.ExecutionException: androidx.camera.core.CameraControl$OperationCanceledException: Cancelled by another startFocusAndMetering()
+03-06 16:15:21.453 E/LiveCameraSource( 2709): 	at com.akirachang.ai.photographer.data.source.camera.LiveCameraSource$focusOnPoint$2$1.run(LiveCameraSource.kt:711)
+03-06 16:15:21.453 E/LiveCameraSource( 2709): Caused by: androidx.camera.core.CameraControl$OperationCanceledException: Cancelled by another startFocusAndMetering()
+03-06 16:15:22.192 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:23.240 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=true, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:15:23.240 D/FocusClamp( 2709): Clamp TAP START: shrink to 0.75
+03-06 16:15:23.240 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=true
+03-06 16:15:23.340 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:23.421 D/FocusClamp( 2709): Clamp MID: shrink done (scale=0.75), expanding to 1.2
+03-06 16:15:23.559 D/FocusClamp( 2709): Clamp SETTLE: settling to 1.0 (scale=1.2)
+03-06 16:15:23.664 D/FocusClamp( 2709): Clamp DONE: animation complete (scale=1.0)
+03-06 16:15:24.370 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:24.572 I/CameraViewModel( 2709): [v2.12.0-03] throttle=174ms target=181ms EMA=144ms measured=199ms frames=6090
+03-06 16:15:25.564 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:26.819 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:28.097 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:29.301 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:30.581 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:31.952 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:32.414 I/CameraViewModel( 2709): [v2.12.0-03] throttle=269ms target=262ms EMA=210ms measured=216ms frames=6120
+03-06 16:15:33.132 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:34.387 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:35.693 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:36.953 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:38.186 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:39.305 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:40.531 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:41.752 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:42.074 I/CameraViewModel( 2709): [v2.12.0-03] throttle=303ms target=301ms EMA=241ms measured=256ms frames=6150
+03-06 16:15:43.011 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:44.206 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:45.411 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:46.650 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:47.918 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:49.133 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:50.299 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:51.504 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:52.136 I/CameraViewModel( 2709): [v2.12.0-03] throttle=317ms target=307ms EMA=246ms measured=237ms frames=6180
+03-06 16:15:52.709 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:54.018 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:55.229 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:56.442 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:57.675 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:15:59.010 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:00.276 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:01.560 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:01.570 I/CameraViewModel( 2709): [v2.12.0-03] throttle=297ms target=272ms EMA=217ms measured=159ms frames=6210
+03-06 16:16:02.827 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:03.994 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:05.313 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:06.558 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:07.833 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:09.117 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:10.486 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:11.098 I/CameraViewModel( 2709): [v2.12.0-03] throttle=309ms target=271ms EMA=216ms measured=154ms frames=6240
+03-06 16:16:11.649 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:12.798 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:13.987 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:15.237 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:16.576 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:17.772 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:18.998 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:20.246 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:21.258 I/CameraViewModel( 2709): [v2.12.0-03] throttle=326ms target=318ms EMA=254ms measured=228ms frames=6270
+03-06 16:16:21.454 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:22.779 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:23.939 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:25.175 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:26.520 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:27.749 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:28.957 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:29.998 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=null, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:16:29.998 D/FocusClamp( 2709): Clamp RESET (focusSuccess=null, isLocked=false)
+03-06 16:16:29.999 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=null
+03-06 16:16:30.235 I/LiveCameraSource( 2709): Focus and metering cancelled - returned to auto mode
+03-06 16:16:30.258 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=270, isFront=true, frame=640x480
+03-06 16:16:30.260 I/LiveCameraSource( 2709): [v2.12.0] ResolutionSelector: 16:9 → RATIO_1
+03-06 16:16:30.260 I/LiveCameraSource( 2709): [v2.12.0-02] analysisSelector: AR-free, capped ≤640×480 (both modes)
+03-06 16:16:30.293 I/FixedFocusDetector( 2709): LENS_INFO_MINIMUM_FOCUS_DISTANCE=0.0 → FIXED_FOCUS
+03-06 16:16:30.295 I/FixedFocusDetector( 2709): Available AF modes: 0
+03-06 16:16:30.295 I/FixedFocusDetector( 2709): Hardware support level: LEVEL_3
+03-06 16:16:30.295 I/LiveCameraSource( 2709): [v2.12.0-07] isFixedFocus=true, afModes=[0], hwLevel=3
+03-06 16:16:31.941 I/CameraViewModel( 2709): [v2.12.0-03] throttle=346ms target=321ms EMA=256ms measured=272ms frames=6300
+03-06 16:16:32.233 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=270, compensatedRotation=270, isFront=true, frame=640x480
+03-06 16:16:32.480 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(78, 233 - 260, 415), effectiveImage=480x640, score=69.35828
+03-06 16:16:32.480 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (380.25, 1219.5), View: 1080x2415
+03-06 16:16:32.480 I/CameraViewModel( 2709): findTappedTarget: tapped face trackingId=433, bbox=Rect(78, 233 - 260, 415)
+03-06 16:16:32.480 I/LiveCameraSource( 2709): [v2.12.0-07] Fixed-focus lens — AE/AWB metering only at (380.25, 1219.5)
+03-06 16:16:32.481 D/CameraViewModel( 2709): Smart Subject Focus: score=69.35828, image=(169.0, 324.0), screen=(380.25, 1219.5), frame=614.25x819.0px
+03-06 16:16:32.535 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=true, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:16:32.535 D/FocusClamp( 2709): Clamp TAP START: shrink to 0.75
+03-06 16:16:32.676 D/FocusClamp( 2709): Clamp MID: shrink done (scale=0.75), expanding to 1.2
+03-06 16:16:32.704 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(54, 247 - 216, 409), effectiveImage=480x640, score=64.59535
+03-06 16:16:32.781 I/CameraViewModel( 2709): Optical flow tracking stopped — focus indicator cleared
+03-06 16:16:33.179 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(72, 289 - 196, 413), effectiveImage=480x640, score=61.95912
+03-06 16:16:33.217 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=true, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:16:33.217 D/FocusClamp( 2709): Clamp TAP START: shrink to 0.75
+03-06 16:16:33.218 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=true
+03-06 16:16:33.307 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(97, 301 - 202, 406), effectiveImage=480x640, score=62.50319
+03-06 16:16:33.345 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=270, compensatedRotation=270, isFront=true, frame=640x480
+03-06 16:16:33.366 D/FocusClamp( 2709): Clamp MID: shrink done (scale=0.75), expanding to 1.2
+03-06 16:16:33.513 D/FocusClamp( 2709): Clamp SETTLE: settling to 1.0 (scale=1.2)
+03-06 16:16:33.582 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(110, 305 - 217, 412), effectiveImage=480x640, score=63.671963
+03-06 16:16:33.639 D/FocusClamp( 2709): Clamp DONE: animation complete (scale=1.0)
+03-06 16:16:33.771 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(141, 306 - 252, 418), effectiveImage=480x640, score=66.38143
+03-06 16:16:34.029 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(176, 308 - 286, 418), effectiveImage=480x640, score=67.97011
+03-06 16:16:34.242 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(182, 304 - 300, 423), effectiveImage=480x640, score=68.391426
+03-06 16:16:34.369 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(178, 304 - 295, 420), effectiveImage=480x640, score=68.43622
+03-06 16:16:34.396 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=270, compensatedRotation=270, isFront=true, frame=640x480
+03-06 16:16:34.569 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(169, 301 - 285, 417), effectiveImage=480x640, score=68.517166
+03-06 16:16:34.569 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (510.75, 1324.5), View: 1080x2415
+03-06 16:16:34.569 I/CameraViewModel( 2709): findTappedTarget: tapped face trackingId=433, bbox=Rect(169, 301 - 285, 417)
+03-06 16:16:34.570 I/LiveCameraSource( 2709): [v2.12.0-07] Fixed-focus lens — AE/AWB metering only at (510.75, 1324.5)
+03-06 16:16:34.570 D/CameraViewModel( 2709): Smart Subject Focus: score=68.517166, image=(227.0, 359.0), screen=(510.75, 1324.5), frame=391.5x522.0px
+03-06 16:16:34.770 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(151, 302 - 259, 411), effectiveImage=480x640, score=67.242294
+03-06 16:16:34.868 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(148, 303 - 255, 410), effectiveImage=480x640, score=66.930954
+03-06 16:16:35.026 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(147, 302 - 255, 409), effectiveImage=480x640, score=66.98328
+03-06 16:16:35.298 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(147, 302 - 256, 411), effectiveImage=480x640, score=67.01532
+03-06 16:16:35.363 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(147, 302 - 257, 412), effectiveImage=480x640, score=67.05951
+03-06 16:16:35.493 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=270, compensatedRotation=270, isFront=true, frame=640x480
+03-06 16:16:35.528 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(148, 302 - 258, 412), effectiveImage=480x640, score=67.13069
+03-06 16:16:35.653 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(148, 302 - 258, 412), effectiveImage=480x640, score=67.13069
+03-06 16:16:35.824 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(151, 301 - 257, 406), effectiveImage=480x640, score=67.256256
+03-06 16:16:35.925 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(151, 301 - 256, 406), effectiveImage=480x640, score=67.19903
+03-06 16:16:36.059 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(151, 301 - 256, 406), effectiveImage=480x640, score=67.19903
+03-06 16:16:36.167 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(152, 300 - 257, 405), effectiveImage=480x640, score=67.34032
+03-06 16:16:36.366 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(151, 303 - 256, 408), effectiveImage=480x640, score=67.06166
+03-06 16:16:36.446 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(151, 302 - 256, 407), effectiveImage=480x640, score=67.130875
+03-06 16:16:36.566 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=270, compensatedRotation=270, isFront=true, frame=640x480
+03-06 16:16:36.584 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(150, 303 - 255, 408), effectiveImage=480x640, score=66.9895
+03-06 16:16:36.704 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(150, 303 - 257, 410), effectiveImage=480x640, score=67.07425
+03-06 16:16:36.852 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(150, 301 - 259, 411), effectiveImage=480x640, score=67.28586
+03-06 16:16:36.965 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(148, 300 - 268, 421), effectiveImage=480x640, score=67.6743
+03-06 16:16:37.072 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(146, 303 - 271, 428), effectiveImage=480x640, score=67.51778
+03-06 16:16:37.186 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(126, 296 - 274, 444), effectiveImage=480x640, score=67.875
+03-06 16:16:37.210 I/CameraViewModel( 2709): [v2.12.0-03] throttle=116ms target=112ms EMA=90ms measured=82ms frames=6330
+03-06 16:16:37.387 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(116, 286 - 271, 441), effectiveImage=480x640, score=68.32489
+03-06 16:16:37.521 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(90, 266 - 257, 433), effectiveImage=480x640, score=68.17212
+03-06 16:16:37.522 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (390.375, 1296.0), View: 1080x2415
+03-06 16:16:37.522 I/CameraViewModel( 2709): findTappedTarget: tapped face trackingId=433, bbox=Rect(90, 266 - 257, 433)
+03-06 16:16:37.523 I/LiveCameraSource( 2709): [v2.12.0-07] Fixed-focus lens — AE/AWB metering only at (390.375, 1296.0)
+03-06 16:16:37.524 D/CameraViewModel( 2709): Smart Subject Focus: score=68.17212, image=(173.5, 349.5), screen=(390.375, 1296.0), frame=563.625x751.5px
+03-06 16:16:37.603 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(83, 254 - 251, 421), effectiveImage=480x640, score=67.972855
+03-06 16:16:37.702 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=270, compensatedRotation=270, isFront=true, frame=640x480
+03-06 16:16:37.734 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(95, 242 - 267, 415), effectiveImage=480x640, score=69.8508
+03-06 16:16:37.906 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(106, 243 - 278, 415), effectiveImage=480x640, score=70.89448
+03-06 16:16:38.027 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(156, 229 - 333, 406), effectiveImage=480x640, score=75.604164
+03-06 16:16:38.142 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(179, 226 - 348, 394), effectiveImage=480x640, score=72.991394
+03-06 16:16:38.273 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(196, 215 - 366, 385), effectiveImage=480x640, score=71.08273
+03-06 16:16:38.470 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(188, 198 - 400, 410), effectiveImage=480x640, score=73.14607
+03-06 16:16:38.573 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(170, 182 - 400, 412), effectiveImage=480x640, score=75.27832
+03-06 16:16:38.706 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(145, 173 - 382, 409), effectiveImage=480x640, score=77.19159
+03-06 16:16:38.775 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=270, compensatedRotation=270, isFront=true, frame=640x480
+03-06 16:16:38.831 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(126, 165 - 372, 411), effectiveImage=480x640, score=78.49538
+03-06 16:16:38.990 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(87, 145 - 374, 432), effectiveImage=480x640, score=82.79756
+03-06 16:16:39.106 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(69, 137 - 384, 451), effectiveImage=480x640, score=86.38877
+03-06 16:16:39.250 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(69, 135 - 393, 459), effectiveImage=480x640, score=88.03331
+03-06 16:16:39.397 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(72, 135 - 410, 472), effectiveImage=480x640, score=90.59424
+03-06 16:16:39.623 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(85, 131 - 418, 464), effectiveImage=480x640, score=89.13115
+03-06 16:16:39.624 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (565.875, 1140.0), View: 1080x2415
+03-06 16:16:39.624 I/CameraViewModel( 2709): findTappedTarget: tapped face trackingId=433, bbox=Rect(85, 131 - 418, 464)
+03-06 16:16:39.624 I/LiveCameraSource( 2709): [v2.12.0-07] Fixed-focus lens — AE/AWB metering only at (565.875, 1140.0)
+03-06 16:16:39.625 D/CameraViewModel( 2709): Smart Subject Focus: score=89.13115, image=(251.5, 297.5), screen=(565.875, 1140.0), frame=1123.875x1498.5px
+03-06 16:16:39.721 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(87, 130 - 424, 468), effectiveImage=480x640, score=89.63719
+03-06 16:16:39.834 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=270, compensatedRotation=270, isFront=true, frame=640x480
+03-06 16:16:39.870 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(88, 128 - 423, 464), effectiveImage=480x640, score=89.127365
+03-06 16:16:39.980 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(89, 128 - 422, 462), effectiveImage=480x640, score=88.78153
+03-06 16:16:40.138 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(93, 128 - 417, 452), effectiveImage=480x640, score=87.149025
+03-06 16:16:40.260 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(93, 128 - 416, 451), effectiveImage=480x640, score=86.99963
+03-06 16:16:40.390 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(95, 128 - 417, 450), effectiveImage=480x640, score=86.76223
+03-06 16:16:40.632 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(98, 132 - 416, 450), effectiveImage=480x640, score=86.38924
+03-06 16:16:40.708 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(99, 131 - 416, 447), effectiveImage=480x640, score=86.005
+03-06 16:16:40.885 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(101, 131 - 416, 445), effectiveImage=480x640, score=85.62208
+03-06 16:16:41.027 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(104, 131 - 416, 444), effectiveImage=480x640, score=85.257355
+03-06 16:16:41.030 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=270, compensatedRotation=270, isFront=true, frame=640x480
+03-06 16:16:41.200 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(100, 124 - 421, 445), effectiveImage=480x640, score=86.0258
+03-06 16:16:41.317 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(100, 124 - 422, 446), effectiveImage=480x640, score=86.16911
+03-06 16:16:41.443 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(100, 123 - 422, 446), effectiveImage=480x640, score=86.18905
+03-06 16:16:41.474 I/CameraViewModel( 2709): [v2.12.0-03] throttle=133ms target=132ms EMA=105ms measured=94ms frames=6360
+03-06 16:16:41.688 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(98, 126 - 420, 447), effectiveImage=480x640, score=86.33659
+03-06 16:16:41.794 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(98, 124 - 419, 446), effectiveImage=480x640, score=86.22904
+03-06 16:16:41.973 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(97, 125 - 419, 447), effectiveImage=480x640, score=86.4037
+03-06 16:16:42.104 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(95, 122 - 417, 444), effectiveImage=480x640, score=86.21965
+03-06 16:16:42.178 I/LiveCameraSource( 2709): Focus and metering cancelled - returned to auto mode
+03-06 16:16:42.208 I/LiveCameraSource( 2709): [v2.12.0] ResolutionSelector: 16:9 → RATIO_1
+03-06 16:16:42.208 I/LiveCameraSource( 2709): [v2.12.0-02] analysisSelector: AR-free, capped ≤640×480 (both modes)
+03-06 16:16:42.243 I/FixedFocusDetector( 2709): LENS_INFO_MINIMUM_FOCUS_DISTANCE=10.0 → AUTOFOCUS
+03-06 16:16:42.243 I/FixedFocusDetector( 2709): Available AF modes: 0, 1, 2, 3, 4
+03-06 16:16:42.243 I/FixedFocusDetector( 2709): Hardware support level: LEVEL_3
+03-06 16:16:42.243 I/LiveCameraSource( 2709): [v2.12.0-07] isFixedFocus=false, afModes=[0, 1, 2, 3, 4], hwLevel=3
+03-06 16:16:42.287 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(96, 123 - 414, 441), effectiveImage=480x640, score=85.665436
+03-06 16:16:42.996 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:43.492 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(148, 391 - 171, 413), effectiveImage=480x640, score=58.607853
+03-06 16:16:43.493 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (358.875, 1453.5), View: 1080x2415
+03-06 16:16:43.493 I/CameraViewModel( 2709): findTappedTarget: tapped face trackingId=434, bbox=Rect(148, 391 - 171, 413)
+03-06 16:16:43.494 D/CameraViewModel( 2709): Smart Subject Focus: score=58.607853, image=(159.5, 402.0), screen=(358.875, 1453.5), frame=77.625x99.0px
+03-06 16:16:43.588 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=null, isLocked=false) triggered, isFocusing=true, isTracking=true
+03-06 16:16:43.588 D/FocusClamp( 2709): Clamp RESET (focusSuccess=null, isLocked=false)
+03-06 16:16:43.589 D/FocusClamp( 2709): LaunchedEffect(isFocusing=true, isLocked=false) triggered, focusSuccess=null
+03-06 16:16:44.206 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:44.474 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=true, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:16:44.474 D/FocusClamp( 2709): Clamp TAP START: shrink to 0.75
+03-06 16:16:44.474 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=true
+03-06 16:16:44.652 D/FocusClamp( 2709): Clamp MID: shrink done (scale=0.75), expanding to 1.2
+03-06 16:16:44.796 D/FocusClamp( 2709): Clamp SETTLE: settling to 1.0 (scale=1.2)
+03-06 16:16:44.899 D/FocusClamp( 2709): Clamp DONE: animation complete (scale=1.0)
+03-06 16:16:45.441 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:46.575 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:46.721 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(114, 86 - 257, 230), effectiveImage=480x640, score=56.929703
+03-06 16:16:46.721 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (417.375, 721.5), View: 1080x2415
+03-06 16:16:46.722 I/CameraViewModel( 2709): findTappedTarget: tapped face trackingId=439, bbox=Rect(114, 86 - 257, 230)
+03-06 16:16:46.722 D/CameraViewModel( 2709): Smart Subject Focus: score=56.929703, image=(185.5, 158.0), screen=(417.375, 721.5), frame=482.625x648.0px
+03-06 16:16:46.761 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=null, isLocked=false) triggered, isFocusing=true, isTracking=true
+03-06 16:16:46.761 D/FocusClamp( 2709): Clamp RESET (focusSuccess=null, isLocked=false)
+03-06 16:16:46.761 D/FocusClamp( 2709): LaunchedEffect(isFocusing=true, isLocked=false) triggered, focusSuccess=null
+03-06 16:16:46.837 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(114, 86 - 257, 230), effectiveImage=480x640, score=56.929703
+03-06 16:16:47.064 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(114, 85 - 260, 232), effectiveImage=480x640, score=57.194374
+03-06 16:16:47.237 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(115, 86 - 260, 231), effectiveImage=480x640, score=57.124542
+03-06 16:16:47.501 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(118, 88 - 260, 229), effectiveImage=480x640, score=56.97442
+03-06 16:16:47.594 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(119, 88 - 260, 229), effectiveImage=480x640, score=56.96187
+03-06 16:16:47.635 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:47.775 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(120, 92 - 260, 232), effectiveImage=480x640, score=57.25586
+03-06 16:16:47.960 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(125, 92 - 257, 224), effectiveImage=480x640, score=56.47829
+03-06 16:16:48.103 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(125, 93 - 257, 225), effectiveImage=480x640, score=56.573982
+03-06 16:16:48.124 I/CameraViewModel( 2709): [v2.12.0-03] throttle=156ms target=150ms EMA=120ms measured=97ms frames=6390
+03-06 16:16:48.169 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=true, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:16:48.169 D/FocusClamp( 2709): Clamp TAP START: shrink to 0.75
+03-06 16:16:48.169 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=true
+03-06 16:16:48.255 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(126, 93 - 257, 225), effectiveImage=480x640, score=56.56269
+03-06 16:16:48.335 D/FocusClamp( 2709): Clamp MID: shrink done (scale=0.75), expanding to 1.2
+03-06 16:16:48.423 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(126, 94 - 257, 225), effectiveImage=480x640, score=56.584976
+03-06 16:16:48.486 D/FocusClamp( 2709): Clamp SETTLE: settling to 1.0 (scale=1.2)
+03-06 16:16:48.595 D/FocusClamp( 2709): Clamp DONE: animation complete (scale=1.0)
+03-06 16:16:48.653 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(122, 94 - 256, 228), effectiveImage=480x640, score=56.809128
+03-06 16:16:48.721 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:48.761 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(122, 94 - 256, 228), effectiveImage=480x640, score=56.809128
+03-06 16:16:48.910 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(122, 94 - 256, 228), effectiveImage=480x640, score=56.809128
+03-06 16:16:49.100 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(127, 95 - 258, 225), effectiveImage=480x640, score=56.63598
+03-06 16:16:49.243 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(127, 95 - 258, 225), effectiveImage=480x640, score=56.63598
+03-06 16:16:49.366 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(127, 95 - 258, 225), effectiveImage=480x640, score=56.63598
+03-06 16:16:49.517 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(127, 95 - 258, 225), effectiveImage=480x640, score=56.63598
+03-06 16:16:49.768 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(120, 89 - 259, 229), effectiveImage=480x640, score=56.927353
+03-06 16:16:49.802 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:49.865 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(120, 89 - 259, 229), effectiveImage=480x640, score=56.927353
+03-06 16:16:50.035 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(120, 89 - 259, 229), effectiveImage=480x640, score=56.927353
+03-06 16:16:50.166 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(120, 89 - 259, 229), effectiveImage=480x640, score=56.927353
+03-06 16:16:50.353 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(126, 94 - 258, 226), effectiveImage=480x640, score=56.698635
+03-06 16:16:50.461 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(125, 94 - 258, 226), effectiveImage=480x640, score=56.70998
+03-06 16:16:50.593 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(125, 94 - 258, 226), effectiveImage=480x640, score=56.70998
+03-06 16:16:50.828 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:50.879 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(121, 93 - 257, 229), effectiveImage=480x640, score=56.914597
+03-06 16:16:50.961 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(121, 93 - 257, 229), effectiveImage=480x640, score=56.914597
+03-06 16:16:51.115 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(121, 93 - 257, 229), effectiveImage=480x640, score=56.914597
+03-06 16:16:51.272 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(119, 91 - 257, 230), effectiveImage=480x640, score=56.970238
+03-06 16:16:51.422 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(118, 90 - 257, 229), effectiveImage=480x640, score=56.886803
+03-06 16:16:51.533 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(118, 90 - 257, 229), effectiveImage=480x640, score=56.886803
+03-06 16:16:51.722 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(118, 90 - 257, 230), effectiveImage=480x640, score=56.961468
+03-06 16:16:51.941 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(116, 87 - 259, 230), effectiveImage=480x640, score=57.012043
+03-06 16:16:51.966 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:52.018 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(115, 87 - 259, 230), effectiveImage=480x640, score=57.024452
+03-06 16:16:52.191 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(115, 87 - 259, 230), effectiveImage=480x640, score=57.024452
+03-06 16:16:52.341 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(115, 87 - 259, 230), effectiveImage=480x640, score=57.024452
+03-06 16:16:52.544 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(114, 86 - 260, 232), effectiveImage=480x640, score=57.213356
+03-06 16:16:52.659 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(116, 86 - 262, 233), effectiveImage=480x640, score=57.350998
+03-06 16:16:52.728 I/CameraViewModel( 2709): focusJob cancelled for AE/AF lock at (473.0, 1767.0)
+03-06 16:16:52.735 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=null, isLocked=false) triggered, isFocusing=true, isTracking=false
+03-06 16:16:52.735 D/FocusClamp( 2709): Clamp RESET (focusSuccess=null, isLocked=false)
+03-06 16:16:52.736 D/FocusClamp( 2709): LaunchedEffect(isFocusing=true, isLocked=false) triggered, focusSuccess=null
+03-06 16:16:52.844 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(116, 87 - 262, 233), effectiveImage=480x640, score=57.37013
+03-06 16:16:52.870 I/CameraViewModel( 2709): [v2.12.0-03] throttle=143ms target=143ms EMA=114ms measured=131ms frames=6420
+03-06 16:16:53.094 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:53.110 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(117, 84 - 261, 228), effectiveImage=480x640, score=56.87531
+03-06 16:16:53.260 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(116, 85 - 260, 230), effectiveImage=480x640, score=57.0164
+03-06 16:16:53.260 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (423.0, 720.0), View: 1080x2415
+03-06 16:16:53.260 I/CameraViewModel( 2709): findTappedTarget: tapped face trackingId=439, bbox=Rect(116, 85 - 260, 230)
+03-06 16:16:53.261 D/CameraViewModel( 2709): Smart Subject Focus: score=57.0164, image=(188.0, 157.5), screen=(423.0, 720.0), frame=486.0x652.5px
+03-06 16:16:53.284 E/LiveCameraSource( 2709): java.util.concurrent.ExecutionException: androidx.camera.core.CameraControl$OperationCanceledException: Cancelled by another startFocusAndMetering()
+03-06 16:16:53.284 E/LiveCameraSource( 2709): Caused by: androidx.camera.core.CameraControl$OperationCanceledException: Cancelled by another startFocusAndMetering()
+03-06 16:16:53.284 W/CameraViewModel( 2709): AE/AF lock failed: androidx.camera.core.CameraControl$OperationCanceledException: Cancelled by another startFocusAndMetering()
+03-06 16:16:53.296 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=false, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:16:53.296 D/FocusClamp( 2709): Clamp RESET (focusSuccess=false, isLocked=false)
+03-06 16:16:53.297 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=false
+03-06 16:16:53.374 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(116, 85 - 261, 230), effectiveImage=480x640, score=57.05989
+03-06 16:16:53.554 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(118, 87 - 260, 229), effectiveImage=480x640, score=56.954468
+03-06 16:16:53.745 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(117, 87 - 258, 227), effectiveImage=480x640, score=56.73085
+03-06 16:16:53.892 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(119, 87 - 258, 227), effectiveImage=480x640, score=56.706554
+03-06 16:16:53.947 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=null, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:16:53.947 D/FocusClamp( 2709): Clamp RESET (focusSuccess=null, isLocked=false)
+03-06 16:16:53.947 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=null
+03-06 16:16:54.144 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(118, 86 - 260, 228), effectiveImage=480x640, score=56.859055
+03-06 16:16:54.244 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:54.258 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(118, 88 - 259, 229), effectiveImage=480x640, score=56.93175
+03-06 16:16:54.420 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(119, 89 - 259, 230), effectiveImage=480x640, score=57.01467
+03-06 16:16:54.585 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(127, 93 - 257, 223), effectiveImage=480x640, score=56.40463
+03-06 16:16:54.678 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=true, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:16:54.678 D/FocusClamp( 2709): Clamp TAP START: shrink to 0.75
+03-06 16:16:54.734 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(127, 93 - 257, 223), effectiveImage=480x640, score=56.40463
+03-06 16:16:54.841 D/FocusClamp( 2709): Clamp MID: shrink done (scale=0.75), expanding to 1.2
+03-06 16:16:54.854 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(128, 95 - 257, 224), effectiveImage=480x640, score=56.512066
+03-06 16:16:54.958 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (417.0, 1749.0), View: 1080x2520
+03-06 16:16:54.969 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=null, isLocked=false) triggered, isFocusing=true, isTracking=true
+03-06 16:16:54.969 D/FocusClamp( 2709): Clamp RESET (focusSuccess=null, isLocked=false)
+03-06 16:16:54.970 D/FocusClamp( 2709): LaunchedEffect(isFocusing=true, isLocked=false) triggered, focusSuccess=null
+03-06 16:16:55.338 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:56.198 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=true, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:16:56.198 D/FocusClamp( 2709): Clamp TAP START: shrink to 0.75
+03-06 16:16:56.198 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=true
+03-06 16:16:56.371 D/FocusClamp( 2709): Clamp MID: shrink done (scale=0.75), expanding to 1.2
+03-06 16:16:56.459 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:56.526 D/FocusClamp( 2709): Clamp SETTLE: settling to 1.0 (scale=1.2)
+03-06 16:16:56.616 D/FocusClamp( 2709): Clamp DONE: animation complete (scale=1.0)
+03-06 16:16:57.593 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:16:58.576 I/CameraViewModel( 2709): [v2.12.0-03] throttle=202ms target=219ms EMA=175ms measured=207ms frames=6450
+03-06 16:16:58.902 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:00.087 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:01.442 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:02.451 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(114, 85 - 261, 233), effectiveImage=480x640, score=57.31486
+03-06 16:17:02.452 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (421.875, 724.5), View: 1080x2415
+03-06 16:17:02.452 I/CameraViewModel( 2709): findTappedTarget: tapped face trackingId=440, bbox=Rect(114, 85 - 261, 233)
+03-06 16:17:02.452 D/CameraViewModel( 2709): Smart Subject Focus: score=57.31486, image=(187.5, 159.0), screen=(421.875, 724.5), frame=496.125x666.0px
+03-06 16:17:02.486 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=null, isLocked=false) triggered, isFocusing=true, isTracking=true
+03-06 16:17:02.486 D/FocusClamp( 2709): Clamp RESET (focusSuccess=null, isLocked=false)
+03-06 16:17:02.487 D/FocusClamp( 2709): LaunchedEffect(isFocusing=true, isLocked=false) triggered, focusSuccess=null
+03-06 16:17:02.674 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:02.733 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(114, 85 - 261, 233), effectiveImage=480x640, score=57.31486
+03-06 16:17:03.162 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(117, 87 - 260, 230), effectiveImage=480x640, score=57.04269
+03-06 16:17:03.261 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(118, 87 - 260, 229), effectiveImage=480x640, score=56.954468
+03-06 16:17:03.562 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(126, 95 - 260, 229), effectiveImage=480x640, score=57.022797
+03-06 16:17:03.696 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=true, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:17:03.696 D/FocusClamp( 2709): Clamp TAP START: shrink to 0.75
+03-06 16:17:03.696 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=true
+03-06 16:17:03.747 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:03.763 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(124, 93 - 260, 229), effectiveImage=480x640, score=57.003765
+03-06 16:17:03.854 D/FocusClamp( 2709): Clamp MID: shrink done (scale=0.75), expanding to 1.2
+03-06 16:17:04.011 D/FocusClamp( 2709): Clamp SETTLE: settling to 1.0 (scale=1.2)
+03-06 16:17:04.057 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(119, 88 - 260, 229), effectiveImage=480x640, score=56.96187
+03-06 16:17:04.117 D/FocusClamp( 2709): Clamp DONE: animation complete (scale=1.0)
+03-06 16:17:04.195 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(119, 88 - 260, 229), effectiveImage=480x640, score=56.96187
+03-06 16:17:04.400 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(119, 88 - 260, 229), effectiveImage=480x640, score=56.96187
+03-06 16:17:04.629 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(125, 94 - 258, 227), effectiveImage=480x640, score=56.7838
+03-06 16:17:04.796 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(125, 94 - 258, 227), effectiveImage=480x640, score=56.7838
+03-06 16:17:04.861 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:05.218 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(119, 89 - 259, 229), effectiveImage=480x640, score=56.939667
+03-06 16:17:05.305 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(119, 89 - 259, 229), effectiveImage=480x640, score=56.939667
+03-06 16:17:05.541 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(119, 89 - 259, 229), effectiveImage=480x640, score=56.939667
+03-06 16:17:05.759 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(125, 94 - 258, 226), effectiveImage=480x640, score=56.70998
+03-06 16:17:05.779 I/CameraViewModel( 2709): [v2.12.0-03] throttle=194ms target=188ms EMA=150ms measured=147ms frames=6480
+03-06 16:17:05.903 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(125, 94 - 258, 226), effectiveImage=480x640, score=56.70998
+03-06 16:17:06.100 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:06.180 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(118, 88 - 260, 230), effectiveImage=480x640, score=57.049824
+03-06 16:17:06.321 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(118, 88 - 260, 230), effectiveImage=480x640, score=57.049824
+03-06 16:17:06.433 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(118, 88 - 260, 230), effectiveImage=480x640, score=57.049824
+03-06 16:17:06.671 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(122, 92 - 259, 230), effectiveImage=480x640, score=57.039875
+03-06 16:17:06.792 D/CameraViewModel( 2709): Saliency score: face bbox=Rect(122, 92 - 259, 230), effectiveImage=480x640, score=57.039875
+03-06 16:17:06.914 D/CameraViewModel( 2709): 🔍 [Coordinate Debug] Tap: (813.0, 1790.0), View: 1080x2520
+03-06 16:17:06.948 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=null, isLocked=false) triggered, isFocusing=true, isTracking=true
+03-06 16:17:06.948 D/FocusClamp( 2709): Clamp RESET (focusSuccess=null, isLocked=false)
+03-06 16:17:06.948 D/FocusClamp( 2709): LaunchedEffect(isFocusing=true, isLocked=false) triggered, focusSuccess=null
+03-06 16:17:07.302 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:08.576 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:09.363 D/FocusClamp( 2709): LaunchedEffect(focusSuccess=true, isLocked=false) triggered, isFocusing=false, isTracking=true
+03-06 16:17:09.363 D/FocusClamp( 2709): Clamp TAP START: shrink to 0.75
+03-06 16:17:09.363 D/FocusClamp( 2709): LaunchedEffect(isFocusing=false, isLocked=false) triggered, focusSuccess=true
+03-06 16:17:09.550 D/FocusClamp( 2709): Clamp MID: shrink done (scale=0.75), expanding to 1.2
+03-06 16:17:09.676 D/FocusClamp( 2709): Clamp SETTLE: settling to 1.0 (scale=1.2)
+03-06 16:17:09.771 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:09.818 D/FocusClamp( 2709): Clamp DONE: animation complete (scale=1.0)
+03-06 16:17:11.075 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:11.780 I/CameraViewModel( 2709): [v2.12.0-03] throttle=223ms target=240ms EMA=192ms measured=218ms frames=6510
+03-06 16:17:12.356 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480
+03-06 16:17:13.568 D/LiveCameraSource( 2709): [Rotation Debug] currentRotation=0, rotationDegrees=90, compensatedRotation=90, isFront=false, frame=640x480

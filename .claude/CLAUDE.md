@@ -1,3 +1,65 @@
+# ⚠️ 最高憲法（ABSOLUTE PRIORITY — 所有規範中最優先，不可覆蓋）
+
+> **這是本專案的最高開發紀律。任何操作前必須先遵守以下條款，優先順序高於所有其他章節。**
+
+## 🛑 零容忍執行紀律 (Zero-Tolerance Constraints)
+
+1. **零偷懶政策**：絕對禁止留下 `// TODO`、`return null // implement later`，必須真實接線。
+2. **焦土政策**：重構時，必須主動搜尋並刪除舊管線的廢棄變數與 UI 元件。
+3. **錯誤防禦**：必須處理可能導致 Crash 的 null 狀態與陣列越界。
+4. **架構純潔**：嚴格遵守 UDF (Unidirectional Data Flow)，狀態層與 UI 層絕對分離。
+
+## 🛠️ 本地 Skills（開發必用）
+
+| 命令 | 檔案 | 觸發方式 | 用途 |
+|------|------|----------|------|
+| `/sv` | `.claude/skills/sv/SKILL.md` | **人工觸發**（`disable-model-invocation: true`）| 無情法官：殘骸掃描 + Anti-Lazy + UI 互斥檢查 |
+| `/qa` | `.claude/skills/qa/SKILL.md` | **人工 or Claude 自動**（`disable-model-invocation: false`）| 自動化 QA：編譯 + Log 分析 + Warning 清理 |
+
+**標準使用順序**（每次 Phase 3 完成後強制執行）：`/sv` → `/qa` → Traycer `strict_verification`
+
+詳細整合流程：`devspec/MERGE_SOP.md` → 🛠️ 本地 Skills 章節
+
+---
+
+# 🛡️ 防禦型工作流鐵律 (Global Rules — AI Agent Behavioral Contract)
+
+> **適用對象**: Claude Code、Cursor、Traycer 等所有 AI 代理。
+> 優先順序：本節 < 最高憲法（最高憲法仍最優先）。
+
+## 鐵律 1 — SSOT 優先 (Single Source of Truth)
+
+在修改任何核心邏輯前，必須優先查閱 `devspec/` 目錄下的相關文件（`feature_record_Backlog.md`、`BRANCH_RELEASES.md`）。文件是架構的唯一真理，程式碼的解釋以文件為準。
+
+## 鐵律 2 — 原子化提交 (Atomic Commits)
+
+嚴禁在同一個 Ticket 或 Commit 中混合修改「原始碼（`.kt`、`.java`、`.xml`）」與「專案文件/Log（`.md`、`.log`）」。
+
+```
+✅ Commit 1: [Fix]  程式碼修復（.kt）
+✅ Commit 2: [Docs] 文件與 Log 歸檔（.md / .log）
+❌ 禁止: 一個 Commit 同時含兩類檔案
+```
+
+## 鐵律 3 — Android 邊界防禦 (Boundary Defense)
+
+處理 Coroutine、CameraX 管線或 Sensor 邏輯時，必須主動考慮 Edge Cases。預設加上 Guard Clause（數值檢查）或 `try-catch`，嚴防靜默死亡（Silent Death）：
+
+- 無效幾何尺寸（`<= 0`）→ `return null`，絕不回傳 `Matrix()` 偽裝者
+- Flow / Coroutine 加 `.catch { }` 或 `try-catch` 並印出 `Log.e`
+- 心跳 Log（每 N 幀）確認管線存活
+
+參考守則：`devspec/DEFENSIVE_PIPELINE_AND_WORKFLOW_PLAYBOOK.md`
+
+## 鐵律 4 — 禁止越權 (No Scope Drift)
+
+嚴格遵守 Ticket / Prompt 指定的修改範圍，絕對禁止「順手」修改未授權的檔案或重構無關邏輯。
+
+- 發現超出授權範圍：立即暫停並回報，等待指令
+- SV 驗收（`/sv`）偵測到越權修改：強制退回，Scope 必須乾淨
+
+---
+
 # SmartCameraApp1 - AI Photographer Assistant
 
 ## Project Overview
@@ -42,7 +104,7 @@ Feature branch: `feature/camera-input-abstraction`
 
 - **`tools/test_handoff_gui.pyw`** 🔴 CRITICAL
   - Purpose: Home NB ↔ Work NB test handoff automation GUI
-  - Documentation: `docs/test_handoff/`
+  - Documentation: `docs/guides/PYTHON_GUI_GUIDE.md`
 
 **Deletion Impact**: Breaks automated development workflow!
 **Protection Details**: See `tools/.gitkeep_critical_files` and `.vscode/TASKS_PROTECTION.md`
@@ -305,7 +367,16 @@ git merge v2.10.2-final                # ✅ 使用已標記的穩定版本
 
 ## 混合工作流程 (Claude Code + ChatGPT)
 
-### 三級評估機制
+> ⚠️ **2026-03-07 升級通知**：本專案工作流已全面升級為「**終極防禦型混合工作流 (Ultimate Defensive Hybrid Workflow)**」。
+> 完整規範：`devspec/ultimate_defensive_hybrid_workflow.md`
+> 提示詞工具：`tools/prompt_generator_gui.pyw`（v4.5，Custom Workflow 版：trigger-workflow / architectural_review / ticket_breakdown / execute / strict_verification）
+>
+> **Claude Code 的三條絕對紀律（Step 3 → Step 4: The Finisher）**：
+> 1. 嚴格依照 Traycer `execute` 產出的 Handoff Instructions 實作對應 Ticket，不可擅自大重寫
+> 2. 編譯成功後立即暫停，等待 Traycer 執行 `strict_verification` 的 Quality Gate 驗收後才寫 Log / Commit
+> 3. 收到實機 Logcat 異常時，回覆「⚠️ 架構防禦啟動：請將此 Logcat 帶回 Step 1 (Traycer trigger-workflow) 重新啟動 PDCA 閉環」，不直接搶修
+
+### 三級評估機制（舊版，保留作參考）
 
 本專案採用分級風險評估機制,根據變更複雜度自動判斷所需流程深度:
 
@@ -428,7 +499,7 @@ git merge v2.10.2-final                # ✅ 使用已標記的穩定版本
 **✅ 使用 Test Handoff GUI**
 - **工具**: `python tools/test_handoff_gui.pyw`
 - **方法**: Git 遠端同步（GitHub/GitLab）
-- **文檔**: `docs/test_handoff/PYTHON_GUI_GUIDE.md`
+- **文檔**: `docs/guides/PYTHON_GUI_GUIDE.md`
 
 ### 工作流程
 
@@ -533,7 +604,7 @@ docs/test_results/<version>/
    - 自動生成 commit 訊息
    - 4 步工作流（Home Push → Work Pull → Work Push → Home Pull）
 
-**詳細說明**: 參考 `docs/test_handoff/PYTHON_GUI_GUIDE.md`
+**詳細說明**: 參考 `docs/guides/PYTHON_GUI_GUIDE.md`
 
 ---
 
@@ -578,3 +649,4 @@ docs/test_results/<version>/
 ---
 
 **完整規範請參考**: `devspec/.clinerules`
+

@@ -80,21 +80,26 @@ def check_feature_docs(version: str) -> Tuple[bool, List[str]]:
         warnings.append(f"目錄 docs/features/v{version}/ 不存在")
         return False, warnings
 
-    # 檢查是否有 L1/L2/Traycer 文檔
-    l1_files = list(feature_dir.glob("*_L1.md"))
-    l2_files = list(feature_dir.glob("*_L2.md"))
-    traycer_files = list(feature_dir.glob("*_Traycer.md"))
+    # 檢查是否有 L0/L1/L2/Traycer 文檔（支援 _Lx.md 和 -Lx.md 兩種命名）
+    # L0: prompt_generator_gui.pyw 生成的探索文檔 (Step 0 Traycer)
+    l0_files = list(feature_dir.glob("*_L0.md")) + list(feature_dir.glob("*-L0.md"))
+    l1_files = list(feature_dir.glob("*_L1.md")) + list(feature_dir.glob("*-L1.md"))
+    l2_files = list(feature_dir.glob("*_L2.md")) + list(feature_dir.glob("*-L2.md"))
+    traycer_files = list(feature_dir.glob("*_Traycer.md")) + list(feature_dir.glob("*-Traycer.md"))
 
-    total_files = len(l1_files) + len(l2_files) + len(traycer_files)
+    total_files = len(l0_files) + len(l1_files) + len(l2_files) + len(traycer_files)
 
     if total_files == 0:
-        warnings.append(f"docs/features/v{version}/ 目錄為空 (沒有 L1/L2/Traycer 文檔)")
+        warnings.append(f"docs/features/v{version}/ 目錄為空 (沒有 L0/L1/L2/Traycer 文檔)")
         return False, warnings
 
     print(f"{PASS} 功能文檔存在: {total_files} 個檔案")
+    if l0_files:
+        print(f"   - L0 探索: {len(l0_files)} 個")
     print(f"   - L1 規劃: {len(l1_files)} 個")
     print(f"   - L2 可行性: {len(l2_files)} 個")
-    print(f"   - Traycer 實作: {len(traycer_files)} 個")
+    if traycer_files:
+        print(f"   - Traycer 實作: {len(traycer_files)} 個")
 
     return True, []
 

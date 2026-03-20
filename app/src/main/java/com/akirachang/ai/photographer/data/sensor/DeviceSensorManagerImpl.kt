@@ -1,12 +1,16 @@
 /**
- * ClassName: DeviceSensorManager
- * Description: Manages device orientation sensors for level indicator functionality
+ * ClassName: DeviceSensorManagerImpl
+ * Description: Concrete Android implementation of the domain DeviceSensorManager interface.
+ *              Manages device orientation (accelerometer + magnetometer) and gyroscope sensors.
  * Author: Claude Code
  * Date: 2025-12-01
- * Version: 2.1.0
+ * Version: 2.2.0
  *
  * Modifications:
  * - 2025-12-01: Initial creation for V1.0 completion (LevelIndicator feature)
+ * - 2026-03-18: v2.12.0 — Added TYPE_GYROSCOPE support for ImuCompensator foundation
+ * - 2026-03-18: v2.12.0 Ticket 1.5 — Renamed from DeviceSensorManager to DeviceSensorManagerImpl;
+ *               now implements domain.sensor.DeviceSensorManager interface
  */
 package com.akirachang.ai.photographer.data.sensor
 
@@ -19,52 +23,30 @@ import android.util.Log
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlin.math.abs
+import com.akirachang.ai.photographer.domain.sensor.DeviceSensorManager
+import com.akirachang.ai.photographer.domain.sensor.GyroscopeData
+import com.akirachang.ai.photographer.domain.sensor.OrientationData
+import com.akirachang.ai.photographer.domain.sensor.OrientationSensorManager
 
 /**
- * Data class representing device orientation
+ * Concrete implementation of [DeviceSensorManager] and [OrientationSensorManager].
  *
- * @property roll Device roll angle in degrees (-180 to 180)
- *                - Positive: device tilted to the right
- *                - Negative: device tilted to the left
- *                - 0: device is level (horizon aligned)
- * @property pitch Device pitch angle in degrees (-180 to 180)
- * @property azimuth Device azimuth angle in degrees (0 to 360)
- */
-data class OrientationData(
-    val roll: Float,
-    val pitch: Float,
-    val azimuth: Float
-) {
-    /**
-     * Checks if device is approximately level
-     * @param threshold Tolerance in degrees (default: 2.0°)
-     */
-    fun isLevel(threshold: Float = 2.0f): Boolean {
-        return abs(roll) <= threshold
-    }
-}
-
-/**
- * Manages device sensors for orientation tracking
- *
- * Uses accelerometer and magnetometer to compute device orientation.
- * Provides a Flow-based API for reactive orientation updates.
+ * Manages accelerometer + magnetometer for orientation (LevelIndicator)
+ * and gyroscope for IMU motion compensation (ImuCompensator pipeline).
  *
  * Usage:
  * ```
- * val sensorManager = DeviceSensorManager(context)
+ * val sensorManager = DeviceSensorManagerImpl(context)
  * sensorManager.startOrientationTracking()
  *     .collect { orientation ->
- *         // Update UI with roll angle
  *         updateLevelIndicator(orientation.roll)
  *     }
  * ```
  */
-class DeviceSensorManager(context: Context) {
+class DeviceSensorManagerImpl(context: Context) : DeviceSensorManager, OrientationSensorManager {
 
     companion object {
-        private const val TAG = "DeviceSensorManager"
+        private const val TAG = "DeviceSensorManagerImpl"
 
         // Smoothing factor for exponential moving average (0.0 - 1.0)
         // Lower = smoother but slower response
@@ -80,6 +62,10 @@ class DeviceSensorManager(context: Context) {
 
     private val magnetometer: Sensor? =
         sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
+
+    // v2.12.0: Gyroscope for IMU motion compensation
+    private val gyroscope: Sensor? =
+        sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
     // Sensor data buffers
     private val accelerometerReading = FloatArray(3)
@@ -97,7 +83,7 @@ class DeviceSensorManager(context: Context) {
      *
      * @return true if both accelerometer and magnetometer are available
      */
-    fun areSensorsAvailable(): Boolean {
+    override fun areSensorsAvailable(): Boolean {
         val hasAccelerometer = accelerometer != null
         val hasMagnetometer = magnetometer != null
 
@@ -119,7 +105,7 @@ class DeviceSensorManager(context: Context) {
      *
      * @return Flow emitting OrientationData updates
      */
-    fun startOrientationTracking(): Flow<OrientationData> = callbackFlow {
+    override fun startOrientationTracking(): Flow<OrientationData> = callbackFlow {
         if (!areSensorsAvailable()) {
             Log.e(TAG, "Cannot start orientation tracking: sensors not available")
             close()
@@ -225,5 +211,73 @@ class DeviceSensorManager(context: Context) {
      */
     private fun applySmoothing(previous: Float, current: Float): Float {
         return (previous * (1 - SMOOTHING_FACTOR)) + (current * SMOOTHING_FACTOR)
+    }
+
+    // ── v2.12.0: Gyroscope API (implements DeviceSensorManager) ──────────────
+
+    /**
+     * Returns true if a hardware gyroscope is available.
+     *
+     * Callers should gracefully degrade (disable IMU compensation) when false.
+     */
+    fun hasGyroscope(): Boolean = gyroscope != null
+
+    /**
+     * Starts raw gyroscope tracking and returns a cold [Flow] of [GyroscopeData].
+     *
+     * Implements [DeviceSensorManager.startGyroscopeTracking].
+     *
+     * Graceful degradation: if no gyroscope hardware is found the Flow closes
+     * immediately without emitting — callers MUST handle the empty stream.
+     *
+     * Listener lifecycle: registered on collection start, unregistered in
+     * [awaitClose] so there is zero risk of battery/memory leak on cancellation.
+     *
+     * Sampling rate: [SensorManager.SENSOR_DELAY_FASTEST] — ImuCompensator
+     * does its own dt-based integration so higher frequency = better accuracy.
+     */
+    override fun startGyroscopeTracking(): Flow<GyroscopeData> = callbackFlow {
+        if (gyroscope == null) {
+            Log.w(TAG, "[v2.12.0] Gyroscope not available — IMU compensation disabled (graceful degradation)")
+            close()
+            return@callbackFlow
+        }
+
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                // event.values[0..2] guaranteed non-null for TYPE_GYROSCOPE
+                trySend(
+                    GyroscopeData(
+                        x = event.values[0],
+                        y = event.values[1],
+                        z = event.values[2],
+                        timestamp = event.timestamp,
+                    )
+                )
+            }
+
+            override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
+                // Gyroscope accuracy changes are informational only
+            }
+        }
+
+        val registered = sensorManager.registerListener(
+            listener,
+            gyroscope,
+            SensorManager.SENSOR_DELAY_FASTEST,
+        )
+
+        if (!registered) {
+            Log.e(TAG, "[v2.12.0] Failed to register gyroscope listener — closing flow")
+            close()
+            return@callbackFlow
+        }
+
+        Log.i(TAG, "[v2.12.0] Gyroscope tracking started (SENSOR_DELAY_FASTEST)")
+
+        awaitClose {
+            sensorManager.unregisterListener(listener)
+            Log.i(TAG, "[v2.12.0] Gyroscope tracking stopped — listener unregistered")
+        }
     }
 }

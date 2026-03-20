@@ -1,0 +1,4 @@
+interface:
+  display_name: "strict-verification"
+  short_description: "Verify implementation against plan intent"
+  default_prompt: "Use $strict-verification to compare implementation against the Tech Plan Spec and decide approve, fix tickets, or re-plan."

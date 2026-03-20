@@ -1,6 +1,7 @@
 package com.akirachang.ai.photographer.data.opencv
 
 import android.util.Log
+import com.akirachang.ai.photographer.domain.camera.ImuCompensator
 import org.opencv.core.Mat
 import org.opencv.core.MatOfByte
 import org.opencv.core.MatOfFloat
@@ -48,7 +49,8 @@ import kotlin.math.sqrt
  * https://docs.opencv.org/4.x/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
  */
 class OpticalFlowTracker(
-    private val config: OpticalFlowConfig = OpticalFlowConfig.DEFAULT
+    private val config: OpticalFlowConfig = OpticalFlowConfig.DEFAULT,
+    private val imuCompensator: ImuCompensator = ImuCompensator()
 ) {
     companion object {
         private const val TAG = "OpticalFlowTracker"
@@ -63,7 +65,20 @@ class OpticalFlowTracker(
 
         // RANSAC: minimum displacement deviation threshold regardless of median magnitude
         private const val MIN_RANSAC_THRESHOLD = 3f
+
+        // [v2.12.0-23] Default focal length estimate for IMU compensation (pixels).
+        // Approximation for mid-range phones at 16:9: f ≈ imageWidth / (2 * tan(hFov/2)).
+        // Typical range: 800–1200 px. Upper layers may override via [focalLengthPx].
+        private const val FOCAL_LENGTH_DEFAULT_PX = 800f
     }
+
+    /**
+     * [v2.12.0-23] Effective focal length (pixels) used by [imuCompensator.consumeCameraMotion].
+     *
+     * Set this from the camera characteristics layer (e.g., via SmartCameraAnalyzer) when a
+     * more accurate value is available. Defaults to [FOCAL_LENGTH_DEFAULT_PX].
+     */
+    var focalLengthPx: Float = FOCAL_LENGTH_DEFAULT_PX
 
     // State management
     private val isTracking = AtomicBoolean(false)
@@ -94,6 +109,9 @@ class OpticalFlowTracker(
      * @param imageHeight Height of the input image
      */
     fun startTracking(initialPoint: Point, imageWidth: Int, imageHeight: Int) {
+        // [v2.12.0-23] Reset IMU accumulator at new session start — prevents spike from
+        // stale integration accumulated between the previous LOST and this re-tap.
+        imuCompensator.reset()
         // Release stale state to ensure clean tracking session on re-tap
         releasePreviousFrame()
         releaseTrackedPoints()
@@ -127,6 +145,8 @@ class OpticalFlowTracker(
         releaseTrackedPoints()
         trackedCenter = null
         logicCenter = null
+        // [v2.12.0-23] Clear accumulated IMU state — prevents coordinate spike on next tracking start
+        imuCompensator.reset()
         Log.i(TAG, "Stopped tracking")
     }
 
@@ -305,12 +325,21 @@ class OpticalFlowTracker(
                     }
                 }
 
-                // --- New center = logicCenter + median displacement, clamped to frame bounds ---
+                // --- [v2.12.0-23] IMU motion compensation ---
+                // Raw medDx/medDy are in downsampled pixel space; imuDx/imuDy from
+                // consumeCameraMotion() are in original image pixel space.
+                // Scale factor: downsampled = original * scaleX/scaleY
+                // corrected = rawFlow - cameraMotion → isolates true object displacement
+                val (imuDx, imuDy) = imuCompensator.consumeCameraMotion(focalLengthPx)
+                val compensatedDx = medDx - imuDx * scaleX
+                val compensatedDy = medDy - imuDy * scaleY
+
+                // --- New center = logicCenter + compensated displacement, clamped to frame bounds ---
                 // median≈0 when stationary → no drift (centroid approach caused feature-bias drift).
                 // Clamping to frame bounds prevents out-of-bounds LOST during fast edge motion.
                 val newCenter = Point(
-                    (logicCenter!!.x + medDx).coerceIn(0.0, (downsampledGray.width() - 1).toDouble()),
-                    (logicCenter!!.y + medDy).coerceIn(0.0, (downsampledGray.height() - 1).toDouble())
+                    (logicCenter!!.x + compensatedDx).coerceIn(0.0, (downsampledGray.width() - 1).toDouble()),
+                    (logicCenter!!.y + compensatedDy).coerceIn(0.0, (downsampledGray.height() - 1).toDouble())
                 )
 
                 // --- Quality = inlier ratio * LK error-based quality ---
@@ -323,7 +352,7 @@ class OpticalFlowTracker(
                 val distance = calculateDistance(logicCenter!!, newCenter)
 
                 val elapsedMs = (System.nanoTime() - startTime) / 1_000_000
-                Log.v(TAG, "Track: inliers=$finalInlierCount/valid=$validCount/total=$totalPoints, quality=${"%.2f".format(quality)}, dist=${"%.1f".format(distance)}px, med=(${"%.1f".format(medDx)},${"%.1f".format(medDy)}), elapsed=${elapsedMs}ms")
+                Log.v(TAG, "Track: inliers=$finalInlierCount/valid=$validCount/total=$totalPoints, quality=${"%.2f".format(quality)}, dist=${"%.1f".format(distance)}px, med=(${"%.1f".format(medDx)},${"%.1f".format(medDy)}), imu=(${"%.1f".format(imuDx)},${"%.1f".format(imuDy)}), compensated=(${"%.1f".format(compensatedDx)},${"%.1f".format(compensatedDy)}), elapsed=${elapsedMs}ms")
 
                 // --- Validate (bounds, quality, distance) ---
                 val isValid = validateTracking(

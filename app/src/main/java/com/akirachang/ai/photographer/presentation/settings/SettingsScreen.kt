@@ -173,11 +173,10 @@ fun SettingsScreen(
                     )
                 }
 
-                // Single row: 4:3 | 16:9 | 1:1
+                // Single row: 4:3 | 16:9
                 val aspectRatioOptions = listOf(
                     "RATIO_4_3" to "4:3",
-                    "RATIO_16_9" to "16:9",
-                    "RATIO_1_1" to "1:1"
+                    "RATIO_16_9" to "16:9"
                 )
 
                 Row(
