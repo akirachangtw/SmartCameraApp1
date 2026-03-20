@@ -2199,3 +2199,92 @@ if (isJobActive && !userIntent.isTapToFocusActive) {
 - Passive AF 被 user tap 中斷 → `CancellationException` → `throw e`，不呼叫 `onFailure()`
 - Sony HAL 取消 future → `CancellationException` → 同上
 - 真正的硬體錯誤 → `Exception`（非 Cancellation）→ `onFailure()`，顯示錯誤
+
+---
+
+### 🔑 v2.12.0-27 關鍵學習（Tap Intent TTL 主動清除 — SP-B 雙保險設計）
+
+**背景**：使用者點擊畫面時，`setTapToFocusIntent()` 立刻發出樂觀 UI（72dp 黃色佔位框）並設定 `pendingTapToFocusIntent`。若該位置無任何可追蹤特徵（空白牆壁、純色背景），ML Kit 不會偵測到任何目標，`clearTapToFocusIntent()` 也不會被呼叫，導致黃框永久凍結在畫面上，無法自動清除。
+
+---
+
+**守則 1：Tap Intent 必須同時具備被動 TTL 與主動 TTL 兩道防線**
+
+舊版設計只有「被動 TTL」：`currentTapToFocusIntent()` 在每一幀被呼叫時檢查是否超過 750ms。但如果管線沒有新幀進來（場景靜止、ML Kit 不觸發），被動 TTL 永遠不被執行。
+
+**正確做法（雙保險）**：
+
+```kotlin
+// 第一道：被動 TTL（既有）— 每幀讀取時檢查
+private fun currentTapToFocusIntent(nowMs: Long = ...): TapToFocusIntent? {
+    val intent = pendingTapToFocusIntent ?: return null
+    if ((nowMs - intent.timestampMs) > TAP_INTENT_WINDOW_MS) {
+        pendingTapToFocusIntent = null
+        return null
+    }
+    return intent
+}
+
+// 第二道：主動 TTL（SP-B 新增）— 計時器主動清除
+private var tapClearJob: Job? = null
+
+private fun setTapToFocusIntent(...) {
+    pendingTapToFocusIntent = TapToFocusIntent(...)
+    // ... 發出樂觀 UI ...
+
+    tapClearJob?.cancel()
+    tapClearJob = viewModelScope.launch {
+        delay(TAP_INTENT_WINDOW_MS)
+        if (pendingTapToFocusIntent != null) {
+            pendingTapToFocusIntent = null
+            val isStillPlaceholder = _state.value.focusUiState.overlayModel?.primaryStableId == "tap_optimistic"
+            if (isStillPlaceholder) {
+                Log.v(TAG, "[SP-B] Tap intent TTL expired — clearing optimistic Yellow box.")
+                _state.update { it.copy(focusUiState = FocusUiState.EMPTY) }
+            } else {
+                Log.v(TAG, "[SP-B] Tap intent TTL expired — real tracking active, placeholder already replaced.")
+            }
+        }
+    }
+}
+```
+
+**禁止行為**：
+- ❌ 只依賴被動 TTL：場景靜止時 ML Kit 不發幀，被動 TTL 永不執行 → 黃框永久殘留
+- ❌ `tapClearJob` 不取消舊計時器就啟動新計時器：快速連點導致舊計時器誤刪新的點擊佔位框
+
+---
+
+**守則 2：主動 TTL 清除前必須以 `primaryStableId` 確認 UI 狀態，禁止盲目覆蓋**
+
+**核心問題**：`runNewFocusPipeline()` 消費 tap intent 後，只更新 `focusUiState`（發出 Cyan），但**不呼叫** `clearTapToFocusIntent()`，因此 `pendingTapToFocusIntent` 在真實追蹤接管後依然非 null。若 `tapClearJob` 在 750ms 後盲目執行 `FocusUiState.EMPTY`，將覆蓋已經顯示中的 Cyan 追蹤框。
+
+**正確做法（primaryStableId 互斥判斷）**：
+
+| `primaryStableId` 值 | 含義 | tapClearJob 應執行動作 |
+|---|---|---|
+| `"tap_optimistic"` | 仍在顯示樂觀佔位框，無真實追蹤 | ✅ 清空，emit `FocusUiState.EMPTY` |
+| 其他值（stableId, face_xxx）| 真實追蹤已接管 | ⛔ 跳過，不動 UI state |
+| `null`（overlayModel = null）| 狀態已是 None | ⛔ 跳過，已無需清除 |
+
+樂觀 UI 的 `primaryStableId = "tap_optimistic"` 是設計上刻意標記的哨兵值，讓下游可以安全區分「佔位符」與「真實追蹤目標」。
+
+**`clearTapToFocusIntent()` 的責任邊界**：
+- 必須同時 cancel `tapClearJob`，確保計時器在 `resetFocusState()` / `lockAEAF()` 時被解除
+- `pendingTapToFocusIntent = null` 只是清除 ViewModel 內部意圖，不直接影響 `focusUiState`
+- UI 的清除責任由 `tapClearJob`（主動）或 `FocusStateMachine`（正常流程）負責
+
+```kotlin
+private fun clearTapToFocusIntent() {
+    tapClearJob?.cancel()  // SP-B: Disarm TTL timer when intent is consumed or reset
+    tapClearJob = null
+    pendingTapToFocusIntent = null
+}
+```
+
+---
+
+**驗收標準（The Blank Wall Test）**：
+1. 對空白牆壁點擊 → 黃框出現
+2. 靜止等待 ~750ms → 黃框**自動消失**（SP-B 主動清除）
+3. 對有人臉的場景點擊 → 黃框出現 → ~100ms 後轉為 Cyan → **Cyan 保持不消失**（primaryStableId guard 生效）
