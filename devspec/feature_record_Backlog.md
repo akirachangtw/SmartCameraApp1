@@ -2202,6 +2202,76 @@ if (isJobActive && !userIntent.isTapToFocusActive) {
 
 ---
 
+## v2.13.0 智能構圖引擎 — 關鍵防禦策略
+
+### Ticket 1: CompositionGuidelineEngine (Rule of Thirds)
+
+**守則 1：純函數引擎設計 (Pure Function Architecture)**
+
+`CompositionGuidelineEngine` 徹底抽離 Android 視圖層，僅依賴數學運算與 `android.graphics.RectF`，達成 100% 可測試性與無副作用 (Stateless)。
+
+**設計原則**：
+- 無 `Context`、無 `ViewModel`、無 `LiveData`/`StateFlow` 依賴
+- 所有輸入透過參數傳遞，所有輸出透過回傳值，無 side-effect
+- 可直接在 JUnit 單元測試中實例化，無需 `@RunWith(AndroidJUnit4::class)`
+- Domain 層演算法修改時，不需觸碰任何 UI（`CameraScreen.kt`、`FocusIndicator`）或 ViewModel
+
+**禁止行為**：
+- ❌ 在 Engine 內部讀取 `View` 尺寸或任何 Android Context
+- ❌ 在 Engine 內部 emit Flow 或修改 StateFlow
+- ❌ 在 Engine 內部呼叫 `Log.e` 以外的任何 UI 操作
+
+---
+
+**守則 2：無效幾何提早退場 (Invalid Geometry Early-Return)**
+
+針對 `viewportWidth <= 0f`、`viewportHeight <= 0f` 或 `targetRect` 面積為零的異常狀況，實作嚴格的 Guard Clause，防止除以零或靜默失敗。
+
+```kotlin
+if (viewportWidth <= 0f || viewportHeight <= 0f) {
+    Log.w(TAG, "[CompositionEngine] Invalid viewport: ${viewportWidth}x${viewportHeight}")
+    return CompositionAdvice.None
+}
+if (targetRect.isEmpty) {
+    Log.w(TAG, "[CompositionEngine] Invalid targetRect: $targetRect")
+    return CompositionAdvice.None
+}
+```
+
+**回傳 `CompositionAdvice.None` 而非拋出 Exception**：保持呼叫端簡潔（`when` 分支直接處理），且不中斷相機管線。
+
+---
+
+**守則 3：動態容忍度策略 (Tolerance-by-Max-Dimension)**
+
+放棄固定像素閾值，改採 `max(viewportW, viewportH)` 作為 `ALIGNMENT_TOLERANCE` 的計算基準。
+
+```kotlin
+val tolerancePx = max(viewportWidth, viewportHeight) * ALIGNMENT_TOLERANCE
+```
+
+**原因**：
+- 固定像素閾值（如 50px）在高解析度螢幕上過嚴，在低解析度上過寬
+- 橫拍（寬 > 高）與直拍（高 > 寬）模式切換時，判定標準自動按比例縮放
+- `ALIGNMENT_TOLERANCE = 0.05f`（5%）在 1080p 螢幕上對應約 108px，在 480p 上對應約 48px——符合視覺感知比例
+
+---
+
+**守則 4：軸向死區防護 (Axial Deadzone Guard)**
+
+引入 2px 的軸向防抖閾值（`DEADZONE_PX = 2f`），徹底根絕「0.1px 微小偏移」所導致的高頻率方向提示閃爍 (Ping-pong Effect)。
+
+```kotlin
+val adjustX = if (abs(deltaX) > DEADZONE_PX) deltaX else 0f
+val adjustY = if (abs(deltaY) > DEADZONE_PX) deltaY else 0f
+```
+
+**典型場景**：目標中心點在黃金交叉點正上方 1.5px（手持抖動），無死區時每幀交替輸出「向左」「向右」，造成 UI ping-pong；加入死區後鎖定為 `Aligned`，直到偏移超過 2px 才觸發 `Adjust`。
+
+**與 v2.12.0 的關聯**：此守則與 v2.12.0-11 的 Hysteresis 2.5x（`maxOf` grow-only frame）同源，均為防止視覺跳動的「死區/遲滯」設計模式，適用於任何需要穩定輸出的測量場景。
+
+---
+
 ### 🔑 v2.12.0-27 關鍵學習（Tap Intent TTL 主動清除 — SP-B 雙保險設計）
 
 **背景**：使用者點擊畫面時，`setTapToFocusIntent()` 立刻發出樂觀 UI（72dp 黃色佔位框）並設定 `pendingTapToFocusIntent`。若該位置無任何可追蹤特徵（空白牆壁、純色背景），ML Kit 不會偵測到任何目標，`clearTapToFocusIntent()` 也不會被呼叫，導致黃框永久凍結在畫面上，無法自動清除。
