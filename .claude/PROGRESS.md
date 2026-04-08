@@ -131,6 +131,12 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 ---
 
+## 💳 Debt / Backlog (技術債與待辦)
+
+- [ ] [Infrastructure] Kapt to KSP migration (保留 K2 編譯器相容性，推遲至 MVP D6 階段後再執行，目前維持 1.9 降級模式以避免依賴重構的範圍蔓延)
+
+---
+
 ## 🗄️ Standby Mechanisms (Phase 2 啟用)
 
 - Merge SOP: `devspec/MERGE_SOP.md` — 多分支時啟用

@@ -2358,3 +2358,11 @@ private fun clearTapToFocusIntent() {
 1. 對空白牆壁點擊 → 黃框出現
 2. 靜止等待 ~750ms → 黃框**自動消失**（SP-B 主動清除）
 3. 對有人臉的場景點擊 → 黃框出現 → ~100ms 後轉為 Cyan → **Cyan 保持不消失**（primaryStableId guard 生效）
+
+---
+
+## Infrastructure / Build
+
+### 📋 Backlog
+
+- [ ] [Infrastructure] Kapt to KSP migration (保留 K2 編譯器相容性，推遲至 MVP D6 階段後再執行，目前維持 1.9 降級模式以避免依賴重構的範圍蔓延)
