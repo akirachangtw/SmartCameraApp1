@@ -204,6 +204,7 @@ fun FocusIndicatorOverlay(
                         cx = rect.centerX(), cy = rect.centerY(),
                         w = rect.width(), h = rect.height(),
                         alpha = alpha,
+                        baseColor = animatedColor.value,
                     )
                 }
             }
@@ -349,16 +350,19 @@ private fun DrawScope.drawTrackingFrame(
 }
 
 /**
- * State 3: AE/AF Locked frame — absolute static, golden, no animation.
- * Inner rect: 15% GoldenFocus fill + 2dp border.
+ * State 3: AE/AF Locked frame — absolute static, no animation.
+ * Inner rect: 15% baseColor fill + 2dp border.
  * Outer corners: 6dp thick L-brackets (maximum authority cue).
+ * @param baseColor Driven by animatedColor (YELLOW→CueshotGreen via mapping layer).
+ *                  Defaults to GoldenFocus for backward-compatible call sites.
  */
 private fun DrawScope.drawLockedFrame(
     cx: Float, cy: Float,
     w: Float, h: Float,
     alpha: Float,
+    baseColor: Color = FocusTokens.GoldenFocus,
 ) {
-    val color  = FocusTokens.GoldenFocus.copy(alpha = alpha)
+    val color  = baseColor.copy(alpha = alpha)
     val left   = cx - w / 2f
     val top    = cy - h / 2f
     val right  = cx + w / 2f
@@ -370,7 +374,7 @@ private fun DrawScope.drawLockedFrame(
 
     // 1. 15% semi-transparent inner fill (confirms hard-locked target)
     drawRect(
-        color = FocusTokens.GoldenFocus.copy(alpha = 0.15f),
+        color = baseColor.copy(alpha = 0.15f),
         topLeft = Offset(innerLeft, innerTop),
         size = innerSize,
     )
