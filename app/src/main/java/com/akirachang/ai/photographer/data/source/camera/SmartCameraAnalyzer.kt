@@ -2,7 +2,7 @@
  * ClassName: SmartCameraAnalyzer
  * Description: Custom ImageAnalysis.Analyzer — ML Kit detection + lighting analysis
  * Author: Claude Code
- * Version: Cueshot D0 (OpenCV / OpticalFlow removed; pure ML Kit pipeline)
+ * Version: Cueshot D0 (pure ML Kit pipeline)
  *
  * Architecture: Dumb Pipe (v2.12.0-15 §17.12.5)
  *   1. Receive CameraX frame

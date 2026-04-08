@@ -106,10 +106,11 @@ fun FocusIndicatorOverlay(
     val hasPrimaryBox = overlayModel.primaryBox != null
     val isSearching = !hasPrimaryBox || visualTargetState == VisualTargetState.Candidate
 
-    // ── Color: Yellow → Cyan transition 200ms ────────────────────────────────
+    // ── Color: Focusing→Amber, Focused→Green transition 200ms ───────────────
+    // SSOT v3.3 §2.4: Halo金色→綠色 (CYAN=tracking/guiding, YELLOW=AE/AF locked)
     val colorTarget = when (overlayModel.primaryColor) {
-        OverlayColor.CYAN   -> FocusTokens.CueshotAmber
-        OverlayColor.YELLOW -> FocusTokens.GoldenFocus
+        OverlayColor.CYAN   -> FocusTokens.CueshotAmber  // Focusing: amber (#D4A030)
+        OverlayColor.YELLOW -> FocusTokens.CueshotGreen  // Focused:  green (#50C864)
     }
     val animatedColor = animateColorAsState(
         targetValue = colorTarget,

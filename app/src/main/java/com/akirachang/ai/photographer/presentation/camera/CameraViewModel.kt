@@ -41,6 +41,7 @@ import kotlinx.coroutines.withTimeout
 import kotlin.math.min
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
 import com.akirachang.ai.photographer.domain.camera.ImuCompensator
+import com.akirachang.ai.photographer.domain.model.DeviceCapabilityTier
 import com.akirachang.ai.photographer.domain.sensor.DeviceSensorManager
 import com.akirachang.ai.photographer.domain.sensor.OrientationData
 import com.akirachang.ai.photographer.domain.sensor.OrientationSensorManager
@@ -67,7 +68,8 @@ class CameraViewModel @Inject constructor(
     private val orientationSensorManager: OrientationSensorManager,
     private val overlayPreferences: OverlayPreferences,
     private val capabilityDetector: com.akirachang.ai.photographer.data.source.camera.CameraCapabilityDetector,
-    private val imuCompensator: ImuCompensator
+    private val imuCompensator: ImuCompensator,
+    val deviceCapabilityTier: DeviceCapabilityTier
 ) : ViewModel() {
 
     companion object {
@@ -291,6 +293,9 @@ class CameraViewModel @Inject constructor(
     )
 
     init {
+        // D0.3: Log device capability tier on VM creation (runtime wiring verification)
+        android.util.Log.i(TAG, "[D0.3] DeviceCapabilityTier=$deviceCapabilityTier")
+
         // v2.5.1: Analyze preview bitmap stream directly (Phase 7)
         // This replaces the old ImageProxy-based analysis
         observePreviewForAnalysis()

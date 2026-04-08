@@ -56,17 +56,17 @@ object ExpandAnimationSpecs {
 
 /**
  * Technology-themed color palette for modern, sci-fi aesthetics.
- * Provides glassmorphism effects and accent colors.
+ * Provides frosted glass effects and accent colors.
  */
 object TechColors {
     /**
-     * Semi-transparent white overlay for glassmorphism background.
+     * Semi-transparent white overlay for frosted glass background.
      * Creates subtle glass-like surface effect.
      */
     val GlassBackground = Color(0x1AFFFFFF) // 10% white opacity
 
     /**
-     * Semi-transparent white border for glassmorphism stroke.
+     * Semi-transparent white border for frosted glass stroke.
      * Enhances glass surface definition.
      */
     val GlassStroke = Color(0x33FFFFFF) // 20% white opacity

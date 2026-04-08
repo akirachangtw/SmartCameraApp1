@@ -1,6 +1,9 @@
 package com.akirachang.ai.photographer.di
 
 import android.content.Context
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
+import android.util.Log
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -11,6 +14,7 @@ import com.akirachang.ai.photographer.data.source.camera.CameraCapabilityDetecto
 import com.akirachang.ai.photographer.data.source.camera.CameraInputSource
 import com.akirachang.ai.photographer.data.source.camera.StaticImageSource
 import com.akirachang.ai.photographer.data.source.camera.LiveCameraSource
+import com.akirachang.ai.photographer.domain.model.DeviceCapabilityTier
 import timber.log.Timber
 import javax.inject.Singleton
 
@@ -29,6 +33,37 @@ object CameraModule {
         @ApplicationContext context: Context
     ): CameraCapabilityDetector {
         return CameraCapabilityDetector(context)
+    }
+
+    /**
+     * Provide DeviceCapabilityTier by reading Camera2 INFO_SUPPORTED_HARDWARE_LEVEL
+     * from the back-facing camera (primary camera).
+     *
+     * Cueshot v3.3 SSOT §8: FULL/LEVEL_3→FULL, LIMITED→LIMITED, else→LEGACY.
+     * Used by CameraViewModel to configure pipeline degradation strategy.
+     */
+    @Provides
+    @Singleton
+    fun provideDeviceCapabilityTier(
+        @ApplicationContext context: Context
+    ): DeviceCapabilityTier {
+        return try {
+            val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            val backCameraId = manager.cameraIdList.firstOrNull { id ->
+                manager.getCameraCharacteristics(id)
+                    .get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
+            }
+            val level = backCameraId?.let { id ->
+                manager.getCameraCharacteristics(id)
+                    .get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
+            } ?: -1
+            val tier = DeviceCapabilityTier.fromCamera2Level(level)
+            Log.i("CameraModule", "[D0.3] DeviceCapabilityTier=$tier (Camera2 level=$level)")
+            tier
+        } catch (e: Exception) {
+            Log.w("CameraModule", "[D0.3] Failed to detect capability tier, defaulting to LEGACY", e)
+            DeviceCapabilityTier.LEGACY
+        }
     }
 
     /**

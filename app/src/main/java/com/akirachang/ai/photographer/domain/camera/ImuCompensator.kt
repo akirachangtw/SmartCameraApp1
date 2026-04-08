@@ -34,8 +34,8 @@ import com.akirachang.ai.photographer.domain.sensor.GyroscopeData
  * ## Projection Formula
  * For a camera with focal length f (pixels) and a rotation dt·ω (radians):
  * ```
- *   Δu = -omega_y · dt · focalLengthPx   // yaw right  → scene shifts left  → Δu < 0
- *   Δv = +omega_x · dt · focalLengthPx   // pitch up   → scene shifts down  → Δv > 0
+ *   Δu = -omega_y · dt · f   // yaw right  → scene shifts left  → Δu < 0
+ *   Δv = +omega_x · dt · f   // pitch up   → scene shifts down  → Δv > 0
  * ```
  * Signs follow the right-hand rule combined with screen-space convention (Y-down).
  *
@@ -57,7 +57,7 @@ import com.akirachang.ai.photographer.domain.sensor.GyroscopeData
  * }
  *
  * // In per-frame motion compensation:
- * val (dx, dy) = compensator.consumeCameraMotion(focalLengthPx = 800f)
+ * val (dx, dy) = compensator.consumeCameraMotion(focalLengthPx = 800f) // f ≈ previewWidth / (2·tan(hFov/2))
  * val correctedX = rawX - dx
  * val correctedY = rawY - dy
  * ```
@@ -123,12 +123,11 @@ class ImuCompensator {
      *
      * ## Formula
      * ```
-     *   dx = -accumulatedOmegaYDt * focalLengthPx   // yaw right  → scene drifts left
-     *   dy = +accumulatedOmegaXDt * focalLengthPx   // pitch up   → scene drifts down
+     *   dx = -accumulatedOmegaYDt * f   // yaw right  → scene drifts left
+     *   dy = +accumulatedOmegaXDt * f   // pitch up   → scene drifts down
      * ```
      *
-     * @param focalLengthPx Effective focal length in pixels.
-     *        Approximation: `focalLengthPx ≈ previewWidthPx / (2 * tan(hFov / 2))`
+     * @param focalLengthPx Effective focal length in pixels (f).
      *        For most mid-range phones at 16:9, ~800–1200px is a reasonable starting estimate.
      * @return [Pair] of (dx, dy) in screen pixels. Returns (0f, 0f) if no samples accumulated.
      */

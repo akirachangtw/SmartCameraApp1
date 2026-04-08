@@ -14,10 +14,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * ImageAnalyzer — Cueshot D0 (OpticalFlow removed, pure ML Kit path)
+ * ImageAnalyzer — Cueshot D0 (pure ML Kit path)
  *
  * Legacy emulator path (Device path uses SmartCameraAnalyzer via LiveCameraSource).
- * OpticalFlow / OpenCV integration removed per 焦土政策.
  */
 class ImageAnalyzer @Inject constructor(
     private val mlKitDetector: MLKitDetector,
