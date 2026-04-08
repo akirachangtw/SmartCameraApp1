@@ -21,6 +21,12 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.BufferOverflow
+import com.akirachang.ai.photographer.domain.model.CompositionAdvice
+import com.akirachang.ai.photographer.domain.composition.CompositionGuidelineEngine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
@@ -278,6 +284,18 @@ class CameraViewModel @Inject constructor(
     // Note: Callback is unused because we use synchronous analyzeBitmap() instead
     private val guidelineAnalyzer = GuidelineAnalyzer { /* unused callback */ }
 
+    // v2.13.0 Ticket 2: Rule-of-Thirds composition engine (stateless, pure function)
+    private val compositionEngine = CompositionGuidelineEngine()
+
+    // v2.13.0 Ticket 2 Step C: Direct viewport-space bbox injection channel.
+    // Analyzers that already hold screen-space RectF can call onTrackingBoxUpdated()
+    // instead of going through the detectionResult state path.
+    // DROP_OLDEST: never blocks the caller; stale frames are discarded harmlessly.
+    private val _trackingBoxFlow = MutableSharedFlow<android.graphics.RectF>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+
     init {
         // v2.5.1: Analyze preview bitmap stream directly (Phase 7)
         // This replaces the old ImageProxy-based analysis
@@ -285,6 +303,9 @@ class CameraViewModel @Inject constructor(
 
         // v2.7.0 Phase 2 Sprint 4: Observe preview for guideline analysis (OpenCV)
         observePreviewForGuidelineAnalysis()
+
+        // v2.13.0 Ticket 2: Observe detection results for Rule-of-Thirds composition advice
+        observeCompositionAdvice()
 
         // 訂閱偵測結果 (deprecated - will be removed once bitmap analysis is stable)
         // observeDetectionResults()
@@ -1997,6 +2018,85 @@ class CameraViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         Log.i(TAG, "Guideline analysis initialized (v2.7.0 Phase 2 Sprint 4)")
+    }
+
+    /**
+     * v2.13.0 Ticket 2 Step C: Inject a pre-converted viewport-space bounding box.
+     *
+     * Called by CameraX Analyzers (or the focus pipeline) when they already hold the
+     * subject bbox in screen/viewport coordinates and want to bypass the detectionResult
+     * state path.  [tryEmit] never blocks; DROP_OLDEST policy discards stale frames.
+     *
+     * The bbox is throttled by [observeCompositionAdvice]'s secondary [_trackingBoxFlow]
+     * consumer before reaching [CompositionGuidelineEngine].
+     *
+     * @param box Subject bounding box in viewport (screen-space) coordinates.
+     */
+    fun onTrackingBoxUpdated(box: android.graphics.RectF) {
+        _trackingBoxFlow.tryEmit(box)
+    }
+
+    /**
+     * v2.13.0 Ticket 2: Rule-of-Thirds composition advice pipeline (SP-B throttle).
+     *
+     * Observes [CameraState.detectionResult] for the primary tracked subject (face first,
+     * then object). Converts the image-space bounding box to screen-space via the
+     * [CoordinateTransformer] already stored in state, then throttles to 300 ms with
+     * [sample] before feeding into [CompositionGuidelineEngine.analyzeRuleOfThirds].
+     *
+     * Frequency defence: 30 fps detection feed → 300 ms sample → ~3 fps advice output.
+     * Guard clauses:
+     *   - No detectionResult / no tracked face or object → skip (no advice reset needed;
+     *     the last advice stays until a new subject is seen).
+     *   - No CoordinateTransformer (camera not yet bound) → skip.
+     *   - contentBounds zero → engine guard will return [CompositionAdvice.None].
+     *
+     * Scope: ViewModel-only. No ML Kit / OpenCV logic touched.
+     */
+    @OptIn(FlowPreview::class)
+    private fun observeCompositionAdvice() {
+        _state
+            .map { state ->
+                val det = state.detectionResult ?: return@map null
+                val transformer = state.coordinateTransformer ?: return@map null
+                // Prefer face over object for composition framing
+                val imageBbox: android.graphics.Rect? =
+                    det.faces.firstOrNull()?.boundingBox
+                        ?: det.objects.firstOrNull()?.boundingBox
+                imageBbox ?: return@map null
+                val screenRect = imageRectToScreenRectF(imageBbox, transformer)
+                Triple(screenRect, state.contentBounds.width(), state.contentBounds.height())
+            }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .sample(300L)  // Throttle 30 fps → ~3 fps — prevent UI flooding
+            .onEach { (screenRect, vpWidth, vpHeight) ->
+                val advice = compositionEngine.analyzeRuleOfThirds(screenRect, vpWidth, vpHeight)
+                _state.update { it.copy(compositionAdvice = advice) }
+                if (BuildConfig.DEBUG) {
+                    Log.v(TAG, "[v2.13.0 Ticket2] compositionAdvice=$advice")
+                }
+            }
+            .catch { e -> Log.e(TAG, "[v2.13.0 Ticket2] Composition advice flow error", e) }
+            .launchIn(viewModelScope)
+
+        // ── Secondary channel: direct viewport-space bbox from onTrackingBoxUpdated() ──
+        // Separate from the detectionResult path; both eventually write compositionAdvice.
+        _trackingBoxFlow
+            .sample(300L)
+            .onEach { screenRect ->
+                val vpWidth  = _state.value.contentBounds.width()
+                val vpHeight = _state.value.contentBounds.height()
+                val advice = compositionEngine.analyzeRuleOfThirds(screenRect, vpWidth, vpHeight)
+                _state.update { it.copy(compositionAdvice = advice) }
+                if (BuildConfig.DEBUG) {
+                    Log.v(TAG, "[v2.13.0 Ticket2-C] trackingBox advice=$advice")
+                }
+            }
+            .catch { e -> Log.e(TAG, "[v2.13.0 Ticket2-C] trackingBoxFlow error", e) }
+            .launchIn(viewModelScope)
+
+        Log.i(TAG, "[v2.13.0 Ticket2] Composition advice pipeline initialized (300 ms throttle)")
     }
 
     /**

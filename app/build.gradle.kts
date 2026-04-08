@@ -148,6 +148,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    // v2.13.0: SplashScreen API — delays dismiss until OpenCV native lib loads off main thread
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
     // === Compose UI ===
     implementation(platform(libs.androidx.compose.bom))

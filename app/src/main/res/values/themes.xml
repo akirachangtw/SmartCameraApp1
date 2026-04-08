@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.SmartCameraApp1" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+        v2.13.0: Theme.SplashScreen parent is required for installSplashScreen() API.
+        postSplashScreenTheme delegates to the original NoActionBar style after dismiss.
+    -->
+    <style name="Theme.SmartCameraApp1" parent="Theme.SplashScreen">
+        <item name="postSplashScreenTheme">@style/Theme.SmartCameraApp1.NoActionBar</item>
+        <item name="windowSplashScreenBackground">@color/black</item>
+    </style>
+
+    <style name="Theme.SmartCameraApp1.NoActionBar" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>
