@@ -57,7 +57,7 @@ import com.akirachang.ai.photographer.domain.sensor.GyroscopeData
  * }
  *
  * // In per-frame motion compensation:
- * val (dx, dy) = compensator.consumeCameraMotion(focalLengthPx = 800f) // f ≈ previewWidth / (2·tan(hFov/2))
+ * val (dx, dy) = compensator.consumeCameraMotion(focalLengthPixels = 800f) // f ≈ previewWidth / (2·tan(hFov/2))
  * val correctedX = rawX - dx
  * val correctedY = rawY - dy
  * ```
@@ -127,15 +127,15 @@ class ImuCompensator {
      *   dy = +accumulatedOmegaXDt * f   // pitch up   → scene drifts down
      * ```
      *
-     * @param focalLengthPx Effective focal length in pixels (f).
+     * @param focalLengthPixels Effective focal length in pixels (f).
      *        For most mid-range phones at 16:9, ~800–1200px is a reasonable starting estimate.
      * @return [Pair] of (dx, dy) in screen pixels. Returns (0f, 0f) if no samples accumulated.
      */
-    fun consumeCameraMotion(focalLengthPx: Float): Pair<Float, Float> {
+    fun consumeCameraMotion(focalLengthPixels: Float): Pair<Float, Float> {
         // Negative sign for yaw: camera rotating right → scene appears to move left in frame
-        val dx = -accumulatedOmegaYDt * focalLengthPx
+        val dx = -accumulatedOmegaYDt * focalLengthPixels
         // Positive sign for pitch (screen Y-down): camera pitching up → scene appears to move downward
-        val dy = accumulatedOmegaXDt * focalLengthPx
+        val dy = accumulatedOmegaXDt * focalLengthPixels
 
         // Consume — reset accumulator
         accumulatedOmegaYDt = 0f
