@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-07 by CSO
-**Current Day**: D0 (絞殺者手術)
+**Last Updated**: 2026-04-08 by CSO
+**Current Day**: D0 (絞殺者手術) — D0.1 pending
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D2 (2026-04-09)
 
@@ -31,6 +31,15 @@
 | D0-T5 | 四級降級 → 三級裝置相容骨架 (FULL/LIMITED/LEGACY) | 🔲 TODO | |
 | D0-T6 | 簡化 Focus Pipeline + 更新對焦 UI 顏色 (White/Green/Amber) | 🔲 TODO | |
 | D0-T7 | 編譯驗證 + grep 殘留檢查 + PROGRESS.md 確認 | 🔲 TODO | |
+
+### D0.1 — 編譯警告清創手術 (追加)
+
+| Ticket ID | Description | Status | Files Modified |
+|-----------|-------------|--------|----------------|
+| D0.1-T1 | `./gradlew assembleDeviceDebug` 取得完整 Warning 清單 | 🔲 TODO | |
+| D0.1-T2 | 分類 Warning：Deprecation / Unused / Nullability / Cast | 🔲 TODO | |
+| D0.1-T3 | 逐一修復所有 Warning（零容忍政策） | 🔲 TODO | |
+| D0.1-T4 | 重新編譯確認 Warning = 0 new | 🔲 TODO | |
 
 Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 

@@ -2,7 +2,7 @@
 disable-model-invocation: false
 ---
 # Description
-生成對話交接包 (Handoff Package)，儲存至 `docs/session_handoff/`，讓下一個 Claude Code 會話能立即重載 Context，無需重讀歷史對話。
+生成對話交接包 (Handoff Package)，儲存至 `docs/handoff/`，讓下一個 Claude Code 會話能立即重載 Context，無需重讀歷史對話。
 
 # Prompt
 我們需要切換到新的 Claude Code 對話視窗以重置 Context Window。
@@ -11,7 +11,7 @@ disable-model-invocation: false
 
 ### 儲存路徑
 ```
-docs/session_handoff/SESSION_HANDOFF_YYYYMMDD_HHMM.md
+docs/handoff/HANDOFF_YYYYMMDD_HHMM.md
 ```
 （請自動帶入當下的日期與時間，格式例如：`SESSION_HANDOFF_20260320_1430.md`）
 
@@ -67,7 +67,7 @@ git log --oneline -1        # 確認最後一個 commit hash 與說明
 ```
 
 新對話開頭請執行：
-1. 直接貼上 `docs/session_handoff/SESSION_HANDOFF_YYYYMMDD_HHMM.md` 的全文
+1. 直接貼上 `docs/handoff/HANDOFF_YYYYMMDD_HHMM.md` 的全文
 2. 同時附上 `memory/MEMORY.md` 與相關 `devspec/feature_record_Backlog.md` section
 3. 禁止從記憶口述——以當前倉庫檔案為依據重載 Context
 

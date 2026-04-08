@@ -42,4 +42,10 @@
 - 不要複製代碼，只引用檔案路徑和函數名。
 - 「下一步待辦」必須具體到可以直接執行的粒度，禁止寫「繼續開發」這種空話。
 
-產出後提醒：「交接文件已產出。建議：1) 更新 PROGRESS.md 2) 開新對話 3) 貼入此交接文件」
+產出後，將此交接文件儲存至：
+```
+docs/session_handoff/SESSION_HANDOFF_YYYYMMDD_HHMM.md
+```
+（自動帶入當下日期時間，例如：`SESSION_HANDOFF_20260408_1430.md`）
+
+提醒：「交接文件已儲存至 docs/session_handoff/。建議：1) 更新 PROGRESS.md 2) 開新對話 3) 貼入此交接文件」
