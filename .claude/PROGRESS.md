@@ -24,22 +24,34 @@
 
 | Ticket ID | Description | Status | Files Modified |
 |-----------|-------------|--------|----------------|
-| D0-T1 | `git checkout -b feature/cueshot-mvp` from v2.12.0-24 | 🔲 TODO | |
-| D0-T2 | 移除 OpenCV dependency + SplashScreen 改為 ML Kit warm-up | 🔲 TODO | |
-| D0-T3 | 移除 OpticalFlowTracker + 解耦 ImuCompensator | 🔲 TODO | |
-| D0-T4 | 移除 Glassmorphism / Aurora Blue / Neon Glow UI | 🔲 TODO | |
-| D0-T5 | 四級降級 → 三級裝置相容骨架 (FULL/LIMITED/LEGACY) | 🔲 TODO | |
-| D0-T6 | 簡化 Focus Pipeline + 更新對焦 UI 顏色 (White/Green/Amber) | 🔲 TODO | |
-| D0-T7 | 編譯驗證 + grep 殘留檢查 + PROGRESS.md 確認 | 🔲 TODO | |
+| D0-T1 | `git checkout -b feature/cueshot-mvp` from v2.12.0-24 | ✅ DONE | — |
+| D0-T2 | 移除 OpenCV dependency + SplashScreen 改為 ML Kit warm-up | ✅ DONE | `build.gradle.kts`, `MainActivity.kt` |
+| D0-T3 | 移除 OpticalFlowTracker + 解耦 ImuCompensator | ✅ DONE | `SmartCameraAnalyzer.kt`, `CameraRepositoryImpl.kt`, `FeatureFlags.kt` |
+| D0-T4 | 移除 Glassmorphism / Aurora Blue / Neon Glow UI | ✅ DONE | `FocusIndicatorOverlay.kt`, `ExpandableSettingsCard.kt` |
+| D0-T5 | 四級降級 → 三級裝置相容骨架 (FULL/LIMITED/LEGACY) | ✅ DONE | `DeviceCapabilityTier.kt` (新建), `CameraModule.kt`, `CameraViewModel.kt` |
+| D0-T6 | 簡化 Focus Pipeline + 更新對焦 UI 顏色 (Amber/Green) | ✅ DONE | `FocusIndicatorOverlay.kt` |
+| D0-T7 | 編譯驗證 + grep 殘留檢查 + PROGRESS.md 確認 | ✅ DONE | — |
 
 ### D0.1 — 編譯警告清創手術 (追加)
 
 | Ticket ID | Description | Status | Files Modified |
 |-----------|-------------|--------|----------------|
-| D0.1-T1 | `./gradlew assembleDeviceDebug` 取得完整 Warning 清單 | 🔲 TODO | |
-| D0.1-T2 | 分類 Warning：Deprecation / Unused / Nullability / Cast | 🔲 TODO | |
-| D0.1-T3 | 逐一修復所有 Warning（零容忍政策） | 🔲 TODO | |
-| D0.1-T4 | 重新編譯確認 Warning = 0 new | 🔲 TODO | |
+| D0.1-T1 | `./gradlew assembleDeviceDebug` 取得完整 Warning 清單 | ✅ DONE | — |
+| D0.1-T2 | 分類 Warning：Deprecation / Unused / Nullability / Cast | ✅ DONE | — |
+| D0.1-T3 | 逐一修復所有 Warning（零容忍政策） | ✅ DONE | `LiveCameraSource.kt`, `FixedFocusDetector.kt`, `FocusIndicatorOverlay.kt` |
+| D0.1-T4 | 重新編譯確認 Warning = 0 new | ✅ DONE | — |
+
+### D0.x — SV 補修系列（Traycer Path B）
+
+| Ticket ID | Description | Status | Notes |
+|-----------|-------------|--------|-------|
+| D0.2 | KSP 技術債記錄至 PROGRESS.md + Backlog | ✅ DONE | 推遲至 D6 後 |
+| SV-D0.1-01 | KDoc 焦土清理（OpticalFlow/Glassmorphism/Aurora）| ✅ DONE | — |
+| SV-D0.1-02 | `DeviceCapabilityTier` sealed class 新建 | ✅ DONE | `domain/model/` |
+| SV-D0.1-03 | Focus Locked 色彩規格確認 | ✅ DONE | White/Green 非 SSOT v3.3 規格，不執行替換 |
+| SV-D0.1-08 | `focalLengthPx` → `focalLengthPixels` 重命名 | ✅ DONE | grep = 0 hits |
+| SV-D0.1-10 | `drawLockedFrame()` 色彩路徑端到端一致 | ✅ DONE | `baseColor` 參數接入 `animatedColor` |
+| D0.3 | Traycer Path B 嚴格補修（zero-hit + color contract + tier wiring）| 🚫 BLOCKED | **Traycer 判定：可驗證事實不一致** |
 
 Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
@@ -49,7 +61,10 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 | Issue | Severity | Discovered | Resolution |
 |-------|----------|------------|------------|
-| (none) | — | — | — |
+| **[D0.3] Traycer Path B — 可驗證事實不一致** | 🔴 HIGH | 2026-04-09 | 待修 |
+| ↳ `focalLengthPx` KDoc 範例仍存在（grep 未完全清零）| HIGH | 2026-04-09 | 需逐行核查 `ImuCompensator.kt` |
+| ↳ 色彩契約未端到端一致（`YELLOW→CueshotGreen` 映射在 Locked 狀態路徑未完整反映）| HIGH | 2026-04-09 | 需追蹤 `OverlayColor.YELLOW` 全路徑 |
+| ↳ `DeviceCapabilityTier` tier wiring 未在 Runtime 實際生效（僅 log，無下游消費）| MEDIUM | 2026-04-09 | D1 階段補線，或 D0.4 補修 |
 
 ---
 
