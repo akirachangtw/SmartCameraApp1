@@ -20,14 +20,6 @@ android {
         versionCode = 85
         versionName = "2.12.0"
 
-        // v2.8.2 Phase C: RenderScript GPU YUV conversion (support mode for API 31+)
-        // v2.8.3 Phase D: Transform fast path optimizations
-        // v2.8.4 Plan B: RenderScript fused YUV+Transform kernel
-        // v2.8.5: Pixel 9a memory mitigation (reduced resolution & throttle)
-        buildConfigField("Boolean", "ENABLE_RENDERSCRIPT", "true")
-        renderscriptTargetApi = 21
-        renderscriptSupportModeEnabled = true
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

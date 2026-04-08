@@ -25,6 +25,7 @@ import androidx.camera.core.CameraInfo
 //   3. Skip AfTriggerThrottleController (no backoff needed)
 //   4. Report AfState.Locked immediately (simulated success)
 
+@androidx.annotation.OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
 object FixedFocusDetector {
 
     private const val TAG = "FixedFocusDetector"
@@ -46,7 +47,6 @@ object FixedFocusDetector {
      * }
      * ```
      */
-    @OptIn(ExperimentalCamera2Interop::class)
     fun isFixedFocus(cameraInfo: CameraInfo): Boolean {
         return try {
             val camera2Info = Camera2CameraInfo.from(cameraInfo)
@@ -94,7 +94,6 @@ object FixedFocusDetector {
      *   3 = AF_MODE_CONTINUOUS_VIDEO
      *   4 = AF_MODE_CONTINUOUS_PICTURE
      */
-    @OptIn(ExperimentalCamera2Interop::class)
     fun getAfModes(cameraInfo: CameraInfo): IntArray {
         return try {
             val camera2Info = Camera2CameraInfo.from(cameraInfo)
@@ -119,7 +118,6 @@ object FixedFocusDetector {
      *   3 = LEVEL_3
      *   4 = EXTERNAL
      */
-    @OptIn(ExperimentalCamera2Interop::class)
     fun getHardwareLevel(cameraInfo: CameraInfo): Int {
         return try {
             val camera2Info = Camera2CameraInfo.from(cameraInfo)

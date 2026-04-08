@@ -154,11 +154,11 @@ fun FocusIndicatorOverlay(
                     animationSpec = keyframes {
                         durationMillis = FocusTokens.CLAMP_DURATION
                         // Phase 1: Snap clamp (0 → 150ms)
-                        1.00f at 0   with FastOutLinearInEasing
+                        1.00f at 0   using FastOutLinearInEasing
                         // Phase 2: Rebound overshoot (150 → 270ms)
-                        0.75f at 150 with FastOutSlowInEasing
+                        0.75f at 150 using FastOutSlowInEasing
                         // Phase 3: Settle (270 → 350ms)
-                        1.20f at 270 with LinearOutSlowInEasing
+                        1.20f at 270 using LinearOutSlowInEasing
                         1.00f at FocusTokens.CLAMP_DURATION
                     },
                 )
@@ -209,11 +209,9 @@ fun FocusIndicatorOverlay(
 
             // ── State 1: Searching — 3-layer static concentric rings ──────────
             isSearching -> {
-                val centerOffset = if (hasPrimaryBox && overlayModel.primaryBox != null) {
-                    Offset(overlayModel.primaryBox.centerX(), overlayModel.primaryBox.centerY())
-                } else {
-                    Offset(size.width / 2f, size.height / 2f)
-                }
+                val centerOffset = overlayModel.primaryBox?.let { box ->
+                    Offset(box.centerX(), box.centerY())
+                } ?: Offset(size.width / 2f, size.height / 2f)
                 drawSearchingBase(
                     centerOffset = centerOffset,
                     radius = FocusTokens.SearchingSize.toPx() / 2f,

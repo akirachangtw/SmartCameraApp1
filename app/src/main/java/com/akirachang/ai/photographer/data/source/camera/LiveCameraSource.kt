@@ -27,7 +27,6 @@ import androidx.lifecycle.LifecycleOwner
 import com.akirachang.ai.photographer.BuildConfig
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.util.BitmapPool
-import com.akirachang.ai.photographer.util.RenderScriptYuvConverter
 import com.akirachang.ai.photographer.util.YuvConverter
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -81,9 +80,9 @@ import kotlinx.coroutines.flow.onEach
  * Converts ImageProxy from ImageAnalysis to Bitmap flow for unified interface.
  */
 @Singleton
+@androidx.annotation.OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
 class LiveCameraSource @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val renderScriptYuvConverter: RenderScriptYuvConverter
+    @ApplicationContext private val context: Context
 ) : CameraInputSource {
 
     companion object {
@@ -270,11 +269,6 @@ class LiveCameraSource @Inject constructor(
     // v2.8.1 Phase B-1: Integer-based YUV converter (2-3x faster than float math)
     private val yuvConverter = YuvConverter()
 
-    // v2.8.2 Phase C: Prefer RenderScript, fallback to CPU on failure
-    private var useRenderScript = BuildConfig.ENABLE_RENDERSCRIPT.also {
-        Log.d(TAG, "[v2.8.2 Init] BuildConfig.ENABLE_RENDERSCRIPT=$it, useRenderScript=$it")
-    }
-
     // v2.8.3 Phase D: Reusable Paint object to avoid per-frame allocation
     private val transformPaint = Paint(Paint.FILTER_BITMAP_FLAG)
 
@@ -330,33 +324,8 @@ class LiveCameraSource @Inject constructor(
                 // Convert ImageProxy to Bitmap
                 val startYuv = System.nanoTime()
                 val rawBuffer = bitmapPool.acquire(imageProxy.width, imageProxy.height, Bitmap.Config.ARGB_8888)
-                var yuvMode = "CPU"
-                if (frameCount % 30 == 1L) {
-                    Log.d(TAG, "[v2.8.2 Debug] useRenderScript=$useRenderScript, BuildConfig=${BuildConfig.ENABLE_RENDERSCRIPT}")
-                }
-                try {
-                    if (useRenderScript) {
-                        if (frameCount % 30 == 1L) {
-                            Log.d(TAG, "[v2.8.2 Debug] About to call RenderScript convert")
-                        }
-                        renderScriptYuvConverter.convert(imageProxy, rawBuffer.bitmap)
-                        yuvMode = "RS"
-                    } else {
-                        if (frameCount % 30 == 1L) {
-                            Log.d(TAG, "[v2.8.2 Debug] Using CPU converter instead")
-                        }
-                        yuvConverter.convertToBitmapBuffer(imageProxy, rawBuffer)
-                    }
-                } catch (e: Exception) {
-                    if (useRenderScript) {
-                        useRenderScript = false
-                        Log.w(TAG, "[v2.8.2] RenderScript failed; fallback to CPU converter", e)
-                        yuvConverter.convertToBitmapBuffer(imageProxy, rawBuffer)
-                        yuvMode = "CPU"
-                    } else {
-                        throw e
-                    }
-                }
+                val yuvMode = "CPU"
+                yuvConverter.convertToBitmapBuffer(imageProxy, rawBuffer)
                 val yuvTime = (System.nanoTime() - startYuv) / 1_000_000.0
 
                 // Get rotation from ImageProxy metadata
@@ -801,8 +770,7 @@ class LiveCameraSource @Inject constructor(
             // Without this, a residual AF_MODE=OFF from a previous lock/cancel cycle blocks
             // CameraX's AF scan → 5s timeout on second lock attempt after any unlock.
             try {
-                @OptIn(ExperimentalCamera2Interop::class)
-                Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
+Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
                 Log.i(TAG, "[v2.11.4-07] Pre-clear Camera2 options before lock attempt")
             } catch (e: Exception) {
                 Log.w(TAG, "[v2.11.4-07] Pre-clear failed (non-fatal): ${e.message}")
@@ -837,8 +805,7 @@ class LiveCameraSource @Inject constructor(
                         // converged lens position. Pinning LENS_FOCUS_DISTANCE prevents Pixel 9a
                         // from drifting to infinity (0 diopters) when AF_MODE=OFF takes effect.
                         val frozenFocusDist = lastFocusDistance
-                        @OptIn(ExperimentalCamera2Interop::class)
-                        Camera2CameraControl.from(cameraControl)
+                Camera2CameraControl.from(cameraControl)
                             .addCaptureRequestOptions(
                                 CaptureRequestOptions.Builder()
                                     .setCaptureRequestOption(CaptureRequest.CONTROL_AE_LOCK, true)
@@ -911,8 +878,7 @@ class LiveCameraSource @Inject constructor(
             aeAfLockState = AeAfLockState.UNLOCK_REQUESTED
             Log.d(TAG, "[v2.11.4-10] Unlock requested — clearing Camera2 options before cancel")
             try {
-                @OptIn(ExperimentalCamera2Interop::class)
-                Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
+Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
                 Log.i(TAG, "[v2.11.4-10] Camera2 options pre-cleared (AE_LOCK + AF_MODE=OFF removed)")
             } catch (ex: Exception) {
                 Log.w(TAG, "[v2.11.4-10] Pre-cancel clearCaptureRequestOptions failed (non-fatal): ${ex.message}")
@@ -971,7 +937,12 @@ class LiveCameraSource @Inject constructor(
     private fun initOrientationListener() {
         // v2.9.6 Phase 1 Fix: Read current device orientation before enabling listener
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
-        val display = windowManager?.defaultDisplay
+        val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            context.display
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager?.defaultDisplay
+        }
         currentRotation = display?.rotation ?: Surface.ROTATION_0
         Log.i(TAG, "Initial device rotation: $currentRotation")
 
@@ -1113,8 +1084,7 @@ class LiveCameraSource @Inject constructor(
 
                     // v2.11.4-01: Camera2 CaptureResult callback for AE/AF lock parameter verification (DEBUG only)
                     if (BuildConfig.DEBUG) {
-                        @OptIn(ExperimentalCamera2Interop::class)
-                        Camera2Interop.Extender(previewBuilder).setSessionCaptureCallback(
+                Camera2Interop.Extender(previewBuilder).setSessionCaptureCallback(
                             object : CameraCaptureSession.CaptureCallback() {
                                 override fun onCaptureCompleted(
                                     session: CameraCaptureSession,
@@ -1243,8 +1213,7 @@ class LiveCameraSource @Inject constructor(
                     // freezing AF after screen unlock. Clearing unconditionally on every bind
                     // guarantees a clean AE/AF state regardless of how the previous session ended.
                     try {
-                        @OptIn(ExperimentalCamera2Interop::class)
-                        Camera2CameraControl.from(camera.cameraControl).clearCaptureRequestOptions()
+                Camera2CameraControl.from(camera.cameraControl).clearCaptureRequestOptions()
                         Log.i(TAG, "[v2.11.4-06] Camera2 interop options cleared on bind (clean state)")
                     } catch (e: Exception) {
                         Log.w(TAG, "[v2.11.4-06] Failed to clear Camera2 options on bind: ${e.message}")
@@ -1273,8 +1242,7 @@ class LiveCameraSource @Inject constructor(
                                     Log.i(TAG, "[v2.11.4-09] Stale lock auto-invalidated on camera reopen (session #$currentSession)")
                                 }
                                 try {
-                                    @OptIn(ExperimentalCamera2Interop::class)
-                                    Camera2CameraControl.from(camera.cameraControl)
+                                        Camera2CameraControl.from(camera.cameraControl)
                                         .clearCaptureRequestOptions()
                                     Log.i(TAG, "[v2.11.4-09] Camera2 options cleared on CameraState.OPEN (session #$currentSession, autoInvalidated=$autoInvalidated)")
                                 } catch (e: Exception) {
@@ -1345,11 +1313,6 @@ class LiveCameraSource @Inject constructor(
             previewSurface = null
             previewSurfaceTexture = null
             Log.d(TAG, "Preview Surface resources released")
-
-            if (BuildConfig.ENABLE_RENDERSCRIPT) {
-                renderScriptYuvConverter.destroy()
-                useRenderScript = true
-            }
 
             // v2.9.6 Phase 1: Cleanup orientation listener
             cleanup()
