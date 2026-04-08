@@ -25,7 +25,6 @@ import androidx.core.content.ContextCompat
 import android.util.Rational
 import androidx.lifecycle.LifecycleOwner
 import com.akirachang.ai.photographer.BuildConfig
-import com.akirachang.ai.photographer.data.source.analysis.GuidelineAnalyzer
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.util.BitmapPool
 import com.akirachang.ai.photographer.util.RenderScriptYuvConverter
@@ -510,8 +509,7 @@ class LiveCameraSource @Inject constructor(
         awaitClose {
             Log.d(TAG, "Preview stream closing")
             Timber.d("LiveCameraSource: Preview stream closed")
-            // v2.8.0 Phase 1: Stop GuidelineAnalyzer before clearing
-            (previewStreamAnalyzer as? GuidelineAnalyzer)?.stop()
+            
             if (::imageAnalysis.isInitialized) {
                 imageAnalysis.clearAnalyzer()
             }
@@ -587,8 +585,7 @@ class LiveCameraSource @Inject constructor(
     override fun stopPreview() {
         Timber.d("LiveCameraSource: Stopping live preview")
         if (isPreviewActive) {
-            // v2.8.0 Phase 1: Stop GuidelineAnalyzer before clearing
-            (previewStreamAnalyzer as? GuidelineAnalyzer)?.stop()
+            
             if (::imageAnalysis.isInitialized) {
                 imageAnalysis.clearAnalyzer()
             }
@@ -1190,8 +1187,7 @@ class LiveCameraSource @Inject constructor(
                     // 4. Unbind all previous UseCases before rebinding
                     Log.d(TAG, "Rebinding camera - selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}")
                     try {
-                        // v2.8.0 Phase 1: Stop GuidelineAnalyzer before unbinding
-                        (previewStreamAnalyzer as? GuidelineAnalyzer)?.stop()
+                        
                         cameraProvider.unbindAll()
                         Log.d(TAG, "Previous UseCases unbound successfully")
                     } catch (e: Exception) {

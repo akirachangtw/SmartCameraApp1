@@ -33,7 +33,6 @@ import com.akirachang.ai.photographer.data.source.camera.CameraInputSource
 import com.akirachang.ai.photographer.data.source.camera.SmartCameraAnalyzer
 import com.akirachang.ai.photographer.domain.camera.ImuCompensator
 import com.akirachang.ai.photographer.data.source.ml.ImageAnalyzer
-import com.akirachang.ai.photographer.data.opencv.TrackingResult
 import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.domain.model.CaptureResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
@@ -111,11 +110,6 @@ class CameraRepositoryImpl @Inject constructor(
 
     // Custom analyzer instance (v2.2.0)
     private var smartAnalyzer: SmartCameraAnalyzer? = null
-
-    // v2.x.x Phase 6: Pending optical flow config (applied when smartAnalyzer is initialized)
-    private var pendingOpticalFlowCallback: ((TrackingResult) -> Unit)? = null
-    private var pendingPreviewWidth: Int = 0
-    private var pendingPreviewHeight: Int = 0
 
     // ML Kit 偵測器（延遲初始化）
     private val faceDetector: FaceDetector by lazy {
@@ -566,7 +560,6 @@ class CameraRepositoryImpl @Inject constructor(
                     _lightingResults.value = lightingState
                 },
                 minObjectConfidence = MIN_OBJECT_CONFIDENCE,
-                imuCompensator = imuCompensator  // [v2.12.0-23] Shared IMU engine
             )
 
             // Attach analyzer to camera controller
@@ -577,14 +570,6 @@ class CameraRepositoryImpl @Inject constructor(
 
             isAnalysisStarted = true
             Log.i(TAG, "Image analysis started with SmartCameraAnalyzer (ML Kit + Lighting)")
-
-            // v2.x.x Phase 6: Apply pending optical flow config if set before analyzer was ready
-            pendingOpticalFlowCallback?.let {
-                smartAnalyzer!!.setOpticalFlowCallback(it)
-                pendingOpticalFlowCallback = null
-                Log.d(TAG, "Applied pending optical flow callback")
-            }
-            // v2.12.0-15 SV-S5-Final-R2: setPreviewSize removed from SmartCameraAnalyzer (CoordinateMapper retired)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start image analysis", e)
         }
@@ -779,85 +764,9 @@ class CameraRepositoryImpl @Inject constructor(
         return cameraInputSource.cancelFocusAndMetering()
     }
 
-    /**
-     * Set optical flow tracking result callback
-     * v2.x.x Phase 4: Optical flow point tracking
-     *
-     * Delegates to SmartCameraAnalyzer for tracking result updates
-     */
-    override fun setOpticalFlowCallback(callback: (TrackingResult) -> Unit) {
-        if (smartAnalyzer != null) {
-            smartAnalyzer!!.setOpticalFlowCallback(callback)
-        } else {
-            pendingOpticalFlowCallback = callback
-            Log.d(TAG, "Optical flow callback pending: analyzer not yet initialized")
-        }
-    }
-
-    /**
-     * Set preview size for coordinate mapping
-     * v2.x.x Phase 4: Required for PreviewView ↔ ImageAnalysis coordinate conversion
-     *
-     * Delegates to SmartCameraAnalyzer for coordinate transformation
-     */
+    /** Set preview size (interface compliance — no-op after CoordinateMapper retirement) */
     override fun setPreviewSize(width: Int, height: Int) {
-        // v2.12.0-15 SV-S5-Final-R2: setPreviewSize removed from SmartCameraAnalyzer.
-        // CoordinateMapper (CENTER_CROP) retired — preview-coord tracking no longer supported.
-        Log.d(TAG, "[v2.12.0-15] setPreviewSize no-op: CoordinateMapper path retired")
-    }
-
-    /**
-     * Start optical flow tracking at a specific point
-     * v2.x.x Phase 4: Tap-to-track point feature
-     *
-     * Delegates to SmartCameraAnalyzer to start tracking
-     */
-    override fun startOpticalFlowTracking(x: Float, y: Float) {
-        // v2.12.0-15 SV-S5-Final-R2: startOpticalFlowTracking(preview-coord) removed from SmartCameraAnalyzer.
-        // Callers must use startOpticalFlowTrackingImageCoords() — CameraViewModel already does.
-        Log.w(TAG, "[v2.12.0-15] startOpticalFlowTracking(preview-coord) no-op: use startOpticalFlowTrackingImageCoords()")
-    }
-
-    /**
-     * [v2.11.2 Fix G] Start optical flow tracking using image/analysis coordinates directly.
-     * Bypasses CoordinateMapper (CENTER_CROP) — caller already converted via CoordinateTransformer (FIT_CENTER).
-     */
-    override fun startOpticalFlowTrackingImageCoords(imageX: Float, imageY: Float) {
-        if (smartAnalyzer == null) {
-            Log.d(TAG, "[Fix G] Lazy initializing SmartCameraAnalyzer for OF tracking (image coords)")
-            startImageAnalysis()
-        }
-        smartAnalyzer?.startOpticalFlowTrackingImageCoords(imageX, imageY)
-            ?: Log.w(TAG, "[Fix G] Cannot start OF tracking (image coords): analyzer not initialized")
-    }
-
-    /**
-     * Stop optical flow tracking
-     * v2.x.x Phase 4: Stop tracking and release resources
-     *
-     * Delegates to SmartCameraAnalyzer to stop tracking
-     */
-    override fun stopOpticalFlowTracking() {
-        smartAnalyzer?.stopOpticalFlowTracking()
-            ?: Log.w(TAG, "Cannot stop optical flow tracking: analyzer not initialized")
-    }
-
-    /**
-     * Check if optical flow tracking is active
-     * v2.x.x Phase 4: Query tracking state
-     *
-     * Delegates to SmartCameraAnalyzer to check tracking state
-     */
-    override fun isOpticalFlowTracking(): Boolean {
-        return smartAnalyzer?.isOpticalFlowTracking() ?: false
-    }
-
-    /**
-     * Process bitmap frame for optical flow tracking
-     * v2.x.x Phase 6: Bitmap pipeline fallback (emulator - CameraX ImageAnalysis not available)
-     */
-    override fun processOpticalFlowFrame(bitmap: Bitmap) {
-        smartAnalyzer?.trackFromBitmap(bitmap)
+        Log.d(TAG, "setPreviewSize no-op (CoordinateMapper retired)")
     }
 
     /**

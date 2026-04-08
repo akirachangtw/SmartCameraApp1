@@ -30,9 +30,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // v2.7.0 Phase 2: OpenCV ABI filters
         ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            abiFilters += listOf("arm64-v8a", "x86_64")
         }
     }
 
@@ -47,23 +46,11 @@ android {
             buildConfigField("Boolean", "USE_TEST_IMAGES", "false")
             buildConfigField("Boolean", "ENABLE_PERFORMANCE_LOGGING", "false")
 
-            // v2.7.0 Phase 2: Guideline Overlay Feature Flags
-            buildConfigField("Boolean", "ENABLE_GUIDELINE_OVERLAY", "false")
-            buildConfigField("Boolean", "ENABLE_OPENCV_ANALYSIS", "false")
-            buildConfigField("Boolean", "ENABLE_OPENCV_GUIDELINE_BINDING", "false")
-
-            // v2.8.0 Phase 2: ImageProxy Direct Path (default: false for safe rollback)
-            buildConfigField("Boolean", "USE_IMAGEPROXY_GUIDELINE_PIPELINE", "false")
-
             // v2.8.4 Plan B: Fused YUV+Transform RenderScript kernel (default: true for testing)
             buildConfigField("Boolean", "ENABLE_FUSED_TRANSFORM", "true")
 
             // v2.8.6 Phase 2: PreviewView migration for Graphics memory fix
-            // v2.10.0: ENABLED for aspect ratio ScaleType testing
-            buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "true")  // ENABLED for v2.10.0 testing
-
-            // v2.x.x Phase 1: Optical Flow Point Tracking (enabled for Phase 6 testing)
-            buildConfigField("Boolean", "ENABLE_OPTICAL_FLOW_TRACKING", "true")
+            buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "true")
         }
 
         release {
@@ -78,22 +65,10 @@ android {
             buildConfigField("Boolean", "USE_TEST_IMAGES", "false")
             buildConfigField("Boolean", "ENABLE_PERFORMANCE_LOGGING", "true")
 
-            // v2.7.0 Phase 2: Guideline Overlay Feature Flags (disabled in release)
-            buildConfigField("Boolean", "ENABLE_GUIDELINE_OVERLAY", "false")
-            buildConfigField("Boolean", "ENABLE_OPENCV_ANALYSIS", "false")
-            buildConfigField("Boolean", "ENABLE_OPENCV_GUIDELINE_BINDING", "false")
-
-            // v2.8.0 Phase 2: ImageProxy Direct Path (default: false for safe rollback)
-            buildConfigField("Boolean", "USE_IMAGEPROXY_GUIDELINE_PIPELINE", "false")
-
-            // v2.8.4 Plan B: Fused YUV+Transform RenderScript kernel (default: false for safe release)
+            // v2.8.4 Plan B: Fused YUV+Transform RenderScript kernel (disabled in release)
             buildConfigField("Boolean", "ENABLE_FUSED_TRANSFORM", "false")
 
-            // v2.12.0-14: Enabled for release — geometry truth aligned with debug build
             buildConfigField("Boolean", "USE_PREVIEWVIEW_DISPLAY", "true")
-
-            // v2.x.x Phase 1: Optical Flow Point Tracking (default: false, disabled in release)
-            buildConfigField("Boolean", "ENABLE_OPTICAL_FLOW_TRACKING", "true")
         }
     }
 
@@ -148,7 +123,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    // v2.13.0: SplashScreen API — delays dismiss until OpenCV native lib loads off main thread
+    // Cueshot D0: SplashScreen API — holds splash until ML Kit pre-warm completes
     implementation("androidx.core:core-splashscreen:1.0.1")
 
     // === Compose UI ===
@@ -198,9 +173,6 @@ dependencies {
     // === ML Kit ===
     implementation(libs.mlkit.objectDetection)
     implementation(libs.mlkit.faceDetection)
-
-    // === OpenCV (v2.7.0 Phase 2) ===
-    implementation(project(":opencv"))  // OpenCV 4.13.0 as Gradle module
 
     // === 測試 ===
     testImplementation(libs.junit)

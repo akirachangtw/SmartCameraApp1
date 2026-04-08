@@ -1,25 +1,18 @@
 /**
  * ClassName: SmartCameraAnalyzer
- * Description: Custom ImageAnalysis.Analyzer that integrates ML Kit detection with lighting analysis
+ * Description: Custom ImageAnalysis.Analyzer — ML Kit detection + lighting analysis
  * Author: Claude Code
- * Date: 2025-12-02
- * Version: 2.2.0
+ * Version: Cueshot D0 (OpenCV / OpticalFlow removed; pure ML Kit pipeline)
  *
- * Features:
- * - ML Kit face and object detection
- * - Lighting analysis with histogram calculation
- * - Exposure detection (backlight, overexposure, low light)
- * - Adaptive throttle via EWMA (v2.12.0-03): auto-tunes interval per device (100–500ms)
- * - Proper resource management
- * - v2.x.x Phase 4: Optical flow point tracking integration
- *
- * Architecture:
- * - Replaces MlKitAnalyzer to gain ImageProxy access
- * - Provides both DetectionResult and LightingState
- * - Uses ViewModel callbacks for state updates
+ * Architecture: Dumb Pipe (v2.12.0-15 §17.12.5)
+ *   1. Receive CameraX frame
+ *   2. Feed to ML Kit
+ *   3. Output raw DetectionResult (image-space coords) + LightingState via callbacks
+ * All coordinate mapping, target ranking, and policy decisions handled upstream (CameraViewModel).
  */
 package com.akirachang.ai.photographer.data.source.camera
 
+import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
@@ -27,68 +20,28 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import com.google.android.gms.tasks.Task
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetector
-import com.google.mlkit.vision.objects.DetectedObject
 import com.google.mlkit.vision.objects.ObjectDetector
+import com.akirachang.ai.photographer.domain.model.DetectionResult
+import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
+import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import com.akirachang.ai.photographer.domain.model.DetectionResult
-import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
-import com.akirachang.ai.photographer.presentation.camera.model.LightingState
-import com.akirachang.ai.photographer.data.opencv.OpticalFlowTracker
-import com.akirachang.ai.photographer.domain.camera.ImuCompensator
-import com.akirachang.ai.photographer.data.opencv.TrackingResult
-import org.opencv.core.Mat
-import org.opencv.core.Point
-import android.graphics.Bitmap
-import android.os.SystemClock
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/**
- * Extension function to convert Google Tasks to Kotlin Coroutines
- */
 private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { continuation ->
-    addOnSuccessListener { result ->
-        continuation.resume(result)
-    }
-    addOnFailureListener { exception ->
-        continuation.resumeWithException(exception)
-    }
-    addOnCanceledListener {
-        continuation.cancel()
-    }
+    addOnSuccessListener { result -> continuation.resume(result) }
+    addOnFailureListener { exception -> continuation.resumeWithException(exception) }
+    addOnCanceledListener { continuation.cancel() }
 }
 
-/**
- * Custom analyzer that performs both ML Kit detection and lighting analysis
- *
- * v2.12.0-15 §17.12.5: Dumb Pipe — only responsibility is:
- *   1. Receive CameraX frame
- *   2. Feed to ML Kit
- *   3. Output raw DetectionResult (image-space coords) + LightingState via callbacks
- *   4. Optical flow: output raw tracking result (image-space coords) via callback
- * All coordinate mapping, target ranking, and policy decisions are handled upstream (CameraViewModel).
- *
- * SSOT Route B (v2.12.0): This class is the **Emulator analysis path**.
- *   faceDetector/objectDetector are injected from CameraRepositoryImpl.
- *   The Device/legacy path uses ImageAnalyzer → MLKitDetector (see ImageAnalyzer.kt).
- *   These two paths are intentionally isolated — do NOT merge or cross-wire.
- *
- * @param faceDetector ML Kit face detector
- * @param objectDetector ML Kit object detector
- * @param analyzeLightingUseCase Lighting analysis use case
- * @param onDetectionResult Callback for detection results
- * @param onLightingResult Callback for lighting analysis results
- * @param minObjectConfidence Minimum confidence threshold for objects (default 0.5)
- */
 class SmartCameraAnalyzer(
     private val faceDetector: FaceDetector,
     private val objectDetector: ObjectDetector,
@@ -96,203 +49,53 @@ class SmartCameraAnalyzer(
     private val onDetectionResult: (DetectionResult) -> Unit,
     private val onLightingResult: (LightingState) -> Unit,
     private val minObjectConfidence: Float = 0.5f,
-    private val imuCompensator: ImuCompensator = ImuCompensator()  // [v2.12.0-23] Shared IMU engine; default only for tests
 ) : ImageAnalysis.Analyzer {
 
     companion object {
         private const val TAG = "SmartCameraAnalyzer"
-
-        // v2.12.0-03: Adaptive ML Kit throttle — replaces per-device hardcoded values
-        private const val DEFAULT_THROTTLE_MS    = 200L   // initial interval
-        private const val MIN_THROTTLE_MS        = 100L   // fastest allowed (10 FPS)
-        private const val MAX_THROTTLE_MS        = 500L   // slowest allowed (2 FPS)
-        private const val WARMUP_FRAMES          = 3      // frames skipped from EWMA
-        private const val EMA_ALPHA              = 0.2    // EWMA smoothing factor
-        private const val SAFETY_FACTOR          = 1.25   // headroom multiplier
-        private const val DEADBAND_RATIO         = 0.10   // ±10% change ignored
-        private const val MAX_EXPAND_PER_FRAME   = 50L    // ms max increase per frame
-        private const val MAX_CONTRACT_PER_FRAME = 20L    // ms max decrease per frame
-        private const val PANIC_RATIO            = 1.5    // measured > interval×1.5 → panic
-        private const val PANIC_SCALE            = 1.2    // panic: interval × 1.2
-        private const val LOG_EVERY_N_FRAMES     = 30     // logcat throttle interval
+        private const val DEFAULT_THROTTLE_MS    = 200L
+        private const val MIN_THROTTLE_MS        = 100L
+        private const val MAX_THROTTLE_MS        = 500L
+        private const val WARMUP_FRAMES          = 3
+        private const val EMA_ALPHA              = 0.2
+        private const val SAFETY_FACTOR          = 1.25
+        private const val DEADBAND_RATIO         = 0.10
+        private const val MAX_EXPAND_PER_FRAME   = 50L
+        private const val MAX_CONTRACT_PER_FRAME = 20L
+        private const val PANIC_RATIO            = 1.5
+        private const val PANIC_SCALE            = 1.2
+        private const val LOG_EVERY_N_FRAMES     = 30
     }
 
     private val analysisScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val isProcessing = AtomicBoolean(false)
     private var lastAnalysisTime = 0L
-
-    // v2.12.0 L0 frame-skip: every 3rd frame enters ML Kit (~10 FPS at 30 FPS camera).
-    // Skipped frames MUST call imageProxy.close() immediately to prevent pipeline stall.
     private var frameCount = 0
     private val analysisInterval = 3
-
-    // v2.12.0-03: Adaptive throttle state
     private val adaptiveThrottleMs = AtomicLong(DEFAULT_THROTTLE_MS)
     private var emaMs = 0.0
     private var warmupCount = 0
     private var processedFrames = 0L
-
-    // Cached detection results for lighting analysis
     private var cachedDetectionResult: DetectionResult? = null
 
-    // v2.x.x Phase 4: Optical flow tracking
-    private var opticalFlowTracker: OpticalFlowTracker? = null
-    private var onOpticalFlowResult: ((TrackingResult) -> Unit)? = null
-    private var imageWidth: Int = 0
-    private var imageHeight: Int = 0
-
-    // v2.11.3 Fix H: Dedicated analyze-pipeline dimensions (always = ImageProxy size, e.g. 1920×1920 for 1:1 mode).
-    // Separate from imageWidth/imageHeight which may be set first by trackFromBitmap() (bitmap ~720px).
-    // @Volatile for cross-thread visibility between analyze() (Default dispatcher) and trackFromBitmap().
-    @Volatile private var analyzeImageWidth: Int = 0
-    @Volatile private var analyzeImageHeight: Int = 0
-
-    // v2.x.x Phase 6: Pending tracking start (applied when first frame arrives)
-    private var pendingTrackX: Float = 0f
-    private var pendingTrackY: Float = 0f
-    private var hasPendingTrack: Boolean = false
-    // v2.11.2 Fix G: true when pending coords are already in image space (set by startOpticalFlowTrackingImageCoords)
-    private var isPendingInImageCoords: Boolean = false
-
-    /**
-     * Set optical flow tracking result callback
-     * v2.x.x Phase 4: Optical flow point tracking
-     *
-     * @param callback Callback invoked when tracking result is available
-     */
-    fun setOpticalFlowCallback(callback: (TrackingResult) -> Unit) {
-        onOpticalFlowResult = callback
-    }
-
-    /**
-     * [v2.11.2 Fix G] Start optical flow tracking using image/analysis coordinates directly.
-     * Bypasses CoordinateMapper (CENTER_CROP) — caller has already converted via CoordinateTransformer (FIT_CENTER).
-     *
-     * @param imageX X coordinate in image analysis space
-     * @param imageY Y coordinate in image analysis space
-     */
-    fun startOpticalFlowTrackingImageCoords(imageX: Float, imageY: Float) {
-        // v2.11.3 Fix H: image coords are in the CoordinateTransformer's image space.
-        // On real device (Pixel 9a), analyze() (CameraX ImageAnalysis) does NOT run — so we cannot
-        // depend on analyzeImageWidth. Instead:
-        // - If imageWidth > 0 (set by a previous trackFromBitmap call), use it directly — it equals
-        //   the bitmap width which matches the CoordinateTransformer's image space.
-        // - If imageWidth == 0 (trackFromBitmap not yet called), store as pending; trackFromBitmap()
-        //   will apply it with bitmap.width/height (the correct dimensions).
-        Log.i(TAG, "[Fix H] startOpticalFlowTrackingImageCoords: imageXY=($imageX,$imageY), imageWidth=$imageWidth")
-        if (imageWidth == 0 || imageHeight == 0) {
-            pendingTrackX = imageX
-            pendingTrackY = imageY
-            hasPendingTrack = true
-            isPendingInImageCoords = true
-            Log.i(TAG, "[Fix H] OF tracking start pending (image coords): ($imageX, $imageY) — imageWidth not yet set")
-            return
-        }
-        if (opticalFlowTracker == null) {
-            // [v2.12.0-23] Inject shared ImuCompensator so the tracker cancels camera motion
-            opticalFlowTracker = OpticalFlowTracker(imuCompensator = imuCompensator)
-            // TODO: 後續 Ticket 從 CameraCharacteristics 動態讀取實際焦距並設定 opticalFlowTracker.focalLengthPx
-            opticalFlowTracker!!.focalLengthPx = 2000f
-        }
-        opticalFlowTracker?.startTracking(Point(imageX.toDouble(), imageY.toDouble()), imageWidth, imageHeight)
-        Log.i(TAG, "[Fix H] OF tracking started at image ($imageX, $imageY), imageSize=${imageWidth}x${imageHeight}")
-    }
-
-    /**
-     * Stop optical flow tracking
-     * v2.x.x Phase 4: Stop tracking and release resources
-     */
-    fun stopOpticalFlowTracking() {
-        opticalFlowTracker?.stopTracking()
-        Log.i(TAG, "Optical flow tracking stopped")
-    }
-
-    /**
-     * Check if optical flow tracking is active
-     * v2.x.x Phase 4: Query tracking state
-     *
-     * @return True if tracking is active, false otherwise
-     */
-    fun isOpticalFlowTracking(): Boolean {
-        return opticalFlowTracker?.isTracking() ?: false
-    }
-
-    /**
-     * Track optical flow point from a Bitmap frame
-     * v2.x.x Phase 6: Bitmap pipeline fallback for emulator (CameraX ImageAnalysis not available)
-     *
-     * Called from CameraViewModel's bitmap analysis loop when optical flow tracking is active.
-     */
-    fun trackFromBitmap(bitmap: Bitmap) {
-        // Set image dimensions from bitmap if not yet known
-        if (imageWidth == 0 || imageHeight == 0) {
-            imageWidth = bitmap.width
-            imageHeight = bitmap.height
-            Log.d(TAG, "Image size set from bitmap: ${imageWidth}x${imageHeight}")
-        }
-
-        // Apply pending tracking start if exists
-        if (hasPendingTrack) {
-            if (isPendingInImageCoords) {
-                // v2.11.3 Fix H: Pending coords are in image space; bitmap IS the image space
-                // (Pixel 9a bitmap=1920x1920 matches the image-space coords directly).
-                // Use bitmap.width/height as tracker dimensions — no dependency on analyzeImageWidth.
-                hasPendingTrack = false
-                isPendingInImageCoords = false
-                val imagePoint = Point(pendingTrackX.toDouble(), pendingTrackY.toDouble())
-                if (opticalFlowTracker == null) {
-                    // [v2.12.0-23] Inject shared ImuCompensator (bitmap path)
-                    opticalFlowTracker = OpticalFlowTracker(imuCompensator = imuCompensator)
-                    // TODO: 後續 Ticket 從 CameraCharacteristics 動態讀取實際焦距並設定 opticalFlowTracker.focalLengthPx
-                    opticalFlowTracker!!.focalLengthPx = 2000f
-                }
-                opticalFlowTracker?.startTracking(imagePoint, bitmap.width, bitmap.height)
-                Log.i(TAG, "[Fix H] Applied pending image-coord track: (${imagePoint.x}, ${imagePoint.y}), bitmapSize=${bitmap.width}x${bitmap.height}")
-            } else {
-                // v2.12.0-15 SV-S5-Final-R2: Legacy preview-coord path removed.
-                // startOpticalFlowTracking(x, y) has been removed — callers must use
-                // startOpticalFlowTrackingImageCoords() which sets isPendingInImageCoords=true.
-                // If we reach here, the pending coords are stale/invalid — discard safely.
-                hasPendingTrack = false
-                Log.w(TAG, "[v2.12.0-15] Discarded stale preview-coord pending track — use startOpticalFlowTrackingImageCoords() instead")
-            }
-        }
-
-        // Skip if not actively tracking
-        if (opticalFlowTracker?.isTracking() != true) return
-
-        // Convert Bitmap to grayscale Mat (uses existing extension function)
-        val grayMat = bitmap.toGrayMat()
-
-        try {
-            val trackingResult = opticalFlowTracker?.track(grayMat) ?: return
-
-            // [Fix G] Pass image coords directly — CameraViewModel converts via CoordinateTransformer (FIT_CENTER)
-            // (Removed CoordinateMapper.imageToPreview — CENTER_CROP scale caused 2.24x drift)
-            onOpticalFlowResult?.invoke(trackingResult)
-        } finally {
-            grayMat.release()
-        }
-    }
+    /** Set preview size for coordinate mapping (interface compliance) */
+    var previewWidth: Int = 0
+    var previewHeight: Int = 0
 
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
-        // v2.12.0 L0: Frame-skip gate — reject 2 out of every 3 frames before any ML work.
-        // MUST close imageProxy immediately on skip to prevent CameraX pipeline stall.
         frameCount++
         if (frameCount % analysisInterval != 0) {
             imageProxy.close()
             return
         }
 
-        // v2.12.0-03: Adaptive throttle gate (L1) — time-based back-pressure after L0.
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastAnalysisTime < adaptiveThrottleMs.get()) {
             imageProxy.close()
             return
         }
 
-        // Skip if already processing
         if (!isProcessing.compareAndSet(false, true)) {
             imageProxy.close()
             return
@@ -301,34 +104,14 @@ class SmartCameraAnalyzer(
         lastAnalysisTime = currentTime
 
         analysisScope.launch {
-            val startNs = SystemClock.elapsedRealtimeNanos() // v2.12.0-03: measure ML Kit latency
+            val startNs = SystemClock.elapsedRealtimeNanos()
             try {
-                // v2.x.x Phase 4: Store image dimensions for coordinate mapping
-                if (imageWidth == 0 || imageHeight == 0) {
-                    imageWidth = imageProxy.width
-                    imageHeight = imageProxy.height
-                    Log.d(TAG, "Image size captured: ${imageWidth}x${imageHeight}")
-                }
-
-                // v2.11.3 Fix H: Always update analyze-pipeline dimensions unconditionally.
-                // Must NOT be inside the if-guard above: trackFromBitmap() sets imageWidth=720 first
-                // (28 FPS vs 2 FPS), so the if-guard is never true when analyze() runs.
-                // analyzeImageWidth always reflects the ImageProxy resolution (e.g. 1920 for 1:1 mode).
-                analyzeImageWidth = imageProxy.width
-                analyzeImageHeight = imageProxy.height
-
-                // Null-safe: if mediaImage is null, return@launch — finally block closes imageProxy.
                 val mediaImage = imageProxy.image ?: run {
-                    Log.w(TAG, "[v2.12.0] mediaImage null — aborting (imageProxy.close() in finally)")
+                    Log.w(TAG, "mediaImage null — aborting")
                     return@launch
                 }
-                // Create InputImage for ML Kit
-                val inputImage = InputImage.fromMediaImage(
-                    mediaImage,
-                    imageProxy.imageInfo.rotationDegrees
-                )
+                val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
-                // Parallel ML Kit detection with proper Task handling
                 val faces = try {
                     faceDetector.process(inputImage).await()
                 } catch (e: Exception) {
@@ -343,15 +126,10 @@ class SmartCameraAnalyzer(
                     emptyList()
                 }
 
-                // Filter low confidence objects
                 val filteredObjects = objects.filter { obj ->
-                    val confidence = obj.labels.firstOrNull()?.confidence ?: 0f
-                    confidence >= minObjectConfidence
+                    (obj.labels.firstOrNull()?.confidence ?: 0f) >= minObjectConfidence
                 }
 
-                // Create detection result with VIEW_REFERENCED coordinates
-                // Note: ML Kit returns coordinates in image space, but we're using
-                // CameraX's coordinate system which handles the transformation
                 val detectionResult = DetectionResult(
                     faces = faces,
                     objects = filteredObjects,
@@ -360,138 +138,53 @@ class SmartCameraAnalyzer(
                     rotationDegrees = imageProxy.imageInfo.rotationDegrees,
                     timestamp = currentTime
                 )
-
-                // Cache for lighting analysis
                 cachedDetectionResult = detectionResult
-
-                // Notify detection result on main thread
                 onDetectionResult(detectionResult)
 
-                // Perform lighting analysis
-                // Use analyzeWithSubject if faces detected, otherwise basic analysis
                 val lightingState = if (faces.isNotEmpty()) {
                     analyzeLightingUseCase.analyzeWithSubject(imageProxy, detectionResult)
                 } else {
                     analyzeLightingUseCase(imageProxy)
                 }
-
-                // Notify lighting result on main thread
                 onLightingResult(lightingState)
 
-                Log.d(
-                    TAG,
-                    "Analysis complete: ${faces.size} faces, ${filteredObjects.size} objects, " +
-                            "lighting: ${lightingState.javaClass.simpleName}"
-                )
-
-                // v2.x.x Phase 4: Optical flow tracking (if active)
-                if (isOpticalFlowTracking()) {
-                    try {
-                        // Convert ImageProxy to grayscale Mat
-                        val grayMat = imageProxy.toGrayMat()
-
-                        try {
-                            // Track point
-                            val trackingResult = opticalFlowTracker?.track(grayMat)
-
-                            if (trackingResult != null) {
-                                // [Fix G] Pass image coords directly — CameraViewModel converts via CoordinateTransformer (FIT_CENTER)
-                                // (Removed CoordinateMapper.imageToPreview — CENTER_CROP scale caused 2.24x drift)
-                                onOpticalFlowResult?.invoke(trackingResult)
-                            }
-                        } finally {
-                            // Release Mat to prevent memory leak
-                            grayMat.release()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Optical flow tracking failed", e)
-                    }
-                }
+                Log.d(TAG, "Analysis: ${faces.size} faces, ${filteredObjects.size} objects, lighting=${lightingState.javaClass.simpleName}")
 
             } catch (e: Exception) {
                 Log.e(TAG, "Analysis error", e)
             } finally {
-                val elapsedNs = SystemClock.elapsedRealtimeNanos() - startNs // v2.12.0-03
-                updateAdaptiveThrottle(elapsedNs)
+                updateAdaptiveThrottle(SystemClock.elapsedRealtimeNanos() - startNs)
                 imageProxy.close()
                 isProcessing.set(false)
             }
         }
     }
 
-    /**
-     * v2.12.0-03: Update adaptive throttle interval based on measured ML Kit latency.
-     *
-     * Algorithm:
-     *   1. Warmup: skip first WARMUP_FRAMES to exclude JIT/cold-start spikes
-     *   2. EWMA: smooth measured latency with α=0.2
-     *   3. Panic backoff: if measured > interval×PANIC_RATIO → immediate scale-up
-     *   4. Target = EWMA × SAFETY_FACTOR
-     *   5. Deadband: skip update if |target - current| < current × DEADBAND_RATIO
-     *   6. Step-rate limit: cap change to ±MAX_EXPAND/MAX_CONTRACT per frame
-     *   7. Clamp: [MIN_THROTTLE_MS, MAX_THROTTLE_MS]
-     */
     private fun updateAdaptiveThrottle(measuredNs: Long) {
         val measuredMs = measuredNs / 1_000_000.0
-
-        // 1. Warmup — skip noisy first frames
-        if (warmupCount < WARMUP_FRAMES) {
-            warmupCount++
-            return
-        }
-
-        // 2. EWMA smoothing
-        emaMs = if (emaMs == 0.0) measuredMs
-                else EMA_ALPHA * measuredMs + (1.0 - EMA_ALPHA) * emaMs
-
+        if (warmupCount < WARMUP_FRAMES) { warmupCount++; return }
+        emaMs = if (emaMs == 0.0) measuredMs else EMA_ALPHA * measuredMs + (1.0 - EMA_ALPHA) * emaMs
         val currentMs = adaptiveThrottleMs.get().toDouble()
         processedFrames++
-
-        // 3. Panic backoff: measured far exceeds current interval
         if (measuredMs > currentMs * PANIC_RATIO) {
-            val panicMs = (currentMs * PANIC_SCALE).toLong()
-                .coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
+            val panicMs = (currentMs * PANIC_SCALE).toLong().coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
             adaptiveThrottleMs.set(panicMs)
-            if (processedFrames % LOG_EVERY_N_FRAMES == 0L) {
-                Log.i(TAG, "[v2.12.0-03] PANIC throttle=${panicMs}ms measured=${measuredMs.toInt()}ms EMA=${emaMs.toInt()}ms")
-            }
             return
         }
-
-        // 4. Target with safety headroom
-        val targetMs = (emaMs * SAFETY_FACTOR).toLong()
-            .coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
-
-        // 5. Deadband — ignore tiny fluctuations
+        val targetMs = (emaMs * SAFETY_FACTOR).toLong().coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
         if (Math.abs(targetMs - currentMs) < currentMs * DEADBAND_RATIO) return
-
-        // 6. Step-rate limit
         val newMs = when {
-            targetMs > currentMs -> (currentMs + MAX_EXPAND_PER_FRAME).toLong()
-                .coerceAtMost(targetMs).coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
-            else                 -> (currentMs - MAX_CONTRACT_PER_FRAME).toLong()
-                .coerceAtLeast(targetMs).coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
+            targetMs > currentMs -> (currentMs + MAX_EXPAND_PER_FRAME).toLong().coerceAtMost(targetMs).coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
+            else                 -> (currentMs - MAX_CONTRACT_PER_FRAME).toLong().coerceAtLeast(targetMs).coerceIn(MIN_THROTTLE_MS, MAX_THROTTLE_MS)
         }
-
         adaptiveThrottleMs.set(newMs)
-
         if (processedFrames % LOG_EVERY_N_FRAMES == 0L) {
-            Log.i(TAG, "[v2.12.0-03] throttle=${newMs}ms EMA=${emaMs.toInt()}ms measured=${measuredMs.toInt()}ms frames=$processedFrames")
+            Log.i(TAG, "[v2.12.0-03] throttle=${newMs}ms EMA=${emaMs.toInt()}ms frames=$processedFrames")
         }
     }
 
-    /**
-     * Clean up resources
-     * Call this when stopping analysis
-     */
     fun cleanup() {
         analysisScope.cancel()
-
-        // v2.x.x Phase 4: Release optical flow tracker
-        stopOpticalFlowTracking()
-        opticalFlowTracker = null
-        onOpticalFlowResult = null
-
         Log.d(TAG, "Analyzer cleaned up")
     }
 }

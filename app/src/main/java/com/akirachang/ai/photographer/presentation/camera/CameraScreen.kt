@@ -208,12 +208,7 @@ fun CameraScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .onSizeChanged { size ->
-                        // Get full screen size BEFORE padding (used for optical flow SetPreviewSize)
                         previewSize = size
-                        // v2.x.x Phase 5: Notify ViewModel of preview size for optical flow
-                        if (size.width > 0 && size.height > 0) {
-                            viewModel.onEvent(CameraUiEvent.SetPreviewSize(size.width, size.height))
-                        }
                     }
                     .padding(paddingValues)
                     .pointerInput(Unit, state.contentBounds) {
@@ -327,14 +322,8 @@ fun CameraScreen(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    // v2.7.0 Phase 2 Sprint 3+4: Guideline Overlay (OpenCV-driven)
-                    // Shows detected composition guideline lines from Hough Line Transform
-                    // Falls back to rule of thirds grid when no lines detected
-                    GuidelineOverlay(
-                        enabled = FeatureFlags.enableGuidelineOverlay,
-                        analysisResult = guidelineResults,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    // Cueshot D0: GuidelineOverlay (OpenCV Hough Line) removed.
+                    // TODO (Cueshot Ticket D3): Wire CompositionGuidelineEngine overlay here.
                 }
 
                 // v2.2.0: HDR/Lighting warning overlay (highest priority - shows on top)

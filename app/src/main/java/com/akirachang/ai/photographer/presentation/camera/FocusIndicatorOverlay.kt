@@ -40,8 +40,10 @@ import kotlinx.coroutines.delay
 // ── SSOT: All timing, sizes, and colors MUST reference FocusTokens ──────────
 // Violation of this contract = architecture pollution (see devspec/feature_record_Backlog.md §M/§N/§O).
 internal object FocusTokens {
-    val AuroraBlue = Color(0xFF00F2FF)
-    val GoldenFocus = Color(0xFFFFD700)
+    // Cueshot D0: AuroraBlue retired. Ambient UI palette: White / Amber / Green.
+    val CueshotAmber = Color(0xFFD4A030)   // #D4A030 — guiding / unaligned
+    val CueshotGreen = Color(0xFF50C864)   // #50C864 — aligned / confirmed
+    val GoldenFocus  = Color(0xFFFFD700)   // lock indicator (unchanged)
 
     // Sizes (dp)
     val SearchingSize = 180.dp
@@ -106,7 +108,7 @@ fun FocusIndicatorOverlay(
 
     // ── Color: Yellow → Cyan transition 200ms ────────────────────────────────
     val colorTarget = when (overlayModel.primaryColor) {
-        OverlayColor.CYAN   -> FocusTokens.AuroraBlue
+        OverlayColor.CYAN   -> FocusTokens.CueshotAmber
         OverlayColor.YELLOW -> FocusTokens.GoldenFocus
     }
     val animatedColor = animateColorAsState(
@@ -236,7 +238,7 @@ fun FocusIndicatorOverlay(
 
         // ── Secondary boxes: corner [ ] brackets, fixed 0.3 alpha ────────────
         // Primary monopoly rule (§O): secondaries never animate, always Cyan at 0.3.
-        val secondaryColor = FocusTokens.AuroraBlue.copy(alpha = 0.3f)
+        val secondaryColor = FocusTokens.CueshotAmber.copy(alpha = 0.3f)
         val bracketSize    = 10.dp.toPx()
         val bracketStroke  = 1.5.dp.toPx()
         overlayModel.secondaryBoxes.forEach { rect ->

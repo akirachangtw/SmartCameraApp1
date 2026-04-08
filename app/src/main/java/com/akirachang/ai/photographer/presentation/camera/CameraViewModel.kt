@@ -53,7 +53,6 @@ import com.akirachang.ai.photographer.domain.usecase.AnalyzeCompositionUseCase
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
-import com.akirachang.ai.photographer.data.source.analysis.GuidelineAnalyzer
 import com.akirachang.ai.photographer.BuildConfig
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import kotlin.math.abs
@@ -279,11 +278,6 @@ class CameraViewModel @Inject constructor(
             initialValue = null
         )
 
-    // GuidelineAnalyzer instance (v2.7.0 Phase 2 Sprint 4)
-    // Created once and reused to avoid performance overhead
-    // Note: Callback is unused because we use synchronous analyzeBitmap() instead
-    private val guidelineAnalyzer = GuidelineAnalyzer { /* unused callback */ }
-
     // v2.13.0 Ticket 2: Rule-of-Thirds composition engine (stateless, pure function)
     private val compositionEngine = CompositionGuidelineEngine()
 
@@ -300,9 +294,6 @@ class CameraViewModel @Inject constructor(
         // v2.5.1: Analyze preview bitmap stream directly (Phase 7)
         // This replaces the old ImageProxy-based analysis
         observePreviewForAnalysis()
-
-        // v2.7.0 Phase 2 Sprint 4: Observe preview for guideline analysis (OpenCV)
-        observePreviewForGuidelineAnalysis()
 
         // v2.13.0 Ticket 2: Observe detection results for Rule-of-Thirds composition advice
         observeCompositionAdvice()
@@ -322,12 +313,6 @@ class CameraViewModel @Inject constructor(
         // ML 偵測需手動啟動（透過 CameraUiEvent.StartAnalysis）
         // 或根據需求自動啟動
         // startAnalysis()  // Deprecated - now using bitmap-based analysis
-
-        // v2.x.x Phase 5: Setup optical flow tracking callback
-        setupOpticalFlowTracking()
-
-        // v2.x.x Phase 7: High-rate optical flow feed (bypass sample(100) throttle)
-        observePreviewForOpticalFlow()
 
         // v2.10.2: Monitor aspect ratio mode changes from Settings (continuous listening)
         viewModelScope.launch {
@@ -357,86 +342,6 @@ class CameraViewModel @Inject constructor(
                 Log.i(TAG, "[v2.12.0-11] isFixedFocusLens updated: $isFixed → CameraState synced")
             }
         }
-    }
-
-    /**
-     * Setup optical flow tracking callback
-     * v2.x.x Phase 5: Optical flow point tracking integration
-     *
-     * Sets up the callback to receive tracking results from SmartCameraAnalyzer.
-     * Updates CameraState with tracking point coordinates and quality.
-     */
-    private fun setupOpticalFlowTracking() {
-        if (!FeatureFlags.enableOpticalFlowTracking) {
-            Log.d(TAG, "Optical flow tracking disabled by feature flag")
-            return
-        }
-
-        cameraRepository.setOpticalFlowCallback { trackingResult ->
-            if (trackingResult.isValid) {
-                // [v2.11.2 Fix G] trackingResult.point is in IMAGE coords (SmartCameraAnalyzer no longer converts).
-                // Use CoordinateTransformer (FIT_CENTER) instead of CoordinateMapper (CENTER_CROP) to
-                // avoid the 2.24x scale error that caused excessive drift.
-                val transformer = _state.value.coordinateTransformer
-                val (screenX, screenY) = if (transformer != null) {
-                    transformer.imageToScreen(
-                        trackingResult.point.x.toFloat(),
-                        trackingResult.point.y.toFloat()
-                    )
-                } else {
-                    // Fallback: transformer not ready — use raw coords (may drift, but non-crashing)
-                    Log.w(TAG, "[Fix G] No coordinateTransformer in OF callback — using raw image coords (fallback)")
-                    trackingResult.point.x.toFloat() to trackingResult.point.y.toFloat()
-                }
-
-                // Update tracking state with screen-space coordinates
-                _state.update {
-                    it.copy(
-                        trackedPointActive = true,
-                        trackedPointQuality = trackingResult.quality,
-                        trackedPointLost = false
-                    )
-                }
-                Log.v(TAG, "[Fix G] OF callback: image=(${trackingResult.point.x.toFloat()}, ${trackingResult.point.y.toFloat()}) → screen=($screenX, $screenY), quality=${trackingResult.quality}")
-
-            } else {
-                // v2.11.2 fix: Guard against repeated LOST callbacks (fires every frame after LOST).
-                // Only process LOST once: when trackedPointActive is still true (first LOST event).
-                val wasActive = _state.value.trackedPointActive
-                if (!wasActive) return@setOpticalFlowCallback  // Already handling LOST, skip duplicate
-
-                // Tracking lost — fade out then clear
-                _state.update {
-                    it.copy(
-                        trackedPointActive = false,
-                        trackedPointLost = true,
-                    )
-                }
-                Log.w(TAG, "Optical flow tracking lost — starting fade-out")
-
-                // Clear focus indicator after 1.5 seconds (1s fade hold + 0.5s animation)
-                viewModelScope.launch {
-                    delay(1500)
-                    _state.update {
-                        it.copy(
-                            trackedPointLost = false
-                        )
-                    }
-                    cameraRepository.stopOpticalFlowTracking()
-                    Log.i(TAG, "Optical flow tracking stopped — focus indicator cleared")
-                }
-            }
-        }
-        Log.i(TAG, "Optical flow tracking callback registered")
-    }
-
-    /**
-     * Manual stop optical flow tracking (called from other contexts if needed)
-     * v2.x.x Phase 5: Stop tracking and clear state
-     */
-    private fun stopOpticalFlowTracking() {
-        cameraRepository.stopOpticalFlowTracking()
-        Log.i(TAG, "Optical flow tracking stopped (manual)")
     }
 
     /**
@@ -557,20 +462,8 @@ class CameraViewModel @Inject constructor(
                 lockAEAF(event.x, event.y, event.viewWidth, event.viewHeight)
             }  // v2.9.9 Day 1-2
             is CameraUiEvent.UnlockAEAF -> unlockAEAF()  // v2.9.9 Day 1-2
-            is CameraUiEvent.SetPreviewSize -> setPreviewSize(event.width, event.height)  // v2.x.x Phase 5
             is CameraUiEvent.ShowPhotoInfo -> showPhotoInfo(event.uri)  // v2.11.0 Phase 3
             is CameraUiEvent.DismissPhotoInfo -> dismissPhotoInfo()  // v2.11.0 Phase 3
-        }
-    }
-
-    /**
-     * Set preview size for optical flow coordinate mapping
-     * v2.x.x Phase 5: Required for PreviewView ↔ ImageAnalysis coordinate conversion
-     */
-    private fun setPreviewSize(width: Int, height: Int) {
-        if (FeatureFlags.enableOpticalFlowTracking) {
-            cameraRepository.setPreviewSize(width, height)
-            Log.d(TAG, "Preview size set for optical flow: ${width}x${height}")
         }
     }
 
@@ -1056,23 +949,11 @@ class CameraViewModel @Inject constructor(
             try {
                 Log.i(TAG, "Locking AE/AF at ($x, $y)")
 
-                // v2.11.2 fix Bug A: Stop Optical Flow BEFORE state update to prevent
-                // OF callback from overwriting focusPoint=B with the old A coordinates.
-                val wasOpticalFlowTracking = _state.value.trackedPointActive
-                if (wasOpticalFlowTracking) {
-                    cameraRepository.stopOpticalFlowTracking()
-                    Log.i(TAG, "Optical flow tracking stopped for AE/AF lock")
-                }
-
                 // Single atomic update: clear ALL tracking state + set lock indicator.
-                // trackedPointActive=false ensures OF callback no longer writes legacy focusPoint.
-                // v2.12.0-10: Clear generic tap flag so lock indicator uses neutral frame sizing.
                 _state.update {
                     it.copy(
-                        trackedObjectId = null,       // Clear ML Kit tracking
+                        trackedObjectId = null,
                         trackedObjectType = null,
-                        trackedPointActive = false,   // Stop OF callback
-                        trackedPointLost = false,
                         lockPoint = Pair(x, y),
                         isAEAFLocked = false,         // Will be set to true after successful lock
                         isGenericTapActive = false,
@@ -1672,26 +1553,6 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
-     * High-rate optical flow feed (v2.x.x Phase 7)
-     *
-     * Subscribes to previewBitmap WITHOUT sample() throttle so LK runs at full
-     * camera frame rate (~28 FPS on Pixel 9a).  The heavier ML Kit / guideline
-     * pipeline in observePreviewForAnalysis() stays at 10 FPS via sample(100).
-     */
-    private fun observePreviewForOpticalFlow() {
-        if (!FeatureFlags.enableOpticalFlowTracking) return
-
-        previewBitmap
-            .filterNotNull()
-            .onEach { bitmap ->
-                if (_state.value.trackedPointActive) {
-                    cameraRepository.processOpticalFlowFrame(bitmap)
-                }
-            }
-            .launchIn(viewModelScope)
-    }
-
-    /**
      * Observes preview bitmap stream for ML Kit analysis (v2.5.1 Phase 7)
      *
      * Replaces the old ImageProxy-based analysis with unified Bitmap analysis.
@@ -1818,9 +1679,6 @@ class CameraViewModel @Inject constructor(
                         }
                     }
 
-                    // v2.x.x Phase 7: Optical flow feed moved to observePreviewForOpticalFlow()
-                    // (runs at full frame rate, independent of this sample(100) throttle)
-
                     // v2.8.4: End-to-end profiling summary
                     val e2eNs    = System.nanoTime() - e2eStart        // v2.12.0-03: ns for EWMA
                     val e2eTotal = e2eNs / 1_000_000.0
@@ -1940,16 +1798,10 @@ class CameraViewModel @Inject constructor(
      * @param detectionResult Current ML Kit detection result
      */
     private fun analyzeComposition(detectionResult: DetectionResult) {
-        // Delegate to UseCase (Clean Architecture)
-        // Phase 2: Pass actual preview dimensions if available
-        // v2.5.2 Phase 7: Use CameraLens for front camera detection
-        val isFrontCamera = _state.value.currentCamera == com.akirachang.ai.photographer.domain.model.CameraLens.FRONT
-        _compositionState.value = analyzeCompositionUseCase(
-            detectionResult = detectionResult,
-            previewWidth = previewWidth,
-            previewHeight = previewHeight,
-            isFrontCamera = isFrontCamera
-        )
+        // Cueshot D0: AnalyzeCompositionUseCase is now a skeleton returning CompositionAdvice.None.
+        // v2.13.0 Ticket 2 path via observeCompositionAdvice() handles CompositionAdvice → CameraState.
+        // This legacy CompositionState path is kept for UI compatibility; returns NoSubject until D1.
+        _compositionState.value = com.akirachang.ai.photographer.presentation.camera.model.CompositionState.NoSubject
     }
 
     /**
@@ -1960,64 +1812,6 @@ class CameraViewModel @Inject constructor(
         Log.i(TAG, "bindCameraToLifecycle: Binding camera to lifecycle")
         cameraRepository.bindToLifecycle(lifecycleOwner)
         Log.i(TAG, "bindCameraToLifecycle: Camera bound successfully")
-    }
-
-    /**
-     * Observes preview bitmap stream for OpenCV guideline analysis (v2.7.0 Phase 2 Sprint 4)
-     *
-     * Samples previewBitmap at 10 FPS (100ms intervals) and performs OpenCV Hough Line Transform
-     * to detect composition guideline lines. Results are exposed via guidelineResults StateFlow.
-     *
-     * Performance considerations:
-     * - Runs on Dispatchers.Default (background thread) to avoid blocking UI
-     * - Sampling at 10 FPS reduces overhead compared to 30 FPS camera stream
-     * - OpenCV analysis target: <15ms average, <30ms P95
-     *
-     * Feature flag: Can be disabled in future via FeatureFlags.enableOpenCvGuidelineBinding
-     */
-    @OptIn(FlowPreview::class)
-    private fun observePreviewForGuidelineAnalysis() {
-        // v2.8.6 Phase 0: A/B Test C - Skip guideline analysis if DEBUG_DISABLE_ANALYSIS is true
-        if (DEBUG_DISABLE_ANALYSIS) {
-            Log.d(TAG, "[A/B Test C] Guideline analysis disabled for Graphics memory investigation")
-            return
-        }
-
-        previewBitmap
-            .filterNotNull()
-            // Throttle analysis to 10 FPS (same as ML Kit analysis)
-            .sample(100)
-            .onEach { bitmap ->
-                try {
-                    // v2.8.4: Profiling for guideline analysis
-                    val guidelineStart = System.nanoTime()
-
-                    // Perform OpenCV analysis on background thread
-                    val result = withContext(Dispatchers.Default) {
-                        guidelineAnalyzer.analyzeBitmap(bitmap)
-                    }
-
-                    val guidelineTotal = (System.nanoTime() - guidelineStart) / 1_000_000.0
-
-                    // Update state (StateFlow updates automatically switch to Main thread)
-                    _guidelineResults.value = result
-
-                    // v2.8.4: Enhanced logging with total time (includes thread switching overhead)
-                    Log.i(
-                        TAG,
-                        "[v2.8.4 Guideline] Lines=${result.lines.size}, " +
-                        "OpenCV=${result.processingTimeMs}ms, " +
-                        "Total=${"%.1f".format(guidelineTotal)}ms"
-                    )
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to analyze guidelines", e)
-                    // Clear results on error
-                    _guidelineResults.value = null
-                }
-            }
-            .launchIn(viewModelScope)
-
-        Log.i(TAG, "Guideline analysis initialized (v2.7.0 Phase 2 Sprint 4)")
     }
 
     /**

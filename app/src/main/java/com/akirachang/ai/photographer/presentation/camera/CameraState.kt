@@ -37,11 +37,6 @@ data class CameraState(
     // v2.9.9 Day 1-2: Traycer v2 AE/AF Lock state
     val isAEAFLocked: Boolean = false,  // True when AE/AF is locked (long press)
     val lockPoint: Pair<Float, Float>? = null,  // Lock point coordinates for yellow square indicator, null if not locked
-    // v2.x.x Phase 1: Optical Flow Point Tracking state
-    val trackedPoint: Pair<Float, Float>? = null,  // Tracked point coordinates (ImageAnalysis coordinate system)
-    val trackedPointActive: Boolean = false,       // True when optical flow tracking is active
-    val trackedPointQuality: Float = 0f,           // Tracking quality (0.0-1.0), used for confidence threshold
-    val trackedPointLost: Boolean = false,         // True when tracking is lost (quality too low or out of bounds)
     // v2.11.0 Phase 3: EXIF information display state
     val showPhotoInfo: Boolean = false,            // True when PhotoInfoBottomSheet should be shown
     val currentPhotoExifInfo: com.akirachang.ai.photographer.domain.model.ExifInfo? = null,  // EXIF data for display
@@ -87,8 +82,6 @@ sealed class CameraUiEvent {
         val viewHeight: Int
     ) : CameraUiEvent()
     object UnlockAEAF : CameraUiEvent()
-    // v2.x.x Phase 5: Optical Flow tracking - set preview size for coordinate mapping
-    data class SetPreviewSize(val width: Int, val height: Int) : CameraUiEvent()
     // v2.11.0 Phase 3: EXIF information display events
     data class ShowPhotoInfo(val uri: Uri) : CameraUiEvent()
     object DismissPhotoInfo : CameraUiEvent()

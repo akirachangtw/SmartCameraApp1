@@ -2,117 +2,41 @@ package com.akirachang.ai.photographer.data.source.camera
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.YuvImage
 import androidx.camera.core.ImageProxy
-import org.opencv.android.Utils
-import org.opencv.core.CvType
-import org.opencv.core.Mat
-import org.opencv.imgproc.Imgproc
+import java.io.ByteArrayOutputStream
 
 /**
- * ImageProxy & Bitmap Extensions for OpenCV
+ * ImageProxy & Bitmap Extensions — Cueshot D0 (OpenCV removed, pure Android)
  *
- * v2.7.0 Phase 2 Sprint 2: ImageProxy → Mat conversion
- * v2.7.0 Phase 2 Sprint 4: Bitmap → Mat conversion
- *
- * Provides conversion functions from CameraX ImageProxy and Android Bitmap to OpenCV Mat format.
- * Optimized for performance with minimal memory allocation.
+ * Provides conversion from CameraX ImageProxy to Android Bitmap for ML Kit.
+ * OpenCV Mat conversion functions removed — Cueshot uses pure ML Kit pipeline.
  */
 
 /**
- * Convert ImageProxy (YUV_420_888) to OpenCV Mat (grayscale)
- *
- * Extracts only the Y plane (luminance channel) for grayscale processing.
- * This is efficient for edge detection, line detection, and other operations
- * that don't require color information.
- *
- * Performance characteristics:
- * - Single buffer copy (Y plane only)
- * - No color space conversion overhead
- * - Suitable for real-time analysis at 30fps
- *
- * @return Mat in CV_8UC1 format (single-channel grayscale)
- * @throws IllegalStateException if image format is not YUV_420_888
+ * Convert ImageProxy (YUV_420_888) to Android Bitmap for ML Kit input.
+ * Replaces toGrayMat() which required OpenCV.
  */
 @SuppressLint("UnsafeOptInUsageError")
-fun ImageProxy.toGrayMat(): Mat {
-    // Verify format
-    require(format == android.graphics.ImageFormat.YUV_420_888) {
-        "Expected YUV_420_888 format, got $format"
-    }
+fun ImageProxy.toBitmap(): Bitmap {
+    val yBuffer = planes[0].buffer
+    val uBuffer = planes[1].buffer
+    val vBuffer = planes[2].buffer
 
-    // Get Y plane (luminance)
-    val yPlane = planes[0]
-    val yBuffer = yPlane.buffer
+    val ySize = yBuffer.remaining()
+    val uSize = uBuffer.remaining()
+    val vSize = vBuffer.remaining()
 
-    // Create Mat with image dimensions
-    val mat = Mat(height, width, CvType.CV_8UC1)
+    val nv21 = ByteArray(ySize + uSize + vSize)
+    yBuffer.get(nv21, 0, ySize)
+    vBuffer.get(nv21, ySize, vSize)
+    uBuffer.get(nv21, ySize + vSize, uSize)
 
-    // Copy Y plane data to Mat
-    // Note: We need to handle row stride if it's not equal to width
-    if (yPlane.rowStride == width) {
-        // Direct copy (optimal case)
-        val yData = ByteArray(yBuffer.remaining())
-        yBuffer.get(yData)
-        mat.put(0, 0, yData)
-    } else {
-        // Row-by-row copy (handle padding)
-        val rowData = ByteArray(width)
-        for (row in 0 until height) {
-            yBuffer.position(row * yPlane.rowStride)
-            yBuffer.get(rowData)
-            mat.put(row, 0, rowData)
-        }
-    }
-
-    return mat
-}
-
-/**
- * Convert ImageProxy (YUV_420_888) to OpenCV Mat (BGR color)
- *
- * Full YUV → BGR conversion for color-based analysis.
- * More expensive than toGrayMat() but provides color information.
- *
- * Note: Currently not implemented in Sprint 2 (not needed for guideline overlay).
- * Will be implemented in future phases if color analysis is required.
- *
- * @return Mat in CV_8UC3 format (BGR color)
- * @throws NotImplementedError Always (not yet implemented)
- */
-@SuppressLint("UnsafeOptInUsageError")
-fun ImageProxy.toBgrMat(): Mat {
-    throw NotImplementedError(
-        "BGR conversion not implemented in v2.7.0 Phase 2. " +
-        "Use toGrayMat() for grayscale analysis."
-    )
-}
-
-/**
- * Convert Android Bitmap to OpenCV Mat (grayscale)
- *
- * v2.7.0 Phase 2 Sprint 4
- *
- * Converts Android Bitmap (typically ARGB_8888) to grayscale Mat for OpenCV processing.
- * Used for ViewModel-layer integration where previewBitmap is already in Bitmap format.
- *
- * Performance characteristics:
- * - Single color conversion (RGBA → Gray)
- * - Suitable for 10fps sampling (100ms intervals)
- * - More overhead than ImageProxy.toGrayMat() but necessary for Bitmap input
- *
- * @return Mat in CV_8UC1 format (single-channel grayscale)
- */
-fun Bitmap.toGrayMat(): Mat {
-    // Create Mat from Bitmap (RGBA format)
-    val rgbaMat = Mat()
-    Utils.bitmapToMat(this, rgbaMat)
-
-    // Convert RGBA to Grayscale
-    val grayMat = Mat()
-    Imgproc.cvtColor(rgbaMat, grayMat, Imgproc.COLOR_RGBA2GRAY)
-
-    // Release intermediate Mat
-    rgbaMat.release()
-
-    return grayMat
+    val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
+    val out = ByteArrayOutputStream()
+    yuvImage.compressToJpeg(android.graphics.Rect(0, 0, width, height), 90, out)
+    val imageBytes = out.toByteArray()
+    return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 }

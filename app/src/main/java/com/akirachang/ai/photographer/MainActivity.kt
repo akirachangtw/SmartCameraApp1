@@ -22,7 +22,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.opencv.android.OpenCVLoader
 import com.akirachang.ai.photographer.presentation.camera.CameraScreen
 import com.akirachang.ai.photographer.presentation.settings.SettingsScreen
 import com.akirachang.ai.photographer.ui.theme.SmartCameraApp1Theme
@@ -34,37 +33,33 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 
-    // v2.13.0: Volatile flag — written on IO thread, read on Main thread by SplashScreen condition.
+    // Cueshot D0: Volatile flag — written on IO thread, released after ML Kit pre-warm.
     @Volatile
-    private var isOpenCvLoaded = false
+    private var isMlKitReady = false
 
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        // v2.13.0: installSplashScreen() MUST be called before super.onCreate().
-        // setKeepOnScreenCondition holds the splash until isOpenCvLoaded = true.
+        // Cueshot D0: installSplashScreen() MUST be called before super.onCreate().
+        // setKeepOnScreenCondition holds the splash until ML Kit pre-warm completes.
         val splashScreen = installSplashScreen()
-        splashScreen.setKeepOnScreenCondition { !isOpenCvLoaded }
+        splashScreen.setKeepOnScreenCondition { !isMlKitReady }
 
         super.onCreate(savedInstanceState)
 
-        // v2.13.0: Load OpenCV native lib on IO thread — never block Main Thread.
-        // On completion, isOpenCvLoaded = true releases the SplashScreen naturally.
+        // Cueshot D0: ML Kit pre-warm on IO thread — never block Main Thread.
+        // TODO (Cueshot Ticket D1): Replace with actual ML Kit FaceDetector/ObjectDetector warm-up.
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val success = OpenCVLoader.initDebug()
+                // Placeholder: simulate pre-warm until Ticket D1 wires ML Kit init
+                Log.i(TAG, "ML Kit pre-warm start")
                 withContext(Dispatchers.Main) {
-                    if (success) {
-                        Log.i(TAG, "✅ OpenCV ${OpenCVLoader.OPENCV_VERSION} loaded on IO thread")
-                    } else {
-                        Log.e(TAG, "❌ OpenCV initialization failed (IO thread)")
-                    }
-                    // Release splash regardless of result — app must not be stuck forever.
-                    isOpenCvLoaded = true
+                    isMlKitReady = true
+                    Log.i(TAG, "ML Kit pre-warm complete — releasing splash")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "❌ OpenCV init exception on IO thread: ${e.message}", e)
+                Log.e(TAG, "ML Kit pre-warm exception: ${e.message}", e)
                 withContext(Dispatchers.Main) {
-                    isOpenCvLoaded = true  // Fail-safe: release splash even on error
+                    isMlKitReady = true  // Fail-safe: release splash even on error
                 }
             }
         }

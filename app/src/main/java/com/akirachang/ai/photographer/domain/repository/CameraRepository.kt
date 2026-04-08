@@ -10,7 +10,6 @@ import com.akirachang.ai.photographer.domain.model.CaptureResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.domain.model.GuidelineAnalysisResult
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
-import com.akirachang.ai.photographer.data.opencv.TrackingResult
 
 interface CameraRepository {
     /**
@@ -221,64 +220,9 @@ interface CameraRepository {
     suspend fun cancelFocusAndMetering(): Result<Unit>
 
     /**
-     * Set optical flow tracking result callback
-     * v2.x.x Phase 4: Optical flow point tracking
-     *
-     * @param callback Callback invoked when tracking result is available
-     */
-    fun setOpticalFlowCallback(callback: (TrackingResult) -> Unit)
-
-    /**
      * Set preview size for coordinate mapping
-     * v2.x.x Phase 4: Required for PreviewView ↔ ImageAnalysis coordinate conversion
-     *
-     * @param width Preview width in pixels
-     * @param height Preview height in pixels
      */
     fun setPreviewSize(width: Int, height: Int)
-
-    /**
-     * Start optical flow tracking at a specific point
-     * v2.x.x Phase 4: Tap-to-track point feature
-     *
-     * @param x X coordinate in PreviewView (0.0 to previewWidth)
-     * @param y Y coordinate in PreviewView (0.0 to previewHeight)
-     */
-    fun startOpticalFlowTracking(x: Float, y: Float)
-
-    /**
-     * Start optical flow tracking using image/analysis coordinates directly.
-     * [v2.11.2 Fix G] Bypasses CoordinateMapper (CENTER_CROP) — caller uses CoordinateTransformer (FIT_CENTER).
-     *
-     * @param imageX X coordinate in image analysis space
-     * @param imageY Y coordinate in image analysis space
-     */
-    fun startOpticalFlowTrackingImageCoords(imageX: Float, imageY: Float)
-
-    /**
-     * Stop optical flow tracking
-     * v2.x.x Phase 4: Stop tracking and release resources
-     */
-    fun stopOpticalFlowTracking()
-
-    /**
-     * Check if optical flow tracking is active
-     * v2.x.x Phase 4: Query tracking state
-     *
-     * @return True if tracking is active, false otherwise
-     */
-    fun isOpticalFlowTracking(): Boolean
-
-    /**
-     * Process a bitmap frame for optical flow tracking
-     * v2.x.x Phase 6: Bitmap pipeline fallback for emulator
-     *
-     * Called from CameraViewModel's bitmap analysis loop when tracking is active
-     * and CameraX ImageAnalysis is not available (emulator mode).
-     *
-     * @param bitmap Current preview frame as Bitmap
-     */
-    fun processOpticalFlowFrame(bitmap: Bitmap)
 
     /**
      * Read EXIF metadata from captured photo
