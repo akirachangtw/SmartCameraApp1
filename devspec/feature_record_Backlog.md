@@ -2366,3 +2366,15 @@ private fun clearTapToFocusIntent() {
 ### 📋 Backlog
 
 - [ ] [Infrastructure] Kapt to KSP migration (保留 K2 編譯器相容性，推遲至 MVP D6 階段後再執行，目前維持 1.9 降級模式以避免依賴重構的範圍蔓延)
+
+---
+
+## 🏛️ 架構決策紀錄 (ADR) - D0 絞殺者手術 (v2.13.0-base)
+
+**決策日期**: 2026-04-07 ~ 2026-04-09 | **Traycer 判定**: Path A (放行) | **Branch**: `feature/cueshot-mvp`
+
+* **Tier-aware 架構確立**：導入 `DeviceCapabilityTier` (FULL/LIMITED/LEGACY) 取代原有的 4 級效能降級，並嚴格透過 DI 注入綁定硬體能力，杜絕孤島代碼。
+* **色彩契約強制對齊**：UI 狀態顏色必須 100% 遵循 SSOT v3.3 (Focusing=Amber `#D4A030`, Focused=Green `#50C864`)。代碼必須向規格低頭，嚴禁為了遷就舊有邏輯 (Cyan) 而妥協。
+* **RenderScript 完全移除**：`RenderScriptYuvConverter.kt` 刪除，`LiveCameraSource.kt` 移除所有 RS 呼叫點，YUV→RGBA 轉換改由 ML Kit 原生處理。
+* **OpticalFlowTracker 焦土**：`OpticalFlowTracker` 及所有相關 DI 參數全數移除，`ImuCompensator` 改為獨立注入，不再依賴 OF 管線。
+* **consumeCameraMotion 接線原則**：`ImuCompensator.consumeCameraMotion()` 必須在 per-frame analysis pipeline (`observePreviewForAnalysis`) 中呼叫，而非在 `startImuCompensation()` 的 accumulate flow 中消費（accumulate 與 consume 必須分離）。
