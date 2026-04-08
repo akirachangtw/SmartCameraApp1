@@ -88,7 +88,7 @@ object TechColors {
  * Expandable settings card with modern Material3 design and smooth animations.
  *
  * Features:
- * - Glassmorphism visual effect
+ * - Frosted glass visual effect
  * - Smooth icon rotation animation (0° → 180°)
  * - Content expand/collapse animation with spring physics
  * - Accent color transition (grey → cyan)

@@ -56,10 +56,10 @@ import com.akirachang.ai.photographer.domain.sensor.GyroscopeData
  *     compensator.accumulate(data)
  * }
  *
- * // In optical flow analysis (per-frame):
+ * // In per-frame motion compensation:
  * val (dx, dy) = compensator.consumeCameraMotion(focalLengthPx = 800f)
- * val correctedFlowX = rawFlowX - dx
- * val correctedFlowY = rawFlowY - dy
+ * val correctedX = rawX - dx
+ * val correctedY = rawY - dy
  * ```
  */
 class ImuCompensator {

@@ -40,7 +40,7 @@ import kotlinx.coroutines.delay
 // ── SSOT: All timing, sizes, and colors MUST reference FocusTokens ──────────
 // Violation of this contract = architecture pollution (see devspec/feature_record_Backlog.md §M/§N/§O).
 internal object FocusTokens {
-    // Cueshot D0: AuroraBlue retired. Ambient UI palette: White / Amber / Green.
+    // Cueshot D0: Legacy blue palette retired. Ambient UI palette: Amber / Golden / Green.
     val CueshotAmber = Color(0xFFD4A030)   // #D4A030 — guiding / unaligned
     val CueshotGreen = Color(0xFF50C864)   // #50C864 — aligned / confirmed
     val GoldenFocus  = Color(0xFFFFD700)   // lock indicator (unchanged)

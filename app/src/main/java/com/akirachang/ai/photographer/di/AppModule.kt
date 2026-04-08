@@ -133,9 +133,8 @@ abstract class AppModule {
         /**
          * [v2.12.0-23] 提供 ImuCompensator 單例
          *
-         * Shared between CameraViewModel (gyroscope accumulation) and OpticalFlowTracker
-         * (camera-motion cancellation).  Must be @Singleton so both sides operate on the
-         * same accumulator instance — two separate instances would break compensation math.
+         * Shared between CameraViewModel (gyroscope accumulation) and IMU compensation pipeline.
+         * Must be @Singleton so both sides operate on the same accumulator instance.
          */
         @Provides
         @Singleton
