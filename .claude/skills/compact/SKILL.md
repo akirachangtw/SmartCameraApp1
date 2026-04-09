@@ -42,10 +42,16 @@
 - 不要複製代碼，只引用檔案路徑和函數名。
 - 「下一步待辦」必須具體到可以直接執行的粒度，禁止寫「繼續開發」這種空話。
 
-產出後，將此交接文件儲存至：
+產出前，**必須先執行以下指令取得實際系統時間**：
+```bash
+powershell -command "Get-Date -Format 'yyyyMMdd_HHmm'"
 ```
-docs/session_handoff/SESSION_HANDOFF_YYYYMMDD_HHMM.md
+使用該指令回傳的值作為檔名時間戳，儲存至：
 ```
-（自動帶入當下日期時間，例如：`SESSION_HANDOFF_20260408_1430.md`）
+docs/session_handoff/SESSION_HANDOFF_<實際時間戳>.md
+```
+例如指令回傳 `20260409_1425`，則檔名為 `SESSION_HANDOFF_20260409_1425.md`。
+
+⚠️ 禁止估算或硬編碼時間——時間戳必須來自系統指令。
 
 提醒：「交接文件已儲存至 docs/session_handoff/。建議：1) 更新 PROGRESS.md 2) 開新對話 3) 貼入此交接文件」

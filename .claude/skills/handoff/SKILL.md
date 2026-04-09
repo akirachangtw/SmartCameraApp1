@@ -10,10 +10,18 @@ disable-model-invocation: false
 請立即執行以下步驟，生成一份「交接提示詞 (Handoff Prompt)」並自動儲存：
 
 ### 儲存路徑
+
+**生成前必須先執行以下指令取得實際系統時間**：
+```bash
+powershell -command "Get-Date -Format 'yyyyMMdd_HHmm'"
 ```
-docs/handoff/HANDOFF_YYYYMMDD_HHMM.md
+使用回傳值作為時間戳，儲存至：
 ```
-（請自動帶入當下的日期與時間，格式例如：`SESSION_HANDOFF_20260320_1430.md`）
+docs/handoff/HANDOFF_<實際時間戳>.md
+```
+例如指令回傳 `20260409_1425`，則檔名為 `HANDOFF_20260409_1425.md`。
+
+⚠️ 禁止估算或硬編碼時間——時間戳必須來自系統指令。
 
 ---
 
