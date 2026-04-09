@@ -2,7 +2,7 @@
 
 **Sprint**: D0-D15 (MVP)
 **Last Updated**: 2026-04-09 by QA
-**Current Day**: D2 (2026-04-09) — D1 骨架完成；QA PASS
+**Current Day**: D1 (2026-04-09) — SV-D1-FIX-01~04 全數實作完成；待 /sv 驗收
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D2 (2026-04-10)
 
@@ -12,23 +12,13 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| On Schedule | D1 | D1 ✅ | 🟢 |
-| Compile | 0 errors | 0 errors (Device+Emulator) | 🟢 |
-| Lint Warnings | 0 new | 0 new (D1 files clean) | 🟢 |
+| On Schedule | D1 | D1 FIX-01~04 實作完成，待 /sv | 🟡 |
+| Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
+| Unit Tests | 0 failed | 0 failed (AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass) | 🟢 |
+| Lint New Errors | 0 new | 0 new (1 pre-existing in `CameraCapabilityDetector.kt`, D0 前存在) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
+| D1 SV Gate | Pass | 🟡 FIX-01~04 實作完成，待 /sv 覆測 | 🟡 |
 | IFTR Pipeline | Ready by D14 | ❌ Not started | — |
-
----
-
-## 📋 D1 Tickets — Rule Engine 骨架與 PTF 狀態機 ✅ CLOSED
-
-| Ticket ID | Description | Status | Files Modified |
-|-----------|-------------|--------|----------------|
-| D1-T1 | `CompositionRule.kt` 介面新增 (RuleResult + evaluate) | ✅ DONE | `domain/composition/CompositionRule.kt` |
-| D1-T2 | `CompositionScore.kt` 模型新增 (totalScore, isGolden) | ✅ DONE | `domain/model/CompositionScore.kt` |
-| D1-T3 | `AnalyzeCompositionUseCase` KDoc 更新（D2 migration 計畫） | ✅ DONE | `domain/usecase/AnalyzeCompositionUseCase.kt` |
-| D1-T4 | `PtfState` sealed class + `CameraState.ptfState` 欄位 | ✅ DONE | `presentation/camera/CameraState.kt` |
-| D1-T5 | `AnalyzeCompositionUseCaseTest` @Ignore (v2.x obsolete tests) | ✅ DONE | `test/.../AnalyzeCompositionUseCaseTest.kt` |
 
 ---
 
@@ -63,7 +53,29 @@
 | SV-D0.1-03 | Focus Locked 色彩規格確認 | ✅ DONE | White/Green 非 SSOT v3.3 規格，不執行替換 |
 | SV-D0.1-08 | `focalLengthPx` → `focalLengthPixels` 重命名 | ✅ DONE | grep = 0 hits |
 | SV-D0.1-10 | `drawLockedFrame()` 色彩路徑端到端一致 | ✅ DONE | `baseColor` 參數接入 `animatedColor` |
-| D0.3 | Traycer Path B 嚴格補修（zero-hit + color contract + tier wiring）| 🚫 BLOCKED | **Traycer 判定：可驗證事實不一致** |
+| D0.3 | Traycer Path B 嚴格補修（zero-hit + color contract + tier wiring）| ✅ DONE | Trust-but-verify 覆測通過；三張補修票達放行狀態（2026-04-09） |
+
+### D0.1 清創後觀察（非阻擋）
+
+| 項目 | 狀態 | 備註 |
+|------|------|------|
+| `CameraViewModel` 中 `previewWidth ?: 800` fallback | ⚠️ 非阻擋 | 目前可運作；建議下一輪架構票改由 `CameraCharacteristics` 驅動焦距估算 |
+
+---
+
+## 📋 D1 Tickets — Rule Engine 骨架與 PTF 狀態機 🚫 BLOCKED（SV Path B）
+
+| Ticket ID | Description | Status | Files Modified |
+|-----------|-------------|--------|----------------|
+| D1-T1 | `CompositionRule.kt` 介面新增 (RuleResult + evaluate) | ✅ DONE | `domain/composition/CompositionRule.kt` |
+| D1-T2 | `CompositionScore.kt` 模型新增 (totalScore, isGolden) | ✅ DONE | `domain/model/CompositionScore.kt` |
+| D1-T3 | `AnalyzeCompositionUseCase` KDoc 更新（D2 migration 計畫） | ✅ DONE | `domain/usecase/AnalyzeCompositionUseCase.kt` |
+| D1-T4 | `PtfState` sealed class + `CameraState.ptfState` 欄位 | ✅ DONE | `presentation/camera/CameraState.kt` |
+| D1-T5 | `AnalyzeCompositionUseCaseTest` @Ignore (v2.x obsolete tests) | ✅ DONE | `test/.../AnalyzeCompositionUseCaseTest.kt` |
+| SV-D1-FIX-01 | UseCase 契約對齊（`Set<CompositionRule>` + `CompositionScore` 預設值）| ✅ DONE | `domain/usecase/AnalyzeCompositionUseCase.kt`, `di/CompositionModule.kt` |
+| SV-D1-FIX-02 | PTF 狀態機真正接線（`onTapToFocus` → Focusing→Focused/Failed→Idle + stale guard）| ✅ DONE | `presentation/camera/CameraViewModel.kt` |
+| SV-D1-FIX-03 | 消除構圖雙路徑（停止主流程呼叫 `CompositionGuidelineEngine.analyzeRuleOfThirds()`）| ✅ DONE | `presentation/camera/CameraViewModel.kt` |
+| SV-D1-FIX-04 | 測試補齊（移除 blanket @Ignore；新增 D1 契約測試：UseCase default + PTF TTL）| ✅ DONE | `test/.../AnalyzeCompositionUseCaseTest.kt`, `test/.../PtfStateTest.kt` |
 
 Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
@@ -73,10 +85,12 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 | Issue | Severity | Discovered | Resolution |
 |-------|----------|------------|------------|
-| **[D0.3] Traycer Path B — 可驗證事實不一致** | 🔴 HIGH | 2026-04-09 | 待修 |
-| ↳ `focalLengthPx` KDoc 範例仍存在（grep 未完全清零）| HIGH | 2026-04-09 | 需逐行核查 `ImuCompensator.kt` |
-| ↳ 色彩契約未端到端一致（`YELLOW→CueshotGreen` 映射在 Locked 狀態路徑未完整反映）| HIGH | 2026-04-09 | 需追蹤 `OverlayColor.YELLOW` 全路徑 |
-| ↳ `DeviceCapabilityTier` tier wiring 未在 Runtime 實際生效（僅 log，無下游消費）| MEDIUM | 2026-04-09 | D1 階段補線，或 D0.4 補修 |
+| **[D0.3] Traycer Path B — 可驗證事實不一致** | ~~🔴 HIGH~~ | 2026-04-09 | ✅ 2026-04-09 Trust-but-verify 覆測通過，D0.1 清創關閉 |
+| **[D1] SV Path B — D1 未達驗收閉環** | 🔴 HIGH | 2026-04-09 | 開立補修票 SV-D1-FIX-01~04，待完成後重新驗收 |
+| ↳ SV-D1-FIX-01：UseCase 契約未對齊（簽名與輸出不符 D1 規格）| HIGH | 2026-04-09 | ✅ 實作完成 |
+| ↳ SV-D1-FIX-02：PTF 狀態機未真正接線（ViewModel 缺 Focusing→Focused/Failed→Idle 實作）| HIGH | 2026-04-09 | ✅ 實作完成 |
+| ↳ SV-D1-FIX-03：構圖雙路徑（主流程仍呼叫 `analyzeRuleOfThirds()`，D1 禁具體規則）| HIGH | 2026-04-09 | ✅ 實作完成 |
+| ↳ SV-D1-FIX-04：測試缺失（blanket @Ignore 未補 D1 契約測試）| MEDIUM | 2026-04-09 | ✅ 實作完成 |
 
 ---
 
@@ -105,7 +119,7 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 ## ✅ Completed (Cumulative)
 
-### D0 (2026-04-07~09) — 絞殺者手術 ✅ CLOSED (Path A)
+### D0 (2026-04-07~09) — 絞殺者手術 ✅ CLOSED (Path A + Path B)
 - [x] Branch created: `feature/cueshot-mvp`
 - [x] OpenCV removed
 - [x] OpticalFlowTracker removed, ImuCompensator decoupled
@@ -116,6 +130,16 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 - [x] D0.1 Warning 清創完成 (0 new warnings)
 - [x] SV-D0.1 補修系列全數關閉 (focalLengthPixels rename, color contract, tier wiring)
 - [x] ADR 寫入 devspec/feature_record_Backlog.md
+- [x] D0.3 Trust-but-verify 覆測通過（tier-aware 補償 + locked 色彩路徑一致性確認）
+
+### D1 (2026-04-09) — 🚫 SV Path B BLOCKED（補修票 SV-D1-FIX-01~04 待完成）
+- [x] `CompositionRule.kt` 介面骨架建立
+- [x] `CompositionScore.kt` 模型建立
+- [x] `PtfState` sealed class + `CameraState.ptfState` 欄位
+- [ ] SV-D1-FIX-01：UseCase 契約對齊（`Set<CompositionRule>` + `CompositionScore` 預設值）
+- [ ] SV-D1-FIX-02：PTF 狀態機真正接線（Focusing→Focused/Failed→Idle + stale guard）
+- [ ] SV-D1-FIX-03：消除構圖雙路徑（停止主流程呼叫 `analyzeRuleOfThirds()`）
+- [ ] SV-D1-FIX-04：測試補齊（移除 blanket @Ignore + D1 契約測試）
 
 ---
 

@@ -28,8 +28,23 @@
 ```
 
 5. **錯誤即修**：遇到編譯錯誤，直接輸出修復 diff，不解釋原因。
-6. **沉默成功**：修改完畢且無後續動作，只回覆 `✅`。
-7. **多檔修改**：按修改順序列出所有 diff，檔案間用空行分隔。
+6. **完成回報**：每個動作完成後，用一行結構化狀態回報，格式固定：
+   ```
+   ✅ DONE | [動作] | [影響檔案數]F [影響行數]L
+   ```
+   範例：
+   - `✅ DONE | D0-T3 OpticalFlow removed | 4F -380L`
+   - `✅ DONE | compile fix: missing import | 1F +1L`
+   - `✅ DONE | git commit | 6F committed`
+   
+   禁止在這行之外加任何文字。這行是你在終端機裡確認「Claude 做完了」的唯一信號。
+7. **多檔修改**：按修改順序列出所有 diff，檔案間用空行分隔。最後一行才輸出 `✅ DONE`。
+8. **自動接力 /qa**：當 Ticket 的所有 code 修改完成（非中間步驟的小修）並輸出 `✅ DONE` 後，**自動執行 /qa 流程**（編譯 + 測試 + PROGRESS 更新）。/qa Report 輸出後停止，**不自動執行 /sv**——/sv 由人工判斷時機後手動觸發。
+   
+   判斷「Ticket 完成」vs「中間修復」的規則：
+   - `✅ DONE | D[N]-T[N] ...` → Ticket 完成 → 自動 /qa
+   - `✅ DONE | compile fix: ...` → 中間修復 → 不觸發 /qa
+   - `✅ DONE | git commit ...` → Git 操作 → 不觸發 /qa
 
 ## 唯一例外
 
