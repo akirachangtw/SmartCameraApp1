@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-09 by QA
-**Current Day**: D1 (2026-04-09) — SV-D1-FIX-01~04 全數實作完成；待 /sv 驗收
+**Last Updated**: 2026-04-09 by D1.1 ADR
+**Current Day**: D2 (2026-04-10) — D1 ✅ CLOSED (Path A)；D2 🏃 IN PROGRESS
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D2 (2026-04-10)
 
@@ -12,12 +12,12 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| On Schedule | D1 | D1 FIX-01~04 實作完成，待 /sv | 🟡 |
+| On Schedule | D2 | D1 ✅ CLOSED；D2 🏃 IN PROGRESS | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
 | Unit Tests | 0 failed | 0 failed (AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass) | 🟢 |
 | Lint New Errors | 0 new | 0 new (1 pre-existing in `CameraCapabilityDetector.kt`, D0 前存在) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
-| D1 SV Gate | Pass | 🟡 FIX-01~04 實作完成，待 /sv 覆測 | 🟡 |
+| D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
 | IFTR Pipeline | Ready by D14 | ❌ Not started | — |
 
 ---
@@ -63,7 +63,7 @@
 
 ---
 
-## 📋 D1 Tickets — Rule Engine 骨架與 PTF 狀態機 🚫 BLOCKED（SV Path B）
+## 📋 D1 Tickets — Rule Engine 骨架與 PTF 狀態機 ✅ CLOSED (2026-04-09)
 
 | Ticket ID | Description | Status | Files Modified |
 |-----------|-------------|--------|----------------|
@@ -86,11 +86,7 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | Issue | Severity | Discovered | Resolution |
 |-------|----------|------------|------------|
 | **[D0.3] Traycer Path B — 可驗證事實不一致** | ~~🔴 HIGH~~ | 2026-04-09 | ✅ 2026-04-09 Trust-but-verify 覆測通過，D0.1 清創關閉 |
-| **[D1] SV Path B — D1 未達驗收閉環** | 🔴 HIGH | 2026-04-09 | 開立補修票 SV-D1-FIX-01~04，待完成後重新驗收 |
-| ↳ SV-D1-FIX-01：UseCase 契約未對齊（簽名與輸出不符 D1 規格）| HIGH | 2026-04-09 | ✅ 實作完成 |
-| ↳ SV-D1-FIX-02：PTF 狀態機未真正接線（ViewModel 缺 Focusing→Focused/Failed→Idle 實作）| HIGH | 2026-04-09 | ✅ 實作完成 |
-| ↳ SV-D1-FIX-03：構圖雙路徑（主流程仍呼叫 `analyzeRuleOfThirds()`，D1 禁具體規則）| HIGH | 2026-04-09 | ✅ 實作完成 |
-| ↳ SV-D1-FIX-04：測試缺失（blanket @Ignore 未補 D1 契約測試）| MEDIUM | 2026-04-09 | ✅ 實作完成 |
+| **[D1] SV Path B — D1 未達驗收閉環** | ~~🔴 HIGH~~ | 2026-04-09 | ✅ 2026-04-09 FIX-01~06 全數閉環，Traycer Path A 放行 |
 
 ---
 
@@ -132,14 +128,17 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 - [x] ADR 寫入 devspec/feature_record_Backlog.md
 - [x] D0.3 Trust-but-verify 覆測通過（tier-aware 補償 + locked 色彩路徑一致性確認）
 
-### D1 (2026-04-09) — 🚫 SV Path B BLOCKED（補修票 SV-D1-FIX-01~04 待完成）
+### D1 (2026-04-09) — ✅ CLOSED (Path A, Traycer 放行)
 - [x] `CompositionRule.kt` 介面骨架建立
 - [x] `CompositionScore.kt` 模型建立
 - [x] `PtfState` sealed class + `CameraState.ptfState` 欄位
-- [ ] SV-D1-FIX-01：UseCase 契約對齊（`Set<CompositionRule>` + `CompositionScore` 預設值）
-- [ ] SV-D1-FIX-02：PTF 狀態機真正接線（Focusing→Focused/Failed→Idle + stale guard）
-- [ ] SV-D1-FIX-03：消除構圖雙路徑（停止主流程呼叫 `analyzeRuleOfThirds()`）
-- [ ] SV-D1-FIX-04：測試補齊（移除 blanket @Ignore + D1 契約測試）
+- [x] SV-D1-FIX-01：UseCase 契約對齊（`Set<CompositionRule>` + `CompositionScore` 預設值）
+- [x] SV-D1-FIX-02：PTF 狀態機真正接線（Focusing→Focused/Failed→Idle + stale guard）
+- [x] SV-D1-FIX-03：消除構圖雙路徑（停止主流程呼叫 `analyzeRuleOfThirds()`）
+- [x] SV-D1-FIX-04：測試補齊（移除 blanket @Ignore + D1 契約測試）
+- [x] SV-D1-FIX-05：PTF session token 競態防護（`currentPtfSessionId`）
+- [x] SV-D1-FIX-06：Git 提交範圍清理（feat/docs 原子化分離）
+- [x] D1.1：ADR 歸檔（devspec/feature_record_Backlog.md D1 三大決策）
 
 ---
 

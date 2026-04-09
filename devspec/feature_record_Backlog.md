@@ -2398,3 +2398,24 @@ private fun clearTapToFocusIntent() {
 ### 3. SV 反向掃描防禦教訓
 - Traycer Path B 判定（可驗證事實不一致）的根源：SV 工具描述功能而非驗證功能，導致「看起來完整」但實際未接線。
 - 後續所有 Scaffold 類 Ticket（建立介面/sealed class/Tier enum）在 SV 時必須加做**反向掃描**：確認新建物件在至少一個下游消費點被真實呼叫，而非僅存在於宣告端。
+
+---
+
+## 🏛️ 架構決策紀錄 (ADR) - D1 骨架與狀態機
+
+**決策日期**: 2026-04-09 | **Traycer 判定**: Path A (放行，補修後) | **Branch**: `feature/cueshot-mvp`
+
+### 1. PTF 競態防護 (Session Token)
+- **決策**：狀態機的防呆不可依賴 Data Class 的相等性（`Focused(x,y) == Focused(x,y)` 無法區分新舊請求）。必須強制使用 Session Token（`currentPtfSessionId: Long`）作為唯一的跨請求隔離與覆蓋防護機制。
+- **風險**：若無 Token，快速連點同一座標時，舊 coroutine 的 2 秒 delay 會誤判新 Focused 狀態為「自己設置的」並提早 reset 至 Idle，造成視覺閃爍與狀態機失控。
+- **驗收標準**：`onTapToFocus()` 必須在 coroutine 外遞增 `currentPtfSessionId`，並在 Defence A（結果回傳後）與 Defence B（delay 後）兩點各做一次 token 比對，不符則 `return@launch`。
+
+### 2. Hilt 集合綁定規範
+- **決策**：空集合的 `@Multibinds` 必須宣告在 `abstract class` 中；Dagger/Hilt 不支援在 `object` 中使用此標註。
+- **風險**：誤用 `object` 會導致 Hilt kapt 編譯期 `MissingBinding` 錯誤，且錯誤訊息通常指向消費端而非宣告端，難以追蹤根源。
+- **驗收標準**：`CompositionModule` 必須為 `abstract class`，`@Multibinds abstract fun` 無方法體。
+
+### 3. Flow 狀態機過渡期靜默化原則
+- **決策**：在靜默舊有邏輯時，保留 Flow 生命週期結構（`.sample().filterNotNull()...`），僅替換 `.onEach {}` 的內容，以最小化重構對訂閱鏈的破壞。
+- **風險**：若連同 Flow 訂閱結構一起替換，可能引入 coroutine scope leak、訂閱時序改變等隱性問題，且難以在 D1 階段完整驗證。
+- **驗收標準**：`observeCompositionAdvice()` 的 `.catch { }` + `.launchIn(viewModelScope)` 保持原樣；只有 `.onEach {}` 內容改為強制 `CompositionAdvice.None`。
