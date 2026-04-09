@@ -234,6 +234,7 @@ class CameraViewModel @Inject constructor(
     private var pendingTapToFocusIntent: TapToFocusIntent? = null
     private var tapClearJob: Job? = null  // SP-B: TTL active cleanup for optimistic Yellow box
     private var latestSensorToViewMatrix: android.graphics.Matrix? = null
+    private var currentPtfSessionId = 0L  // PTF session token: prevents stale async results from overwriting newer taps
 
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
@@ -461,6 +462,7 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.FocusOnPoint -> {
                 setTapToFocusIntent(event.x, event.y, event.viewWidth, event.viewHeight, event.density)
                 Log.i(TAG, "[SV-FIX-1] FocusOnPoint → V2 pipeline tap intent registered (${event.x}, ${event.y})")
+                onTapToFocus(event.x, event.y, event.viewWidth, event.viewHeight)
             }
             is CameraUiEvent.LockAEAF -> {
                 Log.i(TAG, "[v2.12.0-15 Fix] LockAEAF event received: (${event.x}, ${event.y}), isAEAFLocked=${_state.value.isAEAFLocked}")
@@ -995,6 +997,54 @@ class CameraViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    /**
+     * PTF state machine entry point — drives PtfState transitions for Rule Engine coordination.
+     *
+     * State flow: Idle → Focusing(x,y) → Focused(x,y) or Failed(x,y) → Idle (after 2s)
+     * Session token guard: each tap increments [currentPtfSessionId]; async callbacks only
+     * apply if their captured sessionId still matches, preventing stale result overwrites
+     * and timer-induced early resets on rapid or same-coordinate taps.
+     */
+    private fun onTapToFocus(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
+        val sessionId = ++currentPtfSessionId
+        _state.update { it.copy(ptfState = PtfState.Focusing(x, y)) }
+        Log.d(TAG, "[PTF] Focusing at ($x, $y) session=$sessionId")
+
+        viewModelScope.launch {
+            val result = try {
+                cameraRepository.focusOnPoint(x, y, viewWidth, viewHeight)
+            } catch (e: Exception) {
+                Log.w(TAG, "[PTF] focusOnPoint exception: ${e.message}")
+                Result.failure(e)
+            }
+
+            // Defence A: skip if a newer tap has taken over
+            if (sessionId != currentPtfSessionId) {
+                Log.d(TAG, "[PTF] session=$sessionId superseded, dropping result")
+                return@launch
+            }
+
+            val nextState = if (result.isSuccess) {
+                PtfState.Focused(x, y)
+            } else {
+                Log.w(TAG, "[PTF] focusOnPoint failed: ${result.exceptionOrNull()?.message}")
+                PtfState.Failed(x, y)
+            }
+            _state.update { it.copy(ptfState = nextState) }
+            Log.d(TAG, "[PTF] → $nextState session=$sessionId")
+
+            delay(2000L)
+
+            // Defence B: skip auto-reset if a newer tap has taken over
+            if (sessionId != currentPtfSessionId) {
+                Log.d(TAG, "[PTF] session=$sessionId timer expired but superseded, skip reset")
+                return@launch
+            }
+            _state.update { it.copy(ptfState = PtfState.Idle) }
+            Log.d(TAG, "[PTF] → Idle (auto-reset) session=$sessionId")
         }
     }
 
@@ -1881,12 +1931,11 @@ class CameraViewModel @Inject constructor(
             .filterNotNull()
             .distinctUntilChanged()
             .sample(300L)  // Throttle 30 fps → ~3 fps — prevent UI flooding
-            .onEach { (screenRect, vpWidth, vpHeight) ->
-                val advice = compositionEngine.analyzeRuleOfThirds(screenRect, vpWidth, vpHeight)
+            .onEach { (_, _, _) ->
+                // D1 骨架：具體規則計算延後至 D2 實作
+                val advice = com.akirachang.ai.photographer.domain.model.CompositionAdvice.None
+                // TODO (Cueshot Ticket D2): 替換為 analyzeCompositionUseCase(faces, imuPitch, imuRoll)
                 _state.update { it.copy(compositionAdvice = advice) }
-                if (BuildConfig.DEBUG) {
-                    Log.v(TAG, "[v2.13.0 Ticket2] compositionAdvice=$advice")
-                }
             }
             .catch { e -> Log.e(TAG, "[v2.13.0 Ticket2] Composition advice flow error", e) }
             .launchIn(viewModelScope)
@@ -1895,14 +1944,11 @@ class CameraViewModel @Inject constructor(
         // Separate from the detectionResult path; both eventually write compositionAdvice.
         _trackingBoxFlow
             .sample(300L)
-            .onEach { screenRect ->
-                val vpWidth  = _state.value.contentBounds.width()
-                val vpHeight = _state.value.contentBounds.height()
-                val advice = compositionEngine.analyzeRuleOfThirds(screenRect, vpWidth, vpHeight)
+            .onEach { _ ->
+                // D1 骨架：具體規則計算延後至 D2 實作
+                val advice = com.akirachang.ai.photographer.domain.model.CompositionAdvice.None
+                // TODO (Cueshot Ticket D2): 替換為 analyzeCompositionUseCase(faces, imuPitch, imuRoll)
                 _state.update { it.copy(compositionAdvice = advice) }
-                if (BuildConfig.DEBUG) {
-                    Log.v(TAG, "[v2.13.0 Ticket2-C] trackingBox advice=$advice")
-                }
             }
             .catch { e -> Log.e(TAG, "[v2.13.0 Ticket2-C] trackingBoxFlow error", e) }
             .launchIn(viewModelScope)
