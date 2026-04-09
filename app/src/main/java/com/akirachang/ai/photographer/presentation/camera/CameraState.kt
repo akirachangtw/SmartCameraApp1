@@ -54,7 +54,33 @@ data class CameraState(
     val focusUiState: FocusUiState = FocusUiState.EMPTY,
     // v2.13.0: Rule-of-Thirds composition advice from CompositionGuidelineEngine (Ticket 2).
     val compositionAdvice: CompositionAdvice = CompositionAdvice.None,
+    // Cueshot D1: High-level PTF state for Rule Engine and coaching UI coordination.
+    val ptfState: PtfState = PtfState.Idle,
 )
+
+/**
+ * PTF (Pass-to-Focus / Tap-to-Focus) state machine — Cueshot D1.
+ *
+ * State flow: Idle → Focusing → Focused/Failed → Idle (auto-reset after 2s).
+ *
+ * Note: The existing v2.12.0 focus pipeline (setTapToFocusIntent + FocusStateMachine)
+ * drives [CameraState.focusUiState] for overlay rendering. PtfState is the
+ * higher-level scene-coordinator state consumed by Rule Engine and UI coaching logic.
+ * Both states coexist without conflict.
+ */
+sealed class PtfState {
+    /** No active tap-to-focus in progress. */
+    object Idle : PtfState()
+
+    /** CameraX focus metering in progress at (x, y) in view coordinates. */
+    data class Focusing(val x: Float, val y: Float) : PtfState()
+
+    /** Focus lock achieved. Auto-resets to Idle after 2s. */
+    data class Focused(val x: Float, val y: Float) : PtfState()
+
+    /** Focus metering failed or timed out. Auto-resets to Idle after 2s. */
+    data class Failed(val x: Float, val y: Float) : PtfState()
+}
 
 sealed class CameraUiEvent {
     object CapturePhoto : CameraUiEvent()
