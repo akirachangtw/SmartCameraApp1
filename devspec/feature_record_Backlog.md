@@ -2378,3 +2378,23 @@ private fun clearTapToFocusIntent() {
 * **RenderScript 完全移除**：`RenderScriptYuvConverter.kt` 刪除，`LiveCameraSource.kt` 移除所有 RS 呼叫點，YUV→RGBA 轉換改由 ML Kit 原生處理。
 * **OpticalFlowTracker 焦土**：`OpticalFlowTracker` 及所有相關 DI 參數全數移除，`ImuCompensator` 改為獨立注入，不再依賴 OF 管線。
 * **consumeCameraMotion 接線原則**：`ImuCompensator.consumeCameraMotion()` 必須在 per-frame analysis pipeline (`observePreviewForAnalysis`) 中呼叫，而非在 `startImuCompensation()` 的 accumulate flow 中消費（accumulate 與 consume 必須分離）。
+
+---
+
+## 🏛️ 架構決策紀錄 (ADR) - D0.x 階段驗收防禦機制
+
+**決策日期**: 2026-04-09 | **觸發**: SV Trust-but-verify 覆測 + Traycer Path B 判定 | **Branch**: `feature/cueshot-mvp`
+
+### 1. Tier-aware 設備相容性補償
+- **決策**：建立 `DeviceCapabilityTier` (FULL/LIMITED/LEGACY) 必須徹底實作接線，嚴禁宣告孤島 (Orphan Scaffold)。任何硬體能力的降級或特例處理，必須透過 DI 注入的 Tier 進行路由，而非在 UI 層 hardcode 判斷。
+- **風險**：若 Tier 僅宣告未消費（log-only），等同於假性降級保護，裝置相容性崩潰時 Debug 難度極高（無路由可追蹤）。
+- **驗收標準**：grep `DeviceCapabilityTier` 必須出現在 DI 注入點與下游消費端（非僅 `when(tier)` log 輸出）。
+
+### 2. Locked 色彩路徑一致性
+- **決策**：UI 狀態顏色必須 100% 絕對服從 SSOT (v3.3) 規範。當發現實作代碼（如 `Cyan`）與規格書（如 `Amber #D4A030` / `Green #50C864`）衝突時，**代碼必須向規格低頭**。嚴禁為了遷就舊有邏輯而創造未經授權的 Color Mapping 避震器。
+- **風險**：色彩路徑若在多層（`OverlayColor` enum → `drawLockedFrame()` → `animatedColor`）中各自獨立映射，任一層漏接會導致 Locked 狀態顏色靜默失效，QA 視覺測試難以捕捉。
+- **驗收標準**：`OverlayColor.FOCUSED`（或等價 enum）的色彩值必須端到端追蹤至 Compose render 層，每一個中間轉換點均需明確傳遞，不得有 hardcode fallback。
+
+### 3. SV 反向掃描防禦教訓
+- Traycer Path B 判定（可驗證事實不一致）的根源：SV 工具描述功能而非驗證功能，導致「看起來完整」但實際未接線。
+- 後續所有 Scaffold 類 Ticket（建立介面/sealed class/Tier enum）在 SV 時必須加做**反向掃描**：確認新建物件在至少一個下游消費點被真實呼叫，而非僅存在於宣告端。
