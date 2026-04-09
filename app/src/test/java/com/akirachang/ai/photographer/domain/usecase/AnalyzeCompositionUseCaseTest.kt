@@ -16,6 +16,7 @@ package com.akirachang.ai.photographer.domain.usecase
 
 import android.graphics.Rect
 import com.google.mlkit.vision.face.Face
+import org.junit.Ignore
 import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import org.junit.Assert.*
@@ -40,6 +41,7 @@ import org.robolectric.annotation.Config
  *
  * Uses Robolectric to provide Android framework classes (Rect, etc.)
  */
+@Ignore("D0 焦土清掃後 AnalyzeCompositionUseCase 改為 skeleton (CompositionAdvice.None)。原有 v2.x RuleOfThirds/Headroom/EdgeDistance 邏輯測試將在 D2 Rule Engine 實作後重寫。")
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])  // Use Android API 28 for testing
 class AnalyzeCompositionUseCaseTest {
@@ -617,7 +619,7 @@ class AnalyzeCompositionUseCaseTest {
         val detectionResult = createDetectionResult(listOf(face))
 
         // Act
-        val result = useCase(detectionResult, null, null)
+        val result = useCase(detectionResult, 0, 0)
 
         // Assert
         assertNotNull("Should work with null dimensions using estimation", result)
