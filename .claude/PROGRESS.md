@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-08 by CSO
-**Current Day**: D2 (2026-04-09) — D0/D0.1/SV補修完成；D1 Tickets 尚未開始
+**Last Updated**: 2026-04-09 by QA
+**Current Day**: D2 (2026-04-09) — D1 骨架完成；QA PASS
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D2 (2026-04-10)
 
@@ -12,15 +12,27 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| On Schedule | D0 | D0 | 🟢 |
-| Compile | 0 errors | — | — |
-| Lint Warnings | 0 new | — | — |
-| OpenCV Residue | 0 grep hits | — | — |
+| On Schedule | D1 | D1 ✅ | 🟢 |
+| Compile | 0 errors | 0 errors (Device+Emulator) | 🟢 |
+| Lint Warnings | 0 new | 0 new (D1 files clean) | 🟢 |
+| OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | IFTR Pipeline | Ready by D14 | ❌ Not started | — |
 
 ---
 
-## 📋 Today's Tickets (D0 — 絞殺者手術)
+## 📋 D1 Tickets — Rule Engine 骨架與 PTF 狀態機 ✅ CLOSED
+
+| Ticket ID | Description | Status | Files Modified |
+|-----------|-------------|--------|----------------|
+| D1-T1 | `CompositionRule.kt` 介面新增 (RuleResult + evaluate) | ✅ DONE | `domain/composition/CompositionRule.kt` |
+| D1-T2 | `CompositionScore.kt` 模型新增 (totalScore, isGolden) | ✅ DONE | `domain/model/CompositionScore.kt` |
+| D1-T3 | `AnalyzeCompositionUseCase` KDoc 更新（D2 migration 計畫） | ✅ DONE | `domain/usecase/AnalyzeCompositionUseCase.kt` |
+| D1-T4 | `PtfState` sealed class + `CameraState.ptfState` 欄位 | ✅ DONE | `presentation/camera/CameraState.kt` |
+| D1-T5 | `AnalyzeCompositionUseCaseTest` @Ignore (v2.x obsolete tests) | ✅ DONE | `test/.../AnalyzeCompositionUseCaseTest.kt` |
+
+---
+
+## 📋 D0 Tickets — 絞殺者手術 ✅ CLOSED
 
 | Ticket ID | Description | Status | Files Modified |
 |-----------|-------------|--------|----------------|
