@@ -1587,6 +1587,18 @@ class CameraViewModel @Inject constructor(
                     // v2.8.4: End-to-end profiling
                     val e2eStart = System.nanoTime()
 
+                    // D0.3: Tier-aware focal length estimation — drives ImuCompensator per-frame
+                    // FULL/LIMITED: preview-width-based estimate for better accuracy (~hFov 53°)
+                    // LEGACY: conservative fixed value to avoid over-compensation
+                    // TODO: replace 800f with actual previewWidth once preview surface is guaranteed non-null at analysis start
+                    val focalLengthPixels: Float = when (deviceCapabilityTier) {
+                        DeviceCapabilityTier.FULL,
+                        DeviceCapabilityTier.LIMITED -> (previewWidth ?: 800).toFloat() / 2f
+                        DeviceCapabilityTier.LEGACY  -> 600f
+                    }
+                    val (imuDx, imuDy) = imuCompensator.consumeCameraMotion(focalLengthPixels = focalLengthPixels)
+                    Log.i(TAG, "[D0.3] DeviceCapabilityTier=$deviceCapabilityTier focalLengthPixels=$focalLengthPixels imuDx=$imuDx imuDy=$imuDy")
+
                     // Convert Bitmap to ML Kit InputImage
                     val convertStart = System.nanoTime()
                     val inputImage = com.google.mlkit.vision.common.InputImage.fromBitmap(
