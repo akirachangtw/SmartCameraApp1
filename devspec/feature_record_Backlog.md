@@ -2455,3 +2455,10 @@ private fun clearTapToFocusIntent() {
 **登記日期**: 2026-04-10 | **預計處理**: D3 | **優先級**: 中
 
 * **[Coordinate Mapping] 移除 `CameraViewModel` 中的 `previewWidth ?: 800` 墊檔值**：D2 被嚴格定義為純正規化 (0.0~1.0) 數學引擎，所有 Pixel 座標轉換排除在外。此魔術數字推遲至 D3 建立真實預覽座標映射時，改由 `CameraCharacteristics` 驅動，消除 `ImuCompensator` 焦距估算的硬編碼依賴。
+
+## 🏛️ 架構決策紀錄 (ADR) - 里程碑延期管理準則 (Milestone Deferral Policy)
+
+**決策日期**: 2026-04-10 | **Branch**: `feature/cueshot-mvp`
+**觸發票據**: D2-T5.1
+
+* **受控延期 (Controlled Deferral)**：里程碑允許以 Path A (Approve) 狀態關閉，但其中任何標記為 `Deferred` (推遲) 的任務，**必須同時具備明確的下游承接票號、驗收門檻，並且在所有文件區塊 (如 Sprint Health, Debt/Backlog, Milestone 結論) 中維持敘述一致**。嚴禁產生「宣稱零技術債」與「存在 Deferred 項目」的語意衝突。
