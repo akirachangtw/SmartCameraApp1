@@ -2432,3 +2432,10 @@ private fun clearTapToFocusIntent() {
 2. **執行期防呆 (Runtime Fail-safe)**：註解不是防禦。每個 Rule 內部必須在第一行實作邊界檢查（out-of-range 負值或 >1、malformed rect），遇到異常強制靜默降級回傳 `RuleResult(0f, false)`。
 3. **負向測試覆蓋 (Negative Test Coverage)**：所有的 RuleTest 都必須強制包含 Pixel 誤入、越界座標、非法矩形的負向測試，確保防呆機制永不回歸。
 * **驗證紀錄 (D2-T2 HeadroomRule)**：共通契約模板（強制正規化 + faces.isEmpty() 防禦 + 越界防呆 + 負向測試）已在 HeadroomRule 成功落地並通過嚴格驗收。此模板正式成為後續所有新 Rule (如 EyeLine, Gaze) 的強制性起手式，絕不允許退回無防呆狀態。
+
+## 🏛️ 架構決策紀錄 (ADR) - 依賴反轉與開閉原則 (D2-T3 Set Multibinding)
+
+**決策日期**: 2026-04-10 | **Traycer 判定**: Path A (放行) | **Branch**: `feature/cueshot-mvp`
+**觸發票據**: D2-T3
+
+* **依賴反轉與開閉原則 (D2-T3 Set Multibinding)**：主引擎 (`AnalyzeCompositionUseCase`) 對具體規則的依賴，必須絕對透過 Hilt 的 `Set<CompositionRule>` 注入。新增規則時，僅允許使用 `@Binds @IntoSet` 追加綁定，**絕對禁止修改主引擎代碼**。此模式確立了 Rule Engine 的 Open-Closed Principle (OCP)，是後續擴充的唯一合法途徑。
