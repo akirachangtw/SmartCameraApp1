@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.channels.BufferOverflow
-import com.akirachang.ai.photographer.domain.model.CompositionAdvice
+import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.composition.CompositionGuidelineEngine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -1865,9 +1865,8 @@ class CameraViewModel @Inject constructor(
      * @param detectionResult Current ML Kit detection result
      */
     private fun analyzeComposition(detectionResult: DetectionResult) {
-        // Cueshot D0: AnalyzeCompositionUseCase is now a skeleton returning CompositionAdvice.None.
-        // v2.13.0 Ticket 2 path via observeCompositionAdvice() handles CompositionAdvice → CameraState.
-        // This legacy CompositionState path is kept for UI compatibility; returns NoSubject until D1.
+        // Cueshot D2: Composition analysis fully migrated to observeCompositionAdvice() pipeline.
+        // This legacy path retains NoSubject for the v2.x CompositionState UI channel (not used by D2+ UI).
         _compositionState.value = com.akirachang.ai.photographer.presentation.camera.model.CompositionState.NoSubject
     }
 
@@ -1898,62 +1897,49 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
-     * v2.13.0 Ticket 2: Rule-of-Thirds composition advice pipeline (SP-B throttle).
+     * Cueshot D2: Live composition rule engine pipeline.
      *
-     * Observes [CameraState.detectionResult] for the primary tracked subject (face first,
-     * then object). Converts the image-space bounding box to screen-space via the
-     * [CoordinateTransformer] already stored in state, then throttles to 300 ms with
-     * [sample] before feeding into [CompositionGuidelineEngine.analyzeRuleOfThirds].
+     * Observes [CameraState.detectionResult] and [_orientationState] per detection frame.
+     * Normalizes face bounding boxes to [0..1] viewport space, then invokes
+     * [analyzeCompositionUseCase] with the current IMU pitch/roll.
      *
-     * Frequency defence: 30 fps detection feed → 300 ms sample → ~3 fps advice output.
+     * No debounce or temporal smoothing — raw, single-frame aggregation only (D5 task).
+     *
      * Guard clauses:
-     *   - No detectionResult / no tracked face or object → skip (no advice reset needed;
-     *     the last advice stays until a new subject is seen).
-     *   - No CoordinateTransformer (camera not yet bound) → skip.
-     *   - contentBounds zero → engine guard will return [CompositionAdvice.None].
-     *
-     * Scope: ViewModel-only. No ML Kit / OpenCV logic touched.
+     *   - No detectionResult → skip, last compositionResult retained.
+     *   - imageWidth or imageHeight <= 0 → skip (invalid geometry).
      */
-    @OptIn(FlowPreview::class)
     private fun observeCompositionAdvice() {
         _state
-            .map { state ->
-                val det = state.detectionResult ?: return@map null
-                val transformer = state.coordinateTransformer ?: return@map null
-                // Prefer face over object for composition framing
-                val imageBbox: android.graphics.Rect? =
-                    det.faces.firstOrNull()?.boundingBox
-                        ?: det.objects.firstOrNull()?.boundingBox
-                imageBbox ?: return@map null
-                val screenRect = imageRectToScreenRectF(imageBbox, transformer)
-                Triple(screenRect, state.contentBounds.width(), state.contentBounds.height())
-            }
+            .map { it.detectionResult }
             .filterNotNull()
-            .distinctUntilChanged()
-            .sample(300L)  // Throttle 30 fps → ~3 fps — prevent UI flooding
-            .onEach { (_, _, _) ->
-                // D1 骨架：具體規則計算延後至 D2 實作
-                val advice = com.akirachang.ai.photographer.domain.model.CompositionAdvice.None
-                // TODO (Cueshot Ticket D2): 替換為 analyzeCompositionUseCase(faces, imuPitch, imuRoll)
-                _state.update { it.copy(compositionAdvice = advice) }
+            .onEach { det ->
+                val imgW = det.imageWidth.toFloat()
+                val imgH = det.imageHeight.toFloat()
+                if (imgW <= 0f || imgH <= 0f) return@onEach
+
+                val normalizedFaces = det.faces.map { face ->
+                    val box = face.boundingBox
+                    android.graphics.RectF(
+                        box.left / imgW,
+                        box.top / imgH,
+                        box.right / imgW,
+                        box.bottom / imgH,
+                    )
+                }
+
+                val orientation = _orientationState.value
+                val pitch = orientation?.pitch ?: 0f
+                val roll = orientation?.roll ?: 0f
+
+                val result = analyzeCompositionUseCase(normalizedFaces, pitch, roll)
+                _state.update { it.copy(compositionResult = result) }
+                Log.d(TAG, "[D2] CompositionResult: isAllAligned=${result.isAllAligned} topRule=${result.topInstruction?.name}")
             }
-            .catch { e -> Log.e(TAG, "[v2.13.0 Ticket2] Composition advice flow error", e) }
+            .catch { e -> Log.e(TAG, "[D2] observeCompositionAdvice error", e) }
             .launchIn(viewModelScope)
 
-        // ── Secondary channel: direct viewport-space bbox from onTrackingBoxUpdated() ──
-        // Separate from the detectionResult path; both eventually write compositionAdvice.
-        _trackingBoxFlow
-            .sample(300L)
-            .onEach { _ ->
-                // D1 骨架：具體規則計算延後至 D2 實作
-                val advice = com.akirachang.ai.photographer.domain.model.CompositionAdvice.None
-                // TODO (Cueshot Ticket D2): 替換為 analyzeCompositionUseCase(faces, imuPitch, imuRoll)
-                _state.update { it.copy(compositionAdvice = advice) }
-            }
-            .catch { e -> Log.e(TAG, "[v2.13.0 Ticket2-C] trackingBoxFlow error", e) }
-            .launchIn(viewModelScope)
-
-        Log.i(TAG, "[v2.13.0 Ticket2] Composition advice pipeline initialized (300 ms throttle)")
+        Log.i(TAG, "[D2] Composition rule engine pipeline initialized (raw, no debounce)")
     }
 
     /**

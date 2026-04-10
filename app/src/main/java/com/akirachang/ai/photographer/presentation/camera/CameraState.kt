@@ -8,7 +8,7 @@ import com.akirachang.ai.photographer.presentation.camera.components.CoordinateT
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.presentation.camera.model.HDRMode
 import com.akirachang.ai.photographer.domain.model.focus.FocusUiState
-import com.akirachang.ai.photographer.domain.model.CompositionAdvice
+import com.akirachang.ai.photographer.domain.model.CompositionResult
 
 /**
  * Camera UI State
@@ -52,8 +52,8 @@ data class CameraState(
     val isFixedFocusLens: Boolean = false,
     // v2.12.0-15: New focus pipeline output — V2 pipeline is now the single path (v2.12.0-16).
     val focusUiState: FocusUiState = FocusUiState.EMPTY,
-    // v2.13.0: Rule-of-Thirds composition advice from CompositionGuidelineEngine (Ticket 2).
-    val compositionAdvice: CompositionAdvice = CompositionAdvice.None,
+    // Cueshot D2: Aggregated composition rule engine output. Null until first detection frame.
+    val compositionResult: CompositionResult? = null,
     // Cueshot D1: High-level PTF state for Rule Engine and coaching UI coordination.
     val ptfState: PtfState = PtfState.Idle,
 )
