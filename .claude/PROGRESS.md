@@ -189,8 +189,55 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 ## 🔴 KAIROS Findings (Auto-populated by /dream)
 
-### KAIROS #1 — D2 (2026-04-09)
-- (will be populated: IMU accuracy, Edge Warmth alpha tuning, scene switch hysteresis)
+### KAIROS #1 — D2 (2026-04-10) ✅ EXECUTED
+
+**Error Patterns**
+
+🔴 架構性錯誤（→ CLAUDE.md 追加）:
+1. **座標契約漂移**：ThirdsRule 初版（D2-T1）直接以 UI Viewport 像素為單位計算網格錨點，導致座標隨 UI 尺寸漂移。修復需 3 張連環補修票（SV-D2-T1-FIX-01/02/03）。根因：Rule 實作與 UseCase 呼叫端各自假設座標空間，無顯式歸一化強制。→ 提煉規則：「每個新 CompositionRule 實作，測試套件必須包含 ≥1 組負向測試（座標超界 + 空 faces 清單）」
+2. **骨架接線不完整（D1 暫代殘留）**：D1 建立 `observeCompositionAdvice()` 時留下無意義佔位邏輯，而非直接跳過（TODO）；SV Gate 才發現 UseCase 根本未被呼叫，需 SV-D2-T4-FIX-01 補線。根因：Ticket 範疇定義「D1 是骨架，D2 才接線」，但骨架中有假性可編譯代碼遮蔽了未完成狀態。→ 提煉規則：「骨架 Ticket 中的未實作函數，必須使用 `error("Not implemented — will be wired in DX-TY")` 拋出，嚴禁回傳合法型別的空值偽裝完成」
+
+🟡 一次性失誤:
+- ThirdsRule 初版：`THIRDS_POINTS` 因輸入法問題誤用全形數字（已修正）
+- `CompositionScore` → `CompositionResult` 遷移時，測試中遺留 3 個舊型別 import（焦土清除後 grep = 0 hits）
+
+🟢 預防性發現:
+- `_trackingBoxFlow` 仍存在於 CameraViewModel，但 D2 管線已不再消費它；KDoc（line ~1890）仍描述舊 throttle 路徑。非阻擋，D3 KDoc 清理時處理。
+- `CompositionGuidelineEngine` import 仍殘留在 CameraViewModel line 29（被 `compositionEngine` 欄位 line 285 引用）。舊引擎尚未焦土，D3 或 /sv 掃描時需確認是否可刪除。
+- `previewWidth ?: 800` 魔術數字（line ~1646）仍存在，DEFERRED → D3。
+
+**Decision Audit**
+
+| 決策 | 預期結果 | 實際結果 | 判定 |
+|------|---------|---------|------|
+| `CompositionResult` 取代 `CompositionScore` | 支援 topInstruction + isAllAligned + EXIF，減少 UI 轉換複雜度 | 完全符合，Domain 層 grep = 0 殘留，UI 欄位乾淨接入 | ✅ |
+| @Binds @IntoSet OCP 模式 | 新增規則時零修改主引擎 | 驗證成功：HeadroomRule 加入不需改動 UseCase | ✅ |
+| D2-T5 DEFERRED → D3 | 保持 D2 純數學引擎定義 | 魔術數字已標記，未造成 D2 阻塞 | ✅ |
+| 拆除 `sample(300L)` debounce | D2 單幀純聚合，D5 再加平滑 | Raw 管線運作正常，無副作用 | ✅ |
+| D1 骨架使用可編譯空值偽裝「完成」 | 預期降低 D1 工作量 | 實際導致 D2 需補 SV-D2-T4-FIX-01；骨架策略需修正 | ⚠️ 修正方案：見上方🔴規則 2 |
+
+**SSOT Drift**
+
+| 項目 | 類型 | SSOT 說 | 代碼做 | 行動 |
+|------|------|---------|--------|------|
+| ThirdsRule / HeadroomRule 所屬 Sprint | 架構漂移 | SSOT D5-6 才實作四規則 | D2 已提前實作 ThirdsRule + HeadroomRule | 📝 SSOT 規格需更新（D2 超前交付，但符合架構方向） |
+| HeadroomRule weight = 0.8 | 數值 | SSOT 未定義各 rule weight | 代碼自行設定 0.8 | 📝 SSOT 補記（待 D5 優先級引擎 ADR 時歸檔正式 weight 表） |
+| ALIGNED_THRESHOLD = 85f (ThirdsRule) | 數值 | SSOT 未定義 | 代碼自行設定 | 📝 同上，D5 調參時歸檔 |
+| `_trackingBoxFlow` 仍存在 | 架構漂移 | D2 後管線不應有雙軌消費 | Flow 存在但無 consumer | 🔧 D3 清除（非阻擋）|
+
+**Recommended CLAUDE.md Additions**
+
+```
+9. **骨架 Ticket 未實作強制聲明**：D1/骨架 Ticket 中的未實作函數，必須以
+   `error("Not implemented — will be wired in DX-TY")` 顯式拋出，
+   嚴禁回傳合法型別空值（如 `null`、`emptyList()`）偽裝完成。
+   觸發來源：SV-D2-T4-FIX-01（D1 observeCompositionAdvice 暫代殘留）。
+
+10. **Rule 負向測試強制覆蓋**：每個 CompositionRule 實作的測試套件，
+    必須包含 ≥1 組負向測試（空 faces 清單 + 座標超界輸入 [0,1] 以外），
+    驗證結果為 score=0 / isAligned=false（非拋出例外）。
+    觸發來源：SV-D2-T1-FIX-01~03（ThirdsRule 座標漂移 bug）。
+```
 
 ### KAIROS #2 — D6 (2026-04-15)
 - (will be populated: ML Kit stability, Face Detection params, Halo smoothness)

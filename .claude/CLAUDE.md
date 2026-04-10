@@ -303,7 +303,11 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 > 以下規則由 `/dream` 自動回顧產出，經確認後追加。
 
-*（尚無——D2 結束後將由首次 KAIROS 填充）*
+**KAIROS #1 產出 (D2, 2026-04-10)**
+
+9. **骨架 Ticket 未實作強制聲明**：D1/骨架 Ticket 中的未實作函數，必須以 `error("Not implemented — will be wired in DX-TY")` 顯式拋出，嚴禁回傳合法型別空值（如 `null`、`emptyList()`）偽裝完成。觸發來源：SV-D2-T4-FIX-01（D1 `observeCompositionAdvice` 暫代殘留導致 D2 需補接線）。
+
+10. **Rule 負向測試強制覆蓋**：每個 `CompositionRule` 實作的測試套件，必須包含 ≥1 組負向測試（空 faces 清單 + 座標超界輸入 `[0,1]` 以外），驗證結果為 `score=0` / `isAligned=false`（非拋出例外）。觸發來源：SV-D2-T1-FIX-01~03（ThirdsRule 座標漂移 bug，修復需三張連環補修票）。
 
 ---
 
