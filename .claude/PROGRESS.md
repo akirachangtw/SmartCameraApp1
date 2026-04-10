@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-09 by D1.1 ADR
+**Last Updated**: 2026-04-10 by SV-D2-T1-FIX-01 QA
 **Current Day**: D2 (2026-04-10) — D1 ✅ CLOSED (Path A)；D2 🏃 IN PROGRESS
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D2 (2026-04-10)
@@ -14,7 +14,7 @@
 |--------|--------|---------|--------|
 | On Schedule | D2 | D1 ✅ CLOSED；D2 🏃 IN PROGRESS | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass) | 🟢 |
+| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; Total: 92t/48skipped/44pass) | 🟢 |
 | Lint New Errors | 0 new | 0 new (1 pre-existing in `CameraCapabilityDetector.kt`, D0 前存在) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
@@ -78,6 +78,22 @@
 | SV-D1-FIX-04 | 測試補齊（移除 blanket @Ignore；新增 D1 契約測試：UseCase default + PTF TTL）| ✅ DONE | `test/.../AnalyzeCompositionUseCaseTest.kt`, `test/.../PtfStateTest.kt` |
 
 Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
+
+---
+
+## 📋 D2 Tickets — Rule Engine 實作 (構圖規則) 🏃 IN PROGRESS
+
+| Ticket ID | Description | Status | Files Modified |
+|-----------|-------------|--------|----------------|
+| D2-T1 | `ThirdsRule.kt` 實作 (CompositionRule + 固定座標常數) + `ThirdsRuleTest.kt` (13 tests) | ✅ DONE | `domain/composition/rules/ThirdsRule.kt` (新增), `test/.../ThirdsRuleTest.kt` (新增) |
+| SV-D2-T1-FIX-01 | ThirdsRule 座標基準修正 (網格錨定 [0,1] 常數，消除漂移 bug) + 測試 13→100% pass | ✅ DONE | `domain/composition/rules/ThirdsRule.kt`, `test/.../ThirdsRuleTest.kt` |
+| SV-D2-T1-FIX-02 | 座標契約對齊：強制正規化防禦（caller 端確保 faces 在 [0,1] 傳入 ThirdsRule） | ✅ DONE | `domain/composition/CompositionRule.kt` (KDoc 契約), `test/.../ThirdsRuleTest.kt` (+1 invariant test) |
+| SV-D2-T1-FIX-03 | 強制正規化防呆落地：ThirdsRule 執行期邊界檢查 + 3 負向測試 | ✅ DONE | `domain/composition/rules/ThirdsRule.kt`, `test/.../ThirdsRuleTest.kt` (+3 negative tests) |
+| D2-T1.1 | 領域規則共通契約 ADR 歸檔 (強制正規化 + 執行期防呆 + 負向測試覆蓋) | ✅ DONE | `devspec/feature_record_Backlog.md` |
+| D2-T2 | `HeadroomRule.kt` 實作 (人臉頂部距 viewport 頂部比例評分) | 🔲 TODO | — |
+| D2-T3 | `CompositionModule.kt` 新增 @Binds @IntoSet (ThirdsRule + HeadroomRule) | 🔲 TODO | — |
+| D2-T4 | `AnalyzeCompositionUseCase.invoke()` 實作 (加權平均 + isGolden) | 🔲 TODO | — |
+| D2-T5 | 移除 `previewWidth ?: 800` 魔術數字（改由 CameraCharacteristics 驅動） | 🔲 TODO | — |
 
 ---
 

@@ -2419,3 +2419,15 @@ private fun clearTapToFocusIntent() {
 - **決策**：在靜默舊有邏輯時，保留 Flow 生命週期結構（`.sample().filterNotNull()...`），僅替換 `.onEach {}` 的內容，以最小化重構對訂閱鏈的破壞。
 - **風險**：若連同 Flow 訂閱結構一起替換，可能引入 coroutine scope leak、訂閱時序改變等隱性問題，且難以在 D1 階段完整驗證。
 - **驗收標準**：`observeCompositionAdvice()` 的 `.catch { }` + `.launchIn(viewModelScope)` 保持原樣；只有 `.onEach {}` 內容改為強制 `CompositionAdvice.None`。
+
+
+---
+
+## 🏛️ 架構決策紀錄 (ADR) - 領域規則共通契約 (Domain Rule Contract)
+
+**決策日期**: 2026-04-10 | **Traycer 判定**: Path A (放行) | **Branch**: `feature/cueshot-mvp`
+**觸發票據**: D2-T1 + SV-D2-T1-FIX-01 ~ FIX-03
+
+1. **強制正規化 (Forced Normalization)**：所有 `CompositionRule` 的輸入座標必須嚴格遵守 `[0.0, 1.0]` 的正規化空間。禁止依賴 Viewport 或 Pixel 進行計算。
+2. **執行期防呆 (Runtime Fail-safe)**：註解不是防禦。每個 Rule 內部必須在第一行實作邊界檢查（out-of-range 負值或 >1、malformed rect），遇到異常強制靜默降級回傳 `RuleResult(0f, false)`。
+3. **負向測試覆蓋 (Negative Test Coverage)**：所有的 RuleTest 都必須強制包含 Pixel 誤入、越界座標、非法矩形的負向測試，確保防呆機制永不回歸。
