@@ -2482,3 +2482,10 @@ private fun clearTapToFocusIntent() {
 * **UI 前置焦土清理原則 (Scorched Earth Policy)**：在進行跨里程碑的 UI 或架構翻新前，必須強制清除上一代殘留的無消費者 Flow (如 `_trackingBoxFlow`) 與過期註解 (如舊的 debounce / throttle 路徑描述)。絕不允許新舊管線並存，以徹底根絕雙軌邏輯 (Split-brain) 與幽靈訂閱造成的 UI 渲染異常。
   - **根因**：D2 拆除 `sample(300L)` 後，`_trackingBoxFlow` 失去唯一消費者，但 `onTrackingBoxUpdated()` 函數與 KDoc 仍保留，形成可被誤用的殭屍接口。KAIROS #1 掃描發現後，D3-T0 於 D3 開工前強制清除。
   - **強制時機**：每個 Sprint 節點（Dx 開工前），必須執行一次「無消費者 Flow」grep 掃描。若命中，開工第一票必為焦土清理票，優先於任何功能實作。
+
+## 🏛️ 架構決策紀錄 (ADR) - D3-T1 UI 狀態鏡像與一元化收斂準則
+
+**決策日期**: 2026-04-11 | **Traycer 判定**: Path A (放行) | **Branch**: `feature/cueshot-mvp`
+**觸發票據**: D3-T1 (水平儀收斂)
+
+* **UI 狀態鏡像與單一路徑收斂 (State Mirroring & Unification Convergence)**：在過渡期（如 D3），為避免破壞既有 UI，允許底層 Sensor 狀態產生「鏡像」（例如同時存在獨立的 `orientationState` Flow 與聚合在 `CameraState.deviceRoll` 內的狀態）。但此為暫時性技術債，**必須在 D5 (Rule Engine 視覺化階段) 強制將所有 UI 消費端收斂至單一來源 `CameraState`**，徹底消滅雙來源語義漂移的風險。
