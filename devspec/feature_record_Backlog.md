@@ -2431,3 +2431,4 @@ private fun clearTapToFocusIntent() {
 1. **強制正規化 (Forced Normalization)**：所有 `CompositionRule` 的輸入座標必須嚴格遵守 `[0.0, 1.0]` 的正規化空間。禁止依賴 Viewport 或 Pixel 進行計算。
 2. **執行期防呆 (Runtime Fail-safe)**：註解不是防禦。每個 Rule 內部必須在第一行實作邊界檢查（out-of-range 負值或 >1、malformed rect），遇到異常強制靜默降級回傳 `RuleResult(0f, false)`。
 3. **負向測試覆蓋 (Negative Test Coverage)**：所有的 RuleTest 都必須強制包含 Pixel 誤入、越界座標、非法矩形的負向測試，確保防呆機制永不回歸。
+* **驗證紀錄 (D2-T2 HeadroomRule)**：共通契約模板（強制正規化 + faces.isEmpty() 防禦 + 越界防呆 + 負向測試）已在 HeadroomRule 成功落地並通過嚴格驗收。此模板正式成為後續所有新 Rule (如 EyeLine, Gaze) 的強制性起手式，絕不允許退回無防呆狀態。
