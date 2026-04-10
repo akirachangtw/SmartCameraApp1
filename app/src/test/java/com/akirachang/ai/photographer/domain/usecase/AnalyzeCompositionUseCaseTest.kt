@@ -19,8 +19,7 @@ import android.graphics.RectF
 import com.google.mlkit.vision.face.Face
 import org.junit.Ignore
 import com.akirachang.ai.photographer.domain.model.DetectionResult
-import com.akirachang.ai.photographer.domain.model.CompositionScore
-import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
+import com.akirachang.ai.photographer.domain.model.CompositionResult
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -423,20 +422,22 @@ class AnalyzeCompositionUseCaseTest {
         // D1: test body cleared for compilation — rewrite in D2
     }
 
-    // ==================== D1 Contract Tests ====================
+    // ==================== D2 Contract Tests ====================
 
     @Test
-    fun `invoke with empty rules returns default CompositionScore`() {
+    fun `invoke with empty rules returns empty CompositionResult`() {
         val result = useCase(emptyList(), 0f, 0f)
-        assertEquals(0f, result.totalScore)
-        assertFalse(result.isGolden)
+        assertNull(result.topInstruction)
+        assertTrue(result.ruleScores.isEmpty())
+        assertFalse(result.isAllAligned)
     }
 
     @Test
-    fun `invoke with faces returns default CompositionScore`() {
-        val faces = listOf(RectF(100f, 200f, 300f, 500f))
+    fun `invoke with faces and empty rules returns empty CompositionResult`() {
+        val faces = listOf(RectF(0.1f, 0.2f, 0.3f, 0.5f))
         val result = useCase(faces, 15f, -5f)
-        assertEquals(0f, result.totalScore)
-        assertFalse(result.isGolden)
+        assertNull(result.topInstruction)
+        assertTrue(result.ruleScores.isEmpty())
+        assertFalse(result.isAllAligned)
     }
 }

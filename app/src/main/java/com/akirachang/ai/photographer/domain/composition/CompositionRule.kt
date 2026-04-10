@@ -23,16 +23,24 @@ data class RuleResult(val score: Float, val isAligned: Boolean)
  * via Hilt @Multibinds (configured in D2 DI module).
  */
 interface CompositionRule {
+    /** Stable identifier used as key in [CompositionResult.ruleScores]. Must be unique per rule. */
+    val name: String
+
     /** Weight for weighted-average total score. Must be > 0. */
     val weight: Float
 
     /**
-     * Evaluate this rule against the current frame geometry.
+     * 評估構圖規則。
      *
-     * @param faces    Face bounding boxes in viewport coordinates (post-matrix transform).
-     * @param imuPitch Device pitch angle in degrees (positive = tilting up).
-     * @param imuRoll  Device roll angle in degrees (positive = rolling right).
-     * @return [RuleResult] with score and alignment flag. Never throws.
+     * @param faces 偵測到的人臉邊界框列表。
+     * ⚠️ 嚴格契約：座標必須是 [0.0, 1.0] 的正規化 (Normalized) 數值。
+     * 左上角為 (0.0, 0.0)，右下角為 (1.0, 1.0)。
+     * 絕對不可傳入 UI Viewport 或 Sensor 的絕對像素 (Pixel) 座標。
+     * 呼叫端（AnalyzeCompositionUseCase）負責在傳入前完成座標正規化，
+     * Rule 實作不得在內部進行任何像素轉換或容錯補償。
+     * @param imuPitch 設備俯仰角 (度)，向上傾斜為正值。
+     * @param imuRoll 設備翻滾角 (度)，向右翻滾為正值。
+     * @return [RuleResult] 包含分數與對齊旗標。永不拋出例外。
      */
     fun evaluate(faces: List<RectF>, imuPitch: Float, imuRoll: Float): RuleResult
 }

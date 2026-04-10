@@ -1,29 +1,58 @@
 package com.akirachang.ai.photographer.domain.usecase
 
+import android.graphics.RectF
 import com.akirachang.ai.photographer.domain.composition.CompositionRule
-import com.akirachang.ai.photographer.domain.model.CompositionScore
+import com.akirachang.ai.photographer.domain.model.CompositionResult
+import com.akirachang.ai.photographer.domain.model.RuleScore
 import javax.inject.Inject
 
 /**
- * AnalyzeCompositionUseCase — Cueshot v3.3 Rule Engine skeleton.
+ * AnalyzeCompositionUseCase — Cueshot v3.3 Rule Engine.
  *
- * D0: Internal logic cleared. v2.4.0 composition analysis (hardcoded Chinese strings)
- * fully removed per i18n 三道防線 + 焦土政策.
+ * Aggregates per-rule scores into a [CompositionResult] for a single frame.
+ * No debounce or temporal smoothing — single-frame pure aggregation only.
+ * Smoothing is deferred to D5.
  *
- * D1: Constructor migrated to Set<CompositionRule> injection via Hilt @Multibinds.
- *     invoke() returns skeleton CompositionScore(totalScore=0f, isGolden=false).
- *     Concrete rule implementations (ThirdsRule, HeadroomRule) deferred to D2.
+ * Coordinate contract: all [RectF] in [faces] must be pre-normalized to [0.0, 1.0].
+ * The caller is responsible for coordinate normalization before invoking this use case.
  */
 class AnalyzeCompositionUseCase @Inject constructor(
     private val rules: Set<@JvmSuppressWildcards CompositionRule>
 ) {
 
     operator fun invoke(
-        faces: List<android.graphics.RectF>,
+        faces: List<RectF>,
         imuPitch: Float,
         imuRoll: Float,
-    ): CompositionScore {
-        // TODO (Cueshot Ticket D2): 實作加權總分計算邏輯與防抖過濾器
-        return CompositionScore(totalScore = 0f, isGolden = false)
+    ): CompositionResult {
+        if (rules.isEmpty()) {
+            return CompositionResult(
+                topInstruction = null,
+                ruleScores = emptyMap(),
+                isAllAligned = false,
+            )
+        }
+
+        val ruleScores: Map<String, RuleScore> = rules.associate { rule ->
+            val result = rule.evaluate(faces, imuPitch, imuRoll)
+            rule.name to RuleScore(
+                name = rule.name,
+                score = result.score,
+                isAligned = result.isAligned,
+                weight = rule.weight,
+            )
+        }
+
+        val isAllAligned = ruleScores.values.all { it.isAligned }
+
+        val topInstruction: RuleScore? = ruleScores.values
+            .filter { !it.isAligned }
+            .minByOrNull { it.score }
+
+        return CompositionResult(
+            topInstruction = topInstruction,
+            ruleScores = ruleScores,
+            isAllAligned = isAllAligned,
+        )
     }
 }
