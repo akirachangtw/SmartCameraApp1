@@ -2456,6 +2456,17 @@ private fun clearTapToFocusIntent() {
 
 * **[Coordinate Mapping] 移除 `CameraViewModel` 中的 `previewWidth ?: 800` 墊檔值**：D2 被嚴格定義為純正規化 (0.0~1.0) 數學引擎，所有 Pixel 座標轉換排除在外。此魔術數字推遲至 D3 建立真實預覽座標映射時，改由 `CameraCharacteristics` 驅動，消除 `ImuCompensator` 焦距估算的硬編碼依賴。
 
+## 📌 技術債登記 - D3-T1 全域色碼收斂
+
+**登記日期**: 2026-04-10 | **預計處理**: D5 UI 精修 | **優先級**: 低
+
+* **[UI SSOT] 全域色碼收斂**：清除專案內殘留的舊色碼 (`0xFF4CAF50`, `0xFFFFA726`)，統一替換為 SSOT v3.3 規格的 `#50C864` (Green，對齊完成) 與 `#D4A030` (Amber，引導中)。D3-T1 已修正 `LevelIndicator.kt`，但以下檔案仍殘留舊色碼，須在專屬 Ticket 中一次性收斂，**禁止逐票分散修改**（避免反覆觸發高風險檔案 pre-commit hook）：
+  - `CompositionGuideOverlay.kt`（line 76）
+  - `CompositionHint.kt`（line 61）
+  - `DetectionOverlay.kt`（line 104）
+  - `FPSOverlay.kt`（line 57）
+  - `CameraScreen.kt`（line 451，HDR 狀態色彩，需確認是否同屬 SSOT 管轄）
+
 ## 🏛️ 架構決策紀錄 (ADR) - 里程碑延期管理準則 (Milestone Deferral Policy)
 
 **決策日期**: 2026-04-10 | **Branch**: `feature/cueshot-mvp`
