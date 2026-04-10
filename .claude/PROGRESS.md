@@ -1,10 +1,10 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-10 by SV-D2-T1-FIX-01 QA
+**Last Updated**: 2026-04-10 by FIX-D2-T5-01 (D2 封板)
 **Current Day**: D2 ✅ CLOSED (2026-04-10, Path A) — D1 ✅ CLOSED；D2 ✅ CLOSED；D3 🔲 NEXT
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
-**Next KAIROS**: D2 (2026-04-10)
+**Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
 ---
 
@@ -18,6 +18,8 @@
 | Lint New Errors | 0 new | 0 new (1 pre-existing in `CameraCapabilityDetector.kt`, D0 前存在) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
+| D2 SV Gate | Pass | ✅ PASS (D2-T3/T4/FIX-01 全數閉環，Traycer Path A) | 🟢 |
+| CompositionScore Residue | 0 grep hits | 0 grep hits (Domain 層完全清除) | 🟢 |
 | IFTR Pipeline | Ready by D14 | ❌ Not started | — |
 
 ---
@@ -145,6 +147,20 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 - [x] SV-D0.1 補修系列全數關閉 (focalLengthPixels rename, color contract, tier wiring)
 - [x] ADR 寫入 devspec/feature_record_Backlog.md
 - [x] D0.3 Trust-but-verify 覆測通過（tier-aware 補償 + locked 色彩路徑一致性確認）
+
+### D2 (2026-04-10) — ✅ CLOSED (Path A, Traycer 放行)
+- [x] `ThirdsRule.kt` 實作 + 17 tests pass (座標契約 + 負向測試)
+- [x] `HeadroomRule.kt` 實作 + 12 tests pass (共通契約模板驗證)
+- [x] `CompositionModule.kt` @Binds @IntoSet (Hilt OCP 模式確立)
+- [x] `CompositionResult.kt` 新建 + `CompositionScore.kt` 焦土刪除
+- [x] `AnalyzeCompositionUseCase.invoke()` 實作 (單幀聚合 + isAllAligned 動態判定)
+- [x] `CameraState.compositionResult` 欄位落地 (compositionAdvice 移除)
+- [x] `CameraViewModel.observeCompositionAdvice()` 實體接線 (D1 暫代拆除)
+- [x] 驗收證據 1：`./gradlew testDeviceDebugUnitTest` — 104 tests, 0 failed
+- [x] 驗收證據 2：`grep CompositionScore app/src` — 0 hits (Domain 層完全清除)
+- [x] ADR 歸檔 (OCP Set Multibinding + CompositionResult 單幀聚合契約)
+- [x] D2-T5 DEFERRED → D3 座標映射重建 (架構師裁決：D2 定義為純正規化引擎)
+- **D2 里程碑驗收完成，純數學大腦已上線，準備進入 D3 (視覺化層)**
 
 ### D1 (2026-04-09) — ✅ CLOSED (Path A, Traycer 放行)
 - [x] `CompositionRule.kt` 介面骨架建立
