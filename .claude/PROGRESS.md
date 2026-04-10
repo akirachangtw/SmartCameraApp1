@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-10 by FIX-D2-T5-01 (D2 封板)
-**Current Day**: D2 ✅ CLOSED (2026-04-10, Path A) — D1 ✅ CLOSED；D2 ✅ CLOSED；D3 🔲 NEXT
+**Last Updated**: 2026-04-11 by D3-T1.2 (D3 水平儀收斂 + ADR 歸檔)
+**Current Day**: D3 🔄 IN PROGRESS — D1 ✅ CLOSED；D2 ✅ CLOSED；D3-T0/T1 ✅ DONE；D3-T2 🔲 NEXT
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -12,7 +12,7 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| On Schedule | D2 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A) | 🟢 |
+| On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3-T0/T1 ✅ DONE；D3-T2 🔲 NEXT | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
 | Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; Total: 104t/48skipped/56pass) | 🟢 |
 | Lint New Errors | 0 new | 0 new (1 pre-existing in `CameraCapabilityDetector.kt`, D0 前存在) | 🟢 |
