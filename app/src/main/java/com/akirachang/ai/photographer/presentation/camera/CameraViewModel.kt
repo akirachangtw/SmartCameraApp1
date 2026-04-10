@@ -411,6 +411,7 @@ class CameraViewModel @Inject constructor(
         orientationSensorManager.startOrientationTracking()
             .onEach { orientation ->
                 _orientationState.value = orientation
+                _state.update { it.copy(deviceRoll = orientation.roll) }
             }
             .launchIn(viewModelScope)
 

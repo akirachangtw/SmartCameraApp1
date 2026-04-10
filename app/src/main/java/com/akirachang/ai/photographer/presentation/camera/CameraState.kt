@@ -54,6 +54,8 @@ data class CameraState(
     val focusUiState: FocusUiState = FocusUiState.EMPTY,
     // Cueshot D2: Aggregated composition rule engine output. Null until first detection frame.
     val compositionResult: CompositionResult? = null,
+    // Cueshot D3: Device roll angle in degrees for rule engine consumption (normalized from OrientationSensorManager).
+    val deviceRoll: Float = 0f,
     // Cueshot D1: High-level PTF state for Rule Engine and coaching UI coordination.
     val ptfState: PtfState = PtfState.Idle,
 )

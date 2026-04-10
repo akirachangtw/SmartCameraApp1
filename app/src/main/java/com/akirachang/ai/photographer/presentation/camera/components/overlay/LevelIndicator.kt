@@ -66,9 +66,9 @@ fun LevelIndicator(
 
     // Color based on level status
     val lineColor = if (isLevel) {
-        Color(0xFF4CAF50) // Green when level
+        Color(0xFF50C864) // Cueshot green — aligned
     } else {
-        Color(0xFFFFA726) // Amber when tilted
+        Color(0xFFD4A030) // Cueshot amber — guidance active
     }
 
     Box(
