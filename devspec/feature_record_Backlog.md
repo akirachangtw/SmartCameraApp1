@@ -2439,3 +2439,19 @@ private fun clearTapToFocusIntent() {
 **觸發票據**: D2-T3
 
 * **依賴反轉與開閉原則 (D2-T3 Set Multibinding)**：主引擎 (`AnalyzeCompositionUseCase`) 對具體規則的依賴，必須絕對透過 Hilt 的 `Set<CompositionRule>` 注入。新增規則時，僅允許使用 `@Binds @IntoSet` 追加綁定，**絕對禁止修改主引擎代碼**。此模式確立了 Rule Engine 的 Open-Closed Principle (OCP)，是後續擴充的唯一合法途徑。
+
+## 🏛️ 架構決策紀錄 (ADR) - 引擎單幀聚合契約 (D2-T4 CompositionResult)
+
+**決策日期**: 2026-04-10 | **Traycer 判定**: Path A (放行) | **Branch**: `feature/cueshot-mvp`
+**觸發票據**: D2-T4 + SV-D2-T4-FIX-01
+
+* **引擎單幀聚合契約 (D2-T4 CompositionResult)**：
+  - `CompositionResult` 取代了舊有的單一分數，成為引擎輸出的唯一 SSOT。它必須包含 `topInstruction` (引導用)、`ruleScores` (評分用) 以及 `isAllAligned` (呼吸觸發用)。
+  - `isAllAligned` 必須是動態判定 (`rules.all { ... }`)，絕對禁止硬編碼數量。
+  - **端對端接線策略**：ViewModel 必須直接消費 `AnalyzeCompositionUseCase` 的輸出，絕對禁止在 ViewModel 層實作防抖或平滑化（Debounce 必須在未來的專用層實作），維持引擎輸出的單幀純潔性。
+
+## 📌 技術債登記 - D3 座標映射重建
+
+**登記日期**: 2026-04-10 | **預計處理**: D3 | **優先級**: 中
+
+* **[Coordinate Mapping] 移除 `CameraViewModel` 中的 `previewWidth ?: 800` 墊檔值**：D2 被嚴格定義為純正規化 (0.0~1.0) 數學引擎，所有 Pixel 座標轉換排除在外。此魔術數字推遲至 D3 建立真實預覽座標映射時，改由 `CameraCharacteristics` 驅動，消除 `ImuCompensator` 焦距估算的硬編碼依賴。

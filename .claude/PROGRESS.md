@@ -2,7 +2,7 @@
 
 **Sprint**: D0-D15 (MVP)
 **Last Updated**: 2026-04-10 by SV-D2-T1-FIX-01 QA
-**Current Day**: D2 (2026-04-10) — D1 ✅ CLOSED (Path A)；D2 🏃 IN PROGRESS
+**Current Day**: D2 ✅ CLOSED (2026-04-10, Path A) — D1 ✅ CLOSED；D2 ✅ CLOSED；D3 🔲 NEXT
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D2 (2026-04-10)
 
@@ -12,7 +12,7 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| On Schedule | D2 | D1 ✅ CLOSED；D2 🏃 IN PROGRESS | 🟢 |
+| On Schedule | D2 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A) | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
 | Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; Total: 104t/48skipped/56pass) | 🟢 |
 | Lint New Errors | 0 new | 0 new (1 pre-existing in `CameraCapabilityDetector.kt`, D0 前存在) | 🟢 |
@@ -81,7 +81,7 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 ---
 
-## 📋 D2 Tickets — Rule Engine 實作 (構圖規則) 🏃 IN PROGRESS
+## 📋 D2 Tickets — Rule Engine 實作 (構圖規則) ✅ DONE (Path A, 2026-04-10)
 
 | Ticket ID | Description | Status | Files Modified |
 |-----------|-------------|--------|----------------|
@@ -93,8 +93,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D2-T2 | `HeadroomRule.kt` 實作 (人臉頂部距 viewport 頂部比例評分) | ✅ DONE (Path A) | `domain/composition/rules/HeadroomRule.kt` (新增), `test/.../HeadroomRuleTest.kt` (新增, 12 tests) |
 | D2-T2.1 | D2-T2 驗收閉環 ADR 歸檔 (共通契約模板驗證成功記錄) | ✅ DONE | `devspec/feature_record_Backlog.md` |
 | D2-T3 | `CompositionModule.kt` 新增 @Binds @IntoSet (ThirdsRule + HeadroomRule) | ✅ DONE | `di/CompositionModule.kt` |
-| D2-T4 | `AnalyzeCompositionUseCase.invoke()` 實作 (加權平均 + isGolden) | 🔲 TODO | — |
-| D2-T5 | 移除 `previewWidth ?: 800` 魔術數字（改由 CameraCharacteristics 驅動） | 🔲 TODO | — |
+| D2-T4 | `CompositionResult.kt` 新建 + `AnalyzeCompositionUseCase.invoke()` 實作 (聚合 + isAllAligned + topInstruction) + 移除 `CompositionScore` | ✅ DONE | `domain/model/CompositionResult.kt` (新建), `domain/model/CompositionScore.kt` (刪除), `domain/composition/CompositionRule.kt` (+name), `domain/composition/rules/ThirdsRule.kt` (+name), `domain/composition/rules/HeadroomRule.kt` (+name), `domain/usecase/AnalyzeCompositionUseCase.kt`, `test/.../AnalyzeCompositionUseCaseTest.kt` |
+| SV-D2-T4-FIX-01 | ViewModel 實體接線：拆除 D1 暫代 + 實際呼叫 UseCase + `CameraState.compositionResult` 落地 | ✅ DONE | `presentation/camera/CameraState.kt`, `presentation/camera/CameraViewModel.kt` |
+| D2-T5 | 移除 `previewWidth ?: 800` 魔術數字（改由 CameraCharacteristics 驅動） | 🔲 DEFERRED (推遲至 D3 座標映射重建) | — |
 
 ---
 
@@ -204,7 +205,7 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 ## 💳 Debt / Backlog (技術債與待辦)
 
 - [ ] [Infrastructure] Kapt to KSP migration (保留 K2 編譯器相容性，推遲至 MVP D6 階段後再執行，目前維持 1.9 降級模式以避免依賴重構的範圍蔓延)
-- [ ] [Coordinate] 移除 CameraViewModel 中的 `previewWidth ?: 800` 魔術數字，推遲至 D2 構圖引擎座標映射重建時，改由 CameraCharacteristics 驅動。
+- [ ] [Coordinate] 移除 CameraViewModel 中的 `previewWidth ?: 800` 魔術數字，推遲至 D3 座標映射重建時，改由 CameraCharacteristics 驅動。（D2 為純正規化數學引擎，Pixel 座標轉換排除在外）
 
 ---
 
