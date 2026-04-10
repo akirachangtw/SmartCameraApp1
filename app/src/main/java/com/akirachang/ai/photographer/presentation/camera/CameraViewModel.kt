@@ -23,10 +23,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.channels.BufferOverflow
 import com.akirachang.ai.photographer.domain.model.CompositionResult
-import com.akirachang.ai.photographer.domain.composition.CompositionGuidelineEngine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
@@ -281,17 +278,6 @@ class CameraViewModel @Inject constructor(
             initialValue = null
         )
 
-    // v2.13.0 Ticket 2: Rule-of-Thirds composition engine (stateless, pure function)
-    private val compositionEngine = CompositionGuidelineEngine()
-
-    // v2.13.0 Ticket 2 Step C: Direct viewport-space bbox injection channel.
-    // Analyzers that already hold screen-space RectF can call onTrackingBoxUpdated()
-    // instead of going through the detectionResult state path.
-    // DROP_OLDEST: never blocks the caller; stale frames are discarded harmlessly.
-    private val _trackingBoxFlow = MutableSharedFlow<android.graphics.RectF>(
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
 
     init {
         // D0.3: Log device capability tier on VM creation (runtime wiring verification)
@@ -1880,21 +1866,7 @@ class CameraViewModel @Inject constructor(
         Log.i(TAG, "bindCameraToLifecycle: Camera bound successfully")
     }
 
-    /**
-     * v2.13.0 Ticket 2 Step C: Inject a pre-converted viewport-space bounding box.
-     *
-     * Called by CameraX Analyzers (or the focus pipeline) when they already hold the
-     * subject bbox in screen/viewport coordinates and want to bypass the detectionResult
-     * state path.  [tryEmit] never blocks; DROP_OLDEST policy discards stale frames.
-     *
-     * The bbox is throttled by [observeCompositionAdvice]'s secondary [_trackingBoxFlow]
-     * consumer before reaching [CompositionGuidelineEngine].
-     *
-     * @param box Subject bounding box in viewport (screen-space) coordinates.
-     */
-    fun onTrackingBoxUpdated(box: android.graphics.RectF) {
-        _trackingBoxFlow.tryEmit(box)
-    }
+
 
     /**
      * Cueshot D2: Live composition rule engine pipeline.
