@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(./gradlew *)",
+      "Edit(*)",
       "Bash(grep *)",
       "Bash(find *)",
       "Bash(cat *)",

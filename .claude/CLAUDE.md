@@ -18,6 +18,12 @@
    - **Domain/Data 層**：Domain 層物件（如 `CompositionAdvice`）絕對禁止持有或傳遞本地化字串。必須使用「純語意代碼 (Sealed Class / Enum)」，翻譯責任下放 UI 層。
    - **AI 邏輯層 (LLM Prompt)**：串接 Gemini / Claude 時，必須在 Prompt 內動態注入 Locale 參數，強制 AI 返回正確語言的 JSON 結果。
 
+10. **Bash 指令安全格式**：使用 Bash 工具時，必須嚴格遵守以下規範以配合本地端權限白名單：
+   - **禁止切換目錄**：絕對禁止在指令最前方加上 `cd [路徑] &&`。理由：Claude Code 已在專案根目錄運行，且 `cd` 開頭的複合指令會繞過 `settings.local.json` 的權限白名單匹配。
+   - **強制使用相對路徑**：所有檔案操作、`git` 或 `grep` 檢索（包含 Bash, Edit, View, Replace 等），直接針對目標檔案或目錄下達指令。
+   - ✅ 正確：`grep -n "CameraCharacteristics" app/src/...` / `git log --oneline -8` / `Edit .claude/PROGRESS.md`
+   - ❌ 錯誤：`cd "D:\..." && grep ...` / `Edit d:\...\.claude\PROGRESS.md`
+
 ---
 
 ## 📋 PROGRESS.md 機制（跨 Session 狀態載體）
@@ -307,9 +313,9 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 **KAIROS #1 產出 (D2, 2026-04-10)**
 
-10. **骨架 Ticket 未實作強制聲明**：D1/骨架 Ticket 中的未實作函數，必須以 `error("Not implemented — will be wired in DX-TY")` 顯式拋出，嚴禁回傳合法型別空值（如 `null`、`emptyList()`）偽裝完成。觸發來源：SV-D2-T4-FIX-01（D1 `observeCompositionAdvice` 暫代殘留導致 D2 需補接線）。
+11. **骨架 Ticket 未實作強制聲明**：D1/骨架 Ticket 中的未實作函數，必須以 `error("Not implemented — will be wired in DX-TY")` 顯式拋出，嚴禁回傳合法型別空值（如 `null`、`emptyList()`）偽裝完成。觸發來源：SV-D2-T4-FIX-01（D1 `observeCompositionAdvice` 暫代殘留導致 D2 需補接線）。
 
-11. **Rule 負向測試強制覆蓋**：每個 `CompositionRule` 實作的測試套件，必須包含 ≥1 組負向測試（空 faces 清單 + 座標超界輸入 `[0,1]` 以外），驗證結果為 `score=0` / `isAligned=false`（非拋出例外）。觸發來源：SV-D2-T1-FIX-01~03（ThirdsRule 座標漂移 bug，修復需三張連環補修票）。
+12. **Rule 負向測試強制覆蓋**：每個 `CompositionRule` 實作的測試套件，必須包含 ≥1 組負向測試（空 faces 清單 + 座標超界輸入 `[0,1]` 以外），驗證結果為 `score=0` / `isAligned=false`（非拋出例外）。觸發來源：SV-D2-T1-FIX-01~03（ThirdsRule 座標漂移 bug，修復需三張連環補修票）。
 
 ---
 
