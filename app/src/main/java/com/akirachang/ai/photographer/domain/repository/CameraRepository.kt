@@ -253,4 +253,12 @@ interface CameraRepository {
      * For StaticImageSource: always returns null (no hardware camera).
      */
     fun getMeteringPointFactory(): androidx.camera.core.MeteringPointFactory?
+
+    /**
+     * D3-T3: Return hardware focal length factor (focalLengthMm / sensorWidthMm).
+     * Multiply by previewWidth (px) to obtain focalLengthPixels for ImuCompensator.
+     * Returns null if camera is not yet bound or hardware characteristics are unavailable.
+     * For StaticImageSource: always returns null.
+     */
+    fun getFocalLengthFactor(): Float?
 }

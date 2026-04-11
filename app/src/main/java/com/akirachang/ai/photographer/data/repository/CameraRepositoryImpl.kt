@@ -881,4 +881,10 @@ class CameraRepositoryImpl @Inject constructor(
             ?.getMeteringPointFactory()
     }
 
+    override fun getFocalLengthFactor(): Float? {
+        // D3-T3: Delegate to LiveCameraSource; returns null for StaticImageSource
+        return (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)
+            ?.getFocalLengthFactor()
+    }
+
 }

@@ -1624,13 +1624,20 @@ class CameraViewModel @Inject constructor(
                     // v2.8.4: End-to-end profiling
                     val e2eStart = System.nanoTime()
 
-                    // D0.3: Tier-aware focal length estimation — drives ImuCompensator per-frame
-                    // FULL/LIMITED: preview-width-based estimate for better accuracy (~hFov 53°)
-                    // LEGACY: conservative fixed value to avoid over-compensation
-                    // TODO: replace 800f with actual previewWidth once preview surface is guaranteed non-null at analysis start
+                    // D3-T3: Tier-aware focal length in pixels — drives ImuCompensator per-frame.
+                    // FULL/LIMITED: hardware factor × previewWidth (Camera2 CameraCharacteristics).
+                    //   factor = focalLengthMm / sensorWidthMm; null until after first camera bind.
+                    //   Fail-safe: if factor unavailable, assume hFov≈90° → f ≈ previewWidth / 2f.
+                    //   If previewWidth also unknown, result is 0f → ImuCompensator returns (0,0), safe.
+                    // LEGACY: conservative fixed value to avoid over-compensation on weak hardware.
                     val focalLengthPixels: Float = when (deviceCapabilityTier) {
                         DeviceCapabilityTier.FULL,
-                        DeviceCapabilityTier.LIMITED -> (previewWidth ?: 800).toFloat() / 2f
+                        DeviceCapabilityTier.LIMITED -> {
+                            val factor = cameraRepository.getFocalLengthFactor()
+                            val width = previewWidth ?: 0
+                            if (factor != null && width > 0) factor * width
+                            else width / 2f
+                        }
                         DeviceCapabilityTier.LEGACY  -> 600f
                     }
                     val (imuDx, imuDy) = imuCompensator.consumeCameraMotion(focalLengthPixels = focalLengthPixels)

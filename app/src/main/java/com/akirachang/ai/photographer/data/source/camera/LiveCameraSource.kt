@@ -254,6 +254,12 @@ class LiveCameraSource @Inject constructor(
     private val _currentFps = MutableStateFlow<Float?>(null)
     private val currentFps: StateFlow<Float?> = _currentFps.asStateFlow()
 
+    // D3-T3: Hardware focal length factor = focalLengthMm / sensorWidthMm.
+    // Multiply by previewWidth to get focalLengthPixels for ImuCompensator.
+    // Populated after camera binding; null until then (safe to read any time).
+    @Volatile
+    private var focalLengthFactor: Float? = null
+
     // v2.8.0 Phase 1: Mutex to prevent race conditions during camera switching
     private val bindMutex = Mutex()
 
@@ -1206,6 +1212,31 @@ Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
                     _isFixedFocusLens.value = isFixedFocus
                     Log.i(TAG, "[v2.12.0-11] isFixedFocusLens updated: $isFixedFocus → StateFlow emitted")
 
+                    // D3-T3: Read hardware focal length factor from CameraCharacteristics.
+                    // Guard: only runs after bindToLifecycle() succeeds — CameraInfo is valid here.
+                    focalLengthFactor = runCatching {
+                        val camera2Info = androidx.camera.camera2.interop.Camera2CameraInfo.from(camera.cameraInfo)
+                        val focalLengths = camera2Info.getCameraCharacteristic(
+                            android.hardware.camera2.CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
+                        )
+                        val sensorSize = camera2Info.getCameraCharacteristic(
+                            android.hardware.camera2.CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE
+                        )
+                        val focalMm = focalLengths?.firstOrNull()
+                        val sensorWidthMm = sensorSize?.width
+                        if (focalMm != null && sensorWidthMm != null && sensorWidthMm > 0f) {
+                            (focalMm / sensorWidthMm).also {
+                                Log.i(TAG, "[D3-T3] focalLengthFactor=$it (focalMm=$focalMm sensorWidthMm=$sensorWidthMm)")
+                            }
+                        } else {
+                            Log.w(TAG, "[D3-T3] Cannot read focal length from CameraCharacteristics, factor=null")
+                            null
+                        }
+                    }.getOrElse { e ->
+                        Log.e(TAG, "[D3-T3] Failed to read focal length characteristics: ${e.message}", e)
+                        null
+                    }
+
                     // v2.11.4-06 Bug 2: Clear any lingering Camera2 interop options from previous session.
                     // When screen locks while AE_LOCK=true + AF_MODE=OFF are active, the
                     // clearCaptureRequestOptions() call in ON_STOP fails silently (camera inactive,
@@ -1413,6 +1444,13 @@ Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
     fun getMeteringPointFactory(): androidx.camera.core.MeteringPointFactory? {
         return previewView?.meteringPointFactory
     }
+
+    /**
+     * D3-T3: Return hardware focal length factor (focalLengthMm / sensorWidthMm).
+     * Multiply by previewWidth to obtain focalLengthPixels for ImuCompensator.
+     * Returns null if camera is not yet bound or CameraCharacteristics are unavailable.
+     */
+    fun getFocalLengthFactor(): Float? = focalLengthFactor
 
     fun setExposureCompensation(value: Int) {
         if (::camera.isInitialized) {
