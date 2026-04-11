@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-11 by D3-T3-FIX-01~03 ✅ DONE；FIX-04 登記
-**Current Day**: D3 🔄 IN PROGRESS — D1 ✅ CLOSED；D2 ✅ CLOSED；D3-T0/T1/T2/T3 ✅ DONE；D3-T3-FIX-01~03 ✅ DONE (Path A)；FIX-04 🔲 TODO
+**Last Updated**: 2026-04-11 by D3-T3-FIX-04 ✅ DONE；D3-T4 ✅ DONE
+**Current Day**: D3 ✅ CLOSED — D1 ✅ CLOSED；D2 ✅ CLOSED；D3-T0/T1/T2/T3 ✅ DONE；D3-T3-FIX-01~04 ✅ DONE (Path A)；D3-T4 ✅ DONE
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -12,10 +12,10 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3-T0/T1/T2/T3 ✅ DONE；FIX-01~03 ✅ DONE (Path A)；FIX-04 🔲 TODO | 🟡 |
+| On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; Total: 104t/48skipped/56pass) | 🟢 |
-| Lint New Errors | 0 new | 0 new (1 pre-existing in `CameraCapabilityDetector.kt`, D0 前存在) | 🟢 |
+| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; Total: 120t/48skipped/72pass) | 🟢 |
+| Lint New Errors | 0 new | 0 new (pre-existing `CameraCapabilityDetector.kt` UnsafeOptIn 已於 FIX-04 清零) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
 | D2 SV Gate | Pass | ✅ PASS (D2-T3/T4/FIX-01 全數閉環，Traycer Path A) | 🟢 |
@@ -106,7 +106,11 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | SV-D3-T3-FIX-01 | SSOT 硬編碼清零：移除 LEGACY tier 的 `600f` 硬編碼常數，改為「所有 tier 一律 hardware-first」，取不到特徵時走動態 fail-safe | ✅ DONE (Path A) | `presentation/camera/CameraViewModel.kt` |
 | SV-D3-T3-FIX-02 | stale 防護：在 `unbind()` 與每次新 bind 開始前先將 `focalLengthFactor = null`，確保不跨 session 汙染 | ✅ DONE (Path A) | `data/source/camera/LiveCameraSource.kt` |
 | SV-D3-T3-FIX-03 | fail-safe 契約明確化：fail-safe 明確綁定當前 viewport/preview 幾何（非固定常數），補上 KDoc/註解說明（ImuCompensator 800f 幽靈清除 + CameraRepository null 雙重語義拆分） | ✅ DONE (Path A) | `presentation/camera/CameraViewModel.kt`, `domain/camera/ImuCompensator.kt`, `domain/repository/CameraRepository.kt` |
-| SV-D3-T3-FIX-04 | Lint 破窗清零：清除 `CameraCapabilityDetector.kt:145` 的 `UnsafeOptInUsageError`（補 `@OptIn(ExperimentalCamera2Interop::class)` 或對應 CameraX annotation） | 🔲 TODO | `data/source/camera/CameraCapabilityDetector.kt` |
+| SV-D3-T3-FIX-04 | Lint 破窗清零：`CameraCapabilityDetector.kt` + `LiveCameraSource.kt` 補 `@androidx.annotation.OptIn(ExperimentalCameraInfo + ExperimentalCamera2Interop)` | ✅ DONE | `data/source/camera/CameraCapabilityDetector.kt`, `data/source/camera/LiveCameraSource.kt` |
+| D3-T4 | D3 視覺化層負向測試 (KAIROS Rule 10)：`CameraViewModelTest` (10 tests) + `ImuCompensatorTest` (6 tests)；提取 `computeFocalLengthPixels()` 為 internal companion 函數 | ✅ DONE | `presentation/camera/CameraViewModel.kt`, `test/.../CameraViewModelTest.kt` (新建), `test/.../ImuCompensatorTest.kt` (新建) |
+| D3-T5 | D3 里程碑終局歸檔：ADR 固化 (UnsafeOptIn 治理 + Fail-safe 契約 + Rule 10 落地 + ImuCompensator bootstrap 陷阱)；D3 封板；殘骸技術債登記 | ✅ DONE | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
+
+> 🏁 **D3 視覺化層已完美封板（Path A）。邊界防禦與零破窗紀律已確立。準備進入 D4 (Edge Warmth 第二層 + 呼吸韻律) 階段。**
 
 ---
 

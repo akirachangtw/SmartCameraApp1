@@ -2499,3 +2499,26 @@ private fun clearTapToFocusIntent() {
   1. **先防呆再渲染**：所有 Overlay 組件必須偵測 Viewport 狀態。若 `contentBounds.isEmpty` 或寬高為 0，必須強制靜默不繪製，防止邊界溢位或無效繪製。
   2. **Z-Order 堆疊契約**：Camera Screen 的圖層順序必須固定為：Preview -> Grid (背景線) -> Guideline/Hint (動態光影) -> Indicators (互動元件)。此順序確保視覺引導能正確覆蓋背景網格。
   3. **焦土清理預告**：`CameraScreen.kt` 中 `GuidelineOverlay` dead import（line 106）為已知技術債，須在下一個焦土 Ticket 中清除。
+
+---
+
+## 🏛️ 架構決策紀錄 (ADR) - D3 視覺層防禦與測試準則
+
+**決策日期**: 2026-04-11 | **Traycer 判定**: Path A (放行) | **Branch**: `feature/cueshot-mvp`
+**觸發票據**: SV-D3-T3-FIX-04 (Lint 清零) + D3-T4 (KAIROS Rule 10 負向測試)
+
+* **UnsafeOptIn 基線治理策略**：針對底層硬體 API (如 `Camera2CameraInfo`) 的 `UnsafeOptInUsageError`，專案採「零容忍清零」策略，不得將其視為一般 warning，必須透過精準的 `@androidx.annotation.OptIn` 標記明確宣告風險邊界。注意：Lint checker 使用 `androidx.annotation.experimental`，必須用 Java-compatible 的 `@androidx.annotation.OptIn` 而非 Kotlin 原生的 `@kotlin.OptIn`，兩者行為不同。
+
+* **Focal-length Fail-safe 契約測試模板**：空間映射計算必須強制驗證哨兵值 (`0f`) 與降級安全網 (`width/2f`, hFov≈90°, tan(45°)=1)，確保 IMU 或渲染引擎在極端參數下安全退化，不產生 `NaN` 或 `Infinity`。測試模板：(a) width=0 → result=0f sentinel；(b) factor=null → fail-safe；(c) 所有組合 `isFinite()` guard。
+
+* **視覺層負向測試實戰 (Rule 10 落地)**：UI 狀態邏輯的測試必須秉持「Mock Clean (無假佔位)」原則。直接注入真實的 Domain 實例 (如 `ImuCompensator`)，進行極值 (如 `roll=±180°`, `focalLength=0f`) 與未就緒狀態的壓力測試。companion object 提取（`internal fun`）是讓 ViewModel 純邏輯可測試的標準手法，不需引入 Hilt/Mock 框架。
+
+* **ImuCompensator bootstrap 陷阱**：`accumulate()` 在 `lastTimestampNs == 0L` 時只設 timestamp 不積分（防止初始大 dt 噪音）。測試時第一個 sample 的 timestamp 必須為非 0 值（如 `1_000_000L`），否則後續所有 sample 均走 bootstrap 路徑，累積量永遠為 0，導致測試誤判。
+
+---
+
+## 📋 D3 Backlog — 殘骸清理技術債
+
+| 項目 | 狀態 | 目標 Ticket | 說明 |
+|------|------|------------|------|
+| [Scorched Earth] `CameraScreen.kt` `GuidelineOverlay` dead import (line 106) | 🔲 TODO | D4-T0 前置焦土 | D3-T2 登記，Traycer 觀察到的殘留 import，確認無 runtime 使用後刪除 |
