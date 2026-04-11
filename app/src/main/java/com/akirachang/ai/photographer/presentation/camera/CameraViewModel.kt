@@ -1624,21 +1624,15 @@ class CameraViewModel @Inject constructor(
                     // v2.8.4: End-to-end profiling
                     val e2eStart = System.nanoTime()
 
-                    // D3-T3: Tier-aware focal length in pixels — drives ImuCompensator per-frame.
-                    // FULL/LIMITED: hardware factor × previewWidth (Camera2 CameraCharacteristics).
+                    // D3-T3: All tiers: hardware-first (CameraCharacteristics), fail-safe = previewWidth / 2f (hFov≈90°).
                     //   factor = focalLengthMm / sensorWidthMm; null until after first camera bind.
                     //   Fail-safe: if factor unavailable, assume hFov≈90° → f ≈ previewWidth / 2f.
                     //   If previewWidth also unknown, result is 0f → ImuCompensator returns (0,0), safe.
-                    // LEGACY: conservative fixed value to avoid over-compensation on weak hardware.
-                    val focalLengthPixels: Float = when (deviceCapabilityTier) {
-                        DeviceCapabilityTier.FULL,
-                        DeviceCapabilityTier.LIMITED -> {
-                            val factor = cameraRepository.getFocalLengthFactor()
-                            val width = previewWidth ?: 0
-                            if (factor != null && width > 0) factor * width
-                            else width / 2f
-                        }
-                        DeviceCapabilityTier.LEGACY  -> 600f
+                    val focalLengthPixels: Float = run {
+                        val factor = cameraRepository.getFocalLengthFactor()
+                        val width = previewWidth ?: 0
+                        if (factor != null && width > 0) factor * width
+                        else width / 2f
                     }
                     val (imuDx, imuDy) = imuCompensator.consumeCameraMotion(focalLengthPixels = focalLengthPixels)
                     Log.i(TAG, "[D0.3] DeviceCapabilityTier=$deviceCapabilityTier focalLengthPixels=$focalLengthPixels imuDx=$imuDx imuDy=$imuDy")

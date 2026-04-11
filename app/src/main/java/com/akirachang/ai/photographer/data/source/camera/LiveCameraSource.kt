@@ -1163,9 +1163,10 @@ Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
                     // 4. Unbind all previous UseCases before rebinding
                     Log.d(TAG, "Rebinding camera - selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}")
                     try {
-                        
                         cameraProvider.unbindAll()
                         Log.d(TAG, "Previous UseCases unbound successfully")
+                        focalLengthFactor = null
+                        Log.d(TAG, "[D3-T3] focalLengthFactor reset before rebind")
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to unbind previous UseCases: ${e.message}", e)
                         // 繼續執行 bind，可能是首次綁定
@@ -1335,6 +1336,8 @@ Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
                 cameraProvider.unbindAll()
                 Log.i(TAG, "Camera unbound from lifecycle")
                 Timber.i("LiveCameraSource: Camera unbound from lifecycle")
+                focalLengthFactor = null
+                Log.i(TAG, "[D3-T3] focalLengthFactor reset to null on unbind")
             }
             currentLifecycleOwner = null
 
