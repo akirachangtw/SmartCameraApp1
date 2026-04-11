@@ -6,8 +6,10 @@ import android.hardware.camera2.CameraCharacteristics
 import android.util.Log
 import android.util.Size
 import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalCameraInfo
 import androidx.camera.lifecycle.ProcessCameraProvider
 import com.akirachang.ai.photographer.BuildConfig
 import kotlinx.coroutines.Dispatchers
@@ -127,6 +129,10 @@ class CameraCapabilityDetector(private val context: Context) {
      * Detect and cache camera capabilities
      * @return Result containing detected strategy, or error
      */
+    @androidx.annotation.OptIn(
+        androidx.camera.core.ExperimentalCameraInfo::class,
+        androidx.camera.camera2.interop.ExperimentalCamera2Interop::class
+    )
     suspend fun detectAndCacheCapabilities(): Result<CachedResolutionStrategy> = withContext(Dispatchers.IO) {
         try {
             // In-flight guard: prevent concurrent detection
@@ -205,6 +211,7 @@ class CameraCapabilityDetector(private val context: Context) {
     /**
      * Query supported resolutions using Camera2 API
      */
+    @androidx.annotation.OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
     private fun querySupportedResolutions(cameraInfo: CameraInfo): List<Size> {
         return try {
             val characteristics = Camera2CameraInfo.from(cameraInfo)

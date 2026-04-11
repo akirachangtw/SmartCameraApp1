@@ -62,6 +62,7 @@ import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.camera2.interop.CaptureRequestOptions
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.CameraState
+import androidx.camera.core.ExperimentalCameraInfo
 import androidx.lifecycle.asFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -1010,6 +1011,10 @@ Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
      * Preview UseCase is MANDATORY for camera to start on real devices
      * Reference: chat_logs/CameraX_StaticImage_TestMode_Fix.md
      */
+    @androidx.annotation.OptIn(
+        ExperimentalCameraInfo::class,
+        ExperimentalCamera2Interop::class
+    )
     fun bindToLifecycle(lifecycleOwner: LifecycleOwner) {
         try {
             currentLifecycleOwner = lifecycleOwner
