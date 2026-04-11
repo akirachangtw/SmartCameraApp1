@@ -100,6 +100,22 @@ class CameraViewModel @Inject constructor(
         const val BBOX_SCALE_FACE   = 1.5f
         const val BBOX_SCALE_OBJECT = 1.8f
         private const val TAP_INTENT_WINDOW_MS = 750L
+
+        /**
+         * Computes effective focal length in pixels from hardware factor and preview width.
+         *
+         * Contract (D3-T3):
+         *   - If [factor] != null and [previewWidth] > 0: hardware-first → factor * previewWidth
+         *   - Otherwise: fail-safe → previewWidth / 2f  (assumes hFov ≈ 90°, tan(45°) = 1)
+         *   - If [previewWidth] == 0: result = 0f (sentinel — ImuCompensator returns (0,0) silently)
+         *
+         * @param factor  focalLengthMm / sensorWidthMm from CameraCharacteristics, null if not yet bound
+         * @param previewWidth  current preview width in pixels, 0 if layout not yet measured
+         */
+        internal fun computeFocalLengthPixels(factor: Float?, previewWidth: Int): Float {
+            return if (factor != null && previewWidth > 0) factor * previewWidth
+            else previewWidth / 2f
+        }
     }
 
     private data class TapToFocusIntent(
@@ -1630,12 +1646,10 @@ class CameraViewModel @Inject constructor(
                     //     previewWidth / 2f corresponds to hFov ≈ 90° (tan(45°)=1).
                     //   If previewWidth = 0, result = 0f — sentinel for "not ready";
                     //     ImuCompensator safely returns (0,0) with no motion applied.
-                    val focalLengthPixels: Float = run {
-                        val factor = cameraRepository.getFocalLengthFactor()
-                        val width = previewWidth ?: 0
-                        if (factor != null && width > 0) factor * width
-                        else width / 2f
-                    }
+                    val focalLengthPixels: Float = computeFocalLengthPixels(
+                        factor = cameraRepository.getFocalLengthFactor(),
+                        previewWidth = previewWidth ?: 0
+                    )
                     val (imuDx, imuDy) = imuCompensator.consumeCameraMotion(focalLengthPixels = focalLengthPixels)
                     Log.i(TAG, "[D0.3] DeviceCapabilityTier=$deviceCapabilityTier focalLengthPixels=$focalLengthPixels imuDx=$imuDx imuDy=$imuDy")
 
