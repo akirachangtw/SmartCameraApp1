@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-11 by D3-T2 (三分法網格 Overlay 對齊 Cueshot 規格)
-**Current Day**: D3 🔄 IN PROGRESS — D1 ✅ CLOSED；D2 ✅ CLOSED；D3-T0/T1/T2 ✅ DONE；D3 ✅ CLOSED（待 Traycer 終審）
+**Last Updated**: 2026-04-11 by D3-T3 (CameraCharacteristics 焦距還債)
+**Current Day**: D3 🔄 IN PROGRESS — D1 ✅ CLOSED；D2 ✅ CLOSED；D3-T0/T1/T2/T3 ✅ DONE；D3 ✅ CLOSED（待 Traycer 終審）
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -12,7 +12,7 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3-T0/T1/T2 ✅ DONE；D3 待 Traycer 終審 | 🟢 |
+| On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3-T0/T1/T2/T3 ✅ DONE；D3 待 Traycer 終審 | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
 | Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; Total: 104t/48skipped/56pass) | 🟢 |
 | Lint New Errors | 0 new | 0 new (1 pre-existing in `CameraCapabilityDetector.kt`, D0 前存在) | 🟢 |
@@ -97,11 +97,12 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D2-T3 | `CompositionModule.kt` 新增 @Binds @IntoSet (ThirdsRule + HeadroomRule) | ✅ DONE | `di/CompositionModule.kt` |
 | D2-T4 | `CompositionResult.kt` 新建 + `AnalyzeCompositionUseCase.invoke()` 實作 (聚合 + isAllAligned + topInstruction) + 移除 `CompositionScore` | ✅ DONE | `domain/model/CompositionResult.kt` (新建), `domain/model/CompositionScore.kt` (刪除), `domain/composition/CompositionRule.kt` (+name), `domain/composition/rules/ThirdsRule.kt` (+name), `domain/composition/rules/HeadroomRule.kt` (+name), `domain/usecase/AnalyzeCompositionUseCase.kt`, `test/.../AnalyzeCompositionUseCaseTest.kt` |
 | SV-D2-T4-FIX-01 | ViewModel 實體接線：拆除 D1 暫代 + 實際呼叫 UseCase + `CameraState.compositionResult` 落地 | ✅ DONE | `presentation/camera/CameraState.kt`, `presentation/camera/CameraViewModel.kt` |
-| D2-T5 | 移除 `previewWidth ?: 800` 魔術數字（改由 CameraCharacteristics 驅動） | 🔲 DEFERRED (推遲至 D3 座標映射重建) | — |
+| D2-T5 | 移除 `previewWidth ?: 800` 魔術數字（改由 CameraCharacteristics 驅動） | ✅ DONE (承接為 D3-T3 完成) | `LiveCameraSource.kt`, `CameraRepository.kt`, `CameraRepositoryImpl.kt`, `CameraViewModel.kt` |
 | D3-T0 | 前置焦土清理：刪除 `_trackingBoxFlow`、`compositionEngine`、`onTrackingBoxUpdated()`、2 dead imports；更新過期 KDoc | ✅ DONE | `presentation/camera/CameraViewModel.kt` |
 | D3-T1 | 水平儀收斂：LevelIndicator 色碼對齊 SSOT (#50C864/#D4A030)；CameraState 新增 deviceRoll 欄位；ViewModel observeOrientation 同步 _state.deviceRoll | ✅ DONE (Path A) | `components/overlay/LevelIndicator.kt`, `CameraState.kt`, `CameraViewModel.kt` |
 | D3-T1.1 | 全域色碼技術債歸檔：5 個殘留舊色碼檔案登記至 Backlog（D5 UI 精修統一處理） | ✅ DONE | `devspec/feature_record_Backlog.md`, `PROGRESS.md` |
 | D3-T2 | 三分法網格 Overlay 對齊 Cueshot 規格：`GridOverlay.kt` 改為實線（移除 dashPathEffect）、alpha 0.4→0.5；`CameraScreen.kt` 清除舊 TODO comment；isGridEnabled 綁定已存在，Z-order 已正確 | ✅ DONE (Path A) | `components/overlay/GridOverlay.kt`, `presentation/camera/CameraScreen.kt` |
+| D3-T3 | CameraCharacteristics 焦距還債：移除 `previewWidth ?: 800` 魔術數字；`LiveCameraSource` 在 camera binding 後讀取 `LENS_INFO_AVAILABLE_FOCAL_LENGTHS` + `SENSOR_INFO_PHYSICAL_SIZE` 計算 factor；`CameraRepository` 介面新增 `getFocalLengthFactor()`；ViewModel 改用 `factor × previewWidth`，fail-safe 為 `previewWidth / 2f` | ✅ DONE (Path A) | `data/source/camera/LiveCameraSource.kt`, `domain/repository/CameraRepository.kt`, `data/repository/CameraRepositoryImpl.kt`, `presentation/camera/CameraViewModel.kt` |
 
 ---
 
