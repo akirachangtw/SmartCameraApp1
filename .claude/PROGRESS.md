@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-11 by SV-D3-T3-FIX-01~03 登記（Traycer Path B — 補修票開立）
-**Current Day**: D3 🔄 IN PROGRESS — D1 ✅ CLOSED；D2 ✅ CLOSED；D3-T0/T1/T2 ✅ DONE；D3-T3 ⚠️ SV Path B（FIX-01~03 待補修）
+**Last Updated**: 2026-04-11 by D3-T3-FIX-01~03 ✅ DONE；FIX-04 登記
+**Current Day**: D3 🔄 IN PROGRESS — D1 ✅ CLOSED；D2 ✅ CLOSED；D3-T0/T1/T2/T3 ✅ DONE；D3-T3-FIX-01~03 ✅ DONE (Path A)；FIX-04 🔲 TODO
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -12,7 +12,7 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3-T0/T1/T2 ✅ DONE；D3-T3 ⚠️ Path B（FIX-01~03 待補修） | 🟡 |
+| On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3-T0/T1/T2/T3 ✅ DONE；FIX-01~03 ✅ DONE (Path A)；FIX-04 🔲 TODO | 🟡 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
 | Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; Total: 104t/48skipped/56pass) | 🟢 |
 | Lint New Errors | 0 new | 0 new (1 pre-existing in `CameraCapabilityDetector.kt`, D0 前存在) | 🟢 |
@@ -103,9 +103,10 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D3-T1.1 | 全域色碼技術債歸檔：5 個殘留舊色碼檔案登記至 Backlog（D5 UI 精修統一處理） | ✅ DONE | `devspec/feature_record_Backlog.md`, `PROGRESS.md` |
 | D3-T2 | 三分法網格 Overlay 對齊 Cueshot 規格：`GridOverlay.kt` 改為實線（移除 dashPathEffect）、alpha 0.4→0.5；`CameraScreen.kt` 清除舊 TODO comment；isGridEnabled 綁定已存在，Z-order 已正確 | ✅ DONE (Path A) | `components/overlay/GridOverlay.kt`, `presentation/camera/CameraScreen.kt` |
 | D3-T3 | CameraCharacteristics 焦距還債：移除 `previewWidth ?: 800` 魔術數字；`LiveCameraSource` 在 camera binding 後讀取 `LENS_INFO_AVAILABLE_FOCAL_LENGTHS` + `SENSOR_INFO_PHYSICAL_SIZE` 計算 factor；`CameraRepository` 介面新增 `getFocalLengthFactor()`；ViewModel 改用 `factor × previewWidth`，fail-safe 為 `previewWidth / 2f` | ⚠️ SV PENDING FIX (Path B) | `data/source/camera/LiveCameraSource.kt`, `domain/repository/CameraRepository.kt`, `data/repository/CameraRepositoryImpl.kt`, `presentation/camera/CameraViewModel.kt` |
-| SV-D3-T3-FIX-01 | SSOT 硬編碼清零：移除 LEGACY tier 的 `600f` 硬編碼常數，改為「所有 tier 一律 hardware-first」，取不到特徵時走動態 fail-safe | 🔲 TODO | `presentation/camera/CameraViewModel.kt` |
-| SV-D3-T3-FIX-02 | stale 防護：在 `unbind()` 與每次新 bind 開始前先將 `focalLengthFactor = null`，確保不跨 session 汙染 | 🔲 TODO | `data/source/camera/LiveCameraSource.kt` |
-| SV-D3-T3-FIX-03 | fail-safe 契約明確化：fail-safe 明確綁定當前 viewport/preview 幾何（非固定常數），補上 KDoc/註解說明 | 🔲 TODO | `presentation/camera/CameraViewModel.kt` |
+| SV-D3-T3-FIX-01 | SSOT 硬編碼清零：移除 LEGACY tier 的 `600f` 硬編碼常數，改為「所有 tier 一律 hardware-first」，取不到特徵時走動態 fail-safe | ✅ DONE (Path A) | `presentation/camera/CameraViewModel.kt` |
+| SV-D3-T3-FIX-02 | stale 防護：在 `unbind()` 與每次新 bind 開始前先將 `focalLengthFactor = null`，確保不跨 session 汙染 | ✅ DONE (Path A) | `data/source/camera/LiveCameraSource.kt` |
+| SV-D3-T3-FIX-03 | fail-safe 契約明確化：fail-safe 明確綁定當前 viewport/preview 幾何（非固定常數），補上 KDoc/註解說明（ImuCompensator 800f 幽靈清除 + CameraRepository null 雙重語義拆分） | ✅ DONE (Path A) | `presentation/camera/CameraViewModel.kt`, `domain/camera/ImuCompensator.kt`, `domain/repository/CameraRepository.kt` |
+| SV-D3-T3-FIX-04 | Lint 破窗清零：清除 `CameraCapabilityDetector.kt:145` 的 `UnsafeOptInUsageError`（補 `@OptIn(ExperimentalCamera2Interop::class)` 或對應 CameraX annotation） | 🔲 TODO | `data/source/camera/CameraCapabilityDetector.kt` |
 
 ---
 
