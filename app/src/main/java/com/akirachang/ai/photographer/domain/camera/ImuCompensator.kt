@@ -57,7 +57,9 @@ import com.akirachang.ai.photographer.domain.sensor.GyroscopeData
  * }
  *
  * // In per-frame motion compensation:
- * val (dx, dy) = compensator.consumeCameraMotion(focalLengthPixels = 800f) // f ≈ previewWidth / (2·tan(hFov/2))
+ * // focalLengthPixels = factor * previewWidth (from CameraCharacteristics)
+ * // or previewWidth / 2f as fail-safe (hFov ≈ 90°, tan(45°)=1)
+ * val (dx, dy) = compensator.consumeCameraMotion(focalLengthPixels = focalLengthPixels)
  * val correctedX = rawX - dx
  * val correctedY = rawY - dy
  * ```

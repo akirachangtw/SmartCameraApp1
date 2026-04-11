@@ -257,8 +257,11 @@ interface CameraRepository {
     /**
      * D3-T3: Return hardware focal length factor (focalLengthMm / sensorWidthMm).
      * Multiply by previewWidth (px) to obtain focalLengthPixels for ImuCompensator.
-     * Returns null if camera is not yet bound or hardware characteristics are unavailable.
-     * For StaticImageSource: always returns null.
+     * Returns null in two distinct cases:
+     *   1. Temporary: camera not yet bound (unbind state); will be updated after next bind.
+     *   2. Permanent: hardware does not expose LENS_INFO_AVAILABLE_FOCAL_LENGTHS;
+     *      caller must apply fail-safe degradation (previewWidth / 2f).
+     * For StaticImageSource: always returns null (permanent).
      */
     fun getFocalLengthFactor(): Float?
 }

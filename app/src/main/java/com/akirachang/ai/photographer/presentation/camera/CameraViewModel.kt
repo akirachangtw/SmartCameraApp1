@@ -1627,7 +1627,9 @@ class CameraViewModel @Inject constructor(
                     // D3-T3: All tiers: hardware-first (CameraCharacteristics), fail-safe = previewWidth / 2f (hFov≈90°).
                     //   factor = focalLengthMm / sensorWidthMm; null until after first camera bind.
                     //   Fail-safe: if factor unavailable, assume hFov≈90° → f ≈ previewWidth / 2f.
-                    //   If previewWidth also unknown, result is 0f → ImuCompensator returns (0,0), safe.
+                    //     previewWidth / 2f corresponds to hFov ≈ 90° (tan(45°)=1).
+                    //   If previewWidth = 0, result = 0f — sentinel for "not ready";
+                    //     ImuCompensator safely returns (0,0) with no motion applied.
                     val focalLengthPixels: Float = run {
                         val factor = cameraRepository.getFocalLengthFactor()
                         val width = previewWidth ?: 0
