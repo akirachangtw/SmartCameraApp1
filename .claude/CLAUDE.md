@@ -11,7 +11,9 @@
 5. **命名一致 (Anti-Drift)**：所有類別名稱、變數名稱必須與 v3.3 SSOT 一致。禁止自行發明未經授權的命名（如 SSOT 定義 `EdgeWarmthLayer` 但實作叫 `WarmGradient`）。
 6. **預設值陷阱防禦**：None/Empty 狀態的 UI 必須**完全透明或隱藏**，禁止畫出預設框或預設顏色（如 `Size(36.dp)` 硬編碼、`Color.Gray` 佔位）。
 7. **硬體頻率脫鉤**：高頻視覺追蹤 (Halo 10fps) 與低頻硬體呼叫 (AF 冷卻 2-3s) 必須徹底分離。前鏡頭永遠不呼叫 AF。
-8. **i18n 三道防線**：
+8. **語言紀律**：所有對話輸出、推理描述、工具呼叫說明一律使用**繁體中文或英文**。禁止在任何模式下切換到日文、韓文或其他語言。程式碼內的註解與變數名稱使用英文。
+
+9. **i18n 三道防線**：
    - **UI 層 (Jetpack Compose)**：絕對禁止 Hardcode 顯示字串（例如 `Text("向左微調")`）。所有面向使用者的靜態文案，必須提取至 `res/values/strings.xml`，並透過 `stringResource(R.string.xxx)` 渲染。
    - **Domain/Data 層**：Domain 層物件（如 `CompositionAdvice`）絕對禁止持有或傳遞本地化字串。必須使用「純語意代碼 (Sealed Class / Enum)」，翻譯責任下放 UI 層。
    - **AI 邏輯層 (LLM Prompt)**：串接 Gemini / Claude 時，必須在 Prompt 內動態注入 Locale 參數，強制 AI 返回正確語言的 JSON 結果。
@@ -305,9 +307,9 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 **KAIROS #1 產出 (D2, 2026-04-10)**
 
-9. **骨架 Ticket 未實作強制聲明**：D1/骨架 Ticket 中的未實作函數，必須以 `error("Not implemented — will be wired in DX-TY")` 顯式拋出，嚴禁回傳合法型別空值（如 `null`、`emptyList()`）偽裝完成。觸發來源：SV-D2-T4-FIX-01（D1 `observeCompositionAdvice` 暫代殘留導致 D2 需補接線）。
+10. **骨架 Ticket 未實作強制聲明**：D1/骨架 Ticket 中的未實作函數，必須以 `error("Not implemented — will be wired in DX-TY")` 顯式拋出，嚴禁回傳合法型別空值（如 `null`、`emptyList()`）偽裝完成。觸發來源：SV-D2-T4-FIX-01（D1 `observeCompositionAdvice` 暫代殘留導致 D2 需補接線）。
 
-10. **Rule 負向測試強制覆蓋**：每個 `CompositionRule` 實作的測試套件，必須包含 ≥1 組負向測試（空 faces 清單 + 座標超界輸入 `[0,1]` 以外），驗證結果為 `score=0` / `isAligned=false`（非拋出例外）。觸發來源：SV-D2-T1-FIX-01~03（ThirdsRule 座標漂移 bug，修復需三張連環補修票）。
+11. **Rule 負向測試強制覆蓋**：每個 `CompositionRule` 實作的測試套件，必須包含 ≥1 組負向測試（空 faces 清單 + 座標超界輸入 `[0,1]` 以外），驗證結果為 `score=0` / `isAligned=false`（非拋出例外）。觸發來源：SV-D2-T1-FIX-01~03（ThirdsRule 座標漂移 bug，修復需三張連環補修票）。
 
 ---
 
