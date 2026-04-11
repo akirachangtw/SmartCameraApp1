@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-11 by D3-T1.2 (D3 水平儀收斂 + ADR 歸檔)
-**Current Day**: D3 🔄 IN PROGRESS — D1 ✅ CLOSED；D2 ✅ CLOSED；D3-T0/T1 ✅ DONE；D3-T2 🔲 NEXT
+**Last Updated**: 2026-04-11 by D3-T2 (三分法網格 Overlay 對齊 Cueshot 規格)
+**Current Day**: D3 🔄 IN PROGRESS — D1 ✅ CLOSED；D2 ✅ CLOSED；D3-T0/T1/T2 ✅ DONE；D3 ✅ CLOSED（待 Traycer 終審）
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -12,7 +12,7 @@
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3-T0/T1 ✅ DONE；D3-T2 🔲 NEXT | 🟢 |
+| On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3-T0/T1/T2 ✅ DONE；D3 待 Traycer 終審 | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
 | Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; Total: 104t/48skipped/56pass) | 🟢 |
 | Lint New Errors | 0 new | 0 new (1 pre-existing in `CameraCapabilityDetector.kt`, D0 前存在) | 🟢 |
@@ -101,6 +101,7 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D3-T0 | 前置焦土清理：刪除 `_trackingBoxFlow`、`compositionEngine`、`onTrackingBoxUpdated()`、2 dead imports；更新過期 KDoc | ✅ DONE | `presentation/camera/CameraViewModel.kt` |
 | D3-T1 | 水平儀收斂：LevelIndicator 色碼對齊 SSOT (#50C864/#D4A030)；CameraState 新增 deviceRoll 欄位；ViewModel observeOrientation 同步 _state.deviceRoll | ✅ DONE (Path A) | `components/overlay/LevelIndicator.kt`, `CameraState.kt`, `CameraViewModel.kt` |
 | D3-T1.1 | 全域色碼技術債歸檔：5 個殘留舊色碼檔案登記至 Backlog（D5 UI 精修統一處理） | ✅ DONE | `devspec/feature_record_Backlog.md`, `PROGRESS.md` |
+| D3-T2 | 三分法網格 Overlay 對齊 Cueshot 規格：`GridOverlay.kt` 改為實線（移除 dashPathEffect）、alpha 0.4→0.5；`CameraScreen.kt` 清除舊 TODO comment；isGridEnabled 綁定已存在，Z-order 已正確 | ✅ DONE (Path A) | `components/overlay/GridOverlay.kt`, `presentation/camera/CameraScreen.kt` |
 
 ---
 

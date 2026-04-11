@@ -2489,3 +2489,13 @@ private fun clearTapToFocusIntent() {
 **觸發票據**: D3-T1 (水平儀收斂)
 
 * **UI 狀態鏡像與單一路徑收斂 (State Mirroring & Unification Convergence)**：在過渡期（如 D3），為避免破壞既有 UI，允許底層 Sensor 狀態產生「鏡像」（例如同時存在獨立的 `orientationState` Flow 與聚合在 `CameraState.deviceRoll` 內的狀態）。但此為暫時性技術債，**必須在 D5 (Rule Engine 視覺化階段) 強制將所有 UI 消費端收斂至單一來源 `CameraState`**，徹底消滅雙來源語義漂移的風險。
+
+## 🏛️ 架構決策紀錄 (ADR) - D3-T2 視覺層級與渲染防禦 (Grid & Z-Order)
+
+**決策日期**: 2026-04-11 | **Traycer 判定**: Path A (放行) | **Branch**: `feature/cueshot-mvp`
+**觸發票據**: D3-T2 (三分法網格 Overlay)
+
+* **視覺層級與渲染防禦 (D3-T2 Grid & Z-Order)**：
+  1. **先防呆再渲染**：所有 Overlay 組件必須偵測 Viewport 狀態。若 `contentBounds.isEmpty` 或寬高為 0，必須強制靜默不繪製，防止邊界溢位或無效繪製。
+  2. **Z-Order 堆疊契約**：Camera Screen 的圖層順序必須固定為：Preview -> Grid (背景線) -> Guideline/Hint (動態光影) -> Indicators (互動元件)。此順序確保視覺引導能正確覆蓋背景網格。
+  3. **焦土清理預告**：`CameraScreen.kt` 中 `GuidelineOverlay` dead import（line 106）為已知技術債，須在下一個焦土 Ticket 中清除。
