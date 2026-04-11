@@ -300,10 +300,9 @@ fun CameraScreen(
 
                 // v2.8.6 Phase 0: A/B Test - Conditionally disable overlays (Test B)
                 if (!CameraViewModel.DEBUG_DISABLE_OVERLAYS) {
-                    // v1.5.0: Rule of Thirds grid overlay
-                    // v2.1.0: Respect overlay preferences
-                    // v2.11.1 Phase 1: Use contentBounds from PreviewViewportContainer (local)
-                    // Phase 3: contentBounds.isEmpty = true initially → Grid hidden until calculated
+                    // D3-T2: Rule of Thirds grid overlay (Cueshot ambient UI)
+                    // Solid lines, White alpha=0.5f, Z-order: above preview, below control UI
+                    // Bound to isGridEnabled (viewModel.isGridEnabled); hidden until contentBounds calculated
                     GridOverlay(
                         modifier = Modifier.fillMaxSize(),
                         visible = isGridEnabled && !contentBounds.isEmpty,
@@ -321,9 +320,6 @@ fun CameraScreen(
                         guideData = guideData,
                         modifier = Modifier.fillMaxSize()
                     )
-
-                    // Cueshot D0: GuidelineOverlay (OpenCV Hough Line) removed.
-                    // TODO (Cueshot Ticket D3): Wire CompositionGuidelineEngine overlay here.
                 }
 
                 // v2.2.0: HDR/Lighting warning overlay (highest priority - shows on top)

@@ -12,6 +12,7 @@
  *
  * Modifications:
  * - 2025-11-25: Initial creation for v1.5.0 prototype
+ * - 2026-04-11: D3-T2 Cueshot alignment — solid lines (dashes removed), alpha 0.4→0.5
  */
 package com.akirachang.ai.photographer.presentation.camera.components.overlay
 
@@ -22,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 
@@ -45,7 +45,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 fun GridOverlay(
     modifier: Modifier = Modifier,
     visible: Boolean = true,
-    color: Color = Color.White.copy(alpha = 0.4f),
+    color: Color = Color.White.copy(alpha = 0.5f),
     strokeWidth: Float = 2f,
     contentBounds: RectF? = null  // v2.11.1 P0-2: Optional content bounds
 ) {
@@ -90,17 +90,14 @@ private fun DrawScope.drawRuleOfThirdsGrid(
     val topThird = top + height / 3f
     val bottomThird = top + height * 2f / 3f
 
-    // Optional: Dashed line effect for less intrusive appearance
-    val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
-
+    // D3-T2: Solid lines (no dash) per Cueshot ambient UI spec
     // Draw vertical lines (within content bounds)
     drawLine(
         color = color,
         start = Offset(leftThird, top),
         end = Offset(leftThird, top + height),
         strokeWidth = strokeWidth,
-        cap = StrokeCap.Round,
-        pathEffect = pathEffect
+        cap = StrokeCap.Round
     )
 
     drawLine(
@@ -108,8 +105,7 @@ private fun DrawScope.drawRuleOfThirdsGrid(
         start = Offset(rightThird, top),
         end = Offset(rightThird, top + height),
         strokeWidth = strokeWidth,
-        cap = StrokeCap.Round,
-        pathEffect = pathEffect
+        cap = StrokeCap.Round
     )
 
     // Draw horizontal lines (within content bounds)
@@ -118,8 +114,7 @@ private fun DrawScope.drawRuleOfThirdsGrid(
         start = Offset(left, topThird),
         end = Offset(left + width, topThird),
         strokeWidth = strokeWidth,
-        cap = StrokeCap.Round,
-        pathEffect = pathEffect
+        cap = StrokeCap.Round
     )
 
     drawLine(
@@ -127,8 +122,7 @@ private fun DrawScope.drawRuleOfThirdsGrid(
         start = Offset(left, bottomThird),
         end = Offset(left + width, bottomThird),
         strokeWidth = strokeWidth,
-        cap = StrokeCap.Round,
-        pathEffect = pathEffect
+        cap = StrokeCap.Round
     )
 
     // Optional: Draw small circles at intersection points to highlight them
