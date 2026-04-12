@@ -8,7 +8,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -25,8 +28,11 @@ import com.akirachang.ai.photographer.domain.model.DeviceCapabilityTier
 import kotlin.math.abs
 
 // Test-tag constants — consumed by EdgeWarmthLayerTest (D4-T4 defence matrix).
-internal const val TAG_EDGE_WARMTH_ALIGNED = "EdgeWarmthLayer_Aligned"
-internal const val TAG_EDGE_WARMTH_AMBER   = "EdgeWarmthLayer_Amber"
+internal const val TAG_EDGE_WARMTH_ALIGNED     = "EdgeWarmthLayer_Aligned"
+internal const val TAG_EDGE_WARMTH_AMBER       = "EdgeWarmthLayer_Amber"
+// Semantic probe: present in composition when dots are enabled (FULL/LIMITED tier + direction active).
+// Zero-size Box — no visual impact. Consumed by EdgeWarmthLayerTest.
+internal const val TAG_EDGE_WARMTH_DOTS_ENABLED = "EdgeWarmthLayer_DotsEnabled"
 
 /** Amber guide color per SSOT v3.3 */
 private val WarmAmber = Color(0xFFD4A030)
@@ -174,6 +180,12 @@ fun EdgeWarmthLayer(
                 setShadowLayer(8f, 0f, 0f, WarmAmber.copy(alpha = 0.6f).toArgb())
             }
         }
+    }
+
+    // Semantic probe: zero-size Box present in composition only when dots are active.
+    // Allows instrumented tests to assert dot enablement without inspecting Canvas draw calls.
+    if (renderDots && direction != null) {
+        Box(modifier = Modifier.size(0.dp).testTag(TAG_EDGE_WARMTH_DOTS_ENABLED))
     }
 
     Canvas(modifier = modifier.fillMaxSize().testTag(TAG_EDGE_WARMTH_AMBER)) {
