@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-12 by D4 封板 ✅ Path A — SV-D4-T2-FIX-01/02/03 全數閉環
-**Current Day**: D4 ✅ CLOSED (Path A) — 全系列閉環；D5 下一步
+**Last Updated**: 2026-04-12 by D4-T4 ✅ Path A — KAIROS Rule 10 測試矩陣全數綠燈，D4 完全閉環
+**Current Day**: D4 ✅ CLOSED (Path A) — 含 D4-T4 測試矩陣；D5 下一步
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -14,7 +14,7 @@
 |--------|--------|---------|--------|
 | On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; Total: 120t/48skipped/72pass) | 🟢 |
+| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; Total: 125t/48skipped/77pass) | 🟢 |
 | Lint New Errors | 0 new | 0 new (pre-existing `CameraCapabilityDetector.kt` UnsafeOptIn 已於 FIX-04 清零) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
@@ -130,7 +130,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | SV-D4-T2-FIX-02 | 動畫生命週期收斂：`rememberInfiniteTransition` 移入條件區塊，避免未對齊時無效空轉 | ✅ DONE (Path A) | `presentation/camera/CameraScreen.kt` |
 | SV-D4-T2-FIX-03 | 文件閉環與 Drift 歸檔：D4-T2 狀態互斥 + 生命週期 ADR 寫入 Backlog；D4 封板 Path A | ✅ DONE (Path A) | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
 
-> 🏁 **D4 全系列 Path A 放行。D4-T2 呼吸韻律完整落地：EdgeWarmthLayer 4 邊均勻綠色呼吸 + 快門外環同頻脈動；FIX-01 互斥防禦 + FIX-02 動畫生命週期收斂 + FIX-03 ADR 知識沉澱均閉環。D4 正式封板。**
+| D4-T4 | KAIROS Rule 10 測試矩陣：`CameraScreenStateTest`（5 tests，狀態互斥/生命週期）+ `EdgeWarmthLayerTest`（6 tests，tier 降級/Canvas 分支）；修復 `HDRWarningOverlayTest` 預存在 compile error | ✅ DONE (Path A) | `test/.../CameraScreenStateTest.kt` (新建), `androidTest/.../EdgeWarmthLayerTest.kt` (新建), `overlay/EdgeWarmthLayer.kt` (+testTag), `androidTest/.../HDRWarningOverlayTest.kt` (fix) |
+
+> 🏁 **D4 全系列 Path A 完全閉環。D4-T2 呼吸韻律 + D4-T4 KAIROS Rule 10 防禦網均落地。JVM 125 tests pass；EdgeWarmthLayerTest 6/6 在 Sony XQ-BT52 實機通過。D4 正式封板。**
 
 ---
 
@@ -140,6 +142,7 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 |-------|----------|------------|------------|
 | **[D0.3] Traycer Path B — 可驗證事實不一致** | ~~🔴 HIGH~~ | 2026-04-09 | ✅ 2026-04-09 Trust-but-verify 覆測通過，D0.1 清創關閉 |
 | **[D1] SV Path B — D1 未達驗收閉環** | ~~🔴 HIGH~~ | 2026-04-09 | ✅ 2026-04-09 FIX-01~06 全數閉環，Traycer Path A 放行 |
+| **[HDRWarningOverlayTest] 3 state-transition tests fail on device** | 🟡 LOW | 2026-04-12 | 非阻擋：預存在 `setContent` 多次呼叫設計 bug（commit `9b0abdc`）；需改用 `mutableStateOf` 驅動狀態切換。D5 前技術債登記，不影響 D4-T4 防禦網。 |
 
 ---
 
