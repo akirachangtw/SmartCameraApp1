@@ -81,14 +81,13 @@ class HDRWarningOverlayTest {
     }
 
     @Test
-    fun backlightState_shouldDisplayWithCustomRecommendation() {
-        // Arrange
-        val customRecommendation = "自訂逆光建議"
+    fun backlightState_shouldDisplayWithDefaultRecommendation() {
+        // Arrange: Backlight does not accept a custom recommendation parameter;
+        // the default recommendation text is returned by getRecommendation().
         val lightingState = LightingState.Backlight(
             subjectLuminance = 76f,
             backgroundLuminance = 178f,
             luminanceDifference = 102f,
-            recommendation = customRecommendation
         )
 
         // Act
@@ -96,8 +95,8 @@ class HDRWarningOverlayTest {
             HDRWarningOverlay(lightingState = lightingState)
         }
 
-        // Assert
-        composeTestRule.onNodeWithText(customRecommendation)
+        // Assert: The default backlight recommendation text is displayed
+        composeTestRule.onNodeWithText("逆光場景", substring = true)
             .assertExists()
             .assertIsDisplayed()
     }
@@ -127,13 +126,13 @@ class HDRWarningOverlayTest {
 
     @Test
     fun highContrastState_withHighHighlights_shouldShowAlternativeMessage() {
-        // Arrange: High highlight ratio triggers different message
+        // Arrange: High highlight ratio triggers different message.
+        // HighContrast does not accept a custom recommendation parameter.
         val lightingState = LightingState.HighContrast(
             contrastRatio = 5f,
             dynamicRange = 200f,
             highlightRatio = 0.25f, // > 0.20
             shadowRatio = 0.12f,
-            recommendation = "高反差場景 - 注意高光細節，建議使用 HDR"
         )
 
         // Act

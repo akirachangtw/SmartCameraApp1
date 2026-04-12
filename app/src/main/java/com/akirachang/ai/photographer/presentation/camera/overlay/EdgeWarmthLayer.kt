@@ -20,8 +20,13 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.testTag
 import com.akirachang.ai.photographer.domain.model.DeviceCapabilityTier
 import kotlin.math.abs
+
+// Test-tag constants — consumed by EdgeWarmthLayerTest (D4-T4 defence matrix).
+internal const val TAG_EDGE_WARMTH_ALIGNED = "EdgeWarmthLayer_Aligned"
+internal const val TAG_EDGE_WARMTH_AMBER   = "EdgeWarmthLayer_Amber"
 
 /** Amber guide color per SSOT v3.3 */
 private val WarmAmber = Color(0xFFD4A030)
@@ -118,7 +123,7 @@ fun EdgeWarmthLayer(
 
     if (isAligned) {
         // ── Aligned state: 4-edge uniform green breathing, no dots ──────────
-        Canvas(modifier = modifier.fillMaxSize()) {
+        Canvas(modifier = modifier.fillMaxSize().testTag(TAG_EDGE_WARMTH_ALIGNED)) {
             drawAlignedBreathingGradient(breatheAlpha)
         }
         return
@@ -171,7 +176,7 @@ fun EdgeWarmthLayer(
         }
     }
 
-    Canvas(modifier = modifier.fillMaxSize()) {
+    Canvas(modifier = modifier.fillMaxSize().testTag(TAG_EDGE_WARMTH_AMBER)) {
         // ── Layer 1: Directional gradient base ──────────────────────────────
         drawEdgeWarmthGradient(direction, gradientAlpha)
 
