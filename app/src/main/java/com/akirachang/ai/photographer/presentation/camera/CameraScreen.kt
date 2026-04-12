@@ -493,32 +493,33 @@ fun CameraScreen(
                     }
 
                     // 拍照按鈕 (v2.9.8: 添加視覺反饋 - 禁用 + 進度指示器)
-                    // D4-T2: isAligned drives green breathing ring, same animationSpec as EdgeWarmthLayer.
-                    val shutterInfiniteTransition = rememberInfiniteTransition(label = "ShutterRing")
-                    val shutterRingAlpha by shutterInfiniteTransition.animateFloat(
-                        initialValue = 0.10f,
-                        targetValue = 0.18f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
-                            repeatMode = RepeatMode.Reverse,
-                        ),
-                        label = "shutter_ring_alpha",
-                    )
-                    val shutterRingScale by shutterInfiniteTransition.animateFloat(
-                        initialValue = 1.0f,
-                        targetValue = 1.15f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
-                            repeatMode = RepeatMode.Reverse,
-                        ),
-                        label = "shutter_ring_scale",
-                    )
                     Box(
                         contentAlignment = Alignment.Center
                     ) {
                         // D4-T2: Green breathing outer ring — only when aligned AND not capturing.
                         // SV-D4-T2-FIX-01.1: isCapturing takes absolute priority; suppress ring during capture.
+                        // SV-D4-T2-FIX-02.1: InfiniteTransition scoped inside condition — clock only ticks
+                        //   when the ring is actually rendered (enters composition). No idle drain.
                         if (isAligned && !state.isCapturing) {
+                            val shutterInfiniteTransition = rememberInfiniteTransition(label = "ShutterRing")
+                            val shutterRingAlpha by shutterInfiniteTransition.animateFloat(
+                                initialValue = 0.10f,
+                                targetValue = 0.18f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+                                    repeatMode = RepeatMode.Reverse,
+                                ),
+                                label = "shutter_ring_alpha",
+                            )
+                            val shutterRingScale by shutterInfiniteTransition.animateFloat(
+                                initialValue = 1.0f,
+                                targetValue = 1.15f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+                                    repeatMode = RepeatMode.Reverse,
+                                ),
+                                label = "shutter_ring_scale",
+                            )
                             Canvas(modifier = Modifier.size((72 * shutterRingScale).dp)) {
                                 drawCircle(
                                     color = Color(0xFF50C864).copy(alpha = shutterRingAlpha),
