@@ -1,12 +1,13 @@
 package com.akirachang.ai.photographer.domain.composition
 
+import com.akirachang.ai.photographer.domain.model.RuleScore
 import javax.inject.Inject
 
 /**
  * D5-T2 Priority Engine — selects the highest-priority misaligned rule.
  *
  * Algorithm (SSOT §4.1):
- *   priority = rule.weight * ((100 - result.score) / 100) * rule.confidenceFactor
+ *   priority = rule.weight * ((100 - ruleScore.score) / 100) * rule.confidenceFactor
  *
  * A lower score means the composition is further from ideal, producing a higher
  * priority value. The rule with the highest priority becomes the top instruction
@@ -20,18 +21,18 @@ class PriorityEngine @Inject constructor() {
     /**
      * Calculates which misaligned rule deserves the user's attention most urgently.
      *
-     * @param results Map of each [CompositionRule] to its [RuleResult] from the current frame.
-     * @return The [RuleResult] of the highest-priority misaligned rule, or `null` if all
+     * @param results Map of each [CompositionRule] to its [RuleScore] from the current frame.
+     * @return The [RuleScore] of the highest-priority misaligned rule, or `null` if all
      *         rules are aligned (triggers breathing-rhythm UI).
      */
-    fun calculateTopInstruction(results: Map<CompositionRule, RuleResult>): RuleResult? {
-        val misaligned = results.entries.filter { (_, result) -> !result.isAligned }
+    fun calculateTopInstruction(results: Map<CompositionRule, RuleScore>): RuleScore? {
+        val misaligned = results.entries.filter { (_, ruleScore) -> !ruleScore.isAligned }
 
         if (misaligned.isEmpty()) return null
 
         return misaligned
-            .maxByOrNull { (rule, result) ->
-                rule.weight * ((100f - result.score) / 100f) * rule.confidenceFactor
+            .maxByOrNull { (rule, ruleScore) ->
+                rule.weight * ((100f - ruleScore.score) / 100f) * rule.confidenceFactor
             }
             ?.value
     }
