@@ -26,8 +26,23 @@ interface CompositionRule {
     /** Stable identifier used as key in [CompositionResult.ruleScores]. Must be unique per rule. */
     val name: String
 
-    /** Weight for weighted-average total score. Must be > 0. */
+    /**
+     * Base weight for priority calculation in [PriorityEngine]. Range: (0.0, 1.0].
+     * Higher weight = this rule's misalignment is penalized more heavily.
+     * Also used for weighted-average total score.
+     */
     val weight: Float
+
+    /**
+     * Hardware/ML confidence factor for this rule. Range: [0.0, 1.0].
+     * Rules that depend heavily on ML Kit detection (e.g. face detection) should
+     * use a lower factor to dampen priority when detection reliability is uncertain.
+     * Pure IMU-driven rules may use 1.0.
+     *
+     * Used in [PriorityEngine] formula:
+     *   priority = weight * ((100 - score) / 100) * confidenceFactor
+     */
+    val confidenceFactor: Float
 
     /**
      * 評估構圖規則。

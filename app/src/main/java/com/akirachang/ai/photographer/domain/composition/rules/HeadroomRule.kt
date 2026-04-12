@@ -23,7 +23,10 @@ import javax.inject.Inject
 class HeadroomRule @Inject constructor() : CompositionRule {
 
     override val name: String = "headroom"
-    override val weight: Float = 0.8f
+    // SSOT §4.2 構圖類矩陣：淨空基礎權重
+    override val weight: Float = 0.20f
+    // Face detection via ML Kit — high but not absolute confidence
+    override val confidenceFactor: Float = 0.80f
 
     override fun evaluate(faces: List<RectF>, imuPitch: Float, imuRoll: Float): RuleResult {
         if (faces.isEmpty()) return RuleResult(score = 0f, isAligned = false)

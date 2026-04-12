@@ -21,7 +21,10 @@ import kotlin.math.sqrt
 class ThirdsRule @Inject constructor() : CompositionRule {
 
     override val name: String = "thirds"
-    override val weight: Float = 1.0f
+    // SSOT §4.2 構圖類矩陣：三分法基礎權重
+    override val weight: Float = 0.20f
+    // Face detection via ML Kit — high but not absolute confidence
+    override val confidenceFactor: Float = 0.80f
 
     override fun evaluate(faces: List<RectF>, imuPitch: Float, imuRoll: Float): RuleResult {
         if (faces.isEmpty()) return RuleResult(score = 0f, isAligned = false)
