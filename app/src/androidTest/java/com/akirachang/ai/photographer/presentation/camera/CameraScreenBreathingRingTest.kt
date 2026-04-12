@@ -135,4 +135,38 @@ class CameraScreenBreathingRingTest {
         composeTestRule.onNodeWithTag(TAG_SHUTTER_BREATHING_RING)
             .assertExists("BreathingRing must appear after isAligned transitions from false to true")
     }
+
+    // ── Test 5: State transition (dispose) ───────────────────────────────────
+
+    /**
+     * [Boundary — FIX-05] isAligned transitions true → false →
+     * BreathingRing is disposed from composition.
+     *
+     * This verifies that when alignment is lost, the InfiniteTransition
+     * clock is unmounted (FIX-02 lifecycle contract).
+     */
+    @Test
+    fun stateTransition_alignedToNotAligned_breathingRingDisposed() {
+        var isAligned by mutableStateOf(true)
+
+        composeTestRule.setContent {
+            ShutterButtonSection(
+                isAligned = isAligned,
+                isCapturing = false,
+                onCapture = {},
+            )
+        }
+
+        // Initial state: aligned — ring must be present
+        composeTestRule.onNodeWithTag(TAG_SHUTTER_BREATHING_RING)
+            .assertExists("BreathingRing must be in composition when isAligned=true")
+
+        // Trigger recomposition: lose alignment
+        isAligned = false
+        composeTestRule.waitForIdle()
+
+        // After transition: ring must be disposed
+        composeTestRule.onNodeWithTag(TAG_SHUTTER_BREATHING_RING)
+            .assertDoesNotExist()
+    }
 }

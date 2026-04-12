@@ -6,6 +6,7 @@ import com.akirachang.ai.photographer.domain.model.DeviceCapabilityTier
 import com.akirachang.ai.photographer.presentation.camera.overlay.EdgeWarmthLayer
 import com.akirachang.ai.photographer.presentation.camera.overlay.TAG_EDGE_WARMTH_ALIGNED
 import com.akirachang.ai.photographer.presentation.camera.overlay.TAG_EDGE_WARMTH_AMBER
+import com.akirachang.ai.photographer.presentation.camera.overlay.TAG_EDGE_WARMTH_DOTS_ENABLED
 import org.junit.Rule
 import org.junit.Test
 
@@ -157,5 +158,74 @@ class EdgeWarmthLayerTest {
         assert(renderDots) {
             "renderDots must be true for LIMITED tier — dots enabled at reduced frame rate"
         }
+    }
+
+    // ── Test 7: FIX-04 dots probe — FULL tier + active direction ─────────────
+
+    /**
+     * [Positive — Dots Probe] FULL tier + deviceRoll=15f (> ROLL_THRESHOLD_DEG=3f)
+     * → direction=RIGHT is non-null → dots probe Box enters composition.
+     *
+     * Verifies that TAG_EDGE_WARMTH_DOTS_ENABLED semantic probe is present when
+     * both conditions are true: renderDots=true (FULL) AND direction != null.
+     */
+    @Test
+    fun fullTier_withDirection_dotsProbe_mustBeInComposition() {
+        composeTestRule.setContent {
+            EdgeWarmthLayer(
+                deviceRoll = 15f,  // > ROLL_THRESHOLD_DEG (3f) → direction = RIGHT
+                capabilityTier = DeviceCapabilityTier.FULL,
+                isAligned = false,
+            )
+        }
+        // renderDots=true (FULL) AND direction != null (roll=15f > threshold)
+        composeTestRule.onNodeWithTag(TAG_EDGE_WARMTH_DOTS_ENABLED)
+            .assertExists("Dots probe must be in composition for FULL tier with active direction")
+    }
+
+    // ── Test 8: FIX-04 dots probe — LEGACY tier + active direction ───────────
+
+    /**
+     * [Negative — Tier Fallback — Dots Probe] LEGACY tier + deviceRoll=15f →
+     * renderDots=false → dots probe Box never enters composition.
+     *
+     * Asserts that the TAG_EDGE_WARMTH_DOTS_ENABLED semantic probe is absent
+     * even when direction is non-null, because LEGACY suppresses renderDots.
+     */
+    @Test
+    fun legacyTier_withDirection_dotsProbe_mustBeAbsentFromComposition() {
+        composeTestRule.setContent {
+            EdgeWarmthLayer(
+                deviceRoll = 15f,
+                capabilityTier = DeviceCapabilityTier.LEGACY,
+                isAligned = false,
+            )
+        }
+        // renderDots=false (LEGACY) → Box never enters composition
+        composeTestRule.onNodeWithTag(TAG_EDGE_WARMTH_DOTS_ENABLED)
+            .assertDoesNotExist()
+    }
+
+    // ── Test 9: FIX-04 dots probe — FULL tier + no direction ─────────────────
+
+    /**
+     * [Negative — No Direction — Dots Probe] FULL tier + deviceRoll=1f
+     * (< ROLL_THRESHOLD_DEG=3f) → direction=null → dots probe Box absent.
+     *
+     * Asserts that TAG_EDGE_WARMTH_DOTS_ENABLED is absent even on FULL tier
+     * when roll is below threshold and direction resolves to null.
+     */
+    @Test
+    fun fullTier_noDirection_dotsProbe_mustBeAbsentFromComposition() {
+        composeTestRule.setContent {
+            EdgeWarmthLayer(
+                deviceRoll = 1f,  // < ROLL_THRESHOLD_DEG (3f) → direction = null
+                capabilityTier = DeviceCapabilityTier.FULL,
+                isAligned = false,
+            )
+        }
+        // renderDots=true (FULL) BUT direction=null → condition fails, probe absent
+        composeTestRule.onNodeWithTag(TAG_EDGE_WARMTH_DOTS_ENABLED)
+            .assertDoesNotExist()
     }
 }
