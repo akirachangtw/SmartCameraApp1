@@ -103,9 +103,9 @@ import com.akirachang.ai.photographer.presentation.camera.components.overlay.Com
 // v2.2.2: Removed DetectionOverlay and DirectionalIndicator - visual clutter
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.FPSOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.GridOverlay
-import com.akirachang.ai.photographer.presentation.camera.components.overlay.GuidelineOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.HDRWarningOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.LevelIndicator
+import com.akirachang.ai.photographer.presentation.camera.overlay.EdgeWarmthLayer
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
@@ -307,6 +307,15 @@ fun CameraScreen(
                         modifier = Modifier.fillMaxSize(),
                         visible = isGridEnabled && !contentBounds.isEmpty,
                         contentBounds = contentBounds.takeIf { !it.isEmpty }
+                    )
+
+                    // D4-T1: Edge Warmth ambient UI — directional gradient + floating dots.
+                    // Z-order: above GridOverlay, below CompositionGuideOverlay.
+                    // Driven by CameraState.deviceRoll; LEGACY tier suppresses dot layer.
+                    EdgeWarmthLayer(
+                        modifier = Modifier.fillMaxSize(),
+                        deviceRoll = state.deviceRoll,
+                        capabilityTier = viewModel.deviceCapabilityTier,
                     )
 
                     // v2.4.0: Visual composition guide frame
