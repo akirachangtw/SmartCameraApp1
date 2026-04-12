@@ -2521,4 +2521,22 @@ private fun clearTapToFocusIntent() {
 
 | 項目 | 狀態 | 目標 Ticket | 說明 |
 |------|------|------------|------|
-| [Scorched Earth] `CameraScreen.kt` `GuidelineOverlay` dead import (line 106) | 🔲 TODO | D4-T0 前置焦土 | D3-T2 登記，Traycer 觀察到的殘留 import，確認無 runtime 使用後刪除 |
+| [Scorched Earth] `CameraScreen.kt` `GuidelineOverlay` dead import (line 106) | ✅ DONE (D4-T0) | D4-T0 前置焦土 | D3-T2 登記，Traycer 觀察到的殘留 import，確認無 runtime 使用後刪除 |
+
+---
+
+## 🏛️ 架構決策紀錄 (ADR) - D4 前置焦土清理與最小變更原則 (D4-T0)
+
+**決策日期**: 2026-04-12 | **Traycer 判定**: Path A (放行) | **Branch**: `feature/cueshot-mvp`
+
+### 決策摘要
+
+在進入動態視覺層（Edge Warmth 第二層、呼吸韻律）開發前，強制執行前置焦土清理，移除所有舊引擎殘骸 import，確保基礎設施純淨。
+
+### 核心決策
+
+* **D4 前置焦土清理強制執行**：每個視覺層 Day（D4+）開始前，必須先執行 D-T0 焦土 Ticket，清除前一天 SV 或 Traycer 標記的 dead import / 廢棄變數。驗收基準：`grep` 回傳 0 hits + 編譯綠燈。
+
+* **最小變更原則 (Minimum Viable Change)**：焦土清理 Ticket 採「單行刪除、零命名引入、零邏輯改動」的最小變更原則。目的是讓 SV / Traycer 的 diff 審查範圍縮至最小，降低誤觸風險。
+
+* **D3 殘骸清除閉環**：`CameraScreen.kt` 中的 `GuidelineOverlay` dead import 於 D4-T0 以單行刪除清零，D3 Backlog 對應項目標記 ✅ DONE。

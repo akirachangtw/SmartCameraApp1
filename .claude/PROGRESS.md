@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-11 by D3-T3-FIX-04 ✅ DONE；D3-T4 ✅ DONE
-**Current Day**: D3 ✅ CLOSED — D1 ✅ CLOSED；D2 ✅ CLOSED；D3-T0/T1/T2/T3 ✅ DONE；D3-T3-FIX-01~04 ✅ DONE (Path A)；D3-T4 ✅ DONE
+**Last Updated**: 2026-04-12 by D4-T0 ✅ DONE
+**Current Day**: D4 🔄 WIP — D3 ✅ CLOSED；D4-T0 ✅ DONE
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -111,6 +111,17 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D3-T5 | D3 里程碑終局歸檔：ADR 固化 (UnsafeOptIn 治理 + Fail-safe 契約 + Rule 10 落地 + ImuCompensator bootstrap 陷阱)；D3 封板；殘骸技術債登記 | ✅ DONE | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
 
 > 🏁 **D3 視覺化層已完美封板（Path A）。邊界防禦與零破窗紀律已確立。準備進入 D4 (Edge Warmth 第二層 + 呼吸韻律) 階段。**
+
+---
+
+## 📋 D4 Tickets — Edge Warmth 第二層 + 呼吸韻律 🔄 WIP
+
+| Ticket ID | Description | Status | Files Modified |
+|-----------|-------------|--------|----------------|
+| D4-T0 | 前置焦土：清除 `CameraScreen.kt` 的 `GuidelineOverlay` dead import | ✅ DONE (Path A) | `presentation/camera/CameraScreen.kt` |
+| D4-T0.1 | ADR 歸檔：D4 前置焦土清理與最小變更原則；D3 Backlog GuidelineOverlay 項目閉環 | ✅ DONE | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
+| D4-T1 | Edge Warmth 第二層（浮動光點）：依 SSOT v3.3 §EdgeWarmthLayer 實作浮動光點 Overlay，接線至 `CameraState.deviceRoll` | 🔲 TODO | — |
+| D4-T2 | 呼吸韻律初版：`#50C864` 綠色脈動動畫，接線至 `CameraState.compositionResult.isAllAligned` | 🔲 TODO | — |
 
 ---
 
