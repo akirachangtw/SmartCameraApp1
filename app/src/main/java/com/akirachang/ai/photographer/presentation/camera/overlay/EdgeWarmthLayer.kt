@@ -1,6 +1,7 @@
 package com.akirachang.ai.photographer.presentation.camera.overlay
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -24,6 +25,9 @@ import kotlin.math.abs
 
 /** Amber guide color per SSOT v3.3 */
 private val WarmAmber = Color(0xFFD4A030)
+
+/** Aligned completion color per SSOT v3.3 §2.5 */
+private val AlignGreen = Color(0xFF50C864)
 
 /**
  * Minimum roll deviation (degrees) to trigger directional edge warmth.
@@ -68,6 +72,15 @@ private val DOT_SPECS = listOf(
 private enum class WarmthDirection { LEFT, RIGHT, UP, DOWN }
 
 /**
+ * Shared animation spec for breathing rhythm per SSOT v3.3 §2.5.
+ * 2000ms single pass, 4000ms full cycle (reverse). FastOutSlowIn easing.
+ */
+private val BREATHING_ANIM_SPEC: InfiniteRepeatableSpec<Float> = infiniteRepeatable(
+    animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+    repeatMode = RepeatMode.Reverse,
+)
+
+/**
  * EdgeWarmthLayer — Cueshot v3.3 Ambient UI.
  *
  * Renders:
@@ -75,18 +88,43 @@ private enum class WarmthDirection { LEFT, RIGHT, UP, DOWN }
  *    Max 20% alpha at full deviation.
  * 2. **Floating light dots** — 5 independent breathing dots overlaid on the warmth edge band.
  *    Alpha cycles 0.10–0.15, period 2–4s per dot. Disabled on [DeviceCapabilityTier.LEGACY].
+ * 3. **Aligned breathing mode** — when [isAligned] is true, overrides amber mode with
+ *    4-edge uniform green (#50C864) breathing alpha 0.10→0.18 per SSOT §2.5.
  *
  * @param modifier Modifier — should be [fillMaxSize] to cover the full preview.
  * @param deviceRoll Roll angle in degrees from [CameraState.deviceRoll].
  *   Positive = device tilted right, negative = device tilted left.
  * @param capabilityTier Device tier. LEGACY suppresses dot rendering.
+ * @param isAligned True when compositionResult.isAllAligned == true. Activates breathing mode.
  */
 @Composable
 fun EdgeWarmthLayer(
     modifier: Modifier = Modifier,
     deviceRoll: Float = 0f,
     capabilityTier: DeviceCapabilityTier = DeviceCapabilityTier.FULL,
+    isAligned: Boolean = false,
 ) {
+    val infiniteTransition = rememberInfiniteTransition(label = "EdgeWarmthLayer")
+
+    // ── Aligned breathing mode (SSOT §2.5) ──────────────────────────────────
+    // When isAligned, drive a shared 0.10→0.18 alpha pulse on all 4 edges.
+    // The same animationSpec is used by the shutter ring (single source of truth).
+    val breatheAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.10f,
+        targetValue = 0.18f,
+        animationSpec = BREATHING_ANIM_SPEC,
+        label = "breathe_alpha",
+    )
+
+    if (isAligned) {
+        // ── Aligned state: 4-edge uniform green breathing, no dots ──────────
+        Canvas(modifier = modifier.fillMaxSize()) {
+            drawAlignedBreathingGradient(breatheAlpha)
+        }
+        return
+    }
+
+    // ── Normal state: directional amber warmth + floating dots ───────────────
     val renderDots = capabilityTier !is DeviceCapabilityTier.LEGACY
 
     // Derive warmth direction and intensity from roll angle.
@@ -101,7 +139,6 @@ fun EdgeWarmthLayer(
     val gradientAlpha = intensity * 0.20f
 
     // Build per-dot alpha animations — each dot breathes independently.
-    val infiniteTransition = rememberInfiniteTransition(label = "EdgeWarmthDots")
     val dotAlphas: List<Float> = if (renderDots) {
         DOT_SPECS.map { spec ->
             val alpha by infiniteTransition.animateFloat(
@@ -143,6 +180,52 @@ fun EdgeWarmthLayer(
             drawFloatingDots(direction, dotAlphas, dotPaint)
         }
     }
+}
+
+/**
+ * Draws the aligned breathing gradient per SSOT v3.3 §2.5.
+ * All 4 edges glow uniformly in #50C864 green at the animated [alpha].
+ */
+private fun DrawScope.drawAlignedBreathingGradient(alpha: Float) {
+    val edgePx = size.height * EDGE_BAND_FRACTION
+    val edgePxW = size.width * EDGE_BAND_FRACTION
+    val green = AlignGreen.copy(alpha = alpha)
+    // Top edge
+    drawRect(
+        brush = Brush.verticalGradient(
+            colors = listOf(green, Color.Transparent),
+            startY = 0f,
+            endY = edgePx,
+        ),
+        size = size,
+    )
+    // Bottom edge
+    drawRect(
+        brush = Brush.verticalGradient(
+            colors = listOf(Color.Transparent, green),
+            startY = size.height - edgePx,
+            endY = size.height,
+        ),
+        size = size,
+    )
+    // Left edge
+    drawRect(
+        brush = Brush.horizontalGradient(
+            colors = listOf(green, Color.Transparent),
+            startX = 0f,
+            endX = edgePxW,
+        ),
+        size = size,
+    )
+    // Right edge
+    drawRect(
+        brush = Brush.horizontalGradient(
+            colors = listOf(Color.Transparent, green),
+            startX = size.width - edgePxW,
+            endX = size.width,
+        ),
+        size = size,
+    )
 }
 
 /**
