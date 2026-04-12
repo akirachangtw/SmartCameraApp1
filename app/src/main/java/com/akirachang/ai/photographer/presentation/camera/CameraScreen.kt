@@ -85,6 +85,10 @@ import androidx.compose.ui.unit.coerceIn
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -187,6 +191,10 @@ fun CameraScreen(
     // (Button disable + CircularProgressIndicator)
 
     if (cameraPermissionState.status.isGranted) {
+        // D4-T2: Extract isAligned once — passed down to EdgeWarmthLayer and shutter button (UDF).
+        // Extreme-left check guards against null compositionResult before first detection frame.
+        val isAligned = state.compositionResult?.isAllAligned == true
+
         Scaffold(
             modifier = modifier,
             snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -309,13 +317,14 @@ fun CameraScreen(
                         contentBounds = contentBounds.takeIf { !it.isEmpty }
                     )
 
-                    // D4-T1: Edge Warmth ambient UI — directional gradient + floating dots.
+                    // D4-T1/T2: Edge Warmth ambient UI — directional gradient + floating dots.
+                    // D4-T2: isAligned switches to 4-edge uniform green breathing (SSOT §2.5).
                     // Z-order: above GridOverlay, below CompositionGuideOverlay.
-                    // Driven by CameraState.deviceRoll; LEGACY tier suppresses dot layer.
                     EdgeWarmthLayer(
                         modifier = Modifier.fillMaxSize(),
                         deviceRoll = state.deviceRoll,
                         capabilityTier = viewModel.deviceCapabilityTier,
+                        isAligned = isAligned,
                     )
 
                     // v2.4.0: Visual composition guide frame
@@ -484,9 +493,41 @@ fun CameraScreen(
                     }
 
                     // 拍照按鈕 (v2.9.8: 添加視覺反饋 - 禁用 + 進度指示器)
+                    // D4-T2: isAligned drives green breathing ring, same animationSpec as EdgeWarmthLayer.
+                    val shutterInfiniteTransition = rememberInfiniteTransition(label = "ShutterRing")
+                    val shutterRingAlpha by shutterInfiniteTransition.animateFloat(
+                        initialValue = 0.10f,
+                        targetValue = 0.18f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                        label = "shutter_ring_alpha",
+                    )
+                    val shutterRingScale by shutterInfiniteTransition.animateFloat(
+                        initialValue = 1.0f,
+                        targetValue = 1.15f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                        label = "shutter_ring_scale",
+                    )
                     Box(
                         contentAlignment = Alignment.Center
                     ) {
+                        // D4-T2: Green breathing outer ring — only when aligned AND not capturing.
+                        // SV-D4-T2-FIX-01.1: isCapturing takes absolute priority; suppress ring during capture.
+                        if (isAligned && !state.isCapturing) {
+                            Canvas(modifier = Modifier.size((72 * shutterRingScale).dp)) {
+                                drawCircle(
+                                    color = Color(0xFF50C864).copy(alpha = shutterRingAlpha),
+                                    radius = size.minDimension / 2f,
+                                    style = Stroke(width = 6.dp.toPx()),
+                                )
+                            }
+                        }
+
                         FloatingActionButton(
                             onClick = {
                                 // v2.9.8: 只有未拍照時才可點擊（實現禁用效果）
