@@ -2639,4 +2639,20 @@ D4-T4 在實作 `EdgeWarmthLayerTest.kt` 時，發現 `HDRWarningOverlayTest.kt`
 
 * **[D4-T4] Sony XQ-BT52 實機 Race Condition**：`EdgeWarmthLayerTest` 之 `legacyTier_notAligned_amberCanvasShouldBeInComposition_alignedCanvasMustBeAbsent` 在 Sony XQ-BT52 上偶發 `No compose hierarchies found` 錯誤。根因為 `setContent` 後 Compose 樹尚未掛載即執行斷言，屬設備特定的時序行為。目前列為 **監控項目（不阻塞）**；修復方案：補加 `composeTestRule.waitForIdle()` 或改用 `onNodeWithTag(...).await()`。下游票號：D5 UI 精修階段統一處理。
 
-* **[D4-T4] HDRWarningOverlayTest 重構**：原實作使用重複 `setContent` 呼叫驅動狀態切換，會拋出 `IllegalStateException: has already set content`。需改為 `mutableStateOf` 驅動 recomposition（與 `CameraScreenBreathingRingTest` 相同模式）。目前列為 **低優先度技術債**；不影響現有防禦網。下游票號：D5 前獨立 Ticket 處理。
+* **[D4-T4] HDRWarningOverlayTest 重構**：原實作使用重複 `setContent` 呼叫驅動狀態切換，會拋出 `IllegalStateException: has already set content`。需改為 `mutableStateOf` 驅動 recomposition（與 `CameraScreenBreathingRingTest` 相同模式）。目前列為 **低優先度技術債**；不影響現有防禦網。下游票號：`D5-TECH-DEBT-01`。
+
+---
+
+## 📌 技術債登記 - D5-TECH-DEBT-01 Compose Test 基礎設施升級
+
+**登記日期**: 2026-04-12 | **Sprint**: D5 | **執行節點**: KAIROS #2
+
+### [D5-TECH-DEBT-01] Compose Test 基礎設施升級 (排定於 KAIROS #2 執行)
+
+1. **HDRWarningOverlayTest 3 個狀態切換測試** → `mutableStateOf` 重寫（解決 `IllegalStateException` 重複掛載問題）。
+2. **EdgeWarmthLayerTest Sony race condition** → 導入 `waitForIdle()` / `waitUntil` 防護。
+3. **全局防禦掃描**：執行 `grep -r "setContent" androidTest/` 找出其他潛在的重複掛載違規。
+
+* **驗收標準**：Sony XQ-BT52 `connectedAndroidTest` 全 PASS。
+* **執行模式**：純機械性重寫，無架構決策變更。
+* **優先度**：🟡 LOW — 不影響功能管線，不阻塞 D5 主線。

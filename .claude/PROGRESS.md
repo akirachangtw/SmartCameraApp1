@@ -310,6 +310,7 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 - [ ] [Infrastructure] Kapt to KSP migration (保留 K2 編譯器相容性，推遲至 MVP D6 階段後再執行，目前維持 1.9 降級模式以避免依賴重構的範圍蔓延)
 - [ ] [Coordinate] 移除 CameraViewModel 中的 `previewWidth ?: 800` 魔術數字，推遲至 D3 座標映射重建時，改由 CameraCharacteristics 驅動。（D2 為純正規化數學引擎，Pixel 座標轉換排除在外）
+- 🟡 **D5-TECH-DEBT-01**: Compose Test 基礎設施升級 (待執行於 KAIROS #2) — (1) `HDRWarningOverlayTest` 3 個狀態切換測試改 `mutableStateOf` 重寫；(2) `EdgeWarmthLayerTest` Sony race condition 補 `waitForIdle()` 防護；(3) 全局 `setContent` 重複掛載違規掃描。驗收：Sony XQ-BT52 全 PASS。詳見 `devspec/feature_record_Backlog.md`。
 
 ---
 
