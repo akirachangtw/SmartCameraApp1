@@ -2643,6 +2643,28 @@ D4-T4 在實作 `EdgeWarmthLayerTest.kt` 時，發現 `HDRWarningOverlayTest.kt`
 
 ---
 
+## 🏛️ 架構決策紀錄 (ADR) - D5 優先級引擎與型別契約防禦 (D5-B1)
+
+**決策日期**: 2026-04-12 | **觸發**: D5 Batch 1 PriorityEngine 建置 + SV-D5-B1-FIX-01 契約修正 | **Branch**: `feature/cueshot-mvp`
+
+### 核心決策
+
+* **[Strict Type Alignment] 嚴格的型別對齊**：`PriorityEngine` 的輸入與輸出必須嚴格對齊 `RuleScore`（UseCase 聚合後的載體），嚴禁使用原始的 `RuleResult` 導致在 UseCase 層產生骯髒的 Mapping（轉接頭）代碼。
+  - `RuleResult`：由 `CompositionRule.evaluate()` 直接回傳，僅含 `score` + `isAligned`，屬於「原始評估結果」。
+  - `RuleScore`：由 `AnalyzeCompositionUseCase` 聚合後產生，含 `name` + `score` + `isAligned` + `weight`，屬於「引擎輸入契約」。
+  - PriorityEngine 定位於 UseCase 之後的聚合運算，因此必須消費 `RuleScore`，而非 `RuleResult`。
+
+* **[Mathematical Boundary Testing] 數學邏輯邊界測試**：所有涉及優先級計算的引擎，必須包含以下極限邊界的單元測試：
+  1. **score=100 → priority=0**：滿分規則的 `(100 - score) / 100 = 0`，不得參與排序競爭（驗證公式不會選出「已接近完美」的規則）。
+  2. **score=0 → priority=weight×confidenceFactor**：最低分規則取得最大優先權（驗證公式最大值邊界）。
+  3. **isAligned=true 短路返回**：所有規則對齊時回傳 `null`，觸發 UI 呼吸韻律——且 engine 不得在此路徑下讀取 `weight`/`confidenceFactor`（MockitoJUnitRunner strict stub 驗證）。
+  4. **降冪多規則競爭**：手算 priority 值驗證正確 TOP 1 選出（禁止依賴 hardcode 排序假設）。
+  5. **isAligned=true 混合排除**：isAligned=true 的規則即使 score=0 也必須被過濾出局。
+
+* **[Pure JVM Test Policy] 拒絕不必要的 Robolectric 依賴**：Domain 層純邏輯測試（如 PriorityEngine）嚴禁引入 `Robolectric`。使用 `MockitoJUnitRunner` + 純 JVM，確保測試毫秒級執行，不依賴 Android 模擬環境。Robolectric 僅在測試確實需要 Android API（如 `android.graphics.RectF`）時才允許使用。
+
+---
+
 ## 📌 技術債登記 - D5-TECH-DEBT-01 Compose Test 基礎設施升級
 
 **登記日期**: 2026-04-12 | **Sprint**: D5 | **執行節點**: KAIROS #2
