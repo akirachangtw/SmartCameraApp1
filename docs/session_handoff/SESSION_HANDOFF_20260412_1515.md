@@ -18,9 +18,7 @@
 
 1. **[D4-T2] 呼吸韻律初版**：在 `CameraScreen.kt` 或新建 `BreathingRhythmLayer.kt` 實作 `#50C864` 綠色脈動動畫，接線至 `CameraState.compositionResult?.isAllAligned == true`。開工前讀取 SSOT `§2.5 呼吸韻律` 段落確認動畫規格（脈動頻率、alpha 範圍、是否需要 scaleX/Y）。
 
-2. **[git push]** 執行 `git push origin feature/cueshot-mvp`（本 Session commits：`548fbf8` fix/arch、`8707d64` docs/arch、`4936129` docs/progress，共 3 個尚未 push）。
-
-3. **[D4-T2 ADR 歸檔]** D4-T2 完成後執行 `/qa` → `/sv` → Traycer 驗收，並將呼吸韻律 ADR 寫入 `devspec/feature_record_Backlog.md`。
+2. **[D4-T2 ADR 歸檔]** D4-T2 完成後執行 `/qa` → `/sv` → Traycer 驗收，並將呼吸韻律 ADR 寫入 `devspec/feature_record_Backlog.md`。
 
 ## 關鍵決策 (本次對話中做出的)
 
@@ -44,4 +42,4 @@
 - D4-T0 GuidelineOverlay 焦土討論（已 commit，closed）
 - D4-T1 EdgeWarmthLayer ModifierParameter lint 修復過程（已閉環）
 - SV-D4-T1-FIX-01/FIX-02 接線與 ADR 歸檔討論（已 commit + Traycer Path A 放行）
-- git push 確認討論（遠端已同步，本 Session 新增 3 commits 待 push）
+- git push 討論（✅ 已完成：`f223034..f170bc3`，5 commits 推送至 `origin/feature/cueshot-mvp`）
