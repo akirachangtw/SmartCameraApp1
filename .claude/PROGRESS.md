@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-12 by SV-D4-T4-FIX-01/02/03 ✅ — ShutterButtonSection 提取 + dots 探針 + ADR 閉環；FIX-04/05 待實機驗證
-**Current Day**: D4 補修進行中 (SV-D4-T4-FIX-04/05 待執行) → D5 下一步
+**Last Updated**: 2026-04-12 by SV-D4-T4-FIX-04/05 ✅ — dots probe 斷言 + dispose 生命週期測試實機通過；D4 全系列封板；ADR 防禦聖典歸檔
+**Current Day**: D4 ✅ CLOSED (Path A) → D5 優先級引擎骨架
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -14,7 +14,7 @@
 |--------|--------|---------|--------|
 | On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; Total: 125t/48skipped/77pass) | 🟢 |
+| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; Total: 125t/48skipped/77pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass | 🟢 |
 | Lint New Errors | 0 new | 0 new (pre-existing `CameraCapabilityDetector.kt` UnsafeOptIn 已於 FIX-04 清零) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
@@ -134,10 +134,10 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | SV-D4-T4-FIX-03 | 越權編譯錯誤修復文件閉環：測試越權教訓 ADR 歸檔（測試邊界紀律 + 預存在技術債處理流程）；PROGRESS.md FIX-03 閉環確認 | ✅ DONE (Path A) | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
 | SV-D4-T4-FIX-01 | ShutterButtonSection 提取 + BreathingRing/ProgressCircle testTag 植入：新增 `TAG_SHUTTER_BREATHING_RING` / `TAG_SHUTTER_PROGRESS_CIRCLE`；快門區塊提取為 stateless `ShutterButtonSection`（無 ViewModel 依賴）供 androidTest 使用 | ✅ DONE (Path A) | `presentation/camera/CameraScreen.kt` |
 | SV-D4-T4-FIX-02 | EdgeWarmthLayer dots 語意探針：新增 `TAG_EDGE_WARMTH_DOTS_ENABLED`；零尺寸 Box 探針插入 `renderDots&&direction!=null` 條件內 | ✅ DONE (Path A) | `presentation/camera/overlay/EdgeWarmthLayer.kt` |
-| SV-D4-T4-FIX-04 | `CameraScreenBreathingRingTest` 實機驗證 (4 tests)：連接裝置執行 `connectedDeviceDebugAndroidTest` | 🔲 TODO | — |
-| SV-D4-T4-FIX-05 | `EdgeWarmthLayerTest` 補強 dots probe 測試：新增 `fullTier_withDirection_dotsProbeExists` + `legacyTier_dotsProbeAbsent` 使用 `TAG_EDGE_WARMTH_DOTS_ENABLED` | 🔲 TODO | `androidTest/.../EdgeWarmthLayerTest.kt` |
+| SV-D4-T4-FIX-04 | `CameraScreenBreathingRingTest` 實機驗證 + `EdgeWarmthLayerTest` dots probe 斷言 (Test 7/8/9)：Sony XQ-BT52 實機 13/14 通過；1 預存在 race condition 監控 | ✅ DONE (Path A) | `androidTest/.../EdgeWarmthLayerTest.kt` |
+| SV-D4-T4-FIX-05 | `CameraScreenBreathingRingTest` 補加 true→false dispose 測試 (Test 5)：`stateTransition_alignedToNotAligned_breathingRingDisposed` 驗證 FIX-02 生命週期契約 | ✅ DONE (Path A) | `androidTest/.../CameraScreenBreathingRingTest.kt` |
 
-> ⏳ **D4 補修進行中：FIX-01/02/03 ✅ 閉環；FIX-04/05 待執行。`CameraScreenBreathingRingTest.kt` 已建立（4 tests），待實機驗證。D4 終局封板待 FIX-04/05 完成。**
+> 🏁 **D4 全系列 ✅ CLOSED (Path A)。EdgeWarmthLayerTest: 9 tests；CameraScreenBreathingRingTest: 5 tests。防禦聖典 ADR 歸檔完成。D5 動態規則引擎就位。**
 
 ---
 

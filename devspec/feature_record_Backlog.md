@@ -2599,3 +2599,44 @@ D4-T4 在實作 `EdgeWarmthLayerTest.kt` 時，發現 `HDRWarningOverlayTest.kt`
   禁止在當前 Ticket 的 commit 中夾帶修復。
 
 * **通用規範（後續 Ticket 適用）**：`git diff --name-only` 在 commit 前必須比對授權清單，任何不在清單內的檔案必須先還原再提交。
+
+---
+
+## 🏛️ 架構決策紀錄 (ADR) - D4-T4 測試探針與生命週期斷言 (SV-D4-T4-FIX-04/05)
+
+**決策日期**: 2026-04-12 | **觸發**: D4-T4 CSO 反向掃描發現探針已植入但斷言缺失，補強 dots probe + dispose 生命週期測試 | **Branch**: `feature/cueshot-mvp`
+
+### 核心決策
+
+* **[Probe-based Assertion] Canvas 等底層繪圖組件無法被 Compose semantics 樹直接觀測**（Canvas draw call 不產生語意節點）。正確的可觀測化策略：
+  1. 在條件分支內插入 `Box(modifier = Modifier.size(0.dp).testTag(TAG_XXX))`（零尺寸、不影響視覺輸出）
+  2. 測試使用 `assertExists` / `assertDoesNotExist` 驗證該 Box 是否進入 Composition
+  3. 此模式等價於「語意探針 (Semantic Probe)」，讓 Compose Test 可觀測 Canvas 的條件邏輯路徑
+
+* **[Lifecycle Assertion Coverage] 探針測試必須同時涵蓋以下兩種路徑**：
+  - **正向掛載 (Mount)**：條件為 true 時，`assertExists` 確認 Box 進入 Composition
+  - **狀態切換後 Dispose (Unmount)**：透過 `mutableStateOf` 觸發 recomposition 後，`assertDoesNotExist` 確認 Box 已從 Composition 移除
+  - **省略 Dispose 測試的後果**：`InfiniteTransition` 等動畫資源可能在對齊條件消失後仍在背景空轉，造成效能洩漏；測試套件給出虛假的「安全」信號
+
+* **[UI Mutex Priority] 多個視覺狀態爭奪同一 UI 區域時，必須建立顯性優先級壓制邏輯**：
+  - 範例：`isCapturing` 優先於 `isAligned`（`SV-D4-T2-FIX-01`）
+  - 測試必須同時覆蓋「勝出路徑的 assertExists」與「被壓制路徑的 assertDoesNotExist」
+  - 禁止僅測試正向路徑：只有 `assertExists` 而無對應的 `assertDoesNotExist` 視為不完整測試
+
+### 適用場景
+
+| 組件類型 | 策略 |
+|---------|------|
+| Canvas（draw call） | 零尺寸 Box 探針 + testTag |
+| 條件性 `rememberInfiniteTransition` | Dispose 測試：`mutableStateOf` flip + `assertDoesNotExist` |
+| 多狀態互斥 UI 區域 | 勝出路徑 + 壓制路徑雙向斷言 |
+
+---
+
+## 📌 技術債登記 - D4-T4 遺留項目
+
+**登記日期**: 2026-04-12 | **Sprint**: D4
+
+* **[D4-T4] Sony XQ-BT52 實機 Race Condition**：`EdgeWarmthLayerTest` 之 `legacyTier_notAligned_amberCanvasShouldBeInComposition_alignedCanvasMustBeAbsent` 在 Sony XQ-BT52 上偶發 `No compose hierarchies found` 錯誤。根因為 `setContent` 後 Compose 樹尚未掛載即執行斷言，屬設備特定的時序行為。目前列為 **監控項目（不阻塞）**；修復方案：補加 `composeTestRule.waitForIdle()` 或改用 `onNodeWithTag(...).await()`。下游票號：D5 UI 精修階段統一處理。
+
+* **[D4-T4] HDRWarningOverlayTest 重構**：原實作使用重複 `setContent` 呼叫驅動狀態切換，會拋出 `IllegalStateException: has already set content`。需改為 `mutableStateOf` 驅動 recomposition（與 `CameraScreenBreathingRingTest` 相同模式）。目前列為 **低優先度技術債**；不影響現有防禦網。下游票號：D5 前獨立 Ticket 處理。
