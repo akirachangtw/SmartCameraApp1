@@ -2522,6 +2522,7 @@ private fun clearTapToFocusIntent() {
 | 項目 | 狀態 | 目標 Ticket | 說明 |
 |------|------|------------|------|
 | [Scorched Earth] `CameraScreen.kt` `GuidelineOverlay` dead import (line 106) | ✅ DONE (D4-T0) | D4-T0 前置焦土 | D3-T2 登記，Traycer 觀察到的殘留 import，確認無 runtime 使用後刪除 |
+| [Scorched Earth] `GuidelineOverlay.kt` 實體檔案殲滅 | ✅ DONE (D3.5) | D3.5 終局焦土 | D3.5 完整刪除孤島檔案，徹底清除 v2.7.0 舊引擎遺骸 |
 
 ---
 
