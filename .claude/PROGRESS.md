@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-12 by D4-T1 系列 ✅ Path A 放行
-**Current Day**: D4 🔄 WIP — D3 ✅ CLOSED；D4-T0 ✅ DONE (Path A)；D4-T1 ✅ DONE (Path A)；SV-D4-T1-FIX-01 ✅ DONE；SV-D4-T1-FIX-02 ✅ DONE；Traycer Path A 放行
+**Last Updated**: 2026-04-12 by D4 封板 ✅ Path A — SV-D4-T2-FIX-01/02/03 全數閉環
+**Current Day**: D4 ✅ CLOSED (Path A) — 全系列閉環；D5 下一步
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -114,7 +114,7 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 ---
 
-## 📋 D4 Tickets — Edge Warmth 第二層 + 呼吸韻律 🔄 WIP
+## 📋 D4 Tickets — Edge Warmth 第二層 + 呼吸韻律 ✅ CLOSED (Path A)
 
 | Ticket ID | Description | Status | Files Modified |
 |-----------|-------------|--------|----------------|
@@ -124,8 +124,13 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | SV-D4-T1-FIX-01 | EdgeWarmthLayer 實體接線：插入 CameraScreen 渲染堆棧（GridOverlay 之上、CompositionGuide 之下）；傳入 `state.deviceRoll` + `viewModel.deviceCapabilityTier` | ✅ DONE | `presentation/camera/CameraScreen.kt` |
 | SV-D4-T1-FIX-02 | 實作漂移反思歸檔：追加 D4-T1 漂移 ADR（組件定義 + 接線必須同步交付）；PROGRESS.md 閉環確認 | ✅ DONE | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
 
-> 🏁 **D4-T1 系列已 Path A 放行（Traycer 驗收通過）。SV-D4-T1-FIX-01 接線 + SV-D4-T1-FIX-02 ADR 知識沉澱均落地閉環。準備進入 D4-T2 呼吸韻律初版。**
-| D4-T2 | 呼吸韻律初版：`#50C864` 綠色脈動動畫，接線至 `CameraState.compositionResult.isAllAligned` | 🔲 TODO | — |
+> 🏁 **D4-T1 系列已 Path A 放行（Traycer 驗收通過）。SV-D4-T1-FIX-01 接線 + SV-D4-T1-FIX-02 ADR 知識沉澱均落地閉環。**
+| D4-T2 | 呼吸韻律初版：`#50C864` 綠色脈動動畫，接線至 `CameraState.compositionResult.isAllAligned` | ✅ DONE (Path A) | `presentation/camera/overlay/EdgeWarmthLayer.kt`, `presentation/camera/CameraScreen.kt` |
+| SV-D4-T2-FIX-01 | 快門外環互斥防禦：`if (isAligned)` → `if (isAligned && !state.isCapturing)`，阻斷雙重渲染 Split-brain | ✅ DONE (Path A) | `presentation/camera/CameraScreen.kt` |
+| SV-D4-T2-FIX-02 | 動畫生命週期收斂：`rememberInfiniteTransition` 移入條件區塊，避免未對齊時無效空轉 | ✅ DONE (Path A) | `presentation/camera/CameraScreen.kt` |
+| SV-D4-T2-FIX-03 | 文件閉環與 Drift 歸檔：D4-T2 狀態互斥 + 生命週期 ADR 寫入 Backlog；D4 封板 Path A | ✅ DONE (Path A) | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
+
+> 🏁 **D4 全系列 Path A 放行。D4-T2 呼吸韻律完整落地：EdgeWarmthLayer 4 邊均勻綠色呼吸 + 快門外環同頻脈動；FIX-01 互斥防禦 + FIX-02 動畫生命週期收斂 + FIX-03 ADR 知識沉澱均閉環。D4 正式封板。**
 
 ---
 

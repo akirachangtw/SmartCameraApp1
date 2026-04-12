@@ -2558,3 +2558,21 @@ D4-T1 `EdgeWarmthLayer` 實作完成後，Traycer 判定為 Path B，原因：�
 * **Z-Order 接線同步**：視覺層組件接線時，必須在 commit 訊息或 KDoc 中明確標注 Z-Order 位置（如「GridOverlay 之上、CompositionGuideOverlay 之下」），方便後續 SV / Traycer 快速驗證渲染層次。
 
 * **接線驗收指令**：每次視覺層 Ticket 完成後，SV 必須執行 `grep -n "ComponentName" CameraScreen.kt` 確認同時出現 import 行與呼叫行，缺一不過。
+
+## 🏛️ 架構決策紀錄 (ADR) - D4-T2 狀態互斥與動畫生命週期漂移 (SV-D4-T2-FIX-01/02)
+
+**決策日期**: 2026-04-12 | **觸發**: SV Path B — 快門外環 Split-brain + 動畫空轉 | **Branch**: `feature/cueshot-mvp`
+
+### 決策摘要
+
+D4-T2 `BreathingRhythm` 呼吸韻律實作後，SV 發現兩項阻擋級漂移：
+1. **Split-brain 狀態衝突**：`isCapturing == true` 時綠色外環與捕捉進度圈同時渲染，UI 狀態機雙重輸出。
+2. **動畫生命週期漂移**：`rememberInfiniteTransition` 在外層無條件宣告，非對齊狀態下動畫計時器持續空轉，浪費 Compose 計算資源。
+
+### 核心決策
+
+* **[D4-T2] 阻斷性狀態壓制提示性狀態**：`isCapturing`（系統阻斷性狀態）的視覺權重永遠絕對高於 `isAligned`（用戶提示性狀態）。互斥條件必須寫為 `if (isAligned && !state.isCapturing)`，不得僅寫 `if (isAligned)`。
+
+* **[D4-T2] 無限動畫嚴格收斂至條件區塊**：`rememberInfiniteTransition` 及其 `animateFloat` 訂閱，必須移入最終渲染條件的 `if` 區塊內部，確保「不渲染 = 不計時 = 不消耗」，符合 Compose Composition 生命週期契約。
+
+* **通用規範（後續 Ticket 適用）**：任何僅在特定狀態下渲染的無限動畫，宣告位置必須在其渲染條件的同層級或內部，禁止提升至父層無條件宣告。
