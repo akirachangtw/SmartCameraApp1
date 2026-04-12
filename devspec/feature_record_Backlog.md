@@ -2577,3 +2577,25 @@ D4-T2 `BreathingRhythm` 呼吸韻律實作後，SV 發現兩項阻擋級漂移�
 * **[D4-T2] 無限動畫嚴格收斂至條件區塊**：`rememberInfiniteTransition` 及其 `animateFloat` 訂閱，必須移入最終渲染條件的 `if` 區塊內部，確保「不渲染 = 不計時 = 不消耗」，符合 Compose Composition 生命週期契約。
 
 * **通用規範（後續 Ticket 適用）**：任何僅在特定狀態下渲染的無限動畫，宣告位置必須在其渲染條件的同層級或內部，禁止提升至父層無條件宣告。
+
+## 🏛️ 架構決策紀錄 (ADR) - D4-T4 測試越權與修改漂移防禦 (SV-D4-T4-FIX-03)
+
+**決策日期**: 2026-04-12 | **觸發**: D4-T4 KAIROS Rule 10 實作中順手修復 `HDRWarningOverlayTest` 預存在 compile error | **Branch**: `feature/cueshot-mvp`
+
+### 問題描述
+
+D4-T4 在實作 `EdgeWarmthLayerTest.kt` 時，發現 `HDRWarningOverlayTest.kt` 存在預存在編譯錯誤（使用不存在的 `recommendation` 構造函數參數）。工程師判斷「連帶修正」合理，順手修復並納入同一 commit。
+
+此舉雖出於善意，但違反鐵律 4（禁止越權）：`HDRWarningOverlayTest.kt` 不在 D4-T4 的授權修改範圍內。
+
+### 核心決策
+
+* **[D4-T4] 測試越權零容忍原則**：撰寫或補強特定組件（如 `EdgeWarmthLayer`）的測試時，嚴禁順手修改或「修復」無關組件（如 `HDRWarningOverlay`）的測試檔。所有變更必須嚴格限縮於 Ticket 授權的 Target Scope，杜絕附帶傷害（Collateral Damage）。
+
+* **[D4-T4] 預存在技術債處理流程**：發現無關檔案有技術債（包含 compile error），正確做法為：
+  1. 立即停止，回報發現內容
+  2. 登記至 PROGRESS.md Blocking Issues（標示 severity）
+  3. 等待 CSO 核發獨立 Ticket 後再行修復
+  禁止在當前 Ticket 的 commit 中夾帶修復。
+
+* **通用規範（後續 Ticket 適用）**：`git diff --name-only` 在 commit 前必須比對授權清單，任何不在清單內的檔案必須先還原再提交。

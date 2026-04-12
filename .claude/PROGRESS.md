@@ -131,8 +131,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | SV-D4-T2-FIX-03 | 文件閉環與 Drift 歸檔：D4-T2 狀態互斥 + 生命週期 ADR 寫入 Backlog；D4 封板 Path A | ✅ DONE (Path A) | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
 
 | D4-T4 | KAIROS Rule 10 測試矩陣：`CameraScreenStateTest`（5 tests，狀態互斥/生命週期）+ `EdgeWarmthLayerTest`（6 tests，tier 降級/Canvas 分支）；修復 `HDRWarningOverlayTest` 預存在 compile error | ✅ DONE (Path A) | `test/.../CameraScreenStateTest.kt` (新建), `androidTest/.../EdgeWarmthLayerTest.kt` (新建), `overlay/EdgeWarmthLayer.kt` (+testTag), `androidTest/.../HDRWarningOverlayTest.kt` (fix) |
+| SV-D4-T4-FIX-03 | 越權編譯錯誤修復文件閉環：測試越權教訓 ADR 歸檔（測試邊界紀律 + 預存在技術債處理流程）；PROGRESS.md FIX-03 閉環確認 | ✅ DONE (Path A) | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
 
-> 🏁 **D4 全系列 Path A 完全閉環。D4-T2 呼吸韻律 + D4-T4 KAIROS Rule 10 防禦網均落地。JVM 125 tests pass；EdgeWarmthLayerTest 6/6 在 Sony XQ-BT52 實機通過。D4 正式封板。**
+> 🏁 **D4 全系列 Path A 完全閉環（含 SV-D4-T4-FIX-03）。D4-T2 呼吸韻律 + D4-T4 KAIROS Rule 10 防禦網 + FIX-03 教訓歸檔均落地。JVM 125 tests pass；EdgeWarmthLayerTest 6/6 在 Sony XQ-BT52 實機通過。D4 正式封板。**
 
 ---
 
