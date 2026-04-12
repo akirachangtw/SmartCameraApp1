@@ -2540,3 +2540,21 @@ private fun clearTapToFocusIntent() {
 * **最小變更原則 (Minimum Viable Change)**：焦土清理 Ticket 採「單行刪除、零命名引入、零邏輯改動」的最小變更原則。目的是讓 SV / Traycer 的 diff 審查範圍縮至最小，降低誤觸風險。
 
 * **D3 殘骸清除閉環**：`CameraScreen.kt` 中的 `GuidelineOverlay` dead import 於 D4-T0 以單行刪除清零，D3 Backlog 對應項目標記 ✅ DONE。
+
+---
+
+## 🏛️ 架構決策紀錄 (ADR) - D4-T1 實作漂移修正 (Implementation Drift Fix)
+
+**決策日期**: 2026-04-12 | **觸發**: Traycer Path B — 組件孤島未接線 | **Branch**: `feature/cueshot-mvp`
+
+### 決策摘要
+
+D4-T1 `EdgeWarmthLayer` 實作完成後，Traycer 判定為 Path B，原因：組件定義存在但未插入任何呼叫點（孤島組件）。
+
+### 核心決策
+
+* **UI 組件交付定義**：UI 組件 Ticket 的「✅ DONE」條件必須同時滿足：(1) 組件邏輯實作完成，(2) 已插入至少一個真實呼叫點（非測試用），(3) 呼叫點接線真實 State 參數（非 hardcode）。缺少任何一項均視為「孤島組件」，不得標記完成。
+
+* **Z-Order 接線同步**：視覺層組件接線時，必須在 commit 訊息或 KDoc 中明確標注 Z-Order 位置（如「GridOverlay 之上、CompositionGuideOverlay 之下」），方便後續 SV / Traycer 快速驗證渲染層次。
+
+* **接線驗收指令**：每次視覺層 Ticket 完成後，SV 必須執行 `grep -n "ComponentName" CameraScreen.kt` 確認同時出現 import 行與呼叫行，缺一不過。

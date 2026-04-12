@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-12 by D4-T0 ✅ DONE
-**Current Day**: D4 🔄 WIP — D3 ✅ CLOSED；D4-T0 ✅ DONE
+**Last Updated**: 2026-04-12 by SV-D4-T1-FIX-02 ✅ DONE
+**Current Day**: D4 🔄 WIP — D3 ✅ CLOSED；D4-T0 ✅ DONE；D4-T1 ✅ DONE；SV-D4-T1-FIX-01 ✅ DONE；SV-D4-T1-FIX-02 ✅ DONE
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -120,7 +120,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 |-----------|-------------|--------|----------------|
 | D4-T0 | 前置焦土：清除 `CameraScreen.kt` 的 `GuidelineOverlay` dead import | ✅ DONE (Path A) | `presentation/camera/CameraScreen.kt` |
 | D4-T0.1 | ADR 歸檔：D4 前置焦土清理與最小變更原則；D3 Backlog GuidelineOverlay 項目閉環 | ✅ DONE | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
-| D4-T1 | Edge Warmth 第二層（浮動光點）：依 SSOT v3.3 §EdgeWarmthLayer 實作浮動光點 Overlay，接線至 `CameraState.deviceRoll` | 🔲 TODO | — |
+| D4-T1 | Edge Warmth 第二層（浮動光點）：依 SSOT v3.3 §EdgeWarmthLayer 實作浮動光點 Overlay，接線至 `CameraState.deviceRoll` | ✅ DONE | `presentation/camera/overlay/EdgeWarmthLayer.kt` |
+| SV-D4-T1-FIX-01 | EdgeWarmthLayer 實體接線：插入 CameraScreen 渲染堆棧（GridOverlay 之上、CompositionGuide 之下）；傳入 `state.deviceRoll` + `viewModel.deviceCapabilityTier` | ✅ DONE | `presentation/camera/CameraScreen.kt` |
+| SV-D4-T1-FIX-02 | 實作漂移反思歸檔：追加 D4-T1 漂移 ADR（組件定義 + 接線必須同步交付）；PROGRESS.md 閉環確認 | ✅ DONE | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
 | D4-T2 | 呼吸韻律初版：`#50C864` 綠色脈動動畫，接線至 `CameraState.compositionResult.isAllAligned` | 🔲 TODO | — |
 
 ---
