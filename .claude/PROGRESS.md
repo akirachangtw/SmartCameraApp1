@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-12 by D4-T4 ✅ Path A — KAIROS Rule 10 測試矩陣全數綠燈，D4 完全閉環
-**Current Day**: D4 ✅ CLOSED (Path A) — 含 D4-T4 測試矩陣；D5 下一步
+**Last Updated**: 2026-04-12 by SV-D4-T4-FIX-01/02/03 ✅ — ShutterButtonSection 提取 + dots 探針 + ADR 閉環；FIX-04/05 待實機驗證
+**Current Day**: D4 補修進行中 (SV-D4-T4-FIX-04/05 待執行) → D5 下一步
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -132,8 +132,12 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 | D4-T4 | KAIROS Rule 10 測試矩陣：`CameraScreenStateTest`（5 tests，狀態互斥/生命週期）+ `EdgeWarmthLayerTest`（6 tests，tier 降級/Canvas 分支）；修復 `HDRWarningOverlayTest` 預存在 compile error | ✅ DONE (Path A) | `test/.../CameraScreenStateTest.kt` (新建), `androidTest/.../EdgeWarmthLayerTest.kt` (新建), `overlay/EdgeWarmthLayer.kt` (+testTag), `androidTest/.../HDRWarningOverlayTest.kt` (fix) |
 | SV-D4-T4-FIX-03 | 越權編譯錯誤修復文件閉環：測試越權教訓 ADR 歸檔（測試邊界紀律 + 預存在技術債處理流程）；PROGRESS.md FIX-03 閉環確認 | ✅ DONE (Path A) | `devspec/feature_record_Backlog.md`, `.claude/PROGRESS.md` |
+| SV-D4-T4-FIX-01 | ShutterButtonSection 提取 + BreathingRing/ProgressCircle testTag 植入：新增 `TAG_SHUTTER_BREATHING_RING` / `TAG_SHUTTER_PROGRESS_CIRCLE`；快門區塊提取為 stateless `ShutterButtonSection`（無 ViewModel 依賴）供 androidTest 使用 | ✅ DONE (Path A) | `presentation/camera/CameraScreen.kt` |
+| SV-D4-T4-FIX-02 | EdgeWarmthLayer dots 語意探針：新增 `TAG_EDGE_WARMTH_DOTS_ENABLED`；零尺寸 Box 探針插入 `renderDots&&direction!=null` 條件內 | ✅ DONE (Path A) | `presentation/camera/overlay/EdgeWarmthLayer.kt` |
+| SV-D4-T4-FIX-04 | `CameraScreenBreathingRingTest` 實機驗證 (4 tests)：連接裝置執行 `connectedDeviceDebugAndroidTest` | 🔲 TODO | — |
+| SV-D4-T4-FIX-05 | `EdgeWarmthLayerTest` 補強 dots probe 測試：新增 `fullTier_withDirection_dotsProbeExists` + `legacyTier_dotsProbeAbsent` 使用 `TAG_EDGE_WARMTH_DOTS_ENABLED` | 🔲 TODO | `androidTest/.../EdgeWarmthLayerTest.kt` |
 
-> 🏁 **D4 全系列 Path A 完全閉環（含 SV-D4-T4-FIX-03）。D4-T2 呼吸韻律 + D4-T4 KAIROS Rule 10 防禦網 + FIX-03 教訓歸檔均落地。JVM 125 tests pass；EdgeWarmthLayerTest 6/6 在 Sony XQ-BT52 實機通過。D4 正式封板。**
+> ⏳ **D4 補修進行中：FIX-01/02/03 ✅ 閉環；FIX-04/05 待執行。`CameraScreenBreathingRingTest.kt` 已建立（4 tests），待實機驗證。D4 終局封板待 FIX-04/05 完成。**
 
 ---
 
