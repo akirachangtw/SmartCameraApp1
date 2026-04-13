@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-12 by D5-B1 ✅ — PriorityEngine 建置 + RuleScore 契約修正 + 5 單元測試；Batch 1 Path A；Batch 2 (UseCase 接線) 待執行
-**Current Day**: D5 進行中 (Batch 1 ✅ CLOSED → Batch 2 AnalyzeCompositionUseCase 接線)
+**Last Updated**: 2026-04-13 by D5-B2 ✅ — AnalyzeCompositionUseCase 接線 PriorityEngine；constructor injection；5 D5 contract tests 全通過；Batch 2 Path A
+**Current Day**: D5 ✅ CLOSED (Batch 1 + Batch 2 全數完成) → D6 KAIROS #2 準備
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -14,7 +14,7 @@
 |--------|--------|---------|--------|
 | On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 50t/48ignored/2pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; Total: 130t/48skipped/82pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass | 🟢 |
+| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; Total: 133t/48skipped/85pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass | 🟢 |
 | Lint New Errors | 0 new | 0 new (pre-existing `CameraCapabilityDetector.kt` UnsafeOptIn 已於 FIX-04 清零) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
@@ -150,9 +150,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D5-B1-T2 | `PriorityEngine` 新建：`calculateTopInstruction(Map<CompositionRule, RuleScore>): RuleScore?`；SSOT §4.1 公式 | ✅ DONE (Path A) | `domain/composition/PriorityEngine.kt` (新建) |
 | SV-D5-B1-FIX-01 | `PriorityEngine` 契約修正：`RuleResult` → `RuleScore` (對齊 UseCase 聚合輸出) | ✅ DONE (Path A) | `domain/composition/PriorityEngine.kt` |
 | SV-D5-B1-FIX-02 | `PriorityEngineTest` 新建：5 個純 JVM 單元測試（邊界、降冪排序、isAligned 過濾） | ✅ DONE (Path A) | `test/.../PriorityEngineTest.kt` (新建) |
-| D5-B2-T3 | `AnalyzeCompositionUseCase` 接線 `PriorityEngine`，產出 `CompositionResult.topInstruction` | 🔲 TODO | `domain/usecase/AnalyzeCompositionUseCase.kt` |
+| D5-B2-T3 | `AnalyzeCompositionUseCase` 接線 `PriorityEngine`，constructor injection；`ruleScoresMap: Map<CompositionRule, RuleScore>` → engine；`isAllAligned = (topInstruction == null)` | ✅ DONE (Path A) | `domain/usecase/AnalyzeCompositionUseCase.kt`, `test/.../AnalyzeCompositionUseCaseTest.kt` |
 
-> ⏳ **D5 Batch 1 ✅ CLOSED (Path A)。CompositionRule 介面擴充 + PriorityEngine 建置 + 5 個單元測試全數通過。Batch 2 (UseCase 接線) 待執行。**
+> 🏁 **D5 動態規則引擎 (多維度優先級大腦) 已達成真・封板。OCP 介面擴充、引擎獨立測試與 UseCase 換腦手術已全面完成。AnalyzeCompositionUseCase 現以 SSOT §4.1 公式選出 topInstruction；isAllAligned = (topInstruction == null) 對齊 D4 UI 聯動契約。DTO 實體隔離 + Fail-Safe 契約已歸入防禦聖典。Cueshot 已具備思考能力，準備迎接 D6/D7 的視覺與聽覺牽引！**
 
 ---
 

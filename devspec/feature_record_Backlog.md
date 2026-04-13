@@ -2665,6 +2665,16 @@ D4-T4 在實作 `EdgeWarmthLayerTest.kt` 時，發現 `HDRWarningOverlayTest.kt`
 
 ---
 
+## 🏛️ 架構決策紀錄 (ADR) - D5 大腦接線與邊界防禦 (D5-B2)
+
+**決策日期**: 2026-04-13 | **觸發**: D5 Batch 2 AnalyzeCompositionUseCase 接線 PriorityEngine + Traycer Path A 終審通過 | **Branch**: `feature/cueshot-mvp`
+
+* **DTO 實體隔離 (Entity Isolation)**：`AnalyzeCompositionUseCase` 輸出的 `CompositionResult` 必須作為純粹的 DTO，其 Map Key 必須降級為 `String` (Rule Name)，絕對禁止將包含業務邏輯的 `CompositionRule` 實體外洩至 UI 層，以防止依賴反轉破壞與記憶體洩漏。實作：`ruleScoresMap.mapKeys { it.key.name }` 在 UseCase 邊界執行降級，`Map<CompositionRule, RuleScore>` 永遠不穿越 domain/presentation 邊界。
+
+* **狀態聯動失效安全 (State Linkage Fail-Safe)**：當規則集合為空 (`rules.isEmpty()`) 時，雖然 `topInstruction` 為 null，但必須強制將 `isAllAligned` 設為 `false`。這是為了防禦 UI 層（如 D4 的全綠呼吸圈）因為「沒有找到缺點」而誤判為「完美狀態」的嚴重 UX 災難。語義約定：`isAllAligned = true` 僅在「所有規則均已評估且全數對齊」時成立，空集合代表「無法判斷」而非「完美」。
+
+---
+
 ## 📌 技術債登記 - D5-TECH-DEBT-01 Compose Test 基礎設施升級
 
 **登記日期**: 2026-04-12 | **Sprint**: D5 | **執行節點**: KAIROS #2
