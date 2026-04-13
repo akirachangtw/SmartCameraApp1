@@ -2,6 +2,7 @@ package com.akirachang.ai.photographer.domain.usecase
 
 import android.graphics.RectF
 import com.akirachang.ai.photographer.domain.composition.CompositionRule
+import com.akirachang.ai.photographer.domain.composition.PriorityEngine
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.RuleScore
 import javax.inject.Inject
@@ -11,13 +12,16 @@ import javax.inject.Inject
  *
  * Aggregates per-rule scores into a [CompositionResult] for a single frame.
  * No debounce or temporal smoothing — single-frame pure aggregation only.
- * Smoothing is deferred to D5.
+ *
+ * Priority selection delegates to [PriorityEngine] using SSOT §4.1 formula:
+ *   priority = rule.weight × ((100 − score) / 100) × rule.confidenceFactor
  *
  * Coordinate contract: all [RectF] in [faces] must be pre-normalized to [0.0, 1.0].
  * The caller is responsible for coordinate normalization before invoking this use case.
  */
 class AnalyzeCompositionUseCase @Inject constructor(
-    private val rules: Set<@JvmSuppressWildcards CompositionRule>
+    private val rules: Set<@JvmSuppressWildcards CompositionRule>,
+    private val priorityEngine: PriorityEngine,
 ) {
 
     operator fun invoke(
@@ -33,9 +37,9 @@ class AnalyzeCompositionUseCase @Inject constructor(
             )
         }
 
-        val ruleScores: Map<String, RuleScore> = rules.associate { rule ->
+        val ruleScoresMap: Map<CompositionRule, RuleScore> = rules.associateWith { rule ->
             val result = rule.evaluate(faces, imuPitch, imuRoll)
-            rule.name to RuleScore(
+            RuleScore(
                 name = rule.name,
                 score = result.score,
                 isAligned = result.isAligned,
@@ -43,15 +47,12 @@ class AnalyzeCompositionUseCase @Inject constructor(
             )
         }
 
-        val isAllAligned = ruleScores.values.all { it.isAligned }
-
-        val topInstruction: RuleScore? = ruleScores.values
-            .filter { !it.isAligned }
-            .minByOrNull { it.score }
+        val topInstruction: RuleScore? = priorityEngine.calculateTopInstruction(ruleScoresMap)
+        val isAllAligned = topInstruction == null
 
         return CompositionResult(
             topInstruction = topInstruction,
-            ruleScores = ruleScores,
+            ruleScores = ruleScoresMap.mapKeys { it.key.name },
             isAllAligned = isAllAligned,
         )
     }

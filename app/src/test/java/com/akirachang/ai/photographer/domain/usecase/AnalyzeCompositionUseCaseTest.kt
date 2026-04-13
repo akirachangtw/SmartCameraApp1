@@ -18,6 +18,9 @@ import android.graphics.Rect
 import android.graphics.RectF
 import com.google.mlkit.vision.face.Face
 import org.junit.Ignore
+import com.akirachang.ai.photographer.domain.composition.CompositionRule
+import com.akirachang.ai.photographer.domain.composition.PriorityEngine
+import com.akirachang.ai.photographer.domain.composition.RuleResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import org.junit.Assert.*
@@ -54,7 +57,7 @@ class AnalyzeCompositionUseCaseTest {
 
     @Before
     fun setup() {
-        useCase = AnalyzeCompositionUseCase(rules = emptySet())
+        useCase = AnalyzeCompositionUseCase(rules = emptySet(), priorityEngine = PriorityEngine())
     }
 
     // ==================== Helper Functions ====================
@@ -439,5 +442,78 @@ class AnalyzeCompositionUseCaseTest {
         assertNull(result.topInstruction)
         assertTrue(result.ruleScores.isEmpty())
         assertFalse(result.isAllAligned)
+    }
+
+    // ==================== D5 Contract Tests ====================
+
+    @Test
+    fun `all rules aligned — topInstruction is null and isAllAligned is true`() {
+        val alignedRule = mock(CompositionRule::class.java)
+        `when`(alignedRule.name).thenReturn("aligned_rule")
+        `when`(alignedRule.weight).thenReturn(0.20f)
+        `when`(alignedRule.confidenceFactor).thenReturn(0.80f)
+        `when`(alignedRule.evaluate(emptyList(), 0f, 0f))
+            .thenReturn(RuleResult(score = 95f, isAligned = true))
+
+        val localUseCase = AnalyzeCompositionUseCase(
+            rules = setOf(alignedRule),
+            priorityEngine = PriorityEngine(),
+        )
+
+        val result = localUseCase(emptyList(), 0f, 0f)
+
+        assertNull(result.topInstruction)
+        assertTrue(result.isAllAligned)
+        assertEquals(1, result.ruleScores.size)
+    }
+
+    @Test
+    fun `misaligned rule — topInstruction is non-null and isAllAligned is false`() {
+        val misalignedRule = mock(CompositionRule::class.java)
+        `when`(misalignedRule.name).thenReturn("thirds")
+        `when`(misalignedRule.weight).thenReturn(0.20f)
+        `when`(misalignedRule.confidenceFactor).thenReturn(0.80f)
+        `when`(misalignedRule.evaluate(emptyList(), 0f, 0f))
+            .thenReturn(RuleResult(score = 40f, isAligned = false))
+
+        val localUseCase = AnalyzeCompositionUseCase(
+            rules = setOf(misalignedRule),
+            priorityEngine = PriorityEngine(),
+        )
+
+        val result = localUseCase(emptyList(), 0f, 0f)
+
+        assertNotNull(result.topInstruction)
+        assertFalse(result.isAllAligned)
+        assertEquals("thirds", result.topInstruction?.name)
+    }
+
+    @Test
+    fun `highest priority misaligned rule wins over lower priority rule`() {
+        // highPriorityRule: weight=0.20, score=20 → priority = 0.20 * (80/100) * 0.80 = 0.128
+        // lowPriorityRule:  weight=0.10, score=10 → priority = 0.10 * (90/100) * 0.80 = 0.072
+        val highPriorityRule = mock(CompositionRule::class.java)
+        `when`(highPriorityRule.name).thenReturn("high_priority")
+        `when`(highPriorityRule.weight).thenReturn(0.20f)
+        `when`(highPriorityRule.confidenceFactor).thenReturn(0.80f)
+        `when`(highPriorityRule.evaluate(emptyList(), 0f, 0f))
+            .thenReturn(RuleResult(score = 20f, isAligned = false))
+
+        val lowPriorityRule = mock(CompositionRule::class.java)
+        `when`(lowPriorityRule.name).thenReturn("low_priority")
+        `when`(lowPriorityRule.weight).thenReturn(0.10f)
+        `when`(lowPriorityRule.confidenceFactor).thenReturn(0.80f)
+        `when`(lowPriorityRule.evaluate(emptyList(), 0f, 0f))
+            .thenReturn(RuleResult(score = 10f, isAligned = false))
+
+        val localUseCase = AnalyzeCompositionUseCase(
+            rules = setOf(highPriorityRule, lowPriorityRule),
+            priorityEngine = PriorityEngine(),
+        )
+
+        val result = localUseCase(emptyList(), 0f, 0f)
+
+        assertFalse(result.isAllAligned)
+        assertEquals("high_priority", result.topInstruction?.name)
     }
 }
