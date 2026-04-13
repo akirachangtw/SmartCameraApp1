@@ -297,6 +297,8 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 ### KAIROS #2 — D6 (2026-04-15)
 - (will be populated: ML Kit stability, Face Detection params, Halo smoothness)
+- [ ] KAIROS-#2-DEBT: SSOT RuleScore/RuleResult 型別命名統一修正（D6 /dream 處理）
+- [ ] KAIROS-#2-DEBT: D5-TECH-DEBT-01 Compose Test 基礎設施升級（HDRWarningOverlayTest + EdgeWarmthLayerTest Sony race condition）
 
 ### KAIROS #3 — D10 (2026-04-21)
 - (will be populated: Object Detection FOOD confidence, bgCV thresholds, MinimalistRule coverage)

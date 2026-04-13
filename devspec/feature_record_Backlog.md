@@ -2688,3 +2688,23 @@ D4-T4 在實作 `EdgeWarmthLayerTest.kt` 時，發現 `HDRWarningOverlayTest.kt`
 * **驗收標準**：Sony XQ-BT52 `connectedAndroidTest` 全 PASS。
 * **執行模式**：純機械性重寫，無架構決策變更。
 * **優先度**：🟡 LOW — 不影響功能管線，不阻塞 D5 主線。
+
+---
+
+## 📌 技術債登記 - SSOT-TYPE-DRIFT-01 型別命名漂移
+
+**登記日期**: 2026-04-13 | **Sprint**: D6 | **執行節點**: KAIROS #2
+
+### [SSOT-TYPE-DRIFT-01] 文件型別命名與程式碼不一致
+
+**問題描述**：SSOT §4.1-§4.2 段落中，部分描述使用 `RuleScore` 指稱原始評分結果，但程式碼中型別命名規範為：
+- `RuleResult`：`CompositionRule.evaluate()` 的原始輸出（`domain/composition/CompositionRule.kt`）
+- `RuleScore`：`AnalyzeCompositionUseCase` 聚合後的輸出載體（`domain/model/CompositionResult.kt`）
+
+**來源**：D5 Traycer 終審觀察。
+
+**影響範圍**：`SmartCameraApp_Strategy_v3_3_SSOT_20260404.md`、`SmartCameraApp_TechDeepDive_v3_20260405.md` 中 §4.1-§4.2 涉及型別名稱的段落。
+
+**修正方式**：KAIROS #2 執行 `/dream` 時，掃描 SSOT 文件中所有 `RuleScore`/`RuleResult` 出現位置，確認語義後統一對齊程式碼命名。無需修改 `.kt` 檔案。
+
+* **優先度**：🟡 LOW — 純文件修正，不阻塞 D6 主線實作。
