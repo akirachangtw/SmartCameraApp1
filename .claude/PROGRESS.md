@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-14 by D6-B1-T2/T3 ✅ — EyeLineRule + GazeRule 新建；DI 綁定；測試全數通過 (161t/0failed/48skipped)；EyeLineRule 向量方向 bug 修正 (left→right)
-**Current Day**: D6 進行中 (B1-T1 ✅ DONE, B1-T2/T3 ✅ DONE → B2 HaloGuidanceLayer 待排)
+**Last Updated**: 2026-04-14 by D6-B1-T1.6 ✅ — GazeRule 極端角度 Fail-safe 熱修復 (abs(eulerY)>45° → isAligned=true)；GazeRuleTest +2 新增 fail-safe 測試；LandmarkProbeTest 斷言修正；QA: 228t/0failed/96skipped
+**Current Day**: D6 進行中 (B1-T1/T2/T3/T1.5 ✅ DONE, B1-T1.6 ✅ DONE → B2 HaloGuidanceLayer 待排)
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -13,9 +13,9 @@
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
 | On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
-| Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; EyeLineRule: 13pass; GazeRule: 14pass; Total: 161t/48skipped/113pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass | 🟢 |
-| Lint New Errors | 0 new | 0 new (pre-existing `CameraCapabilityDetector.kt` UnsafeOptIn 已於 FIX-04 清零) | 🟢 |
+| Compile | 0 errors | 0 errors (EmulatorDebug) | 🟢 |
+| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; EyeLineRule: 13pass; GazeRule: 16pass (+2 fail-safe); Total: 228t/96skipped/132pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass; LandmarkProbeTest 3tests/3pass | 🟢 |
+| Lint New Errors | 0 new | 0 new (486 LogNotTimber 為全域既有基準；本次零新增) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
 | D2 SV Gate | Pass | ✅ PASS (D2-T3/T4/FIX-01 全數閉環，Traycer Path A) | 🟢 |
@@ -163,9 +163,11 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D6-B1-T1 | `FaceLandmarkData` DTO 新建；`CompositionRule.evaluate()` 介面升級 `List<RectF>` → `List<FaceLandmarkData>`；ThirdsRule/HeadroomRule 機械性修復；ViewModel 映射層 + D6_PROBE 探針；全測試回歸 | ✅ DONE (Path A) | `domain/model/FaceLandmarkData.kt` (新建), `domain/composition/CompositionRule.kt`, `rules/ThirdsRule.kt`, `rules/HeadroomRule.kt`, `domain/usecase/AnalyzeCompositionUseCase.kt`, `presentation/camera/CameraViewModel.kt`, `test/.../ThirdsRuleTest.kt`, `test/.../HeadroomRuleTest.kt`, `test/.../AnalyzeCompositionUseCaseTest.kt` |
 | D6-B1-T2 | `EyeLineRule` 實作（基於 `leftEyeNormalized`/`rightEyeNormalized`） | ✅ DONE (Path A) | `domain/composition/rules/EyeLineRule.kt` (新建), `test/.../EyeLineRuleTest.kt` (新建, 14 tests), `di/CompositionModule.kt` |
 | D6-B1-T3 | `GazeRule` 實作（基於 `headEulerAngleY`） | ✅ DONE (Path A) | `domain/composition/rules/GazeRule.kt` (新建), `test/.../GazeRuleTest.kt` (新建, 14 tests), `di/CompositionModule.kt` |
+| D6-B1-T1.5 | `LandmarkProbeTest` 實體探針：ML Kit LANDMARK_MODE_ALL；3 張測試圖；bounding box coerceIn [0,1]；D6_PROBE 數據 (front=97.76, side=7.42, extreme=0.0)；3 instrumented tests 全數通過 (Pixel_5 AVD) | ✅ DONE (Path A) | `androidTest/.../composition/LandmarkProbeTest.kt` (新建) |
+| D6-B1-T1.6 | GazeRule 極端角度 Fail-safe 熱修復：`abs(eulerY) > EXTREME_YAW_DEG(45f)` → early-return `score=100f, isAligned=true`（Priority Inversion 防禦）；GazeRuleTest +2 fail-safe 測試；LandmarkProbeTest 斷言修正 | ✅ DONE (Path A) | `domain/composition/rules/GazeRule.kt`, `test/.../GazeRuleTest.kt`, `androidTest/.../LandmarkProbeTest.kt` |
 | D6-B2 | `HaloGuidanceLayer` 視覺回饋層 | 🔲 TODO | TBD |
 
-> 🏁 **D6 Batch 1 完成。B1-T1/T2/T3 全數 ✅ DONE — EyeLineRule (left→right 向量修正) + GazeRule 已實作並通過 27 個測試。161t/0failed/48skipped。B2 HaloGuidanceLayer 為下一目標。**
+> 🏁 **D6 Batch 1 完成。B1-T1/T2/T3/T1.5/T1.6 全數 ✅ DONE — EyeLineRule + GazeRule (Fail-safe 熱修復) + LandmarkProbeTest 實體探針。228t/0failed/96skipped (unit) + 3 instrumented pass。B2 HaloGuidanceLayer 為下一目標。**
 
 ---
 
@@ -308,10 +310,12 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
     觸發來源：SV-D2-T1-FIX-01~03（ThirdsRule 座標漂移 bug）。
 ```
 
-### KAIROS #2 — D6 (2026-04-15)
+### KAIROS #2 — D6 (2026-04-16) ⏳ PENDING
 - (will be populated: ML Kit stability, Face Detection params, Halo smoothness)
 - [ ] KAIROS-#2-DEBT: SSOT RuleScore/RuleResult 型別命名統一修正（D6 /dream 處理）
 - [ ] KAIROS-#2-DEBT: D5-TECH-DEBT-01 Compose Test 基礎設施升級（HDRWarningOverlayTest + EdgeWarmthLayerTest Sony race condition）
+- [ ] Gradle Configuration Cache 警告 (generateTestImages 需重構)
+- [ ] 規則語意梳理：MAX_YAW (線性評分上限) 與 EXTREME_YAW (skip gate) 語意拆分準則
 
 ### KAIROS #3 — D10 (2026-04-21)
 - (will be populated: Object Detection FOOD confidence, bgCV thresholds, MinimalistRule coverage)

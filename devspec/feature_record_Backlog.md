@@ -2708,3 +2708,23 @@ D4-T4 在實作 `EdgeWarmthLayerTest.kt` 時，發現 `HDRWarningOverlayTest.kt`
 **修正方式**：KAIROS #2 執行 `/dream` 時，掃描 SSOT 文件中所有 `RuleScore`/`RuleResult` 出現位置，確認語義後統一對齊程式碼命名。無需修改 `.kt` 檔案。
 
 * **優先度**：🟡 LOW — 純文件修正，不阻塞 D6 主線實作。
+
+---
+
+## 📌 技術債登記 - D6-TECH-DEBT-02 Gradle Configuration Cache 警告
+
+**登記日期**: 2026-04-14 | **Sprint**: D6 | **執行節點**: KAIROS #2
+
+### [D6-TECH-DEBT-02] Gradle Configuration Cache 警告：generateTestImages task
+
+**問題描述**：`generateTestImages` task 捕獲了 `Project` 參照（Gradle script object reference），導致 Configuration Cache 每次 store 時均出現兩個警告：
+- `cannot serialize Gradle script object references as these are not supported with the configuration cache`
+- `cannot deserialize Gradle script object references as these are not supported with the configuration cache`
+
+**來源**：D6-B1-T1.5 LandmarkProbeTest 執行期間觀測到（每次 `connectedAndroidTest` 均觸發）。
+
+**影響範圍**：`app/build.gradle.kts` 中 `generateTestImages` task 定義。
+
+**修正方式**：KAIROS #2 時，將 task 改用 `ExecOperations` 服務注入取代直接捕獲 `Project`，符合 Gradle Configuration Cache 規範。
+
+* **優先度**：🟡 LOW — 不影響測試執行正確性，僅影響 build cache 效率與 log 清潔度。
