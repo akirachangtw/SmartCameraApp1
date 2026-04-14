@@ -1,6 +1,8 @@
 package com.akirachang.ai.photographer.di
 
 import com.akirachang.ai.photographer.domain.composition.CompositionRule
+import com.akirachang.ai.photographer.domain.composition.rules.EyeLineRule
+import com.akirachang.ai.photographer.domain.composition.rules.GazeRule
 import com.akirachang.ai.photographer.domain.composition.rules.HeadroomRule
 import com.akirachang.ai.photographer.domain.composition.rules.ThirdsRule
 import dagger.Binds
@@ -24,4 +26,12 @@ abstract class CompositionModule {
     @Binds
     @IntoSet
     abstract fun bindHeadroomRule(rule: HeadroomRule): CompositionRule
+
+    @Binds
+    @IntoSet
+    abstract fun bindEyeLineRule(rule: EyeLineRule): CompositionRule
+
+    @Binds
+    @IntoSet
+    abstract fun bindGazeRule(rule: GazeRule): CompositionRule
 }
