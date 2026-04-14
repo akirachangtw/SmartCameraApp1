@@ -14,8 +14,9 @@ import kotlin.math.abs
  * head in degrees (positive = turning right, negative = turning left).
  *
  * A yaw close to 0° means the subject faces forward. Score degrades linearly
- * to 0 at [MAX_YAW_DEG]. Subjects facing strongly off-camera (yaw >= MAX_YAW_DEG)
- * indicate a "looking away" composition that warrants low priority.
+ * to 0 at [MAX_YAW_DEG] (45°). Beyond that threshold ([EXTREME_YAW_DEG]), the
+ * subject is intentionally side-on; the rule emits isAligned=true as a fail-safe
+ * so PriorityEngine skips it rather than penalising with a low score.
  *
  * Falls back gracefully to score=0/isAligned=false if no faces are present.
  * Bounding-box validation is applied first; faces with out-of-range boxes are
@@ -47,6 +48,14 @@ class GazeRule @Inject constructor() : CompositionRule {
         }
 
         val absYaw = abs(primary.headEulerAngleY)
+
+        // Fail-safe: subject intentionally not facing camera (extreme yaw).
+        // Cannot provide meaningful gaze guidance — skip this rule entirely
+        // by returning isAligned=true so PriorityEngine filters it out.
+        if (absYaw > EXTREME_YAW_DEG) {
+            return RuleResult(score = 100f, isAligned = true)
+        }
+
         val score = (100f * (1f - absYaw / MAX_YAW_DEG)).coerceIn(0f, 100f)
         val isAligned = score >= ALIGNED_THRESHOLD
 
@@ -56,6 +65,13 @@ class GazeRule @Inject constructor() : CompositionRule {
     companion object {
         /** Yaw angle (degrees) at which score reaches 0 — subject fully side-on. */
         private const val MAX_YAW_DEG = 45f
+
+        /**
+         * Yaw angle (degrees) beyond which gaze guidance is impossible.
+         * Subject is intentionally side-on; rule emits isAligned=true to
+         * signal PriorityEngine to skip it (fail-safe, not a low-score penalty).
+         */
+        private const val EXTREME_YAW_DEG = 45f
 
         /** Score threshold above which gaze is considered "forward-facing". */
         private const val ALIGNED_THRESHOLD = 85f

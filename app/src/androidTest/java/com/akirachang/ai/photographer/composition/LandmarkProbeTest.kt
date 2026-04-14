@@ -208,15 +208,16 @@ class LandmarkProbeTest {
         val gazeResult = gazeRule.evaluate(listOf(data), 0f, 0f)
         Log.d(tag, "60° Extreme Side Face GazeRule — score=${gazeResult.score} isAligned=${gazeResult.isAligned}")
 
-        // Fail-safe: 60° yaw >= MAX_YAW_DEG(45°) → score must coerce to 0f, not aligned
+        // Fail-safe: abs(60°) > EXTREME_YAW_DEG(45°) → subject intentionally side-on.
+        // Rule must return isAligned=true so PriorityEngine skips it (not a low-score penalty).
         assertEquals(
-            "Extreme 60° yaw should trigger fail-safe: score must be 0f, was ${gazeResult.score}",
-            0f,
+            "Extreme 60° yaw should trigger fail-safe: score must be 100f, was ${gazeResult.score}",
+            100f,
             gazeResult.score,
             0.001f,
         )
-        assertFalse(
-            "Extreme 60° yaw GazeRule should NOT be aligned (fail-safe)",
+        assertTrue(
+            "Extreme 60° yaw GazeRule should be aligned (fail-safe — skip signal)",
             gazeResult.isAligned,
         )
 

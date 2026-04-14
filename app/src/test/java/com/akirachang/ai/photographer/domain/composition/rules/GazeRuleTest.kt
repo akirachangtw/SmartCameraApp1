@@ -116,10 +116,12 @@ class GazeRuleTest {
     }
 
     @Test
-    fun `yaw 90 degrees scores 0 and is not aligned`() {
+    fun `yaw 90 degrees triggers fail-safe and is aligned`() {
+        // abs(90°) > EXTREME_YAW_DEG(45°): subject intentionally side-on.
+        // Rule returns isAligned=true so PriorityEngine skips it.
         val result = rule.evaluate(listOf(landmark(eulerY = 90f)), 0f, 0f)
-        assertEquals(0f, result.score, 0.001f)
-        assertFalse(result.isAligned)
+        assertEquals(100f, result.score, 0.001f)
+        assertTrue(result.isAligned)
     }
 
     // ── Symmetry: positive and negative yaw equal magnitude yield same score ──
@@ -136,9 +138,27 @@ class GazeRuleTest {
 
     @Test
     fun `score is always within 0 to 100`() {
+        // 180° > EXTREME_YAW_DEG(45°): fail-safe returns score=100f (still within bounds)
         val result = rule.evaluate(listOf(landmark(eulerY = 180f)), 0f, 0f)
         assertTrue(result.score >= 0f)
         assertTrue(result.score <= 100f)
+    }
+
+    // ── Extreme yaw fail-safe ─────────────────────────────────────────────────
+
+    @Test
+    fun `extreme yaw 60 degrees triggers fail-safe and is aligned`() {
+        // Mirrors LandmarkProbeTest D6_PROBE data (portrait_extreme_side_60deg.jpg EulerY≈59.9°)
+        val result = rule.evaluate(listOf(landmark(eulerY = 60f)), 0f, 0f)
+        assertEquals(100f, result.score, 0.001f)
+        assertTrue(result.isAligned)
+    }
+
+    @Test
+    fun `extreme negative yaw minus 60 degrees triggers fail-safe and is aligned`() {
+        val result = rule.evaluate(listOf(landmark(eulerY = -60f)), 0f, 0f)
+        assertEquals(100f, result.score, 0.001f)
+        assertTrue(result.isAligned)
     }
 
     // ── Multi-face: largest face is picked ───────────────────────────────────
