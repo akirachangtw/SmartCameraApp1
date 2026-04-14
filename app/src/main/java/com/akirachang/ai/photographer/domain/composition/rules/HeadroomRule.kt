@@ -1,8 +1,8 @@
 package com.akirachang.ai.photographer.domain.composition.rules
 
-import android.graphics.RectF
 import com.akirachang.ai.photographer.domain.composition.CompositionRule
 import com.akirachang.ai.photographer.domain.composition.RuleResult
+import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import javax.inject.Inject
 
 /**
@@ -28,25 +28,26 @@ class HeadroomRule @Inject constructor() : CompositionRule {
     // Face detection via ML Kit — high but not absolute confidence
     override val confidenceFactor: Float = 0.80f
 
-    override fun evaluate(faces: List<RectF>, imuPitch: Float, imuRoll: Float): RuleResult {
+    override fun evaluate(faces: List<FaceLandmarkData>, imuPitch: Float, imuRoll: Float): RuleResult {
         if (faces.isEmpty()) return RuleResult(score = 0f, isAligned = false)
 
         // Reject any face with out-of-range or malformed coordinates (graceful degradation).
         val hasInvalidCoordinate = faces.any { face ->
-            face.left < 0f || face.top < 0f ||
-            face.right > 1f || face.bottom > 1f ||
-            face.left > face.right || face.top > face.bottom
+            val box = face.boundingBoxNormalized
+            box.left < 0f || box.top < 0f ||
+            box.right > 1f || box.bottom > 1f ||
+            box.left > box.right || box.top > box.bottom
         }
         if (hasInvalidCoordinate) return RuleResult(score = 0f, isAligned = false)
 
         // Pick the largest face by bounding-box area.
-        val primary = faces.maxByOrNull { it.width() * it.height() }
+        val primary = faces.maxByOrNull { it.boundingBoxNormalized.width() * it.boundingBoxNormalized.height() }
             ?: return RuleResult(score = 0f, isAligned = false)
 
-        val faceHeight = primary.bottom - primary.top
+        val faceHeight = primary.boundingBoxNormalized.bottom - primary.boundingBoxNormalized.top
         if (faceHeight <= 0f) return RuleResult(score = 0f, isAligned = false)
 
-        val yDistance = primary.top
+        val yDistance = primary.boundingBoxNormalized.top
         val ratio = yDistance / faceHeight
 
         val isAligned = ratio >= IDEAL_MIN && ratio <= IDEAL_MAX

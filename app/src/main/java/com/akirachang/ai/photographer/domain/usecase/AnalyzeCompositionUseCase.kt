@@ -1,9 +1,9 @@
 package com.akirachang.ai.photographer.domain.usecase
 
-import android.graphics.RectF
 import com.akirachang.ai.photographer.domain.composition.CompositionRule
 import com.akirachang.ai.photographer.domain.composition.PriorityEngine
 import com.akirachang.ai.photographer.domain.model.CompositionResult
+import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import com.akirachang.ai.photographer.domain.model.RuleScore
 import javax.inject.Inject
 
@@ -16,8 +16,8 @@ import javax.inject.Inject
  * Priority selection delegates to [PriorityEngine] using SSOT §4.1 formula:
  *   priority = rule.weight × ((100 − score) / 100) × rule.confidenceFactor
  *
- * Coordinate contract: all [RectF] in [faces] must be pre-normalized to [0.0, 1.0].
- * The caller is responsible for coordinate normalization before invoking this use case.
+ * Coordinate contract: all spatial fields in [FaceLandmarkData] must be pre-normalized
+ * to [0.0, 1.0]. The caller (ViewModel mapping layer) is responsible for normalization.
  */
 class AnalyzeCompositionUseCase @Inject constructor(
     private val rules: Set<@JvmSuppressWildcards CompositionRule>,
@@ -25,7 +25,7 @@ class AnalyzeCompositionUseCase @Inject constructor(
 ) {
 
     operator fun invoke(
-        faces: List<RectF>,
+        faces: List<FaceLandmarkData>,
         imuPitch: Float,
         imuRoll: Float,
     ): CompositionResult {

@@ -1908,13 +1908,32 @@ class CameraViewModel @Inject constructor(
                 val imgH = det.imageHeight.toFloat()
                 if (imgW <= 0f || imgH <= 0f) return@onEach
 
-                val normalizedFaces = det.faces.map { face ->
+                val landmarkFaces = det.faces.mapIndexed { idx, face ->
                     val box = face.boundingBox
-                    android.graphics.RectF(
+                    val boundingBoxNormalized = android.graphics.RectF(
                         box.left / imgW,
                         box.top / imgH,
                         box.right / imgW,
                         box.bottom / imgH,
+                    )
+                    val leftEyeNormalized = face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_EYE)
+                        ?.position
+                        ?.let { pt -> android.graphics.PointF(pt.x / imgW, pt.y / imgH) }
+                    val rightEyeNormalized = face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_EYE)
+                        ?.position
+                        ?.let { pt -> android.graphics.PointF(pt.x / imgW, pt.y / imgH) }
+
+                    if (idx == 0) {
+                        Log.d("D6_PROBE", "face[0] box=$boundingBoxNormalized " +
+                            "leftEye=$leftEyeNormalized rightEye=$rightEyeNormalized " +
+                            "eulerY=${face.headEulerAngleY}")
+                    }
+
+                    com.akirachang.ai.photographer.domain.model.FaceLandmarkData(
+                        boundingBoxNormalized = boundingBoxNormalized,
+                        leftEyeNormalized = leftEyeNormalized,
+                        rightEyeNormalized = rightEyeNormalized,
+                        headEulerAngleY = face.headEulerAngleY,
                     )
                 }
 
@@ -1922,7 +1941,7 @@ class CameraViewModel @Inject constructor(
                 val pitch = orientation?.pitch ?: 0f
                 val roll = orientation?.roll ?: 0f
 
-                val result = analyzeCompositionUseCase(normalizedFaces, pitch, roll)
+                val result = analyzeCompositionUseCase(landmarkFaces, pitch, roll)
                 _state.update { it.copy(compositionResult = result) }
                 Log.d(TAG, "[D2] CompositionResult: isAllAligned=${result.isAllAligned} topRule=${result.topInstruction?.name}")
             }

@@ -1,6 +1,6 @@
 package com.akirachang.ai.photographer.domain.composition
 
-import android.graphics.RectF
+import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 
 /**
  * Result of a single composition rule evaluation.
@@ -47,8 +47,9 @@ interface CompositionRule {
     /**
      * 評估構圖規則。
      *
-     * @param faces 偵測到的人臉邊界框列表。
-     * ⚠️ 嚴格契約：座標必須是 [0.0, 1.0] 的正規化 (Normalized) 數值。
+     * @param faces 偵測到的人臉資料列表（含邊界框與 Landmark）。
+     * ⚠️ 嚴格契約：[FaceLandmarkData.boundingBoxNormalized] 及所有座標欄位
+     * 必須是 [0.0, 1.0] 的正規化 (Normalized) 數值。
      * 左上角為 (0.0, 0.0)，右下角為 (1.0, 1.0)。
      * 絕對不可傳入 UI Viewport 或 Sensor 的絕對像素 (Pixel) 座標。
      * 呼叫端（AnalyzeCompositionUseCase）負責在傳入前完成座標正規化，
@@ -57,5 +58,5 @@ interface CompositionRule {
      * @param imuRoll 設備翻滾角 (度)，向右翻滾為正值。
      * @return [RuleResult] 包含分數與對齊旗標。永不拋出例外。
      */
-    fun evaluate(faces: List<RectF>, imuPitch: Float, imuRoll: Float): RuleResult
+    fun evaluate(faces: List<FaceLandmarkData>, imuPitch: Float, imuRoll: Float): RuleResult
 }
