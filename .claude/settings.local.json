@@ -48,7 +48,12 @@
       "Bash(findstr *)",
       "Bash(where *)",
       "Bash(timeout *)",
-      "Bash(tasklist *)"
+      "Bash(tasklist *)",
+      "Write(*)",
+      "Bash(xargs *)",
+      "Bash(awk *)",
+      "Bash(head *)",
+      "Bash(uniq *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
