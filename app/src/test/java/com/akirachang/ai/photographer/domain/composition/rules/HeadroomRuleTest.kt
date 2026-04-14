@@ -1,6 +1,7 @@
 package com.akirachang.ai.photographer.domain.composition.rules
 
 import android.graphics.RectF
+import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -21,6 +22,14 @@ class HeadroomRuleTest {
         rule = HeadroomRule()
     }
 
+    /** Wraps a normalized [RectF] into a [FaceLandmarkData] for test convenience. */
+    private fun RectF.asLandmark() = FaceLandmarkData(
+        boundingBoxNormalized = this,
+        leftEyeNormalized = null,
+        rightEyeNormalized = null,
+        headEulerAngleY = 0f,
+    )
+
     // ── Boundary ────────────────────────────────────────────────────────────
 
     @Test
@@ -39,7 +48,7 @@ class HeadroomRuleTest {
         val faceHeight = 0.2f
         val yDistance = 0.15f * faceHeight  // 0.03
         val face = RectF(0.3f, yDistance, 0.7f, yDistance + faceHeight)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
         assertTrue(result.isAligned)
     }
@@ -49,7 +58,7 @@ class HeadroomRuleTest {
         val faceHeight = 0.4f
         val yDistance = 0.1f * faceHeight  // ratio = 0.1
         val face = RectF(0.2f, yDistance, 0.8f, yDistance + faceHeight)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
         assertTrue(result.isAligned)
     }
@@ -60,7 +69,7 @@ class HeadroomRuleTest {
         val top = 0.1f
         val faceHeight = 0.5f
         val face = RectF(0.2f, top, 0.8f, top + faceHeight)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
         assertTrue(result.isAligned)
     }
@@ -73,7 +82,7 @@ class HeadroomRuleTest {
         val faceHeight = 0.4f
         val yDistance = 0.05f * faceHeight
         val face = RectF(0.2f, yDistance, 0.8f, yDistance + faceHeight)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertTrue("Score should be < 100, was ${result.score}", result.score < 100f)
         assertFalse(result.isAligned)
     }
@@ -84,7 +93,7 @@ class HeadroomRuleTest {
         val faceHeight = 0.2f
         val yDistance = 0.5f * faceHeight
         val face = RectF(0.2f, yDistance, 0.8f, yDistance + faceHeight)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertTrue("Score should be < 100, was ${result.score}", result.score < 100f)
         assertFalse(result.isAligned)
     }
@@ -94,7 +103,7 @@ class HeadroomRuleTest {
     @Test
     fun `score is always within 0 to 100`() {
         val face = RectF(0.1f, 0.0f, 0.9f, 0.3f) // ratio = 0 / 0.3 = 0
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertTrue(result.score >= 0f)
         assertTrue(result.score <= 100f)
     }
@@ -109,7 +118,7 @@ class HeadroomRuleTest {
         val largeFace = RectF(0.1f, yDistance, 0.9f, yDistance + faceHeight)
         // Small face with bad ratio
         val smallFace = RectF(0.4f, 0.0f, 0.6f, 0.05f)
-        val result = rule.evaluate(listOf(smallFace, largeFace), 0f, 0f)
+        val result = rule.evaluate(listOf(smallFace.asLandmark(), largeFace.asLandmark()), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
         assertTrue(result.isAligned)
     }
@@ -121,8 +130,8 @@ class HeadroomRuleTest {
         val faceHeight = 0.2f
         val yDistance = 0.15f * faceHeight
         val face = RectF(0.3f, yDistance, 0.7f, yDistance + faceHeight)
-        val result0 = rule.evaluate(listOf(face), imuPitch = 0f, imuRoll = 0f)
-        val result45 = rule.evaluate(listOf(face), imuPitch = 45f, imuRoll = 30f)
+        val result0 = rule.evaluate(listOf(face.asLandmark()), imuPitch = 0f, imuRoll = 0f)
+        val result45 = rule.evaluate(listOf(face.asLandmark()), imuPitch = 45f, imuRoll = 30f)
         assertEquals(result0.score, result45.score, 0.001f)
         assertEquals(result0.isAligned, result45.isAligned)
     }
@@ -133,7 +142,7 @@ class HeadroomRuleTest {
     fun `pixel coordinates out of range return zero score and not aligned`() {
         // Simulates caller accidentally passing raw pixel coordinates (top=100 >> 1.0)
         val face = RectF(0f, 100f, 1080f, 1920f)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(0f, result.score, 0.001f)
         assertFalse(result.isAligned)
     }
@@ -141,7 +150,7 @@ class HeadroomRuleTest {
     @Test
     fun `negative coordinate returns zero score and not aligned`() {
         val face = RectF(-0.1f, 0.0f, 0.5f, 0.3f)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(0f, result.score, 0.001f)
         assertFalse(result.isAligned)
     }
@@ -149,7 +158,7 @@ class HeadroomRuleTest {
     @Test
     fun `malformed rect with top greater than bottom returns zero score and not aligned`() {
         val face = RectF(0.2f, 0.6f, 0.8f, 0.3f) // top > bottom
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(0f, result.score, 0.001f)
         assertFalse(result.isAligned)
     }

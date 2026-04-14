@@ -14,6 +14,7 @@
  */
 package com.akirachang.ai.photographer.domain.usecase
 
+import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.RectF
 import com.google.mlkit.vision.face.Face
@@ -23,6 +24,7 @@ import com.akirachang.ai.photographer.domain.composition.PriorityEngine
 import com.akirachang.ai.photographer.domain.composition.RuleResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.domain.model.CompositionResult
+import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -437,7 +439,14 @@ class AnalyzeCompositionUseCaseTest {
 
     @Test
     fun `invoke with faces and empty rules returns empty CompositionResult`() {
-        val faces = listOf(RectF(0.1f, 0.2f, 0.3f, 0.5f))
+        val faces = listOf(
+            FaceLandmarkData(
+                boundingBoxNormalized = RectF(0.1f, 0.2f, 0.3f, 0.5f),
+                leftEyeNormalized = null,
+                rightEyeNormalized = null,
+                headEulerAngleY = 0f,
+            )
+        )
         val result = useCase(faces, 15f, -5f)
         assertNull(result.topInstruction)
         assertTrue(result.ruleScores.isEmpty())

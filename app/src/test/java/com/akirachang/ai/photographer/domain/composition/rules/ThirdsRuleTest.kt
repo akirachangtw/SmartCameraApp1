@@ -1,6 +1,7 @@
 package com.akirachang.ai.photographer.domain.composition.rules
 
 import android.graphics.RectF
+import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -21,6 +22,14 @@ class ThirdsRuleTest {
         rule = ThirdsRule()
     }
 
+    /** Wraps a normalized [RectF] into a [FaceLandmarkData] for test convenience. */
+    private fun RectF.asLandmark() = FaceLandmarkData(
+        boundingBoxNormalized = this,
+        leftEyeNormalized = null,
+        rightEyeNormalized = null,
+        headEulerAngleY = 0f,
+    )
+
     // ── Boundary ────────────────────────────────────────────────────────────
 
     @Test
@@ -39,7 +48,7 @@ class ThirdsRuleTest {
         val cy = 1f / 3f
         val half = 0.05f
         val face = RectF(cx - half, cy - half, cx + half, cy + half)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
         assertTrue(result.isAligned)
     }
@@ -50,7 +59,7 @@ class ThirdsRuleTest {
         val cy = 1f / 3f
         val half = 0.05f
         val face = RectF(cx - half, cy - half, cx + half, cy + half)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
         assertTrue(result.isAligned)
     }
@@ -61,7 +70,7 @@ class ThirdsRuleTest {
         val cy = 2f / 3f
         val half = 0.05f
         val face = RectF(cx - half, cy - half, cx + half, cy + half)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
         assertTrue(result.isAligned)
     }
@@ -72,7 +81,7 @@ class ThirdsRuleTest {
         val cy = 2f / 3f
         val half = 0.05f
         val face = RectF(cx - half, cy - half, cx + half, cy + half)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
         assertTrue(result.isAligned)
     }
@@ -86,7 +95,7 @@ class ThirdsRuleTest {
         val offsetY = 1f / 3f
         val half = 0.05f
         val face = RectF(offsetX - half, offsetY - half, offsetX + half, offsetY + half)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertTrue("Score should be >= 85, was ${result.score}", result.score >= 85f)
         assertTrue("Score should be < 100, was ${result.score}", result.score < 100f)
         assertTrue(result.isAligned)
@@ -99,7 +108,7 @@ class ThirdsRuleTest {
         // Dead center (0.5, 0.5) — nearest thirds point is ~0.236 away
         val half = 0.05f
         val face = RectF(0.5f - half, 0.5f - half, 0.5f + half, 0.5f + half)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertTrue("Score should be < 85 for dead-center, was ${result.score}", result.score < 85f)
         assertFalse(result.isAligned)
     }
@@ -113,7 +122,7 @@ class ThirdsRuleTest {
         val cy = 1f / 3f
         val half = 0.01f
         val smallFace = RectF(cx - half, cy - half, cx + half, cy + half)
-        val result = rule.evaluate(listOf(smallFace), 0f, 0f)
+        val result = rule.evaluate(listOf(smallFace.asLandmark()), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
     }
 
@@ -124,7 +133,7 @@ class ThirdsRuleTest {
         val cy = 1f / 3f
         val half = 0.25f
         val largeFace = RectF(cx - half, cy - half, cx + half, cy + half)
-        val result = rule.evaluate(listOf(largeFace), 0f, 0f)
+        val result = rule.evaluate(listOf(largeFace.asLandmark()), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
     }
 
@@ -137,12 +146,12 @@ class ThirdsRuleTest {
         val alignedFace = RectF(cx - bigHalf, cy - bigHalf, cx + bigHalf, cy + bigHalf)
 
         // Alone
-        val resultAlone = rule.evaluate(listOf(alignedFace), 0f, 0f)
+        val resultAlone = rule.evaluate(listOf(alignedFace.asLandmark()), 0f, 0f)
 
         // With a smaller decoy at center (area < alignedFace so rule still picks alignedFace)
         val decoyHalf = 0.05f
         val decoyFace = RectF(0.5f - decoyHalf, 0.5f - decoyHalf, 0.5f + decoyHalf, 0.5f + decoyHalf)
-        val resultWithDecoy = rule.evaluate(listOf(alignedFace, decoyFace), 0f, 0f)
+        val resultWithDecoy = rule.evaluate(listOf(alignedFace.asLandmark(), decoyFace.asLandmark()), 0f, 0f)
 
         assertEquals(100f, resultAlone.score, 0.001f)
         assertEquals(100f, resultWithDecoy.score, 0.001f)
@@ -158,7 +167,7 @@ class ThirdsRuleTest {
             1f / 3f - 0.1f, 1f / 3f - 0.1f,
             1f / 3f + 0.1f, 1f / 3f + 0.1f
         )
-        val result = rule.evaluate(listOf(smallFace, largeFace), 0f, 0f)
+        val result = rule.evaluate(listOf(smallFace.asLandmark(), largeFace.asLandmark()), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
         assertTrue(result.isAligned)
     }
@@ -169,7 +178,7 @@ class ThirdsRuleTest {
     fun `pixel coordinates out of range return zero score and not aligned`() {
         // Simulates caller accidentally passing raw pixel coordinates
         val face = RectF(0f, 0f, 1080f, 1920f)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(0f, result.score, 0.001f)
         assertFalse(result.isAligned)
     }
@@ -177,7 +186,7 @@ class ThirdsRuleTest {
     @Test
     fun `negative coordinate returns zero score and not aligned`() {
         val face = RectF(-0.1f, 0.2f, 0.5f, 0.5f)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(0f, result.score, 0.001f)
         assertFalse(result.isAligned)
     }
@@ -185,7 +194,7 @@ class ThirdsRuleTest {
     @Test
     fun `malformed rect with left greater than right returns zero score and not aligned`() {
         val face = RectF(0.7f, 0.2f, 0.3f, 0.5f) // left > right
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertEquals(0f, result.score, 0.001f)
         assertFalse(result.isAligned)
     }
@@ -198,8 +207,8 @@ class ThirdsRuleTest {
         val cy = 1f / 3f
         val smallFace = RectF(cx - 0.01f, cy - 0.01f, cx + 0.01f, cy + 0.01f)
         val largeFace = RectF(cx - 0.25f, cy - 0.25f, cx + 0.25f, cy + 0.25f)
-        val resultSmall = rule.evaluate(listOf(smallFace), 0f, 0f)
-        val resultLarge = rule.evaluate(listOf(largeFace), 0f, 0f)
+        val resultSmall = rule.evaluate(listOf(smallFace.asLandmark()), 0f, 0f)
+        val resultLarge = rule.evaluate(listOf(largeFace.asLandmark()), 0f, 0f)
         assertEquals(resultSmall.score, resultLarge.score, 0.001f)
         assertEquals(resultSmall.isAligned, resultLarge.isAligned)
     }
@@ -210,8 +219,8 @@ class ThirdsRuleTest {
     fun `imu parameters do not affect rule output`() {
         val half = 0.05f
         val face = RectF(1f / 3f - half, 1f / 3f - half, 1f / 3f + half, 1f / 3f + half)
-        val result0 = rule.evaluate(listOf(face), imuPitch = 0f, imuRoll = 0f)
-        val result45 = rule.evaluate(listOf(face), imuPitch = 45f, imuRoll = 30f)
+        val result0 = rule.evaluate(listOf(face.asLandmark()), imuPitch = 0f, imuRoll = 0f)
+        val result45 = rule.evaluate(listOf(face.asLandmark()), imuPitch = 45f, imuRoll = 30f)
         assertEquals(result0.score, result45.score, 0.001f)
         assertEquals(result0.isAligned, result45.isAligned)
     }
@@ -221,7 +230,7 @@ class ThirdsRuleTest {
     @Test
     fun `score is always within 0 to 100`() {
         val face = RectF(0f, 0f, 0.1f, 0.1f)
-        val result = rule.evaluate(listOf(face), 0f, 0f)
+        val result = rule.evaluate(listOf(face.asLandmark()), 0f, 0f)
         assertTrue(result.score >= 0f)
         assertTrue(result.score <= 100f)
     }
