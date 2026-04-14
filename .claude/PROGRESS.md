@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-13 by D6-B1-T1 ✅ — 領域層資料流重塑；FaceLandmarkData DTO 新建；CompositionRule 介面升級；ViewModel 映射層 + D6_PROBE 探針；全測試回歸通過
-**Current Day**: D6 進行中 (B1-T1 ✅ DONE → B1 後續 Ticket 待排)
+**Last Updated**: 2026-04-14 by D6-B1-T2/T3 ✅ — EyeLineRule + GazeRule 新建；DI 綁定；測試全數通過 (161t/0failed/48skipped)；EyeLineRule 向量方向 bug 修正 (left→right)
+**Current Day**: D6 進行中 (B1-T1 ✅ DONE, B1-T2/T3 ✅ DONE → B2 HaloGuidanceLayer 待排)
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -14,7 +14,7 @@
 |--------|--------|---------|--------|
 | On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; Total: 133t/48skipped/85pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass | 🟢 |
+| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; EyeLineRule: 13pass; GazeRule: 14pass; Total: 161t/48skipped/113pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass | 🟢 |
 | Lint New Errors | 0 new | 0 new (pre-existing `CameraCapabilityDetector.kt` UnsafeOptIn 已於 FIX-04 清零) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
@@ -161,11 +161,11 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | Ticket | 任務 | Status | 檔案 |
 |--------|------|--------|------|
 | D6-B1-T1 | `FaceLandmarkData` DTO 新建；`CompositionRule.evaluate()` 介面升級 `List<RectF>` → `List<FaceLandmarkData>`；ThirdsRule/HeadroomRule 機械性修復；ViewModel 映射層 + D6_PROBE 探針；全測試回歸 | ✅ DONE (Path A) | `domain/model/FaceLandmarkData.kt` (新建), `domain/composition/CompositionRule.kt`, `rules/ThirdsRule.kt`, `rules/HeadroomRule.kt`, `domain/usecase/AnalyzeCompositionUseCase.kt`, `presentation/camera/CameraViewModel.kt`, `test/.../ThirdsRuleTest.kt`, `test/.../HeadroomRuleTest.kt`, `test/.../AnalyzeCompositionUseCaseTest.kt` |
-| D6-B1-T2 | `EyeLineRule` 實作（基於 `leftEyeNormalized`/`rightEyeNormalized`） | 🔲 TODO | TBD |
-| D6-B1-T3 | `GazeRule` 實作（基於 `headEulerAngleY`） | 🔲 TODO | TBD |
+| D6-B1-T2 | `EyeLineRule` 實作（基於 `leftEyeNormalized`/`rightEyeNormalized`） | ✅ DONE (Path A) | `domain/composition/rules/EyeLineRule.kt` (新建), `test/.../EyeLineRuleTest.kt` (新建, 14 tests), `di/CompositionModule.kt` |
+| D6-B1-T3 | `GazeRule` 實作（基於 `headEulerAngleY`） | ✅ DONE (Path A) | `domain/composition/rules/GazeRule.kt` (新建), `test/.../GazeRuleTest.kt` (新建, 14 tests), `di/CompositionModule.kt` |
 | D6-B2 | `HaloGuidanceLayer` 視覺回饋層 | 🔲 TODO | TBD |
 
-> ⏳ **D6 Batch 1 進行中。B1-T1 ✅ DONE — 領域層資料流已重塑，Landmark 管道鋪設完成。B1-T2/T3 EyeLine/Gaze Rules 待實作。**
+> 🏁 **D6 Batch 1 完成。B1-T1/T2/T3 全數 ✅ DONE — EyeLineRule (left→right 向量修正) + GazeRule 已實作並通過 27 個測試。161t/0failed/48skipped。B2 HaloGuidanceLayer 為下一目標。**
 
 ---
 
