@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-13 by D5-B2 ✅ — AnalyzeCompositionUseCase 接線 PriorityEngine；constructor injection；5 D5 contract tests 全通過；Batch 2 Path A
-**Current Day**: D5 ✅ CLOSED (Batch 1 + Batch 2 全數完成) → D6 KAIROS #2 準備
+**Last Updated**: 2026-04-13 by D6-B1-T1 ✅ — 領域層資料流重塑；FaceLandmarkData DTO 新建；CompositionRule 介面升級；ViewModel 映射層 + D6_PROBE 探針；全測試回歸通過
+**Current Day**: D6 進行中 (B1-T1 ✅ DONE → B1 後續 Ticket 待排)
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -153,6 +153,19 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D5-B2-T3 | `AnalyzeCompositionUseCase` 接線 `PriorityEngine`，constructor injection；`ruleScoresMap: Map<CompositionRule, RuleScore>` → engine；`isAllAligned = (topInstruction == null)` | ✅ DONE (Path A) | `domain/usecase/AnalyzeCompositionUseCase.kt`, `test/.../AnalyzeCompositionUseCaseTest.kt` |
 
 > 🏁 **D5 動態規則引擎 (多維度優先級大腦) 已達成真・封板。OCP 介面擴充、引擎獨立測試與 UseCase 換腦手術已全面完成。AnalyzeCompositionUseCase 現以 SSOT §4.1 公式選出 topInstruction；isAllAligned = (topInstruction == null) 對齊 D4 UI 聯動契約。DTO 實體隔離 + Fail-Safe 契約已歸入防禦聖典。Cueshot 已具備思考能力，準備迎接 D6/D7 的視覺與聽覺牽引！**
+
+---
+
+## 📋 D6 Tickets — EyeLineRule + GazeRule + HaloGuidanceLayer (進行中)
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D6-B1-T1 | `FaceLandmarkData` DTO 新建；`CompositionRule.evaluate()` 介面升級 `List<RectF>` → `List<FaceLandmarkData>`；ThirdsRule/HeadroomRule 機械性修復；ViewModel 映射層 + D6_PROBE 探針；全測試回歸 | ✅ DONE (Path A) | `domain/model/FaceLandmarkData.kt` (新建), `domain/composition/CompositionRule.kt`, `rules/ThirdsRule.kt`, `rules/HeadroomRule.kt`, `domain/usecase/AnalyzeCompositionUseCase.kt`, `presentation/camera/CameraViewModel.kt`, `test/.../ThirdsRuleTest.kt`, `test/.../HeadroomRuleTest.kt`, `test/.../AnalyzeCompositionUseCaseTest.kt` |
+| D6-B1-T2 | `EyeLineRule` 實作（基於 `leftEyeNormalized`/`rightEyeNormalized`） | 🔲 TODO | TBD |
+| D6-B1-T3 | `GazeRule` 實作（基於 `headEulerAngleY`） | 🔲 TODO | TBD |
+| D6-B2 | `HaloGuidanceLayer` 視覺回饋層 | 🔲 TODO | TBD |
+
+> ⏳ **D6 Batch 1 進行中。B1-T1 ✅ DONE — 領域層資料流已重塑，Landmark 管道鋪設完成。B1-T2/T3 EyeLine/Gaze Rules 待實作。**
 
 ---
 
