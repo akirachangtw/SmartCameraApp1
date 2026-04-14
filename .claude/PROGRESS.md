@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-14 by D6-B1-T1.6 ✅ — GazeRule 極端角度 Fail-safe 熱修復 (abs(eulerY)>45° → isAligned=true)；GazeRuleTest +2 新增 fail-safe 測試；LandmarkProbeTest 斷言修正；QA: 228t/0failed/96skipped
-**Current Day**: D6 進行中 (B1-T1/T2/T3/T1.5 ✅ DONE, B1-T1.6 ✅ DONE → B2 HaloGuidanceLayer 待排)
+**Last Updated**: 2026-04-14 by D6-B2-T1 ✅ — CoordinateTransformer 座標橋樑實作；NormalizedPoint/PixelPoint/NormalizedRect/PixelRect data class（零 Android SDK 依賴）；16 unit tests / 0 failed；QA: 179t/0failed/48skipped
+**Current Day**: D6 進行中 (B1 全數 ✅ DONE, B2-T1 ✅ DONE → B2-T2/T3 HaloGuidanceLayer 待排)
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -14,7 +14,7 @@
 |--------|--------|---------|--------|
 | On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
 | Compile | 0 errors | 0 errors (EmulatorDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; EyeLineRule: 13pass; GazeRule: 16pass (+2 fail-safe); Total: 228t/96skipped/132pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass; LandmarkProbeTest 3tests/3pass | 🟢 |
+| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; EyeLineRule: 13pass; GazeRule: 16pass; CoordinateTransformer: 16pass (+16 NEW); Total: 179t/48skipped/131pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass; LandmarkProbeTest 3tests/3pass | 🟢 |
 | Lint New Errors | 0 new | 0 new (486 LogNotTimber 為全域既有基準；本次零新增) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
@@ -165,7 +165,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D6-B1-T3 | `GazeRule` 實作（基於 `headEulerAngleY`） | ✅ DONE (Path A) | `domain/composition/rules/GazeRule.kt` (新建), `test/.../GazeRuleTest.kt` (新建, 14 tests), `di/CompositionModule.kt` |
 | D6-B1-T1.5 | `LandmarkProbeTest` 實體探針：ML Kit LANDMARK_MODE_ALL；3 張測試圖；bounding box coerceIn [0,1]；D6_PROBE 數據 (front=97.76, side=7.42, extreme=0.0)；3 instrumented tests 全數通過 (Pixel_5 AVD) | ✅ DONE (Path A) | `androidTest/.../composition/LandmarkProbeTest.kt` (新建) |
 | D6-B1-T1.6 | GazeRule 極端角度 Fail-safe 熱修復：`abs(eulerY) > EXTREME_YAW_DEG(45f)` → early-return `score=100f, isAligned=true`（Priority Inversion 防禦）；GazeRuleTest +2 fail-safe 測試；LandmarkProbeTest 斷言修正 | ✅ DONE (Path A) | `domain/composition/rules/GazeRule.kt`, `test/.../GazeRuleTest.kt`, `androidTest/.../LandmarkProbeTest.kt` |
-| D6-B2 | `HaloGuidanceLayer` 視覺回饋層 | 🔲 TODO | TBD |
+| D6-B2-T1 | `CoordinateTransformer` 座標橋樑：NormalizedPoint/PixelPoint/NormalizedRect/PixelRect data class；零 Android SDK 依賴；transformX/Y/Point/Rect 純數學實作；16 unit tests 全通過 | ✅ DONE (Path A) | `presentation/utils/CoordinateTransformer.kt` (新建), `test/.../CoordinateTransformerTest.kt` (新建) |
+| D6-B2-T2 | `HaloGuidanceLayer.kt` 視覺回饋層（Compose Canvas Halo 繪製） | 🔲 TODO | TBD |
+| D6-B2-T3 | `HaloGuidanceLayerTest` androidTest（三路徑：琥珀金/綠色/null） | 🔲 TODO | TBD |
 
 > 🏁 **D6 Batch 1 完成。B1-T1/T2/T3/T1.5/T1.6 全數 ✅ DONE — EyeLineRule + GazeRule (Fail-safe 熱修復) + LandmarkProbeTest 實體探針。228t/0failed/96skipped (unit) + 3 instrumented pass。B2 HaloGuidanceLayer 為下一目標。**
 
