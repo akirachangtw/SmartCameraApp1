@@ -109,6 +109,7 @@ import com.akirachang.ai.photographer.presentation.camera.components.overlay.FPS
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.GridOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.HDRWarningOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.LevelIndicator
+import com.akirachang.ai.photographer.presentation.camera.components.HaloGuidanceLayer
 import com.akirachang.ai.photographer.presentation.camera.overlay.EdgeWarmthLayer
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
@@ -324,12 +325,22 @@ fun CameraScreen(
 
                     // D4-T1/T2: Edge Warmth ambient UI — directional gradient + floating dots.
                     // D4-T2: isAligned switches to 4-edge uniform green breathing (SSOT §2.5).
-                    // Z-order: above GridOverlay, below CompositionGuideOverlay.
+                    // Z-order: above GridOverlay, below HaloGuidanceLayer.
                     EdgeWarmthLayer(
                         modifier = Modifier.fillMaxSize(),
                         deviceRoll = state.deviceRoll,
                         capabilityTier = viewModel.deviceCapabilityTier,
                         isAligned = isAligned,
+                    )
+
+                    // D6-B2-T2: Halo guidance layer — face-tracking Halo + EyeLine guide.
+                    // isAllAligned==true → hidden (state-mutex with EdgeWarmthLayer breathing + ShutterRing).
+                    // compositionResult==null → hidden (Constitution §6 default-value trap defense).
+                    // Z-order: above EdgeWarmthLayer, below CompositionGuideOverlay.
+                    HaloGuidanceLayer(
+                        faces = state.detectedFaces,
+                        compositionResult = state.compositionResult,
+                        modifier = Modifier.fillMaxSize(),
                     )
 
                     // v2.4.0: Visual composition guide frame

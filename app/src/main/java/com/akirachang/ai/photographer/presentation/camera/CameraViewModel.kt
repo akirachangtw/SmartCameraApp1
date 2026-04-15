@@ -1942,7 +1942,7 @@ class CameraViewModel @Inject constructor(
                 val roll = orientation?.roll ?: 0f
 
                 val result = analyzeCompositionUseCase(landmarkFaces, pitch, roll)
-                _state.update { it.copy(compositionResult = result) }
+                _state.update { it.copy(compositionResult = result, detectedFaces = landmarkFaces) }
                 Log.d(TAG, "[D2] CompositionResult: isAllAligned=${result.isAllAligned} topRule=${result.topInstruction?.name}")
             }
             .catch { e -> Log.e(TAG, "[D2] observeCompositionAdvice error", e) }

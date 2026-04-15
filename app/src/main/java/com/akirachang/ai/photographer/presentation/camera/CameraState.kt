@@ -9,6 +9,7 @@ import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.presentation.camera.model.HDRMode
 import com.akirachang.ai.photographer.domain.model.focus.FocusUiState
 import com.akirachang.ai.photographer.domain.model.CompositionResult
+import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 
 /**
  * Camera UI State
@@ -54,6 +55,9 @@ data class CameraState(
     val focusUiState: FocusUiState = FocusUiState.EMPTY,
     // Cueshot D2: Aggregated composition rule engine output. Null until first detection frame.
     val compositionResult: CompositionResult? = null,
+    // Cueshot D6-B2-T2: Normalized face landmark data for HaloGuidanceLayer rendering.
+    // Updated in lockstep with compositionResult. Empty until first detection frame.
+    val detectedFaces: List<FaceLandmarkData> = emptyList(),
     // Cueshot D3: Device roll angle in degrees for rule engine consumption (normalized from OrientationSensorManager).
     val deviceRoll: Float = 0f,
     // Cueshot D1: High-level PTF state for Rule Engine and coaching UI coordination.
