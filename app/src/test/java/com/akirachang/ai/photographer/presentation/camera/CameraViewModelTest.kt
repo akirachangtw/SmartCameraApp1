@@ -1,17 +1,17 @@
 package com.akirachang.ai.photographer.presentation.camera
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * D3-T4 Negative tests: boundary defence for focal length computation and device roll state.
+ * D3-T4 + D7-B2-T2 Negative tests:
+ *   - Boundary defence for focal length computation and device roll state (D3-T4, KAIROS Rule 10).
+ *   - Rule 16 PTF shutter cooldown validation (D7-B2-T2, KAIROS Rule 16).
  *
- * KAIROS Rule 10 mandate: boundary conditions must be explicitly verified to prevent NaN crashes,
- * out-of-bounds values, or state contamination in the IMU compensation pipeline.
- *
- * Scope: CameraViewModel.computeFocalLengthPixels() (companion object — no DI required)
- *        CameraState.deviceRoll (pure data class — no DI required)
+ * Scope: CameraViewModel companion object pure functions — no DI required.
+ *        CameraState pure data class — no DI required.
  */
 class CameraViewModelTest {
 
@@ -110,5 +110,84 @@ class CameraViewModelTest {
         val updated = original.copy(deviceRoll = 90f)
         assertEquals(90f, updated.deviceRoll, 0f)
         assertTrue("isCapturing must be preserved", updated.isCapturing)
+    }
+
+    // -----------------------------------------------------------------------------------------
+    // Rule 16 — PTF shutter cooldown (D7-B2-T2)
+    // Validates CameraViewModel.isPtfCooldownActive() pure function.
+    // Three-step contract: sentinel allows first shot → mid-window blocks → post-window allows.
+    // -----------------------------------------------------------------------------------------
+
+    @Test
+    fun `isPtfCooldownActive returns false for sentinel initial value (first capture must pass)`() {
+        // Rule 16 sentinel contract: initial lastCaptureTimeMs = Long.MIN_VALUE / 2.
+        // Any realistic "now" value minus the sentinel must be >> 1000ms, so cooldown is NOT active.
+        val sentinel = Long.MIN_VALUE / 2
+        val now = System.currentTimeMillis()
+        val result = CameraViewModel.isPtfCooldownActive(
+            now = now,
+            lastCaptureTimeMs = sentinel
+        )
+        assertFalse(
+            "First capture after PTF entry must not be blocked — sentinel $sentinel, now $now",
+            result
+        )
+    }
+
+    @Test
+    fun `isPtfCooldownActive_inPtfMode_enforces1000msCooldown`() {
+        // Simulates the three-step Rule 16 cooldown sequence using a virtual clock.
+        // Step 1: First capture at t=0 — must pass (sentinel allows it).
+        // Step 2: Second capture at t=500ms — must be blocked (cooldown not elapsed).
+        // Step 3: Third capture at t=1001ms — must pass (cooldown elapsed).
+
+        val sentinel = Long.MIN_VALUE / 2
+        val t0 = 1_000_000L  // Arbitrary epoch base; avoids sentinel-proximity edge case.
+
+        // Step 1 — first shot uses sentinel, always passes.
+        val firstBlocked = CameraViewModel.isPtfCooldownActive(
+            now = t0,
+            lastCaptureTimeMs = sentinel
+        )
+        assertFalse("Step 1: first capture must not be blocked by sentinel", firstBlocked)
+
+        // Record capture time (mirrors ViewModel: lastCaptureTimeMs = now).
+        val lastCapture = t0
+
+        // Step 2 — 500ms later, cooldown (1000ms) has NOT elapsed → must be blocked.
+        val midWindowBlocked = CameraViewModel.isPtfCooldownActive(
+            now = t0 + 500L,
+            lastCaptureTimeMs = lastCapture
+        )
+        assertTrue("Step 2: capture at 500ms must be blocked (cooldown = 1000ms)", midWindowBlocked)
+
+        // Step 3 — 1001ms later, cooldown has elapsed → must pass.
+        val postWindowBlocked = CameraViewModel.isPtfCooldownActive(
+            now = t0 + 1001L,
+            lastCaptureTimeMs = lastCapture
+        )
+        assertFalse("Step 3: capture at 1001ms must not be blocked", postWindowBlocked)
+    }
+
+    @Test
+    fun `isPtfCooldownActive returns false exactly at cooldown boundary (1000ms elapsed)`() {
+        // Boundary: exactly 1000ms elapsed → now - last = 1000, which is NOT < 1000 → not active.
+        val lastCapture = 5_000_000L
+        val result = CameraViewModel.isPtfCooldownActive(
+            now = lastCapture + 1000L,
+            lastCaptureTimeMs = lastCapture
+        )
+        assertFalse("Capture exactly at 1000ms boundary must not be blocked", result)
+    }
+
+    @Test
+    fun `isPtfCooldownActive returns true one millisecond before boundary`() {
+        // One millisecond before: now - last = 999 < 1000 → cooldown still active.
+        val lastCapture = 5_000_000L
+        val result = CameraViewModel.isPtfCooldownActive(
+            now = lastCapture + 999L,
+            lastCaptureTimeMs = lastCapture
+        )
+        assertTrue("Capture at 999ms must still be blocked", result)
     }
 }

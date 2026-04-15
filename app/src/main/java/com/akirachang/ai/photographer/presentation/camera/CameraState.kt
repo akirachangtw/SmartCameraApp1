@@ -99,6 +99,8 @@ sealed class CameraUiEvent {
     object ToggleHDR : CameraUiEvent()  // v2.6.1: Toggle HDR mode (AUTO → ON → OFF → AUTO)
     // Cueshot D7-B2-FIX: Set camera mode explicitly (replaces TogglePassToFriendMode).
     data class SetCameraMode(val mode: CameraMode) : CameraUiEvent()
+    // Cueshot D7-B2-T3: User tapped "Got it" on PTF onboarding hint — persist dismissal.
+    object DismissPtfOnboarding : CameraUiEvent()
     // v2.11.0 Phase 2: ToggleAspectRatio removed - aspect ratio now managed in Settings
     object StartAnalysis : CameraUiEvent()
     object StopAnalysis : CameraUiEvent()

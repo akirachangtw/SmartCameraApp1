@@ -37,6 +37,7 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import kotlin.math.min
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
+import com.akirachang.ai.photographer.data.preferences.PtfPreferences
 import com.akirachang.ai.photographer.domain.camera.CameraMode
 import com.akirachang.ai.photographer.domain.camera.ImuCompensator
 import com.akirachang.ai.photographer.domain.model.DeviceCapabilityTier
@@ -65,6 +66,7 @@ class CameraViewModel @Inject constructor(
     private val deviceSensorManager: DeviceSensorManager,
     private val orientationSensorManager: OrientationSensorManager,
     private val overlayPreferences: OverlayPreferences,
+    private val ptfPreferences: PtfPreferences,
     private val capabilityDetector: com.akirachang.ai.photographer.data.source.camera.CameraCapabilityDetector,
     private val imuCompensator: ImuCompensator,
     val deviceCapabilityTier: DeviceCapabilityTier
@@ -117,6 +119,24 @@ class CameraViewModel @Inject constructor(
             return if (factor != null && previewWidth > 0) factor * previewWidth
             else previewWidth / 2f
         }
+
+        /**
+         * Rule 16 cooldown predicate — pure function, testable without ViewModel dependencies.
+         *
+         * Contract (D7-B2-T2):
+         *   - Returns true  → shutter is still cooling down; caller must abort.
+         *   - Returns false → cooldown has elapsed; caller may proceed and update [lastCaptureTimeMs].
+         *   - Sentinel initial value [Long.MIN_VALUE] / 2 ensures the FIRST call always returns false.
+         *
+         * @param now              current epoch-ms from the caller's time provider
+         * @param lastCaptureTimeMs epoch-ms of the last accepted capture (sentinel = Long.MIN_VALUE / 2)
+         * @param cooldownMs       required gap between captures (default 1000 ms per Rule 16)
+         */
+        internal fun isPtfCooldownActive(
+            now: Long,
+            lastCaptureTimeMs: Long,
+            cooldownMs: Long = 1000L
+        ): Boolean = now - lastCaptureTimeMs < cooldownMs
     }
 
     private data class TapToFocusIntent(
@@ -165,6 +185,9 @@ class CameraViewModel @Inject constructor(
     val isLevelIndicatorEnabled: Flow<Boolean> = overlayPreferences.isLevelIndicatorEnabled
     val isDirectionalIndicatorEnabled: Flow<Boolean> = overlayPreferences.isDirectionalIndicatorEnabled
     val isAutoHDREnabled: Flow<Boolean> = overlayPreferences.isAutoHDREnabled  // v2.3.0
+
+    // Cueshot D7-B2-T3: PTF onboarding flag — false until user taps "Got it".
+    val isPtfOnboarded: Flow<Boolean> = ptfPreferences.isPtfOnboarded
 
     // Guideline analysis results (v2.7.0 Phase 2 Sprint 4)
     private val _guidelineResults = MutableStateFlow<GuidelineAnalysisResult?>(null)
@@ -257,6 +280,10 @@ class CameraViewModel @Inject constructor(
     // Initial value = Long.MIN_VALUE / 2 (not 0L) so that the FIRST capture after PTF mode entry
     // always passes the cooldown check regardless of System.currentTimeMillis() value.
     private var lastCaptureTimeMs: Long = Long.MIN_VALUE / 2
+
+    // D7-B2-T2 — Testable time provider for Rule 16 cooldown.
+    // Production: System.currentTimeMillis(). Tests: inject a controllable clock.
+    internal var timeProvider: () -> Long = { System.currentTimeMillis() }
 
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
@@ -484,6 +511,7 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.ShowPhotoInfo -> showPhotoInfo(event.uri)  // v2.11.0 Phase 3
             is CameraUiEvent.DismissPhotoInfo -> dismissPhotoInfo()  // v2.11.0 Phase 3
             is CameraUiEvent.SetCameraMode -> setCameraMode(event.mode)  // D7-B2-FIX
+            is CameraUiEvent.DismissPtfOnboarding -> dismissPtfOnboarding()  // D7-B2-T3
         }
     }
 
@@ -499,6 +527,19 @@ class CameraViewModel @Inject constructor(
         _state.update { current ->
             Log.i(TAG, "[CameraMode] ${current.cameraMode} → $mode")
             current.copy(cameraMode = mode)
+        }
+    }
+
+    /**
+     * Permanently dismisses the PTF onboarding hint — Cueshot D7-B2-T3.
+     *
+     * Persists [ptf_onboarded] = true via [PtfPreferences]. Subsequent PTF sessions will
+     * not show the hint. No CameraState mutation needed — UI observes [isPtfOnboarded] Flow.
+     */
+    private fun dismissPtfOnboarding() {
+        viewModelScope.launch {
+            ptfPreferences.markPtfOnboarded()
+            Log.i(TAG, "[PTF-Onboarding] Dismissed — will not show again")
         }
     }
 
@@ -587,8 +628,8 @@ class CameraViewModel @Inject constructor(
         // D7-B2-FIX Rule 16 — PTF shutter cooldown guard (1 second).
         // Guard fires ONLY when CameraMode is PassToFriend. Normal mode has no cooldown.
         if (_state.value.cameraMode is CameraMode.PassToFriend) {
-            val now = System.currentTimeMillis()
-            if (now - lastCaptureTimeMs < 1000L) {
+            val now = timeProvider()
+            if (isPtfCooldownActive(now, lastCaptureTimeMs)) {
                 Log.d(TAG, "[PTF-Cooldown] Shutter blocked — ${now - lastCaptureTimeMs}ms since last capture")
                 return
             }

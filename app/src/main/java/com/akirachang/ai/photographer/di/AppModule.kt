@@ -21,6 +21,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
+import com.akirachang.ai.photographer.data.preferences.PtfPreferences
 import com.akirachang.ai.photographer.data.repository.CameraRepositoryImpl
 import com.akirachang.ai.photographer.data.sensor.DeviceSensorManagerImpl
 import com.akirachang.ai.photographer.domain.camera.ImuCompensator
@@ -128,6 +129,19 @@ abstract class AppModule {
             @ApplicationContext context: Context
         ): OverlayPreferences {
             return OverlayPreferences(context)
+        }
+
+        /**
+         * Provides PtfPreferences singleton — Cueshot D7-B2-T3.
+         *
+         * Manages PTF onboarding flag (ptf_onboarded) via DataStore.
+         */
+        @Provides
+        @Singleton
+        fun providePtfPreferences(
+            @ApplicationContext context: Context
+        ): PtfPreferences {
+            return PtfPreferences(context)
         }
 
         /**

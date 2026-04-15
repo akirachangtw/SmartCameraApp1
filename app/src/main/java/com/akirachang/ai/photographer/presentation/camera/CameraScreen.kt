@@ -40,7 +40,9 @@ import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.BrightnessHigh
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -114,6 +116,7 @@ import com.akirachang.ai.photographer.presentation.camera.components.HaloGuidanc
 import com.akirachang.ai.photographer.presentation.camera.overlay.EdgeWarmthLayer
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
+import com.akirachang.ai.photographer.R
 import com.akirachang.ai.photographer.domain.camera.CameraMode
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import com.akirachang.ai.photographer.BuildConfig
@@ -152,6 +155,9 @@ fun CameraScreen(
     val isDetectionOverlayEnabled by viewModel.isDetectionOverlayEnabled.collectAsState(initial = true)
     val isLevelIndicatorEnabled by viewModel.isLevelIndicatorEnabled.collectAsState(initial = true)
     val isDirectionalIndicatorEnabled by viewModel.isDirectionalIndicatorEnabled.collectAsState(initial = true)
+    // D7-B2-T3: PTF onboarding flag — false on first launch; true after user taps "Got it".
+    // Rule 14: collectAsState at composable top before any conditional logic.
+    val isPtfOnboarded by viewModel.isPtfOnboarded.collectAsState(initial = true)
 
     val snackbarHostState = remember { SnackbarHostState() }
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
@@ -499,6 +505,73 @@ fun CameraScreen(
                     }
                 }
 
+                // D7-B2-T1: PTF exit button — top-right, visible only in PassToFriend mode.
+                // Tapping exits to Normal mode without CameraX rebind.
+                if (isPtfActive) {
+                    IconButton(
+                        onClick = {
+                            viewModel.onEvent(CameraUiEvent.SetCameraMode(CameraMode.Normal))
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 8.dp, end = 8.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.ptf_exit_cd),
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
+                }
+
+                // D7-B2-T3: PTF first-time onboarding hint — shown once per install.
+                // Condition: PTF mode active AND user has not dismissed the hint yet.
+                // AnimatedVisibility provides smooth enter/exit transitions.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isPtfActive && !isPtfOnboarded,
+                    enter = androidx.compose.animation.fadeIn() +
+                            androidx.compose.animation.slideInVertically(initialOffsetY = { it }),
+                    exit = androidx.compose.animation.fadeOut() +
+                           androidx.compose.animation.slideOutVertically(targetOffsetY = { it }),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 160.dp),
+                ) {
+                    androidx.compose.foundation.layout.Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .background(
+                                color = Color.Black.copy(alpha = 0.72f),
+                                shape = MaterialTheme.shapes.medium,
+                            )
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.ptf_onboarding_message),
+                            color = Color.White,
+                            fontSize = 14.sp,
+                        )
+                        androidx.compose.foundation.layout.Spacer(
+                            modifier = Modifier.size(10.dp)
+                        )
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                viewModel.onEvent(CameraUiEvent.DismissPtfOnboarding)
+                            }
+                        ) {
+                            Text(
+                                text = stringResource(R.string.ptf_onboarding_got_it),
+                                color = Color(0xFF50C864),  // Cueshot green — SSOT §2.5
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                            )
+                        }
+                    }
+                }
+
                 // 底部控制欄
                 Row(
                     modifier = Modifier
@@ -521,9 +594,11 @@ fun CameraScreen(
                     }
 
                     // 拍照按鈕 (SV-D4-T4-FIX-01: extracted to ShutterButtonSection for UI testability)
+                    // D7-B2-T1: cameraMode drives 72→80dp animated enlargement in PTF mode.
                     ShutterButtonSection(
                         isAligned = isAligned,
                         isCapturing = state.isCapturing,
+                        cameraMode = state.cameraMode,
                         onCapture = { viewModel.onEvent(CameraUiEvent.CapturePhoto) },
                     )
 
@@ -572,21 +647,36 @@ fun CameraScreen(
  * Contains:
  * - Green breathing outer ring ([TAG_SHUTTER_BREATHING_RING]) — visible only when
  *   [isAligned] AND NOT [isCapturing] (FIX-01 mutex, FIX-02 lifecycle scope).
- * - FAB shutter button.
+ * - FAB shutter button — animates from 72dp (Normal) to 80dp (PassToFriend) on mode switch.
  * - Circular progress indicator ([TAG_SHUTTER_PROGRESS_CIRCLE]) — visible only when [isCapturing].
  *
- * @param isAligned   True when compositionResult.isAllAligned == true.
- * @param isCapturing True while photo capture is in-flight.
- * @param onCapture   Invoked on FAB click when not capturing.
- * @param modifier    Modifier passed to the root [Box].
+ * @param isAligned    True when compositionResult.isAllAligned == true.
+ * @param isCapturing  True while photo capture is in-flight.
+ * @param cameraMode   Current [CameraMode] — drives shutter size animation.
+ * @param onCapture    Invoked on FAB click when not capturing.
+ * @param modifier     Modifier passed to the root [Box].
  */
 @Composable
 internal fun ShutterButtonSection(
     isAligned: Boolean,
     isCapturing: Boolean,
+    cameraMode: CameraMode,
     onCapture: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Rule 14: all animateXxx / remember calls must be at composable top — before any if/when.
+    val isPtfActive = cameraMode is CameraMode.PassToFriend
+    val shutterSize by animateDpAsState(
+        targetValue = if (isPtfActive) 80.dp else 72.dp,
+        animationSpec = tween(durationMillis = 300),
+        label = "shutter_size",
+    )
+    val ringBaseSize by animateDpAsState(
+        targetValue = if (isPtfActive) 94.dp else 84.dp,
+        animationSpec = tween(durationMillis = 300),
+        label = "ring_base_size",
+    )
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier,
@@ -635,7 +725,7 @@ internal fun ShutterButtonSection(
                 }
             },
             modifier = Modifier
-                .size(72.dp)
+                .size(shutterSize)
                 .border(4.dp, Color.White, CircleShape)
                 .alpha(if (isCapturing) 0.5f else 1.0f),
             shape = CircleShape,
@@ -657,7 +747,7 @@ internal fun ShutterButtonSection(
         if (isCapturing) {
             CircularProgressIndicator(
                 modifier = Modifier
-                    .size(84.dp)
+                    .size(ringBaseSize)
                     .testTag(TAG_SHUTTER_PROGRESS_CIRCLE),
                 color = Color.White,
                 strokeWidth = 3.dp

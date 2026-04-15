@@ -6,4 +6,11 @@
     <string name="tab_pass_to_friend">遞手機</string>
     <string name="tab_normal_mode_cd">Normal shooting mode</string>
     <string name="tab_pass_to_friend_cd">Pass to friend mode</string>
+
+    <!-- Cueshot D7-B2-T1: PTF exit button -->
+    <string name="ptf_exit_cd">Exit Pass-To-Friend mode</string>
+
+    <!-- Cueshot D7-B2-T3: PTF onboarding hint -->
+    <string name="ptf_onboarding_message">將手機交給朋友，AI 會為你找尋最佳構圖</string>
+    <string name="ptf_onboarding_got_it">了解</string>
 </resources>
