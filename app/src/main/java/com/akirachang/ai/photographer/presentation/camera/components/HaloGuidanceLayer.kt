@@ -16,6 +16,8 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
+import com.akirachang.ai.photographer.domain.composition.rules.EyeLineRule
+import com.akirachang.ai.photographer.domain.composition.rules.GazeRule
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import com.akirachang.ai.photographer.presentation.utils.NormalizedPoint
@@ -132,8 +134,8 @@ fun HaloGuidanceLayer(
     val activeFaces = throttledFaces
 
     // ── Derive rule alignment flags ──────────────────────────────────────────
-    val gazeNotAligned = activeResult.ruleScores["gaze"]?.isAligned == false
-    val eyeLineNotAligned = activeResult.ruleScores["eye_line"]?.isAligned == false
+    val gazeNotAligned = activeResult.ruleScores[GazeRule.NAME]?.isAligned == false
+    val eyeLineNotAligned = activeResult.ruleScores[EyeLineRule.NAME]?.isAligned == false
 
     // Nothing to draw if both rules are aligned or absent.
     if (!gazeNotAligned && !eyeLineNotAligned) return

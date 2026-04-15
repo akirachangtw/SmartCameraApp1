@@ -1927,12 +1927,6 @@ class CameraViewModel @Inject constructor(
                         ?.position
                         ?.let { pt -> android.graphics.PointF(pt.x / imgW, pt.y / imgH) }
 
-                    if (idx == 0) {
-                        Log.d("D6_PROBE", "face[0] box=$boundingBoxNormalized " +
-                            "leftEye=$leftEyeNormalized rightEye=$rightEyeNormalized " +
-                            "eulerY=${face.headEulerAngleY}")
-                    }
-
                     com.akirachang.ai.photographer.domain.model.FaceLandmarkData(
                         boundingBoxNormalized = boundingBoxNormalized,
                         leftEyeNormalized = leftEyeNormalized,

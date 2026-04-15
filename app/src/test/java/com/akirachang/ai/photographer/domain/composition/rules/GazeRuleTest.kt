@@ -117,8 +117,8 @@ class GazeRuleTest {
 
     @Test
     fun `yaw 90 degrees triggers fail-safe and is aligned`() {
-        // abs(90°) > EXTREME_YAW_DEG(45°): subject intentionally side-on.
-        // Rule returns isAligned=true so PriorityEngine skips it.
+        // abs(90°) > EXTREME_YAW_INVERSION_DEG(45°): subject intentionally side-on.
+        // Rule returns isAligned=true so PriorityEngine skips it (Priority Inversion defence).
         val result = rule.evaluate(listOf(landmark(eulerY = 90f)), 0f, 0f)
         assertEquals(100f, result.score, 0.001f)
         assertTrue(result.isAligned)
@@ -138,7 +138,7 @@ class GazeRuleTest {
 
     @Test
     fun `score is always within 0 to 100`() {
-        // 180° > EXTREME_YAW_DEG(45°): fail-safe returns score=100f (still within bounds)
+        // 180° > EXTREME_YAW_INVERSION_DEG(45°): fail-safe returns score=100f (still within bounds)
         val result = rule.evaluate(listOf(landmark(eulerY = 180f)), 0f, 0f)
         assertTrue(result.score >= 0f)
         assertTrue(result.score <= 100f)

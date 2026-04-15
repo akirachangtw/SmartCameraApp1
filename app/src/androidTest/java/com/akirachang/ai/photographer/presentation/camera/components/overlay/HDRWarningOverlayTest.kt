@@ -23,6 +23,9 @@
  */
 package com.akirachang.ai.photographer.presentation.camera.components.overlay
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
@@ -192,8 +195,8 @@ class HDRWarningOverlayTest {
 
     @Test
     fun stateTransition_fromNormalToBacklight_shouldAnimateIn() {
-        // Arrange: Start with Normal state
-        var lightingState: LightingState = LightingState.Normal
+        // Arrange: mutableStateOf drives recomposition (Rule 14 — Compose Slot-Table)
+        var lightingState by mutableStateOf<LightingState>(LightingState.Normal)
 
         composeTestRule.setContent {
             HDRWarningOverlay(lightingState = lightingState)
@@ -202,11 +205,8 @@ class HDRWarningOverlayTest {
         // Assert: No warning initially
         composeTestRule.onNodeWithText("逆光場景", substring = true).assertDoesNotExist()
 
-        // Act: Change to Backlight state
+        // Act: Change state — triggers recomposition, not a new composition
         lightingState = LightingState.Backlight(76f, 178f, 102f)
-        composeTestRule.setContent {
-            HDRWarningOverlay(lightingState = lightingState)
-        }
 
         // Assert: Warning should appear (animation tested implicitly)
         composeTestRule.waitForIdle()
@@ -217,8 +217,8 @@ class HDRWarningOverlayTest {
 
     @Test
     fun stateTransition_fromBacklightToNormal_shouldAnimateOut() {
-        // Arrange: Start with Backlight state
-        var lightingState: LightingState = LightingState.Backlight(76f, 178f, 102f)
+        // Arrange: mutableStateOf drives recomposition (Rule 14 — Compose Slot-Table)
+        var lightingState by mutableStateOf<LightingState>(LightingState.Backlight(76f, 178f, 102f))
 
         composeTestRule.setContent {
             HDRWarningOverlay(lightingState = lightingState)
@@ -227,11 +227,8 @@ class HDRWarningOverlayTest {
         // Assert: Warning visible initially
         composeTestRule.onNodeWithText("逆光場景", substring = true).assertExists()
 
-        // Act: Change to Normal state
+        // Act: Change state — triggers recomposition, not a new composition
         lightingState = LightingState.Normal
-        composeTestRule.setContent {
-            HDRWarningOverlay(lightingState = lightingState)
-        }
 
         // Assert: Warning should disappear (animation tested implicitly)
         composeTestRule.waitForIdle()
@@ -240,8 +237,8 @@ class HDRWarningOverlayTest {
 
     @Test
     fun stateTransition_betweenWarningStates_shouldUpdateMessage() {
-        // Arrange: Start with Backlight
-        var lightingState: LightingState = LightingState.Backlight(76f, 178f, 102f)
+        // Arrange: mutableStateOf drives recomposition (Rule 14 — Compose Slot-Table)
+        var lightingState by mutableStateOf<LightingState>(LightingState.Backlight(76f, 178f, 102f))
 
         composeTestRule.setContent {
             HDRWarningOverlay(lightingState = lightingState)
@@ -250,11 +247,8 @@ class HDRWarningOverlayTest {
         // Assert: Backlight message visible
         composeTestRule.onNodeWithText("逆光場景", substring = true).assertExists()
 
-        // Act: Change to Overexposed
+        // Act: Change state — triggers recomposition, not a new composition
         lightingState = LightingState.Overexposed(0.18f, 200f)
-        composeTestRule.setContent {
-            HDRWarningOverlay(lightingState = lightingState)
-        }
 
         // Assert: Overexposed message visible, Backlight message gone
         composeTestRule.waitForIdle()

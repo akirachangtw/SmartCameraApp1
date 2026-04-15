@@ -54,6 +54,7 @@ class EdgeWarmthLayerTest {
                 isAligned = false,
             )
         }
+        composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithTag(TAG_EDGE_WARMTH_AMBER)
             .assertExists("FULL tier amber warmth Canvas must be in composition when isAligned=false")
@@ -87,6 +88,7 @@ class EdgeWarmthLayerTest {
                 isAligned = false,
             )
         }
+        composeTestRule.waitForIdle()
 
         // Amber layer IS present — LEGACY still shows the base gradient for visual continuity
         composeTestRule.onNodeWithTag(TAG_EDGE_WARMTH_AMBER)
@@ -110,6 +112,7 @@ class EdgeWarmthLayerTest {
                 isAligned = true,
             )
         }
+        composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithTag(TAG_EDGE_WARMTH_ALIGNED)
             .assertExists("Aligned breathing Canvas must be in composition when isAligned=true")
@@ -178,6 +181,7 @@ class EdgeWarmthLayerTest {
                 isAligned = false,
             )
         }
+        composeTestRule.waitForIdle()
         // renderDots=true (FULL) AND direction != null (roll=15f > threshold)
         composeTestRule.onNodeWithTag(TAG_EDGE_WARMTH_DOTS_ENABLED)
             .assertExists("Dots probe must be in composition for FULL tier with active direction")
@@ -201,6 +205,7 @@ class EdgeWarmthLayerTest {
                 isAligned = false,
             )
         }
+        composeTestRule.waitForIdle()
         // renderDots=false (LEGACY) → Box never enters composition
         composeTestRule.onNodeWithTag(TAG_EDGE_WARMTH_DOTS_ENABLED)
             .assertDoesNotExist()
@@ -224,6 +229,7 @@ class EdgeWarmthLayerTest {
                 isAligned = false,
             )
         }
+        composeTestRule.waitForIdle()
         // renderDots=true (FULL) BUT direction=null → condition fails, probe absent
         composeTestRule.onNodeWithTag(TAG_EDGE_WARMTH_DOTS_ENABLED)
             .assertDoesNotExist()

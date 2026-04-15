@@ -75,6 +75,9 @@ class EyeLineRule @Inject constructor() : CompositionRule {
     }
 
     companion object {
+        /** Rule key — referenced by HaloGuidanceLayer. */
+        const val NAME = "eye_line"
+
         /** Tilt angle (degrees) at which score reaches 0. */
         private const val MAX_TILT_DEG = 15f
 

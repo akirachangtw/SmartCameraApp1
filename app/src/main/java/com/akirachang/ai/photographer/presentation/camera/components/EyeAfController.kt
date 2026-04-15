@@ -2,6 +2,7 @@ package com.akirachang.ai.photographer.presentation.camera.components
 
 import android.graphics.PointF
 import android.util.Log
+import com.akirachang.ai.photographer.domain.composition.rules.GazeRule
 import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
@@ -50,8 +51,8 @@ class EyeAfController {
         /** Minimum milliseconds between successive AF triggers (motor protection). */
         internal const val GAZE_AF_COOLDOWN_MS = 2_000L
 
-        /** Rule key for gaze alignment — must match GazeRule.NAME. */
-        private const val GAZE_RULE_KEY = "gaze"
+        /** Rule key for gaze alignment — references GazeRule.NAME directly. */
+        private val GAZE_RULE_KEY = GazeRule.NAME
     }
 
     // Sentinel: Long.MIN_VALUE / 2 ensures the first call always passes the throttle gate

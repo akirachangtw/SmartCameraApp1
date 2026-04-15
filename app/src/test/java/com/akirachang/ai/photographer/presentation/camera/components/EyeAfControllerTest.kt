@@ -2,6 +2,7 @@ package com.akirachang.ai.photographer.presentation.camera.components
 
 import android.graphics.PointF
 import android.graphics.RectF
+import com.akirachang.ai.photographer.domain.composition.rules.GazeRule
 import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
@@ -55,13 +56,13 @@ class EyeAfControllerTest {
     )
 
     private fun unalignedGazeResult(): CompositionResult = CompositionResult(
-        ruleScores = mapOf("gaze" to RuleScore(name = "gaze", score = 30f, isAligned = false, weight = 1f)),
+        ruleScores = mapOf(GazeRule.NAME to RuleScore(name = GazeRule.NAME, score = 30f, isAligned = false, weight = 1f)),
         topInstruction = null,
         isAllAligned = false,
     )
 
     private fun alignedGazeResult(): CompositionResult = CompositionResult(
-        ruleScores = mapOf("gaze" to RuleScore(name = "gaze", score = 100f, isAligned = true, weight = 1f)),
+        ruleScores = mapOf(GazeRule.NAME to RuleScore(name = GazeRule.NAME, score = 100f, isAligned = true, weight = 1f)),
         topInstruction = null,
         isAllAligned = true,
     )
