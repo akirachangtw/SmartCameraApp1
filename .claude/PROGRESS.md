@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-15 by D6-B2-T2.1 ✅ — Traycer 修復：LaunchedEffect 提升至頂層（消除 isAllAligned 狀態切換時 100ms 首幀遺失）；TAG_HALO_GREEN KDoc 語意校準；行政檔案剔除（settings.local.json/session_handoff 不入 commit）；Build ✅
-**Current Day**: D6 進行中 (B1 全數 ✅ DONE, B2-T1 ✅ DONE, B2-T2 ✅ DONE → B2-T3 HaloGuidanceLayerTest 待排)
+**Last Updated**: 2026-04-15 by D6-B2-T3 ✅ — HaloGuidanceLayerTest 4 androidTests 全數通過（Pixel_5 AVD）；NULL/ALIGNED/AMBER 三路徑狀態互斥驗證完成；mutableStateOf 狀態轉換測試通過；Build ✅ / UnitTests 179t/0failed/48skipped / Lint 0 new
+**Current Day**: D6 進行中 (B1 全數 ✅ DONE, B2-T1 ✅ DONE, B2-T2 ✅ DONE, B2-T3 ✅ DONE → KAIROS #2 /dream 待執行)
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -14,8 +14,8 @@
 |--------|--------|---------|--------|
 | On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
 | Compile | 0 errors | 0 errors (EmulatorDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; EyeLineRule: 13pass; GazeRule: 16pass; CoordinateTransformer: 16pass (+16 NEW); Total: 179t/48skipped/131pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass; LandmarkProbeTest 3tests/3pass | 🟢 |
-| Lint New Errors | 0 new | 0 new (543 Warning 全為既有基準；HaloGuidanceLayer/CameraState/CameraViewModel 零新增) | 🟢 |
+| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; EyeLineRule: 13pass; GazeRule: 16pass; CoordinateTransformer: 16pass (+16 NEW); Total: 179t/48skipped/131pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass; LandmarkProbeTest 3tests/3pass; HaloGuidanceLayerTest 4tests/4pass (+4 NEW) | 🟢 |
+| Lint New Errors | 0 new | 0 new (既有基準；HaloGuidanceLayer/CameraState/CameraViewModel/HaloGuidanceLayerTest 零新增) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
 | D2 SV Gate | Pass | ✅ PASS (D2-T3/T4/FIX-01 全數閉環，Traycer Path A) | 🟢 |
@@ -167,9 +167,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D6-B1-T1.6 | GazeRule 極端角度 Fail-safe 熱修復：`abs(eulerY) > EXTREME_YAW_DEG(45f)` → early-return `score=100f, isAligned=true`（Priority Inversion 防禦）；GazeRuleTest +2 fail-safe 測試；LandmarkProbeTest 斷言修正 | ✅ DONE (Path A) | `domain/composition/rules/GazeRule.kt`, `test/.../GazeRuleTest.kt`, `androidTest/.../LandmarkProbeTest.kt` |
 | D6-B2-T1 | `CoordinateTransformer` 座標橋樑：NormalizedPoint/PixelPoint/NormalizedRect/PixelRect data class；零 Android SDK 依賴；transformX/Y/Point/Rect 純數學實作；16 unit tests 全通過 | ✅ DONE (Path A) | `presentation/utils/CoordinateTransformer.kt` (新建), `test/.../CoordinateTransformerTest.kt` (新建) |
 | D6-B2-T2 | `HaloGuidanceLayer.kt` 視覺回饋層：GazeRule 琥珀金圓環 + EyeLineRule 虛線輔助線；狀態互斥防禦（isAllAligned=true 隱藏/null 隱藏）；10fps 節流；`CameraState.detectedFaces` 欄位；`CameraScreen.kt` 接線（EdgeWarmthLayer 上方）；TAG_HALO_AMBER/GREEN/HIDDEN 語意探針 | ✅ DONE (Path A) | `presentation/camera/components/HaloGuidanceLayer.kt` (新建), `presentation/camera/CameraState.kt` (+detectedFaces), `presentation/camera/CameraViewModel.kt` (+detectedFaces update), `presentation/camera/CameraScreen.kt` (+HaloGuidanceLayer) |
-| D6-B2-T3 | `HaloGuidanceLayerTest` androidTest（三路徑：琥珀金/綠色/null） | 🔲 TODO | TBD |
+| D6-B2-T3 | `HaloGuidanceLayerTest` androidTest（四路徑：null隱藏/琥珀金/綠色/狀態轉換節流）；mutableStateOf 驅動 recompose；4/4 PASS (Pixel_5 AVD) | ✅ DONE (Path A) | `androidTest/.../camera/components/HaloGuidanceLayerTest.kt` (新建) |
 
-> 🏁 **D6 Batch 1 完成。B1-T1/T2/T3/T1.5/T1.6 全數 ✅ DONE — EyeLineRule + GazeRule (Fail-safe 熱修復) + LandmarkProbeTest 實體探針。179t/0failed/48skipped (unit) + 3 instrumented pass。B2-T2 ✅ DONE — HaloGuidanceLayer 已接線。B2-T3 HaloGuidanceLayerTest 為下一目標。**
+> 🏁 **D6 全 Batch ✅ DONE。B1 + B2 全數完成。HaloGuidanceLayerTest 4/4 pass（Pixel_5 AVD）；NULL/ALIGNED/AMBER 三路徑狀態互斥 + 10fps 節流狀態轉換驗證完成。KAIROS #2 /dream 待執行（2026-04-16）。**
 
 ---
 
