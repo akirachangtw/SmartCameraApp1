@@ -353,7 +353,17 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | `ruleScores["gaze"]` magic string | 命名 | GazeRule.NAME 未在 SSOT 顯式定義 | 硬編碼字串散落 2 處 | 🔧 D7：提取至 GazeRule.NAME companion const |
 | `RuleResult` 舊命名 | 命名漂移 | 歷史文件有 RuleResult 提及 | 代碼已統一為 RuleScore | 📝 技術 SSOT 文件移除 RuleResult 舊命名 |
 
-**Recommended CLAUDE.md Additions（規則 13/14/15）**：已追加至 CLAUDE.md ⬇️
+**Recommended CLAUDE.md Additions（規則 13/14/15/16）**：已追加至 CLAUDE.md ✅
+
+**KAIROS #2 補充盤點（2026-04-15 /dream 執行）**
+
+| 待辦項目 | 類型 | 行動 | 排程 |
+|---------|------|------|------|
+| SSOT-TYPE-DRIFT-01：`RuleResult` 舊命名清除 | 文件漂移 | 技術 SSOT 移除 RuleResult 舊命名 | D7 |
+| D5-TECH-DEBT-01：HDRWarningOverlayTest (3 tests) + EdgeWarmthLayerTest (Sony race) | 測試技術債 | 改用 mutableStateOf + waitForIdle() | D7 優先 |
+| Gradle CC 警告：`:app:generateTestImages` | 建置警告 | 非阻擋；排查 task inputs 宣告 | D8+ |
+| MAX_YAW_DEG vs EXTREME_YAW_DEG 語意拆分 | 命名漂移 | `GazeRule` 兩個閾值語意不同（引導上限 vs Priority Inversion 防禦），需加 KDoc 區分；考慮重命名為 `GUIDANCE_MAX_YAW_DEG` + `EXTREME_YAW_INVERSION_DEG` | D7 |
+| Rule 16 收割：硬體呼叫雙重門控 | 新規則 | 已寫入 CLAUDE.md Rule 16 | ✅ 完成 |
 
 ### KAIROS #3 — D10 (2026-04-21)
 - (will be populated: Object Detection FOOD confidence, bgCV thresholds, MinimalistRule coverage)

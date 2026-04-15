@@ -327,6 +327,8 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 15. **防護機制 KDoc 引用真實呼叫鏈規則**：當 KDoc 描述多道防線（double-gating）或安全機制時，必須引用**實際參與呼叫鏈的具體類別名稱與方法**（如 `LiveCameraSource.focusOnPoint()` 而非泛稱 `the framework`），並標注觸發判斷點（如「as detected by `FixedFocusDetector` at camera bind time」）。禁止引用未在此呼叫路徑上的類別。觸發來源：D6-B3 KDoc 校準（`EyeAfController` 第二道防線誤引用 `CameraXFocusController`，實際路徑為 `LiveCameraSource`）。
 
+16. **硬體呼叫雙重門控規則**：任何觸發硬體資源（對焦、閃光、音效）的 Controller 或 UseCase，必須實作**兩道獨立 Guard**：①鏡頭方向 Guard（前鏡頭永遠 early-return，不分情境）；②節流 Guard（時間戳 cooldown，初始哨兵值必須為 `Long.MIN_VALUE / 2` 而非 `0L`，確保首次呼叫必定通過）。兩道 Guard 缺一不可，且必須有對應的負向單元測試（前鏡頭抑制 + 節流攔截各 ≥1 條）。觸發來源：D6-B3 `EyeAfController` 設計審計；哨兵值 bug（`0L` 導致首次呼叫被誤攔截）。
+
 ---
 
 **完整規範請參考**: `devspec/.clinerules`
