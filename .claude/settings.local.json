@@ -35,7 +35,9 @@
       "Bash(adb install *)",
       "Bash(adb shell *)",
       "Bash(adb logcat *)",
+      "Bash(adb wait-for-device *)",
       "Bash(emulator *)",
+      "Bash(sleep *)",
       "Bash(python *)",
       "Bash(python3 *)",
       "Bash(powershell *)",
@@ -50,10 +52,14 @@
       "Bash(timeout *)",
       "Bash(tasklist *)",
       "Write(*)",
+      "Edit(.claude/PROGRESS.md)",
       "Bash(xargs *)",
       "Bash(awk *)",
       "Bash(head *)",
-      "Bash(uniq *)"
+      "Bash(uniq *)",
+      "Bash(gradlew *)",
+      "Bash(.gradlew *)",
+      "Bash(tail *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
