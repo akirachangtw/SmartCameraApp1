@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-15 by D7-Batch0 ✅ — 技術債清零：HDRWarningOverlayTest mutableStateOf 修復；EdgeWarmthLayerTest waitForIdle 防禦；GazeRule 常數語意拆分 (GUIDANCE_MAX_YAW/EXTREME_YAW_INVERSION) + NAME 常數；EyeLineRule NAME 常數；HaloGuidanceLayer/EyeAfController magic string 消除；CameraViewModel D6_PROBE 移除。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new
-**Current Day**: D7 Batch-0 ✅ DONE — 準備進入 D7-Batch 1 (PTF Tab toggle)
+**Last Updated**: 2026-04-15 by D7-Batch1 ✅ — PTF 狀態模型建立：PassToFriendMode sealed class；CameraTabBar 300ms Tab toggle；1s 快門冷卻 (Rule 16 Double-Gate, sentinel Long.MIN_VALUE/2)；PTF 極簡 UI (HaloGuidanceLayer/GridOverlay/CompositionGuideOverlay/CompositionHint 隱藏)；EdgeWarmthLayer/BreathingRing 保留。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new
+**Current Day**: D7 Batch-1 ✅ DONE — PTF Tab toggle + 1s 快門冷卻 + 極簡 UI 完成
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -13,9 +13,9 @@
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
 | On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
-| Compile | 0 errors | 0 errors (EmulatorDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; EyeLineRule: 13pass; GazeRule: 17pass (+1 NEW); CoordinateTransformer: 16pass; EyeAfController: 9pass; Total: 188t/48skipped/140pass) + Instrumented: EdgeWarmthLayerTest 9tests; CameraScreenBreathingRingTest 5tests; LandmarkProbeTest 3tests; HaloGuidanceLayerTest 4tests | 🟢 |
-| Lint New Errors | 0 new | 0 new (D7-Batch0 全改檔案零新增警告) | 🟢 |
+| Compile | 0 errors | 0 errors (DeviceDebug + EmulatorDebug) | 🟢 |
+| Unit Tests | 0 failed | 0 failed (188t/48skipped/140pass — D7-Batch1 無新增測試，基準維持) | 🟢 |
+| Lint New Errors | 0 new | 0 new (D7-Batch1 全改檔案零新增警告) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
 | D2 SV Gate | Pass | ✅ PASS (D2-T3/T4/FIX-01 全數閉環，Traycer Path A) | 🟢 |
@@ -191,13 +191,15 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 > 🏁 **D7-Batch0 技術債清零完成。UnitTests 188t/0failed/48skipped。Lint 0 new。準備進入 D7-Batch1 (PTF Tab toggle)。**
 
-### D7-Batch 1 — PTF Tab toggle + 極簡 UI + 1s 快門冷卻
+### D7-Batch 1 — PTF Tab toggle + 極簡 UI + 1s 快門冷卻 ✅ DONE (2026-04-15)
 
 | Ticket | 任務 | Status | 檔案 |
 |--------|------|--------|------|
-| D7-B1-T1 | PTF Tab toggle：進入/退出 PassToFriendMode；300ms 切換；零 CameraX rebind | 🔲 TODO | TBD |
-| D7-B1-T2 | 1s 快門冷卻：PTF 進入後 1s 內不可按快門 | 🔲 TODO | TBD |
-| D7-B1-T3 | 極簡 UI：PTF 模式下隱藏 composition guides；綠色 Halo 接管全螢幕 | 🔲 TODO | TBD |
+| D7-B1-T1 | PTF Tab toggle：進入/退出 PassToFriendMode；300ms 切換；零 CameraX rebind | ✅ DONE | `CameraState.kt` (PassToFriendMode + TogglePassToFriendMode)；`CameraViewModel.kt` (togglePassToFriendMode)；`components/CameraTabBar.kt` (新建)；`CameraScreen.kt` (接線) |
+| D7-B1-T2 | 1s 快門冷卻：PTF 進入後 1s 內不可按快門 | ✅ DONE | `CameraViewModel.kt` (lastCaptureTimeMs sentinel=Long.MIN_VALUE/2；capturePhoto Rule 16 Guard) |
+| D7-B1-T3 | 極簡 UI：PTF 模式下隱藏 composition guides；EdgeWarmthLayer/BreathingRing 保留 | ✅ DONE | `CameraScreen.kt` (isPtfActive；GridOverlay/HaloGuidanceLayer/CompositionGuideOverlay/CompositionHint 條件隱藏)；`res/values/strings.xml` (PTF Tab 字串) |
+
+> 🏁 **D7-Batch1 ✅ DONE。PassToFriendMode 狀態模型建立；CameraTabBar 300ms 動畫；Rule 16 雙重門控冷卻生效；極簡 UI 精確落實。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new。**
 
 ---
 
