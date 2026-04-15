@@ -252,6 +252,11 @@ class CameraViewModel @Inject constructor(
     private var latestSensorToViewMatrix: android.graphics.Matrix? = null
     private var currentPtfSessionId = 0L  // PTF session token: prevents stale async results from overwriting newer taps
 
+    // D7-B1 Rule 16 — Shutter cooldown sentinel.
+    // Initial value = Long.MIN_VALUE / 2 (not 0L) so that the FIRST capture after PTF mode entry
+    // always passes the cooldown check regardless of System.currentTimeMillis() value.
+    private var lastCaptureTimeMs: Long = Long.MIN_VALUE / 2
+
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
 
@@ -477,6 +482,25 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.UnlockAEAF -> unlockAEAF()  // v2.9.9 Day 1-2
             is CameraUiEvent.ShowPhotoInfo -> showPhotoInfo(event.uri)  // v2.11.0 Phase 3
             is CameraUiEvent.DismissPhotoInfo -> dismissPhotoInfo()  // v2.11.0 Phase 3
+            is CameraUiEvent.TogglePassToFriendMode -> togglePassToFriendMode()  // D7-B1
+        }
+    }
+
+    /**
+     * Toggles Pass-To-Friend scene mode: Off ↔ Active.
+     *
+     * Entering [PassToFriendMode.Active] records [enterTimeMs] for Rule 16 shutter cooldown.
+     * No CameraX rebind — PTF is a pure UI/state-machine operation.
+     */
+    private fun togglePassToFriendMode() {
+        val now = System.currentTimeMillis()
+        _state.update { current ->
+            val nextMode = when (current.passToFriendMode) {
+                is PassToFriendMode.Off -> PassToFriendMode.Active(enterTimeMs = now)
+                is PassToFriendMode.Active -> PassToFriendMode.Off
+            }
+            Log.i(TAG, "[PTF-Mode] ${current.passToFriendMode} → $nextMode")
+            current.copy(passToFriendMode = nextMode)
         }
     }
 
@@ -562,6 +586,18 @@ class CameraViewModel @Inject constructor(
     }
 
     private fun capturePhoto() {
+        // D7-B1 Rule 16 — PTF shutter cooldown guard (1 second).
+        // Guard fires ONLY when PTF mode is Active. Normal mode has no cooldown.
+        val currentMode = _state.value.passToFriendMode
+        if (currentMode is PassToFriendMode.Active) {
+            val now = System.currentTimeMillis()
+            if (now - lastCaptureTimeMs < 1000L) {
+                Log.d(TAG, "[PTF-Cooldown] Shutter blocked — ${now - lastCaptureTimeMs}ms since last capture")
+                return
+            }
+            lastCaptureTimeMs = now
+        }
+
         viewModelScope.launch {
             _state.update { it.copy(isCapturing = true, error = null) }
 

@@ -100,6 +100,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.akirachang.ai.photographer.presentation.camera.components.CameraPreview
+import com.akirachang.ai.photographer.presentation.camera.components.CameraTabBar
 import com.akirachang.ai.photographer.presentation.camera.components.PermissionRequestScreen
 import com.akirachang.ai.photographer.presentation.camera.components.PreviewViewportContainer
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.CompositionGuideOverlay
@@ -200,6 +201,9 @@ fun CameraScreen(
         // D4-T2: Extract isAligned once — passed down to EdgeWarmthLayer and shutter button (UDF).
         // Extreme-left check guards against null compositionResult before first detection frame.
         val isAligned = state.compositionResult?.isAllAligned == true
+
+        // D7-B1-T3: PTF active flag — drives UI minimalism (hides guidance overlays).
+        val isPtfActive = state.passToFriendMode is PassToFriendMode.Active
 
         Scaffold(
             modifier = modifier,
@@ -317,9 +321,10 @@ fun CameraScreen(
                     // D3-T2: Rule of Thirds grid overlay (Cueshot ambient UI)
                     // Solid lines, White alpha=0.5f, Z-order: above preview, below control UI
                     // Bound to isGridEnabled (viewModel.isGridEnabled); hidden until contentBounds calculated
+                    // D7-B1-T3: Hidden in PTF mode (minimalist UI — green Halo takes over guidance).
                     GridOverlay(
                         modifier = Modifier.fillMaxSize(),
-                        visible = isGridEnabled && !contentBounds.isEmpty,
+                        visible = isGridEnabled && !contentBounds.isEmpty && !isPtfActive,
                         contentBounds = contentBounds.takeIf { !it.isEmpty }
                     )
 
@@ -336,24 +341,29 @@ fun CameraScreen(
                     // D6-B2-T2: Halo guidance layer — face-tracking Halo + EyeLine guide.
                     // isAllAligned==true → hidden (state-mutex with EdgeWarmthLayer breathing + ShutterRing).
                     // compositionResult==null → hidden (Constitution §6 default-value trap defense).
+                    // D7-B1-T3: isPtfActive → hidden (PTF minimalist UI; green Halo replaces guidance).
                     // Z-order: above EdgeWarmthLayer, below CompositionGuideOverlay.
-                    HaloGuidanceLayer(
-                        faces = state.detectedFaces,
-                        compositionResult = state.compositionResult,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    if (!isPtfActive) {
+                        HaloGuidanceLayer(
+                            faces = state.detectedFaces,
+                            compositionResult = state.compositionResult,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
 
                     // v2.4.0: Visual composition guide frame
-                    // Shows target position where face should move to
-                    val guideData = when (val currentState = compositionState) {
-                        is CompositionState.Good -> currentState.guideData
-                        is CompositionState.NeedsAdjustment -> currentState.guideData
-                        else -> null
+                    // D7-B1-T3: Hidden in PTF mode (minimalist UI).
+                    if (!isPtfActive) {
+                        val guideData = when (val currentState = compositionState) {
+                            is CompositionState.Good -> currentState.guideData
+                            is CompositionState.NeedsAdjustment -> currentState.guideData
+                            else -> null
+                        }
+                        CompositionGuideOverlay(
+                            guideData = guideData,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
-                    CompositionGuideOverlay(
-                        guideData = guideData,
-                        modifier = Modifier.fillMaxSize()
-                    )
                 }
 
                 // v2.2.0: HDR/Lighting warning overlay (highest priority - shows on top)
@@ -366,7 +376,8 @@ fun CameraScreen(
 
                 // v1.5.0: Composition hint overlay
                 // v2.1.0: Respect overlay preferences
-                if (isCompositionHintEnabled) {
+                // D7-B1-T3: Hidden in PTF mode (minimalist UI).
+                if (isCompositionHintEnabled && !isPtfActive) {
                     CompositionHint(
                         compositionState = compositionState,
                         modifier = Modifier
@@ -515,8 +526,13 @@ fun CameraScreen(
                         onCapture = { viewModel.onEvent(CameraUiEvent.CapturePhoto) },
                     )
 
-                    // 佔位符（對稱布局）
-                    Box(modifier = Modifier.size(48.dp))
+                    // D7-B1-T1: PTF Tab toggle — replaces 48dp placeholder.
+                    // 300ms animated tab bar: Normal ↔ Pass-To-Friend.
+                    CameraTabBar(
+                        passToFriendMode = state.passToFriendMode,
+                        onToggle = { viewModel.onEvent(CameraUiEvent.TogglePassToFriendMode) },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
 

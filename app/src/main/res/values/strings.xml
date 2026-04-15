@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">SmartCameraApp1</string>
+
+    <!-- Cueshot D7-B1: CameraTabBar labels -->
+    <string name="tab_normal_mode">拍照</string>
+    <string name="tab_pass_to_friend">遞手機</string>
+    <string name="tab_normal_mode_cd">Normal shooting mode</string>
+    <string name="tab_pass_to_friend_cd">Pass to friend mode</string>
 </resources>
