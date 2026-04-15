@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-15 by D7-Batch1 ✅ — PTF 狀態模型建立：PassToFriendMode sealed class；CameraTabBar 300ms Tab toggle；1s 快門冷卻 (Rule 16 Double-Gate, sentinel Long.MIN_VALUE/2)；PTF 極簡 UI (HaloGuidanceLayer/GridOverlay/CompositionGuideOverlay/CompositionHint 隱藏)；EdgeWarmthLayer/BreathingRing 保留。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new
-**Current Day**: D7 Batch-1 ✅ DONE — PTF Tab toggle + 1s 快門冷卻 + 極簡 UI 完成
+**Last Updated**: 2026-04-15 by D7-B2-FIX ✅ — CameraMode 架構重構：PassToFriendMode sealed class → domain/camera/CameraMode sealed interface；cameraMode 欄位同步；setCameraMode(mode) 取代 togglePassToFriendMode；capturePhoto Guard + resetFocusState sentinel 對齊；CameraTabBar/CameraScreen 型別同步；Backlog ADR 歸檔。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new
+**Current Day**: D7 B2-FIX ✅ DONE — CameraMode 架構歸位完成，Multi-mode roadmap 基礎建立
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -200,6 +200,19 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D7-B1-T3 | 極簡 UI：PTF 模式下隱藏 composition guides；EdgeWarmthLayer/BreathingRing 保留 | ✅ DONE | `CameraScreen.kt` (isPtfActive；GridOverlay/HaloGuidanceLayer/CompositionGuideOverlay/CompositionHint 條件隱藏)；`res/values/strings.xml` (PTF Tab 字串) |
 
 > 🏁 **D7-Batch1 ✅ DONE。PassToFriendMode 狀態模型建立；CameraTabBar 300ms 動畫；Rule 16 雙重門控冷卻生效；極簡 UI 精確落實。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new。**
+
+### D7-B2-FIX — CameraMode 架構重構與語意歸位 ✅ DONE (2026-04-15)
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D7-B2-FIX-S1 | `CameraMode.kt` 新建（Step 1，前一 Session 已完成）| ✅ DONE | `domain/camera/CameraMode.kt` (新建；sealed interface；Normal + PassToFriend objects) |
+| D7-B2-FIX-S2a | `CameraState.kt` 重構：移除 `PassToFriendMode` sealed class；`passToFriendMode` → `cameraMode: CameraMode`；`TogglePassToFriendMode` → `SetCameraMode(val mode: CameraMode)` | ✅ DONE | `presentation/camera/CameraState.kt` |
+| D7-B2-FIX-S2b | `CameraViewModel.kt` 重構：`togglePassToFriendMode()` → `setCameraMode(mode)`；capturePhoto Guard 改判 `CameraMode.PassToFriend`；`resetFocusState()` 末尾加 sentinel reset | ✅ DONE | `presentation/camera/CameraViewModel.kt` |
+| D7-B2-FIX-S2c | `CameraTabBar.kt` 重構：參數 `passToFriendMode: PassToFriendMode` → `cameraMode: CameraMode`；import 換層；KDoc 同步 | ✅ DONE | `presentation/camera/components/CameraTabBar.kt` |
+| D7-B2-FIX-S2d | `CameraScreen.kt` 重構：isPtfActive 判斷改 `is CameraMode.PassToFriend`；toggle callback 改傳明確 mode；新增 domain import | ✅ DONE | `presentation/camera/CameraScreen.kt` |
+| D7-B2-FIX-S3 | Backlog ADR 歸檔：ADR-D7-B2-FIX — CameraMode sealed interface 擴展契約（候選 KAIROS #3 Rule 17） | ✅ DONE | `devspec/feature_record_Backlog.md` |
+
+> 🏁 **D7-B2-FIX ✅ DONE。PassToFriendMode → CameraMode 架構歸位；Multi-mode roadmap 基礎建立。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new。**
 
 ---
 

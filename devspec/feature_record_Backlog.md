@@ -2728,3 +2728,42 @@ D4-T4 在實作 `EdgeWarmthLayerTest.kt` 時，發現 `HDRWarningOverlayTest.kt`
 **修正方式**：KAIROS #2 時，將 task 改用 `ExecOperations` 服務注入取代直接捕獲 `Project`，符合 Gradle Configuration Cache 規範。
 
 * **優先度**：🟡 LOW — 不影響測試執行正確性，僅影響 build cache 效率與 log 清潔度。
+
+---
+
+## 📌 架構決策記錄 (ADR) - D7-B2-FIX CameraMode Sealed Interface
+
+**登記日期**: 2026-04-15 | **Sprint**: D7-B2-FIX | **候選執行節點**: KAIROS #3 (D10)
+
+### [ADR-D7-B2-FIX] 新增相機模式繼承 `CameraMode` sealed interface 規則
+
+**決策內容**：
+
+相機場景模式統一以 `sealed interface CameraMode`（`domain/camera/CameraMode.kt`）定義，取代原本散落於 presentation 層的 `PassToFriendMode sealed class`。
+
+**擴展契約（新增模式時必須同步執行以下四步）**：
+
+1. 在 `CameraMode.kt` 新增對應的 `object` 或 `data object` subtype。
+2. 更新 `CameraViewModel.setCameraMode()` — 若新模式需要特殊進入/退出邏輯（如資源重配置、Timer 重置），在此函數中實作。
+3. 在 `CameraScreen.kt` 新增對應的 UI 遮罩過濾器（依 SSOT §2 規格隱藏 / 顯示 Overlay）。
+4. 若新模式需要不同的構圖規則集，在 `CompositionModule.kt` 新增或排除對應的 `CompositionRule` binding。
+
+**關鍵決策理由**：
+
+| 決策點 | 選擇 | 理由 |
+|--------|------|------|
+| `CameraMode` 放 `domain/camera/` 層 | ✅ Domain 層 | 場景模式是業務邏輯，D8+ Rule Engine 可直接消費，放 presentation 層會導致 Domain 反向依賴 UI |
+| `CameraMode.PassToFriend` 不攜帶 `enterTimeMs` | ✅ 不攜帶 | 冷卻是 ViewModel 實作細節（Rule 16），哨兵由 `lastCaptureTimeMs` 管理；Domain Model 不滲透計時器狀態 |
+| `TogglePassToFriendMode` → `SetCameraMode(mode: CameraMode)` | ✅ 明確傳入目標 mode | Toggle 語意對未來多 mode 擴展不友善；明確目標 mode 更可讀、可測試、支援單向跳轉 |
+
+**影響範圍**：
+- `domain/camera/CameraMode.kt`（新建，Step 1）
+- `presentation/camera/CameraState.kt`（`cameraMode` 欄位 + `SetCameraMode` event）
+- `presentation/camera/CameraViewModel.kt`（`setCameraMode()` + capturePhoto Guard + resetFocusState sentinel）
+- `presentation/camera/components/CameraTabBar.kt`（參數型別同步）
+- `presentation/camera/CameraScreen.kt`（isPtfActive 判斷 + toggle callback）
+
+**D10 KAIROS #3 行動**：確認此規則是否提煉為 CLAUDE.md Rule 17，並掃描是否有殘留的 `PassToFriendMode` 參照。
+
+* **優先度**：📘 ARCH — 架構基準決策，D8+ Rule Engine 擴充前必須遵守。
+
