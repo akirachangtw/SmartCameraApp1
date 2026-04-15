@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-15 by D7-B2-FIX ✅ — CameraMode 架構重構：PassToFriendMode sealed class → domain/camera/CameraMode sealed interface；cameraMode 欄位同步；setCameraMode(mode) 取代 togglePassToFriendMode；capturePhoto Guard + resetFocusState sentinel 對齊；CameraTabBar/CameraScreen 型別同步；Backlog ADR 歸檔。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new
-**Current Day**: D7 B2-FIX ✅ DONE — CameraMode 架構歸位完成，Multi-mode roadmap 基礎建立
+**Last Updated**: 2026-04-15 by D7-B2-T2 ✅ — Rule 16 冷卻護城河：`isPtfCooldownActive()` companion pure fn + `timeProvider` internal test seam；4 個負向測試（哨兵首發 / 三步驟冷卻 / 邊界 ±1ms）。Build ✅ / UnitTests 192t/0failed/48skipped / Lint 0 new。Commit 1 (code): c4da634
+**Current Day**: D7 Batch-2 ✅ DONE — 大快門 80dp + ✕ 退出按鈕 + 首次教學 hint + Rule 16 負向測試全數完成，QA ✅ / SV 待執行 / Traycer 待終審
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -14,8 +14,8 @@
 |--------|--------|---------|--------|
 | On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug + EmulatorDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (188t/48skipped/140pass — D7-Batch1 無新增測試，基準維持) | 🟢 |
-| Lint New Errors | 0 new | 0 new (D7-Batch1 全改檔案零新增警告) | 🟢 |
+| Unit Tests | 0 failed | 0 failed (192t/48skipped/144pass — D7-B2-T2 新增 4 Rule 16 冷卻測試) | 🟢 |
+| Lint New Errors | 0 new | 0 new (D7-Batch2 全改檔案零新增警告) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
 | D2 SV Gate | Pass | ✅ PASS (D2-T3/T4/FIX-01 全數閉環，Traycer Path A) | 🟢 |
@@ -213,6 +213,17 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D7-B2-FIX-S3 | Backlog ADR 歸檔：ADR-D7-B2-FIX — CameraMode sealed interface 擴展契約（候選 KAIROS #3 Rule 17） | ✅ DONE | `devspec/feature_record_Backlog.md` |
 
 > 🏁 **D7-B2-FIX ✅ DONE。PassToFriendMode → CameraMode 架構歸位；Multi-mode roadmap 基礎建立。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new。**
+
+### D7-Batch 2 — PTF 大快門 UI + 首次教學 + ✕ 退出 🔄 WIP (2026-04-15)
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D7-B2-T1 | 大快門 UI：PTF 模式下快門 72→80dp animateDpAsState (300ms)；進度環同步放大至 94dp | ✅ DONE | `CameraScreen.kt` (ShutterButtonSection: cameraMode 參數 + animateDpAsState 置頂) |
+| D7-B2-T1b | ✕ 退出按鈕：TopEnd IconButton，PTF 模式顯示，點擊 SetCameraMode(Normal) | ✅ DONE | `CameraScreen.kt`；`strings.xml` (ptf_exit_cd) |
+| D7-B2-T3 | 首次教學 hint：PtfPreferences DataStore + CameraViewModel 注入 + AnimatedVisibility hint | ✅ DONE | `data/preferences/PtfPreferences.kt` (新建)；`di/AppModule.kt` (+providePtfPreferences)；`CameraViewModel.kt` (+ptfPreferences, dismissPtfOnboarding)；`CameraState.kt` (+DismissPtfOnboarding event)；`CameraScreen.kt` (collectAsState + AnimatedVisibility hint block)；`strings.xml` (+ptf_onboarding_message/got_it) |
+| D7-B2-T2 | Rule 16 冷卻護城河負向測試：`isPtfCooldownActive()` companion pure fn；`timeProvider` internal test seam；4 個 JVM 測試（哨兵首發 / 三步驟冷卻 / 邊界 1000ms / 邊界 999ms）| ✅ DONE | `CameraViewModel.kt` (+isPtfCooldownActive companion fn, +timeProvider internal)；`CameraViewModelTest.kt` (+4 tests) |
+
+> 🏁 **D7-Batch2 ✅ DONE。大快門 80dp + ✕ 退出按鈕 + 首次教學 hint + Rule 16 負向測試全數完成。Build ✅ / UnitTests 192t/0failed/48skipped / Lint 0 new。Commit 1 (code): c4da634。**
 
 ---
 
