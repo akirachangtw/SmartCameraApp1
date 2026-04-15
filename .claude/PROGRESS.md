@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-15 by D6-B2-T3 ✅ — HaloGuidanceLayerTest 4 androidTests 全數通過（Pixel_5 AVD）；NULL/ALIGNED/AMBER 三路徑狀態互斥驗證完成；mutableStateOf 狀態轉換測試通過；Build ✅ / UnitTests 179t/0failed/48skipped / Lint 0 new
-**Current Day**: D6 進行中 (B1 全數 ✅ DONE, B2-T1 ✅ DONE, B2-T2 ✅ DONE, B2-T3 ✅ DONE → KAIROS #2 /dream 待執行)
+**Last Updated**: 2026-04-15 by D6-B3 ✅ — EyeAfController 實作完成；9/9 unit tests 通過；gaze-driven Eye-AF 後鏡頭觸發 + 前鏡頭憲法防護兩道防線已驗收；Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new
+**Current Day**: D6 封板 (B1 + B2 + B3 全數 ✅ DONE → 執行 /qa ✅ → 下一步 /sv → KAIROS #2 /dream)
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D6 (2026-04-16) — D2 KAIROS #1 已執行 (ADR 歸檔完成)
 
@@ -168,8 +168,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D6-B2-T1 | `CoordinateTransformer` 座標橋樑：NormalizedPoint/PixelPoint/NormalizedRect/PixelRect data class；零 Android SDK 依賴；transformX/Y/Point/Rect 純數學實作；16 unit tests 全通過 | ✅ DONE (Path A) | `presentation/utils/CoordinateTransformer.kt` (新建), `test/.../CoordinateTransformerTest.kt` (新建) |
 | D6-B2-T2 | `HaloGuidanceLayer.kt` 視覺回饋層：GazeRule 琥珀金圓環 + EyeLineRule 虛線輔助線；狀態互斥防禦（isAllAligned=true 隱藏/null 隱藏）；10fps 節流；`CameraState.detectedFaces` 欄位；`CameraScreen.kt` 接線（EdgeWarmthLayer 上方）；TAG_HALO_AMBER/GREEN/HIDDEN 語意探針 | ✅ DONE (Path A) | `presentation/camera/components/HaloGuidanceLayer.kt` (新建), `presentation/camera/CameraState.kt` (+detectedFaces), `presentation/camera/CameraViewModel.kt` (+detectedFaces update), `presentation/camera/CameraScreen.kt` (+HaloGuidanceLayer) |
 | D6-B2-T3 | `HaloGuidanceLayerTest` androidTest（四路徑：null隱藏/琥珀金/綠色/狀態轉換節流）；mutableStateOf 驅動 recompose；4/4 PASS (Pixel_5 AVD) | ✅ DONE (Path A) | `androidTest/.../camera/components/HaloGuidanceLayerTest.kt` (新建) |
+| D6-B3 | `EyeAfController` 實作：gaze unaligned → 後鏡頭 Eye-AF 觸發（前鏡頭硬體憲法防護；2s cooldown；眼部中點 → `NormalizedToPixelTransformer` → `cameraRepository.focusOnPoint()`）；`CameraViewModel.observeCompositionAdvice()` 接線；`EyeAfController.reset()` 於 `resetFocusState()` 呼叫；`EyeAfControllerTest` 9/9 PASS；`build.gradle.kts` +`isReturnDefaultValues` + `@RunWith(RobolectricTestRunner)` | ✅ DONE (Path A) | `presentation/camera/components/EyeAfController.kt` (新建), `presentation/camera/CameraViewModel.kt` (+eyeAfController, +D6-B3 gaze AF block), `test/.../camera/components/EyeAfControllerTest.kt` (新建, 9 tests), `app/build.gradle.kts` (+isReturnDefaultValues) |
 
-> 🏁 **D6 全 Batch ✅ DONE。B1 + B2 全數完成。HaloGuidanceLayerTest 4/4 pass（Pixel_5 AVD）；NULL/ALIGNED/AMBER 三路徑狀態互斥 + 10fps 節流狀態轉換驗證完成。KAIROS #2 /dream 待執行（2026-04-16）。**
+> 🏁 **D6 全部 Batch ✅ DONE。B1 + B2 + B3 全數完成。EyeAfControllerTest 9/9 pass；前鏡頭防護兩道防線已驗收；KAIROS #2 /dream 待執行（2026-04-16）。**
 
 ---
 
