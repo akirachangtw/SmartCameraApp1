@@ -22,6 +22,21 @@ disable-model-invocation: false
    - 若修改了**未授權檔案**，立刻回報 `🚫 Scope Violation: [檔案名]`。
    - 若該修改是合理連帶（如 import 更新），說明理由。否則還原。
 
+## 階段 A.5：Android 16KB ELF 對齊驗證 (16KB Page Size Gate)
+
+> Android 15+ 強制要求 arm64-v8a / x86_64 的 .so 以 16KB 對齊。
+> 此步驟為 🟡 警告級（不阻斷 SV 流程，但必須在 Release 前清零）。
+
+3.5. **16KB ELF 對齊檢查**：
+   - 前置確認：`app/build/outputs/apk/device/debug/app-device-debug.apk` 存在（需先執行 Step 1 assembleDebug）
+   - 執行：`bash tools/check_elf_alignment.sh app/build/outputs/apk/device/debug/app-device-debug.apk 2>&1`
+   - 判讀規則：
+     - 所有 `lib/arm64-v8a/*.so` 與 `lib/x86_64/*.so` 必須顯示 `ALIGNED`
+     - `UNALIGNED` 項目 → 記錄至 SV Report 為 🟡 WARNING，列出具體 .so 名稱
+     - `zipalign` 區段若顯示 `NOTICE`（build-tools < 35.0.0-rc3）→ 記為 ⚪ SKIP，不扣分
+     - `ELF Verification Successful` → ✅ PASS
+   - 若 `objdump` 或 `bash` 不在 PATH → 記為 ⚪ SKIP（工具不可用，不影響 SV 結論）
+
 ## 階段 B：語意審查 (Semantic Review)
 
 4. **殘骸掃描 (Orphan Check)**：
@@ -55,6 +70,7 @@ disable-model-invocation: false
 🔨 Compile: ✅ PASS (0 errors, X warnings)
 🔍 Lint: ✅ PASS (0 new warnings)
 📁 Scope: ✅ PASS (modified: [file list])
+📦 16KB ELF: ✅ ALIGNED / 🟡 [N] UNALIGNED .so / ⚪ SKIP (tool unavailable)
 🧹 Orphans: ✅ CLEAN
 🎭 Mock: ✅ CLEAN
 🏗️ UDF: ✅ COMPLIANT
@@ -69,6 +85,7 @@ disable-model-invocation: false
 === SV Report ===
 📋 Ticket: [Ticket ID]
 🔨 Compile: 🔴 FAIL — [錯誤摘要]
+📦 16KB ELF: 🟡 WARNING — [UNALIGNED .so 清單] (Release 前必須清零)
 ...
 → 🚫 SV 未通過。已自動修復 X 項，仍有 Y 項需人工介入。
 📊 Session: ~[N] turns | [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]
