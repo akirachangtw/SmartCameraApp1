@@ -37,6 +37,7 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import kotlin.math.min
 import com.akirachang.ai.photographer.data.preferences.OverlayPreferences
+import com.akirachang.ai.photographer.domain.camera.CameraMode
 import com.akirachang.ai.photographer.domain.camera.ImuCompensator
 import com.akirachang.ai.photographer.domain.model.DeviceCapabilityTier
 import com.akirachang.ai.photographer.domain.sensor.DeviceSensorManager
@@ -482,25 +483,22 @@ class CameraViewModel @Inject constructor(
             is CameraUiEvent.UnlockAEAF -> unlockAEAF()  // v2.9.9 Day 1-2
             is CameraUiEvent.ShowPhotoInfo -> showPhotoInfo(event.uri)  // v2.11.0 Phase 3
             is CameraUiEvent.DismissPhotoInfo -> dismissPhotoInfo()  // v2.11.0 Phase 3
-            is CameraUiEvent.TogglePassToFriendMode -> togglePassToFriendMode()  // D7-B1
+            is CameraUiEvent.SetCameraMode -> setCameraMode(event.mode)  // D7-B2-FIX
         }
     }
 
     /**
-     * Toggles Pass-To-Friend scene mode: Off ↔ Active.
+     * Sets the top-level camera mode to the given [mode].
      *
-     * Entering [PassToFriendMode.Active] records [enterTimeMs] for Rule 16 shutter cooldown.
-     * No CameraX rebind — PTF is a pure UI/state-machine operation.
+     * No CameraX rebind — mode switching is a pure state-machine operation.
+     * Rule 16 shutter cooldown is managed by [lastCaptureTimeMs] in [capturePhoto].
+     *
+     * @param mode The target [CameraMode] to transition to.
      */
-    private fun togglePassToFriendMode() {
-        val now = System.currentTimeMillis()
+    private fun setCameraMode(mode: CameraMode) {
         _state.update { current ->
-            val nextMode = when (current.passToFriendMode) {
-                is PassToFriendMode.Off -> PassToFriendMode.Active(enterTimeMs = now)
-                is PassToFriendMode.Active -> PassToFriendMode.Off
-            }
-            Log.i(TAG, "[PTF-Mode] ${current.passToFriendMode} → $nextMode")
-            current.copy(passToFriendMode = nextMode)
+            Log.i(TAG, "[CameraMode] ${current.cameraMode} → $mode")
+            current.copy(cameraMode = mode)
         }
     }
 
@@ -586,10 +584,9 @@ class CameraViewModel @Inject constructor(
     }
 
     private fun capturePhoto() {
-        // D7-B1 Rule 16 — PTF shutter cooldown guard (1 second).
-        // Guard fires ONLY when PTF mode is Active. Normal mode has no cooldown.
-        val currentMode = _state.value.passToFriendMode
-        if (currentMode is PassToFriendMode.Active) {
+        // D7-B2-FIX Rule 16 — PTF shutter cooldown guard (1 second).
+        // Guard fires ONLY when CameraMode is PassToFriend. Normal mode has no cooldown.
+        if (_state.value.cameraMode is CameraMode.PassToFriend) {
             val now = System.currentTimeMillis()
             if (now - lastCaptureTimeMs < 1000L) {
                 Log.d(TAG, "[PTF-Cooldown] Shutter blocked — ${now - lastCaptureTimeMs}ms since last capture")
@@ -640,6 +637,7 @@ class CameraViewModel @Inject constructor(
         }
         eyeAfThrottle.reset()
         eyeAfController.reset()  // D6-B3: reset gaze-AF throttle on focus pipeline teardown
+        lastCaptureTimeMs = Long.MIN_VALUE / 2  // D7-B2-FIX: reset PTF cooldown sentinel on focus teardown
         Log.d(TAG, "[v2.12.0-15 Fix] resetFocusState: focusUiState=EMPTY, sessionId=$focusSessionId")
     }
 

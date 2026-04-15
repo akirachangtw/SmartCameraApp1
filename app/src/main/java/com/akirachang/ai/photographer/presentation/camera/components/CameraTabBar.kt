@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akirachang.ai.photographer.R
-import com.akirachang.ai.photographer.presentation.camera.PassToFriendMode
+import com.akirachang.ai.photographer.domain.camera.CameraMode
 import androidx.compose.foundation.clickable
 
 // D7-B1: Testability probes for CameraTabBar.
@@ -39,24 +39,24 @@ private val TAB_SELECTED_TEXT = Color.Black
 private val TAB_UNSELECTED_TEXT = Color.White.copy(alpha = 0.75f)
 
 /**
- * Camera mode tab bar — Cueshot D7-B1.
+ * Camera mode tab bar — Cueshot D7-B2-FIX.
  *
  * Two tabs: Normal (拍照) ↔ Pass-To-Friend (遞手機).
- * Selection drives [PassToFriendMode] via [onToggle] callback.
+ * Selection drives [CameraMode] via [onToggle] callback.
  * 300ms color-fade animation (Rule 14: all remember/state calls are at top of composable).
  *
- * @param passToFriendMode Current PTF mode from [CameraState].
+ * @param cameraMode Current camera mode from [CameraState].
  * @param onToggle Invoked when the user taps the non-active tab.
  * @param modifier Modifier passed to the root [Row].
  */
 @Composable
 internal fun CameraTabBar(
-    passToFriendMode: PassToFriendMode,
+    cameraMode: CameraMode,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Rule 14: all animation state declared at composable top — before any conditional logic.
-    val isPtfActive = passToFriendMode is PassToFriendMode.Active
+    val isPtfActive = cameraMode is CameraMode.PassToFriend
 
     val normalBg by animateColorAsState(
         targetValue = if (!isPtfActive) PTF_ACTIVE_COLOR else Color.Transparent,

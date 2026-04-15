@@ -10,6 +10,7 @@ import com.akirachang.ai.photographer.presentation.camera.model.HDRMode
 import com.akirachang.ai.photographer.domain.model.focus.FocusUiState
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
+import com.akirachang.ai.photographer.domain.camera.CameraMode
 
 /**
  * Camera UI State
@@ -62,30 +63,10 @@ data class CameraState(
     val deviceRoll: Float = 0f,
     // Cueshot D1: High-level PTF state for Rule Engine and coaching UI coordination.
     val ptfState: PtfState = PtfState.Idle,
-    // Cueshot D7-B1: Pass-To-Friend mode — user-selected scene mode toggle.
-    // Distinct from ptfState (Tap-to-Focus). Off by default.
-    val passToFriendMode: PassToFriendMode = PassToFriendMode.Off,
+    // Cueshot D7-B2-FIX: Top-level camera mode (replaces PassToFriendMode).
+    // Distinct from ptfState (Tap-to-Focus). Normal by default.
+    val cameraMode: CameraMode = CameraMode.Normal,
 )
-
-/**
- * Pass-To-Friend mode — Cueshot D7-B1.
- *
- * Activated by the user via [CameraTabBar] tab toggle. Distinct from [PtfState] which tracks
- * the Tap-to-Focus hardware metering state machine.
- *
- * [Active.enterTimeMs] is the wall-clock epoch ms when PTF mode was entered.
- * Used by [CameraViewModel.capturePhoto] for the 1-second shutter cooldown guard (Rule 16).
- */
-sealed class PassToFriendMode {
-    /** Normal shooting mode — PTF is inactive. */
-    object Off : PassToFriendMode()
-
-    /**
-     * PTF session is active. [enterTimeMs] records when the mode was entered
-     * for Rule 16 double-gating shutter cooldown.
-     */
-    data class Active(val enterTimeMs: Long) : PassToFriendMode()
-}
 
 /**
  * PTF (Pass-to-Focus / Tap-to-Focus) state machine — Cueshot D1.
@@ -116,8 +97,8 @@ sealed class CameraUiEvent {
     object SwitchCamera : CameraUiEvent()
     object ToggleFlash : CameraUiEvent()
     object ToggleHDR : CameraUiEvent()  // v2.6.1: Toggle HDR mode (AUTO → ON → OFF → AUTO)
-    // Cueshot D7-B1: Toggle Pass-To-Friend scene mode (Off ↔ Active).
-    object TogglePassToFriendMode : CameraUiEvent()
+    // Cueshot D7-B2-FIX: Set camera mode explicitly (replaces TogglePassToFriendMode).
+    data class SetCameraMode(val mode: CameraMode) : CameraUiEvent()
     // v2.11.0 Phase 2: ToggleAspectRatio removed - aspect ratio now managed in Settings
     object StartAnalysis : CameraUiEvent()
     object StopAnalysis : CameraUiEvent()

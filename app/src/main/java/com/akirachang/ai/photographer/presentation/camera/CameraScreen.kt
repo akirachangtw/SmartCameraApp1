@@ -114,6 +114,7 @@ import com.akirachang.ai.photographer.presentation.camera.components.HaloGuidanc
 import com.akirachang.ai.photographer.presentation.camera.overlay.EdgeWarmthLayer
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
+import com.akirachang.ai.photographer.domain.camera.CameraMode
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import com.akirachang.ai.photographer.BuildConfig
 import androidx.compose.ui.platform.testTag
@@ -202,8 +203,8 @@ fun CameraScreen(
         // Extreme-left check guards against null compositionResult before first detection frame.
         val isAligned = state.compositionResult?.isAllAligned == true
 
-        // D7-B1-T3: PTF active flag — drives UI minimalism (hides guidance overlays).
-        val isPtfActive = state.passToFriendMode is PassToFriendMode.Active
+        // D7-B2-FIX: PTF active flag — drives UI minimalism (hides guidance overlays).
+        val isPtfActive = state.cameraMode is CameraMode.PassToFriend
 
         Scaffold(
             modifier = modifier,
@@ -526,11 +527,18 @@ fun CameraScreen(
                         onCapture = { viewModel.onEvent(CameraUiEvent.CapturePhoto) },
                     )
 
-                    // D7-B1-T1: PTF Tab toggle — replaces 48dp placeholder.
+                    // D7-B2-FIX: PTF Tab toggle — explicit mode targets (replaces Toggle).
                     // 300ms animated tab bar: Normal ↔ Pass-To-Friend.
                     CameraTabBar(
-                        passToFriendMode = state.passToFriendMode,
-                        onToggle = { viewModel.onEvent(CameraUiEvent.TogglePassToFriendMode) },
+                        cameraMode = state.cameraMode,
+                        onToggle = {
+                            val nextMode = if (state.cameraMode is CameraMode.PassToFriend) {
+                                CameraMode.Normal
+                            } else {
+                                CameraMode.PassToFriend
+                            }
+                            viewModel.onEvent(CameraUiEvent.SetCameraMode(nextMode))
+                        },
                         modifier = Modifier.weight(1f),
                     )
                 }
