@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-15 by KAIROS #2 ✅ EXECUTED — D6 Sprint Day 全面結案。人像神經網路、視覺牽引層、Eye-AF 全數通過驗收。Rules 13/14/15 入庫 CLAUDE.md。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new
-**Current Day**: D7 開工 (D6 ✅ CLOSED — B1+B2+B3+KAIROS #2 全數封板)
+**Last Updated**: 2026-04-15 by D7-Batch0 ✅ — 技術債清零：HDRWarningOverlayTest mutableStateOf 修復；EdgeWarmthLayerTest waitForIdle 防禦；GazeRule 常數語意拆分 (GUIDANCE_MAX_YAW/EXTREME_YAW_INVERSION) + NAME 常數；EyeLineRule NAME 常數；HaloGuidanceLayer/EyeAfController magic string 消除；CameraViewModel D6_PROBE 移除。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new
+**Current Day**: D7 Batch-0 ✅ DONE — 準備進入 D7-Batch 1 (PTF Tab toggle)
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -14,8 +14,8 @@
 |--------|--------|---------|--------|
 | On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
 | Compile | 0 errors | 0 errors (EmulatorDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; EyeLineRule: 13pass; GazeRule: 16pass; CoordinateTransformer: 16pass (+16 NEW); Total: 179t/48skipped/131pass) + Instrumented: EdgeWarmthLayerTest 9tests/8pass; CameraScreenBreathingRingTest 5tests/5pass; LandmarkProbeTest 3tests/3pass; HaloGuidanceLayerTest 4tests/4pass (+4 NEW) | 🟢 |
-| Lint New Errors | 0 new | 0 new (既有基準；HaloGuidanceLayer/CameraState/CameraViewModel/HaloGuidanceLayerTest 零新增) | 🟢 |
+| Unit Tests | 0 failed | 0 failed (ThirdsRule: 17pass; HeadroomRule: 12pass; AnalyzeComposition: 53t/48ignored/5pass; PtfState: 2pass; AnalyzeLighting: 20pass; BitmapPool: 2pass; CameraViewModel: 10pass; ImuCompensator: 6pass; CameraScreenState: 5pass; PriorityEngine: 5pass; EyeLineRule: 13pass; GazeRule: 17pass (+1 NEW); CoordinateTransformer: 16pass; EyeAfController: 9pass; Total: 188t/48skipped/140pass) + Instrumented: EdgeWarmthLayerTest 9tests; CameraScreenBreathingRingTest 5tests; LandmarkProbeTest 3tests; HaloGuidanceLayerTest 4tests | 🟢 |
+| Lint New Errors | 0 new | 0 new (D7-Batch0 全改檔案零新增警告) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
 | D2 SV Gate | Pass | ✅ PASS (D2-T3/T4/FIX-01 全數閉環，Traycer Path A) | 🟢 |
@@ -170,7 +170,34 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D6-B2-T3 | `HaloGuidanceLayerTest` androidTest（四路徑：null隱藏/琥珀金/綠色/狀態轉換節流）；mutableStateOf 驅動 recompose；4/4 PASS (Pixel_5 AVD) | ✅ DONE (Path A) | `androidTest/.../camera/components/HaloGuidanceLayerTest.kt` (新建) |
 | D6-B3 | `EyeAfController` 實作：gaze unaligned → 後鏡頭 Eye-AF 觸發（前鏡頭硬體憲法防護；2s cooldown；眼部中點 → `NormalizedToPixelTransformer` → `cameraRepository.focusOnPoint()`）；`CameraViewModel.observeCompositionAdvice()` 接線；`EyeAfController.reset()` 於 `resetFocusState()` 呼叫；`EyeAfControllerTest` 9/9 PASS；`build.gradle.kts` +`isReturnDefaultValues` + `@RunWith(RobolectricTestRunner)` | ✅ DONE (Path A) | `presentation/camera/components/EyeAfController.kt` (新建), `presentation/camera/CameraViewModel.kt` (+eyeAfController, +D6-B3 gaze AF block), `test/.../camera/components/EyeAfControllerTest.kt` (新建, 9 tests), `app/build.gradle.kts` (+isReturnDefaultValues) |
 
-> 🏁 **D6 全部 Batch ✅ DONE。B1 + B2 + B3 全數完成。EyeAfControllerTest 9/9 pass；前鏡頭防護兩道防線已驗收；KAIROS #2 /dream 待執行（2026-04-16）。**
+> 🏁 **D6 全部 Batch ✅ DONE。B1 + B2 + B3 全數完成。EyeAfControllerTest 9/9 pass；前鏡頭防護兩道防線已驗收；KAIROS #2 /dream ✅ EXECUTED。**
+
+---
+
+## 📋 D7 Tickets — PTF Tab toggle + 極簡 UI + 1s 快門冷卻
+
+### D7-Batch 0 — 技術債清零 ✅ DONE (2026-04-15)
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D7-DEBT-01 | `HDRWarningOverlayTest` 3 條 state-transition 測試修復：改用 `mutableStateOf` 驅動重組，移除第二次 `setContent` 呼叫 | ✅ DONE | `androidTest/.../overlay/HDRWarningOverlayTest.kt` |
+| D7-DEBT-02 | `EdgeWarmthLayerTest` Sony race condition 防禦：6 條 Canvas 斷言前加入 `waitForIdle()` | ✅ DONE | `androidTest/.../overlay/EdgeWarmthLayerTest.kt` |
+| D7-DEBT-03 | `GazeRule` 常數語意拆分：`MAX_YAW_DEG` → `GUIDANCE_MAX_YAW_DEG`；`EXTREME_YAW_DEG` → `EXTREME_YAW_INVERSION_DEG`；新增 `const val NAME = "gaze"` | ✅ DONE | `domain/composition/rules/GazeRule.kt` |
+| D7-DEBT-03b | `EyeLineRule` 補齊 `const val NAME = "eye_line"` companion const（對稱 GazeRule） | ✅ DONE | `domain/composition/rules/EyeLineRule.kt` |
+| D7-DEBT-04 | `HaloGuidanceLayer` magic string 消除：`"gaze"` → `GazeRule.NAME`；`"eye_line"` → `EyeLineRule.NAME` | ✅ DONE | `presentation/camera/components/HaloGuidanceLayer.kt` |
+| D7-DEBT-04b | `EyeAfController` magic string 消除：`GAZE_RULE_KEY = "gaze"` → `GazeRule.NAME` 直接引用 | ✅ DONE | `presentation/camera/components/EyeAfController.kt` |
+| D7-DEBT-04c | `EyeAfControllerTest` 測試 magic string 同步消除：`"gaze"` → `GazeRule.NAME` | ✅ DONE | `test/.../camera/components/EyeAfControllerTest.kt` |
+| D7-DEBT-04d | `CameraViewModel` D6_PROBE 探針移除（非生產邏輯清除） | ✅ DONE | `presentation/camera/CameraViewModel.kt` |
+
+> 🏁 **D7-Batch0 技術債清零完成。UnitTests 188t/0failed/48skipped。Lint 0 new。準備進入 D7-Batch1 (PTF Tab toggle)。**
+
+### D7-Batch 1 — PTF Tab toggle + 極簡 UI + 1s 快門冷卻
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D7-B1-T1 | PTF Tab toggle：進入/退出 PassToFriendMode；300ms 切換；零 CameraX rebind | 🔲 TODO | TBD |
+| D7-B1-T2 | 1s 快門冷卻：PTF 進入後 1s 內不可按快門 | 🔲 TODO | TBD |
+| D7-B1-T3 | 極簡 UI：PTF 模式下隱藏 composition guides；綠色 Halo 接管全螢幕 | 🔲 TODO | TBD |
 
 ---
 
