@@ -9,7 +9,7 @@ import com.akirachang.ai.photographer.presentation.utils.NormalizedPoint
 import com.akirachang.ai.photographer.presentation.utils.NormalizedToPixelTransformer
 
 /**
- * Eye-AF trigger output — consumed by CameraViewModel to call cameraXFocusController.
+ * Eye-AF trigger output — consumed by CameraViewModel to call cameraRepository.focusOnPoint().
  *
  * @param viewPoint   Metering point in view-space pixels (ready for MeteringPointFactory).
  * @param stableId    Stable identifier for logging and throttle correlation.
@@ -32,7 +32,9 @@ data class EyeAfTrigger(
  *     → return null (no hardware trigger).
  *
  * Constitution §7 guard: front camera never triggers AF. This class is the first line of
- * defense; [CameraXFocusController] is the second (it strips FLAG_AF for front cameras).
+ * defense; LiveCameraSource.focusOnPoint() acts as the second gate: if isFixedFocus is true
+ * (as detected by FixedFocusDetector at camera bind time), it issues AE/AWB-only metering
+ * and suppresses FLAG_AF.
  *
  * Throttle: minimum [GAZE_AF_COOLDOWN_MS] between successive triggers to protect the AF
  * motor from oscillation. Decoupled from the 10fps Halo rendering throttle.
