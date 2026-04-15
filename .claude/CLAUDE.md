@@ -319,6 +319,16 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 ---
 
+**KAIROS #2 產出 (D6, 2026-04-15)**
+
+13. **Android SDK 型別 JVM 測試環境規則**：使用 `android.graphics.PointF`/`RectF` 的類別，其 JVM 單元測試必須加上 `@RunWith(RobolectricTestRunner::class)` + `@Config(sdk = [28])`（與 `EyeLineRuleTest` 一致），或將欄位型別改為純 Kotlin data class 以徹底消除 Android stub 依賴。理由：stub 環境下 `PointF`/`RectF` public fields 全回傳 `0`，導致座標計算測試假過或假失敗，且難以察覺。觸發來源：D6-B2-T1（`CoordinateTransformer` stub 問題）、D6-B3（`EyeAfControllerTest` 7 條測試失敗）。
+
+14. **Composable 狀態記憶置頂規則**：所有 Composable 函數中的 `remember`/`LaunchedEffect`/`rememberCoroutineScope` 呼叫，必須置於函數體的最頂部（任何 `if`/`when`/`return` 語句之前），無論哪些路徑邏輯上需要使用它們。違反此規則會導致 Compose Slot-Table 不一致，在條件狀態切換時觸發 IllegalStateException 或首幀遺失（視 Compose 版本而定）。觸發來源：D6-B2-T2.1（`HaloGuidanceLayer` `LaunchedEffect` 首次錯置於 `isAllAligned` early return 之後，Traycer 要求修復）。
+
+15. **防護機制 KDoc 引用真實呼叫鏈規則**：當 KDoc 描述多道防線（double-gating）或安全機制時，必須引用**實際參與呼叫鏈的具體類別名稱與方法**（如 `LiveCameraSource.focusOnPoint()` 而非泛稱 `the framework`），並標注觸發判斷點（如「as detected by `FixedFocusDetector` at camera bind time」）。禁止引用未在此呼叫路徑上的類別。觸發來源：D6-B3 KDoc 校準（`EyeAfController` 第二道防線誤引用 `CameraXFocusController`，實際路徑為 `LiveCameraSource`）。
+
+---
+
 **完整規範請參考**: `devspec/.clinerules`
 **SSOT 策略文件**: `SmartCameraApp_Strategy_v3_3_SSOT_20260404.md`
 **SSOT 技術文件**: `SmartCameraApp_TechDeepDive_v3_20260405.md`

@@ -313,12 +313,47 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
     觸發來源：SV-D2-T1-FIX-01~03（ThirdsRule 座標漂移 bug）。
 ```
 
-### KAIROS #2 — D6 (2026-04-16) ⏳ PENDING
-- (will be populated: ML Kit stability, Face Detection params, Halo smoothness)
-- [ ] KAIROS-#2-DEBT: SSOT RuleScore/RuleResult 型別命名統一修正（D6 /dream 處理）
-- [ ] KAIROS-#2-DEBT: D5-TECH-DEBT-01 Compose Test 基礎設施升級（HDRWarningOverlayTest + EdgeWarmthLayerTest Sony race condition）
-- [ ] Gradle Configuration Cache 警告 (generateTestImages 需重構)
-- [ ] 規則語意梳理：MAX_YAW (線性評分上限) 與 EXTREME_YAW (skip gate) 語意拆分準則
+### KAIROS #2 — D6 (2026-04-15) ✅ EXECUTED
+
+**Error Patterns**
+
+🔴 架構性錯誤（→ CLAUDE.md 規則 13/14/15）:
+1. **Android SDK 型別污染 JVM 測試（D6-B2-T1 + D6-B3）**：`android.graphics.PointF/RectF` 在 JVM unit test stub 環境下 fields 全回傳 `0`，導致兩次測試失敗。修復：D6-B2-T1 改用純 Kotlin data class；D6-B3 加 `@RunWith(RobolectricTestRunner::class)` + `@Config(sdk=[28])` + `isReturnDefaultValues=true`。→ 規則 13。
+2. **Composable LaunchedEffect 置放違反 Slot-Table（D6-B2-T2.1）**：`HaloGuidanceLayer` 初版將 `LaunchedEffect` 置於 early return 後，狀態切換時首幀遺失。Traycer T2.1 修復。→ 規則 14。
+3. **KDoc 引用錯誤的呼叫鏈（D6-B3）**：`EyeAfController` 描述第二道防線為 `CameraXFocusController`，實際路徑是 `LiveCameraSource.focusOnPoint()` + `FixedFocusDetector`。Traycer 要求 KDoc 校準。→ 規則 15。
+
+🟡 一次性失誤:
+- `EyeAfController.lastTriggerMs = 0L` → 首次呼叫被 throttle 擋住（`nowMs=1000L < 2000L`）；改為 `Long.MIN_VALUE / 2` 哨兵值
+- `build.gradle.kts` 缺 `isReturnDefaultValues=true`，`Log.*` 在 JVM test 拋 RuntimeException
+- `GazeRule` 初版對 extreme yaw（90°）給低分（Priority Inversion 問題）；D6-B1-T1.6 熱修復
+
+🟢 預防性發現:
+- `FaceLandmarkData` 仍依賴 `android.graphics.RectF/PointF`（SSOT-TYPE-DRIFT-01 已登記）；若要移至純 JVM 測試需遷移欄位型別
+- `ruleScores` map key `"gaze"` 為 magic string，散落於 HaloGuidanceLayer + EyeAfController；D7 應提取至 `GazeRule.NAME` companion const
+- `Gradle Configuration Cache` `:app:generateTestImages` 持續警告（非阻擋）
+- `D5-TECH-DEBT-01`（HDRWarningOverlayTest + EdgeWarmthLayerTest）遞延出 D6，需在 D7 週期前排入
+
+**Decision Audit**
+
+| 決策 | 預期結果 | 實際結果 | 判定 |
+|------|---------|---------|------|
+| `CompositionRule.evaluate()` 破壞性升級為 `List<FaceLandmarkData>` | 消除中間映射層 | D6-B1-T1 一次完成，零回歸 | ✅ |
+| `NormalizedToPixelTransformer` 純 Kotlin data class | 消除 Android SDK stub 問題 | 完全解決；命名更精確 | ✅ |
+| GazeRule extreme yaw → Priority Inversion（score=100, isAligned=true） | 防止極端角度誤觸引導 | D6_PROBE 驗證正確 | ✅ |
+| HaloGuidanceLayer remember/LaunchedEffect 置頂（T2.1） | 消除首幀遺失 | Traycer 通過；4/4 instrumented pass | ✅ |
+| EyeAfController 呼叫 `cameraRepository.focusOnPoint()` 而非 CameraXFocusController | 最小化 integration surface | 功能正確；KDoc 已校準；第二道防線由 LiveCameraSource 承擔 | ⚠️ D7 追蹤：是否統一兩條 focus 呼叫路徑 |
+| `D5-TECH-DEBT-01` 遞延出 D6 | 避免超出 D6 工作量 | 未阻塞 D6；但需 D7 前明確排入 | ⚠️ 需追蹤 |
+
+**SSOT Drift**
+
+| 項目 | 類型 | SSOT 說 | 代碼做 | 行動 |
+|------|------|---------|--------|------|
+| `FaceLandmarkData` 使用 Android SDK 型別 | 架構漂移 | 未定義 Domain 層 SDK 依賴限制 | 使用 RectF/PointF | 📝 技術 SSOT 補記：Domain Model 應遷移至純 Kotlin 型別（D7+） |
+| `EyeAfController` 置於 `presentation/camera/components/` | 位置語意 | 未定義 Eye-AF controller 位置 | 與 UI 元件同層 | 📝 D7 考慮移至 `presentation/camera/focus/` |
+| `ruleScores["gaze"]` magic string | 命名 | GazeRule.NAME 未在 SSOT 顯式定義 | 硬編碼字串散落 2 處 | 🔧 D7：提取至 GazeRule.NAME companion const |
+| `RuleResult` 舊命名 | 命名漂移 | 歷史文件有 RuleResult 提及 | 代碼已統一為 RuleScore | 📝 技術 SSOT 文件移除 RuleResult 舊命名 |
+
+**Recommended CLAUDE.md Additions（規則 13/14/15）**：已追加至 CLAUDE.md ⬇️
 
 ### KAIROS #3 — D10 (2026-04-21)
 - (will be populated: Object Detection FOOD confidence, bgCV thresholds, MinimalistRule coverage)
