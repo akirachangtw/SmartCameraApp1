@@ -183,6 +183,9 @@ class CameraViewModel @Inject constructor(
     // v2.12.0-05: Eye-AF dynamic throttle + 4-way state machine (Step 3+4)
     // Replaces lastAutoFocusTime / AUTO_FOCUS_THROTTLE_MS (simple 2 s gate).
     private val eyeAfThrottle = com.akirachang.ai.photographer.presentation.camera.focus.FocusTriggerThrottle()
+
+    // Cueshot D6-B3: Gaze-driven Eye-AF controller — triggers AF when gaze is unaligned.
+    private val eyeAfController = com.akirachang.ai.photographer.presentation.camera.components.EyeAfController()
     // v2.12.0-06 H2.2: 4500ms > CameraX autoCancelDuration(4s) — withTimeout fires only if HAL
     // is truly stuck. Previously 3000ms caused premature TIMEOUT before CameraX could deliver
     // success (e.g. rear-camera face focus succeeds at ~3.5s on some devices).
@@ -600,6 +603,7 @@ class CameraViewModel @Inject constructor(
             )
         }
         eyeAfThrottle.reset()
+        eyeAfController.reset()  // D6-B3: reset gaze-AF throttle on focus pipeline teardown
         Log.d(TAG, "[v2.12.0-15 Fix] resetFocusState: focusUiState=EMPTY, sessionId=$focusSessionId")
     }
 
@@ -1944,6 +1948,35 @@ class CameraViewModel @Inject constructor(
                 val result = analyzeCompositionUseCase(landmarkFaces, pitch, roll)
                 _state.update { it.copy(compositionResult = result, detectedFaces = landmarkFaces) }
                 Log.d(TAG, "[D2] CompositionResult: isAllAligned=${result.isAllAligned} topRule=${result.topInstruction?.name}")
+
+                // D6-B3: Gaze-driven Eye-AF — trigger AF when gaze unaligned, back camera only.
+                // Front camera guard is enforced inside EyeAfController (first line of defense).
+                val currentState = _state.value
+                val gazeAfTrigger = eyeAfController.process(
+                    compositionResult = result,
+                    faces = landmarkFaces,
+                    facing = currentState.currentCamera,
+                    previewWidth = previewWidth ?: 0,
+                    previewHeight = previewHeight ?: 0,
+                )
+                if (gazeAfTrigger != null) {
+                    val pWidth = previewWidth ?: 0
+                    val pHeight = previewHeight ?: 0
+                    Log.i(TAG, "[D6-B3] Gaze AF trigger: stableId=${gazeAfTrigger.stableId} " +
+                        "point=(${gazeAfTrigger.viewPoint.x}, ${gazeAfTrigger.viewPoint.y})")
+                    viewModelScope.launch {
+                        try {
+                            cameraRepository.focusOnPoint(
+                                x = gazeAfTrigger.viewPoint.x,
+                                y = gazeAfTrigger.viewPoint.y,
+                                viewWidth = pWidth,
+                                viewHeight = pHeight,
+                            )
+                        } catch (e: Exception) {
+                            Log.w(TAG, "[D6-B3] Gaze AF focusOnPoint failed: ${e.message}")
+                        }
+                    }
+                }
             }
             .catch { e -> Log.e(TAG, "[D2] observeCompositionAdvice error", e) }
             .launchIn(viewModelScope)

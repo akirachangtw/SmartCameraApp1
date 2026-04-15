@@ -106,6 +106,7 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            isReturnDefaultValues = true  // D6-B3: allow Log.* in unit-tested controllers
         }
     }
 }
