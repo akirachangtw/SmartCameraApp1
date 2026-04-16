@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-15 by D7-B2-T2 ✅ — Rule 16 冷卻護城河：`isPtfCooldownActive()` companion pure fn + `timeProvider` internal test seam；4 個負向測試（哨兵首發 / 三步驟冷卻 / 邊界 ±1ms）。Build ✅ / UnitTests 192t/0failed/48skipped / Lint 0 new。Commit 1 (code): c4da634
-**Current Day**: D7 Batch-2 ✅ DONE — 大快門 80dp + ✕ 退出按鈕 + 首次教學 hint + Rule 16 負向測試全數完成，QA ✅ / SV 待執行 / Traycer 待終審
+**Last Updated**: 2026-04-16 by D7-B3 ✅ — androidTest 回歸驗證：BreathingRingTest(5) / EdgeWarmthLayerTest(9) / HaloGuidanceLayerTest(4) = 18t/0failed on Sony XQ-BT52。修復 CameraScreenBreathingRingTest compile error（ShutterButtonSection.cameraMode 簽名補齊）。Commit: 85f8517
+**Current Day**: D7 Batch-3 ✅ DONE — androidTest 18/18 通過，Normal 模式 UI 功能 Regression-free。SV ✅ / Traycer 待終審
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -214,7 +214,7 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 > 🏁 **D7-B2-FIX ✅ DONE。PassToFriendMode → CameraMode 架構歸位；Multi-mode roadmap 基礎建立。Build ✅ / UnitTests 188t/0failed/48skipped / Lint 0 new。**
 
-### D7-Batch 2 — PTF 大快門 UI + 首次教學 + ✕ 退出 🔄 WIP (2026-04-15)
+### D7-Batch 2 — PTF 大快門 UI + 首次教學 + ✕ 退出 ✅ DONE (2026-04-15)
 
 | Ticket | 任務 | Status | 檔案 |
 |--------|------|--------|------|
@@ -224,6 +224,15 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D7-B2-T2 | Rule 16 冷卻護城河負向測試：`isPtfCooldownActive()` companion pure fn；`timeProvider` internal test seam；4 個 JVM 測試（哨兵首發 / 三步驟冷卻 / 邊界 1000ms / 邊界 999ms）| ✅ DONE | `CameraViewModel.kt` (+isPtfCooldownActive companion fn, +timeProvider internal)；`CameraViewModelTest.kt` (+4 tests) |
 
 > 🏁 **D7-Batch2 ✅ DONE。大快門 80dp + ✕ 退出按鈕 + 首次教學 hint + Rule 16 負向測試全數完成。Build ✅ / UnitTests 192t/0failed/48skipped / Lint 0 new。Commit 1 (code): c4da634。**
+
+### D7-Batch 3 — 系統級回歸驗證 ✅ DONE (2026-04-16)
+
+| Ticket | 內容 | 狀態 | 影響檔案 |
+|--------|------|------|---------|
+| D7-B3-T1 | `CameraScreenBreathingRingTest` compile fix：補齊 `cameraMode = CameraMode.Normal` 至 5 個 `ShutterButtonSection` 呼叫點（D7-B2 簽名變更連帶修復） | ✅ DONE | `androidTest/.../CameraScreenBreathingRingTest.kt` |
+| D7-B3-T2 | androidTest 回歸驗證（Sony XQ-BT52）：`CameraScreenBreathingRingTest`(5) + `EdgeWarmthLayerTest`(9) + `HaloGuidanceLayerTest`(4) = 18t/0failed | ✅ DONE | — |
+
+> 🏁 **D7-Batch3 ✅ DONE。Normal 模式 UI 功能 Regression-free。androidTest 18/18 PASS on Sony XQ-BT52。SV ✅ PASS / Traycer 待終審。**
 
 ---
 
