@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import com.akirachang.ai.photographer.domain.camera.CameraMode
 import org.junit.Rule
 import org.junit.Test
 
@@ -43,6 +44,7 @@ class CameraScreenBreathingRingTest {
             ShutterButtonSection(
                 isAligned = true,
                 isCapturing = false,
+                cameraMode = CameraMode.Normal,
                 onCapture = {},
             )
         }
@@ -67,6 +69,7 @@ class CameraScreenBreathingRingTest {
             ShutterButtonSection(
                 isAligned = true,
                 isCapturing = true,
+                cameraMode = CameraMode.Normal,
                 onCapture = {},
             )
         }
@@ -91,6 +94,7 @@ class CameraScreenBreathingRingTest {
             ShutterButtonSection(
                 isAligned = false,
                 isCapturing = false,
+                cameraMode = CameraMode.Normal,
                 onCapture = {},
             )
         }
@@ -119,6 +123,7 @@ class CameraScreenBreathingRingTest {
             ShutterButtonSection(
                 isAligned = isAligned,
                 isCapturing = false,
+                cameraMode = CameraMode.Normal,
                 onCapture = {},
             )
         }
@@ -153,6 +158,7 @@ class CameraScreenBreathingRingTest {
             ShutterButtonSection(
                 isAligned = isAligned,
                 isCapturing = false,
+                cameraMode = CameraMode.Normal,
                 onCapture = {},
             )
         }
