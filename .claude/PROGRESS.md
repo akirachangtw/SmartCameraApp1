@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-16 by D7-B3 ✅ — androidTest 回歸驗證：BreathingRingTest(5) / EdgeWarmthLayerTest(9) / HaloGuidanceLayerTest(4) = 18t/0failed on Sony XQ-BT52。修復 CameraScreenBreathingRingTest compile error（ShutterButtonSection.cameraMode 簽名補齊）。Commit: 85f8517
-**Current Day**: D7 Batch-3 ✅ DONE — androidTest 18/18 通過，Normal 模式 UI 功能 Regression-free。SV ✅ / Traycer 待終審
+**Last Updated**: 2026-04-16 by D7 ✅ CLOSED — Traycer Path A 終審通過。CameraMode sealed interface 架構正確；PTF/Normal 模式隔離零外溢；Rule 16 負向測試 4/4；androidTest 18/18 on Sony XQ-BT52。D7 全線封板。
+**Current Day**: D7 ✅ CLOSED (Path A, Traycer 終審) — 準備進入 D8（PTF 規則引擎 + Halo 牽引）
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -19,6 +19,7 @@
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
 | D2 SV Gate | Pass | ✅ PASS (D2-T3/T4/FIX-01 全數閉環，Traycer Path A) | 🟢 |
+| D7 SV Gate | Pass | ✅ PASS (SV ✅ + androidTest 18/18 + Traycer Path A 終審，2026-04-16) | 🟢 |
 | CompositionScore Residue | 0 grep hits | 0 grep hits (Domain 層完全清除) | 🟢 |
 | IFTR Pipeline | Ready by D14 | ❌ Not started | — |
 
@@ -232,7 +233,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D7-B3-T1 | `CameraScreenBreathingRingTest` compile fix：補齊 `cameraMode = CameraMode.Normal` 至 5 個 `ShutterButtonSection` 呼叫點（D7-B2 簽名變更連帶修復） | ✅ DONE | `androidTest/.../CameraScreenBreathingRingTest.kt` |
 | D7-B3-T2 | androidTest 回歸驗證（Sony XQ-BT52）：`CameraScreenBreathingRingTest`(5) + `EdgeWarmthLayerTest`(9) + `HaloGuidanceLayerTest`(4) = 18t/0failed | ✅ DONE | — |
 
-> 🏁 **D7-Batch3 ✅ DONE。Normal 模式 UI 功能 Regression-free。androidTest 18/18 PASS on Sony XQ-BT52。SV ✅ PASS / Traycer 待終審。**
+> 🏁 **D7-Batch3 ✅ DONE。Normal 模式 UI 功能 Regression-free。androidTest 18/18 PASS on Sony XQ-BT52。SV ✅ PASS / Traycer ✅ Path A 終審通過。**
+
+> 🏆 **D7 ✅ CLOSED (Path A)。架構：CameraMode sealed interface 位於 domain 層，可擴展。模式隔離：PTF UI 元素嚴格隔離，Normal 模式零外溢。測試覆蓋：Rule 16 負向測試 4/4；androidTest 回歸 18/18 on Sony XQ-BT52。準備進入 D8。**
 
 ---
 
