@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-17 by D8-B2-T3 ✅ DONE — HaloGuidanceLayerTest PTF 三路徑 androidTest 補寫（NO_FACE/unaligned/aligned）；Normal 4條 + PTF 3條 = 7/7 PASS on Sony XQ-BT52 HQ616R2713。Build ✅；Unit Tests 224t/0failed；Lint 0 new warnings (559 pre-existing)。
-**Current Day**: D8 🔄 WIP — B1 ✅ DONE；B2-T1+T2+T3 ✅ DONE；下一步：/sv 語意審查 → Traycer 終審 → D8-B2 封板
+**Last Updated**: 2026-04-17 by D8 ✅ CLOSED — B1（PTF Domain 層 + DI）+ B1-FIX（EMA 生命週期防禦）+ B2（PTF Halo 牽引 UI + androidTest 7/7）全數封板。SV ✅ PASS / Traycer ✅ Path A / Commit 歸檔完成。
+**Current Day**: D8 ✅ CLOSED — 下一步：D9（ML Kit Object Detection FOOD + 美食對焦 3s 冷卻）
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -20,6 +20,7 @@
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
 | D2 SV Gate | Pass | ✅ PASS (D2-T3/T4/FIX-01 全數閉環，Traycer Path A) | 🟢 |
 | D7 SV Gate | Pass | ✅ PASS (SV ✅ + androidTest 18/18 + Traycer Path A 終審，2026-04-16) | 🟢 |
+| D8 SV Gate | Pass | ✅ PASS (SV ✅ + androidTest 7/7 + Traycer Path A 終審，2026-04-17) | 🟢 |
 | CompositionScore Residue | 0 grep hits | 0 grep hits (Domain 層完全清除) | 🟢 |
 | IFTR Pipeline | Ready by D14 | ❌ Not started | — |
 
@@ -252,13 +253,17 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 > 🏁 **D8-B1 ✅ CLOSED (Path A)**：T1+T2+T3+FIX 全數完成。架構決策固化於 `plans/architecture/D8_B1_Architecture_Memo.md`。Build ✅ / Unit Tests 224t/0failed / Lint 0 new / ELF ✅ ALIGNED / Traycer ✅ Path A。
 
-### D8-Batch 2 — Halo 牽引 UI
+### D8-Batch 2 — Halo 牽引 UI ✅ CLOSED (Path A, 2026-04-17)
 
 | Ticket | 任務 | Status | 檔案 |
 |--------|------|--------|------|
 | D8-B2-T1 | Halo 共用策略確認（/normal 對齊）：沿用 `HaloGuidanceLayer`，透過 `isPtfMode` + `ptfAlignmentResult` 兩 props 區分行為 | ✅ DONE | `plans/architecture/D8_B1_Architecture_Memo.md` (決策5) |
-| D8-B2-T2 | PTF Halo 牽引動畫實作：`isPtfMode`/`ptfAlignmentResult` 新 props；三狀態渲染（NO_FACE隱藏/金色偏亮弧/綠色呼吸）；`animateColorAsState` 300ms tween；引力場 `atan2` brightArc；`CameraScreen` 接線（移除 `if (!isPtfActive)` guard） | ✅ DONE | `HaloGuidanceLayer.kt`, `CameraScreen.kt` |
+| D8-B2-T2 | PTF Halo 牽引動畫實作：`isPtfMode`/`ptfAlignmentResult` 新 props；三狀態渲染（NO_FACE隱藏/金色偏亮弧/綠色呼吸）；`animateColorAsState` 300ms tween；引力場 `atan2` brightArc；`CameraScreen` 接線（移除 `if (!isPtfActive)` guard）；`hasPtfFace` 廢棄變數清除 | ✅ DONE | `HaloGuidanceLayer.kt`, `CameraScreen.kt` |
 | D8-B2-T3 | androidTest 回歸驗證（Normal 4條 + PTF 3條 = 7/7 PASS on Sony XQ-BT52） | ✅ DONE | `androidTest/.../camera/components/HaloGuidanceLayerTest.kt` |
+
+> 🏁 **D8-B2 ✅ CLOSED (Path A)**：T1+T2+T3 全數完成。Build ✅ / Unit Tests 224t/0failed / Lint 0 new / androidTest 7/7 Sony XQ-BT52 / SV ✅ / Traycer ✅ Path A。
+
+> 🏆 **D8 ✅ CLOSED (Path A)**：B1（PTF Domain 層 + DI）+ B1-FIX（EMA 四道防線）+ B2（PTF Halo 牽引 UI）全數封板。Commits: `1470333`(code) `eb9b107`(docs) `1919117`(build) `ad2d9bc`(handoff)。準備進入 D9。
 
 ---
 
