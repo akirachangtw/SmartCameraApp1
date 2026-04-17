@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-16 by D7 ✅ CLOSED — Traycer Path A 終審通過。CameraMode sealed interface 架構正確；PTF/Normal 模式隔離零外溢；Rule 16 負向測試 4/4；androidTest 18/18 on Sony XQ-BT52。D7 全線封板。
-**Current Day**: D7 ✅ CLOSED (Path A, Traycer 終審) — 準備進入 D8（PTF 規則引擎 + Halo 牽引）
+**Last Updated**: 2026-04-17 by D8-B1-T1+T2 ✅ DONE — PTF 規則引擎 Domain 層完成。PtfRuleAggregator AND-Gate (Framing/Angle/Level)；PtfOffset normalized [0,1]；@PtfEngine DI 隔離；Unit Tests 224t/0failed（PTF 新增 32 tests）；SV ✅ PASS；Traycer 終審待執行。
+**Current Day**: D8 🔄 WIP — B1-T1+T2 ✅ DONE；下一步：B1-T3 ViewModel 接線 → B2 Halo 牽引 UI
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -236,6 +236,28 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 > 🏁 **D7-Batch3 ✅ DONE。Normal 模式 UI 功能 Regression-free。androidTest 18/18 PASS on Sony XQ-BT52。SV ✅ PASS / Traycer ✅ Path A 終審通過。**
 
 > 🏆 **D7 ✅ CLOSED (Path A)。架構：CameraMode sealed interface 位於 domain 層，可擴展。模式隔離：PTF UI 元素嚴格隔離，Normal 模式零外溢。測試覆蓋：Rule 16 負向測試 4/4；androidTest 回歸 18/18 on Sony XQ-BT52。準備進入 D8。**
+
+---
+
+## 📋 D8 Tickets — PTF 規則引擎 + Halo 牽引 (進行中)
+
+### D8-Batch 1 — PTF Domain 層 + DI
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D8-B1-T1 | Domain 模型新建：`PtfOffset`、`PtfRuleName`、`PtfAlignmentResult`；`PtfRuleAggregator` AND-Gate 骨架；`@PtfEngine` DI 綁定 | ✅ DONE | `domain/composition/PtfOffset.kt` (新建), `PtfRuleName.kt` (新建), `PtfAlignmentResult.kt` (新建), `PtfRuleAggregator.kt` (新建), `di/CompositionModule.kt` (+@PtfEngine) |
+| D8-B1-T2 | 三規則獨立物件：`PtfFramingRule`（Euclidean <0.12）、`PtfAngleRule`（pitch ∈[-15,25]）、`PtfLevelRule`（roll <8°）；單元測試 32 tests（Aggregator 10 + Framing 7 + Angle 8 + Level 7） | ✅ DONE | `rules/PtfFramingRule.kt` (新建), `rules/PtfAngleRule.kt` (新建), `rules/PtfLevelRule.kt` (新建), `test/.../PtfRuleAggregatorTest.kt` (新建), `test/.../Ptf*RuleTest.kt` (新建 x3) |
+| D8-B1-T3 | ViewModel 接線：注入 `@PtfEngine PtfRuleAggregator`；`CameraState.ptfAlignmentResult` 新增；`observePtfAlignment()` flow（PTF 模式下呼叫 aggregator）；EMA(α=0.3) face bbox 平滑 | 🔲 TODO | `CameraViewModel.kt`, `CameraState.kt` |
+
+> 📐 **D8-B1 架構決策已固化**：`plans/architecture/D8_B1_Architecture_Memo.md`。SV ✅ PASS；Unit Tests 224t/0failed；Traycer 終審待執行。
+
+### D8-Batch 2 — Halo 牽引 UI
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D8-B2-T1 | Halo 共用策略確認（/normal 對齊）：沿用 `HaloGuidanceLayer` 或新建 `PtfHaloLayer`；normalized offset → px 轉換 | 🔲 TODO | — |
+| D8-B2-T2 | PTF Halo 牽引動畫實作：`#50C864` 綠色 Halo 引力場；`PtfOffset` → Compose Offset 轉換 | 🔲 TODO | `HaloGuidanceLayer.kt` 或新建 |
+| D8-B2-T3 | androidTest 回歸驗證 | 🔲 TODO | — |
 
 ---
 
