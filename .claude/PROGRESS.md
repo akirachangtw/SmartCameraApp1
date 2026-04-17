@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-17 by D8-B1-FIX ✅ DONE — EMA 生命週期防禦落地。observePtfAlignment() 函數入口強制清零 ptfEmaX/Y；onCleared() 補 EMA reset + ptfAlignmentResult → NO_FACE。Build ✅；Unit Tests 224t/0failed；Lint 0 new warnings。
-**Current Day**: D8 🔄 WIP — B1-T1+T2+T3+FIX ✅ DONE；下一步：/sv → Traycer → D8-B2 Halo 牽引 UI
+**Last Updated**: 2026-04-17 by D8-B2-T3 ✅ DONE — HaloGuidanceLayerTest PTF 三路徑 androidTest 補寫（NO_FACE/unaligned/aligned）；Normal 4條 + PTF 3條 = 7/7 PASS on Sony XQ-BT52 HQ616R2713。Build ✅；Unit Tests 224t/0failed；Lint 0 new warnings (559 pre-existing)。
+**Current Day**: D8 🔄 WIP — B1 ✅ DONE；B2-T1+T2+T3 ✅ DONE；下一步：/sv 語意審查 → Traycer 終審 → D8-B2 封板
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -256,9 +256,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 
 | Ticket | 任務 | Status | 檔案 |
 |--------|------|--------|------|
-| D8-B2-T1 | Halo 共用策略確認（/normal 對齊）：沿用 `HaloGuidanceLayer` 或新建 `PtfHaloLayer`；normalized offset → px 轉換 | 🔲 TODO | — |
-| D8-B2-T2 | PTF Halo 牽引動畫實作：`#50C864` 綠色 Halo 引力場；`PtfOffset` → Compose Offset 轉換 | 🔲 TODO | `HaloGuidanceLayer.kt` 或新建 |
-| D8-B2-T3 | androidTest 回歸驗證 | 🔲 TODO | — |
+| D8-B2-T1 | Halo 共用策略確認（/normal 對齊）：沿用 `HaloGuidanceLayer`，透過 `isPtfMode` + `ptfAlignmentResult` 兩 props 區分行為 | ✅ DONE | `plans/architecture/D8_B1_Architecture_Memo.md` (決策5) |
+| D8-B2-T2 | PTF Halo 牽引動畫實作：`isPtfMode`/`ptfAlignmentResult` 新 props；三狀態渲染（NO_FACE隱藏/金色偏亮弧/綠色呼吸）；`animateColorAsState` 300ms tween；引力場 `atan2` brightArc；`CameraScreen` 接線（移除 `if (!isPtfActive)` guard） | ✅ DONE | `HaloGuidanceLayer.kt`, `CameraScreen.kt` |
+| D8-B2-T3 | androidTest 回歸驗證（Normal 4條 + PTF 3條 = 7/7 PASS on Sony XQ-BT52） | ✅ DONE | `androidTest/.../camera/components/HaloGuidanceLayerTest.kt` |
 
 ---
 
