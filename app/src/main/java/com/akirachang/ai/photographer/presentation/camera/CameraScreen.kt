@@ -348,15 +348,16 @@ fun CameraScreen(
                     // D6-B2-T2: Halo guidance layer — face-tracking Halo + EyeLine guide.
                     // isAllAligned==true → hidden (state-mutex with EdgeWarmthLayer breathing + ShutterRing).
                     // compositionResult==null → hidden (Constitution §6 default-value trap defense).
-                    // D7-B1-T3: isPtfActive → hidden (PTF minimalist UI; green Halo replaces guidance).
+                    // D8-B2-T2: isPtfMode prop controls PTF vs Normal rendering path internally;
+                    // guard removed so PTF Halo (gold gravitational arc + green breathing) can render.
                     // Z-order: above EdgeWarmthLayer, below CompositionGuideOverlay.
-                    if (!isPtfActive) {
-                        HaloGuidanceLayer(
-                            faces = state.detectedFaces,
-                            compositionResult = state.compositionResult,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
+                    HaloGuidanceLayer(
+                        faces = state.detectedFaces,
+                        compositionResult = state.compositionResult,
+                        isPtfMode = isPtfActive,
+                        ptfAlignmentResult = state.ptfAlignmentResult,
+                        modifier = Modifier.fillMaxSize(),
+                    )
 
                     // v2.4.0: Visual composition guide frame
                     // D7-B1-T3: Hidden in PTF mode (minimalist UI).

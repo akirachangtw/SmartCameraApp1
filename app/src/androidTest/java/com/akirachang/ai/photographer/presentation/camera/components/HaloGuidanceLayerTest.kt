@@ -8,6 +8,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.akirachang.ai.photographer.domain.composition.PtfAlignmentResult
+import com.akirachang.ai.photographer.domain.composition.PtfOffset
+import com.akirachang.ai.photographer.domain.composition.PtfRuleName
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import com.akirachang.ai.photographer.domain.model.RuleScore
@@ -213,6 +216,103 @@ class HaloGuidanceLayerTest {
             .assertDoesNotExist()
 
         composeTestRule.onNodeWithTag(TAG_HALO_HIDDEN)
+            .assertDoesNotExist()
+    }
+
+    // ── PTF mode tests (D8-B2-T3) ───────────────────────────────────────────
+
+    /**
+     * [PTF — NO_FACE] isPtfMode=true + PtfAlignmentResult.NO_FACE →
+     * TAG_HALO_PTF_NO_FACE Box in composition; UNALIGNED and ALIGNED absent.
+     */
+    @Test
+    fun test_ptfMode_noFace_showsNoFaceProbe() {
+        composeTestRule.setContent {
+            HaloGuidanceLayer(
+                faces = emptyList(),
+                compositionResult = null,
+                isPtfMode = true,
+                ptfAlignmentResult = PtfAlignmentResult.NO_FACE,
+            )
+        }
+
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_NO_FACE)
+            .assertExists("TAG_HALO_PTF_NO_FACE must be in composition when NO_FACE sentinel")
+
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_UNALIGNED)
+            .assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_ALIGNED)
+            .assertDoesNotExist()
+    }
+
+    /**
+     * [PTF — Unaligned] isPtfMode=true + failedRules non-empty →
+     * TAG_HALO_PTF_UNALIGNED Canvas in composition; NO_FACE and ALIGNED absent.
+     */
+    @Test
+    fun test_ptfMode_unaligned_showsUnalignedProbe() {
+        composeTestRule.mainClock.autoAdvance = false
+
+        val unalignedPtfResult = PtfAlignmentResult(
+            isAligned = false,
+            offset = PtfOffset(dx = 0.15f, dy = 0.10f),
+            failedRules = listOf(PtfRuleName.FRAMING),
+        )
+
+        composeTestRule.setContent {
+            HaloGuidanceLayer(
+                faces = listOf(fakeFace),
+                compositionResult = null,
+                isPtfMode = true,
+                ptfAlignmentResult = unalignedPtfResult,
+            )
+        }
+
+        composeTestRule.mainClock.advanceTimeBy(150L)
+
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_UNALIGNED)
+            .assertExists("TAG_HALO_PTF_UNALIGNED must be in composition when failedRules non-empty")
+
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_NO_FACE)
+            .assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_ALIGNED)
+            .assertDoesNotExist()
+    }
+
+    /**
+     * [PTF — Aligned] isPtfMode=true + isAligned=true →
+     * TAG_HALO_PTF_ALIGNED Canvas in composition; NO_FACE and UNALIGNED absent.
+     */
+    @Test
+    fun test_ptfMode_aligned_showsAlignedProbe() {
+        composeTestRule.mainClock.autoAdvance = false
+
+        val alignedPtfResult = PtfAlignmentResult(
+            isAligned = true,
+            offset = PtfOffset.ZERO,
+            failedRules = emptyList(),
+        )
+
+        composeTestRule.setContent {
+            HaloGuidanceLayer(
+                faces = listOf(fakeFace),
+                compositionResult = null,
+                isPtfMode = true,
+                ptfAlignmentResult = alignedPtfResult,
+            )
+        }
+
+        composeTestRule.mainClock.advanceTimeBy(150L)
+
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_ALIGNED)
+            .assertExists("TAG_HALO_PTF_ALIGNED must be in composition when isAligned=true")
+
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_NO_FACE)
+            .assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_UNALIGNED)
             .assertDoesNotExist()
     }
 }
