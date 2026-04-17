@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-17 by D8-B1-T1+T2 ✅ DONE — PTF 規則引擎 Domain 層完成。PtfRuleAggregator AND-Gate (Framing/Angle/Level)；PtfOffset normalized [0,1]；@PtfEngine DI 隔離；Unit Tests 224t/0failed（PTF 新增 32 tests）；SV ✅ PASS；Traycer 終審待執行。
-**Current Day**: D8 🔄 WIP — B1-T1+T2 ✅ DONE；下一步：B1-T3 ViewModel 接線 → B2 Halo 牽引 UI
+**Last Updated**: 2026-04-17 by D8-B1-T3 ✅ DONE — ViewModel 接線完成。@PtfEngine PtfRuleAggregator 注入；CameraState.ptfAlignmentResult 欄位落地；observePtfAlignment() flow（PassToFriend 模式下 AND-Gate 呼叫）；EMA(α=0.3) face bbox 平滑。Build ✅；Unit Tests 224t/0failed；Lint 0 new errors。
+**Current Day**: D8 🔄 WIP — B1-T1+T2+T3 ✅ DONE；下一步：/sv → Traycer → B2 Halo 牽引 UI
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -14,7 +14,7 @@
 |--------|--------|---------|--------|
 | On Schedule | D3 | D1 ✅ CLOSED；D2 ✅ CLOSED (Path A)；D3 ✅ CLOSED (FIX-01~04 + T4 全數完成) | 🟢 |
 | Compile | 0 errors | 0 errors (DeviceDebug + EmulatorDebug) | 🟢 |
-| Unit Tests | 0 failed | 0 failed (192t/48skipped/144pass — D7-B2-T2 新增 4 Rule 16 冷卻測試) | 🟢 |
+| Unit Tests | 0 failed | 0 failed (224t/48skipped/176pass — D8-B1-T1+T2 新增 32 PTF tests) | 🟢 |
 | Lint New Errors | 0 new | 0 new (D7-Batch2 全改檔案零新增警告) | 🟢 |
 | OpenCV Residue | 0 grep hits | 0 grep hits | 🟢 |
 | D1 SV Gate | Pass | ✅ PASS (FIX-01~06 全數閉環，Traycer Path A) | 🟢 |
@@ -247,9 +247,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 |--------|------|--------|------|
 | D8-B1-T1 | Domain 模型新建：`PtfOffset`、`PtfRuleName`、`PtfAlignmentResult`；`PtfRuleAggregator` AND-Gate 骨架；`@PtfEngine` DI 綁定 | ✅ DONE | `domain/composition/PtfOffset.kt` (新建), `PtfRuleName.kt` (新建), `PtfAlignmentResult.kt` (新建), `PtfRuleAggregator.kt` (新建), `di/CompositionModule.kt` (+@PtfEngine) |
 | D8-B1-T2 | 三規則獨立物件：`PtfFramingRule`（Euclidean <0.12）、`PtfAngleRule`（pitch ∈[-15,25]）、`PtfLevelRule`（roll <8°）；單元測試 32 tests（Aggregator 10 + Framing 7 + Angle 8 + Level 7） | ✅ DONE | `rules/PtfFramingRule.kt` (新建), `rules/PtfAngleRule.kt` (新建), `rules/PtfLevelRule.kt` (新建), `test/.../PtfRuleAggregatorTest.kt` (新建), `test/.../Ptf*RuleTest.kt` (新建 x3) |
-| D8-B1-T3 | ViewModel 接線：注入 `@PtfEngine PtfRuleAggregator`；`CameraState.ptfAlignmentResult` 新增；`observePtfAlignment()` flow（PTF 模式下呼叫 aggregator）；EMA(α=0.3) face bbox 平滑 | 🔲 TODO | `CameraViewModel.kt`, `CameraState.kt` |
+| D8-B1-T3 | ViewModel 接線：注入 `@PtfEngine PtfRuleAggregator`；`CameraState.ptfAlignmentResult` 新增；`observePtfAlignment()` flow（PTF 模式下呼叫 aggregator）；EMA(α=0.3) face bbox 平滑 | ✅ DONE | `presentation/camera/CameraViewModel.kt` (+@PtfEngine inject, +ptfEmaX/Y, +PTF_EMA_ALPHA, +observePtfAlignment()), `presentation/camera/CameraState.kt` (+ptfAlignmentResult: PtfAlignmentResult = NO_FACE) |
 
-> 📐 **D8-B1 架構決策已固化**：`plans/architecture/D8_B1_Architecture_Memo.md`。SV ✅ PASS；Unit Tests 224t/0failed；Traycer 終審待執行。
+> 📐 **D8-B1 架構決策已固化**：`plans/architecture/D8_B1_Architecture_Memo.md`。SV 待執行；Unit Tests 224t/0failed；Traycer 終審待執行。
 
 ### D8-Batch 2 — Halo 牽引 UI
 
