@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-17 by D8-B1-T3 ✅ DONE — ViewModel 接線完成。@PtfEngine PtfRuleAggregator 注入；CameraState.ptfAlignmentResult 欄位落地；observePtfAlignment() flow（PassToFriend 模式下 AND-Gate 呼叫）；EMA(α=0.3) face bbox 平滑。Build ✅；Unit Tests 224t/0failed；Lint 0 new errors。
-**Current Day**: D8 🔄 WIP — B1-T1+T2+T3 ✅ DONE；下一步：/sv → Traycer → B2 Halo 牽引 UI
+**Last Updated**: 2026-04-17 by D8-B1-FIX ✅ DONE — EMA 生命週期防禦落地。observePtfAlignment() 函數入口強制清零 ptfEmaX/Y；onCleared() 補 EMA reset + ptfAlignmentResult → NO_FACE。Build ✅；Unit Tests 224t/0failed；Lint 0 new warnings。
+**Current Day**: D8 🔄 WIP — B1-T1+T2+T3+FIX ✅ DONE；下一步：/sv → Traycer → D8-B2 Halo 牽引 UI
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -248,8 +248,9 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D8-B1-T1 | Domain 模型新建：`PtfOffset`、`PtfRuleName`、`PtfAlignmentResult`；`PtfRuleAggregator` AND-Gate 骨架；`@PtfEngine` DI 綁定 | ✅ DONE | `domain/composition/PtfOffset.kt` (新建), `PtfRuleName.kt` (新建), `PtfAlignmentResult.kt` (新建), `PtfRuleAggregator.kt` (新建), `di/CompositionModule.kt` (+@PtfEngine) |
 | D8-B1-T2 | 三規則獨立物件：`PtfFramingRule`（Euclidean <0.12）、`PtfAngleRule`（pitch ∈[-15,25]）、`PtfLevelRule`（roll <8°）；單元測試 32 tests（Aggregator 10 + Framing 7 + Angle 8 + Level 7） | ✅ DONE | `rules/PtfFramingRule.kt` (新建), `rules/PtfAngleRule.kt` (新建), `rules/PtfLevelRule.kt` (新建), `test/.../PtfRuleAggregatorTest.kt` (新建), `test/.../Ptf*RuleTest.kt` (新建 x3) |
 | D8-B1-T3 | ViewModel 接線：注入 `@PtfEngine PtfRuleAggregator`；`CameraState.ptfAlignmentResult` 新增；`observePtfAlignment()` flow（PTF 模式下呼叫 aggregator）；EMA(α=0.3) face bbox 平滑 | ✅ DONE | `presentation/camera/CameraViewModel.kt` (+@PtfEngine inject, +ptfEmaX/Y, +PTF_EMA_ALPHA, +observePtfAlignment()), `presentation/camera/CameraState.kt` (+ptfAlignmentResult: PtfAlignmentResult = NO_FACE) |
+| D8-B1-FIX | EMA 生命週期防禦：① `observePtfAlignment()` 函數入口強制清零 ptfEmaX/Y（Flow 訂閱起點防禦）；② `onCleared()` 補 EMA reset + ptfAlignmentResult → NO_FACE；③ FIX-02 調查確認 PtfRuleAggregator 無魔術數字（0.12f/15f/25f/8f 均已提取為 companion 具名常數）| ✅ DONE | `presentation/camera/CameraViewModel.kt` |
 
-> 📐 **D8-B1 架構決策已固化**：`plans/architecture/D8_B1_Architecture_Memo.md`。SV 待執行；Unit Tests 224t/0failed；Traycer 終審待執行。
+> 🏁 **D8-B1 ✅ CLOSED (Path A)**：T1+T2+T3+FIX 全數完成。架構決策固化於 `plans/architecture/D8_B1_Architecture_Memo.md`。Build ✅ / Unit Tests 224t/0failed / Lint 0 new / ELF ✅ ALIGNED / Traycer ✅ Path A。
 
 ### D8-Batch 2 — Halo 牽引 UI
 
@@ -480,6 +481,8 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 - [ ] [Infrastructure] Kapt to KSP migration (保留 K2 編譯器相容性，推遲至 MVP D6 階段後再執行，目前維持 1.9 降級模式以避免依賴重構的範圍蔓延)
 - [ ] [Coordinate] 移除 CameraViewModel 中的 `previewWidth ?: 800` 魔術數字，推遲至 D3 座標映射重建時，改由 CameraCharacteristics 驅動。（D2 為純正規化數學引擎，Pixel 座標轉換排除在外）
 - 🟡 **D5-TECH-DEBT-01**: Compose Test 基礎設施升級 (待執行於 KAIROS #2) — (1) `HDRWarningOverlayTest` 3 個狀態切換測試改 `mutableStateOf` 重寫；(2) `EdgeWarmthLayerTest` Sony race condition 補 `waitForIdle()` 防護；(3) 全局 `setContent` 重複掛載違規掃描。驗收：Sony XQ-BT52 全 PASS。詳見 `devspec/feature_record_Backlog.md`。
+- 🟡 **SSOT-ORPHAN-RULE-01** (D8-B1-FIX 調查產出，推遲至 D10 KAIROS #3)：`PtfRuleAggregator` 聚合邏輯與 `PtfFramingRule`/`PtfAngleRule`/`PtfLevelRule` 獨立類別存在雙份邏輯風險。FIX-02 調查確認無魔術數字（容忍度已提取為 companion 具名常數），但 Aggregator 內部仍有部分聚合條件與子規則重複，待 D10 KAIROS #3 進行全域收斂與委派重構。
+- 📝 **Candidate Rule 17** (D8-B1-FIX 提煉，待 KAIROS #3 正式歸入 CLAUDE.md)：**有狀態平滑器 Lifecycle Gate 規則**：任何持有跨幀狀態的平滑器（EMA、卡爾曼、IIR）必須在以下四個防線分別重置：① Flow/協程訂閱起點（函數入口）；② Session/模式切換時；③ 空資料幀時；④ `onCleared()`。缺少任一防線均可能造成跨 Session Halo 閃爍或首幀誤導。觸發來源：D8-B1-FIX `observePtfAlignment()` EMA 跨 Session 殘留防禦。
 
 ---
 
