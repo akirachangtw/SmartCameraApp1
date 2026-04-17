@@ -61,7 +61,8 @@
       "Bash(.gradlew *)",
       "Bash(tail *)",
       "Bash(bash tools/check_elf_alignment.sh *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(adb -s *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
