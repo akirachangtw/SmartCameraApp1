@@ -2082,6 +2082,9 @@ class CameraViewModel @Inject constructor(
      *   - imageWidth or imageHeight <= 0 → skip (invalid geometry, retain last result).
      */
     private fun observePtfAlignment() {
+        // Clear EMA state at subscription start to prevent stale values from a prior session.
+        ptfEmaX = null
+        ptfEmaY = null
         _state
             .map { Pair(it.detectionResult, it.cameraMode) }
             .distinctUntilChanged()
@@ -2465,6 +2468,10 @@ class CameraViewModel @Inject constructor(
         // Reset new pipeline components on ViewModel cleared
         focusTargetTracker.reset()
         newFocusTriggerThrottle.reset()
+        // Clear PTF EMA state and reset alignment result on ViewModel destruction.
+        ptfEmaX = null
+        ptfEmaY = null
+        _state.update { it.copy(ptfAlignmentResult = PtfAlignmentResult.NO_FACE) }
     }
 
 }
