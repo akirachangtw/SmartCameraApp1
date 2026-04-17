@@ -11,6 +11,7 @@ import com.akirachang.ai.photographer.domain.model.focus.FocusUiState
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import com.akirachang.ai.photographer.domain.camera.CameraMode
+import com.akirachang.ai.photographer.domain.composition.PtfAlignmentResult
 
 /**
  * Camera UI State
@@ -66,6 +67,9 @@ data class CameraState(
     // Cueshot D7-B2-FIX: Top-level camera mode (replaces PassToFriendMode).
     // Distinct from ptfState (Tap-to-Focus). Normal by default.
     val cameraMode: CameraMode = CameraMode.Normal,
+    // Cueshot D8-B1-T3: PTF alignment result from PtfRuleAggregator AND-Gate.
+    // Defaults to NO_FACE sentinel; updated only when cameraMode == PassToFriend.
+    val ptfAlignmentResult: PtfAlignmentResult = PtfAlignmentResult.NO_FACE,
 )
 
 /**

@@ -55,6 +55,9 @@ import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 import com.akirachang.ai.photographer.BuildConfig
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
+import com.akirachang.ai.photographer.di.PtfEngine
+import com.akirachang.ai.photographer.domain.composition.PtfAlignmentResult
+import com.akirachang.ai.photographer.domain.composition.PtfRuleAggregator
 import kotlin.math.abs
 import javax.inject.Inject
 
@@ -69,7 +72,8 @@ class CameraViewModel @Inject constructor(
     private val ptfPreferences: PtfPreferences,
     private val capabilityDetector: com.akirachang.ai.photographer.data.source.camera.CameraCapabilityDetector,
     private val imuCompensator: ImuCompensator,
-    val deviceCapabilityTier: DeviceCapabilityTier
+    val deviceCapabilityTier: DeviceCapabilityTier,
+    @PtfEngine private val ptfRuleAggregator: PtfRuleAggregator,
 ) : ViewModel() {
 
     companion object {
@@ -137,6 +141,9 @@ class CameraViewModel @Inject constructor(
             lastCaptureTimeMs: Long,
             cooldownMs: Long = 1000L
         ): Boolean = now - lastCaptureTimeMs < cooldownMs
+
+        // D8-B1-T3: EMA smoothing factor for PTF face bbox center coordinates.
+        internal const val PTF_EMA_ALPHA = 0.3f
     }
 
     private data class TapToFocusIntent(
@@ -285,6 +292,12 @@ class CameraViewModel @Inject constructor(
     // Production: System.currentTimeMillis(). Tests: inject a controllable clock.
     internal var timeProvider: () -> Long = { System.currentTimeMillis() }
 
+    // D8-B1-T3 — EMA(α=0.3) smoothing state for PTF face bbox center.
+    // Applied upstream before passing to PtfRuleAggregator (aggregator is stateless pure fn).
+    // Sentinel null = no prior frame; first frame accepted as-is.
+    private var ptfEmaX: Float? = null
+    private var ptfEmaY: Float? = null
+
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
 
@@ -386,6 +399,9 @@ class CameraViewModel @Inject constructor(
                 Log.i(TAG, "[v2.12.0-11] isFixedFocusLens updated: $isFixed → CameraState synced")
             }
         }
+
+        // D8-B1-T3: PTF alignment flow — active only in PassToFriend mode.
+        observePtfAlignment()
     }
 
     /**
@@ -2051,6 +2067,87 @@ class CameraViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         Log.i(TAG, "[D2] Composition rule engine pipeline initialized (raw, no debounce)")
+    }
+
+    /**
+     * D8-B1-T3: PTF alignment pipeline.
+     *
+     * Observes [CameraState.detectionResult] and [CameraState.cameraMode] in lockstep.
+     * When [CameraMode.PassToFriend] is active, applies EMA(α=0.3) to the first detected
+     * face's bbox center, then feeds into [PtfRuleAggregator] AND-Gate.
+     *
+     * Guard clauses:
+     *   - cameraMode != PassToFriend → emit NO_FACE sentinel, reset EMA state.
+     *   - No faces detected → PtfRuleAggregator receives null face → NO_FACE sentinel.
+     *   - imageWidth or imageHeight <= 0 → skip (invalid geometry, retain last result).
+     */
+    private fun observePtfAlignment() {
+        _state
+            .map { Pair(it.detectionResult, it.cameraMode) }
+            .distinctUntilChanged()
+            .onEach { (det, mode) ->
+                if (mode !is CameraMode.PassToFriend) {
+                    // Reset EMA state on mode exit to avoid stale smoothing on next PTF entry.
+                    ptfEmaX = null
+                    ptfEmaY = null
+                    _state.update { it.copy(ptfAlignmentResult = PtfAlignmentResult.NO_FACE) }
+                    return@onEach
+                }
+
+                if (det == null) return@onEach
+                val imgW = det.imageWidth.toFloat()
+                val imgH = det.imageHeight.toFloat()
+                if (imgW <= 0f || imgH <= 0f) return@onEach
+
+                val orientation = _orientationState.value
+                val pitch = orientation?.pitch ?: 0f
+                val roll = orientation?.roll ?: 0f
+
+                val firstFace = det.faces.firstOrNull()
+                val smoothedFace = if (firstFace != null) {
+                    // Compute raw normalized bbox center from ML Kit pixel coords.
+                    val rawCx = ((firstFace.boundingBox.left + firstFace.boundingBox.right) / 2f) / imgW
+                    val rawCy = ((firstFace.boundingBox.top + firstFace.boundingBox.bottom) / 2f) / imgH
+
+                    // EMA(α=0.3): first frame passes through as-is (null sentinel).
+                    val smoothedCx = ptfEmaX?.let { PTF_EMA_ALPHA * rawCx + (1f - PTF_EMA_ALPHA) * it } ?: rawCx
+                    val smoothedCy = ptfEmaY?.let { PTF_EMA_ALPHA * rawCy + (1f - PTF_EMA_ALPHA) * it } ?: rawCy
+                    ptfEmaX = smoothedCx
+                    ptfEmaY = smoothedCy
+
+                    val halfW = ((firstFace.boundingBox.right - firstFace.boundingBox.left) / 2f) / imgW
+                    val halfH = ((firstFace.boundingBox.bottom - firstFace.boundingBox.top) / 2f) / imgH
+                    com.akirachang.ai.photographer.domain.model.FaceLandmarkData(
+                        boundingBoxNormalized = android.graphics.RectF(
+                            smoothedCx - halfW,
+                            smoothedCy - halfH,
+                            smoothedCx + halfW,
+                            smoothedCy + halfH,
+                        ),
+                        leftEyeNormalized = null,
+                        rightEyeNormalized = null,
+                        headEulerAngleY = firstFace.headEulerAngleY,
+                    )
+                } else {
+                    ptfEmaX = null
+                    ptfEmaY = null
+                    null
+                }
+
+                val ptfResult = ptfRuleAggregator.aggregate(
+                    face = smoothedFace,
+                    devicePitch = pitch,
+                    deviceRoll = roll,
+                )
+                _state.update { it.copy(ptfAlignmentResult = ptfResult) }
+                Log.d(TAG, "[D8-B1-T3] PTF: isAligned=${ptfResult.isAligned} " +
+                    "offset=(${ptfResult.offset.dx},${ptfResult.offset.dy}) " +
+                    "failed=${ptfResult.failedRules}")
+            }
+            .catch { e -> Log.e(TAG, "[D8-B1-T3] observePtfAlignment error", e) }
+            .launchIn(viewModelScope)
+
+        Log.i(TAG, "[D8-B1-T3] PTF alignment pipeline initialized")
     }
 
     /**
