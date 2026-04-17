@@ -59,7 +59,8 @@
       "Bash(uniq *)",
       "Bash(gradlew *)",
       "Bash(.gradlew *)",
-      "Bash(tail *)"
+      "Bash(tail *)",
+      "Bash(bash tools/check_elf_alignment.sh *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
