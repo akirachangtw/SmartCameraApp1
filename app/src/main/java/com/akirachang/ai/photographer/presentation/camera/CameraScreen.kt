@@ -106,7 +106,6 @@ import com.akirachang.ai.photographer.presentation.camera.components.CameraTabBa
 import com.akirachang.ai.photographer.presentation.camera.components.PermissionRequestScreen
 import com.akirachang.ai.photographer.presentation.camera.components.PreviewViewportContainer
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.CompositionGuideOverlay
-import com.akirachang.ai.photographer.presentation.camera.components.overlay.CompositionHint
 // v2.2.2: Removed DetectionOverlay and DirectionalIndicator - visual clutter
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.FPSOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.GridOverlay
@@ -151,8 +150,6 @@ fun CameraScreen(
 
     // Overlay visibility preferences (v2.1.0)
     val isGridEnabled by viewModel.isGridEnabled.collectAsState(initial = true)
-    val isCompositionHintEnabled by viewModel.isCompositionHintEnabled.collectAsState(initial = true)
-    val isDetectionOverlayEnabled by viewModel.isDetectionOverlayEnabled.collectAsState(initial = true)
     val isLevelIndicatorEnabled by viewModel.isLevelIndicatorEnabled.collectAsState(initial = true)
     val isDirectionalIndicatorEnabled by viewModel.isDirectionalIndicatorEnabled.collectAsState(initial = true)
     // D7-B2-T3: PTF onboarding flag — false on first launch; true after user taps "Got it".
@@ -284,94 +281,67 @@ fun CameraScreen(
             ) { contentBounds ->
                 // 相機預覽
                 // v2.8.6 Phase 2: PreviewView migration with dual-path rendering
-                // v2.5.1: Refactored to use Bitmap preview from CameraInputSource
-                // v2.0 Phase 2: Pass size callback for accurate composition analysis
-                // v2.8.6 Phase 0: A/B Test - Conditionally disable preview
                 val previewBitmap by viewModel.previewBitmap.collectAsState()
-                if (!CameraViewModel.DEBUG_DISABLE_BITMAP_PREVIEW) {
-                    CameraPreview(
-                        previewBitmap = previewBitmap,
-                        supportsNativePreview = viewModel.supportsNativePreview(),
-                        onPreviewViewCreated = { previewView ->
-                            // v2.8.6 Phase 2: Connect PreviewView to CameraX Preview UseCase
-                            viewModel.setPreviewSurfaceProvider(previewView.surfaceProvider)
-                            // v2.11.1 P0-1: Pass PreviewView reference for accurate coordinate transformation
-                            viewModel.setPreviewView(previewView)
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                        onSizeChanged = { width, height ->
-                            viewModel.updatePreviewSize(width, height)
-                        }
-                    )
-                } else {
-                    // Test A: Show black screen instead of bitmap preview
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "A/B Test: Preview Disabled\n(Investigating Graphics Memory)",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                CameraPreview(
+                    previewBitmap = previewBitmap,
+                    supportsNativePreview = viewModel.supportsNativePreview(),
+                    onPreviewViewCreated = { previewView ->
+                        viewModel.setPreviewSurfaceProvider(previewView.surfaceProvider)
+                        // v2.11.1 P0-1: Pass PreviewView reference for accurate coordinate transformation
+                        viewModel.setPreviewView(previewView)
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    onSizeChanged = { width, height ->
+                        viewModel.updatePreviewSize(width, height)
                     }
-                }
+                )
 
-                // v2.2.2: DetectionOverlay removed - visual clutter, not professional
-                // User feedback: Green face boxes and blue object labels are distracting
+                // D3-T2: Rule of Thirds grid overlay (Cueshot ambient UI)
+                // Solid lines, White alpha=0.5f, Z-order: above preview, below control UI
+                // Bound to isGridEnabled (viewModel.isGridEnabled); hidden until contentBounds calculated
+                // D7-B1-T3: Hidden in PTF mode (minimalist UI — green Halo takes over guidance).
+                GridOverlay(
+                    modifier = Modifier.fillMaxSize(),
+                    visible = isGridEnabled && !contentBounds.isEmpty && !isPtfActive,
+                    contentBounds = contentBounds.takeIf { !it.isEmpty }
+                )
 
-                // v2.8.6 Phase 0: A/B Test - Conditionally disable overlays (Test B)
-                if (!CameraViewModel.DEBUG_DISABLE_OVERLAYS) {
-                    // D3-T2: Rule of Thirds grid overlay (Cueshot ambient UI)
-                    // Solid lines, White alpha=0.5f, Z-order: above preview, below control UI
-                    // Bound to isGridEnabled (viewModel.isGridEnabled); hidden until contentBounds calculated
-                    // D7-B1-T3: Hidden in PTF mode (minimalist UI — green Halo takes over guidance).
-                    GridOverlay(
-                        modifier = Modifier.fillMaxSize(),
-                        visible = isGridEnabled && !contentBounds.isEmpty && !isPtfActive,
-                        contentBounds = contentBounds.takeIf { !it.isEmpty }
-                    )
+                // D4-T1/T2: Edge Warmth ambient UI — directional gradient + floating dots.
+                // D4-T2: isAligned switches to 4-edge uniform green breathing (SSOT §2.5).
+                // Z-order: above GridOverlay, below HaloGuidanceLayer.
+                EdgeWarmthLayer(
+                    modifier = Modifier.fillMaxSize(),
+                    deviceRoll = state.deviceRoll,
+                    capabilityTier = viewModel.deviceCapabilityTier,
+                    isAligned = isAligned,
+                )
 
-                    // D4-T1/T2: Edge Warmth ambient UI — directional gradient + floating dots.
-                    // D4-T2: isAligned switches to 4-edge uniform green breathing (SSOT §2.5).
-                    // Z-order: above GridOverlay, below HaloGuidanceLayer.
-                    EdgeWarmthLayer(
-                        modifier = Modifier.fillMaxSize(),
-                        deviceRoll = state.deviceRoll,
-                        capabilityTier = viewModel.deviceCapabilityTier,
-                        isAligned = isAligned,
-                    )
+                // D6-B2-T2: Halo guidance layer — face-tracking Halo + EyeLine guide.
+                // isAllAligned==true → hidden (state-mutex with EdgeWarmthLayer breathing + ShutterRing).
+                // compositionResult==null → hidden (Constitution §6 default-value trap defense).
+                // D8-B2-T2: isPtfMode prop controls PTF vs Normal rendering path internally;
+                // guard removed so PTF Halo (gold gravitational arc + green breathing) can render.
+                // Z-order: above EdgeWarmthLayer, below CompositionGuideOverlay.
+                HaloGuidanceLayer(
+                    faces = state.detectedFaces,
+                    compositionResult = state.compositionResult,
+                    isPtfMode = isPtfActive,
+                    ptfAlignmentResult = state.ptfAlignmentResult,
+                    modifier = Modifier.fillMaxSize(),
+                )
 
-                    // D6-B2-T2: Halo guidance layer — face-tracking Halo + EyeLine guide.
-                    // isAllAligned==true → hidden (state-mutex with EdgeWarmthLayer breathing + ShutterRing).
-                    // compositionResult==null → hidden (Constitution §6 default-value trap defense).
-                    // D8-B2-T2: isPtfMode prop controls PTF vs Normal rendering path internally;
-                    // guard removed so PTF Halo (gold gravitational arc + green breathing) can render.
-                    // Z-order: above EdgeWarmthLayer, below CompositionGuideOverlay.
-                    HaloGuidanceLayer(
-                        faces = state.detectedFaces,
-                        compositionResult = state.compositionResult,
-                        isPtfMode = isPtfActive,
-                        ptfAlignmentResult = state.ptfAlignmentResult,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-
-                    // v2.4.0: Visual composition guide frame
-                    // D7-B1-T3: Hidden in PTF mode (minimalist UI).
-                    if (!isPtfActive) {
-                        val guideData = when (val currentState = compositionState) {
-                            is CompositionState.Good -> currentState.guideData
-                            is CompositionState.NeedsAdjustment -> currentState.guideData
-                            else -> null
-                        }
-                        CompositionGuideOverlay(
-                            guideData = guideData,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                // v2.4.0: Visual composition guide frame
+                // D7-B1-T3: Hidden in PTF mode (minimalist UI).
+                if (!isPtfActive) {
+                    val guideData = when (val currentState = compositionState) {
+                        is CompositionState.Good -> currentState.guideData
+                        is CompositionState.NeedsAdjustment -> currentState.guideData
+                        else -> null
                     }
+                    CompositionGuideOverlay(
+                        guideData = guideData,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
 
                 // v2.2.0: HDR/Lighting warning overlay (highest priority - shows on top)
@@ -381,22 +351,6 @@ fun CameraScreen(
                     hdrMode = state.hdrMode,  // v2.6.1: Pass HDR mode to control visibility
                     modifier = Modifier.fillMaxSize()
                 )
-
-                // v1.5.0: Composition hint overlay
-                // v2.1.0: Respect overlay preferences
-                // D7-B1-T3: Hidden in PTF mode (minimalist UI).
-                if (isCompositionHintEnabled && !isPtfActive) {
-                    CompositionHint(
-                        compositionState = compositionState,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 56.dp) // Below HDR warning
-                    )
-                }
-
-                // v2.2.2: DirectionalIndicator removed - arrows point to wrong locations
-                // User feedback: Cannot find correct composition points by following arrows
-                // Solution: Text-based CompositionHint is clearer and more accurate
 
                 // v2.1.0: Level indicator overlay
                 if (isLevelIndicatorEnabled) {
@@ -430,24 +384,6 @@ fun CameraScreen(
                 )
 
                 // v2.12.0-19: Lock overlay unified into FocusIndicatorOverlay (Yellow via OverlayColor.YELLOW)
-
-                // 簡易計數顯示（可選，保留用於調試）
-                state.detectionResult?.let { result ->
-                    Text(
-                        text = "${result.faces.size} 人臉, ${result.objects.size} 物件",
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 16.dp)
-                            .background(
-                                color = Color.Black.copy(alpha = 0.6f),
-                                shape = MaterialTheme.shapes.small
-                            )
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
 
                 // 頂部控制欄（閃光燈、設定）
                 Row(

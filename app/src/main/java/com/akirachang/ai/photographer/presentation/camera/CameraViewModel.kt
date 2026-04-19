@@ -79,15 +79,6 @@ class CameraViewModel @Inject constructor(
     companion object {
         private const val TAG = "CameraViewModel"
 
-        // Phase 0: A/B Test Flags for Graphics Memory Investigation (v2.8.6)
-        // Phase 0 completed - Test A confirmed root cause, proceeding to Phase 2
-        // Test A: Disable bitmap preview to isolate Graphics memory source
-        // Test B: Disable overlays to check if overlay rendering causes leak
-        // Test C: Disable analysis to check if ML/composition analysis causes leak
-        const val DEBUG_DISABLE_BITMAP_PREVIEW = false  // Test A switch - DISABLED (Phase 0 complete)
-        const val DEBUG_DISABLE_OVERLAYS = false         // Test B switch
-        const val DEBUG_DISABLE_ANALYSIS = false         // Test C switch
-
         // v2.12.0-03: Adaptive ML Kit throttle for CameraViewModel (device mode)
         private const val ADAPTIVE_THROTTLE_DEFAULT_MS  = 200L
         private const val ADAPTIVE_THROTTLE_MIN_MS      = 100L
@@ -1713,12 +1704,6 @@ class CameraViewModel @Inject constructor(
      */
     @OptIn(FlowPreview::class)
     private fun observePreviewForAnalysis() {
-        // v2.8.6 Phase 0: A/B Test C - Skip analysis if DEBUG_DISABLE_ANALYSIS is true
-        if (DEBUG_DISABLE_ANALYSIS) {
-            Log.d(TAG, "[A/B Test C] Analysis disabled for Graphics memory investigation")
-            return
-        }
-
         previewBitmap
             .filterNotNull()
             // v2.12.0-03: sample at MIN rate; EWMA adds delay() after processing for adaptive pacing
