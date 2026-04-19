@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-17 by D8 ✅ CLOSED — B1（PTF Domain 層 + DI）+ B1-FIX（EMA 生命週期防禦）+ B2（PTF Halo 牽引 UI + androidTest 7/7）全數封板。SV ✅ PASS / Traycer ✅ Path A / Commit 歸檔完成。
-**Current Day**: D8 ✅ CLOSED — 下一步：D9（ML Kit Object Detection FOOD + 美食對焦 3s 冷卻）
+**Last Updated**: 2026-04-19 by D8-FIX-04 ✅ DONE — LevelIndicator 角度文字移除 + DEBUG_DISABLE_* 三旗焦土清除。Build ✅ / 224t 0f / Lint 0 new errors (556 warnings, -1 vs baseline)。D8-FIX 全線完成。
+**Current Day**: D8-FIX ✅ CLOSED — 下一步：D9（ML Kit Object Detection FOOD + 美食對焦 3s 冷卻）
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -264,6 +264,26 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 > 🏁 **D8-B2 ✅ CLOSED (Path A)**：T1+T2+T3 全數完成。Build ✅ / Unit Tests 224t/0failed / Lint 0 new / androidTest 7/7 Sony XQ-BT52 / SV ✅ / Traycer ✅ Path A。
 
 > 🏆 **D8 ✅ CLOSED (Path A)**：B1（PTF Domain 層 + DI）+ B1-FIX（EMA 四道防線）+ B2（PTF Halo 牽引 UI）全數封板。Commits: `1470333`(code) `eb9b107`(docs) `1919117`(build) `ad2d9bc`(handoff)。準備進入 D9。
+
+### D8-FIX — MVP UI 表面層除錯殘留絞殺 ✅ DONE (2026-04-19)
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D8-FIX-01 | 刪除 A/B Test 黑屏佔位 `Text("A/B Test: Preview Disabled...")`；移除整個 `else { Box { Text(...) } }` 分支 | ✅ DONE | `presentation/camera/CameraScreen.kt` (L307-321 刪除) |
+| D8-FIX-02 | 刪除人臉/物件計數除錯器 `.let { Text("N 人臉, M 物件") }`；刪除 `if (isCompositionHintEnabled && !isPtfActive) { CompositionHint(...) }` block；清除 unused import + unused collectAsState | ✅ DONE | `presentation/camera/CameraScreen.kt` (L434-450、L385-395、L109、L154 刪除) |
+| D8-FIX-03 | LevelIndicator `${animatedRoll.toInt()}°` 調查 → **正式功能**（連動 lineColor + animatedRoll），非 Debug。⚠️ 不刪除，升級為架構票 | ⚠️ 架構票 | `components/overlay/LevelIndicator.kt` L126 — 待後續決策 |
+
+> 🏁 **D8-FIX ✅ DONE**：FIX-01 + FIX-02 完成。Build ✅ / Unit Tests 224t/0failed / Lint 0 new errors。FIX-03 LevelIndicator 角度文字為正式 UI，須另開架構票決定保留/移除。
+
+### D8-FIX-04 — LevelIndicator 角度文字移除 + DEBUG Flag 焦土 ✅ DONE (2026-04-19)
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D8-FIX-04a | `LevelIndicator.kt` 刪除 Text 角度顯示區塊（L124-134）+ 清除 unused imports (MaterialTheme, Text, FontWeight, sp) | ✅ DONE | `presentation/camera/components/overlay/LevelIndicator.kt` |
+| D8-FIX-04b | `CameraViewModel.kt` 刪除三個 DEBUG flags（DEBUG_DISABLE_BITMAP_PREVIEW / OVERLAYS / ANALYSIS）+ `observePreviewForAnalysis()` 中 DEBUG_DISABLE_ANALYSIS early-return block | ✅ DONE | `presentation/camera/CameraViewModel.kt` |
+| D8-FIX-04c | `CameraScreen.kt` 移除兩個 if-debug-flag 包裝（保留正常路徑代碼）+ 修正縮排 + 清除 A/B Test comments | ✅ DONE | `presentation/camera/CameraScreen.kt` |
+
+> 🏆 **D8-FIX ✅ CLOSED**：FIX-01~04 全數完成。Build ✅ / Unit Tests 224t/0failed / Lint 0 errors (556 warnings, -1 vs prev baseline)。拍攝畫面 UI 全面純淨化：零 debug text、零 debug flag、零角度數值渲染。準備進入 D9。
 
 ---
 
