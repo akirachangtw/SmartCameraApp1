@@ -3,14 +3,19 @@ package com.akirachang.ai.photographer.presentation.camera.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PeopleAlt
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -22,12 +27,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.akirachang.ai.photographer.R
 import com.akirachang.ai.photographer.domain.camera.CameraMode
-import androidx.compose.foundation.clickable
 
 // D7-B1: Testability probes for CameraTabBar.
 internal const val TAG_TAB_NORMAL = "TabNormal"
@@ -35,8 +37,8 @@ internal const val TAG_TAB_PTF = "TabPassToFriend"
 
 private val PTF_ACTIVE_COLOR = Color(0xFF50C864)   // Cueshot green — SSOT §2.5
 private val TAB_BG_COLOR = Color.Black.copy(alpha = 0.55f)
-private val TAB_SELECTED_TEXT = Color.Black
-private val TAB_UNSELECTED_TEXT = Color.White.copy(alpha = 0.75f)
+private val TAB_SELECTED_ICON = Color.Black
+private val TAB_UNSELECTED_ICON = Color.White.copy(alpha = 0.75f)
 
 /**
  * Camera mode tab bar — Cueshot D7-B2-FIX.
@@ -68,15 +70,15 @@ internal fun CameraTabBar(
         animationSpec = tween(durationMillis = 300),
         label = "ptf_tab_bg",
     )
-    val normalTextColor by animateColorAsState(
-        targetValue = if (!isPtfActive) TAB_SELECTED_TEXT else TAB_UNSELECTED_TEXT,
+    val normalIconColor by animateColorAsState(
+        targetValue = if (!isPtfActive) TAB_SELECTED_ICON else TAB_UNSELECTED_ICON,
         animationSpec = tween(durationMillis = 300),
-        label = "normal_tab_text",
+        label = "normal_tab_icon",
     )
-    val ptfTextColor by animateColorAsState(
-        targetValue = if (isPtfActive) TAB_SELECTED_TEXT else TAB_UNSELECTED_TEXT,
+    val ptfIconColor by animateColorAsState(
+        targetValue = if (isPtfActive) TAB_SELECTED_ICON else TAB_UNSELECTED_ICON,
         animationSpec = tween(durationMillis = 300),
-        label = "ptf_tab_text",
+        label = "ptf_tab_icon",
     )
 
     Row(
@@ -104,11 +106,11 @@ internal fun CameraTabBar(
                 .semantics { role = Role.Tab }
                 .testTag(TAG_TAB_NORMAL),
         ) {
-            Text(
-                text = stringResource(R.string.tab_normal_mode),
-                color = normalTextColor,
-                fontSize = 14.sp,
-                fontWeight = if (!isPtfActive) FontWeight.Bold else FontWeight.Normal,
+            Icon(
+                imageVector = Icons.Filled.CameraAlt,
+                contentDescription = stringResource(R.string.tab_normal_mode_cd),
+                tint = normalIconColor,
+                modifier = Modifier.size(22.dp),
             )
         }
 
@@ -127,11 +129,11 @@ internal fun CameraTabBar(
                 .semantics { role = Role.Tab }
                 .testTag(TAG_TAB_PTF),
         ) {
-            Text(
-                text = stringResource(R.string.tab_pass_to_friend),
-                color = ptfTextColor,
-                fontSize = 14.sp,
-                fontWeight = if (isPtfActive) FontWeight.Bold else FontWeight.Normal,
+            Icon(
+                imageVector = Icons.Filled.PeopleAlt,
+                contentDescription = stringResource(R.string.tab_pass_to_friend_cd),
+                tint = ptfIconColor,
+                modifier = Modifier.size(22.dp),
             )
         }
     }

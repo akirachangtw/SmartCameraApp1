@@ -145,13 +145,11 @@ fun CameraScreen(
     val compositionState by viewModel.compositionState.collectAsState() // v1.5.0
     val lightingState by viewModel.lightingState.collectAsState() // v2.2.0
     val orientationState by viewModel.orientationState.collectAsState() // v2.1.0
-    val guidelineResults by viewModel.guidelineResults.collectAsState() // v2.7.0 Phase 2 Sprint 4
     val currentFps by viewModel.currentFps.collectAsState() // v2.8.4 Quick Win
 
     // Overlay visibility preferences (v2.1.0)
     val isGridEnabled by viewModel.isGridEnabled.collectAsState(initial = true)
     val isLevelIndicatorEnabled by viewModel.isLevelIndicatorEnabled.collectAsState(initial = true)
-    val isDirectionalIndicatorEnabled by viewModel.isDirectionalIndicatorEnabled.collectAsState(initial = true)
     // D7-B2-T3: PTF onboarding flag — false on first launch; true after user taps "Got it".
     // Rule 14: collectAsState at composable top before any conditional logic.
     val isPtfOnboarded by viewModel.isPtfOnboarded.collectAsState(initial = true)
