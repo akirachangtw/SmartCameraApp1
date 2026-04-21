@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-19 by D8-FIX-04 ✅ DONE — LevelIndicator 角度文字移除 + DEBUG_DISABLE_* 三旗焦土清除。Build ✅ / 224t 0f / Lint 0 new errors (556 warnings, -1 vs baseline)。D8-FIX 全線完成。
-**Current Day**: D8-FIX ✅ CLOSED — 下一步：D9（ML Kit Object Detection FOOD + 美食對焦 3s 冷卻）
+**Last Updated**: 2026-04-20 by D8-VERIFY Session 2nd — D8-VERIFY-03 P4/P5 Icon-First UI 完成（CameraTabBar Text→Icon，中文 hardcode 全數清除）。Build ✅ / 403t 0f / Lint 0 new errors。
+**Current Day**: D8-VERIFY 🔄 進行中 — P4/P5 ✅ DONE；P3/P6/P7 待續。
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -283,7 +283,44 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | D8-FIX-04b | `CameraViewModel.kt` 刪除三個 DEBUG flags（DEBUG_DISABLE_BITMAP_PREVIEW / OVERLAYS / ANALYSIS）+ `observePreviewForAnalysis()` 中 DEBUG_DISABLE_ANALYSIS early-return block | ✅ DONE | `presentation/camera/CameraViewModel.kt` |
 | D8-FIX-04c | `CameraScreen.kt` 移除兩個 if-debug-flag 包裝（保留正常路徑代碼）+ 修正縮排 + 清除 A/B Test comments | ✅ DONE | `presentation/camera/CameraScreen.kt` |
 
-> 🏆 **D8-FIX ✅ CLOSED**：FIX-01~04 全數完成。Build ✅ / Unit Tests 224t/0failed / Lint 0 errors (556 warnings, -1 vs prev baseline)。拍攝畫面 UI 全面純淨化：零 debug text、零 debug flag、零角度數值渲染。準備進入 D9。
+### D8-FIX-FINAL — Traycer Path B 孤兒代碼清除 ✅ DONE (2026-04-20)
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D8-FIX-FINAL | `CameraScreen.kt` 刪除 `isDetectionOverlayEnabled` 孤兒 collectAsState 宣告（Traycer Path B 裁示：無消費者，違反焦土政策）；Build ✅ 確認無 regression | ✅ DONE | `presentation/camera/CameraScreen.kt` |
+
+> 🏆 **D8-FIX ✅ CLOSED**：FIX-01~04 + FINAL 全數完成。Build ✅ / Unit Tests 224t/0failed / Lint 0 errors (556 warnings)。拍攝畫面 UI 全面純淨化：零 debug text、零 debug flag、零角度數值渲染、零孤兒 collectAsState。Git 歸檔完成：`86427f8`(code) `291df8f`(docs)。
+
+### D8-VERIFY — D1-D8 實機功能驗測 🔄 進行中 (2026-04-20)
+
+**觸發原因**: 實機截圖顯示 MVP 預期與實際表現差異，暫停 D9 開發
+**驗測依據**: `plans/cso_briefing/D1_D8_Verification_Checklist_v1.md`
+**驗測設備**: Sony XQ-BT52 (HQ616R2713) + Pixel 9a (59131JEBF17244)
+
+| 問題 | 嚴重度 | 狀態 |
+|------|--------|------|
+| P1: 「未偵測到主體」文字違反 Ambient UI | 🔴 Critical | ✅ 根因確認：舊 APK（Apr 17），`CompositionHint.kt` 孤兒已刪除，代碼無此路徑 |
+| P2: 角度數值「-3°」直接顯示畫面 | 🔴 Critical | ✅ FIX-04a 已清除；模擬器舊 APK 顯示非代碼問題 |
+| P3: 人臉可見但無 Halo / Edge Warmth | 🟡 High | ✅ 偵察確認：模擬器無 IMU/無真實人臉，非代碼 bug；需實機驗測 |
+| P4: 底部「拍照」中文文字標籤 | 🔴 Critical | ✅ DONE — Icon-First: `CameraAlt` icon + `tab_normal_mode_cd` contentDescription |
+| P5: 底部「遞手機」中文文字標籤 | 🟡 High | ✅ DONE — Icon-First: `PeopleAlt` icon + `tab_pass_to_friend_cd` contentDescription |
+| P6: 缺少圖片瀏覽入口 | 🟡 High | 🔄 待 CSO 決策（功能缺失 vs 推遲至 D13）|
+| P7: 頂部工具列圖示功能不明 | 🟡 Medium | 🔄 待驗測 |
+
+### D8-VERIFY 焦土清理（2026-04-20 Session 2250，未 commit）
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D8-VERIFY-01a | `CompositionHint.kt` 孤兒整個刪除（161行 dead code，呼叫點已於 86427f8 清除）| ✅ DONE (未 commit) | `components/overlay/CompositionHint.kt` (deleted) |
+| D8-VERIFY-01b | `CameraScreen.kt` 刪除孤兒 `guidelineResults` collectAsState（v2.7.0 殘留）| ✅ DONE (未 commit) | `CameraScreen.kt` L148 |
+| D8-VERIFY-01c | `CameraScreen.kt` 刪除孤兒 `isDirectionalIndicatorEnabled` collectAsState（無消費者）| ✅ DONE (未 commit) | `CameraScreen.kt` L154 |
+
+### D8-VERIFY-03 — P4/P5 Icon-First UI Refactoring ✅ DONE (2026-04-20)
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D8-VERIFY-03 | `CameraTabBar.kt` 底部 Tab 全面 Icon-First：`Text("拍照")` → `Icon(CameraAlt)`；`Text("遞手機")` → `Icon(PeopleAlt)`；contentDescription 使用 `stringResource`；`strings.xml` 移除 2 個中文 hardcode key | ✅ DONE (未 commit) | `components/CameraTabBar.kt`, `res/values/strings.xml` |
+| D8-VF-01a | `DetectionOverlay` Release 洩漏稽核：掛載點已於 v2.2.2 移除，Composable 為孤兒，零洩漏風險確認。殭屍鏈（`OverlayPreferences` + `CameraViewModel.isDetectionOverlayEnabled` + `SettingsScreen` toggle）延後至 D10 KAIROS #3 焦土清理，**不影響 D1-D8 驗測完整性，不阻塞 D9 恢復**。| ✅ DONE (audit only, 0F 0L) | — |
 
 ---
 
