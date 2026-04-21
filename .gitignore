@@ -58,3 +58,4 @@ tmp/
 
 # Personal local settings (machine-specific, not shared)
 CLAUDE.local.md
+normal_dump.xml
