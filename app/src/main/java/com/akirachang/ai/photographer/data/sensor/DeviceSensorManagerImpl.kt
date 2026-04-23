@@ -85,16 +85,15 @@ class DeviceSensorManagerImpl(context: Context) : DeviceSensorManager, Orientati
      */
     override fun areSensorsAvailable(): Boolean {
         val hasAccelerometer = accelerometer != null
-        val hasMagnetometer = magnetometer != null
 
         if (!hasAccelerometer) {
             Log.w(TAG, "Accelerometer not available")
         }
-        if (!hasMagnetometer) {
-            Log.w(TAG, "Magnetometer not available")
+        if (magnetometer == null) {
+            Log.w(TAG, "Magnetometer not available — accelerometer-only mode will be used")
         }
 
-        return hasAccelerometer && hasMagnetometer
+        return hasAccelerometer
     }
 
     /**
@@ -147,16 +146,16 @@ class DeviceSensorManagerImpl(context: Context) : DeviceSensorManager, Orientati
             accelerometer,
             SensorManager.SENSOR_DELAY_UI
         )
-        val magnetometerRegistered = sensorManager.registerListener(
-            listener,
-            magnetometer,
-            SensorManager.SENSOR_DELAY_UI
-        )
+        if (magnetometer != null) {
+            sensorManager.registerListener(listener, magnetometer, SensorManager.SENSOR_DELAY_UI)
+        } else {
+            Log.w(TAG, "Magnetometer absent — using accelerometer-only orientation (roll via atan2)")
+        }
 
-        if (accelerometerRegistered && magnetometerRegistered) {
+        if (accelerometerRegistered) {
             Log.i(TAG, "Orientation tracking started")
         } else {
-            Log.e(TAG, "Failed to register sensor listeners")
+            Log.e(TAG, "Failed to register accelerometer listener")
         }
 
         // Unregister when Flow is cancelled
@@ -175,27 +174,39 @@ class DeviceSensorManagerImpl(context: Context) : DeviceSensorManager, Orientati
      * - orientationAngles[2]: Roll (rotation around Y axis)
      */
     private fun updateOrientationAngles() {
-        // Compute rotation matrix from accelerometer and magnetometer
-        val success = SensorManager.getRotationMatrix(
+        val rotationSuccess = SensorManager.getRotationMatrix(
             rotationMatrix,
             null,
             accelerometerReading,
             magnetometerReading
         )
 
-        if (success) {
-            // Get orientation angles from rotation matrix
+        if (rotationSuccess) {
             SensorManager.getOrientation(rotationMatrix, orientationAngles)
 
-            // Convert radians to degrees
             val azimuth = Math.toDegrees(orientationAngles[0].toDouble()).toFloat()
             val pitch = Math.toDegrees(orientationAngles[1].toDouble()).toFloat()
             val roll = Math.toDegrees(orientationAngles[2].toDouble()).toFloat()
 
-            // Apply exponential moving average for smoothing
             smoothedAzimuth = applySmoothing(smoothedAzimuth, azimuth)
             smoothedPitch = applySmoothing(smoothedPitch, pitch)
             smoothedRoll = applySmoothing(smoothedRoll, roll)
+        } else {
+            // Accelerometer-only fallback: magnetometer absent or temporarily unavailable.
+            // Azimuth is undefined without magnetometer; pitch and roll derived via atan2.
+            val accX = accelerometerReading[0]
+            val accY = accelerometerReading[1]
+            val accZ = accelerometerReading[2]
+            val pitch = Math.toDegrees(
+                Math.atan2(accY.toDouble(), Math.sqrt((accX * accX + accZ * accZ).toDouble()))
+            ).toFloat()
+            val roll = Math.toDegrees(
+                Math.atan2((-accX).toDouble(), accZ.toDouble())
+            ).toFloat()
+
+            smoothedPitch = applySmoothing(smoothedPitch, pitch)
+            smoothedRoll = applySmoothing(smoothedRoll, roll)
+            // smoothedAzimuth left unchanged — unavailable without magnetometer
         }
     }
 
