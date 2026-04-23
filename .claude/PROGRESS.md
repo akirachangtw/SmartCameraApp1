@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-21 by D8-VERIFY-FINAL QA — VERIFY-01/03/VF-01a 全數封板歸檔。Build ✅ / 403t 0f / Lint 0 new errors。Commits: `d73e79c`(code) `3d5ce74`(docs) `4824d84`(handoffs) `ab727e7`(build)。
-**Current Day**: D8-VERIFY ✅ CLOSED (P1/P2/P3/P4/P5 全數結案) — 準備送 Traycer VF-02 終審，P3 實機驗測、P6/P7 待 D9 後決策。
+**Last Updated**: 2026-04-22 by D8-HOTFIX-01 QA — BUG-1 `initOrientationListener()` crash 修復。Build ✅ / 224t 0f / Lint 0 new errors。
+**Current Day**: D8-VERIFY-P3 🔄 UNBLOCKED — BUG-1 已修復，可進行 P3 實機驗測（Portrait Halo / PTF 引力場 / EdgeWarmth roll ≥3°）。P6/P7 待 CSO 決策。
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -331,6 +331,7 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 | **[D0.3] Traycer Path B — 可驗證事實不一致** | ~~🔴 HIGH~~ | 2026-04-09 | ✅ 2026-04-09 Trust-but-verify 覆測通過，D0.1 清創關閉 |
 | **[D1] SV Path B — D1 未達驗收閉環** | ~~🔴 HIGH~~ | 2026-04-09 | ✅ 2026-04-09 FIX-01~06 全數閉環，Traycer Path A 放行 |
 | **[HDRWarningOverlayTest] 3 state-transition tests fail on device** | 🟡 LOW | 2026-04-12 | 非阻擋：預存在 `setContent` 多次呼叫設計 bug（commit `9b0abdc`）；需改用 `mutableStateOf` 驅動狀態切換。D5 前技術債登記，不影響 D4-T4 防禦網。 |
+| **[BUG-1] `LiveCameraSource.initOrientationListener()` crash** | ~~🔴 CRITICAL~~ | 2026-04-22 | ✅ 2026-04-22 D8-HOTFIX-01 修復：`context.display` → `DisplayManager.getDisplay(DEFAULT_DISPLAY)`（方案 B，Singleton-safe）。Build ✅ / 224t 0f / Lint 0 new errors。 |
 
 ---
 
