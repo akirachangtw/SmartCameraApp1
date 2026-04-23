@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Progress
 
 **Sprint**: D0-D15 (MVP)
-**Last Updated**: 2026-04-22 by D8-HOTFIX-01 QA — BUG-1 `initOrientationListener()` crash 修復。Build ✅ / 224t 0f / Lint 0 new errors。
-**Current Day**: D8-VERIFY-P3 🔄 UNBLOCKED — BUG-1 已修復，可進行 P3 實機驗測（Portrait Halo / PTF 引力場 / EdgeWarmth roll ≥3°）。P6/P7 待 CSO 決策。
+**Last Updated**: 2026-04-23 by D8-STABILIZE-FIX — I1 Sensor Fallback + I2 FocusIndicator 焦土。Build ✅ / 224t 0f / Lint 0 new errors。SV ✅ PASS。Commit: `8f520cd`。實際工時: ~30 min。
+**Current Day**: D8-STABILIZE-FIX ✅ DONE — I1 magnetometer optional (accelerometer-only fallback)；I2 FocusIndicatorOverlay 矩形/L-bracket 全數清除，僅剩圓環（SSOT v3.3 §2.4 合規）。D8-VERIFY P3/P6/P7 待實機驗測。
 **Branch**: `feature/cueshot-mvp` (from v2.12.0-24 `bad1400`)
 **Next KAIROS**: D10 (2026-04-22) — D6 KAIROS #2 已執行 (Rules 13/14/15 歸檔完成)
 
@@ -321,6 +321,20 @@ Status: 🔲 TODO → 🔄 WIP → ✅ DONE → 🚫 BLOCKED
 |--------|------|--------|------|
 | D8-VERIFY-03 | `CameraTabBar.kt` 底部 Tab 全面 Icon-First：`Text("拍照")` → `Icon(CameraAlt)`；`Text("遞手機")` → `Icon(PeopleAlt)`；contentDescription 使用 `stringResource`；`strings.xml` 移除 2 個中文 hardcode key | ✅ DONE (未 commit) | `components/CameraTabBar.kt`, `res/values/strings.xml` |
 | D8-VF-01a | `DetectionOverlay` Release 洩漏稽核：掛載點已於 v2.2.2 移除，Composable 為孤兒，零洩漏風險確認。殭屍鏈（`OverlayPreferences` + `CameraViewModel.isDetectionOverlayEnabled` + `SettingsScreen` toggle）延後至 D10 KAIROS #3 焦土清理，**不影響 D1-D8 驗測完整性，不阻塞 D9 恢復**。| ✅ DONE (audit only, 0F 0L) | — |
+
+### D8-STABILIZE-FIX — I1 Sensor Fallback + I2 FocusIndicator 焦土 ✅ DONE (2026-04-23)
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| I1-FIX-01 | `areSensorsAvailable()` 改為僅要求 accelerometer（magnetometer optional）| ✅ DONE | `DeviceSensorManagerImpl.kt` L97 |
+| I1-FIX-02 | magnetometer `registerListener` 加 null guard + Log.w accelerometer-only 模式提示 | ✅ DONE | `DeviceSensorManagerImpl.kt` L151 |
+| I1-FIX-03 | `updateOrientationAngles()` fallback：`atan2(-accX, accZ)` roll + `atan2(accY, sqrt(accX²+accZ²))` pitch | ✅ DONE | `DeviceSensorManagerImpl.kt` L179 |
+| I2-FIX-01 | 刪除 `drawTrackingFrame()` (State 2) 矩形 + L-bracket | ✅ DONE | `FocusIndicatorOverlay.kt` |
+| I2-FIX-02 | 刪除 `drawLockedFrame()` (State 3) 填充矩形 + L-bracket | ✅ DONE | `FocusIndicatorOverlay.kt` |
+| I2-FIX-03 | 刪除 Secondary boxes L-bracket forEach 區塊 | ✅ DONE | `FocusIndicatorOverlay.kt` |
+| I2-FIX-04 | State machine 統一走 `drawSearchingBase()` 圓環；清除 7 個無用 import + 廢棄變數 | ✅ DONE | `FocusIndicatorOverlay.kt` |
+
+> Build ✅ / 224t 0f / Lint 0 new / SV ✅ PASS / Commit: `8f520cd` / 實際工時: ~30 min
 
 ---
 
