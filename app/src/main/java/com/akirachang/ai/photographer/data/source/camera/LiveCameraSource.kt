@@ -2,6 +2,8 @@ package com.akirachang.ai.photographer.data.source.camera
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.hardware.display.DisplayManager
+import android.view.Display
 import android.graphics.Bitmap
 import android.os.Build
 import android.graphics.SurfaceTexture
@@ -945,7 +947,7 @@ Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
         // v2.9.6 Phase 1 Fix: Read current device orientation before enabling listener
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
         val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            context.display
+            context.getSystemService(DisplayManager::class.java)?.getDisplay(Display.DEFAULT_DISPLAY)
         } else {
             @Suppress("DEPRECATION")
             windowManager?.defaultDisplay
