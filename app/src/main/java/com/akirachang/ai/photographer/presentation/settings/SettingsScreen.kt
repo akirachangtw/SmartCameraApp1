@@ -387,6 +387,7 @@ fun SettingsScreen(
 
                     DiagnosticInfoRow("Cache Version", diagnosticInfo["Cache Version"] ?: "N/A")
                     DiagnosticInfoRow("App Version", diagnosticInfo["App Version"] ?: "N/A")
+                    DiagnosticInfoRow("Commit Hash", com.akirachang.ai.photographer.BuildConfig.GIT_COMMIT_HASH)
                     DiagnosticInfoRow("Supports 800x600", diagnosticInfo["Supports 800x600"] ?: "N/A")
                     DiagnosticInfoRow("Target Resolution", diagnosticInfo["Target Resolution"] ?: "N/A")
                     DiagnosticInfoRow("Filter Max", diagnosticInfo["Filter Max"] ?: "N/A")

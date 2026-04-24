@@ -25,6 +25,14 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
+
+        // Auto-inject git commit hash at build time for diagnostics/version verification.
+        // Uses providers.exec() to remain Configuration Cache compatible (Gradle 8+).
+        val gitHash = providers.exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+        }.standardOutput.asText.map { it.trim().ifEmpty { "unknown" } }
+            .getOrElse("unknown")
+        buildConfigField("String", "GIT_COMMIT_HASH", "\"$gitHash\"")
     }
 
     buildTypes {
