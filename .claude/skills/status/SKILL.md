@@ -22,15 +22,6 @@ disable-model-invocation: false
 - 代碼每行 ≈ 10-15 tokens
 - 上下文窗口 ≈ 200K tokens
 
-**Session 健康度**（對應 /sv /qa 標準）：
-
-| 對話輪數 | 狀態 | 建議 |
-|---------|------|------|
-| ≤ 10 turns | 🟢 | 繼續工作 |
-| 11-18 turns | 🟡 | 留意，密集 Coding 可考慮下個 Ticket 前 /compact |
-| ≥ 19 turns | 🔴 | 建議立即 /compact 開新 Session |
-
-「turns」= 本次對話中 user 訊息的總數（不含系統 Prompt）。  
-若對話中有大量代碼貼入（單則 >200 行），每則代碼額外計為 +2 turns。
+**Session 健康度**：參照 CLAUDE.md §Session Health 規則。
 
 **建議行動**：[根據狀態給出一句具體建議，例如：繼續工作 / 完成當前 Ticket 後執行 /compact / 立即 /compact]

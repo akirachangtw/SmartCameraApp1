@@ -37,13 +37,13 @@ disable-model-invocation: false
 
 - 🔴 類立即修復。🟡 類在不影響進度時修復。
 
-## Step 4: PROGRESS.md 更新
+## Step 4: 更新 PROGRESS.md Dashboard
 
 讀取 `PROGRESS.md`，更新以下欄位：
-- Today's Tickets 中已完成項目的 Status → ✅ DONE
-- Files Modified 欄位填入實際修改的檔案
-- Sprint Health 的 Compile/Lint 指標更新
-- 如有新的 Blocking Issue，加入 Blocking Issues 表
+- Sprint Health 指標（Compile/Tests/Lint）
+- Active Blockers（新增或移除阻塞點）
+- Next Actions（更新下一步）
+- 若 Ticket 完成，在 `PROGRESS_ARCHIVE.md` 對應 Day 段落標記 ✅ DONE
 
 ## 回報格式
 
@@ -55,29 +55,9 @@ disable-model-invocation: false
 📋 Progress: ✅ PROGRESS.md updated
 
 → QA 通過。可執行 /sv 進行語意驗收。
-📊 Session: ~[N] turns | [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]
+📊 Session: ~[N] turns | [狀態 emoji]
 ```
 
-或失敗時：
-```
-=== QA Report ===
-🔨 Build: 🔴 FAIL — Unresolved reference: FoodCompositionRule
-🧪 Tests: ⏭️ SKIPPED (build failed)
-🔍 Lint: ⏭️ SKIPPED
-📋 Progress: ⚠️ Blocking issue logged
+## Session 健康度
 
-→ 🚫 QA 未通過。已嘗試修復 1 次，仍有 1 項阻塞。
-📊 Session: ~[N] turns | [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]
-```
-
-## Session 健康度判斷規則
-
-在 Report 末尾，根據當前對話狀態估算 Session 健康度：
-
-| 對話輪數 | 狀態 | 建議 |
-|---------|------|------|
-| ≤ 10 turns | 🟢 | 繼續工作 |
-| 11-18 turns | 🟡 | 留意，密集 Coding 可考慮下個 Ticket 前 /compact |
-| ≥ 19 turns | 🔴 | 建議立即 /compact 開新 Session |
-
-「turns」= 本次對話中 user 訊息的總數（不含系統 Prompt）。若對話中有大量代碼貼入（單則 >200 行），每則代碼額外計為 +2 turns。
+參照 CLAUDE.md §Session Health 規則。在 Report 末尾附上上述📊摘要。

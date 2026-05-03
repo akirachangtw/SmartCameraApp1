@@ -14,7 +14,7 @@
 8. **語言紀律**：所有對話輸出、推理描述、工具呼叫說明一律使用**繁體中文或英文**。禁止在任何模式下切換到日文、韓文或其他語言。程式碼內的註解與變數名稱使用英文。
 
 9. **i18n 三道防線**：
-   - **UI 層 (Jetpack Compose)**：絕對禁止 Hardcode 顯示字串（例如 `Text("向左微調")`）。所有面向使用者的靜態文案，必須提取至 `res/values/strings.xml`，並透過 `stringResource(R.string.xxx)` 渲染。
+   - **UI 層 (Jetpack Compose)**：絕對禁止 Hardcode 顯示字串（例如 `Text("向左微調")`）。所有面向使用者者的靜態文案，必須提取至 `res/values/strings.xml`，並透過 `stringResource(R.string.xxx)` 渲染。
    - **Domain/Data 層**：Domain 層物件（如 `CompositionAdvice`）絕對禁止持有或傳遞本地化字串。必須使用「純語意代碼 (Sealed Class / Enum)」，翻譯責任下放 UI 層。
    - **AI 邏輯層 (LLM Prompt)**：串接 Gemini / Claude 時，必須在 Prompt 內動態注入 Locale 參數，強制 AI 返回正確語言的 JSON 結果。
 
@@ -45,6 +45,18 @@
 ### Sprint 節點 KAIROS 回顧
 
 在 **D2 / D6 / D10 / D13 / D15** 結束時執行 `/dream`，回顧錯誤模式、決策審計、SSOT 漂移掃描，產出新的 CLAUDE.md 規則。
+
+---
+
+## ⏱️ Session Health 判斷規則（SSOT — 所有 Skill 引用此處）
+
+| 對話輪數 | 狀態 | 建議 |
+|---------|------|------|
+| ≤ 10 turns | 🟢 | 繼續工作 |
+| 11-18 turns | 🟡 | 留意，密集 Coding 可考慮下個 Ticket 前 /compact |
+| ≥ 19 turns | 🔴 | 建議立即 /compact 開新 Session |
+
+「turns」= user 訊息總數（不含系統 Prompt）。單則 >200 行代碼額外計 +2 turns。
 
 ---
 
@@ -323,7 +335,7 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 13. **Android SDK 型別 JVM 測試環境規則**：使用 `android.graphics.PointF`/`RectF` 的類別，其 JVM 單元測試必須加上 `@RunWith(RobolectricTestRunner::class)` + `@Config(sdk = [28])`（與 `EyeLineRuleTest` 一致），或將欄位型別改為純 Kotlin data class 以徹底消除 Android stub 依賴。理由：stub 環境下 `PointF`/`RectF` public fields 全回傳 `0`，導致座標計算測試假過或假失敗，且難以察覺。觸發來源：D6-B2-T1（`CoordinateTransformer` stub 問題）、D6-B3（`EyeAfControllerTest` 7 條測試失敗）。
 
-14. **Composable 狀態記憶置頂規則**：所有 Composable 函數中的 `remember`/`LaunchedEffect`/`rememberCoroutineScope` 呼叫，必須置於函數體的最頂部（任何 `if`/`when`/`return` 語句之前），無論哪些路徑邏輯上需要使用它們。違反此規則會導致 Compose Slot-Table 不一致，在條件狀態切換時觸發 IllegalStateException 或首幀遺失（視 Compose 版本而定）。觸發來源：D6-B2-T2.1（`HaloGuidanceLayer` `LaunchedEffect` 首次錯置於 `isAllAligned` early return 之後，Traycer 要求修復）。
+14. **Composable 狀態記憶置頂規則**：所有 Composable 函數中的 `remember`/`LaunchedEffect`/`rememberCoroutineScope` 呼叫，必須置於函數體的最頂部（任何 `if`/`when`/`return` 語句之前），無論哪些路徑邏輯上需要使用它們。違反此規則會導致 Compose Slot-Table 不一致，在條件狀態切換時觸發 IllegalStateException 或首幀遺失（視 Compose 版本而定）。觸發來源：D6-B2-T2.1（`HaloGuidanceLayer` `LaunchedEffect` 首次錯置於 `isAllAligned` early return之後，Traycer 要求修復）。
 
 15. **防護機制 KDoc 引用真實呼叫鏈規則**：當 KDoc 描述多道防線（double-gating）或安全機制時，必須引用**實際參與呼叫鏈的具體類別名稱與方法**（如 `LiveCameraSource.focusOnPoint()` 而非泛稱 `the framework`），並標注觸發判斷點（如「as detected by `FixedFocusDetector` at camera bind time」）。禁止引用未在此呼叫路徑上的類別。觸發來源：D6-B3 KDoc 校準（`EyeAfController` 第二道防線誤引用 `CameraXFocusController`，實際路徑為 `LiveCameraSource`）。
 

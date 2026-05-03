@@ -88,17 +88,10 @@ disable-model-invocation: false
 📦 16KB ELF: 🟡 WARNING — [UNALIGNED .so 清單] (Release 前必須清零)
 ...
 → 🚫 SV 未通過。已自動修復 X 項，仍有 Y 項需人工介入。
-📊 Session: ~[N] turns | [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]
-```
+→ 本地 SV 驗收通過，準備提交 Traycer 終審。
+📊 Session: ~[N] turns | [狀態 emoji]
 
-## Session 健康度判斷規則
+## Session 健康度
 
-在 Report 末尾，根據當前對話狀態估算 Session 健康度：
+參照 CLAUDE.md §Session Health 規則。在 Report 末尾附上上述📊摘要。
 
-| 對話輪數 | 狀態 | 建議 |
-|---------|------|------|
-| ≤ 10 turns | 🟢 | 繼續工作 |
-| 11-18 turns | 🟡 | 留意，密集 Coding 可考慮下個 Ticket 前 /compact |
-| ≥ 19 turns | 🔴 | 建議立即 /compact 開新 Session |
-
-「turns」= 本次對話中 user 訊息的總數（不含系統 Prompt）。若對話中有大量代碼貼入（單則 >200 行），每則代碼額外計為 +2 turns。
