@@ -37,7 +37,7 @@ class GeneratorConfig:
     API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_API_KEY_HERE")
 
     # Output Directory (based on Android project structure)
-    OUTPUT_DIR = "app/src/debug/assets/test_images"
+    OUTPUT_DIR = "test_images"
 
     # Free Tier Safety Settings
     # Imagen 3 Free Tier: recommended max 2 requests per minute
@@ -50,7 +50,7 @@ class GeneratorConfig:
     # Image Generation Settings
     # Updated to use Imagen 4.0 model
     IMAGE_MODEL = 'imagen-4.0-generate-001'
-    ASPECT_RATIO = "3:4"  # Portrait mode for mobile, can change to "9:16"
+    ASPECT_RATIO = "9:16"  # Portrait mode for mobile, can change to "9:16"
     OUTPUT_MIME_TYPE = "image/jpeg"
     NUMBER_OF_IMAGES = 1
 
