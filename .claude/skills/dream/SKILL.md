@@ -1,5 +1,8 @@
-# Description
-KAIROS 階段回顧整合：提煉錯誤模式、決策審計、SSOT 漂移掃描。Sprint 節點 (D2/D6/D10/D13/D15) 使用。
+---
+name: dream
+description: KAIROS 階段回顧整合：提煉錯誤模式、決策審計、SSOT 漂移掃描。Sprint 節點 (D2/D6/D10/D13/D15) 使用。
+disable-model-invocation: false
+---
 
 # Prompt
 你現在進入「KAIROS 整合模式 (Dream Mode)」。本階段開發已告一段落，請執行以下三層回顧：

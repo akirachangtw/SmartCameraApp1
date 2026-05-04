@@ -1,4 +1,6 @@
 ---
+name: status
+description: 快速顯示當前對話的 Token 使用估算與 Session 健康度。
 disable-model-invocation: false
 ---
 # Description

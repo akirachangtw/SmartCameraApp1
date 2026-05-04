@@ -1,5 +1,8 @@
-# Description
-壓縮當前對話為精簡交接摘要。Dashboard-first，細節折疊。
+---
+name: compact
+description: 壓縮當前對話為精簡交接摘要。Dashboard-first，細節折疊。對話過長時使用。
+disable-model-invocation: false
+---
 
 # Prompt
 執行 Context 壓縮。先取得系統時間：

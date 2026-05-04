@@ -1,5 +1,8 @@
-# Description
-進入臥底模式：零廢話、零解釋、純代碼修改輸出。輸入 /normal 退出。
+---
+name: uc
+description: 進入臥底模式：零廢話、零解釋、純代碼修改輸出。省 Token 省配額，密集 Coding 時使用。輸入 /normal 退出。
+disable-model-invocation: false
+---
 
 # Prompt
 你現在進入「臥底模式 (Undercover Mode)」。從此刻起直到我說 `/normal` 為止，嚴格遵守：

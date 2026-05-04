@@ -1,4 +1,6 @@
 ---
+name: handoff
+description: 生成對話交接包 (Handoff Package)，儲存至 docs/handoff/，讓下一個 Claude Code 會話能立即重載 Context，無需重讀歷史對話。
 disable-model-invocation: false
 ---
 # Description

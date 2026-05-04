@@ -1,11 +1,11 @@
 ---
+name: sv
+description: 執行本地端無情法官驗收：語意審查 + 確定性編譯/Lint 驗證 + 檔案邊界防禦 + Codex Cross-Review 路由。
 disable-model-invocation: false
 ---
-# Description
-執行本地端無情法官驗收：語意審查 + 確定性編譯/Lint 驗證 + 檔案邊界防禦。
 
 # Prompt
-你現在是本專案的「本地 Reviewer」。請依序執行以下 **三階段驗收**，任一階段失敗則停止並回報：
+你現在是本專案的「本地 Reviewer」。請依序執行以下 **四階段驗收**，任一階段失敗則停止並回報：
 
 ## 階段 A：確定性驗證 (Deterministic Gate)
 
@@ -62,6 +62,31 @@ disable-model-invocation: false
    - 新增的類別名稱、變數名稱是否與 v3.3 SSOT 一致？
    - 如有偏離（如 SSOT 定義 `EdgeWarmthLayer` 但實作叫 `WarmGradientOverlay`），回報漂移。
 
+## 階段 D：Cross-Review 路由 (v1.4 新增)
+
+> 此階段在 SV Report 產出後**自動觸發**。
+> 完整 cross-review 指南見 [CROSS_REVIEW.md](CROSS_REVIEW.md)（Layer 3 資源）。
+
+9. **SV Report 輸出**：將以上審查結果寫入 `sv_report.md`（工作目錄根）。
+
+10. **Cross-Review 自動路由**：
+    - 檢查 `codex` CLI 是否可用：`command -v codex`
+    - 檢查 SSOT context 是否存在：`.claude/skills/sv/ssot_context.md`
+    - **若兩者皆備**：自動執行
+      ```
+      bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md
+      ```
+      並將 Codex 回傳結果附加至 SV Report 末尾。
+    - **若 codex 不可用**：在 SV Report 末尾附加提示：
+      ```
+      ⚠️ Codex CLI 不可用 — 請手動執行 cross-review 或直接提交 Traycer 終審。
+      手動指令：bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md
+      ```
+    - **若 ssot_context.md 不存在**：降級為純 SV Report 驗證（Layer 2 only），在 Report 中標記：
+      ```
+      ⚠️ ssot_context.md 不存在 — Codex cross-review 降級為純報告驗證（無架構重審）。
+      ```
+
 ## 回報格式
 
 ```
@@ -75,8 +100,9 @@ disable-model-invocation: false
 🎭 Mock: ✅ CLEAN
 🏗️ UDF: ✅ COMPLIANT
 📐 SSOT: ✅ ALIGNED
+🔍 Cross-Review: ✅ PASS / 🔴 FAIL / ⚠️ SKIPPED (codex unavailable)
 
-→ 本地 SV 驗收通過，準備提交 Traycer 終審。
+→ 本地 SV + Cross-Review 通過，準備提交 Traycer 終審。
 📊 Session: ~[N] turns | [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]
 ```
 
@@ -86,12 +112,12 @@ disable-model-invocation: false
 📋 Ticket: [Ticket ID]
 🔨 Compile: 🔴 FAIL — [錯誤摘要]
 📦 16KB ELF: 🟡 WARNING — [UNALIGNED .so 清單] (Release 前必須清零)
+🔍 Cross-Review: 🔴 FAIL — [Codex 問題清單]
 ...
 → 🚫 SV 未通過。已自動修復 X 項，仍有 Y 項需人工介入。
-→ 本地 SV 驗收通過，準備提交 Traycer 終審。
 📊 Session: ~[N] turns | [狀態 emoji]
+```
 
 ## Session 健康度
 
 參照 CLAUDE.md §Session Health 規則。在 Report 末尾附上上述📊摘要。
-

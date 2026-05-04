@@ -1,4 +1,6 @@
 ---
+name: qa
+description: 啟動本地端完整 QA 流程：編譯 → 單元測試 → Warning 清理 → PROGRESS.md 更新。
 disable-model-invocation: false
 ---
 # Description
