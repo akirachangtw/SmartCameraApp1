@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D8-VERIFY ✅ | **Next KAIROS**: D10 (2026-04-22)
-**Last Updated**: 2026-04-24
+**Current Day**: D8-VERIFY ✅ → Stage0 Realignment 開始
+**Last Updated**: 2026-05-05
 
 ---
 
@@ -10,23 +10,58 @@
 
 | Metric | Status |
 |--------|--------|
-| Schedule | D8 ✅ — on track |
+| Schedule | Stage0 🔲 — W1 進行中 |
 | Compile | 0 errors ✅ |
 | Tests | 224t / 0 failed ✅ |
 | Lint | 0 new ✅ |
+
+---
+
+## Stage0 Realignment（2026-05-05 啟動）
+
+### Active Tickets
+| Ticket | Title | Pri | Est. | Status | Blocker |
+|--------|-------|-----|------|--------|---------|
+| TICKET-00 | isAllAligned 聚合修復 | P0 | 30m | 🔲 TODO | — |
+| TICKET-01 | AmbientConstants SSOT | P0 | 30m | 🔲 TODO | 依賴 T-00 |
+
+### Wave Queue
+- **W1**: T00 → T01
+- **W2**: T02 → T03 → T04 → T06
+- **W3**: T08 → T09 → T05
+- **W4**: T07 → T10 → T11 → T12A → T13 → T15
+- **W5**: T12B → T14
+
+### Session Plan
+- S1(W1): T00→T01
+- S2(W2): T02→T03→T04
+- S3(W2'): T06
+- S4(W3): T08→T09
+- S5(W3): T05
+- S6(W4): T07→T10
+- S7(W4): T11→T12A
+- S8(W4): T13+T15
+- S9(W5): T12B→T14
+
+### Source Documents
+- Execution Sequence: `plans/cso_briefing/Cueshot_Execution_Sequence_v1.md`
+- Merged Spec: `plans/cso_briefing/Cueshot_Merged_Spec_v3_4_1_Stage0.md`
+- Verification Matrix: `plans/cso_briefing/Cueshot_Verification_Matrix_v1.md`
+
+---
 
 ## Active Blockers
 
 | ID | Issue | Severity | Root Cause |
 |----|-------|----------|------------|
-| I8 | IFTR 歸零 — isAllAligned 永遠 false | 🔴 Critical | HeadroomRule × ThirdsRule 幾何互斥 |
+| I8 | IFTR 歸零 — isAllAligned 永遠 false | 🔴 Critical | HeadroomRule × ThirdsRule 幾何互斥 → TICKET-00 |
 | I7 | 對焦圓環永動循環 | 🟡 Medium | EyeAfController 每 2s 無條件重觸發 |
 
 ## Next Actions
 
-1. I8 修復：`isAllAligned` 改為加權平均分 ≥ 70 → `AnalyzeCompositionUseCase.kt`
-2. I7 修復：EyeAfController 加入 `lens=Focused && 漂移 < 10px → skip` → `EyeAfController.kt`
-3. Gemini Prototyper → State 1/2/3 靜態原型 → Claude Tech Audit
+1. **TICKET-00** (P0)：`isAllAligned` 改為加權平均分 ≥ 70 → `AnalyzeCompositionUseCase.kt`
+2. **TICKET-01** (P0)：AmbientConstants SSOT 整合（依賴 T-00 完成）
+3. I7 修復：EyeAfController 加入 `lens=Focused && 漂移 < 10px → skip` → `EyeAfController.kt`
 
 ## Active Debt（僅列未解決項）
 
