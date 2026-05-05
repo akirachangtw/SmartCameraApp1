@@ -1,0 +1,4 @@
+interface:
+  display_name: "Status"
+  short_description: "Estimate session token usage and health."
+  default_prompt: "Run a concise session status report."

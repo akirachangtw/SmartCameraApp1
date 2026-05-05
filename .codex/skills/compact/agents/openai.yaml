@@ -1,0 +1,4 @@
+interface:
+  display_name: "Compact"
+  short_description: "Create a concise session handoff for restarting work."
+  default_prompt: "Create a dashboard-first handoff for the current session."
