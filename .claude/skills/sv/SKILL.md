@@ -103,7 +103,10 @@ disable-model-invocation: false
 🔍 Cross-Review: ✅ PASS / 🔴 FAIL / ⚠️ SKIPPED (codex unavailable)
 
 → 本地 SV + Cross-Review 通過，準備提交 Traycer 終審。
-📊 Session: ~[N] turns | [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]
+📊 Status: ~[X]K/200K ([Y]%) [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]
+Turns: [N] | Code: ~[M] lines
+Suggestion: [建議]
+Token 估算基準
 ```
 
 若有任何失敗項：
@@ -115,7 +118,10 @@ disable-model-invocation: false
 🔍 Cross-Review: 🔴 FAIL — [Codex 問題清單]
 ...
 → 🚫 SV 未通過。已自動修復 X 項，仍有 Y 項需人工介入。
-📊 Session: ~[N] turns | [狀態 emoji]
+📊 Status: ~[X]K/200K ([Y]%) [狀態 emoji]
+Turns: [N] | Code: ~[M] lines
+Suggestion: [建議]
+Token 估算基準
 ```
 
 ## Session 健康度

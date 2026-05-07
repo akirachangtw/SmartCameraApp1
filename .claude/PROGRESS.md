@@ -10,9 +10,9 @@
 
 | Metric | Status |
 |--------|--------|
-| Schedule | Stage0 🔲 — W1 進行中 |
+| Schedule | Stage0 W1 ✅ — T00/T01 完成，W2 待啟動 |
 | Compile | 0 errors ✅ |
-| Tests | 224t / 0 failed ✅ |
+| Tests | 178t / 0 failed ✅ |
 | Lint | 0 new ✅ |
 
 ---
@@ -20,10 +20,9 @@
 ## Stage0 Realignment（2026-05-05 啟動）
 
 ### Active Tickets
-| Ticket | Title | Pri | Est. | Status | Blocker |
-|--------|-------|-----|------|--------|---------|
-| TICKET-00 | isAllAligned 聚合修復 | P0 | 30m | 🔲 TODO | — |
-| TICKET-01 | AmbientConstants SSOT | P0 | 30m | 🔲 TODO | 依賴 T-00 |
+
+- **TICKET-00** isAllAligned fix — P0 — Est 30m / Actual 35m (+5m) — DONE
+- **TICKET-01** AmbientConstants SSOT — P0 — Est 30m / Actual 25m (-5m) — DONE
 
 ### Wave Queue
 - **W1**: T00 → T01
@@ -54,13 +53,13 @@
 
 | ID | Issue | Severity | Root Cause |
 |----|-------|----------|------------|
-| I8 | IFTR 歸零 — isAllAligned 永遠 false | 🔴 Critical | HeadroomRule × ThirdsRule 幾何互斥 → TICKET-00 |
+| ~~I8~~ | ~~IFTR 歸零 — isAllAligned 永遠 false~~ | ✅ 已修復 | TICKET-00 — 改為加權平均 ≥ 70 |
 | I7 | 對焦圓環永動循環 | 🟡 Medium | EyeAfController 每 2s 無條件重觸發 |
 
 ## Next Actions
 
-1. **TICKET-00** (P0)：`isAllAligned` 改為加權平均分 ≥ 70 → `AnalyzeCompositionUseCase.kt`
-2. **TICKET-01** (P0)：AmbientConstants SSOT 整合（依賴 T-00 完成）
+1. ~~**TICKET-00**~~ ✅ 已完成
+2. ~~**TICKET-01**~~ ✅ 已完成
 3. I7 修復：EyeAfController 加入 `lens=Focused && 漂移 < 10px → skip` → `EyeAfController.kt`
 
 ## Active Debt（僅列未解決項）
