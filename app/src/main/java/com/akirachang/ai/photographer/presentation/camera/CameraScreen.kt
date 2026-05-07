@@ -117,6 +117,7 @@ import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.R
 import com.akirachang.ai.photographer.domain.camera.CameraMode
+import com.akirachang.ai.photographer.domain.config.AmbientConstants
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import com.akirachang.ai.photographer.BuildConfig
 import androidx.compose.ui.platform.testTag
@@ -603,12 +604,12 @@ internal fun ShutterButtonSection(
     val isPtfActive = cameraMode is CameraMode.PassToFriend
     val shutterSize by animateDpAsState(
         targetValue = if (isPtfActive) 80.dp else 72.dp,
-        animationSpec = tween(durationMillis = 300),
+        animationSpec = tween(durationMillis = AmbientConstants.TRANSITION_FAST_MS.toInt()),
         label = "shutter_size",
     )
     val ringBaseSize by animateDpAsState(
         targetValue = if (isPtfActive) 94.dp else 84.dp,
-        animationSpec = tween(durationMillis = 300),
+        animationSpec = tween(durationMillis = AmbientConstants.TRANSITION_FAST_MS.toInt()),
         label = "ring_base_size",
     )
 
@@ -625,7 +626,7 @@ internal fun ShutterButtonSection(
                 initialValue = 0.10f,
                 targetValue = 0.18f,
                 animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+                    animation = tween(durationMillis = AmbientConstants.BREATHE_CYCLE_MS.toInt(), easing = FastOutSlowInEasing),
                     repeatMode = RepeatMode.Reverse,
                 ),
                 label = "shutter_ring_alpha",
@@ -634,7 +635,7 @@ internal fun ShutterButtonSection(
                 initialValue = 1.0f,
                 targetValue = 1.15f,
                 animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+                    animation = tween(durationMillis = AmbientConstants.BREATHE_CYCLE_MS.toInt(), easing = FastOutSlowInEasing),
                     repeatMode = RepeatMode.Reverse,
                 ),
                 label = "shutter_ring_scale",

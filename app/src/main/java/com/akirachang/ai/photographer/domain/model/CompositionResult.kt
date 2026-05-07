@@ -24,7 +24,9 @@ data class RuleScore(
  * @param topInstruction  The rule most urgently needing correction (lowest score among
  *                        non-aligned rules), or null when all rules are satisfied.
  * @param ruleScores      Individual rule outputs keyed by rule name.
- * @param isAllAligned    True only when every rule reports [RuleScore.isAligned] == true.
+ * @param isAllAligned    True when the weighted average score across all rules >= 70.0.
+ *                        Independent of [topInstruction] — a frame can be well-composed
+ *                        even if one rule still suggests a minor tweak.
  *                        Drives breathing animation and golden-moment shutter hint.
  */
 data class CompositionResult(

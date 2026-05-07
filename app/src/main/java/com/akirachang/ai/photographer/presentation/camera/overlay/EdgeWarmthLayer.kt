@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
+import com.akirachang.ai.photographer.domain.config.AmbientConstants
 import com.akirachang.ai.photographer.domain.model.DeviceCapabilityTier
 import kotlin.math.abs
 
@@ -84,10 +85,10 @@ private enum class WarmthDirection { LEFT, RIGHT, UP, DOWN }
 
 /**
  * Shared animation spec for breathing rhythm per SSOT v3.3 §2.5.
- * 2000ms single pass, 4000ms full cycle (reverse). FastOutSlowIn easing.
+ * [AmbientConstants.BREATHE_CYCLE_MS] single pass, double full cycle (reverse). FastOutSlowIn easing.
  */
 private val BREATHING_ANIM_SPEC: InfiniteRepeatableSpec<Float> = infiniteRepeatable(
-    animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+    animation = tween(durationMillis = AmbientConstants.BREATHE_CYCLE_MS.toInt(), easing = FastOutSlowInEasing),
     repeatMode = RepeatMode.Reverse,
 )
 

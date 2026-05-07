@@ -16,6 +16,13 @@ import javax.inject.Inject
  * Priority selection delegates to [PriorityEngine] using SSOT §4.1 formula:
  *   priority = rule.weight × ((100 − score) / 100) × rule.confidenceFactor
  *
+ * Alignment aggregation uses weighted average score:
+ *   weightedAvg = Σ(weight_i × score_i) / Σ(weight_i)
+ *   isAllAligned = weightedAvg >= ALIGNED_WEIGHTED_THRESHOLD (70.0)
+ *
+ * This decouples isAllAligned from topInstruction — a frame can be "well-composed"
+ * even when one rule suggests a minor tweak (topInstruction != null).
+ *
  * Coordinate contract: all spatial fields in [FaceLandmarkData] must be pre-normalized
  * to [0.0, 1.0]. The caller (ViewModel mapping layer) is responsible for normalization.
  */
@@ -48,12 +55,23 @@ class AnalyzeCompositionUseCase @Inject constructor(
         }
 
         val topInstruction: RuleScore? = priorityEngine.calculateTopInstruction(ruleScoresMap)
-        val isAllAligned = topInstruction == null
+        val isAllAligned = computeWeightedAlignment(ruleScoresMap.values)
 
         return CompositionResult(
             topInstruction = topInstruction,
             ruleScores = ruleScoresMap.mapKeys { it.key.name },
             isAllAligned = isAllAligned,
         )
+    }
+
+    private fun computeWeightedAlignment(scores: Collection<RuleScore>): Boolean {
+        val totalWeight = scores.sumOf { it.weight.toDouble() }
+        if (totalWeight <= 0.0) return false
+        val weightedAvg = scores.sumOf { it.weight.toDouble() * it.score } / totalWeight
+        return weightedAvg >= ALIGNED_WEIGHTED_THRESHOLD
+    }
+
+    companion object {
+        const val ALIGNED_WEIGHTED_THRESHOLD = 70.0
     }
 }

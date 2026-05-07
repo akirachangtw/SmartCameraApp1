@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.akirachang.ai.photographer.domain.composition.PtfAlignmentResult
 import com.akirachang.ai.photographer.domain.composition.rules.EyeLineRule
+import com.akirachang.ai.photographer.domain.config.AmbientConstants
 import com.akirachang.ai.photographer.domain.composition.rules.GazeRule
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
@@ -76,10 +77,10 @@ private const val PTF_HALO_ALIGNED_ALPHA = 0.35f
 /** PTF breathing animation spec per Strategic Brief Part D.3. */
 private const val PTF_BREATH_ALPHA_MIN = 0.10f
 private const val PTF_BREATH_ALPHA_MAX = 0.18f
-private const val PTF_BREATH_DURATION_MS = 2000
+private val PTF_BREATH_DURATION_MS = AmbientConstants.BREATHE_CYCLE_MS.toInt()
 
 /** PTF gold→green color transition duration per SSOT補丁 §5. */
-private const val PTF_COLOR_TRANSITION_MS = 300
+private val PTF_COLOR_TRANSITION_MS = AmbientConstants.TRANSITION_FAST_MS.toInt()
 
 /** Bright arc offset in dp (gravitational field indicator). */
 private const val PTF_BRIGHT_ARC_OFFSET_DP = 3f
