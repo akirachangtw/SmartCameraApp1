@@ -69,11 +69,24 @@ fi
 mkdir -p "$TMP_DIR"
 
 # Diff 存在性檢查
-DIFF_CONTENT="$(git diff "$DIFF_SCOPE" 2>/dev/null || true)"
-if [[ -z "$DIFF_CONTENT" ]]; then
-  echo "⚠️ No diff detected for scope: $DIFF_SCOPE"
-  echo "   Proceeding with SV Report review only."
-fi
+DIFF_AVAILABLE=false
+set +e
+git diff --quiet "$DIFF_SCOPE" >/dev/null 2>&1
+DIFF_EXIT=$?
+set -e
+
+case "$DIFF_EXIT" in
+  0)
+    echo "⚠️ No diff detected for scope: $DIFF_SCOPE"
+    echo "   Proceeding with SV Report review only."
+    ;;
+  1)
+    DIFF_AVAILABLE=true
+    ;;
+  *)
+    fail_env "invalid diff scope or git diff failed: $DIFF_SCOPE"
+    ;;
+esac
 
 # ═══════════════════════════════════════
 #  Payload 組裝
@@ -152,12 +165,14 @@ fi
   echo
   echo "## Git Diff (scope: $DIFF_SCOPE)"
   echo
-  if [[ -n "$DIFF_CONTENT" ]]; then
-    echo "$DIFF_CONTENT"
+  if [[ "$DIFF_AVAILABLE" == true ]]; then
+    git diff "$DIFF_SCOPE"
   else
     echo "(no diff detected)"
   fi
 } >> "$PAYLOAD"
+
+PAYLOAD_BYTES="$(wc -c < "$PAYLOAD" | xargs)"
 
 # ═══════════════════════════════════════
 #  Codex 執行
@@ -167,10 +182,11 @@ echo "🔍 Codex Cross-Review in progress..."
 echo "   SV Report: $SV_REPORT"
 echo "   Diff scope: $DIFF_SCOPE"
 echo "   SSOT context: $(if $SSOT_AVAILABLE; then echo 'loaded'; else echo 'not available'; fi)"
+echo "   Payload: ${PAYLOAD_BYTES} bytes"
 echo
 
 set +e
-RESULT="$(codex exec --quiet "$(cat "$PAYLOAD")" 2>&1)"
+RESULT="$(codex exec - < "$PAYLOAD" 2>&1)"
 CODEX_EXIT=$?
 set -e
 
@@ -178,7 +194,7 @@ set -e
 if [[ $CODEX_EXIT -ne 0 ]]; then
   echo "❌ codex CLI failed (exit $CODEX_EXIT)" >&2
   echo "$RESULT" >&2
-  fail_env "codex execution error — check auth and network"
+  fail_env "codex execution error — check auth, network, and payload size"
 fi
 
 # ═══════════════════════════════════════

@@ -55,8 +55,12 @@
 | ≤ 10 turns | 🟢 | 繼續工作 |
 | 11-18 turns | 🟡 | 留意，密集 Coding 可考慮下個 Ticket 前 /compact |
 | ≥ 19 turns | 🔴 | 建議立即 /compact 開新 Session |
-
 「turns」= user 訊息總數（不含系統 Prompt）。單則 >200 行代碼額外計 +2 turns。
+
+📊 Status: ~[X]K/200K ([Y]%) [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]
+Turns: [N] | Code: ~[M] lines
+Suggestion: [建議]
+Token 估算基準
 
 ---
 
