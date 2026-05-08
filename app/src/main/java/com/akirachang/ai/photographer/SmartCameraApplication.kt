@@ -6,10 +6,6 @@ import dagger.hilt.android.HiltAndroidApp
 
 /**
  * Smart Camera Application
- *
- * v2.7.0 Phase 2: Added OpenCV 4.13.0 initialization
- * v2.13.0: OpenCV init MOVED to MainActivity (Dispatchers.IO + SplashScreen).
- *          Application.onCreate() must never block the Main Thread with native lib loading.
  */
 @HiltAndroidApp
 class SmartCameraApplication : Application() {
@@ -20,6 +16,6 @@ class SmartCameraApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.i(TAG, "SmartCameraApplication started — OpenCV init delegated to MainActivity (IO thread)")
+        Log.i(TAG, "SmartCameraApplication started")
     }
 }

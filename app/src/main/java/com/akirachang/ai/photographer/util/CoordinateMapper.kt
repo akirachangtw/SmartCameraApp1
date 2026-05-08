@@ -3,10 +3,7 @@ package com.akirachang.ai.photographer.util
 import android.util.Log
 
 /**
- * CoordinateMapper — Cueshot D0 (opencv.core.Point removed, pure Android)
- *
- * CENTER_CROP aware PreviewView ↔ ImageAnalysis coordinate conversion.
- * Returns Pair<Float, Float> instead of opencv Point.
+ * CoordinateMapper — CENTER_CROP aware PreviewView ↔ ImageAnalysis coordinate conversion.
  *
  * NOTE: This utility is now legacy — FIT_CENTER path uses CoordinateTransformer.
  * Kept for backwards-compat with emulator path (StaticImageSource).

@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.StateFlow
 import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.domain.model.CaptureResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
-import com.akirachang.ai.photographer.domain.model.GuidelineAnalysisResult
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 
 interface CameraRepository {
@@ -79,15 +78,6 @@ interface CameraRepository {
      * 偵測結果的狀態流
      */
     val detectionResults: StateFlow<DetectionResult?>
-
-    /**
-     * Guideline analysis results (OpenCV Hough Line Transform)
-     * v2.7.0 Phase 2 Sprint 4
-     *
-     * Provides real-time composition guideline detection results.
-     * Null when no analysis is running or feature flag is disabled.
-     */
-    val guidelineResults: StateFlow<GuidelineAnalysisResult?>
 
     /**
      * Whether the current lens is fixed-focus (no VCM / AF hardware)

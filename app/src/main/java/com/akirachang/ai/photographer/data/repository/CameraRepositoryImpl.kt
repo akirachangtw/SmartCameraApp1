@@ -36,7 +36,6 @@ import com.akirachang.ai.photographer.data.source.ml.ImageAnalyzer
 import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.domain.model.CaptureResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
-import com.akirachang.ai.photographer.domain.model.GuidelineAnalysisResult
 import com.akirachang.ai.photographer.domain.repository.CameraRepository
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
@@ -95,10 +94,6 @@ class CameraRepositoryImpl @Inject constructor(
     // 光影分析結果狀態流 (v2.2.0)
     private val _lightingResults = MutableStateFlow<LightingState>(LightingState.Normal)
     val lightingResults: StateFlow<LightingState> = _lightingResults.asStateFlow()
-
-    // Guideline analysis results (v2.7.0 Phase 2 Sprint 4)
-    private val _guidelineResults = MutableStateFlow<GuidelineAnalysisResult?>(null)
-    override val guidelineResults: StateFlow<GuidelineAnalysisResult?> = _guidelineResults.asStateFlow()
 
     // v2.12.0-11: Fixed-focus lens StateFlow — delegates to LiveCameraSource when available
     override val isFixedFocusLens: StateFlow<Boolean> =

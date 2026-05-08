@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "SmartCameraApp1"
 include(":app")
-include(":opencv")  // v2.7.0 Phase 2: OpenCV 4.13.0 module

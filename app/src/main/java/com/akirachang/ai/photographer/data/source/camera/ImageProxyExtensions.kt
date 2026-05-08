@@ -8,17 +8,7 @@ import android.graphics.YuvImage
 import androidx.camera.core.ImageProxy
 import java.io.ByteArrayOutputStream
 
-/**
- * ImageProxy & Bitmap Extensions — Cueshot D0 (OpenCV removed, pure Android)
- *
- * Provides conversion from CameraX ImageProxy to Android Bitmap for ML Kit.
- * OpenCV Mat conversion functions removed — Cueshot uses pure ML Kit pipeline.
- */
-
-/**
- * Convert ImageProxy (YUV_420_888) to Android Bitmap for ML Kit input.
- * Replaces toGrayMat() which required OpenCV.
- */
+/** Convert ImageProxy (YUV_420_888) to Android Bitmap for ML Kit input. */
 @SuppressLint("UnsafeOptInUsageError")
 fun ImageProxy.toBitmap(): Bitmap {
     val yBuffer = planes[0].buffer

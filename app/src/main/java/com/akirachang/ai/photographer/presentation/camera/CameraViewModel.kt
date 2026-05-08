@@ -47,7 +47,6 @@ import com.akirachang.ai.photographer.domain.sensor.OrientationSensorManager
 // v2.5.2 Phase 7: Removed CameraSelector import - using CameraLens instead
 import com.akirachang.ai.photographer.domain.model.CaptureResult
 import com.akirachang.ai.photographer.domain.model.DetectionResult
-import com.akirachang.ai.photographer.domain.model.GuidelineAnalysisResult
 import com.akirachang.ai.photographer.domain.repository.CameraRepository
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeCompositionUseCase
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
@@ -187,9 +186,9 @@ class CameraViewModel @Inject constructor(
     // Cueshot D7-B2-T3: PTF onboarding flag — false until user taps "Got it".
     val isPtfOnboarded: Flow<Boolean> = ptfPreferences.isPtfOnboarded
 
-    // Guideline analysis results (v2.7.0 Phase 2 Sprint 4)
-    private val _guidelineResults = MutableStateFlow<GuidelineAnalysisResult?>(null)
-    val guidelineResults: StateFlow<GuidelineAnalysisResult?> = _guidelineResults.asStateFlow()
+    // TODO: INFRA-02 orphan — guideline state to be cleaned at TICKET-07/10
+    private val _guidelineResults = MutableStateFlow<Any?>(null)
+    val guidelineResults: StateFlow<Any?> = _guidelineResults.asStateFlow()
 
     // Preview dimensions (v2.0 Phase 2)
     private var previewWidth: Int? = null

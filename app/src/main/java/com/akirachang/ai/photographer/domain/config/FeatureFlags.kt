@@ -1,11 +1,6 @@
 package com.akirachang.ai.photographer.domain.config
 
-/**
- * Feature Flags — Cueshot MVP (D0 surgery: OpenCV flags removed)
- *
- * All OpenCV / Optical Flow flags permanently removed.
- * Cueshot v3.3 pipeline uses pure Kotlin + ML Kit only.
- */
+/** Feature Flags — Cueshot MVP (pure Kotlin + ML Kit pipeline) */
 object FeatureFlags {
 
     /** Manual focus (Tap-to-Focus) — always enabled */
