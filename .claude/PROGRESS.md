@@ -2,7 +2,7 @@
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
 **Current Day**: D8-VERIFY ✅ → Stage0 Realignment 開始
-**Last Updated**: 2026-05-05
+**Last Updated**: 2026-05-07
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Metric | Status |
 |--------|--------|
-| Schedule | Stage0 W1 ✅ — T00/T01 完成，W2 待啟動 |
+| Schedule | Stage0 W1 ✅ CLOSED — INFRA-02 ✅ DONE — FIX-INFRA-02 ✅ DONE — W2 待啟動 |
 | Compile | 0 errors ✅ |
 | Tests | 178t / 0 failed ✅ |
-| Lint | 0 new ✅ |
+| Lint | 0 errors ✅ (opencv module removed) |
 
 ---
 
@@ -58,9 +58,8 @@
 
 ## Next Actions
 
-1. ~~**TICKET-00**~~ ✅ 已完成
-2. ~~**TICKET-01**~~ ✅ 已完成
-3. I7 修復：EyeAfController 加入 `lens=Focused && 漂移 < 10px → skip` → `EyeAfController.kt`
+1. **W2 啟動**：S2(W2) → T02 → T03 → T04（讀 `Cueshot_Execution_Sequence_v1.md`）
+2. **I7 修復**（可選先做）：`EyeAfController.kt` 加入 `lens=Focused && 漂移 < 10px → skip`
 
 ## Active Debt（僅列未解決項）
 
