@@ -2,7 +2,7 @@
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
 **Current Day**: D8-VERIFY ✅ → Stage0 Realignment 開始
-**Last Updated**: 2026-05-07
+**Last Updated**: 2026-05-08
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Metric | Status |
 |--------|--------|
-| Schedule | Stage0 W1 ✅ CLOSED — INFRA-02 ✅ DONE — FIX-INFRA-02 ✅ DONE — W2 待啟動 |
+| Schedule | Stage0 W1 — INFRA-02 ✅ CLOSED — FIX-INFRA-02-FINAL ✅ CLOSED — FIX-INFRA-02-D ✅ CLOSED — W2 🔴 BLOCKED (I9) |
 | Compile | 0 errors ✅ |
 | Tests | 178t / 0 failed ✅ |
-| Lint | 0 errors ✅ (opencv module removed) |
+| Lint | 0 errors ✅ (opencv module removed, ndk block removed) |
 
 ---
 
@@ -55,11 +55,13 @@
 |----|-------|----------|------------|
 | ~~I8~~ | ~~IFTR 歸零 — isAllAligned 永遠 false~~ | ✅ 已修復 | TICKET-00 — 改為加權平均 ≥ 70 |
 | I7 | 對焦圓環永動循環 | 🟡 Medium | EyeAfController 每 2s 無條件重觸發 |
+| I9 | Traycer Path B 裁決阻擋 W2 啟動 | 🔴 High | Traycer 終審未通過，W2 tickets 暫緩 — 待裁決細節確認後處理 |
 
 ## Next Actions
 
-1. **W2 啟動**：S2(W2) → T02 → T03 → T04（讀 `Cueshot_Execution_Sequence_v1.md`）
+1. **W2 啟動**：S2(W2) → T02 → T03 → T04（讀 `plans/cso_briefing/Cueshot_Execution_Sequence_v1.md`）
 2. **I7 修復**（可選先做）：`EyeAfController.kt` 加入 `lens=Focused && 漂移 < 10px → skip`
+3. **Pre-existing 獨立審查**：`.claude/CLAUDE.md` (session health template) + `.claude/skills/sv/scripts/cross_review.sh` (W1 修改)
 
 ## Active Debt（僅列未解決項）
 
