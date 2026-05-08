@@ -186,10 +186,6 @@ class CameraViewModel @Inject constructor(
     // Cueshot D7-B2-T3: PTF onboarding flag — false until user taps "Got it".
     val isPtfOnboarded: Flow<Boolean> = ptfPreferences.isPtfOnboarded
 
-    // TODO: INFRA-02 orphan — guideline state to be cleaned at TICKET-07/10
-    private val _guidelineResults = MutableStateFlow<Any?>(null)
-    val guidelineResults: StateFlow<Any?> = _guidelineResults.asStateFlow()
-
     // Preview dimensions (v2.0 Phase 2)
     private var previewWidth: Int? = null
     private var previewHeight: Int? = null
