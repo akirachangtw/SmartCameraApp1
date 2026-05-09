@@ -30,6 +30,11 @@ PAYLOAD="$TMP_DIR/cross_review_payload.md"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 RESULT_LOG="$TMP_DIR/cross_review_result_${TIMESTAMP}.md"
 
+# Model configuration — override via env vars for escalation (see Rule 17)
+CODEX_MODEL="${CODEX_MODEL:-gpt-5.5}"
+CODEX_REASONING_EFFORT="${CODEX_REASONING_EFFORT:-high}"
+CODEX_REASONING_SUMMARY="${CODEX_REASONING_SUMMARY:-auto}"
+
 # ═══════════════════════════════════════
 #  錯誤處理函數
 # ═══════════════════════════════════════
@@ -67,6 +72,10 @@ else
 fi
 
 mkdir -p "$TMP_DIR"
+
+# Clean stale payloads before assembly (context isolation)
+echo "   Cleaning stale .tmp/ payloads..."
+find .tmp/ -name "cross_review_*.md" -delete 2>/dev/null || true
 
 # Diff 存在性檢查
 DIFF_AVAILABLE=false
@@ -183,10 +192,19 @@ echo "   SV Report: $SV_REPORT"
 echo "   Diff scope: $DIFF_SCOPE"
 echo "   SSOT context: $(if $SSOT_AVAILABLE; then echo 'loaded'; else echo 'not available'; fi)"
 echo "   Payload: ${PAYLOAD_BYTES} bytes"
+echo "   Codex model: $CODEX_MODEL"
+echo "   Reasoning effort: $CODEX_REASONING_EFFORT"
+echo "   Reasoning summary: $CODEX_REASONING_SUMMARY"
 echo
 
 set +e
-RESULT="$(codex exec - < "$PAYLOAD" 2>&1)"
+RESULT="$(
+  codex exec \
+    -c "model=\"$CODEX_MODEL\"" \
+    -c "model_reasoning_effort=\"$CODEX_REASONING_EFFORT\"" \
+    -c "model_reasoning_summary=\"$CODEX_REASONING_SUMMARY\"" \
+    - < "$PAYLOAD" 2>&1
+)"
 CODEX_EXIT=$?
 set -e
 
@@ -220,8 +238,8 @@ echo "════════════════════════�
 echo
 echo "📝 Full result saved: $RESULT_LOG"
 
-# 嚴格解析第一行
-FIRST_LINE="$(printf '%s\n' "$RESULT" | sed -n '1p' | tr -d '\r' | xargs)"
+# 嚴格解析：跳過 Codex CLI header 及 prompt echo，只讀 "codex" 分隔符後的第一行 PASS/FAIL
+FIRST_LINE="$(printf '%s\n' "$RESULT" | tr -d '\r' | awk '/^codex$/{found=1;next} found && /^(PASS|FAIL)$/{print;exit}' | xargs)"
 
 if [[ "$FIRST_LINE" == "PASS" ]]; then
   echo
