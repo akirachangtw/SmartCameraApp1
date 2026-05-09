@@ -10,7 +10,7 @@
 
 | Metric | Status |
 |--------|--------|
-| Schedule | Stage0 W1 — INFRA-02 ✅ CLOSED — FIX-INFRA-02-FINAL ✅ CLOSED — FIX-INFRA-02-D ✅ CLOSED — W2 🔴 BLOCKED (I9) |
+| Schedule | Stage0 W1 — INFRA-02 ✅ CLOSED — FIX-INFRA-02-FINAL ✅ CLOSED — FIX-INFRA-02-D ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — W2 🟡 READY (Rule 17 授權待決) |
 | Compile | 0 errors ✅ |
 | Tests | 178t / 0 failed ✅ |
 | Lint | 0 errors ✅ (opencv module removed, ndk block removed) |
@@ -59,9 +59,11 @@
 
 ## Next Actions
 
-1. **W2 啟動**：S2(W2) → T02 → T03 → T04（讀 `plans/cso_briefing/Cueshot_Execution_Sequence_v1.md`）
-2. **I7 修復**（可選先做）：`EyeAfController.kt` 加入 `lens=Focused && 漂移 < 10px → skip`
-3. **D10 KAIROS #3 議程備忘**：K3-1~K3-6 候選規則待審（見 Active Debt）
+1. **Rule 17 授權**（可選）：人工豁免 CLAUDE.md 禁區 → append Rule 17 → commit [Infra]
+2. **Traycer 終審**：FIX-CROSSREVIEW-01 `strict_verification`
+3. **W2 啟動**：S2(W2) → T02 → T03 → T04（讀 `plans/cso_briefing/Cueshot_Execution_Sequence_v1.md`）
+4. **I7 修復**（可選先做）：`EyeAfController.kt` 加入 `lens=Focused && 漂移 < 10px → skip`
+5. **D10 KAIROS #3 議程備忘**：K3-1~K3-6 候選規則待審（見 Active Debt）
 
 ## Active Debt（僅列未解決項）
 
