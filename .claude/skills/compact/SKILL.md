@@ -55,4 +55,5 @@ disable-model-invocation: false
 
 同步更新 PROGRESS.md Dashboard 段落（Sprint Health + Active Blockers + Next Actions）。
 
-提醒：「交接文件已儲存。建議：開新對話 → 貼入 Dashboard 段 → 按需展開細節。」
+完成後輸出以下確認訊息（必須包含實際檔案路徑）：
+「交接文件已儲存至 docs/session_handoff/SESSION_HANDOFF_<實際時間戳>.md，PROGRESS.md 已同步更新。建議：開新對話 → 貼入 Dashboard 段 → 按需展開細節。」
