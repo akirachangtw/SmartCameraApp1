@@ -347,6 +347,19 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 ---
 
+**KAIROS #3 產出 (FIX-CROSSREVIEW-01, 2026-05-10)**
+
+17. **Cross-Review Model Escalation**：`cross_review.sh` 預設組合為 gpt-5.5 + high + summary auto。
+
+    | 條件 | 覆蓋值 |
+    | ---- | ------ |
+    | diff 跨 domain + data + presentation 三層 | `CODEX_REASONING_EFFORT=xhigh` |
+    | diff 涉及 `CameraViewModel.kt` | `CODEX_REASONING_EFFORT=xhigh` |
+    | 純 domain 新建檔案 | 維持 high |
+    | 快速 smoke check | `CODEX_MODEL=gpt-5.4-mini CODEX_REASONING_EFFORT=low` |
+
+---
+
 **完整規範請參考**: `devspec/.clinerules`
 **SSOT 策略文件**: `SmartCameraApp_Strategy_v3_3_SSOT_20260404.md`
 **SSOT 技術文件**: `SmartCameraApp_TechDeepDive_v3_20260405.md`
