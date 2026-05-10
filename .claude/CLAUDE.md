@@ -358,6 +358,8 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
     | 純 domain 新建檔案 | 維持 high |
     | 快速 smoke check | `CODEX_MODEL=gpt-5.4-mini CODEX_REASONING_EFFORT=low` |
 
+18. **Edit 操作前強制 Re-view 規則**：對任何超過 200 行的 `.kt` / `.xml` 目標檔案，執行 `Edit`（str_replace）前必須先用 `Read` 工具讀取操作區段（含 ±10 行上下文）。`/compact` 後視為強制觸發條件（無論檔案大小）。根因：顯式知識（Read 結果）比 session 記憶可靠，避免 attention degradation 導致 str_replace 精確度下降。觸發來源：K3-7 KAIROS #3 Session Boundary Rule 修訂（2026-05-10）。
+
 ---
 
 **完整規範請參考**: `devspec/.clinerules`
