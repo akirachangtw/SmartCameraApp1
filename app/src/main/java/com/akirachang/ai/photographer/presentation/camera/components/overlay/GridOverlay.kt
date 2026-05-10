@@ -45,8 +45,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 fun GridOverlay(
     modifier: Modifier = Modifier,
     visible: Boolean = true,
-    color: Color = Color.White.copy(alpha = 0.5f),
-    strokeWidth: Float = 2f,
+    color: Color = Color.White.copy(alpha = 0.08f),
+    strokeWidth: Float = 0.5f,
     contentBounds: RectF? = null  // v2.11.1 P0-2: Optional content bounds
 ) {
     if (!visible) return

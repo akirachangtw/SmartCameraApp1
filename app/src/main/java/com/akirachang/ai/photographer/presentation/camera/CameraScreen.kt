@@ -25,11 +25,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
@@ -212,346 +215,322 @@ fun CameraScreen(
             modifier = modifier,
             snackbarHost = { SnackbarHost(snackbarHostState) }
         ) { paddingValues ->
-            // v2.9.9: Track preview size for Tap-to-Focus
-            // v2.x.x Phase 5: Also used for Optical Flow coordinate mapping
+            // Track preview size for Tap-to-Focus and Optical Flow coordinate mapping
             var previewSize by remember { mutableStateOf(IntSize.Zero) }
+            val scrimHeightDp = with(LocalDensity.current) { AmbientConstants.SCRIM_HEIGHT_PX.toDp() }
 
-            // v2.11.1 Phase 1: contentBounds calculation moved to PreviewViewportContainer below
-            // (Replaced LaunchedEffect manual calculation with PreviewViewportContainer)
-
-            // v2.11.1 Phase 1+2: PreviewViewportContainer calculates accurate contentBounds,
-            // replaces manual LaunchedEffect calculation; pointerInput has letterbox filtering
-            PreviewViewportContainer(
-                targetAspectRatio = state.aspectRatioMode,
-                onContentBoundsChanged = { bounds ->
-                    viewModel.updateContentBounds(bounds)
-                },
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .onSizeChanged { size ->
-                        previewSize = size
-                    }
                     .padding(paddingValues)
-                    .pointerInput(Unit, state.contentBounds) {
-                        detectTapGestures(
-                            onTap = { offset ->
-                                // v2.11.1 Phase 2: Filter taps in letterbox area
-                                val bounds = state.contentBounds
-                                if (!bounds.isEmpty && !bounds.contains(offset.x, offset.y)) {
-                                    return@detectTapGestures  // Ignore letterbox taps
-                                }
-                                // v2.9.9: Tap-to-Focus - single tap triggers focus
-                                if (FeatureFlags.enableManualFocus &&
-                                    previewSize.width > 0 &&
-                                    previewSize.height > 0) {
-                                    viewModel.onEvent(
-                                        CameraUiEvent.FocusOnPoint(
-                                            x = offset.x,
-                                            y = offset.y,
-                                            viewWidth = previewSize.width,
-                                            viewHeight = previewSize.height,
-                                            density = screenDensity,  // v2.12.0-18: for 72dp optimistic box
-                                        )
-                                    )
-                                }
-                            },
-                            onLongPress = { offset ->
-                                // v2.11.1 Phase 2: Filter long presses in letterbox area
-                                val bounds = state.contentBounds
-                                if (!bounds.isEmpty && !bounds.contains(offset.x, offset.y)) {
-                                    return@detectTapGestures  // Ignore letterbox long presses
-                                }
-                                // v2.9.9 Day 1-2: AE/AF Lock - long press triggers lock
-                                if (FeatureFlags.enableManualFocus &&
-                                    previewSize.width > 0 &&
-                                    previewSize.height > 0) {
-                                    viewModel.onEvent(
-                                        CameraUiEvent.LockAEAF(
-                                            x = offset.x,
-                                            y = offset.y,
-                                            viewWidth = previewSize.width,
-                                            viewHeight = previewSize.height
-                                        )
-                                    )
-                                }
-                            }
-                        )
-                    }
-            ) { contentBounds ->
-                // 相機預覽
-                // v2.8.6 Phase 2: PreviewView migration with dual-path rendering
-                val previewBitmap by viewModel.previewBitmap.collectAsState()
-                CameraPreview(
-                    previewBitmap = previewBitmap,
-                    supportsNativePreview = viewModel.supportsNativePreview(),
-                    onPreviewViewCreated = { previewView ->
-                        viewModel.setPreviewSurfaceProvider(previewView.surfaceProvider)
-                        // v2.11.1 P0-1: Pass PreviewView reference for accurate coordinate transformation
-                        viewModel.setPreviewView(previewView)
-                    },
-                    modifier = Modifier.fillMaxSize(),
-                    onSizeChanged = { width, height ->
-                        viewModel.updatePreviewSize(width, height)
-                    }
-                )
-
-                // D3-T2: Rule of Thirds grid overlay (Cueshot ambient UI)
-                // Solid lines, White alpha=0.5f, Z-order: above preview, below control UI
-                // Bound to isGridEnabled (viewModel.isGridEnabled); hidden until contentBounds calculated
-                // D7-B1-T3: Hidden in PTF mode (minimalist UI — green Halo takes over guidance).
-                GridOverlay(
-                    modifier = Modifier.fillMaxSize(),
-                    visible = isGridEnabled && !contentBounds.isEmpty && !isPtfActive,
-                    contentBounds = contentBounds.takeIf { !it.isEmpty }
-                )
-
-                // D4-T1/T2: Edge Warmth ambient UI — directional gradient + floating dots.
-                // D4-T2: isAligned switches to 4-edge uniform green breathing (SSOT §2.5).
-                // Z-order: above GridOverlay, below HaloGuidanceLayer.
-                EdgeWarmthLayer(
-                    modifier = Modifier.fillMaxSize(),
-                    deviceRoll = state.deviceRoll,
-                    capabilityTier = viewModel.deviceCapabilityTier,
-                    isAligned = isAligned,
-                )
-
-                // D6-B2-T2: Halo guidance layer — face-tracking Halo + EyeLine guide.
-                // isAllAligned==true → hidden (state-mutex with EdgeWarmthLayer breathing + ShutterRing).
-                // compositionResult==null → hidden (Constitution §6 default-value trap defense).
-                // D8-B2-T2: isPtfMode prop controls PTF vs Normal rendering path internally;
-                // guard removed so PTF Halo (gold gravitational arc + green breathing) can render.
-                // Z-order: above EdgeWarmthLayer, below CompositionGuideOverlay.
-                HaloGuidanceLayer(
-                    faces = state.detectedFaces,
-                    compositionResult = state.compositionResult,
-                    isPtfMode = isPtfActive,
-                    ptfAlignmentResult = state.ptfAlignmentResult,
-                    modifier = Modifier.fillMaxSize(),
-                )
-
-                // v2.4.0: Visual composition guide frame
-                // D7-B1-T3: Hidden in PTF mode (minimalist UI).
-                if (!isPtfActive) {
-                    val guideData = when (val currentState = compositionState) {
-                        is CompositionState.Good -> currentState.guideData
-                        is CompositionState.NeedsAdjustment -> currentState.guideData
-                        else -> null
-                    }
-                    CompositionGuideOverlay(
-                        guideData = guideData,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                // v2.2.0: HDR/Lighting warning overlay (highest priority - shows on top)
-                // v2.6.1: Only show in AUTO mode
-                HDRWarningOverlay(
-                    lightingState = lightingState,
-                    hdrMode = state.hdrMode,  // v2.6.1: Pass HDR mode to control visibility
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                // v2.1.0: Level indicator overlay
-                if (isLevelIndicatorEnabled) {
-                    orientationState?.let { orientation ->
-                        LevelIndicator(
-                            roll = orientation.roll,
-                            visible = true,
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 120.dp) // Above camera controls
-                        )
-                    }
-                }
-
-                // v2.8.4 Quick Win: FPS performance monitor
-                // Only visible in debug builds for performance validation
-                FPSOverlay(
-                    fps = currentFps,
-                    visible = BuildConfig.DEBUG,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 16.dp, bottom = 16.dp)
-                )
-
-                // v2.12.0-19: FocusIndicatorOverlay (SPEC impl) replaces FocusOverlay.
-                // focusUiStateFlow passed directly — collects internally (local recomposition defense).
-                // Z-order: above CameraPreview, Canvas does not consume pointer events.
-                FocusIndicatorOverlay(
-                    focusUiStateFlow = viewModel.focusUiStateFlow,
-                    modifier = Modifier.fillMaxSize(),
-                )
-
-                // v2.12.0-19: Lock overlay unified into FocusIndicatorOverlay (Yellow via OverlayColor.YELLOW)
-
-                // 頂部控制欄（閃光燈、設定）
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // 設定按鈕 (v2.1.0)
-                    IconButton(
-                        onClick = onNavigateToSettings
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "設定",
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-
-                    // 閃光燈按鈕
-                    IconButton(
-                        onClick = { viewModel.onEvent(CameraUiEvent.ToggleFlash) }
-                    ) {
-                        Icon(
-                            imageVector = when (state.flashMode) {
-                                ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
-                                ImageCapture.FLASH_MODE_AUTO -> Icons.Default.FlashAuto
-                                else -> Icons.Default.FlashOff
-                            },
-                            contentDescription = "閃光燈",
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-
-                    // HDR 按鈕 (v2.6.1)
-                    IconButton(
-                        onClick = { viewModel.onEvent(CameraUiEvent.ToggleHDR) }
-                    ) {
-                        Icon(
-                            imageVector = when (state.hdrMode) {
-                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Icons.Default.WbSunny  // HDR ON - 太陽圖示
-                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Icons.Default.BrightnessHigh  // HDR OFF - 亮度圖示（劃線）
-                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> Icons.Default.AutoAwesome  // AUTO - 星星圖示
-                            },
-                            contentDescription = "HDR 模式: ${state.hdrMode.displayName}",
-                            tint = when (state.hdrMode) {
-                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Color(0xFFFFA726)  // 橙色 - 強制開啟
-                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Color(0xFF757575)  // 灰色 - 停用
-                                com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> Color.White  // 白色 - 自動模式
-                            },
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-
-                // D7-B2-T1: PTF exit button — top-right, visible only in PassToFriend mode.
-                // Tapping exits to Normal mode without CameraX rebind.
-                if (isPtfActive) {
-                    IconButton(
-                        onClick = {
-                            viewModel.onEvent(CameraUiEvent.SetCameraMode(CameraMode.Normal))
+            ) {
+                // ── Viewfinder block (78.7%) ───────────────────────────────────
+                Box(modifier = Modifier.fillMaxWidth().weight(0.787f)) {
+                    PreviewViewportContainer(
+                        targetAspectRatio = state.aspectRatioMode,
+                        onContentBoundsChanged = { bounds ->
+                            viewModel.updateContentBounds(bounds)
                         },
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 8.dp, end = 8.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(R.string.ptf_exit_cd),
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-                }
-
-                // D7-B2-T3: PTF first-time onboarding hint — shown once per install.
-                // Condition: PTF mode active AND user has not dismissed the hint yet.
-                // AnimatedVisibility provides smooth enter/exit transitions.
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = isPtfActive && !isPtfOnboarded,
-                    enter = androidx.compose.animation.fadeIn() +
-                            androidx.compose.animation.slideInVertically(initialOffsetY = { it }),
-                    exit = androidx.compose.animation.fadeOut() +
-                           androidx.compose.animation.slideOutVertically(targetOffsetY = { it }),
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 160.dp),
-                ) {
-                    androidx.compose.foundation.layout.Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
-                            .background(
-                                color = Color.Black.copy(alpha = 0.72f),
-                                shape = MaterialTheme.shapes.medium,
-                            )
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.ptf_onboarding_message),
-                            color = Color.White,
-                            fontSize = 14.sp,
-                        )
-                        androidx.compose.foundation.layout.Spacer(
-                            modifier = Modifier.size(10.dp)
-                        )
-                        androidx.compose.material3.TextButton(
-                            onClick = {
-                                viewModel.onEvent(CameraUiEvent.DismissPtfOnboarding)
+                            .fillMaxSize()
+                            .onSizeChanged { size -> previewSize = size }
+                            .pointerInput(Unit, state.contentBounds) {
+                                detectTapGestures(
+                                    onTap = { offset ->
+                                        val bounds = state.contentBounds
+                                        if (!bounds.isEmpty && !bounds.contains(offset.x, offset.y)) {
+                                            return@detectTapGestures
+                                        }
+                                        if (FeatureFlags.enableManualFocus &&
+                                            previewSize.width > 0 &&
+                                            previewSize.height > 0) {
+                                            viewModel.onEvent(
+                                                CameraUiEvent.FocusOnPoint(
+                                                    x = offset.x,
+                                                    y = offset.y,
+                                                    viewWidth = previewSize.width,
+                                                    viewHeight = previewSize.height,
+                                                    density = screenDensity,
+                                                )
+                                            )
+                                        }
+                                    },
+                                    onLongPress = { offset ->
+                                        val bounds = state.contentBounds
+                                        if (!bounds.isEmpty && !bounds.contains(offset.x, offset.y)) {
+                                            return@detectTapGestures
+                                        }
+                                        if (FeatureFlags.enableManualFocus &&
+                                            previewSize.width > 0 &&
+                                            previewSize.height > 0) {
+                                            viewModel.onEvent(
+                                                CameraUiEvent.LockAEAF(
+                                                    x = offset.x,
+                                                    y = offset.y,
+                                                    viewWidth = previewSize.width,
+                                                    viewHeight = previewSize.height
+                                                )
+                                            )
+                                        }
+                                    }
+                                )
                             }
-                        ) {
-                            Text(
-                                text = stringResource(R.string.ptf_onboarding_got_it),
-                                color = Color(0xFF50C864),  // Cueshot green — SSOT §2.5
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
+                    ) { contentBounds ->
+                        val previewBitmap by viewModel.previewBitmap.collectAsState()
+                        CameraPreview(
+                            previewBitmap = previewBitmap,
+                            supportsNativePreview = viewModel.supportsNativePreview(),
+                            onPreviewViewCreated = { previewView ->
+                                viewModel.setPreviewSurfaceProvider(previewView.surfaceProvider)
+                                viewModel.setPreviewView(previewView)
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                            onSizeChanged = { width, height ->
+                                viewModel.updatePreviewSize(width, height)
+                            }
+                        )
+
+                        GridOverlay(
+                            modifier = Modifier.fillMaxSize(),
+                            visible = isGridEnabled && !contentBounds.isEmpty && !isPtfActive,
+                            contentBounds = contentBounds.takeIf { !it.isEmpty }
+                        )
+
+                        EdgeWarmthLayer(
+                            modifier = Modifier.fillMaxSize(),
+                            deviceRoll = state.deviceRoll,
+                            capabilityTier = viewModel.deviceCapabilityTier,
+                            isAligned = isAligned,
+                        )
+
+                        HaloGuidanceLayer(
+                            faces = state.detectedFaces,
+                            compositionResult = state.compositionResult,
+                            isPtfMode = isPtfActive,
+                            ptfAlignmentResult = state.ptfAlignmentResult,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+
+                        if (!isPtfActive) {
+                            val guideData = when (val currentState = compositionState) {
+                                is CompositionState.Good -> currentState.guideData
+                                is CompositionState.NeedsAdjustment -> currentState.guideData
+                                else -> null
+                            }
+                            CompositionGuideOverlay(
+                                guideData = guideData,
+                                modifier = Modifier.fillMaxSize()
                             )
+                        }
+
+                        HDRWarningOverlay(
+                            lightingState = lightingState,
+                            hdrMode = state.hdrMode,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        if (isLevelIndicatorEnabled) {
+                            orientationState?.let { orientation ->
+                                LevelIndicator(
+                                    roll = orientation.roll,
+                                    visible = true,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = 16.dp)
+                                )
+                            }
+                        }
+
+                        FPSOverlay(
+                            fps = currentFps,
+                            visible = BuildConfig.DEBUG,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 16.dp, bottom = 16.dp)
+                        )
+
+                        FocusIndicatorOverlay(
+                            focusUiStateFlow = viewModel.focusUiStateFlow,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+
+                        // Top scrim — SCRIM_HEIGHT_PX gradient from #000000 α0.22 → transparent
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(scrimHeightDp)
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Black.copy(alpha = 0.22f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+                                .align(Alignment.TopStart)
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.TopCenter)
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            IconButton(onClick = onNavigateToSettings) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "設定",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+
+                            IconButton(onClick = { viewModel.onEvent(CameraUiEvent.ToggleFlash) }) {
+                                Icon(
+                                    imageVector = when (state.flashMode) {
+                                        ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
+                                        ImageCapture.FLASH_MODE_AUTO -> Icons.Default.FlashAuto
+                                        else -> Icons.Default.FlashOff
+                                    },
+                                    contentDescription = "閃光燈",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+
+                            IconButton(onClick = { viewModel.onEvent(CameraUiEvent.ToggleHDR) }) {
+                                Icon(
+                                    imageVector = when (state.hdrMode) {
+                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Icons.Default.WbSunny
+                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Icons.Default.BrightnessHigh
+                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> Icons.Default.AutoAwesome
+                                    },
+                                    contentDescription = "HDR 模式: ${state.hdrMode.displayName}",
+                                    tint = when (state.hdrMode) {
+                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Color(0xFFFFA726)
+                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Color(0xFF757575)
+                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> Color.White
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        }
+
+                        if (isPtfActive) {
+                            IconButton(
+                                onClick = {
+                                    viewModel.onEvent(CameraUiEvent.SetCameraMode(CameraMode.Normal))
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 8.dp, end = 8.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = stringResource(R.string.ptf_exit_cd),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp),
+                                )
+                            }
+                        }
+
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = isPtfActive && !isPtfOnboarded,
+                            enter = androidx.compose.animation.fadeIn() +
+                                    androidx.compose.animation.slideInVertically(initialOffsetY = { it }),
+                            exit = androidx.compose.animation.fadeOut() +
+                                   androidx.compose.animation.slideOutVertically(targetOffsetY = { it }),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 8.dp),
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp)
+                                    .background(
+                                        color = Color.Black.copy(alpha = 0.72f),
+                                        shape = MaterialTheme.shapes.medium,
+                                    )
+                                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.ptf_onboarding_message),
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                )
+                                androidx.compose.foundation.layout.Spacer(
+                                    modifier = Modifier.size(10.dp)
+                                )
+                                androidx.compose.material3.TextButton(
+                                    onClick = {
+                                        viewModel.onEvent(CameraUiEvent.DismissPtfOnboarding)
+                                    }
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.ptf_onboarding_got_it),
+                                        color = Color(0xFF50C864),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
-                // 底部控制欄
-                Row(
+                // Separator — viewfinder / control band boundary α0.05
+                Canvas(modifier = Modifier.fillMaxWidth().height(1.dp)) {
+                    drawRect(color = Color.White.copy(alpha = 0.05f))
+                }
+
+                // ── Control Band (21.3%) ───────────────────────────────────────
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(32.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+                        .weight(0.213f),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // 切換鏡頭按鈕
-                    IconButton(
-                        onClick = { viewModel.onEvent(CameraUiEvent.SwitchCamera) }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Cameraswitch,
-                            contentDescription = "切換鏡頭",
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
+                        IconButton(
+                            onClick = { viewModel.onEvent(CameraUiEvent.SwitchCamera) }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Cameraswitch,
+                                contentDescription = "切換鏡頭",
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+                        ShutterButtonSection(
+                            isAligned = isAligned,
+                            isCapturing = state.isCapturing,
+                            cameraMode = state.cameraMode,
+                            onCapture = { viewModel.onEvent(CameraUiEvent.CapturePhoto) },
+                        )
+
+                        CameraTabBar(
+                            cameraMode = state.cameraMode,
+                            onToggle = {
+                                val nextMode = if (state.cameraMode is CameraMode.PassToFriend) {
+                                    CameraMode.Normal
+                                } else {
+                                    CameraMode.PassToFriend
+                                }
+                                viewModel.onEvent(CameraUiEvent.SetCameraMode(nextMode))
+                            },
+                            modifier = Modifier.weight(1f),
                         )
                     }
-
-                    // 拍照按鈕 (SV-D4-T4-FIX-01: extracted to ShutterButtonSection for UI testability)
-                    // D7-B2-T1: cameraMode drives 72→80dp animated enlargement in PTF mode.
-                    ShutterButtonSection(
-                        isAligned = isAligned,
-                        isCapturing = state.isCapturing,
-                        cameraMode = state.cameraMode,
-                        onCapture = { viewModel.onEvent(CameraUiEvent.CapturePhoto) },
-                    )
-
-                    // D7-B2-FIX: PTF Tab toggle — explicit mode targets (replaces Toggle).
-                    // 300ms animated tab bar: Normal ↔ Pass-To-Friend.
-                    CameraTabBar(
-                        cameraMode = state.cameraMode,
-                        onToggle = {
-                            val nextMode = if (state.cameraMode is CameraMode.PassToFriend) {
-                                CameraMode.Normal
-                            } else {
-                                CameraMode.PassToFriend
-                            }
-                            viewModel.onEvent(CameraUiEvent.SetCameraMode(nextMode))
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
                 }
             }
 
