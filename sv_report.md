@@ -17,10 +17,10 @@
 
 ### File Scope
 - Result: ✅ PASS
-- Modified files:
+- Modified files (feature commit HEAD~2..HEAD~1):
   - `CameraScreen.kt` (TICKET-02 target)
   - `GridOverlay.kt` (TICKET-02 target)
-  - `.claude/PROGRESS.md` (authorized: /qa update)
+- Docs commit (HEAD~1..HEAD): `.claude/PROGRESS.md` + `sv_report.md` (authorized: /qa + /sv outputs)
 
 ---
 
@@ -74,4 +74,15 @@
 ## 階段 D: Cross-Review 路由
 
 - codex CLI: AVAILABLE
-- ssot_context.md: EXISTS
+- ssot_context.md: EXISTS (updated: HaloLayer → HaloGuidanceLayer)
+- Diff scope used: HEAD~4..HEAD~3 (feature commit)
+
+### Cross-Review 判定與豁免紀錄
+
+| Codex 發現 | Severity | 處置 |
+| --- | --- | --- |
+| Scrim Z-order 覆蓋 FocusIndicatorOverlay | medium/sv | ✅ 已修正 (commit 98226aa) — Scrim 移至 FocusIndicator 之前 |
+| 佈局比例 0.787f/0.213f 無 SSOT 依據 | medium/sv | ✅ 已修正 (commit 5ea257e) — 抽取至 AmbientConstants |
+| CameraScreen.kt 未用 Strangler Pattern 新建元件 | medium/arch | ⚪ 授權例外 — TICKET-02 明確列 CameraScreen.kt 為 Target Scope，layout 重構不適用元件替換模式 |
+
+→ 本地 SV + Cross-Review 三輪驗收，2 項已修正，1 項授權例外。準備提交 Traycer 終審。

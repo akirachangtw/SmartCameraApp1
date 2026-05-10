@@ -22,7 +22,7 @@ data/     → Android 框架依賴，實作 domain 介面
 
 presentation/ → Jetpack Compose + ViewModel
   ├── camera/         CameraViewModel, CameraScreen
-  ├── overlay/        EdgeWarmthLayer, HaloLayer, GridOverlay
+  ├── overlay/        EdgeWarmthLayer, HaloGuidanceLayer, GridOverlay
   ├── controls/       ShutterButton, PillToggle, PTF controls
   └── postCapture/    ScoreCard, DOF pipeline UI
 ```
@@ -43,7 +43,7 @@ presentation/ → Jetpack Compose + ViewModel
 | `DeviceTier` | domain/model | Enum: FULL / LIMITED / LEGACY |
 | `CompositionRule` | domain/rule | 介面，所有規則實作之 |
 | `EdgeWarmthLayer` | presentation/overlay | 邊緣漸層 overlay |
-| `HaloLayer` | presentation/overlay | 主體光環 overlay |
+| `HaloGuidanceLayer` | presentation/overlay | 主體光環 overlay |
 | `EyeAfDecision` | domain/model | Eye-AF 決策封裝 |
 
 **零容忍**: 若 diff 中出現 `CompositionScore`, `EyeAfPolicyOutput`, `SceneType` 等非 SSOT 名稱 → FAIL
