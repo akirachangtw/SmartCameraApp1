@@ -20,9 +20,17 @@ object AmbientConstants {
     /** Roll/pitch range (degrees) over which Level Traction UI fades in. 0° = invisible, 5° = fully visible. */
     const val LEVEL_FADE_RANGE_DEG = 5f
 
+    // ── Layout proportions ─────────────────────────────────────────────────────
+
+    /** Viewfinder block vertical weight (78.7%) per Stage0 layout spec (664px reference). */
+    const val VIEWFINDER_WEIGHT = 0.787f
+
+    /** Control band vertical weight (21.3%) per Stage0 layout spec (180px reference). */
+    const val CONTROL_BAND_WEIGHT = 0.213f
+
     // ── Scrim ──────────────────────────────────────────────────────────────────
 
-    /** Bottom scrim height in pixels. Override: 72→120 per Stage0 spec (pending real-device validation). */
+    /** Top scrim height in pixels. Stage0 layout spec §2. */
     const val SCRIM_HEIGHT_PX = 120f
 
     // ── Scene hysteresis ───────────────────────────────────────────────────────

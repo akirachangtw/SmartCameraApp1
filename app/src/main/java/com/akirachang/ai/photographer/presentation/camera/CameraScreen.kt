@@ -225,7 +225,7 @@ fun CameraScreen(
                     .padding(paddingValues)
             ) {
                 // ── Viewfinder block (78.7%) ───────────────────────────────────
-                Box(modifier = Modifier.fillMaxWidth().weight(0.787f)) {
+                Box(modifier = Modifier.fillMaxWidth().weight(AmbientConstants.VIEWFINDER_WEIGHT)) {
                     PreviewViewportContainer(
                         targetAspectRatio = state.aspectRatioMode,
                         onContentBoundsChanged = { bounds ->
@@ -491,7 +491,7 @@ fun CameraScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(0.213f),
+                        .weight(AmbientConstants.CONTROL_BAND_WEIGHT),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
