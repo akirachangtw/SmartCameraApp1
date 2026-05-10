@@ -329,6 +329,23 @@ fun CameraScreen(
                             modifier = Modifier.fillMaxSize()
                         )
 
+                        // Top scrim — below FocusIndicatorOverlay so focus ring stays visible
+                        // Z-order: above camera overlays, below FocusIndicator + controls
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(scrimHeightDp)
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Black.copy(alpha = 0.22f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+                                .align(Alignment.TopStart)
+                        )
+
                         if (isLevelIndicatorEnabled) {
                             orientationState?.let { orientation ->
                                 LevelIndicator(
@@ -352,22 +369,6 @@ fun CameraScreen(
                         FocusIndicatorOverlay(
                             focusUiStateFlow = viewModel.focusUiStateFlow,
                             modifier = Modifier.fillMaxSize(),
-                        )
-
-                        // Top scrim — SCRIM_HEIGHT_PX gradient from #000000 α0.22 → transparent
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(scrimHeightDp)
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color.Black.copy(alpha = 0.22f),
-                                            Color.Transparent
-                                        )
-                                    )
-                                )
-                                .align(Alignment.TopStart)
                         )
 
                         Row(
