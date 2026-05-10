@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D8-VERIFY ✅ → Stage0 Realignment 進行中
+**Current Day**: D8-VERIFY ✅ → Stage0 Realignment 進行中 — W2 T02 ✅
 **Last Updated**: 2026-05-10
 
 ---
@@ -10,10 +10,10 @@
 
 | Metric | Status |
 |--------|--------|
-| Schedule | Stage0 W1 — INFRA-02 ✅ CLOSED — FIX-INFRA-02-FINAL ✅ CLOSED — FIX-INFRA-02-D ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — W2 🟡 READY (Rule 17 授權待決) |
+| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — W2 🟡 T02 ✅ DONE, T03→T04 pending |
 | Compile | 0 errors ✅ |
 | Tests | 178t / 0 failed ✅ |
-| Lint | 0 errors ✅ (opencv module removed, ndk block removed) |
+| Lint | 0 errors ✅ |
 
 ---
 
