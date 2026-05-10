@@ -1,24 +1,20 @@
 package com.akirachang.ai.photographer.presentation.camera.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CameraAlt
-import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,34 +31,25 @@ import androidx.compose.ui.unit.dp
 import com.akirachang.ai.photographer.R
 import com.akirachang.ai.photographer.domain.camera.CameraMode
 
+// D7-B1: Testability probes for CameraTabBar.
 internal const val TAG_TAB_NORMAL = "TabNormal"
 internal const val TAG_TAB_PTF = "TabPassToFriend"
 
-// Stage0 Pill Toggle — Layout Spec v2.1 §5 / SSOT §3
-private val PILL_WIDTH = 128.dp
-private val PILL_HEIGHT = 28.dp
-private val PILL_CORNER = 14.dp
-private val INDICATOR_WIDTH = 60.dp
-private val INDICATOR_HEIGHT = 24.dp
-private val INDICATOR_CORNER = 12.dp
-private val INDICATOR_MARGIN = 2.dp
-private val TOUCH_HEIGHT = 48.dp
-private val ICON_SIZE = 20.dp
-private val STROKE_COLOR = Color(0xFF555555)
-private val INDICATOR_BG = Color(0xFF4A4A4A)
-private val SELECTED_ICON = Color(0xFFCCCCCC)
-private val UNSELECTED_ICON = Color(0xFF666666)
-
-// Indicator slides: 2dp from left edge (Photo) ↔ 66dp from left edge (PTF)
-private val INDICATOR_X_NORMAL = INDICATOR_MARGIN
-private val INDICATOR_X_PTF = PILL_WIDTH - INDICATOR_WIDTH - INDICATOR_MARGIN
+private val PTF_ACTIVE_COLOR = Color(0xFF50C864)   // Cueshot green — SSOT §2.5
+private val TAB_BG_COLOR = Color.Black.copy(alpha = 0.55f)
+private val TAB_SELECTED_ICON = Color.Black
+private val TAB_UNSELECTED_ICON = Color.White.copy(alpha = 0.75f)
 
 /**
- * Stage0 Pill Toggle — Photo ↔ PTF mode selector.
+ * Camera mode tab bar — Cueshot D7-B2-FIX.
  *
- * Visual: 128dp × 28dp pill with 1px #555555 stroke and sliding #4A4A4A indicator.
- * Touch target: 128dp × 48dp (per Layout Spec v2.1 §5).
- * Zero hardware transitions — dispatches [CameraUiEvent.SetCameraMode] only.
+ * Two tabs: Normal (拍照) ↔ Pass-To-Friend (遞手機).
+ * Selection drives [CameraMode] via [onToggle] callback.
+ * 300ms color-fade animation (Rule 14: all remember/state calls are at top of composable).
+ *
+ * @param cameraMode Current camera mode from [CameraState].
+ * @param onToggle Invoked when the user taps the non-active tab.
+ * @param modifier Modifier passed to the root [Row].
  */
 @Composable
 internal fun CameraTabBar(
@@ -70,82 +57,84 @@ internal fun CameraTabBar(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Rule 14: all state calls at composable top, before any conditionals.
+    // Rule 14: all animation state declared at composable top — before any conditional logic.
     val isPtfActive = cameraMode is CameraMode.PassToFriend
 
-    val indicatorX by animateDpAsState(
-        targetValue = if (isPtfActive) INDICATOR_X_PTF else INDICATOR_X_NORMAL,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "pill_indicator_x",
+    val normalBg by animateColorAsState(
+        targetValue = if (!isPtfActive) PTF_ACTIVE_COLOR else Color.Transparent,
+        animationSpec = tween(durationMillis = 300),
+        label = "normal_tab_bg",
+    )
+    val ptfBg by animateColorAsState(
+        targetValue = if (isPtfActive) PTF_ACTIVE_COLOR else Color.Transparent,
+        animationSpec = tween(durationMillis = 300),
+        label = "ptf_tab_bg",
     )
     val normalIconColor by animateColorAsState(
-        targetValue = if (!isPtfActive) SELECTED_ICON else UNSELECTED_ICON,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "normal_icon_color",
+        targetValue = if (!isPtfActive) TAB_SELECTED_ICON else TAB_UNSELECTED_ICON,
+        animationSpec = tween(durationMillis = 300),
+        label = "normal_tab_icon",
     )
     val ptfIconColor by animateColorAsState(
-        targetValue = if (isPtfActive) SELECTED_ICON else UNSELECTED_ICON,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "ptf_icon_color",
+        targetValue = if (isPtfActive) TAB_SELECTED_ICON else TAB_UNSELECTED_ICON,
+        animationSpec = tween(durationMillis = 300),
+        label = "ptf_tab_icon",
     )
 
-    Box(
+    Row(
         modifier = modifier
-            .width(PILL_WIDTH)
-            .height(TOUCH_HEIGHT),
+            .fillMaxWidth()
+            .height(44.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(TAB_BG_COLOR)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Visual pill: 128dp × 28dp, vertically centered within the 48dp touch target.
+        // Normal tab
         Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
-                .align(Alignment.Center)
-                .width(PILL_WIDTH)
-                .height(PILL_HEIGHT)
-                .border(1.dp, STROKE_COLOR, RoundedCornerShape(PILL_CORNER))
-                .clip(RoundedCornerShape(PILL_CORNER)),
+                .weight(1f)
+                .height(36.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(normalBg)
+                .clickable(
+                    enabled = isPtfActive,  // only tappable when not already selected
+                    onClick = onToggle,
+                )
+                .semantics { role = Role.Tab }
+                .testTag(TAG_TAB_NORMAL),
         ) {
-            Box(
-                modifier = Modifier
-                    .offset(x = indicatorX, y = INDICATOR_MARGIN)
-                    .size(INDICATOR_WIDTH, INDICATOR_HEIGHT)
-                    .clip(RoundedCornerShape(INDICATOR_CORNER))
-                    .background(INDICATOR_BG),
+            Icon(
+                imageVector = Icons.Filled.CameraAlt,
+                contentDescription = stringResource(R.string.tab_normal_mode_cd),
+                tint = normalIconColor,
+                modifier = Modifier.size(22.dp),
             )
         }
 
-        // Click targets span the full 48dp touch-target height; icons are centered.
-        Row(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clickable(enabled = isPtfActive, onClick = onToggle)
-                    .semantics { role = Role.Tab }
-                    .testTag(TAG_TAB_NORMAL),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.CameraAlt,
-                    contentDescription = stringResource(R.string.tab_normal_mode_cd),
-                    tint = normalIconColor,
-                    modifier = Modifier.size(ICON_SIZE),
+        // Pass-To-Friend tab
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .weight(1f)
+                .height(36.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(ptfBg)
+                .clickable(
+                    enabled = !isPtfActive,  // only tappable when not already selected
+                    onClick = onToggle,
                 )
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clickable(enabled = !isPtfActive, onClick = onToggle)
-                    .semantics { role = Role.Tab }
-                    .testTag(TAG_TAB_PTF),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.People,
-                    contentDescription = stringResource(R.string.tab_pass_to_friend_cd),
-                    tint = ptfIconColor,
-                    modifier = Modifier.size(ICON_SIZE),
-                )
-            }
+                .semantics { role = Role.Tab }
+                .testTag(TAG_TAB_PTF),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PeopleAlt,
+                contentDescription = stringResource(R.string.tab_pass_to_friend_cd),
+                tint = ptfIconColor,
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }

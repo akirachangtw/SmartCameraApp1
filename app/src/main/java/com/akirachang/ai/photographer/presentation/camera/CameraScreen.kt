@@ -529,6 +529,7 @@ fun CameraScreen(
                                 }
                                 viewModel.onEvent(CameraUiEvent.SetCameraMode(nextMode))
                             },
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
