@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D8-VERIFY → Stage0 Realignment 進行中 — W2 T02 🔴 Hard Gate FAIL
-**Last Updated**: 2026-05-11 17:45
+**Current Day**: D8-VERIFY → Stage0 Realignment 進行中 — W2 BHA-01 歸一化 ✅ PASS，3 個前置 Bug 阻塞 T02 Hard Gate
+**Last Updated**: 2026-05-11 21:10
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Metric | Status |
 |--------|--------|
-| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — W2 🔴 T02 Hard Gate FAIL（BHA-01）, T03→T04 blocked |
-| Compile | 0 errors ✅ (assembleDebug 59s) |
-| Tests | 178t / 0 failed ✅ (testDeviceDebugUnitTest) |
-| Lint | 0 errors ✅ / 555 warnings (499 LogNotTimber, 16 GradleDep, baseline) |
+| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — W2 BHA-01-FIX ✅ 實作完成，待實機 Hard Gate 重驗 |
+| Compile | 0 errors ✅ (assembleDebug 34s) |
+| Tests | passed ✅ (testDeviceDebugUnitTest) |
+| Lint | 0 errors ✅ / 557 warnings (baseline, 0 new) |
 
 ---
 
@@ -56,17 +56,23 @@
 | ~~I8~~ | ~~IFTR 歸零 — isAllAligned 永遠 false~~ | ✅ 已修復 | TICKET-00 — 改為加權平均 ≥ 70 |
 | ~~I9~~ | ~~Traycer Path B 裁決阻擋 W2 啟動~~ | ✅ 已解除 | FIX-INFRA-02-FINAL + FIX-INFRA-02-D 完成 OpenCV 全鏈路清除，Path B 唯一 blocker 已修補 |
 | I7 | 對焦圓環永動循環 | 🟡 Medium | EyeAfController 每 2s 無條件重觸發，缺 `lens=Focused && 漂移 < 10px → skip` guard |
-| BHA-01 | T02 Hard Gate — 人臉 bbox 偏移 | 🔴 P0 Blocker | **根因確認**：`observeCompositionAdvice`（line 1982）+ `observePtfAlignment`（line 2081）使用 `det.imageWidth=480`（raw un-rotated）歸一化，但 `face.boundingBox` 座標在旋轉後空間（x∈[0,640]）。修復方案 A 確定：加入 rotation swap 與 `updateCoordinateTransformer`（line 585）對齊。.claude/bha_report.md 已產出。 |
+| BHA-01 | T02 Hard Gate — 歸一化 ✅，視覺 🔴 | 🟡 部分通過 | 歸一化數學 PASS（所有場景 normBbox [0,1]）。視覺 FAIL：3 個前置 Bug 阻塞（見下方）。 |
+| BUG-MLKIT-DUAL-EMIT | ML Kit 雙管線交替發射 | 🔴 P0 Blocker | 切換鏡頭/方向後舊鏡頭 DetectionResult 未清除，與新鏡頭結果交替輸出 → Halo 忽大忽小 + 閃爍出現/消失。修復方向：切換時 `_state.update { copy(detectionResult = null) }` 或 `flatMapLatest`。 |
+| BUG-SONY-ROTATION-CONST | Sony rotation 恆為 0 | 🔴 P0 | Sony XQ-BT52 直立/橫向皆回報 `rotationDegrees=0`，rotation swap 邏輯無法觸發。需裝置相容性處理或改用 CameraX Surface rotation。 |
+| BUG-PTF-HALO-SIZE | PTF 圓環渲染過大且不跟隨 | 🔴 P0 | PTF Halo 渲染層 bbox → 圓半徑轉換錯誤。座標數學已正確，純渲染 bug。 |
 
 ## Next Actions
 
-1. **🔴 BHA-01-FIX 實作票**（P0，已取得根因，等待授權）：
-   - `CameraViewModel.kt` line ~1982：加入 rotation swap（imgW/imgH 互換，參考 line 585 模式）
-   - `CameraViewModel.kt` line ~2081：同上修正 PTF pipeline
-   - /qa → /sv → Sony 實機 Hard Gate 重驗
-2. **T03 重啟**（BHA-01 通過後）：提交單授權後執行 Pill Toggle 重寫
-3. **I7 修復**（可並行）：`EyeAfController.kt` 加入 `lens=Focused && 漂移 < 10px → skip`
-4. **statusLine hook 驗證**（重啟後）：確認 `tmp/claude_status_cache.json` 寫入真實 API 數據，`/status` 顯示 🟢 真實來源
+1. **🔴 BUG-MLKIT-DUAL-EMIT 修復**（P0，最優先）：
+   - `CameraViewModel.kt` 切換鏡頭時清空 `detectionResult`，或改用 `flatMapLatest` 確保舊 Flow 取消
+   - 修復後重跑場景二/四視覺驗證
+2. **🔴 BUG-SONY-ROTATION-CONST 處理**（P0）：
+   - 調查 CameraX `imageInfo.rotationDegrees` vs `Surface.ROTATION_*` 差異
+   - 考慮改用 `PreviewView.display.rotation` 作為歸一化依據
+3. **🔴 BUG-PTF-HALO-SIZE 修復**（P0）：
+   - 追蹤 PTF Halo 渲染層 bbox → 圓半徑轉換邏輯並修正
+4. **T03 重啟**（以上 3 Bug 通過後）：Pill Toggle 重寫
+5. **I7 修復**（可並行）：`EyeAfController.kt` 加入 `lens=Focused && 漂移 < 10px → skip`
 
 ## Active Debt（僅列未解決項）
 
