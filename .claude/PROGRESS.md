@@ -2,7 +2,7 @@
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
 **Current Day**: D8-VERIFY → Stage0 Realignment 進行中 — W2 T02 🔴 Hard Gate FAIL
-**Last Updated**: 2026-05-11
+**Last Updated**: 2026-05-11 17:45
 
 ---
 
@@ -11,9 +11,9 @@
 | Metric | Status |
 |--------|--------|
 | Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — W2 🔴 T02 Hard Gate FAIL（BHA-01）, T03→T04 blocked |
-| Compile | 0 errors ✅ |
-| Tests | 178t / 0 failed ✅ |
-| Lint | 0 errors ✅ |
+| Compile | 0 errors ✅ (assembleDebug 59s) |
+| Tests | 178t / 0 failed ✅ (testDeviceDebugUnitTest) |
+| Lint | 0 errors ✅ / 555 warnings (499 LogNotTimber, 16 GradleDep, baseline) |
 
 ---
 
@@ -56,17 +56,17 @@
 | ~~I8~~ | ~~IFTR 歸零 — isAllAligned 永遠 false~~ | ✅ 已修復 | TICKET-00 — 改為加權平均 ≥ 70 |
 | ~~I9~~ | ~~Traycer Path B 裁決阻擋 W2 啟動~~ | ✅ 已解除 | FIX-INFRA-02-FINAL + FIX-INFRA-02-D 完成 OpenCV 全鏈路清除，Path B 唯一 blocker 已修補 |
 | I7 | 對焦圓環永動循環 | 🟡 Medium | EyeAfController 每 2s 無條件重觸發，缺 `lens=Focused && 漂移 < 10px → skip` guard |
-| BHA-01 | T02 Hard Gate — 人臉 bbox 偏移 | 🔴 P0 Blocker | HaloGuidanceLayer 座標空間錯配：分析幀 480×640 歸一化後乘以 canvas 1080×1898 → 2.25× 位移。需先診斷 face.boundingBox 座標空間（VIEW vs IMAGE referenced） |
+| BHA-01 | T02 Hard Gate — 人臉 bbox 偏移 | 🔴 P0 Blocker | **根因確認**：`observeCompositionAdvice`（line 1982）+ `observePtfAlignment`（line 2081）使用 `det.imageWidth=480`（raw un-rotated）歸一化，但 `face.boundingBox` 座標在旋轉後空間（x∈[0,640]）。修復方案 A 確定：加入 rotation swap 與 `updateCoordinateTransformer`（line 585）對齊。.claude/bha_report.md 已產出。 |
 
 ## Next Actions
 
-1. **🔴 BHA-01 診斷票**（P0，T02 Hard Gate Blocker）：
-   - 讀 `CameraViewModel.kt` ~1982-2014，確認 `face.boundingBox` 座標空間
-   - 追蹤 `det` 來源（SmartCameraAnalyzer / MLKitDetector）
-   - 決定修復方案 A（VIEW_REFERENCED → 改歸一化分母）或 B（IMAGE_REFERENCED → contentBounds offset）
-2. **BHA-01 修復實作** → /qa → /sv → Sony 實機 Hard Gate 重驗
-3. **T03 重啟**（BHA-01 通過後）：提交單授權後執行 Pill Toggle 重寫
-4. **I7 修復**（可並行）：`EyeAfController.kt` 加入 `lens=Focused && 漂移 < 10px → skip`
+1. **🔴 BHA-01-FIX 實作票**（P0，已取得根因，等待授權）：
+   - `CameraViewModel.kt` line ~1982：加入 rotation swap（imgW/imgH 互換，參考 line 585 模式）
+   - `CameraViewModel.kt` line ~2081：同上修正 PTF pipeline
+   - /qa → /sv → Sony 實機 Hard Gate 重驗
+2. **T03 重啟**（BHA-01 通過後）：提交單授權後執行 Pill Toggle 重寫
+3. **I7 修復**（可並行）：`EyeAfController.kt` 加入 `lens=Focused && 漂移 < 10px → skip`
+4. **statusLine hook 驗證**（重啟後）：確認 `tmp/claude_status_cache.json` 寫入真實 API 數據，`/status` 顯示 🟢 真實來源
 
 ## Active Debt（僅列未解決項）
 
