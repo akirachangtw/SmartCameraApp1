@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-input=$(cat)
+# Cache the raw payload so /status skill can read real data when invoked mid-session.
+# Use a relative path — Claude Code hooks always execute from the project root.
+CACHE_FILE="tmp/claude_status_cache.json"
+mkdir -p "$(dirname "$CACHE_FILE")"
+input=$(cat | tee "$CACHE_FILE")
 
 # ── Nerd Fonts 圖示 ──
 # 如果你的終端機沒有安裝 Nerd Fonts，可以把這些改成一般文字
