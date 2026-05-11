@@ -91,7 +91,77 @@ BHA-01-FIX（rotation-aware 歸一化修復）**數學邏輯已驗證正確**，
 
 ---
 
-## 五、建議執行順序
+## 五、追加場景：預覽畫面雙圓環（無人臉狀態）
+
+**發現時間**: 2026-05-11 21:06  
+**場景**: 後鏡頭直立、無人臉入鏡，預覽畫面持續出現雙圓環（透明度約 0.5）
+
+### Logcat 證據
+
+```
+05-11 21:06:42.451 [D6-B3] Gaze AF trigger: stableId=gaze_af:1778504802451 point=(491.625, 1043.9)
+05-11 21:06:44.507 [D6-B3] Gaze AF trigger: stableId=gaze_af:1778504804507 point=(491.625, 1043.9)
+05-11 21:06:46.528 [D6-B3] Gaze AF trigger: stableId=gaze_af:1778504806528 point=(491.625, 1043.9)
+05-11 21:06:48.549 [D6-B3] Gaze AF trigger: stableId=gaze_af:1778504808549 point=(491.625, 1043.9)
+（全程）Detection cleared: No stable face detected
+```
+
+**觀察**：
+
+- Gaze AF 每 ~2s 無條件觸發，固定座標 `(491.625, 1043.9)` — 即使無人臉
+- `stableId` 時間戳遞增（+2000ms），確認為週期性重觸發非偶發
+
+### 根因分析（修正版）
+
+**視覺確認**：附圖顯示為「外圈細實線 + 中圈粗虛線（方塊狀）」的同心圓結構。
+
+| 視覺元素 | 程式碼對應 | 說明 |
+|---------|-----------|------|
+| 外圈細實線（radius × 0.92） | `FocusIndicatorOverlay.drawSearchingBase` L162 | 設計規格內，3 層同心圓之外圈 |
+| 中圈粗虛線（radius × 0.78，14dp） | `FocusIndicatorOverlay.drawSearchingBase` L170 | 設計規格內，3 層同心圓之中圈 |
+
+**結論**：這是 **單一 `FocusIndicatorOverlay`** 的設計規格（`drawSearchingBase` 畫 3 層同心圓，規格見 `SSOT v3.3 §2.4`）。並非兩個 Overlay 疊加。真正的問題是此 Overlay 在**不應顯示時持續出現**。
+
+**觸發鏈**：
+```
+EyeAfController.process() 每 2s 觸發 EyeAfTrigger
+  → CameraViewModel Gaze AF trigger log（固定座標 491.625, 1043.9）
+  → FocusStateMachine → VisualTargetState = VisualLocked
+  → FocusIndicatorOverlay LaunchedEffect(stableId 變更) → alphaTarget = 1.0 重置
+  → dwell fade（1s → 0.4）被下一次 2s 觸發打斷，永遠不完成 fade
+  → FocusIndicatorOverlay 持續可見
+```
+
+**Guard 缺失**（`EyeAfController.kt:96-100`）：
+```kotlin
+// 現行：Gaze 未對齊就觸發 AF
+val gazeScore = compositionResult.ruleScores[GAZE_RULE_KEY]
+if (gazeScore == null || gazeScore.isAligned) return null
+// 缺少：LensFocusState == Focused && 座標漂移 < 閾值 → skip
+```
+
+### Bug 登記
+
+#### BUG-I7-FOCUS-RING-PERSIST（P1，長期技術債）
+
+- **現象**: 無人臉/Gaze 未對齊時，`FocusIndicatorOverlay`（3 層同心琥珀金圓環）持續顯示，透明度 ~0.4–1.0，永不 fade out
+
+- **根因**: `EyeAfController` 缺 `LensFocusState.Focused + 座標穩定` guard。每 2s 觸發新 `stableId` → `LaunchedEffect` 重置 `alphaTarget = 1.0`，打斷 dwell fade 流程
+
+- **規格依據**: `FocusUiState.kt:7` — `when visualTargetState is None, the UI MUST be fully hidden`；`FocusTokens.DWELL_DELAY = 1000ms` 後應 fade 至 0.4 並最終進入 `None`
+
+- **修復方向**: `EyeAfController.process()` 新增 Guard 7：
+  ```kotlin
+  // Guard 7: lens already focused and target stable — skip re-trigger
+  if (lensFocusState == LensFocusState.Focused && drift(eyePixel, lastTriggerPoint) < DRIFT_THRESHOLD_PX) return null
+  ```
+  同時需在 `process()` 參數加入 `lensFocusState: LensFocusState`，並從 `CameraViewModel` 傳入
+
+- **影響**: 所有場景、所有時間（後鏡頭 + Gaze 未對齊），使用者體驗嚴重干擾
+
+---
+
+## 六、建議執行順序
 
 ```
 1. BUG-MLKIT-DUAL-EMIT 修復（CameraViewModel 鏡頭切換清空邏輯）
