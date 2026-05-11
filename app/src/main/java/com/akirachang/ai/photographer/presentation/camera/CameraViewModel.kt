@@ -1979,9 +1979,12 @@ class CameraViewModel @Inject constructor(
             .map { it.detectionResult }
             .filterNotNull()
             .onEach { det ->
-                val imgW = det.imageWidth.toFloat()
-                val imgH = det.imageHeight.toFloat()
+                // BHA-01-FIX: face.boundingBox is in rotated space; swap dims for 90°/270° to match.
+                val rotation = det.rotationDegrees
+                val imgW = (if (rotation == 90 || rotation == 270) det.imageHeight else det.imageWidth).toFloat()
+                val imgH = (if (rotation == 90 || rotation == 270) det.imageWidth else det.imageHeight).toFloat()
                 if (imgW <= 0f || imgH <= 0f) return@onEach
+                Log.d(TAG, "[BHA-01] observeCompositionAdvice rotation=$rotation imgW=$imgW imgH=$imgH")
 
                 val landmarkFaces = det.faces.mapIndexed { idx, face ->
                     val box = face.boundingBox
@@ -2078,9 +2081,12 @@ class CameraViewModel @Inject constructor(
                 }
 
                 if (det == null) return@onEach
-                val imgW = det.imageWidth.toFloat()
-                val imgH = det.imageHeight.toFloat()
+                // BHA-01-FIX: face.boundingBox is in rotated space; swap dims for 90°/270° to match.
+                val rotation = det.rotationDegrees
+                val imgW = (if (rotation == 90 || rotation == 270) det.imageHeight else det.imageWidth).toFloat()
+                val imgH = (if (rotation == 90 || rotation == 270) det.imageWidth else det.imageHeight).toFloat()
                 if (imgW <= 0f || imgH <= 0f) return@onEach
+                Log.d(TAG, "[BHA-01] observePtfAlignment rotation=$rotation imgW=$imgW imgH=$imgH")
 
                 val orientation = _orientationState.value
                 val pitch = orientation?.pitch ?: 0f
