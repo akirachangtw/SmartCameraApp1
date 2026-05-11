@@ -60,12 +60,12 @@
       "Bash(gradlew *)",
       "Bash(.gradlew *)",
       "Bash(tail *)",
-      "Bash(bash tools/check_elf_alignment.sh *)",
+      "Bash(bash *)",
       "Bash(git stash *)",
       "Bash(adb -s *)",
-      "Bash(bash .claude/skills/sv/scripts/cross_review.sh *)",
       "Bash(command -v codex *)",
-      "Bash(codex exec - < .tmp/cross_review_*.md 2>&1)"
+      "Bash(codex exec - < .tmp/cross_review_*.md 2>&1)",
+      "Bash(Write-Host *)"
     ],
     "deny": [
       "Bash(rm -rf *)",

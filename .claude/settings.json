@@ -1,10 +1,7 @@
 {
   "model": "opusplan",
   "permissions": {
-    "allow": [
-      "Bash(./gradlew clean:*)",
-      "Bash(Write-Host \"Screenshot saved to: $filename\")"
-    ]
+    "allow": []
   },
   "statusLine": {
     "type": "command",
