@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D8-VERIFY → Stage0 Realignment 進行中 — W2 BHA-01 歸一化 ✅ PASS，3 個前置 Bug 阻塞 T02 Hard Gate
-**Last Updated**: 2026-05-11 20:58
+**Current Day**: D8-VERIFY → Stage0 Realignment 進行中 — W2 BHA-01 歸一化 ✅ PASS，4 個 Bug 阻塞 T02 Hard Gate（含雙圓環 BUG-I7）
+**Last Updated**: 2026-05-11 21:49
 
 ---
 
@@ -55,8 +55,8 @@
 |----|-------|----------|------------|
 | ~~I8~~ | ~~IFTR 歸零 — isAllAligned 永遠 false~~ | ✅ 已修復 | TICKET-00 — 改為加權平均 ≥ 70 |
 | ~~I9~~ | ~~Traycer Path B 裁決阻擋 W2 啟動~~ | ✅ 已解除 | FIX-INFRA-02-FINAL + FIX-INFRA-02-D 完成 OpenCV 全鏈路清除，Path B 唯一 blocker 已修補 |
-| I7 | 對焦圓環永動循環 | 🟡 Medium | EyeAfController 每 2s 無條件重觸發，缺 `lens=Focused && 漂移 < 10px → skip` guard |
-| BHA-01 | T02 Hard Gate — 歸一化 ✅，視覺 🔴 | 🟡 部分通過 | 歸一化數學 PASS（所有場景 normBbox [0,1]）。視覺 FAIL：3 個前置 Bug 阻塞（見下方）。 |
+| I7 / BUG-I7-FOCUS-RING-PERSIST | FocusIndicatorOverlay 雙圓環持續顯示（實機確認） | 🔴 P1 | `EyeAfController` 每 2s 觸發新 `stableId` → `LaunchedEffect` 重置 `alphaTarget=1.0`，dwell fade 永遠被打斷。圓環為 `drawSearchingBase` 設計的 3 層同心圓（非兩 Overlay 疊加）。修復：Guard 7（`LensFocusState.Focused + drift < 閾值 → skip`）+ `lastTriggerPoint` instance var。 |
+| BHA-01 | T02 Hard Gate — 歸一化 ✅，視覺 🔴 | 🟡 部分通過 | 歸一化數學 PASS（所有場景 normBbox [0,1]）。視覺 FAIL：4 個前置 Bug 阻塞（見下方）。 |
 | BUG-MLKIT-DUAL-EMIT | ML Kit 雙管線交替發射 | 🔴 P0 Blocker | 切換鏡頭/方向後舊鏡頭 DetectionResult 未清除，與新鏡頭結果交替輸出 → Halo 忽大忽小 + 閃爍出現/消失。修復方向：切換時 `_state.update { copy(detectionResult = null) }` 或 `flatMapLatest`。 |
 | BUG-SONY-ROTATION-CONST | Sony rotation 恆為 0 | 🔴 P0 | Sony XQ-BT52 直立/橫向皆回報 `rotationDegrees=0`，rotation swap 邏輯無法觸發。需裝置相容性處理或改用 CameraX Surface rotation。 |
 | BUG-PTF-HALO-SIZE | PTF 圓環渲染過大且不跟隨 | 🔴 P0 | PTF Halo 渲染層 bbox → 圓半徑轉換錯誤。座標數學已正確，純渲染 bug。 |
@@ -71,8 +71,11 @@
    - 考慮改用 `PreviewView.display.rotation` 作為歸一化依據
 3. **🔴 BUG-PTF-HALO-SIZE 修復**（P0）：
    - 追蹤 PTF Halo 渲染層 bbox → 圓半徑轉換邏輯並修正
-4. **T03 重啟**（以上 3 Bug 通過後）：Pill Toggle 重寫
-5. **I7 修復**（可並行）：`EyeAfController.kt` 加入 `lens=Focused && 漂移 < 10px → skip`
+4. **🔴 BUG-I7-FOCUS-RING-PERSIST 修復**（P1，可並行）：
+   - `EyeAfController.kt:process()` 加入 Guard 7：`LensFocusState.Focused + drift(eyePixel, lastTriggerPoint) < DRIFT_THRESHOLD_PX → return null`
+   - 新增 `lastTriggerPoint: PointF?` instance var，`reset()` 時清除
+   - `CameraViewModel.kt` 呼叫 `process()` 時傳入 `lensFocusState`
+5. **T03 重啟**（以上 4 Bug 通過後）：Pill Toggle 重寫
 
 ## Active Debt（僅列未解決項）
 
