@@ -1984,13 +1984,18 @@ class CameraViewModel @Inject constructor(
                 val imgW = (if (rotation == 90 || rotation == 270) det.imageHeight else det.imageWidth).toFloat()
                 val imgH = (if (rotation == 90 || rotation == 270) det.imageWidth else det.imageHeight).toFloat()
                 if (imgW <= 0f || imgH <= 0f) return@onEach
-                Log.d(TAG, "[BHA-01] observeCompositionAdvice rotation=$rotation imgW=$imgW imgH=$imgH")
+                Log.d(TAG, "[BHA-01] observeCompositionAdvice raw=${det.imageWidth}x${det.imageHeight} rotation=$rotation effective=${imgW}x${imgH}")
 
                 val landmarkFaces = det.faces.mapIndexed { idx, face ->
                     val box = face.boundingBox
+                    val normX = box.left / imgW
+                    val normY = box.top / imgH
+                    val normW = (box.right - box.left) / imgW
+                    val normH = (box.bottom - box.top) / imgH
+                    Log.d(TAG, "[BHA-01] face[$idx] normBbox x=$normX y=$normY w=$normW h=$normH")
                     val boundingBoxNormalized = android.graphics.RectF(
-                        box.left / imgW,
-                        box.top / imgH,
+                        normX,
+                        normY,
                         box.right / imgW,
                         box.bottom / imgH,
                     )
@@ -2086,7 +2091,7 @@ class CameraViewModel @Inject constructor(
                 val imgW = (if (rotation == 90 || rotation == 270) det.imageHeight else det.imageWidth).toFloat()
                 val imgH = (if (rotation == 90 || rotation == 270) det.imageWidth else det.imageHeight).toFloat()
                 if (imgW <= 0f || imgH <= 0f) return@onEach
-                Log.d(TAG, "[BHA-01] observePtfAlignment rotation=$rotation imgW=$imgW imgH=$imgH")
+                Log.d(TAG, "[BHA-01] observePtfAlignment raw=${det.imageWidth}x${det.imageHeight} rotation=$rotation effective=${imgW}x${imgH}")
 
                 val orientation = _orientationState.value
                 val pitch = orientation?.pitch ?: 0f
@@ -2106,6 +2111,7 @@ class CameraViewModel @Inject constructor(
 
                     val halfW = ((firstFace.boundingBox.right - firstFace.boundingBox.left) / 2f) / imgW
                     val halfH = ((firstFace.boundingBox.bottom - firstFace.boundingBox.top) / 2f) / imgH
+                    Log.d(TAG, "[BHA-01] ptf normBbox x=${smoothedCx - halfW} y=${smoothedCy - halfH} w=${halfW * 2f} h=${halfH * 2f}")
                     com.akirachang.ai.photographer.domain.model.FaceLandmarkData(
                         boundingBoxNormalized = android.graphics.RectF(
                             smoothedCx - halfW,
