@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D8-VERIFY → Stage0 Realignment 進行中 — Phase0 Session A (P0-NAMING + P0-VF) ✅ 完成，待 /sv 驗收
-**Last Updated**: 2026-05-13
+**Current Day**: D8-VERIFY → Stage0 Realignment 進行中 — Phase0 Session A ✅ DONE（QA+SV+commit 封存），Session B 待啟動
+**Last Updated**: 2026-05-13 16:28
 
 ---
 
