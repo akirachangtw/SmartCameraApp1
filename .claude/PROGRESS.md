@@ -1,17 +1,17 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D8-VERIFY → FIX-P0-SESSION-A ✅ DONE + FIX-P0-SESSION-A-FINAL-SYNC ✅ DONE + FIX-GSTACK-SSOT-LINK ✅ DONE（QA ✅ / SV ✅ / Cross-Review ✅ / 10 commits 封存）；待 Traycer Path A 終審；Session B 待啟動
-**Last Updated**: 2026-05-13 22:33
+**Current Day**: D9 → P0-TOPBAR + P0-BOTTOM ✅ CLOSED（QA ✅ / SV ✅ / Cross-Review ✅ false-positive resolved）
+**Last Updated**: 2026-05-14
 
 ---
 
 ## Sprint Health
 
 | Metric | Status |
-|--------|--------|
-| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — FIX-P0-SESSION-A ✅ CLOSED（QA ✅ / SV ✅ / Cross-Review ✅ / Traycer Final Sync ✅） |
-| Compile | 0 errors ✅ (assembleDeviceDebug 1s cached) |
+| -------- | -------- |
+| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — FIX-P0-SESSION-A ✅ CLOSED — P0-TOPBAR+P0-BOTTOM ✅ SV ✅ CLOSED |
+| Compile | 0 errors ✅ (assembleDeviceDebug 6s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
@@ -25,6 +25,7 @@
 - **TICKET-01** AmbientConstants SSOT — P0 — Est 30m / Actual 25m (-5m) — DONE
 
 ### Wave Queue
+
 - **W1**: T00 → T01
 - **W2**: T02 → T03 → T04 → T06
 - **W3**: T08 → T09 → T05
@@ -32,6 +33,7 @@
 - **W5**: T12B → T14
 
 ### Session Plan
+
 - S1(W1): T00→T01
 - S2(W2): T02→T03→T04
 - S3(W2'): T06
@@ -53,7 +55,7 @@
 ## Active Blockers
 
 | ID | Issue | Severity | Root Cause |
-|----|-------|----------|------------|
+| ---- | ------- | ---------- | ------------ |
 | ~~I8~~ | ~~IFTR 歸零 — isAllAligned 永遠 false~~ | ✅ 已修復 | TICKET-00 — 改為加權平均 ≥ 70 |
 | ~~I9~~ | ~~Traycer Path B 裁決阻擋 W2 啟動~~ | ✅ 已解除 | FIX-INFRA-02-FINAL + FIX-INFRA-02-D 完成 OpenCV 全鏈路清除，Path B 唯一 blocker 已修補 |
 | I7 / BUG-I7-FOCUS-RING-PERSIST | FocusIndicatorOverlay 雙圓環持續顯示（實機確認） | 🔴 P1 | `EyeAfController` 每 2s 觸發新 `stableId` → `LaunchedEffect` 重置 `alphaTarget=1.0`，dwell fade 永遠被打斷。圓環為 `drawSearchingBase` 設計的 3 層同心圓（非兩 Overlay 疊加）。修復：Guard 7（`LensFocusState.Focused + drift < 閾值 → skip`）+ `lastTriggerPoint` instance var。 |
@@ -82,7 +84,7 @@
 ## D10 KAIROS #3 候選議程（Pre-W1-B 登記）
 
 | ID | 候選項目 | 來源 | 類型 |
-|----|---------|------|------|
+| ---- | --------- | ------ | ------ |
 | K3-1 | Debug Overlay Zero Tolerance（debug 文字覆蓋零容忍） | D8 FIX-01~03 | CLAUDE.md 規則 |
 | K3-2 | Hardcoded Text Scanning（硬編碼文字掃描） | D8 FIX-01~03 | /sv gate 擴充 |
 | K3-3 | KAIROS Real-Device Screenshot Requirements | D8 FIX-01~03 | KAIROS 節點流程 |

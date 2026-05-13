@@ -39,7 +39,7 @@ presentation/ → Jetpack Compose + ViewModel
 |-----------|--------|------|
 | `CompositionResult` | domain/model | 構圖評估結果（取代舊 CompositionScore） |
 | `PriorityEngine` | domain/engine | 優先級公式 SSOT §4.2，獨立 class |
-| `SceneMode` | domain/model | Sealed class: Food / Portrait / General / PassToFriend |
+| `CameraMode` | domain/camera | Sealed interface: Normal / PassToFriend (Food / Portrait reserved D9+) |
 | `DeviceTier` | domain/model | Enum: FULL / LIMITED / LEGACY |
 | `CompositionRule` | domain/rule | 介面，所有規則實作之 |
 | `PitchTractionLayer` | presentation/overlay | 邊緣引導光 overlay（Phase0 P0-NAMING 遷移自 EdgeWarmthLayer） |
@@ -119,9 +119,9 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > face detected (Portrait) > Gener
 
 ## 文件元資訊
 
-- **版本**: ssot_context v1.1
+- **版本**: ssot_context v1.2
 - **建立日期**: 2026-05-04
-- **更新日期**: 2026-05-13（P0-NAMING 遷移：EdgeWarmthLayer → PitchTractionLayer，SSOT v3.3 → v4.0）
+- **更新日期**: 2026-05-14（SceneMode → CameraMode 修正：SceneMode 從未存在於 codebase，實際型別為 domain/camera/CameraMode.kt sealed interface）
 - **來源**: SSOT v4.0 + Phase0 P0-NAMING + Layout Spec v2.2 精簡
 - **行數**: ~100 行（目標 ≤ 120 行）
 - **下次更新觸發**: SSOT 版本升級 或 Sprint 階段變更
