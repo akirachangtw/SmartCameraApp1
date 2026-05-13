@@ -180,7 +180,7 @@ fi
   echo "## Git Diff (scope: $DIFF_SCOPE)"
   echo
   if [[ "$DIFF_AVAILABLE" == true ]]; then
-    git diff "$DIFF_SCOPE"
+    git diff "$DIFF_SCOPE" -- ':!sv_report.md'
   else
     echo "(no diff detected)"
   fi
