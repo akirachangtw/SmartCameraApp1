@@ -368,9 +368,11 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 ---
 
-### KAIROS #5 候選規則 (FIX-P0-SESSION-A-FINAL-SYNC, 2026-05-13)
+### KAIROS #5 產出 (FIX-P0-SESSION-A-FINAL-SYNC + FIX-GSTACK-SSOT-LINK, 2026-05-13)
 
-[CANDIDATE RULE 20] **PROGRESS.md 三處狀態一致性規則**：PROGRESS.md 對同一驗收 scope 不得同時出現 "SV done" 與 "待 /sv"；Header / Sprint Health / Next Actions 必須三者一致。任何 Ticket 完成後，必須同步更新三個區塊，禁止留下互相矛盾的狀態描述。觸發來源：FIX-P0-SESSION-A-FINAL-SYNC（Traycer 指出 Header 標 DONE 但 Sprint Health 仍標「待 /sv」）。
+20. **PROGRESS.md 三處狀態一致性規則**：PROGRESS.md 對同一驗收 scope 不得同時出現 "SV done" 與 "待 /sv"；Header / Sprint Health / Next Actions 必須三者一致。任何 Ticket 完成後，必須同步更新三個區塊，禁止留下互相矛盾的狀態描述。觸發來源：FIX-P0-SESSION-A-FINAL-SYNC（Traycer 指出 Header 標 DONE 但 Sprint Health 仍標「待 /sv」）。
+
+21. **SSOT 遷移紀律**：活躍的治理文件（PROGRESS.md、CLAUDE.md）絕不能指向已刪除的 SSOT/Spec 產物。每一次 SSOT 遷移必須在同一閉環步驟中同時修復所有連結指針，並以 `find` 或 `grep` 確認舊路徑 0 命中後方可提交。`/sv` 必須對 `.claude/` 目錄的活躍文件執行過期路徑掃描。觸發來源：FIX-GSTACK-SSOT-LINK（PROGRESS.md 指向已刪除的 v3.3/v3.4.1 文件）。
 
 ---
 
