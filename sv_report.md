@@ -1,8 +1,8 @@
 # SV Report — FIX-P0-SESSION-A
 **Date**: 2026-05-13
 **Branch**: feature/cueshot-mvp
-**Commits**: bed9091 ([Fix]) + 3d9bf06 ([Docs])
-**Scope**: Phase0 Session A Traycer 驗收修補（DetectionOverlay 全鏈清理 + 真 1px 分隔線 + CLAUDE.md 命名淨化）
+**Commits**: bed9091 ([Fix]) + 3d9bf06 ([Docs]) + a197c18 ([Docs]) + 1b91aaa ([Docs])
+**Scope**: Phase0 Session A Traycer 驗收修補（DetectionOverlay 全鏈清理 + 真 1px 分隔線 + CLAUDE.md 命名淨化 + ssot_context v4.0 同步）
 
 ---
 
@@ -81,7 +81,7 @@ BUILD SUCCESSFUL in 23s
 
 ## 階段 E — Scope 邊界確認
 
-**git diff HEAD~2..HEAD --stat（2 commits）**:
+**git diff HEAD~4..HEAD --stat（4 commits）**:
 ```
 Commit 1 [Fix] bed9091:
   app/.../OverlayPreferences.kt                     |  28 ---
@@ -94,14 +94,23 @@ Commit 1 [Fix] bed9091:
 
 Commit 2 [Docs] 3d9bf06:
   .claude/CLAUDE.md    |  18 +- (Edge Warmth→Pitch Traction + Rule 19)
-  .claude/PROGRESS.md  |   8 +- (FIX-P0-SESSION-A 狀態同步 — /qa /sv 流程標準文件)
-  sv_report.md         | 116 +- (SV Report 重建 — /sv 流程產出物)
+  .claude/PROGRESS.md  |   8 +- (FIX-P0-SESSION-A 狀態同步)
+  sv_report.md         | 116 +- (SV Report 重建)
   3 files changed, 95 insertions(+), 101 deletions(-)
+
+Commit 3 [Docs] a197c18:
+  sv_report.md         |  28 +- (scope stat 補入 PROGRESS.md + sv_report.md 連帶說明)
+  1 file changed, 28 insertions(+), 18 deletions(-)
+
+Commit 4 [Docs] 1b91aaa:
+  .claude/skills/sv/ssot_context.md  |  15 +- (SSOT v4.0 同步：EdgeWarmthLayer→PitchTractionLayer)
+  1 file changed, 8 insertions(+), 7 deletions(-)
 ```
 
 **越權檢查**:
 - `.claude/PROGRESS.md` — ✅ 合理連帶（/qa 標準流程更新進度）
 - `sv_report.md` — ✅ 合理連帶（/sv 標準流程產出物）
+- `.claude/skills/sv/ssot_context.md` — ✅ 授權連帶（Cross-Review 發現 ssot_context 過期，使用者明確授權同步至 SSOT v4.0）
 - `PitchTractionLayer.kt` — ✅ NOT TOUCHED
 - `AspectRatioMode.kt` (FILL_CENTER) — ✅ NOT TOUCHED
 - `CompositionGuideOverlay.kt` — ✅ NOT TOUCHED
@@ -117,10 +126,10 @@ Commit 2 [Docs] 3d9bf06:
 | CameraScreen.kt 分隔線非 1.dp 硬編碼 | ✅ PASS |
 | CLAUDE.md 無活躍 "Edge Warmth"（歷史反例 L11 保留）| ✅ PASS |
 | CLAUDE.md Rule 19 Decommission 全鏈路紀律寫入 | ✅ PASS |
+| ssot_context.md 同步至 SSOT v4.0（授權連帶）| ✅ PASS |
 | 編譯 0 errors | ✅ PASS |
 | Unit Test PASS | ✅ PASS |
 | Lint 0 new warnings | ✅ PASS |
 | PitchTraction / FILL_CENTER 邏輯未觸碰 | ✅ PASS |
-| PROGRESS.md / sv_report.md 修改屬 /qa /sv 標準流程連帶 | ✅ PASS |
 
 **SV 結論**: PASS — Ready for Traycer re-verification.
