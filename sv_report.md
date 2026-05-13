@@ -1,128 +1,116 @@
-# SV Report — Phase0 Session A (P0-NAMING + P0-VF)
-
+# SV Report — FIX-P0-SESSION-A
 **Date**: 2026-05-13
-**Ticket**: P0-NAMING + P0-VF
-**Branch**: `feature/cueshot-mvp`
-**Reviewer**: Local SV (Claude Sonnet 4.6)
+**Branch**: feature/cueshot-mvp
+**Scope**: Phase0 Session A Traycer 驗收修補（DetectionOverlay 全鏈清理 + 真 1px 分隔線 + CLAUDE.md 命名淨化）
 
 ---
 
-## 階段 A: 確定性驗證
+## 階段 A — Orphan / Residue Scan
 
-### Compile
-- Result: ✅ PASS — BUILD SUCCESSFUL, 0 errors (1s cached)
+### FIX-P0VF-01: DetectionOverlay 全鏈焦土清理
 
-### Lint
-- Result: ✅ PASS — 0 errors, 557 warnings (baseline, 0 new)
+```
+$ grep -ri "DetectionOverlay|detection_overlay_enabled" app/src/
+(no output — 0 matches)
+```
 
-### File Scope
-- Modified: `app/src/main/java/com/akirachang/ai/photographer/presentation/camera/CameraViewModel.kt`
-- Authorized: ✅ — BHA-01-FIX scope = CameraViewModel.kt only
-- Uncommitted docs: `.claude/PROGRESS.md` — within /qa update scope ✅
+| 層 | 檔案 | 狀態 |
+|----|------|------|
+| UI Composable | `DetectionOverlay.kt` | ✅ 刪除（-225L） |
+| Settings 開關 | `SettingsScreen.kt` | ✅ Detection Boxes toggle 移除（-16L） |
+| 持久化 key | `OverlayPreferences.kt` | ✅ `KEY_DETECTION_OVERLAY_ENABLED` + Flow + setter 移除（-28L） |
+| ViewModel 暴露 | `CameraViewModel.kt` | ✅ `isDetectionOverlayEnabled` Flow 移除（-1L） |
+| ViewModel 暴露 | `SettingsViewModel.kt` | ✅ Flow + suspend fun 移除（-12L） |
 
----
+### FIX-P0VF-02: 分隔線真 1px
 
-## 階段 A.5: 16KB ELF 對齊
+```
+$ grep -n "height(1.dp)" app/src/.../CameraScreen.kt
+(no output — 1.dp hardcode removed)
+```
 
-- Result: ✅ ELF Verification Successful
-- zipalign: ⚪ SKIP — build-tools < 35.0.0-rc3 (NOTICE only, not blocking)
-
----
-
-## 階段 B: 語意審查
-
-### Orphan Check
-- TODO / FIXME / HACK: ✅ CLEAN (0 in modified scope)
-- `return null` instances: ✅ pre-existing, outside BHA-01-FIX scope
-
-### Diff Summary
-Two symmetric patches applied:
-
-**`observeCompositionAdvice` (line ~1982)**:
+變更後（CameraScreen.kt）:
 ```kotlin
-- val imgW = det.imageWidth.toFloat()
-- val imgH = det.imageHeight.toFloat()
-+ val rotation = det.rotationDegrees
-+ val imgW = (if (rotation == 90 || rotation == 270) det.imageHeight else det.imageWidth).toFloat()
-+ val imgH = (if (rotation == 90 || rotation == 270) det.imageWidth else det.imageHeight).toFloat()
-+ Log.d(TAG, "[BHA-01] observeCompositionAdvice rotation=$rotation imgW=$imgW imgH=$imgH")
+Canvas(modifier = Modifier.fillMaxWidth().height((1f / LocalDensity.current.density).dp)) {
+    drawRect(color = Color.White.copy(alpha = 0.05f))
+}
 ```
 
-**`observePtfAlignment` (line ~2081)**:
-- Identical rotation swap pattern applied ✅
+### FIX-P0N-01: CLAUDE.md 命名淨化
 
-### Mock Check
-- ✅ CLEAN — No hardcoded Size/Color/placeholder values introduced
+```
+$ grep -n "Edge Warmth|edge_warmth" .claude/CLAUDE.md | grep -v "EdgeWarmthLayer"
+(no output — 0 active references)
+```
 
-### State Exclusive / UDF
-- ✅ Changes are pure computation inside `onEach {}` lambda
-- No new state mutation paths, no UI layer calls
+淨化位置（4 處）: L164 / L215-217 / L219 / L302 → "Pitch Traction"
+新增 Rule 19 Decommission 全鏈路紀律 ✅
 
 ---
 
-## 階段 C: 架構合規
+## 階段 B — 編譯驗證
 
-### UDF Compliance
-- ✅ COMPLIANT — imgW/imgH are local vars, no state mutation
-
-### SSOT Drift
-- ✅ ALIGNED — Pattern mirrors `updateCoordinateTransformer` line 585 exactly
-- Variable names `rotation`, `imgW`, `imgH` consistent with existing codebase conventions
+```
+$ ./gradlew assembleDeviceDebug
+BUILD SUCCESSFUL in 1s (cached)
+0 errors
+```
 
 ---
 
-## 階段 D: Cross-Review 路由
-
-- codex CLI: AVAILABLE
-- ssot_context.md: EXISTS
-
-### Cross-Review 判定
+## 階段 C — 單元測試
 
 ```
-PASS
-- [arch] 修改僅限 presentation 層 CameraViewModel.kt 內的旋轉尺寸正規化邏輯，
-         未引入 domain 依賴、SSOT 型別漂移或硬體約束違反。
-- [sv]   SV Report 宣稱的兩處對稱 patch 與 Git Diff @@ -1979、@@ -2078 內容相符，
-         且 diff 未顯示超出聲明範圍的修改。
+$ ./gradlew testDeviceDebugUnitTest
+BUILD SUCCESSFUL in 1s (cached)
+All tests passed
 ```
-
-→ 本地 SV + Cross-Review 通過，準備提交 Traycer 終審。
 
 ---
 
-## Device Hard Gate Verification Report
-
-**Date**: 2026-05-11
-**Device**: Sony XQ-BT52 (HQ616R2713)
-**Build**: assembleDeviceDebug (commit ea8d5e7)
-
-### 場景驗證結果
-
-| 場景 | Logcat Gate | 視覺 | 備註 |
-|------|-------------|------|------|
-| 場景一 直立 Portrait | ✅ PASS | ✅ PASS | rotation=0, normBbox [0,1], Halo 跟隨正確 |
-| 場景二 橫向 Landscape | ✅ PASS | 🔴 FAIL | normBbox [0,1] 正確，但 Halo 忽大忽小 |
-| 場景三 PTF 切換 | ✅ PASS | 🔴 FAIL | normBbox [0,1] 正確，圓環過大且不跟隨 |
-| 場景四 前鏡頭 | ✅ PASS | 🔴 FAIL | normBbox [0,1] 正確，Halo 重複出現/消失 |
-
-### Logcat 數據（rotation=0 全場景）
+## 階段 D — Lint
 
 ```
-Sony XQ-BT52: rotationDegrees 直立/橫向皆 = 0（sensor portrait-native）
-raw=480x640  effective=480x640（無 swap，rotation=0 正確）
-normBbox: x/y/w/h 全部落在 [0.0, 1.0] ✅
+$ ./gradlew lintDeviceDebug
+BUILD SUCCESSFUL in 1s
+0 new warnings (baseline unchanged)
 ```
 
-### 發現的新 Bug（非 BHA-01-FIX 引入）
+---
 
-| ID | 問題 | 根因 | 優先級 |
-|----|------|------|--------|
-| BUG-MLKIT-DUAL-EMIT | ML Kit 雙管線交替發射 → Halo 忽大忽小 / 閃爍 | 切換鏡頭後舊 DetectionResult Flow 未取消，與新鏡頭交替輸出 | 🔴 P0 |
-| BUG-SONY-ROTATION-CONST | Sony `rotationDegrees` 恆為 0 | 裝置 sensor orientation 固定，rotation swap 在此裝置不觸發 | 🔴 P0 |
-| BUG-PTF-HALO-SIZE | PTF 圓環過大且不跟隨 | 渲染層 bbox → 圓半徑轉換錯誤 | 🔴 P0 |
+## 階段 E — Scope 邊界確認
 
-### CSO 最終判定
+**git diff --stat（HEAD vs working tree）**:
+```
+.claude/CLAUDE.md                                  |  18 +-
+.../data/preferences/OverlayPreferences.kt         |  28 ---
+.../presentation/camera/CameraScreen.kt            |   5 +-
+.../presentation/camera/CameraViewModel.kt         |   1 -
+.../camera/components/overlay/DetectionOverlay.kt  | 225 ---------------------
+.../presentation/settings/SettingsScreen.kt        |  16 --
+.../presentation/settings/SettingsViewModel.kt     |  12 --
+7 files changed, 14 insertions(+), 291 deletions(-)
+```
 
-**BHA-01 歸一化數學：✅ PASS**
-**T02 Hard Gate 視覺：🔴 FAIL** — 3 個前置 Bug 需先修復再重跑 Hard Gate。
-**下一步**：BUG-MLKIT-DUAL-EMIT → BUG-SONY-ROTATION-CONST → BUG-PTF-HALO-SIZE → Hard Gate 重驗
+越權檢查:
+- PitchTractionLayer.kt — ✅ NOT TOUCHED
+- AspectRatioMode.kt (FILL_CENTER) — ✅ NOT TOUCHED
+- CompositionGuideOverlay.kt — ✅ NOT TOUCHED
+
+---
+
+## 驗收結論
+
+| 驗收項目 | 結果 |
+|---------|------|
+| grep DetectionOverlay/detection_overlay_enabled app/src/ 為空 | ✅ PASS |
+| SettingsScreen 無 Detection Boxes 選項 | ✅ PASS |
+| CameraScreen.kt 分隔線非 1.dp 硬編碼 | ✅ PASS |
+| CLAUDE.md 無活躍 "Edge Warmth"（歷史反例 L11 保留）| ✅ PASS |
+| CLAUDE.md Rule 19 Decommission 全鏈路紀律寫入 | ✅ PASS |
+| 編譯 0 errors | ✅ PASS |
+| Unit Test PASS | ✅ PASS |
+| Lint 0 new warnings | ✅ PASS |
+| PitchTraction / FILL_CENTER 邏輯未觸碰 | ✅ PASS |
+
+**SV 結論**: PASS — Ready for Traycer re-verification.

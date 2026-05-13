@@ -161,7 +161,7 @@ ML Kit Face Detection 與 Object Detection 互斥，切換需 500ms hysteresis�
 
 | 顏色 | 用途 |
 |------|------|
-| `#D4A030` 琥珀金 | Edge Warmth 引導中、Halo 未對齊、Normal 模式 |
+| `#D4A030` 琥珀金 | Pitch Traction 引導中、Halo 未對齊、Normal 模式 |
 | `#50C864` 綠色 | 對齊完成、PTF 模式、呼吸韻律 |
 | 所有 Halo 統一圓形 | 手動對焦 / 構圖引導 / PTF / 減法留白確認 |
 
@@ -212,11 +212,11 @@ adb -s DEVICE_ID shell "rm /sdcard/Download/temp_screen.png"
 
 | 等級 | 核心引導 | 輔助功能 | 關閉功能 |
 |------|---------|---------|---------|
-| FULL | Edge Warmth 60fps + Halo 10fps + 所有規則 | 鏡頭髒汙 2fps + 雜亂框 + 減法留白 | 無 |
-| LIMITED | Edge Warmth 60fps + Halo 8fps + 核心 4 規則 | 鏡頭髒汙 1fps + 減法留白 | 雜亂框 |
-| LEGACY | Edge Warmth 60fps + Halo 5fps + 2 規則 | 無 | 鏡頭髒汙 + 減法留白 + 雜亂框 + 光線 |
+| FULL | Pitch Traction 60fps + Halo 10fps + 所有規則 | 鏡頭髒汙 2fps + 雜亂框 + 減法留白 | 無 |
+| LIMITED | Pitch Traction 60fps + Halo 8fps + 核心 4 規則 | 鏡頭髒汙 1fps + 減法留白 | 雜亂框 |
+| LEGACY | Pitch Traction 60fps + Halo 5fps + 2 規則 | 無 | 鏡頭髒汙 + 減法留白 + 雜亂框 + 光線 |
 
-**核心保護**：無論哪個等級，Edge Warmth (IMU 驅動) 永遠 60fps。
+**核心保護**：無論哪個等級，Pitch Traction (IMU 驅動) 永遠 60fps。
 
 ### 分幀計算
 
@@ -299,7 +299,7 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 ## 測試項目
 | 功能 | 預期行為 | 實際行為 | Pass/Fail | 備註 |
 |------|---------|---------|-----------|------|
-| Edge Warmth 60fps | 邊緣暖光流暢 | | | |
+| Pitch Traction 60fps | 邊緣引導光流暢 | | | |
 | Pitch >35° 切 FoodMode | 自動切換 <500ms | | | |
 | Face Detection Halo | 圓形 Halo 跟蹤人臉 | | | |
 | PTF Tab toggle | 300ms 切換，零 CameraX rebind | | | |
@@ -359,6 +359,12 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
     | 快速 smoke check | `CODEX_MODEL=gpt-5.4-mini CODEX_REASONING_EFFORT=low` |
 
 18. **Edit 操作前強制 Re-view 規則**：對任何超過 200 行的 `.kt` / `.xml` 目標檔案，執行 `Edit`（str_replace）前必須先用 `Read` 工具讀取操作區段（含 ±10 行上下文）。`/compact` 後視為強制觸發條件（無論檔案大小）。根因：顯式知識（Read 結果）比 session 記憶可靠，避免 attention degradation 導致 str_replace 精確度下降。觸發來源：K3-7 KAIROS #3 Session Boundary Rule 修訂（2026-05-10）。
+
+---
+
+**KAIROS #4 產出 (FIX-P0-SESSION-A, 2026-05-13)**
+
+19. **Decommission 全鏈路紀律**：任何 decommission / debug-overlay 類票據在關閉前，必須同時清空 4 層殘留：①UI Composable 呼叫點、②Settings 開關 UI、③持久化 key（DataStore/SharedPreferences）、④ViewModel/Repository 暴露面。只停用呼叫點而不清除其餘三層，不算完成；`/sv` 必須對這 4 層逐一 grep 驗證。觸發來源：FIX-P0-SESSION-A（DetectionOverlay 殘留 4 層，Traycer 退回）。
 
 ---
 

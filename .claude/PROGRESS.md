@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D8-VERIFY → Stage0 Realignment 進行中 — Phase0 Session A ✅ DONE（QA+SV+commit 封存），Session B 待啟動
-**Last Updated**: 2026-05-13 16:28
+**Current Day**: D8-VERIFY → FIX-P0-SESSION-A ✅ DONE（QA ✅ / SV ✅），待 Traycer 再驗收
+**Last Updated**: 2026-05-13 20:00
 
 ---
 
@@ -10,8 +10,8 @@
 
 | Metric | Status |
 |--------|--------|
-| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — Phase0 Session A ✅ P0-NAMING + P0-VF 實作完成，待 /sv |
-| Compile | 0 errors ✅ (assembleDebug 45s) |
+| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — FIX-P0-SESSION-A 修補 QA ✅ PASS，待 /sv + Traycer 再驗收 |
+| Compile | 0 errors ✅ (assembleDeviceDebug 1s cached) |
 | Tests | passed ✅ (testDeviceDebugUnitTest) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
