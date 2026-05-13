@@ -1,6 +1,7 @@
 # SV Report — FIX-P0-SESSION-A
 **Date**: 2026-05-13
 **Branch**: feature/cueshot-mvp
+**Commits**: bed9091 ([Fix]) + 3d9bf06 ([Docs])
 **Scope**: Phase0 Session A Traycer 驗收修補（DetectionOverlay 全鏈清理 + 真 1px 分隔線 + CLAUDE.md 命名淨化）
 
 ---
@@ -18,8 +19,8 @@ $ grep -ri "DetectionOverlay|detection_overlay_enabled" app/src/
 |----|------|------|
 | UI Composable | `DetectionOverlay.kt` | ✅ 刪除（-225L） |
 | Settings 開關 | `SettingsScreen.kt` | ✅ Detection Boxes toggle 移除（-16L） |
-| 持久化 key | `OverlayPreferences.kt` | ✅ `KEY_DETECTION_OVERLAY_ENABLED` + Flow + setter 移除（-28L） |
-| ViewModel 暴露 | `CameraViewModel.kt` | ✅ `isDetectionOverlayEnabled` Flow 移除（-1L） |
+| 持久化 key | `OverlayPreferences.kt` | ✅ KEY_DETECTION_OVERLAY_ENABLED + Flow + setter 移除（-28L） |
+| ViewModel 暴露 | `CameraViewModel.kt` | ✅ isDetectionOverlayEnabled Flow 移除（-1L） |
 | ViewModel 暴露 | `SettingsViewModel.kt` | ✅ Flow + suspend fun 移除（-12L） |
 
 ### FIX-P0VF-02: 分隔線真 1px
@@ -52,7 +53,7 @@ $ grep -n "Edge Warmth|edge_warmth" .claude/CLAUDE.md | grep -v "EdgeWarmthLayer
 
 ```
 $ ./gradlew assembleDeviceDebug
-BUILD SUCCESSFUL in 1s (cached)
+BUILD SUCCESSFUL in 17s
 0 errors
 ```
 
@@ -62,7 +63,7 @@ BUILD SUCCESSFUL in 1s (cached)
 
 ```
 $ ./gradlew testDeviceDebugUnitTest
-BUILD SUCCESSFUL in 1s (cached)
+BUILD SUCCESSFUL
 All tests passed
 ```
 
@@ -72,7 +73,7 @@ All tests passed
 
 ```
 $ ./gradlew lintDeviceDebug
-BUILD SUCCESSFUL in 1s
+BUILD SUCCESSFUL in 23s
 0 new warnings (baseline unchanged)
 ```
 
@@ -80,22 +81,30 @@ BUILD SUCCESSFUL in 1s
 
 ## 階段 E — Scope 邊界確認
 
-**git diff --stat（HEAD vs working tree）**:
+**git diff HEAD~2..HEAD --stat（2 commits）**:
 ```
-.claude/CLAUDE.md                                  |  18 +-
-.../data/preferences/OverlayPreferences.kt         |  28 ---
-.../presentation/camera/CameraScreen.kt            |   5 +-
-.../presentation/camera/CameraViewModel.kt         |   1 -
-.../camera/components/overlay/DetectionOverlay.kt  | 225 ---------------------
-.../presentation/settings/SettingsScreen.kt        |  16 --
-.../presentation/settings/SettingsViewModel.kt     |  12 --
-7 files changed, 14 insertions(+), 291 deletions(-)
+Commit 1 [Fix] bed9091:
+  app/.../OverlayPreferences.kt                     |  28 ---
+  .../presentation/camera/CameraScreen.kt           |   3 +-
+  .../presentation/camera/CameraViewModel.kt        |   1 -
+  .../overlay/DetectionOverlay.kt                   | 225 ---------------------
+  .../settings/SettingsScreen.kt                    |  16 --
+  .../settings/SettingsViewModel.kt                 |  12 --
+  6 files changed, 2 insertions(+), 285 deletions(-)
+
+Commit 2 [Docs] 3d9bf06:
+  .claude/CLAUDE.md    |  18 +- (Edge Warmth→Pitch Traction + Rule 19)
+  .claude/PROGRESS.md  |   8 +- (FIX-P0-SESSION-A 狀態同步 — /qa /sv 流程標準文件)
+  sv_report.md         | 116 +- (SV Report 重建 — /sv 流程產出物)
+  3 files changed, 95 insertions(+), 101 deletions(-)
 ```
 
-越權檢查:
-- PitchTractionLayer.kt — ✅ NOT TOUCHED
-- AspectRatioMode.kt (FILL_CENTER) — ✅ NOT TOUCHED
-- CompositionGuideOverlay.kt — ✅ NOT TOUCHED
+**越權檢查**:
+- `.claude/PROGRESS.md` — ✅ 合理連帶（/qa 標準流程更新進度）
+- `sv_report.md` — ✅ 合理連帶（/sv 標準流程產出物）
+- `PitchTractionLayer.kt` — ✅ NOT TOUCHED
+- `AspectRatioMode.kt` (FILL_CENTER) — ✅ NOT TOUCHED
+- `CompositionGuideOverlay.kt` — ✅ NOT TOUCHED
 
 ---
 
@@ -112,5 +121,6 @@ BUILD SUCCESSFUL in 1s
 | Unit Test PASS | ✅ PASS |
 | Lint 0 new warnings | ✅ PASS |
 | PitchTraction / FILL_CENTER 邏輯未觸碰 | ✅ PASS |
+| PROGRESS.md / sv_report.md 修改屬 /qa /sv 標準流程連帶 | ✅ PASS |
 
 **SV 結論**: PASS — Ready for Traycer re-verification.
