@@ -382,6 +382,12 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 ---
 
+**FIX-P0-SESSION-B-POLISH 產出 (2026-05-14)**
+
+23. **Overlay System Insets 紀律**：相機取景框上的浮動控制列（Top Bar、Bottom Bar）必須明確綁定系統安全區，禁止用 `weight(1f)` 等相對佈局模擬系統安全區高度。規範：①Top Bar 必須套用 `Modifier.statusBarsPadding()` 確保 Y 軸起始點避開狀態列；②Bottom Bar 必須以 `Modifier.navigationBarsPadding()` 作為底部緩衝，確保三大金剛鍵與全螢幕手勢下 UI 均不被遮蔽；③預留未來動態 UI 槽位（Reserved Slot），確保後續功能插入不造成已核准控制項的橫向位移。觸發來源：FIX-P0-SESSION-B-POLISH（Top Bar 缺少 statusBarsPadding + Lens Smudge 槽位、Bottom Bar weight(1f) 模擬系統 Insets）。
+
+---
+
 **完整規範請參考**: `devspec/.clinerules`
 **SSOT 策略文件**: `plans/architecture/SSOT_v4_0.md`
 **SSOT 技術文件**: `plans/architecture/Cueshot_Layout_Spec_v2_2.md`

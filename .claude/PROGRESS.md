@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → FIX-P0-SESSION-B-FINAL QA ✅（Build ✅ / Tests ✅ / Lint ✅ — HDR icon fixed, PTF modeEntryTimeMs lockout, PillToggle 48dp, CameraTabBar decommissioned, Rule 22 written）
+**Current Day**: D9 → FIX-P0-SESSION-B-POLISH QA ✅（Build ✅ / Tests ✅ / Lint ✅ — statusBarsPadding, 16dp, Lens Smudge reserved slot, hdr_label i18n, navigationBarsPadding, Rule 23 written）
 **Last Updated**: 2026-05-14
 
 ---
@@ -10,8 +10,8 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — FIX-P0-SESSION-A ✅ CLOSED — P0-TOPBAR+P0-BOTTOM ✅ Device ✅ CLOSED — FIX-P0-SESSION-B QA ✅ |
-| Compile | 0 errors ✅ (assembleDeviceDebug 36s) |
+| Schedule | Stage0 W1 ✅ CLOSED — FIX-P0-SESSION-B ✅ CLOSED — FIX-P0-SESSION-B-POLISH QA ✅ (待 /sv) |
+| Compile | 0 errors ✅ (assembleDeviceDebug 33s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
