@@ -2,7 +2,7 @@
 
 **用途**: Codex CLI cross_review.sh 專用 — 提供架構審查所需的最小 SSOT 上下文
 **維護頻率**: 每 Sprint 更新一次，或 SSOT 版本變更時同步
-**當前 SSOT 版本**: v3.3
+**當前 SSOT 版本**: v4.0 (Phase0 P0-NAMING 遷移後)
 
 ---
 
@@ -22,7 +22,7 @@ data/     → Android 框架依賴，實作 domain 介面
 
 presentation/ → Jetpack Compose + ViewModel
   ├── camera/         CameraViewModel, CameraScreen
-  ├── overlay/        EdgeWarmthLayer, HaloGuidanceLayer, GridOverlay
+  ├── overlay/        PitchTractionLayer, HaloGuidanceLayer, GridOverlay
   ├── controls/       ShutterButton, PillToggle, PTF controls
   └── postCapture/    ScoreCard, DOF pipeline UI
 ```
@@ -42,7 +42,7 @@ presentation/ → Jetpack Compose + ViewModel
 | `SceneMode` | domain/model | Sealed class: Food / Portrait / General / PassToFriend |
 | `DeviceTier` | domain/model | Enum: FULL / LIMITED / LEGACY |
 | `CompositionRule` | domain/rule | 介面，所有規則實作之 |
-| `EdgeWarmthLayer` | presentation/overlay | 邊緣漸層 overlay |
+| `PitchTractionLayer` | presentation/overlay | 邊緣引導光 overlay（Phase0 P0-NAMING 遷移自 EdgeWarmthLayer） |
 | `HaloGuidanceLayer` | presentation/overlay | 主體光環 overlay |
 | `EyeAfDecision` | domain/model | Eye-AF 決策封裝 |
 
@@ -68,7 +68,7 @@ presentation/ → Jetpack Compose + ViewModel
 |------|------|---------|
 | ML Kit 互斥 | Face Detection 與 Object Detection 不可同時開啟 | 500ms hysteresis 切換 |
 | CameraX 零重綁 | PTF 切換不 rebind camera, 不 close ML Kit | 黑屏 crash |
-| Edge Warmth 60fps | 任何裝置等級都必須保證 EW 60fps | 用戶感知卡頓 |
+| Pitch Traction 60fps | 任何裝置等級都必須保證 PT 60fps（IMU 驅動）| 用戶感知卡頓 |
 | IMU 頻率脫鉤 | IMU 200Hz 採樣 → 降頻至 UI 60fps 消費 | 主線程阻塞 |
 | DOF 後置管線 | ML Kit Selfie Seg + StackBlur，拍後處理，不在取景時執行 | CameraX rebinding 黑屏 |
 | 前鏡頭 Fixed-Focus | 只追求視覺成功，不等物理對焦 | AF 超時死鎖 |
@@ -109,7 +109,7 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > face detected (Portrait) > Gener
 
 | 用途 | 色值 | Alpha 上限 |
 |------|------|-----------|
-| Edge Warmth / Halo 未對齊 | `#D4A030` | 0.20 / 0.25 |
+| Pitch Traction / Halo 未對齊 | `#D4A030` | 0.20 / 0.25 |
 | Halo 對齊 | `#50C864` | 0.35 |
 | 呼吸韻律 | alpha 0.10 ↔ 0.18 | 2000ms 週期 |
 | 底部 Photo 背景 | `#0D0D0D` | — |
@@ -119,8 +119,9 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > face detected (Portrait) > Gener
 
 ## 文件元資訊
 
-- **版本**: ssot_context v1.0
+- **版本**: ssot_context v1.1
 - **建立日期**: 2026-05-04
-- **來源**: SSOT v3.3 + Brief v1 + Layout Spec v2.0 精簡
+- **更新日期**: 2026-05-13（P0-NAMING 遷移：EdgeWarmthLayer → PitchTractionLayer，SSOT v3.3 → v4.0）
+- **來源**: SSOT v4.0 + Phase0 P0-NAMING + Layout Spec v2.2 精簡
 - **行數**: ~100 行（目標 ≤ 120 行）
 - **下次更新觸發**: SSOT 版本升級 或 Sprint 階段變更
