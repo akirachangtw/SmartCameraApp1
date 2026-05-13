@@ -120,6 +120,8 @@ import com.akirachang.ai.photographer.domain.config.AmbientConstants
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import com.akirachang.ai.photographer.BuildConfig
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 // D4-T4 / SV-D4-T4-FIX-01: Testability probes for shutter button section.
 internal const val TAG_SHUTTER_BREATHING_RING = "ShutterBreathingRing"
@@ -396,12 +398,9 @@ fun CameraScreen(
                                     onClick = { viewModel.onEvent(CameraUiEvent.ToggleHDR) },
                                     modifier = Modifier.size(48.dp),
                                 ) {
+                                    val hdrCd = stringResource(R.string.hdr_cd)
                                     Text(
-                                        text = when (state.hdrMode) {
-                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> "HDR"
-                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> "HDR"
-                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> "HDR"
-                                        },
+                                        text = "HDR",
                                         color = when (state.hdrMode) {
                                             com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Color.White.copy(alpha = 0.85f)
                                             com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Color.White.copy(alpha = 0.40f)
@@ -409,6 +408,7 @@ fun CameraScreen(
                                         },
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.semantics { contentDescription = hdrCd },
                                     )
                                 }
                             }
