@@ -11,4 +11,14 @@
     <!-- Cueshot D7-B2-T3: PTF onboarding hint -->
     <string name="ptf_onboarding_message">將手機交給朋友，AI 會為你找尋最佳構圖</string>
     <string name="ptf_onboarding_got_it">了解</string>
+
+    <!-- P0-TOPBAR: Top bar icon accessibility labels (Layout Spec v2.2 §3.2) -->
+    <string name="flash_cd">Toggle flash</string>
+    <string name="hdr_cd">Toggle HDR mode</string>
+    <string name="settings_cd">Open settings</string>
+    <string name="help_cd">Help</string>
+
+    <!-- P0-BOTTOM: Bottom control bar icon accessibility labels (Layout Spec v2.2 §4.2) -->
+    <string name="gallery_cd">Open photo gallery</string>
+    <string name="flip_camera_cd">Flip camera</string>
 </resources>

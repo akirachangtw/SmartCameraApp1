@@ -36,15 +36,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.BrightnessHigh
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.outlined.Help
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
@@ -105,7 +104,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.akirachang.ai.photographer.presentation.camera.components.CameraPreview
-import com.akirachang.ai.photographer.presentation.camera.components.CameraTabBar
+import com.akirachang.ai.photographer.presentation.camera.components.BottomControlBar
 import com.akirachang.ai.photographer.presentation.camera.components.PermissionRequestScreen
 import com.akirachang.ai.photographer.presentation.camera.components.PreviewViewportContainer
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.CompositionGuideOverlay
@@ -370,68 +369,70 @@ fun CameraScreen(
                             modifier = Modifier.fillMaxSize(),
                         )
 
+                        // Floating Top Bar — Layout Spec v2.2 §3.2 (Layer 6, above scrim)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .align(Alignment.TopCenter)
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            IconButton(onClick = onNavigateToSettings) {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = "設定",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(32.dp)
-                                )
+                            Row {
+                                IconButton(
+                                    onClick = { viewModel.onEvent(CameraUiEvent.ToggleFlash) },
+                                    modifier = Modifier.size(48.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = when (state.flashMode) {
+                                            ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
+                                            ImageCapture.FLASH_MODE_AUTO -> Icons.Default.FlashAuto
+                                            else -> Icons.Default.FlashOff
+                                        },
+                                        contentDescription = stringResource(R.string.flash_cd),
+                                        tint = Color.White.copy(alpha = 0.85f),
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { viewModel.onEvent(CameraUiEvent.ToggleHDR) },
+                                    modifier = Modifier.size(48.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = when (state.hdrMode) {
+                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Icons.Default.WbSunny
+                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Icons.Default.BrightnessHigh
+                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> Icons.Default.AutoAwesome
+                                        },
+                                        contentDescription = stringResource(R.string.hdr_cd),
+                                        tint = Color.White.copy(alpha = 0.85f),
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
                             }
-
-                            IconButton(onClick = { viewModel.onEvent(CameraUiEvent.ToggleFlash) }) {
-                                Icon(
-                                    imageVector = when (state.flashMode) {
-                                        ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
-                                        ImageCapture.FLASH_MODE_AUTO -> Icons.Default.FlashAuto
-                                        else -> Icons.Default.FlashOff
-                                    },
-                                    contentDescription = "閃光燈",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-
-                            IconButton(onClick = { viewModel.onEvent(CameraUiEvent.ToggleHDR) }) {
-                                Icon(
-                                    imageVector = when (state.hdrMode) {
-                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Icons.Default.WbSunny
-                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Icons.Default.BrightnessHigh
-                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> Icons.Default.AutoAwesome
-                                    },
-                                    contentDescription = "HDR 模式: ${state.hdrMode.displayName}",
-                                    tint = when (state.hdrMode) {
-                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Color(0xFFFFA726)
-                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Color(0xFF757575)
-                                        com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> Color.White
-                                    },
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                        }
-
-                        if (isPtfActive) {
-                            IconButton(
-                                onClick = {
-                                    viewModel.onEvent(CameraUiEvent.SetCameraMode(CameraMode.Normal))
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(top = 8.dp, end = 8.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = stringResource(R.string.ptf_exit_cd),
-                                    tint = Color.White,
-                                    modifier = Modifier.size(28.dp),
-                                )
+                            Row {
+                                IconButton(
+                                    onClick = onNavigateToSettings,
+                                    modifier = Modifier.size(48.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = stringResource(R.string.settings_cd),
+                                        tint = Color.White.copy(alpha = 0.85f),
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { },
+                                    modifier = Modifier.size(48.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Outlined.Help,
+                                        contentDescription = stringResource(R.string.help_cd),
+                                        tint = Color.White.copy(alpha = 0.85f),
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
                             }
                         }
 
@@ -487,51 +488,25 @@ fun CameraScreen(
                 }
 
                 // ── Control Band (remaining height) ───────────────────────────
-                Box(
+                BottomControlBar(
+                    cameraMode = state.cameraMode,
+                    isAligned = isAligned,
+                    isCapturing = state.isCapturing,
+                    onTogglePill = {
+                        val nextMode = if (state.cameraMode is CameraMode.PassToFriend) {
+                            CameraMode.Normal
+                        } else {
+                            CameraMode.PassToFriend
+                        }
+                        viewModel.onEvent(CameraUiEvent.SetCameraMode(nextMode))
+                    },
+                    onCapture = { viewModel.onEvent(CameraUiEvent.CapturePhoto) },
+                    onFlipCamera = { viewModel.onEvent(CameraUiEvent.SwitchCamera) },
+                    onExitPtf = { viewModel.onEvent(CameraUiEvent.SetCameraMode(CameraMode.Normal)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 32.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = { viewModel.onEvent(CameraUiEvent.SwitchCamera) }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Cameraswitch,
-                                contentDescription = "切換鏡頭",
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-
-                        ShutterButtonSection(
-                            isAligned = isAligned,
-                            isCapturing = state.isCapturing,
-                            cameraMode = state.cameraMode,
-                            onCapture = { viewModel.onEvent(CameraUiEvent.CapturePhoto) },
-                        )
-
-                        CameraTabBar(
-                            cameraMode = state.cameraMode,
-                            onToggle = {
-                                val nextMode = if (state.cameraMode is CameraMode.PassToFriend) {
-                                    CameraMode.Normal
-                                } else {
-                                    CameraMode.PassToFriend
-                                }
-                                viewModel.onEvent(CameraUiEvent.SetCameraMode(nextMode))
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
+                )
             }
 
             // v2.10.0 Phase 3: Photo EXIF information bottom sheet
