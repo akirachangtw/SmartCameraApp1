@@ -26,6 +26,11 @@ SV_REPORT="${1:-}"
 DIFF_SCOPE="${2:-HEAD~1..HEAD}"
 SSOT_CONTEXT="${3:-.claude/skills/sv/ssot_context.md}"
 TMP_DIR=".tmp"
+
+# Auto-cleanup: delete sv_report.md on exit (PASS or FAIL) so the next
+# ticket always starts with a fresh report. Prevents stale reports from
+# a prior ticket silently passing review as-is.
+trap '[[ -n "${SV_REPORT:-}" ]] && rm -f "$SV_REPORT" 2>/dev/null || true' EXIT
 PAYLOAD="$TMP_DIR/cross_review_payload.md"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 RESULT_LOG="$TMP_DIR/cross_review_result_${TIMESTAMP}.md"
