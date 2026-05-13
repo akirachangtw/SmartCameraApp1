@@ -9,8 +9,8 @@
     <string name="ptf_exit_cd">Exit Pass-To-Friend mode</string>
 
     <!-- Cueshot D7-B2-T3: PTF onboarding hint -->
-    <string name="ptf_onboarding_message">將手機交給朋友，AI 會為你找尋最佳構圖</string>
-    <string name="ptf_onboarding_got_it">了解</string>
+    <string name="ptf_onboarding_message">Hand your phone to a friend — AI will find the best composition for you</string>
+    <string name="ptf_onboarding_got_it">Got it</string>
 
     <!-- P0-TOPBAR: Top bar icon accessibility labels (Layout Spec v2.2 §3.2) -->
     <string name="flash_cd">Toggle flash</string>
