@@ -30,11 +30,11 @@ sealed interface CameraMode {
 
     /**
      * Pass-To-Friend mode — user hands the phone to a subject.
-     * Activated via [PillToggle] toggle; deactivated by tapping the same toggle.
+     * Activated by UI mode toggle; deactivated by toggling back or via exit action.
      * Composition overlays are hidden; Pitch Traction and BreathingRing remain active.
      *
      * Mode-entry lockout (Rule 22) and capture cooldown (Rule 16) are both enforced by
-     * [CameraViewModel] via [modeEntryTimeMs] and [lastCaptureTimeMs] sentinels respectively.
+     * the presentation state holder via mode-entry and last-capture timestamp sentinels.
      */
     object PassToFriend : CameraMode
 
