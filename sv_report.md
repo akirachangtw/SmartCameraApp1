@@ -1,8 +1,8 @@
-# SV Report — P0-TOPBAR + P0-BOTTOM
+# SV Report — FIX-P0-SESSION-B-FINAL
 
 **Date**: 2026-05-14
 **Branch**: feature/cueshot-mvp
-**Scope**: Phase0 Session B — Top Bar Scrim Overlay + Bottom Control Bar Shell (PillToggle + ShutterRow)
+**Scope**: Traycer 規格精準度修補 — HDR icon, PTF mode-entry lockout, PillToggle 48dp touch target, CameraTabBar decommission, Rule 22
 
 ---
 
@@ -10,17 +10,21 @@
 
 | 項目 | 結果 | 備註 |
 | ---- | ---- | ---- |
-| Compile | ✅ PASS | assembleDeviceDebug 0 errors, 0 warnings |
+| Compile | ✅ PASS | assembleDeviceDebug 0 errors (36s) |
 | Lint | ✅ PASS | 0 new warnings; baseline unchanged |
 | Scope | ✅ PASS | 見下方檔案清單 |
 
 **授權修改範圍：**
 
-- `CameraScreen.kt` — Top Bar Row 重建（Scrim overlay 圖示佈局）+ Bottom Box → BottomControlBar
-- `components/PillToggle.kt` — NEW: 128×28dp pill toggle (Layout Spec v2.2 §5)
-- `components/BottomControlBar.kt` — NEW: 底部控制列 shell (Layout Spec v2.2 §4)
-- `res/values/strings.xml` — 新增 6 個 accessibility strings（合理連帶修改）
-- `.claude/PROGRESS.md` — /qa 授權更新 + MD-linter 格式修正
+- `CameraScreen.kt` — HDR slot: WbSunny/BrightnessHigh/AutoAwesome icons removed → Text("HDR") with per-HDRMode alpha; 3 icon imports removed
+- `CameraViewModel.kt` — Add `modeEntryTimeMs` sentinel; `setCameraMode()` records PTF entry timestamp + Logcat `[PTF-ModeEntry]`; `capturePhoto()` Rule 22 mode-entry lockout (1000ms) + Rule 16 capture cooldown (two independent guards)
+- `components/PillToggle.kt` — Touch target expanded 128×28dp → 128×48dp via outer Box; visual track 28dp preserved; touch zones as transparent overlay Row at 48dp
+- `components/CameraTabBar.kt` — DELETED (full decommission)
+- `domain/camera/CameraMode.kt` — KDoc: [CameraTabBar] → [PillToggle]; sentinel doc updated to reference `modeEntryTimeMs` + `lastCaptureTimeMs`
+- `res/values/strings.xml` — (1) comment: "CameraTabBar" → "PillToggle"; (2) ptf_onboarding_message + ptf_onboarding_got_it → English (independent [i18n] commit HEAD~1, not part of this ticket's code changes)
+- `.claude/CLAUDE.md` — Rule 22 written: 狀態機時序紀律 (Traycer ticket Step 5 explicit authorization)
+- `.claude/PROGRESS.md` — /qa authorized update
+- `.claude/settings.local.json` — Stop hook for statusline cache (independent tooling fix, not FIX-P0-SESSION-B code)
 
 ---
 
@@ -29,7 +33,7 @@
 | 項目 | 結果 |
 | ---- | ---- |
 | ELF Verification | ✅ ALIGNED |
-| zipalign | ⚪ SKIP (build-tools < 35.0.0-rc3，NOTICE 級，不影響 Debug) |
+| zipalign | ⚪ SKIP (build-tools < 35.0.0-rc3, NOTICE level, Debug only) |
 
 ---
 
@@ -37,12 +41,12 @@
 
 | 項目 | 結果 | 備註 |
 | ---- | ---- | ---- |
-| Orphan (TODO/FIXME/HACK) | ✅ CLEAN | 0 hits across 3 modified/new files |
-| Mock / Placeholder | ✅ CLEAN | 無 Color.Gray 佔位、無硬編碼預設框 |
-| Gallery `onClick = { }` | ✅ AUTHORIZED | Ticket Scope Ban 明文授權骨架；非 TODO 殘骸 |
-| 舊 CameraTabBar 殘留 | ✅ CLEAN | import 已移除，CameraScreen.kt 無任何 CameraTabBar 引用 |
-| 舊 Icons.Default.Close / Cameraswitch | ✅ CLEAN | CameraScreen.kt import 已清除 |
-| None/Empty 透明 | ✅ CLEAN | galleryAlpha/flipAlpha=0 → 按鈕不可見且 enabled=false |
+| Orphan (TODO/FIXME/HACK) | ✅ CLEAN | 0 hits in modified/new files |
+| `return null` | ✅ PRE-EXISTING | CameraViewModel.kt — all pre-existing boundary guards (鐵律3), none new in this ticket |
+| Mock / Placeholder | ✅ CLEAN | HDR Text alpha differentiated per HDRMode; no Color.Gray placeholders |
+| AutoAwesome | ✅ CLEAN | grep -ri "AutoAwesome" app/src/ = 0 hits |
+| CameraTabBar | ✅ CLEAN | grep -r "CameraTabBar" app/src/ = 0 hits |
+| PillToggle touch zone | ✅ CLEAN | Overlay Row is fully transparent; no default visible color or placeholder |
 
 ---
 
@@ -50,39 +54,27 @@
 
 | 項目 | 結果 | 備註 |
 | ---- | ---- | ---- |
-| UDF 合規 | ✅ COMPLIANT | PillToggle/BottomControlBar 均為無狀態 Composable；State 從 CameraViewModel → CameraScreen → BottomControlBar，無逆向 |
-| Repository/UseCase 入侵 | ✅ CLEAN | 新增檔案無任何 Repository/UseCase 引用 |
-| SSOT 命名漂移 | ✅ ALIGNED | `PillToggle`、`BottomControlBar`、`galleryAlpha`、`flipAlpha`、`barBackground`、`PILL_INDICATOR_BG` — 均無 EdgeWarmth / WarmGradient 等禁用命名 |
-| Scrim 規格 | ✅ ALIGNED | Scrim 保留原有 #000 α0.22 → transparent，120px 高度（AmbientConstants.SCRIM_HEIGHT_PX） |
-| Pill 色值 | ✅ ALIGNED | Track #555555 / Indicator #4A4A4A / Selected #CCCCCC / Unselected #666666 — 完全對齊 Layout Spec v2.2 §5.2 |
-| Bottom Bar 色值 | ✅ ALIGNED | Photo #0D0D0D / PTF #1A1714，300ms FastOutSlowInEasing — 對齊 Layout Spec v2.2 §6 |
-| Icon 規格 | ✅ ALIGNED | 頂部圖示 24dp / 48dp touch target / α0.85；底部 28dp — 符合 §3.2 |
-| Rule 14 (remember 置頂) | ✅ COMPLIANT | PillToggle.kt 所有 animateXxx 在函數頂部；BottomControlBar.kt 同理 |
+| UDF 合規 | ✅ COMPLIANT | `modeEntryTimeMs` is ViewModel private; UI fires UiEvent.SetCameraMode only |
+| Repository/UseCase 入侵 | ✅ CLEAN | No Repository/UseCase references in modified Composables |
+| SSOT 命名漂移 | ✅ ALIGNED | `modeEntryTimeMs`, `PillToggle`, `CameraMode` — all SSOT v4.0 compliant |
+| Rule 14 (remember 置頂) | ✅ COMPLIANT | PillToggle all animateXxx at composable top, before any if/when |
+| 硬體約束 | ✅ CLEAN | `setCameraMode()` is pure state-machine; no CameraX rebind; ML Kit untouched |
+| PTF cooldown 分層 | ✅ COMPLIANT | Rule 22 (`modeEntryTimeMs`) + Rule 16 (`lastCaptureTimeMs`) — independent, correct semantics |
 
 ---
 
-## 已知授權骨架（不阻斷 SV）
+## 已知授權修改說明
 
 | 項目 | 授權依據 |
 | ---- | -------- |
-| Gallery `onClick = { }` | Ticket Scope Ban §3：「勿接 Gallery 實際功能」 |
-| Help `onClick = { }` | Ticket Scope Ban §3：「勿接 Settings/Help 導航實際功能」 |
+| `CLAUDE.md` Rule 22 | FIX-P0-SESSION-B-FINAL Ticket Step 5 明確授權 |
+| `strings.xml` comment fix | CameraTabBar decommission 連帶清理，acceptance criteria 要求 0 CameraTabBar hits |
+| `strings.xml` i18n (HEAD~1) | 獨立 `[i18n]` commit，已原子化提交，與本 ticket code commit 分離 |
+| `settings.local.json` | 獨立 tooling fix commit，非 FIX-P0-SESSION-B-FINAL code 範圍 |
 
 ---
 
 ## 階段 D：Cross-Review 路由
 
 - codex CLI: ✅ 可用
-- ssot_context.md: ✅ 存在
-
-### Cross-Review 結果
-
-初審 FAIL（false positive 確認，已解決）
-
-Codex 標記 `[severity: high] [layer: arch]`：`CameraMode` 使用於 `CameraScreen.kt`/`BottomControlBar.kt`/`PillToggle.kt`，但 `ssot_context.md` v1.1 的核心型別清單列出 `SceneMode` → 判定 SSOT drift。
-
-根因分析：`SceneMode` 從未存在於 codebase（`grep -rn SceneMode` = 0 hits）。`ssot_context.md` 殘留舊草稿名稱。實際 SSOT 定義型別為 `domain/camera/CameraMode.kt`（sealed interface：Normal / PassToFriend），已被 `CameraViewModel`、`CameraScreen`、所有 Composable 一致使用，無命名漂移。
-
-修正動作：`ssot_context.md` v1.1 → v1.2：`SceneMode` → `CameraMode`（domain/camera）。
-
-最終裁決：✅ PASS（false positive resolved）
+- ssot_context.md: ✅ 存在 (v1.2)

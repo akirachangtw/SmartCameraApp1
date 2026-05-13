@@ -376,6 +376,12 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 ---
 
+**FIX-P0-SESSION-B 產出 (2026-05-14)**
+
+22. **狀態機時序紀律**：任何 mode-entry cooldown（模式切入冷卻）必須綁定**切換時間戳（transition timestamp）**，而非前次動作時間戳（prior action timestamp）。切換至目標模式的當下必須立即更新 `modeEntryTimeMs = timeProvider()`，並以此為基準計算冷卻期。使用前次操作（如上次拍照時間 `lastCaptureTimeMs`）作為冷卻起點是語意錯誤，會導致模式剛切入時冷卻期已部分或全部消耗完畢。觸發來源：FIX-P0-SESSION-B（PTF 1s entry lockout 改用 `modeEntryTimeMs`，與 Rule 16 capture-to-capture cooldown 分層）。
+
+---
+
 **完整規範請參考**: `devspec/.clinerules`
 **SSOT 策略文件**: `plans/architecture/SSOT_v4_0.md`
 **SSOT 技術文件**: `plans/architecture/Cueshot_Layout_Spec_v2_2.md`

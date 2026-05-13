@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → P0-TOPBAR + P0-BOTTOM ✅ CLOSED（QA ✅ / SV ✅ / Device ✅ — BUG-SHUTTER-RING-OFFSET fixed, 實機驗收通過）
+**Current Day**: D9 → FIX-P0-SESSION-B-FINAL QA ✅（Build ✅ / Tests ✅ / Lint ✅ — HDR icon fixed, PTF modeEntryTimeMs lockout, PillToggle 48dp, CameraTabBar decommissioned, Rule 22 written）
 **Last Updated**: 2026-05-14
 
 ---
@@ -10,8 +10,8 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — FIX-P0-SESSION-A ✅ CLOSED — P0-TOPBAR+P0-BOTTOM ✅ Device ✅ CLOSED |
-| Compile | 0 errors ✅ (assembleDeviceDebug 6s) |
+| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — FIX-P0-SESSION-A ✅ CLOSED — P0-TOPBAR+P0-BOTTOM ✅ Device ✅ CLOSED — FIX-P0-SESSION-B QA ✅ |
+| Compile | 0 errors ✅ (assembleDeviceDebug 36s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
@@ -66,7 +66,7 @@
 
 ## Next Actions
 
-> **Session C 目標：P0-FPS + P0-FOCUS + Baseline**
+> **Session C 目標：P0-FPS + P0-FOCUS + Baseline（FIX-P0-SESSION-B-FINAL QA ✅ — 待 /sv）**
 
 1. **🔴 P0-FPS**（Sony FPS overlay 修正 + `BUG-SONY-ROTATION-CONST` 調查）：
    - `CameraViewModel.kt` — 調查 `imageInfo.rotationDegrees` vs `Surface.ROTATION_*`；Sony XQ-BT52 直立/橫向恆回報 `rotationDegrees=0`
