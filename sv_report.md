@@ -133,3 +133,29 @@ Commit 4 [Docs] 1b91aaa:
 | PitchTraction / FILL_CENTER 邏輯未觸碰 | ✅ PASS |
 
 **SV 結論**: PASS — Ready for Traycer re-verification.
+
+---
+
+## FIX-P0-SESSION-A-FINAL-SYNC SV 補充（2026-05-13）
+
+**Scope**: CLAUDE.md L11 命名淨化（授權覆蓋歷史反例）+ PROGRESS.md 三處狀態統一 + CANDIDATE RULE 20 寫入
+
+| 驗收項目 | 結果 |
+|---------|------|
+| CLAUDE.md `grep EdgeWarmth` = 0 命中 | ✅ PASS |
+| PROGRESS.md Header/Sprint Health/Next Actions 三處狀態一致 | ✅ PASS |
+| CANDIDATE RULE 20 已寫入 CLAUDE.md | ✅ PASS |
+| Scope 僅 `.claude/CLAUDE.md` + `.claude/PROGRESS.md` | ✅ PASS |
+| 編譯 0 errors（cached） | ✅ PASS |
+| Lint 0 new warnings（cached） | ✅ PASS |
+| Cross-Review (a7f6417..HEAD) | ✅ PASS |
+
+**Cross-Review 結論**:
+
+```text
+PASS
+- [arch] diff 僅移除 DetectionOverlay 殘留鏈與文件命名同步，未引入 domain 依賴、SSOT 型別漂移、Scope Ban 違規或硬體約束違反。
+- [sv]   SV Report 宣稱的 DetectionOverlay 清理、1px 分隔線、CLAUDE.md/ssot_context v4.0 同步與 diff 內容相符，未見超出聲明範圍的未揭露修改。
+```
+
+**最終結論**: FIX-P0-SESSION-A + FIX-P0-SESSION-A-FINAL-SYNC 全鏈路 PASS — Ready for Traycer Path A approval.

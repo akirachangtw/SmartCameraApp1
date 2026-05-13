@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D8-VERIFY → FIX-P0-SESSION-A ✅ DONE（QA ✅ / SV ✅），待 Traycer 再驗收
-**Last Updated**: 2026-05-13 20:00
+**Current Day**: D8-VERIFY → FIX-P0-SESSION-A ✅ DONE（QA ✅ / SV ✅ / Cross-Review ✅ / 5 commits 封存 / Traycer Final Sync ✅）；Session B 待啟動
+**Last Updated**: 2026-05-13 22:30
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Status |
 |--------|--------|
-| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — FIX-P0-SESSION-A 修補 QA ✅ PASS，待 /sv + Traycer 再驗收 |
+| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — FIX-P0-SESSION-A ✅ CLOSED（QA ✅ / SV ✅ / Cross-Review ✅ / Traycer Final Sync ✅） |
 | Compile | 0 errors ✅ (assembleDeviceDebug 1s cached) |
 | Tests | passed ✅ (testDeviceDebugUnitTest) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
@@ -46,6 +46,8 @@
 - Execution Sequence: `plans/cso_briefing/Cueshot_Execution_Sequence_v1.md`
 - Merged Spec: `plans/cso_briefing/Cueshot_Merged_Spec_v3_4_1_Stage0.md`
 - Verification Matrix: `plans/cso_briefing/Cueshot_Verification_Matrix_v1.md`
+- **SSOT v4.0**: `plans/architecture/SSOT_v4_0.md` ← 唯一真理文件（取代 v3.3）
+- **Layout Spec v2.2**: `plans/architecture/Cueshot_Layout_Spec_v2_2.md` ← 佈局精確定義
 
 ---
 
@@ -63,16 +65,15 @@
 
 ## Next Actions
 
-1. **🟡 /sv 驗收**（Phase0 Session A）：對 P0-NAMING + P0-VF 執行語意審查 + 檔案邊界防禦
-2. **🔴 BUG-MLKIT-DUAL-EMIT 修復**（P0，Session B）：
+1. **🔴 BUG-MLKIT-DUAL-EMIT 修復**（P0，Session B）：
    - `CameraViewModel.kt` 切換鏡頭時清空 `detectionResult`，或改用 `flatMapLatest` 確保舊 Flow 取消
-3. **🔴 BUG-SONY-ROTATION-CONST 處理**（P0，Session B）：
+2. **🔴 BUG-SONY-ROTATION-CONST 處理**（P0，Session B）：
    - 調查 CameraX `imageInfo.rotationDegrees` vs `Surface.ROTATION_*` 差異
-4. **🔴 BUG-PTF-HALO-SIZE 修復**（P0，Session B）：
+3. **🔴 BUG-PTF-HALO-SIZE 修復**（P0，Session B）：
    - PTF Halo 渲染層 bbox → 圓半徑轉換邏輯修正
-5. **🔴 BUG-I7-FOCUS-RING-PERSIST 修復**（P1，可並行）：
+4. **🔴 BUG-I7-FOCUS-RING-PERSIST 修復**（P1，可並行）：
    - `EyeAfController.kt:process()` 加入 Guard 7
-6. **T03 重啟**（以上 4 Bug 通過後）：Pill Toggle 重寫
+5. **T03 重啟**（以上 4 Bug 通過後）：Pill Toggle 重寫
 
 ## Active Debt（僅列未解決項）
 
@@ -93,7 +94,7 @@
 
 ## Quick Links
 
-- SSOT: `SmartCameraApp_Strategy_v3_3_SSOT_20260404.md`
-- Tech Spec: `SmartCameraApp_TechDeepDive_v3_20260405.md`
+- SSOT: `plans/architecture/SSOT_v4_0.md`
+- Layout Spec: `plans/architecture/Cueshot_Layout_Spec_v2_2.md`
 - Roadmap: `Cueshot_MVP_Phase1_Roadmap_v1.md`
 - Full History: `PROGRESS_ARCHIVE.md`
