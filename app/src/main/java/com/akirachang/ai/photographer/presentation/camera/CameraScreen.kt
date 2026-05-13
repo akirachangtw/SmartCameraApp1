@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.shape.CircleShape
@@ -596,7 +597,7 @@ internal fun ShutterButtonSection(
             )
             Canvas(
                 modifier = Modifier
-                    .size((72 * shutterRingScale).dp)
+                    .requiredSize((72 * shutterRingScale).dp)
                     .testTag(TAG_SHUTTER_BREATHING_RING),
             ) {
                 drawCircle(
@@ -634,10 +635,12 @@ internal fun ShutterButtonSection(
         }
 
         // v2.9.8: 外圈進度指示器（拍照中顯示）
+        // requiredSize: ignore parent 80dp height constraint so ring stays circular
+        // (BottomControlBar shutter zone = 80dp; ringBaseSize = 84/94dp overflows without this)
         if (isCapturing) {
             CircularProgressIndicator(
                 modifier = Modifier
-                    .size(ringBaseSize)
+                    .requiredSize(ringBaseSize)
                     .testTag(TAG_SHUTTER_PROGRESS_CIRCLE),
                 color = Color.White,
                 strokeWidth = 3.dp
