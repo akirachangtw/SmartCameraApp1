@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → P0-TOPBAR + P0-BOTTOM ✅ CLOSED（QA ✅ / SV ✅ / Cross-Review ✅ false-positive resolved）
+**Current Day**: D9 → P0-TOPBAR + P0-BOTTOM ✅ CLOSED（QA ✅ / SV ✅ / Device ✅ — BUG-SHUTTER-RING-OFFSET fixed, 實機驗收通過）
 **Last Updated**: 2026-05-14
 
 ---
@@ -10,7 +10,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — FIX-P0-SESSION-A ✅ CLOSED — P0-TOPBAR+P0-BOTTOM ✅ SV ✅ CLOSED |
+| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — FIX-P0-SESSION-A ✅ CLOSED — P0-TOPBAR+P0-BOTTOM ✅ Device ✅ CLOSED |
 | Compile | 0 errors ✅ (assembleDeviceDebug 6s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
