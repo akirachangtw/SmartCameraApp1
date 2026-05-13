@@ -66,15 +66,18 @@
 
 ## Next Actions
 
-1. **🔴 BUG-MLKIT-DUAL-EMIT 修復**（P0，Session B）：
-   - `CameraViewModel.kt` 切換鏡頭時清空 `detectionResult`，或改用 `flatMapLatest` 確保舊 Flow 取消
-2. **🔴 BUG-SONY-ROTATION-CONST 處理**（P0，Session B）：
-   - 調查 CameraX `imageInfo.rotationDegrees` vs `Surface.ROTATION_*` 差異
-3. **🔴 BUG-PTF-HALO-SIZE 修復**（P0，Session B）：
-   - PTF Halo 渲染層 bbox → 圓半徑轉換邏輯修正
-4. **🔴 BUG-I7-FOCUS-RING-PERSIST 修復**（P1，可並行）：
-   - `EyeAfController.kt:process()` 加入 Guard 7
-5. **T03 重啟**（以上 4 Bug 通過後）：Pill Toggle 重寫
+> **Session C 目標：P0-FPS + P0-FOCUS + Baseline**
+
+1. **🔴 P0-FPS**（Sony FPS overlay 修正 + `BUG-SONY-ROTATION-CONST` 調查）：
+   - `CameraViewModel.kt` — 調查 `imageInfo.rotationDegrees` vs `Surface.ROTATION_*`；Sony XQ-BT52 直立/橫向恆回報 `rotationDegrees=0`
+   - FPS debug overlay 是否符合 Zero Tolerance 規則（Rule 19）
+2. **🔴 P0-FOCUS**（`BUG-I7-FOCUS-RING-PERSIST`）：
+   - `EyeAfController.kt:process()` 加入 Guard 7：`LensFocusState.Focused + drift < 閾值 → skip`
+   - 加入 `lastTriggerPoint` instance var 防止 2s 週期重置 `alphaTarget`
+3. **🔴 Baseline**：
+   - `BUG-MLKIT-DUAL-EMIT`：`CameraViewModel.kt` 切換鏡頭清空 `detectionResult` 或改用 `flatMapLatest`
+   - `BUG-PTF-HALO-SIZE`：PTF Halo 渲染層 bbox → 圓半徑轉換修正
+4. **T03 重啟**（以上通過後）：Pill Toggle 重寫
 
 ## Active Debt（僅列未解決項）
 
