@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D8-VERIFY → FIX-P0-SESSION-A ✅ DONE（QA ✅ / SV ✅ / Cross-Review ✅ / 5 commits 封存 / Traycer Final Sync ✅）；Session B 待啟動
-**Last Updated**: 2026-05-13 22:30
+**Current Day**: D8-VERIFY → FIX-P0-SESSION-A ✅ DONE + FIX-P0-SESSION-A-FINAL-SYNC ✅ DONE + FIX-GSTACK-SSOT-LINK ✅ DONE（QA ✅ / SV ✅ / Cross-Review ✅ / 10 commits 封存）；待 Traycer Path A 終審；Session B 待啟動
+**Last Updated**: 2026-05-13 22:33
 
 ---
 
