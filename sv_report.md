@@ -145,7 +145,7 @@ Commit 4 [Docs] 1b91aaa:
 | CLAUDE.md `grep EdgeWarmth` = 0 命中 | ✅ PASS |
 | PROGRESS.md Header/Sprint Health/Next Actions 三處狀態一致 | ✅ PASS |
 | CANDIDATE RULE 20 已寫入 CLAUDE.md | ✅ PASS |
-| Scope 僅 `.claude/CLAUDE.md` + `.claude/PROGRESS.md` | ✅ PASS |
+| Scope：`.claude/CLAUDE.md` + `.claude/PROGRESS.md` + `sv_report.md` | ✅ PASS |
 | 編譯 0 errors（cached） | ✅ PASS |
 | Lint 0 new warnings（cached） | ✅ PASS |
 | Cross-Review (a7f6417..HEAD) | ✅ PASS |
@@ -159,3 +159,19 @@ PASS
 ```
 
 **最終結論**: FIX-P0-SESSION-A + FIX-P0-SESSION-A-FINAL-SYNC 全鏈路 PASS — Ready for Traycer Path A approval.
+
+---
+
+## FIX-GSTACK-SSOT-LINK SV 補充（2026-05-13）
+
+**Scope**: `.claude/CLAUDE.md` + `.claude/PROGRESS.md` + `sv_report.md`（SV Report 連帶更新）
+
+| 驗收項目 | 結果 |
+| ------- | ---- |
+| `.claude/` 目錄 `grep v3_3_SSOT\|v3_4_1_Stage0\|TechDeepDive` = 0 命中 | ✅ PASS |
+| PROGRESS.md Source Documents 僅列存在於 Repo 的實體檔案 | ✅ PASS |
+| CLAUDE.md Rule 20 從 CANDIDATE 升為正式規則 | ✅ PASS |
+| CLAUDE.md Rule 21 SSOT 遷移紀律寫入 | ✅ PASS |
+| Scope：`.claude/CLAUDE.md` + `.claude/PROGRESS.md` + `sv_report.md` | ✅ PASS |
+| 編譯 0 errors | ✅ PASS |
+| Lint 0 new warnings | ✅ PASS |

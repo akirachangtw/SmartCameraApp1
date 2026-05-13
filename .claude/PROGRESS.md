@@ -42,12 +42,11 @@
 - S8(W4): T13+T15
 - S9(W5): T12B→T14
 
-### Source Documents
-- Execution Sequence: `plans/cso_briefing/Cueshot_Execution_Sequence_v1.md`
-- Merged Spec: `plans/cso_briefing/Cueshot_Merged_Spec_v3_4_1_Stage0.md`
-- Verification Matrix: `plans/cso_briefing/Cueshot_Verification_Matrix_v1.md`
-- **SSOT v4.0**: `plans/architecture/SSOT_v4_0.md` ← 唯一真理文件（取代 v3.3）
+### Source Documents (Phase 0 現行基準)
+
+- **SSOT v4.0**: `plans/architecture/SSOT_v4_0.md` ← 唯一真理文件
 - **Layout Spec v2.2**: `plans/architecture/Cueshot_Layout_Spec_v2_2.md` ← 佈局精確定義
+- **Phase0 UI Contract**: `plans/cso_briefing/Phase0_UI_Realignment_Contract_v1.md`
 
 ---
 
@@ -96,5 +95,4 @@
 
 - SSOT: `plans/architecture/SSOT_v4_0.md`
 - Layout Spec: `plans/architecture/Cueshot_Layout_Spec_v2_2.md`
-- Roadmap: `Cueshot_MVP_Phase1_Roadmap_v1.md`
 - Full History: `PROGRESS_ARCHIVE.md`
