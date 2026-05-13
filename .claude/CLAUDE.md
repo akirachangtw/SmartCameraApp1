@@ -8,7 +8,7 @@
 2. **焦土政策**：重構時，必須主動搜尋並刪除舊管線的廢棄變數與 UI 元件。
 3. **錯誤防禦**：必須處理可能導致 Crash 的 null 狀態與陣列越界。所有 `when` 必須 exhaustive。
 4. **架構純潔**：嚴格遵守 UDF (Unidirectional Data Flow)，狀態層與 UI 層絕對分離。UI 不直接呼叫 Repository 或 UseCase。
-5. **命名一致 (Anti-Drift)**：所有類別名稱、變數名稱必須與 v3.3 SSOT 一致。禁止自行發明未經授權的命名（如 SSOT 定義 `EdgeWarmthLayer` 但實作叫 `WarmGradient`）。
+5. **命名一致 (Anti-Drift)**：所有類別名稱、變數名稱必須與 v3.3 SSOT 一致。禁止自行發明未經授權的命名（如 SSOT 定義 `PitchTractionLayer` 但實作叫 `WarmGradient`）。
 6. **預設值陷阱防禦**：None/Empty 狀態的 UI 必須**完全透明或隱藏**，禁止畫出預設框或預設顏色（如 `Size(36.dp)` 硬編碼、`Color.Gray` 佔位）。
 7. **硬體頻率脫鉤**：高頻視覺追蹤 (Halo 10fps) 與低頻硬體呼叫 (AF 冷卻 2-3s) 必須徹底分離。前鏡頭永遠不呼叫 AF。
 8. **語言紀律**：所有對話輸出、推理描述、工具呼叫說明一律使用**繁體中文或英文**。禁止在任何模式下切換到日文、韓文或其他語言。程式碼內的註解與變數名稱使用英文。
@@ -86,8 +86,8 @@ Token 估算基準
 
 ## 鐵律 1 — SSOT 優先 (Single Source of Truth)
 
-- **策略 SSOT**: `SmartCameraApp_Strategy_v3_3_SSOT_20260404.md`
-- **技術 SSOT**: `SmartCameraApp_TechDeepDive_v3_20260405.md`
+- **策略 SSOT**: `plans/architecture/SSOT_v4_0.md`
+- **技術 SSOT**: `plans/architecture/Cueshot_Layout_Spec_v2_2.md`
 - **進度 SSOT**: `PROGRESS.md`
 
 在修改任何核心邏輯前，必須優先查閱上述文件。文件是架構的唯一真理，程式碼的解釋以文件為準。
@@ -312,7 +312,7 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 ---
 
-# 多 AI 分工策略（gstack v1.3）
+# 多 AI 分工策略（gstack v1.5）
 
 | AI | 角色 | 配額策略 |
 |----|------|---------|
@@ -368,6 +368,12 @@ Frame 5: Lens Smudge (每 5 幀) → 12ms
 
 ---
 
+### KAIROS #5 候選規則 (FIX-P0-SESSION-A-FINAL-SYNC, 2026-05-13)
+
+[CANDIDATE RULE 20] **PROGRESS.md 三處狀態一致性規則**：PROGRESS.md 對同一驗收 scope 不得同時出現 "SV done" 與 "待 /sv"；Header / Sprint Health / Next Actions 必須三者一致。任何 Ticket 完成後，必須同步更新三個區塊，禁止留下互相矛盾的狀態描述。觸發來源：FIX-P0-SESSION-A-FINAL-SYNC（Traycer 指出 Header 標 DONE 但 Sprint Health 仍標「待 /sv」）。
+
+---
+
 **完整規範請參考**: `devspec/.clinerules`
-**SSOT 策略文件**: `SmartCameraApp_Strategy_v3_3_SSOT_20260404.md`
-**SSOT 技術文件**: `SmartCameraApp_TechDeepDive_v3_20260405.md`
+**SSOT 策略文件**: `plans/architecture/SSOT_v4_0.md`
+**SSOT 技術文件**: `plans/architecture/Cueshot_Layout_Spec_v2_2.md`
