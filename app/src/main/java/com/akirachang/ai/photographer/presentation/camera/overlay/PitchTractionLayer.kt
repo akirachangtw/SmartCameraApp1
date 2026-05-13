@@ -28,26 +28,26 @@ import com.akirachang.ai.photographer.domain.config.AmbientConstants
 import com.akirachang.ai.photographer.domain.model.DeviceCapabilityTier
 import kotlin.math.abs
 
-// Test-tag constants — consumed by EdgeWarmthLayerTest (D4-T4 defence matrix).
-internal const val TAG_EDGE_WARMTH_ALIGNED     = "EdgeWarmthLayer_Aligned"
-internal const val TAG_EDGE_WARMTH_AMBER       = "EdgeWarmthLayer_Amber"
+// Test-tag constants — consumed by PitchTractionLayerTest (D4-T4 defence matrix).
+internal const val TAG_PITCH_TRACTION_ALIGNED      = "PitchTractionLayer_Aligned"
+internal const val TAG_PITCH_TRACTION_AMBER        = "PitchTractionLayer_Amber"
 // Semantic probe: present in composition when dots are enabled (FULL/LIMITED tier + direction active).
-// Zero-size Box — no visual impact. Consumed by EdgeWarmthLayerTest.
-internal const val TAG_EDGE_WARMTH_DOTS_ENABLED = "EdgeWarmthLayer_DotsEnabled"
+// Zero-size Box — no visual impact. Consumed by PitchTractionLayerTest.
+internal const val TAG_PITCH_TRACTION_DOTS_ENABLED = "PitchTractionLayer_DotsEnabled"
 
-/** Amber guide color per SSOT v3.3 */
+/** Amber guide color per SSOT v4.0 */
 private val WarmAmber = Color(0xFFD4A030)
 
-/** Aligned completion color per SSOT v3.3 §2.5 */
+/** Aligned completion color per SSOT v4.0 §2.5 */
 private val AlignGreen = Color(0xFF50C864)
 
 /**
- * Minimum roll deviation (degrees) to trigger directional edge warmth.
+ * Minimum roll deviation (degrees) to trigger directional pitch traction.
  * Below this threshold the device is considered level — no directional glow.
  */
 private const val ROLL_THRESHOLD_DEG = 3f
 
-/** Edge warmth gradient covers the outermost 15% of the viewport. */
+/** Pitch traction gradient covers the outermost 15% of the viewport. */
 private const val EDGE_BAND_FRACTION = 0.15f
 
 /**
@@ -80,11 +80,11 @@ private val DOT_SPECS = listOf(
     DotSpec(0.30f, 0.88f, 0.011f, durationMs = 2500, initialValue = 0.8f),
 )
 
-/** Direction derived from roll/pitch to drive edge warmth placement. */
-private enum class WarmthDirection { LEFT, RIGHT, UP, DOWN }
+/** Direction derived from roll/pitch to drive pitch traction placement. */
+private enum class TractionDirection { LEFT, RIGHT, UP, DOWN }
 
 /**
- * Shared animation spec for breathing rhythm per SSOT v3.3 §2.5.
+ * Shared animation spec for breathing rhythm per SSOT v4.0 §2.5.
  * [AmbientConstants.BREATHE_CYCLE_MS] single pass, double full cycle (reverse). FastOutSlowIn easing.
  */
 private val BREATHING_ANIM_SPEC: InfiniteRepeatableSpec<Float> = infiniteRepeatable(
@@ -93,12 +93,12 @@ private val BREATHING_ANIM_SPEC: InfiniteRepeatableSpec<Float> = infiniteRepeata
 )
 
 /**
- * EdgeWarmthLayer — Cueshot v3.3 Ambient UI.
+ * PitchTractionLayer — Cueshot v4.0 Ambient UI.
  *
  * Renders:
- * 1. **Gradient base layer** — directional edge warmth (#D4A030 amber) driven by [deviceRoll].
+ * 1. **Gradient base layer** — directional pitch traction (#D4A030 amber) driven by [deviceRoll].
  *    Max 20% alpha at full deviation.
- * 2. **Floating light dots** — 5 independent breathing dots overlaid on the warmth edge band.
+ * 2. **Floating light dots** — 5 independent breathing dots overlaid on the traction edge band.
  *    Alpha cycles 0.10–0.15, period 2–4s per dot. Disabled on [DeviceCapabilityTier.LEGACY].
  * 3. **Aligned breathing mode** — when [isAligned] is true, overrides amber mode with
  *    4-edge uniform green (#50C864) breathing alpha 0.10→0.18 per SSOT §2.5.
@@ -110,17 +110,15 @@ private val BREATHING_ANIM_SPEC: InfiniteRepeatableSpec<Float> = infiniteRepeata
  * @param isAligned True when compositionResult.isAllAligned == true. Activates breathing mode.
  */
 @Composable
-fun EdgeWarmthLayer(
+fun PitchTractionLayer(
     modifier: Modifier = Modifier,
     deviceRoll: Float = 0f,
     capabilityTier: DeviceCapabilityTier = DeviceCapabilityTier.FULL,
     isAligned: Boolean = false,
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "EdgeWarmthLayer")
+    val infiniteTransition = rememberInfiniteTransition(label = "PitchTractionLayer")
 
     // ── Aligned breathing mode (SSOT §2.5) ──────────────────────────────────
-    // When isAligned, drive a shared 0.10→0.18 alpha pulse on all 4 edges.
-    // The same animationSpec is used by the shutter ring (single source of truth).
     val breatheAlpha by infiniteTransition.animateFloat(
         initialValue = 0.10f,
         targetValue = 0.18f,
@@ -129,28 +127,24 @@ fun EdgeWarmthLayer(
     )
 
     if (isAligned) {
-        // ── Aligned state: 4-edge uniform green breathing, no dots ──────────
-        Canvas(modifier = modifier.fillMaxSize().testTag(TAG_EDGE_WARMTH_ALIGNED)) {
+        Canvas(modifier = modifier.fillMaxSize().testTag(TAG_PITCH_TRACTION_ALIGNED)) {
             drawAlignedBreathingGradient(breatheAlpha)
         }
         return
     }
 
-    // ── Normal state: directional amber warmth + floating dots ───────────────
+    // ── Normal state: directional amber traction + floating dots ────────────
     val renderDots = capabilityTier !is DeviceCapabilityTier.LEGACY
 
-    // Derive warmth direction and intensity from roll angle.
     val absRoll = abs(deviceRoll)
-    val direction: WarmthDirection? = when {
-        absRoll < ROLL_THRESHOLD_DEG -> null  // level — no directional warmth
-        deviceRoll < 0f -> WarmthDirection.LEFT
-        else -> WarmthDirection.RIGHT
+    val direction: TractionDirection? = when {
+        absRoll < ROLL_THRESHOLD_DEG -> null
+        deviceRoll < 0f -> TractionDirection.LEFT
+        else -> TractionDirection.RIGHT
     }
-    // Clamp intensity to [0, 1]: 0 = level, 1 = max deviation (≥ 45°)
     val intensity = (absRoll / 45f).coerceIn(0f, 1f)
     val gradientAlpha = intensity * 0.20f
 
-    // Build per-dot alpha animations — each dot breathes independently.
     val dotAlphas: List<Float> = if (renderDots) {
         DOT_SPECS.map { spec ->
             val alpha by infiniteTransition.animateFloat(
@@ -165,14 +159,12 @@ fun EdgeWarmthLayer(
                 ),
                 label = "dot_alpha_${spec.durationMs}",
             )
-            // Map [0,1] animation value → alpha range [0.10, 0.15]
             0.10f + alpha * 0.05f
         }
     } else {
         emptyList()
     }
 
-    // Blur paint reused for all dots to avoid per-frame allocation.
     val dotPaint = remember {
         Paint().apply {
             asFrameworkPaint().apply {
@@ -183,17 +175,12 @@ fun EdgeWarmthLayer(
         }
     }
 
-    // Semantic probe: zero-size Box present in composition only when dots are active.
-    // Allows instrumented tests to assert dot enablement without inspecting Canvas draw calls.
     if (renderDots && direction != null) {
-        Box(modifier = Modifier.size(0.dp).testTag(TAG_EDGE_WARMTH_DOTS_ENABLED))
+        Box(modifier = Modifier.size(0.dp).testTag(TAG_PITCH_TRACTION_DOTS_ENABLED))
     }
 
-    Canvas(modifier = modifier.fillMaxSize().testTag(TAG_EDGE_WARMTH_AMBER)) {
-        // ── Layer 1: Directional gradient base ──────────────────────────────
-        drawEdgeWarmthGradient(direction, gradientAlpha)
-
-        // ── Layer 2: Floating light dots (FULL / LIMITED only) ──────────────
+    Canvas(modifier = modifier.fillMaxSize().testTag(TAG_PITCH_TRACTION_AMBER)) {
+        drawPitchTractionGradient(direction, gradientAlpha)
         if (renderDots && direction != null) {
             drawFloatingDots(direction, dotAlphas, dotPaint)
         }
@@ -201,14 +188,13 @@ fun EdgeWarmthLayer(
 }
 
 /**
- * Draws the aligned breathing gradient per SSOT v3.3 §2.5.
+ * Draws the aligned breathing gradient per SSOT v4.0 §2.5.
  * All 4 edges glow uniformly in #50C864 green at the animated [alpha].
  */
 private fun DrawScope.drawAlignedBreathingGradient(alpha: Float) {
     val edgePx = size.height * EDGE_BAND_FRACTION
     val edgePxW = size.width * EDGE_BAND_FRACTION
     val green = AlignGreen.copy(alpha = alpha)
-    // Top edge
     drawRect(
         brush = Brush.verticalGradient(
             colors = listOf(green, Color.Transparent),
@@ -217,7 +203,6 @@ private fun DrawScope.drawAlignedBreathingGradient(alpha: Float) {
         ),
         size = size,
     )
-    // Bottom edge
     drawRect(
         brush = Brush.verticalGradient(
             colors = listOf(Color.Transparent, green),
@@ -226,7 +211,6 @@ private fun DrawScope.drawAlignedBreathingGradient(alpha: Float) {
         ),
         size = size,
     )
-    // Left edge
     drawRect(
         brush = Brush.horizontalGradient(
             colors = listOf(green, Color.Transparent),
@@ -235,7 +219,6 @@ private fun DrawScope.drawAlignedBreathingGradient(alpha: Float) {
         ),
         size = size,
     )
-    // Right edge
     drawRect(
         brush = Brush.horizontalGradient(
             colors = listOf(Color.Transparent, green),
@@ -247,18 +230,18 @@ private fun DrawScope.drawAlignedBreathingGradient(alpha: Float) {
 }
 
 /**
- * Draws the directional edge warmth gradient per SSOT v3.3 §2.3.
+ * Draws the directional pitch traction gradient per SSOT v4.0 §2.3.
  * When [direction] is null (device level), renders a subtle radial vignette.
  */
-private fun DrawScope.drawEdgeWarmthGradient(
-    direction: WarmthDirection?,
+private fun DrawScope.drawPitchTractionGradient(
+    direction: TractionDirection?,
     alpha: Float,
 ) {
     if (alpha <= 0f) return
     val edgePx = size.height * EDGE_BAND_FRACTION
 
     when (direction) {
-        WarmthDirection.UP -> drawRect(
+        TractionDirection.UP -> drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(WarmAmber.copy(alpha = alpha), Color.Transparent),
                 startY = 0f,
@@ -266,7 +249,7 @@ private fun DrawScope.drawEdgeWarmthGradient(
             ),
             size = size,
         )
-        WarmthDirection.DOWN -> drawRect(
+        TractionDirection.DOWN -> drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(Color.Transparent, WarmAmber.copy(alpha = alpha)),
                 startY = size.height - edgePx,
@@ -274,7 +257,7 @@ private fun DrawScope.drawEdgeWarmthGradient(
             ),
             size = size,
         )
-        WarmthDirection.LEFT -> drawRect(
+        TractionDirection.LEFT -> drawRect(
             brush = Brush.horizontalGradient(
                 colors = listOf(WarmAmber.copy(alpha = alpha), Color.Transparent),
                 startX = 0f,
@@ -282,7 +265,7 @@ private fun DrawScope.drawEdgeWarmthGradient(
             ),
             size = size,
         )
-        WarmthDirection.RIGHT -> drawRect(
+        TractionDirection.RIGHT -> drawRect(
             brush = Brush.horizontalGradient(
                 colors = listOf(Color.Transparent, WarmAmber.copy(alpha = alpha)),
                 startX = size.width * (1f - EDGE_BAND_FRACTION),
@@ -291,7 +274,6 @@ private fun DrawScope.drawEdgeWarmthGradient(
             size = size,
         )
         null -> {
-            // Device is level — render a subtle radial amber vignette
             drawRect(
                 brush = Brush.radialGradient(
                     colors = listOf(Color.Transparent, WarmAmber.copy(alpha = alpha * 0.5f)),
@@ -305,12 +287,10 @@ private fun DrawScope.drawEdgeWarmthGradient(
 }
 
 /**
- * Draws floating light dots within the active warmth edge band.
- * Dots are confined to the 15% edge band on the [direction] side.
- * Each dot uses a blurred soft-circle effect via canvas layer.
+ * Draws floating light dots within the active pitch traction edge band.
  */
 private fun DrawScope.drawFloatingDots(
-    direction: WarmthDirection,
+    direction: TractionDirection,
     alphas: List<Float>,
     paint: Paint,
 ) {
@@ -322,27 +302,25 @@ private fun DrawScope.drawFloatingDots(
         val dotColor = WarmAmber.copy(alpha = dotAlpha)
         val radius = size.minDimension * spec.radiusFraction
 
-        // Resolve dot position within the active edge band
         val (cx, cy) = when (direction) {
-            WarmthDirection.LEFT -> Pair(
+            TractionDirection.LEFT -> Pair(
                 bandW * spec.normalizedX,
                 size.height * spec.normalizedY,
             )
-            WarmthDirection.RIGHT -> Pair(
+            TractionDirection.RIGHT -> Pair(
                 size.width - bandW + bandW * spec.normalizedX,
                 size.height * spec.normalizedY,
             )
-            WarmthDirection.UP -> Pair(
+            TractionDirection.UP -> Pair(
                 size.width * spec.normalizedX,
                 bandH * spec.normalizedY,
             )
-            WarmthDirection.DOWN -> Pair(
+            TractionDirection.DOWN -> Pair(
                 size.width * spec.normalizedX,
                 size.height - bandH + bandH * spec.normalizedY,
             )
         }
 
-        // Soft blur effect via canvas layer with SRC_OVER blend
         drawIntoCanvas { canvas ->
             paint.asFrameworkPaint().color = dotColor.toArgb()
             canvas.drawCircle(
@@ -351,7 +329,6 @@ private fun DrawScope.drawFloatingDots(
                 paint = paint,
             )
         }
-        // Solid core for visibility
         drawCircle(
             color = dotColor,
             radius = radius * 0.5f,

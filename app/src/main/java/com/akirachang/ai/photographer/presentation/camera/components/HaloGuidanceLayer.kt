@@ -42,7 +42,7 @@ import kotlin.math.sin
 // ── Test-tag constants (consumed by HaloGuidanceLayerTest) ─────────────────────
 internal const val TAG_HALO_AMBER = "HaloGuidanceLayer_Amber"
 // Alignment-state rendering probe — present when isAllAligned==true. Canvas is intentionally
-// empty (no visual output); EdgeWarmthLayer + ShutterRing own the green feedback in this state.
+// empty (no visual output); PitchTractionLayer + ShutterRing own the green feedback in this state.
 internal const val TAG_HALO_GREEN = "HaloGuidanceLayer_Green"
 // Null-result suppression probe — present when compositionResult==null (Constitution §6).
 internal const val TAG_HALO_HIDDEN = "HaloGuidanceLayer_Hidden"
@@ -54,7 +54,7 @@ internal const val TAG_HALO_PTF_NO_FACE = "HaloGuidanceLayer_PtfNoFace"
 /** Amber guide color per SSOT v3.3 — face Halo when not aligned. */
 private val HaloAmber = Color(0xFFD4A030)
 
-/** Aligned completion color per SSOT v3.3 §2.5 — redundant (handled by EdgeWarmthLayer / ShutterRing). */
+/** Aligned completion color per SSOT v4.0 §2.5 — redundant (handled by PitchTractionLayer / ShutterRing). */
 private val HaloGreen = Color(0xFF50C864)
 
 /** Halo ring stroke width as a fraction of the smaller canvas dimension. */
@@ -249,7 +249,7 @@ fun HaloGuidanceLayer(
     // ── State-mutex: isAllAligned → hide to avoid collision with breathing UI ─
     if (compositionResult.isAllAligned) {
         Canvas(modifier = modifier.fillMaxSize().testTag(TAG_HALO_GREEN)) {
-            // Intentionally empty — green alignment state is owned by EdgeWarmthLayer.
+            // Intentionally empty — green alignment state is owned by PitchTractionLayer.
         }
         return
     }

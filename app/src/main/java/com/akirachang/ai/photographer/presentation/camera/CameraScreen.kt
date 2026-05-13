@@ -115,7 +115,7 @@ import com.akirachang.ai.photographer.presentation.camera.components.overlay.Gri
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.HDRWarningOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.LevelIndicator
 import com.akirachang.ai.photographer.presentation.camera.components.HaloGuidanceLayer
-import com.akirachang.ai.photographer.presentation.camera.overlay.EdgeWarmthLayer
+import com.akirachang.ai.photographer.presentation.camera.overlay.PitchTractionLayer
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.R
@@ -204,7 +204,7 @@ fun CameraScreen(
     // (Button disable + CircularProgressIndicator)
 
     if (cameraPermissionState.status.isGranted) {
-        // D4-T2: Extract isAligned once — passed down to EdgeWarmthLayer and shutter button (UDF).
+        // D4-T2: Extract isAligned once — passed down to PitchTractionLayer and shutter button (UDF).
         // Extreme-left check guards against null compositionResult before first detection frame.
         val isAligned = state.compositionResult?.isAllAligned == true
 
@@ -224,8 +224,8 @@ fun CameraScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // ── Viewfinder block (78.7%) ───────────────────────────────────
-                Box(modifier = Modifier.fillMaxWidth().weight(AmbientConstants.VIEWFINDER_WEIGHT)) {
+                // ── Viewfinder block (664dp / 78.7%) ──────────────────────────
+                Box(modifier = Modifier.fillMaxWidth().height(664.dp)) {
                     PreviewViewportContainer(
                         targetAspectRatio = state.aspectRatioMode,
                         onContentBoundsChanged = { bounds ->
@@ -296,7 +296,7 @@ fun CameraScreen(
                             contentBounds = contentBounds.takeIf { !it.isEmpty }
                         )
 
-                        EdgeWarmthLayer(
+                        PitchTractionLayer(
                             modifier = Modifier.fillMaxSize(),
                             deviceRoll = state.deviceRoll,
                             capabilityTier = viewModel.deviceCapabilityTier,
@@ -487,11 +487,11 @@ fun CameraScreen(
                     drawRect(color = Color.White.copy(alpha = 0.05f))
                 }
 
-                // ── Control Band (21.3%) ───────────────────────────────────────
+                // ── Control Band (remaining height) ───────────────────────────
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(AmbientConstants.CONTROL_BAND_WEIGHT),
+                        .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(

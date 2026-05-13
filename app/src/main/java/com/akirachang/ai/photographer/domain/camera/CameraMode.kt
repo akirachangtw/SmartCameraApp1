@@ -31,7 +31,7 @@ sealed interface CameraMode {
     /**
      * Pass-To-Friend mode — user hands the phone to a subject.
      * Activated via [CameraTabBar] toggle; deactivated by tapping the same tab.
-     * Composition overlays are hidden; Edge Warmth and BreathingRing remain active.
+     * Composition overlays are hidden; Pitch Traction and BreathingRing remain active.
      *
      * Shutter cooldown (Rule 16) is enforced by [CameraViewModel] using a private
      * [lastCaptureTimeMs] sentinel — enterTimeMs is NOT stored here.

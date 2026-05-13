@@ -96,18 +96,12 @@ enum class AspectRatioMode {
     /**
      * 決定 PreviewView 的 ScaleType
      *
-     * v2.10.0-fix: 統一使用 FIT_CENTER 配合 ViewPort.FIT
-     * 策略：
-     * - 所有模式都使用 FIT_CENTER，避免 PreviewView 額外裁切
-     * - 配合 ViewPort.FIT 保留完整 FOV
-     * - 可能顯示黑邊（letterbox），但這是保證 WYSIWYG 和完整 FOV 的必要代價
+     * Phase0 P0-VF: 統一使用 FILL_CENTER，填滿 664dp 取景框，無黑邊。
      */
     val toScaleType: PreviewView.ScaleType
-        get() = PreviewView.ScaleType.FIT_CENTER  // ✅ 統一使用 FIT_CENTER
+        get() = PreviewView.ScaleType.FILL_CENTER
 
-    /**
-     * 是否使用 FIT_CENTER（顯示黑邊）
-     */
+    /** 是否顯示黑邊（FILL_CENTER 下永遠為 false）。 */
     val showsLetterbox: Boolean
         get() = toScaleType == PreviewView.ScaleType.FIT_CENTER
 }
