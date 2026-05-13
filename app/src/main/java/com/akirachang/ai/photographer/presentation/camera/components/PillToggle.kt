@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -99,7 +100,7 @@ internal fun PillToggle(
                     .background(PILL_INDICATOR_BG),
             )
 
-            // Icons — visual only; interaction handled by touch-zone Row below
+            // Icons — decorative; contentDescription is null because touch-zone Row below owns the a11y label
             Row(modifier = Modifier.fillMaxSize()) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -109,7 +110,7 @@ internal fun PillToggle(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.CameraAlt,
-                        contentDescription = stringResource(R.string.tab_normal_mode_cd),
+                        contentDescription = null,
                         tint = photoIconColor,
                         modifier = Modifier.size(20.dp),
                     )
@@ -122,7 +123,7 @@ internal fun PillToggle(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.People,
-                        contentDescription = stringResource(R.string.tab_pass_to_friend_cd),
+                        contentDescription = null,
                         tint = ptfIconColor,
                         modifier = Modifier.size(20.dp),
                     )
@@ -130,14 +131,16 @@ internal fun PillToggle(
             }
         }
 
-        // Touch zones — 48dp height overlay; handles all pointer input for the pill
+        // Touch zones — 48dp height overlay; owns all pointer input and a11y labels for the pill
+        val normalModeLabel = stringResource(R.string.tab_normal_mode_cd)
+        val ptfModeLabel = stringResource(R.string.tab_pass_to_friend_cd)
         Row(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
                     .clickable(enabled = isPtfActive, onClick = onToggle)
-                    .semantics { role = Role.Tab }
+                    .semantics { role = Role.Tab; contentDescription = normalModeLabel }
                     .testTag(TAG_PILL_PHOTO),
             )
             Box(
@@ -145,7 +148,7 @@ internal fun PillToggle(
                     .weight(1f)
                     .fillMaxHeight()
                     .clickable(enabled = !isPtfActive, onClick = onToggle)
-                    .semantics { role = Role.Tab }
+                    .semantics { role = Role.Tab; contentDescription = ptfModeLabel }
                     .testTag(TAG_PILL_PTF),
             )
         }
