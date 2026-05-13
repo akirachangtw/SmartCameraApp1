@@ -14,6 +14,7 @@
 
     <!-- P0-TOPBAR: Top bar icon accessibility labels (Layout Spec v2.2 §3.2) -->
     <string name="flash_cd">Toggle flash</string>
+    <string name="hdr_label">HDR</string>
     <string name="hdr_cd">Toggle HDR mode</string>
     <string name="settings_cd">Open settings</string>
     <string name="help_cd">Help</string>

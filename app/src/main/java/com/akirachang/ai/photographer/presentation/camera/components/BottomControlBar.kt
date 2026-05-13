@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -164,7 +165,7 @@ internal fun BottomControlBar(
             }
         }
 
-        // 4.2c: Navigation Safe Area — fills remainder of weight(1f) allocation
-        Spacer(modifier = Modifier.weight(1f))
+        // 4.2c: Navigation Safe Area — explicit system navigation bar inset
+        Spacer(modifier = Modifier.navigationBarsPadding())
     }
 }

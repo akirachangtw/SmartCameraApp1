@@ -30,9 +30,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -374,7 +376,8 @@ fun CameraScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .align(Alignment.TopCenter)
-                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                                .statusBarsPadding()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -400,7 +403,7 @@ fun CameraScreen(
                                 ) {
                                     val hdrCd = stringResource(R.string.hdr_cd)
                                     Text(
-                                        text = "HDR",
+                                        text = stringResource(R.string.hdr_label),
                                         color = when (state.hdrMode) {
                                             com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Color.White.copy(alpha = 0.85f)
                                             com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Color.White.copy(alpha = 0.40f)
@@ -411,6 +414,8 @@ fun CameraScreen(
                                         modifier = Modifier.semantics { contentDescription = hdrCd },
                                     )
                                 }
+                                // Reserved slot — future Lens Smudge indicator (48dp touch target)
+                                Spacer(modifier = Modifier.size(48.dp))
                             }
                             Row {
                                 IconButton(
