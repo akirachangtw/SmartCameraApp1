@@ -41,11 +41,6 @@ class SettingsViewModel @Inject constructor(
     val isCompositionHintEnabled: Flow<Boolean> = overlayPreferences.isCompositionHintEnabled
 
     /**
-     * Flow emitting detection overlay visibility state
-     */
-    val isDetectionOverlayEnabled: Flow<Boolean> = overlayPreferences.isDetectionOverlayEnabled
-
-    /**
      * Flow emitting level indicator visibility state
      */
     val isLevelIndicatorEnabled: Flow<Boolean> = overlayPreferences.isLevelIndicatorEnabled
@@ -85,13 +80,6 @@ class SettingsViewModel @Inject constructor(
      */
     suspend fun setCompositionHintEnabled(enabled: Boolean) {
         overlayPreferences.setCompositionHintEnabled(enabled)
-    }
-
-    /**
-     * Sets detection overlay visibility
-     */
-    suspend fun setDetectionOverlayEnabled(enabled: Boolean) {
-        overlayPreferences.setDetectionOverlayEnabled(enabled)
     }
 
     /**

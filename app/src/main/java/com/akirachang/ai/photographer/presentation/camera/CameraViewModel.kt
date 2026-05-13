@@ -178,7 +178,6 @@ class CameraViewModel @Inject constructor(
     // Overlay visibility preferences (v2.1.0)
     val isGridEnabled: Flow<Boolean> = overlayPreferences.isGridEnabled
     val isCompositionHintEnabled: Flow<Boolean> = overlayPreferences.isCompositionHintEnabled
-    val isDetectionOverlayEnabled: Flow<Boolean> = overlayPreferences.isDetectionOverlayEnabled
     val isLevelIndicatorEnabled: Flow<Boolean> = overlayPreferences.isLevelIndicatorEnabled
     val isDirectionalIndicatorEnabled: Flow<Boolean> = overlayPreferences.isDirectionalIndicatorEnabled
     val isAutoHDREnabled: Flow<Boolean> = overlayPreferences.isAutoHDREnabled  // v2.3.0

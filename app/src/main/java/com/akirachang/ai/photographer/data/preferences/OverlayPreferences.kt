@@ -56,7 +56,6 @@ class OverlayPreferences(private val context: Context) {
         // Preference keys
         private val KEY_GRID_ENABLED = booleanPreferencesKey("grid_enabled")
         private val KEY_COMPOSITION_HINT_ENABLED = booleanPreferencesKey("composition_hint_enabled")
-        private val KEY_DETECTION_OVERLAY_ENABLED = booleanPreferencesKey("detection_overlay_enabled")
         private val KEY_LEVEL_INDICATOR_ENABLED = booleanPreferencesKey("level_indicator_enabled")
         private val KEY_DIRECTIONAL_INDICATOR_ENABLED = booleanPreferencesKey("directional_indicator_enabled")
         private val KEY_AUTO_HDR_ENABLED = booleanPreferencesKey("auto_hdr_enabled")  // v2.3.0
@@ -99,22 +98,6 @@ class OverlayPreferences(private val context: Context) {
         }
         .map { preferences ->
             preferences[KEY_COMPOSITION_HINT_ENABLED] ?: DEFAULT_ENABLED
-        }
-
-    /**
-     * Flow emitting detection overlay visibility state
-     * Default: true (enabled)
-     */
-    val isDetectionOverlayEnabled: Flow<Boolean> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[KEY_DETECTION_OVERLAY_ENABLED] ?: DEFAULT_ENABLED
         }
 
     /**
@@ -219,17 +202,6 @@ class OverlayPreferences(private val context: Context) {
     suspend fun setCompositionHintEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_COMPOSITION_HINT_ENABLED] = enabled
-        }
-    }
-
-    /**
-     * Sets detection overlay visibility
-     *
-     * @param enabled true to show bounding boxes, false to hide
-     */
-    suspend fun setDetectionOverlayEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[KEY_DETECTION_OVERLAY_ENABLED] = enabled
         }
     }
 

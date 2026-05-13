@@ -87,7 +87,6 @@ fun SettingsScreen(
 ) {
     val isGridEnabled by viewModel.isGridEnabled.collectAsState(initial = true)
     val isCompositionHintEnabled by viewModel.isCompositionHintEnabled.collectAsState(initial = true)
-    val isDetectionOverlayEnabled by viewModel.isDetectionOverlayEnabled.collectAsState(initial = true)
     val isLevelIndicatorEnabled by viewModel.isLevelIndicatorEnabled.collectAsState(initial = true)
     val isDirectionalIndicatorEnabled by viewModel.isDirectionalIndicatorEnabled.collectAsState(initial = true)
     val isAutoHDREnabled by viewModel.isAutoHDREnabled.collectAsState(initial = true)
@@ -290,21 +289,6 @@ fun SettingsScreen(
                     onCheckedChange = { enabled ->
                         scope.launch {
                             viewModel.setCompositionHintEnabled(enabled)
-                        }
-                    }
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                // Detection Overlay Toggle
-                SettingsSwitchItem(
-                    icon = Icons.Default.Visibility,
-                    title = "Detection Boxes",
-                    description = "Show face and object detection bounding boxes",
-                    checked = isDetectionOverlayEnabled,
-                    onCheckedChange = { enabled ->
-                        scope.launch {
-                            viewModel.setDetectionOverlayEnabled(enabled)
                         }
                     }
                 )

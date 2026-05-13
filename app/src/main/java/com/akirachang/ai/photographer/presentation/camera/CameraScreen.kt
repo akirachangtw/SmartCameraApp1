@@ -109,7 +109,6 @@ import com.akirachang.ai.photographer.presentation.camera.components.CameraTabBa
 import com.akirachang.ai.photographer.presentation.camera.components.PermissionRequestScreen
 import com.akirachang.ai.photographer.presentation.camera.components.PreviewViewportContainer
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.CompositionGuideOverlay
-// v2.2.2: Removed DetectionOverlay and DirectionalIndicator - visual clutter
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.FPSOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.GridOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.HDRWarningOverlay
@@ -482,8 +481,8 @@ fun CameraScreen(
                     }
                 }
 
-                // Separator — viewfinder / control band boundary α0.05
-                Canvas(modifier = Modifier.fillMaxWidth().height(1.dp)) {
+                // Separator — viewfinder / control band boundary α0.05 (1 physical pixel)
+                Canvas(modifier = Modifier.fillMaxWidth().height((1f / LocalDensity.current.density).dp)) {
                     drawRect(color = Color.White.copy(alpha = 0.05f))
                 }
 
