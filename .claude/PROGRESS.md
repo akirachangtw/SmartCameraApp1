@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D8-VERIFY → Stage0 Realignment 進行中 — W2 BHA-01 歸一化 ✅ PASS，4 個 Bug 阻塞 T02 Hard Gate（含雙圓環 BUG-I7）
-**Last Updated**: 2026-05-11 21:49
+**Current Day**: D8-VERIFY → Stage0 Realignment 進行中 — Phase0 Session A (P0-NAMING + P0-VF) ✅ 完成，待 /sv 驗收
+**Last Updated**: 2026-05-13
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Metric | Status |
 |--------|--------|
-| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — W2 BHA-01-FIX ✅ 實作完成，待實機 Hard Gate 重驗 |
-| Compile | 0 errors ✅ (assembleDebug 34s) |
+| Schedule | Stage0 W1 ✅ CLOSED — FIX-CROSSREVIEW-01 ✅ CLOSED — Phase0 Session A ✅ P0-NAMING + P0-VF 實作完成，待 /sv |
+| Compile | 0 errors ✅ (assembleDebug 45s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest) |
-| Lint | 0 errors ✅ / 557 warnings (baseline, 0 new) |
+| Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
 ---
 
@@ -63,19 +63,16 @@
 
 ## Next Actions
 
-1. **🔴 BUG-MLKIT-DUAL-EMIT 修復**（P0，最優先）：
+1. **🟡 /sv 驗收**（Phase0 Session A）：對 P0-NAMING + P0-VF 執行語意審查 + 檔案邊界防禦
+2. **🔴 BUG-MLKIT-DUAL-EMIT 修復**（P0，Session B）：
    - `CameraViewModel.kt` 切換鏡頭時清空 `detectionResult`，或改用 `flatMapLatest` 確保舊 Flow 取消
-   - 修復後重跑場景二/四視覺驗證
-2. **🔴 BUG-SONY-ROTATION-CONST 處理**（P0）：
+3. **🔴 BUG-SONY-ROTATION-CONST 處理**（P0，Session B）：
    - 調查 CameraX `imageInfo.rotationDegrees` vs `Surface.ROTATION_*` 差異
-   - 考慮改用 `PreviewView.display.rotation` 作為歸一化依據
-3. **🔴 BUG-PTF-HALO-SIZE 修復**（P0）：
-   - 追蹤 PTF Halo 渲染層 bbox → 圓半徑轉換邏輯並修正
-4. **🔴 BUG-I7-FOCUS-RING-PERSIST 修復**（P1，可並行）：
-   - `EyeAfController.kt:process()` 加入 Guard 7：`LensFocusState.Focused + drift(eyePixel, lastTriggerPoint) < DRIFT_THRESHOLD_PX → return null`
-   - 新增 `lastTriggerPoint: PointF?` instance var，`reset()` 時清除
-   - `CameraViewModel.kt` 呼叫 `process()` 時傳入 `lensFocusState`
-5. **T03 重啟**（以上 4 Bug 通過後）：Pill Toggle 重寫
+4. **🔴 BUG-PTF-HALO-SIZE 修復**（P0，Session B）：
+   - PTF Halo 渲染層 bbox → 圓半徑轉換邏輯修正
+5. **🔴 BUG-I7-FOCUS-RING-PERSIST 修復**（P1，可並行）：
+   - `EyeAfController.kt:process()` 加入 Guard 7
+6. **T03 重啟**（以上 4 Bug 通過後）：Pill Toggle 重寫
 
 ## Active Debt（僅列未解決項）
 

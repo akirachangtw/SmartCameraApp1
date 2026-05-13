@@ -1,8 +1,8 @@
-# SV Report — BHA-01-FIX Rotation-Aware Normalization
+# SV Report — Phase0 Session A (P0-NAMING + P0-VF)
 
-**Date**: 2026-05-11  
-**Ticket**: BHA-01-FIX  
-**Branch**: `feature/cueshot-mvp`  
+**Date**: 2026-05-13
+**Ticket**: P0-NAMING + P0-VF
+**Branch**: `feature/cueshot-mvp`
 **Reviewer**: Local SV (Claude Sonnet 4.6)
 
 ---
