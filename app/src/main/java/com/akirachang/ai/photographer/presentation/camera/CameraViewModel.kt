@@ -273,6 +273,11 @@ class CameraViewModel @Inject constructor(
     // always passes the cooldown check regardless of System.currentTimeMillis() value.
     private var lastCaptureTimeMs: Long = Long.MIN_VALUE / 2
 
+    // FIX-P0-SESSION-B Rule 22 — PTF mode-entry lockout sentinel.
+    // Keyed off the transition timestamp (when PTF mode is entered), NOT the last capture.
+    // Blocks all captures for 1000ms after entering PassToFriend mode.
+    private var modeEntryTimeMs: Long = Long.MIN_VALUE / 2
+
     // D7-B2-T2 — Testable time provider for Rule 16 cooldown.
     // Production: System.currentTimeMillis(). Tests: inject a controllable clock.
     internal var timeProvider: () -> Long = { System.currentTimeMillis() }
@@ -525,6 +530,10 @@ class CameraViewModel @Inject constructor(
      * @param mode The target [CameraMode] to transition to.
      */
     private fun setCameraMode(mode: CameraMode) {
+        if (mode is CameraMode.PassToFriend) {
+            modeEntryTimeMs = timeProvider()
+            Log.i(TAG, "[PTF-ModeEntry] Lockout started — captures blocked for 1000ms (t=$modeEntryTimeMs)")
+        }
         _state.update { current ->
             Log.i(TAG, "[CameraMode] ${current.cameraMode} → $mode")
             current.copy(cameraMode = mode)
@@ -626,10 +635,16 @@ class CameraViewModel @Inject constructor(
     }
 
     private fun capturePhoto() {
-        // D7-B2-FIX Rule 16 — PTF shutter cooldown guard (1 second).
-        // Guard fires ONLY when CameraMode is PassToFriend. Normal mode has no cooldown.
+        // D7-B2-FIX Rule 16 + Rule 22 — PTF shutter guards (PassToFriend only).
         if (_state.value.cameraMode is CameraMode.PassToFriend) {
             val now = timeProvider()
+            // Rule 22: mode-entry lockout — block first 1000ms after entering PTF.
+            val sinceEntry = now - modeEntryTimeMs
+            if (sinceEntry < 1000L) {
+                Log.d(TAG, "[PTF-ModeEntry-Lockout] Shutter blocked — ${sinceEntry}ms since PTF entry (need 1000ms)")
+                return
+            }
+            // Rule 16: capture-to-capture cooldown — block rapid re-fire.
             if (isPtfCooldownActive(now, lastCaptureTimeMs)) {
                 Log.d(TAG, "[PTF-Cooldown] Shutter blocked — ${now - lastCaptureTimeMs}ms since last capture")
                 return

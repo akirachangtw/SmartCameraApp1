@@ -40,9 +40,6 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.automirrored.outlined.Help
 import androidx.compose.ui.res.stringResource
@@ -399,15 +396,19 @@ fun CameraScreen(
                                     onClick = { viewModel.onEvent(CameraUiEvent.ToggleHDR) },
                                     modifier = Modifier.size(48.dp),
                                 ) {
-                                    Icon(
-                                        imageVector = when (state.hdrMode) {
-                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Icons.Default.WbSunny
-                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Icons.Default.BrightnessHigh
-                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> Icons.Default.AutoAwesome
+                                    Text(
+                                        text = when (state.hdrMode) {
+                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> "HDR"
+                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> "HDR"
+                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> "HDR"
                                         },
-                                        contentDescription = stringResource(R.string.hdr_cd),
-                                        tint = Color.White.copy(alpha = 0.85f),
-                                        modifier = Modifier.size(24.dp),
+                                        color = when (state.hdrMode) {
+                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.ON -> Color.White.copy(alpha = 0.85f)
+                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.OFF -> Color.White.copy(alpha = 0.40f)
+                                            com.akirachang.ai.photographer.presentation.camera.model.HDRMode.AUTO -> Color.White.copy(alpha = 0.65f)
+                                        },
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
                                     )
                                 }
                             }

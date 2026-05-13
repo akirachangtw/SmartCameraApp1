@@ -46,7 +46,8 @@ private val PILL_UNSELECTED_ICON = Color(0xFF666666)
 /**
  * Photo/PTF Pill Toggle — Layout Spec v2.2 §5.
  *
- * 128×28dp track, 60×24dp sliding indicator, 300ms FastOutSlowInEasing.
+ * Visual track: 128×28dp. Touch target: 128×48dp (SSOT interaction area §5).
+ * Sliding indicator: 60×24dp, 300ms FastOutSlowInEasing.
  * Left half = Photo mode, right half = PTF mode.
  */
 @Composable
@@ -75,56 +76,78 @@ internal fun PillToggle(
     )
 
     Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
             .width(128.dp)
-            .height(28.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .border(width = 1.dp, color = PILL_TRACK_STROKE, shape = RoundedCornerShape(14.dp)),
+            .height(48.dp),  // 48dp touch target (SSOT §5); visual track remains 28dp below
     ) {
-        // Sliding indicator — offset from CenterStart
+        // Visual track — 28dp height, clipped pill shape
         Box(
             modifier = Modifier
-                .align(Alignment.CenterStart)
-                .offset(x = indicatorOffset)
-                .size(width = 60.dp, height = 24.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(PILL_INDICATOR_BG),
-        )
+                .width(128.dp)
+                .height(28.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .border(width = 1.dp, color = PILL_TRACK_STROKE, shape = RoundedCornerShape(14.dp)),
+        ) {
+            // Sliding indicator
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .offset(x = indicatorOffset)
+                    .size(width = 60.dp, height = 24.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(PILL_INDICATOR_BG),
+            )
 
-        // Two tap zones drawn over the indicator
+            // Icons — visual only; interaction handled by touch-zone Row below
+            Row(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CameraAlt,
+                        contentDescription = stringResource(R.string.tab_normal_mode_cd),
+                        tint = photoIconColor,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.People,
+                        contentDescription = stringResource(R.string.tab_pass_to_friend_cd),
+                        tint = ptfIconColor,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        }
+
+        // Touch zones — 48dp height overlay; handles all pointer input for the pill
         Row(modifier = Modifier.fillMaxSize()) {
             Box(
-                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
                     .clickable(enabled = isPtfActive, onClick = onToggle)
                     .semantics { role = Role.Tab }
                     .testTag(TAG_PILL_PHOTO),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.CameraAlt,
-                    contentDescription = stringResource(R.string.tab_normal_mode_cd),
-                    tint = photoIconColor,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            )
             Box(
-                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
                     .clickable(enabled = !isPtfActive, onClick = onToggle)
                     .semantics { role = Role.Tab }
                     .testTag(TAG_PILL_PTF),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.People,
-                    contentDescription = stringResource(R.string.tab_pass_to_friend_cd),
-                    tint = ptfIconColor,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            )
         }
     }
 }
