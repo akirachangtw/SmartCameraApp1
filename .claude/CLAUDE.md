@@ -249,7 +249,7 @@ d) Session 開始必問：若 user 的第一個指令不含 Ticket 編號，
 
 ## Path-Scoped Rules 索引
 
-- `.claude/rules/phase0-lessons.md` — Phase 0 盲區規則 (Rule 19-23)
+- `.claude/rules/phase0-lessons.md` — Phase 0 盲區規則 (Rule 19-24)
 - `.claude/rules/camera-constraints.md` — 相機硬體約束
 - `.claude/rules/compose-ui.md` — Compose UI + Ambient UI 規則
 - `.claude/rules/ptf-rules.md` — PTF 場景規則

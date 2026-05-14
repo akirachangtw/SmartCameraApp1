@@ -29,3 +29,9 @@ globs:
 **FIX-P0-SESSION-B-POLISH 產出 (2026-05-14)**
 
 23. **Overlay System Insets 紀律**：相機取景框上的浮動控制列（Top Bar、Bottom Bar）必須明確綁定系統安全區，禁止用 `weight(1f)` 等相對佈局模擬系統安全區高度。規範：①Top Bar 必須套用 `Modifier.statusBarsPadding()` 確保 Y 軸起始點避開狀態列；②Bottom Bar 必須以 `Modifier.navigationBarsPadding()` 作為底部緩衝，確保三大金剛鍵與全螢幕手勢下 UI 均不被遮蔽；③預留未來動態 UI 槽位（Reserved Slot），確保後續功能插入不造成已核准控制項的橫向位移。觸發來源：FIX-P0-SESSION-B-POLISH（Top Bar 缺少 statusBarsPadding + Lens Smudge 槽位、Bottom Bar weight(1f) 模擬系統 Insets）。
+
+---
+
+**FIX-P0-SESSION-C-FINAL 產出 (2026-05-14)**
+
+24. **Debug 功能剝離紀律**：Debug-only 效能覆蓋層（FPS、記憶體、幀率監控等）必須從四層同時剝離：①UI 調用點（`if (BuildConfig.DEBUG) { FPSOverlay(...) }`）、②ViewModel 暴露面（不得暴露 DEBUG 專用 StateFlow 至正式介面）、③Repository / InputSource 介面合約（`CameraRepository`、`CameraInputSource` 不得包含 DEBUG 專用方法）、④資料層計算（`if (BuildConfig.DEBUG) _currentFps.value = fps`）。僅依賴 `visible = BuildConfig.DEBUG` 做 UI 隱藏不足以達到 Release 剝離標準，R8/ProGuard 無法消除未被呼叫路徑遮蔽的介面實作。觸發來源：FIX-P0-SESSION-C-FINAL（Traycer 終審退回：FPS 介面污染 Release 架構合約）。

@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → FIX-P0-SESSION-B-POLISH SV ✅ CLOSED（QA ✅ / SV ✅ / Cross-Review PASS ✅ / 3 commits — statusBarsPadding, 16dp, Lens Smudge reserved slot, hdr_label i18n, navigationBarsPadding, Rule 23, FIX-INFRA-CROSSREVIEW）
+**Current Day**: D9 → FIX-P0-SESSION-C-FINAL QA ✅（Build ✅ 37s / Tests 181 passed / FPS full-strip: interface+ViewModel+callsite+data / Rule 24 / .bak deleted — 待 /sv）
 **Last Updated**: 2026-05-14
 
 ---
@@ -11,8 +11,8 @@
 | Metric | Status |
 | -------- | -------- |
 | Schedule | Stage0 W1 ✅ CLOSED — FIX-P0-SESSION-B ✅ CLOSED — FIX-P0-SESSION-B-POLISH ✅ SV CLOSED — 待 Traycer 終審 |
-| Compile | 0 errors ✅ (assembleDeviceDebug 33s) |
-| Tests | passed ✅ (testDeviceDebugUnitTest) |
+| Compile | 0 errors ✅ (assembleDeviceDebug 14s incremental / 37s full) |
+| Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
 ---
@@ -66,15 +66,11 @@
 
 ## Next Actions
 
-> **Session D 完成：FIX-P0-SESSION-B-POLISH ✅ CLOSED + FIX-INFRA-CROSSREVIEW ✅ CLOSED**
-> **Session E 目標：P0-FPS + P0-FOCUS + Baseline（待 Traycer 終審後啟動）**
+> **Session E 完成：P0-FPS ✅ QA PASS + P0-FOCUS ✅ QA PASS**
+> **下一步：/sv 驗收 → Traycer 終審 → Baseline Tickets**
 
-1. **🔴 P0-FPS**（Sony FPS overlay 修正 + `BUG-SONY-ROTATION-CONST` 調查）：
-   - `CameraViewModel.kt` — 調查 `imageInfo.rotationDegrees` vs `Surface.ROTATION_*`；Sony XQ-BT52 直立/橫向恆回報 `rotationDegrees=0`
-   - FPS debug overlay 是否符合 Zero Tolerance 規則（Rule 19）
-2. **🔴 P0-FOCUS**（`BUG-I7-FOCUS-RING-PERSIST`）：
-   - `EyeAfController.kt:process()` 加入 Guard 7：`LensFocusState.Focused + drift < 閾值 → skip`
-   - 加入 `lastTriggerPoint` instance var 防止 2s 週期重置 `alphaTarget`
+1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待通過）：FPS overlay 四層完整剝離：UI callsite（`FPSOverlay.kt` 已刪除）/ ViewModel（`currentFps` 已移除）/ Repository + InputSource 介面 / data calculation（`_currentFps` 已刪除）；Rule 24 新增
+2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：`EyeAfController.process()` Guard 7（drift < 0.05 → preserveStableId 防 LaunchedEffect 重置）+ `lastTriggerPoint` + `lastStableId` instance vars；`FocusIndicatorOverlay` `VisualLocked` 1.5s→alpha=0f、`Lost` 0.8s→alpha=0f
 3. **🔴 Baseline**：
    - `BUG-MLKIT-DUAL-EMIT`：`CameraViewModel.kt` 切換鏡頭清空 `detectionResult` 或改用 `flatMapLatest`
    - `BUG-PTF-HALO-SIZE`：PTF Halo 渲染層 bbox → 圓半徑轉換修正
