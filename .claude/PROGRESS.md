@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → FIX-P0-SESSION-B-POLISH QA ✅（Build ✅ / Tests ✅ / Lint ✅ — statusBarsPadding, 16dp, Lens Smudge reserved slot, hdr_label i18n, navigationBarsPadding, Rule 23 written）
+**Current Day**: D9 → FIX-P0-SESSION-B-POLISH SV ✅ CLOSED（QA ✅ / SV ✅ / Cross-Review PASS ✅ / 3 commits — statusBarsPadding, 16dp, Lens Smudge reserved slot, hdr_label i18n, navigationBarsPadding, Rule 23, FIX-INFRA-CROSSREVIEW）
 **Last Updated**: 2026-05-14
 
 ---
@@ -10,7 +10,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ CLOSED — FIX-P0-SESSION-B ✅ CLOSED — FIX-P0-SESSION-B-POLISH QA ✅ (待 /sv) |
+| Schedule | Stage0 W1 ✅ CLOSED — FIX-P0-SESSION-B ✅ CLOSED — FIX-P0-SESSION-B-POLISH ✅ SV CLOSED — 待 Traycer 終審 |
 | Compile | 0 errors ✅ (assembleDeviceDebug 33s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
@@ -66,7 +66,8 @@
 
 ## Next Actions
 
-> **Session C 目標：P0-FPS + P0-FOCUS + Baseline（FIX-P0-SESSION-B-FINAL QA ✅ — 待 /sv）**
+> **Session D 完成：FIX-P0-SESSION-B-POLISH ✅ CLOSED + FIX-INFRA-CROSSREVIEW ✅ CLOSED**
+> **Session E 目標：P0-FPS + P0-FOCUS + Baseline（待 Traycer 終審後啟動）**
 
 1. **🔴 P0-FPS**（Sony FPS overlay 修正 + `BUG-SONY-ROTATION-CONST` 調查）：
    - `CameraViewModel.kt` — 調查 `imageInfo.rotationDegrees` vs `Surface.ROTATION_*`；Sony XQ-BT52 直立/橫向恆回報 `rotationDegrees=0`
