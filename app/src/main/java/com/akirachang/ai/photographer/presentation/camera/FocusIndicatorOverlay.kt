@@ -37,7 +37,8 @@ internal object FocusTokens {
     val SearchingSize = 180.dp
 
     // Animation timing (ms)
-    const val DWELL_DELAY = 1000L
+    const val DWELL_DELAY = 1500L
+    const val FAILED_DWELL_DELAY = 800L
     const val DWELL_FADE_DURATION = 500
     const val COLOR_TRANSITION_MS = 200   // Yellow → Cyan confirmed-target transition (v2.12.0-18)
 }
@@ -102,7 +103,7 @@ fun FocusIndicatorOverlay(
             VisualTargetState.VisualLocked -> {
                 alphaTarget = 1f
                 delay(FocusTokens.DWELL_DELAY)
-                alphaTarget = 0.4f
+                alphaTarget = 0f   // 500ms fade → complete disappearance
             }
             VisualTargetState.TrackingStable -> {
                 alphaTarget = 1f
@@ -114,7 +115,9 @@ fun FocusIndicatorOverlay(
                 alphaTarget = 0.6f
             }
             VisualTargetState.Lost -> {
-                alphaTarget = 0.2f
+                alphaTarget = 1f
+                delay(FocusTokens.FAILED_DWELL_DELAY)
+                alphaTarget = 0f   // 500ms fade → complete disappearance
             }
             VisualTargetState.None -> { /* guarded at top */ }
         }

@@ -8,6 +8,7 @@ import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import com.akirachang.ai.photographer.domain.model.RuleScore
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -169,6 +170,76 @@ class EyeAfControllerTest {
             nowMs = 1000L + EyeAfController.GAZE_AF_COOLDOWN_MS,
         )
         assertNotNull("Call after cooldown must fire", afterCooldown)
+    }
+
+    // ── Test 4b: Guard 7 boundary — drift=0 preserves stableId ──────────────
+
+    @Test
+    fun `guard 7 boundary drift zero preserves stableId`() {
+        val first = controller.process(
+            compositionResult = unalignedGazeResult(), faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK, previewWidth = previewWidth, previewHeight = previewHeight,
+            nowMs = 1000L,
+        )
+        assertNotNull("First trigger must fire", first)
+
+        val second = controller.process(
+            compositionResult = unalignedGazeResult(), faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK, previewWidth = previewWidth, previewHeight = previewHeight,
+            nowMs = 1000L + EyeAfController.GAZE_AF_COOLDOWN_MS,
+        )
+        assertNotNull("Drift=0 after cooldown must still fire", second)
+        assertEquals("Drift=0: stableId must be preserved", first!!.stableId, second!!.stableId)
+    }
+
+    // ── Test 4c: Guard 7 boundary — drift just below threshold preserves stableId
+
+    @Test
+    fun `guard 7 boundary drift just below threshold preserves stableId`() {
+        val first = controller.process(
+            compositionResult = unalignedGazeResult(), faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK, previewWidth = previewWidth, previewHeight = previewHeight,
+            nowMs = 1000L,
+        )
+        assertNotNull(first)
+
+        // drift = 0.04 < DRIFT_THRESHOLD_NORMALIZED (0.05) → preserve stableId
+        val faceBelowThreshold = faceWithEyes.copy(
+            leftEyeNormalized = PointF(0.4f + 0.028f, 0.35f + 0.028f),  // sqrt(0.028²+0.028²) ≈ 0.040
+            rightEyeNormalized = PointF(0.6f + 0.028f, 0.35f + 0.028f),
+        )
+        val second = controller.process(
+            compositionResult = unalignedGazeResult(), faces = listOf(faceBelowThreshold),
+            facing = CameraLens.BACK, previewWidth = previewWidth, previewHeight = previewHeight,
+            nowMs = 1000L + EyeAfController.GAZE_AF_COOLDOWN_MS,
+        )
+        assertNotNull("Drift below threshold must still fire", second)
+        assertEquals("Drift < threshold: stableId must be preserved", first!!.stableId, second!!.stableId)
+    }
+
+    // ── Test 4d: Guard 7 boundary — drift above threshold generates new stableId
+
+    @Test
+    fun `guard 7 boundary drift above threshold generates new stableId`() {
+        val first = controller.process(
+            compositionResult = unalignedGazeResult(), faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK, previewWidth = previewWidth, previewHeight = previewHeight,
+            nowMs = 1000L,
+        )
+        assertNotNull(first)
+
+        // drift = 0.1 > DRIFT_THRESHOLD_NORMALIZED (0.05) → new stableId
+        val faceAboveThreshold = faceWithEyes.copy(
+            leftEyeNormalized = PointF(0.4f, 0.35f + 0.1f),
+            rightEyeNormalized = PointF(0.6f, 0.35f + 0.1f),
+        )
+        val second = controller.process(
+            compositionResult = unalignedGazeResult(), faces = listOf(faceAboveThreshold),
+            facing = CameraLens.BACK, previewWidth = previewWidth, previewHeight = previewHeight,
+            nowMs = 1000L + EyeAfController.GAZE_AF_COOLDOWN_MS,
+        )
+        assertNotNull("Drift above threshold must fire", second)
+        assertNotEquals("Drift > threshold: stableId must be new", first!!.stableId, second!!.stableId)
     }
 
     // ── Test 5: Empty faces suppresses trigger ────────────────────────────────

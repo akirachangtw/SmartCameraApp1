@@ -53,11 +53,23 @@ class EyeAfController {
 
         /** Rule key for gaze alignment — references GazeRule.NAME directly. */
         private val GAZE_RULE_KEY = GazeRule.NAME
+
+        /**
+         * Guard 7: Minimum normalized drift to allow stableId regeneration (≈5% of frame width).
+         * Derived from SSOT v4.0 §7 Eye-AF contract: AF motor protection requires stable target
+         * tracking; retrigger stableId churn must be suppressed when subject hasn't moved.
+         * 0.05 ≈ 54px on 1080p — sufficient to distinguish deliberate subject movement from jitter.
+         */
+        internal const val DRIFT_THRESHOLD_NORMALIZED = 0.05f
     }
 
     // Sentinel: Long.MIN_VALUE / 2 ensures the first call always passes the throttle gate
     // regardless of nowMs magnitude (avoids Long overflow in subtraction).
     private var lastTriggerMs: Long = Long.MIN_VALUE / 2
+
+    // Guard 7: tracks last trigger point + stableId to preserve LaunchedEffect key stability.
+    private var lastTriggerPoint: com.akirachang.ai.photographer.presentation.utils.NormalizedPoint? = null
+    private var lastStableId: String? = null
 
     /**
      * Evaluates the current composition state and produces an [EyeAfTrigger] when all
@@ -117,6 +129,20 @@ class EyeAfController {
         // ── Resolve eye midpoint in normalized [0,1] space ────────────────────────
         val eyeMidpointNorm = resolveEyeMidpointNormalized(primaryFace)
 
+        // ── Guard 7: Preserve stableId when target hasn't drifted past threshold ────
+        // Prevents 2s-cycle stableId churn from re-keying LaunchedEffect and resetting
+        // the dwell-fade animation. Trigger still fires; stableId is reused.
+        val prev = lastTriggerPoint
+        val preserveStableId = prev != null && run {
+            val dx = eyeMidpointNorm.x - prev.x
+            val dy = eyeMidpointNorm.y - prev.y
+            val drift = kotlin.math.sqrt(dx * dx + dy * dy)
+            if (drift < DRIFT_THRESHOLD_NORMALIZED) {
+                Log.v(TAG, "[Guard7] drift=${"%.3f".format(drift)} < $DRIFT_THRESHOLD_NORMALIZED — reusing stableId to stabilize LaunchedEffect")
+                true
+            } else false
+        }
+
         // ── Transform to view-space pixels ────────────────────────────────────────
         val transformer = NormalizedToPixelTransformer(
             screenWidth = previewWidth.toFloat(),
@@ -126,7 +152,9 @@ class EyeAfController {
 
         // ── Arm trigger ───────────────────────────────────────────────────────────
         lastTriggerMs = nowMs
-        val stableId = "gaze_af:${nowMs}"
+        lastTriggerPoint = eyeMidpointNorm
+        val stableId = if (preserveStableId && lastStableId != null) lastStableId!! else "gaze_af:${nowMs}"
+        lastStableId = stableId
         Log.i(TAG, "[D6-B3] EyeAfTrigger: viewPoint=(${eyePixel.x}, ${eyePixel.y}) stableId=$stableId gazeScore=${gazeScore.score}")
 
         return EyeAfTrigger(
@@ -140,6 +168,8 @@ class EyeAfController {
      */
     fun reset() {
         lastTriggerMs = Long.MIN_VALUE / 2
+        lastTriggerPoint = null
+        lastStableId = null
         Log.d(TAG, "[D6-B3] EyeAfController reset")
     }
 
