@@ -67,7 +67,7 @@ disable-model-invocation: false
 > 此階段在 SV Report 產出後**自動觸發**。
 > 完整 cross-review 指南見 [CROSS_REVIEW.md](CROSS_REVIEW.md)（Layer 3 資源）。
 
-9. **SV Report 輸出**：將以上審查結果寫入 `sv_report.md`（工作目錄根）。
+9. **SV Report 輸出**：刪除舊資料的 `sv_report.md` 後，將以上審查結果寫入 `sv_report.md`（工作目錄根）。
 
 10. **Cross-Review 自動路由**：
     - 檢查 `codex` CLI 是否可用：`command -v codex`
