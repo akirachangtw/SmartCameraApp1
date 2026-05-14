@@ -23,14 +23,6 @@ interface CameraInputSource {
     fun getPreviewStream(): Flow<Bitmap>
 
     /**
-     * Get FPS performance metrics stream
-     *
-     * v2.8.4: Performance monitoring for Quick Win validation
-     * @return StateFlow that emits current FPS, or null if not available
-     */
-    fun getFpsStream(): StateFlow<Float?> = kotlinx.coroutines.flow.MutableStateFlow(null)
-
-    /**
      * Capture a photo
      *
      * @return Result containing captured Bitmap, or error

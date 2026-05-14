@@ -108,7 +108,6 @@ import com.akirachang.ai.photographer.presentation.camera.components.BottomContr
 import com.akirachang.ai.photographer.presentation.camera.components.PermissionRequestScreen
 import com.akirachang.ai.photographer.presentation.camera.components.PreviewViewportContainer
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.CompositionGuideOverlay
-import com.akirachang.ai.photographer.presentation.camera.components.overlay.FPSOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.GridOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.HDRWarningOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.LevelIndicator
@@ -149,8 +148,6 @@ fun CameraScreen(
     val compositionState by viewModel.compositionState.collectAsState() // v1.5.0
     val lightingState by viewModel.lightingState.collectAsState() // v2.2.0
     val orientationState by viewModel.orientationState.collectAsState() // v2.1.0
-    val currentFps by viewModel.currentFps.collectAsState() // v2.8.4 Quick Win
-
     // Overlay visibility preferences (v2.1.0)
     val isGridEnabled by viewModel.isGridEnabled.collectAsState(initial = true)
     val isLevelIndicatorEnabled by viewModel.isLevelIndicatorEnabled.collectAsState(initial = true)
@@ -358,13 +355,6 @@ fun CameraScreen(
                             }
                         }
 
-                        FPSOverlay(
-                            fps = currentFps,
-                            visible = BuildConfig.DEBUG,
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(end = 16.dp, bottom = 16.dp)
-                        )
 
                         FocusIndicatorOverlay(
                             focusUiStateFlow = viewModel.focusUiStateFlow,

@@ -320,18 +320,6 @@ class CameraViewModel @Inject constructor(
             initialValue = null
         )
 
-    /**
-     * FPS performance metrics stream (v2.8.4 Quick Win)
-     *
-     * Real-time frame rate monitoring for performance validation.
-     * Null when camera is not active or metrics not available.
-     */
-    val currentFps: StateFlow<Float?> = cameraRepository.getFpsStream()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
-        )
 
 
     init {

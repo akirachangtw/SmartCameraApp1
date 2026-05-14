@@ -253,10 +253,6 @@ class LiveCameraSource @Inject constructor(
     private var droppedFrameCount = 0L
     private val fpsReportInterval = 30 // Report every 30 frames
 
-    // v2.8.4 Quick Win: FPS metrics for UI overlay
-    private val _currentFps = MutableStateFlow<Float?>(null)
-    private val currentFps: StateFlow<Float?> = _currentFps.asStateFlow()
-
     // D3-T3: Hardware focal length factor = focalLengthMm / sensorWidthMm.
     // Multiply by previewWidth to get focalLengthPixels for ImuCompensator.
     // Populated after camera binding; null until then (safe to read any time).
@@ -288,14 +284,6 @@ class LiveCameraSource @Inject constructor(
 
     // v2.9.6 Phase 1 Fix: Store rotation from ImageProxy for EXIF
     private var lastCaptureRotationDegrees: Int = 0
-
-    /**
-     * Get FPS performance metrics stream
-     *
-     * v2.8.4 Quick Win: Real-time FPS monitoring for performance validation
-     * @return StateFlow that emits current FPS
-     */
-    override fun getFpsStream(): StateFlow<Float?> = currentFps
 
     /**
      * Get live camera preview stream as Bitmap flow
@@ -416,8 +404,6 @@ class LiveCameraSource @Inject constructor(
                         val fps = (fpsReportInterval * 1000f) / elapsed
                         val dropRate = (droppedFrameCount * 100f) / frameCount
 
-                        // v2.8.4 Quick Win: Update FPS StateFlow for UI overlay
-                        _currentFps.value = fps
 
                         // Memory monitoring
                         val memoryInfo = android.os.Debug.MemoryInfo()
