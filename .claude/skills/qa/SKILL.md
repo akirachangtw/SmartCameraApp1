@@ -39,6 +39,16 @@ disable-model-invocation: false
 
 - 🔴 類立即修復。🟡 類在不影響進度時修復。
 
+## Step 3.5: 靜態盲區掃描
+
+在 Step 3（Build + Test / Lint）之後自動執行以下確定性掃描。掃描範圍僅限 `app/src/main/`，不掃描 test 目錄。
+
+```bash
+bash .claude/skills/qa/scripts/static_blind_scan.sh
+```
+
+Step 3.5 產出 ⚠️ WARNING 而非硬 FAIL；所有 ⚠️ 項目必須在 `sv_report.md` 中記錄豁免理由，由 `cross_review.sh` Layer 3 和 Traycer 做最終判斷。
+
 ## Step 4: 更新 PROGRESS.md Dashboard
 
 讀取 `PROGRESS.md`，更新以下欄位：

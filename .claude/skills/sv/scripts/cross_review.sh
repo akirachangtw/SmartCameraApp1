@@ -134,6 +134,32 @@ cat > "$PAYLOAD" << 'PROMPT_HEADER'
 4. 是否存在 Orphan Code（舊邏輯未移除導致 split-brain）
 5. 是否存在 Anti-Mock（TODO()、placeholder return、hardcoded magic number 無 SSOT 依據）
 
+## Layer 3: 實作級盲區掃描（Phase 0 經驗萃取）
+
+根據歷史退件紀錄，額外掃描以下高頻缺陷模式。
+任何一項 FAIL 即整體 FAIL，不可降級為 WARNING。
+
+### 3.1 物理與系統邊界
+- [ ] 是否使用 `statusBarsPadding()` / `navigationBarsPadding()` 而非 hardcoded padding？
+- [ ] 極細線條是否使用 `LocalDensity` 換算為物理像素？
+      （注意：`1.dp` 在 Divider / BorderStroke 中是合法的，但在 padding / height / width 中需審查）
+- [ ] 互動元件 Touch Target 是否 ≥ 48dp？
+
+### 3.2 全鏈路退場（四點反向掃描）
+- [ ] 若本次 diff 含任何 UI 元件刪除/替換：
+      追溯完整鏈路 UI → ViewModel → Settings → DataStore Preferences 是否同步清除？
+      （缺任何一層 = 孤兒代碼 = FAIL）
+
+### 3.3 狀態機時序
+- [ ] 若本次 diff 含 Cooldown / Lockout / Timeout 邏輯：
+      Timestamp 變數的寫入時機是否為「狀態轉移瞬間」而非「前次動作時間」？
+- [ ] 邊界測試三問：timestamp=0 / now / now-cooldown+1 是否皆有正確行為？
+
+### 3.4 治理證據鏈
+- [ ] PROGRESS.md 與 CLAUDE.md 中的檔案連結是否全部指向存活的檔案？
+- [ ] 若存在「尚未實作但已規劃」的 UI 槽位，是否留有隱形佔位符（不可有可見 placeholder text）？
+- [ ] sv_report.md 的 diff 範圍是否與本次 Ticket Scope 精確對應？（diff 超出 = 越權嫌疑）
+
 ## 回答格式（嚴格遵守）
 
 第一行必須且只能輸出 `PASS` 或 `FAIL`（無其他文字）
