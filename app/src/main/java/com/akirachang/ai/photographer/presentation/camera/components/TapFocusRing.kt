@@ -245,7 +245,8 @@ fun TapFocusRing(
 
 // ── Previews ──────────────────────────────────────────────────────────────────
 
-private val PreviewCenter = Offset(400f, 800f)
+// 150f keeps ring visible inside 300.dp preview canvas at any density (min 1x → 300px)
+private val PreviewCenter = Offset(150f, 150f)
 
 @Preview(showBackground = true, backgroundColor = 0xFF111111, name = "Idle")
 @Composable
