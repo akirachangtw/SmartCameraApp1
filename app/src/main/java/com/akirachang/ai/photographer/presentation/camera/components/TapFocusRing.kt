@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.akirachang.ai.photographer.domain.config.AmbientConstants
@@ -209,10 +210,12 @@ fun TapFocusRing(
                         alpha = badgeAlpha.value
                     },
             ) {
+                // Purely decorative badge — no click handler, no touch consumer (Layer 3.1: non-interactive)
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .size(18.dp),
+                        .size(18.dp)
+                        .semantics(mergeDescendants = false) {},
                     contentAlignment = Alignment.Center,
                 ) {
                     Canvas(modifier = Modifier.size(18.dp)) {
