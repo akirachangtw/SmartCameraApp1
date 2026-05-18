@@ -54,4 +54,12 @@ object AmbientConstants {
 
     /** Duration (ms) of the shutter flash overlay animation on capture. */
     const val SHUTTER_FLASH_DURATION_MS = 300L
+
+    // ── Tap Focus Ring (P05-T2) ───────────────────────────────────────────────
+
+    /** Tap focus ring diameter (dp). SSOT Appendix A. */
+    const val FOCUS_RING_SIZE_DP = 60f
+
+    /** Tap focus ring stroke width (dp). SSOT Appendix A. */
+    const val FOCUS_RING_STROKE_DP = 1.5f
 }
