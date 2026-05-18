@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → FIX-P0-SESSION-C-FINAL QA ✅（Build ✅ 37s / Tests 181 passed / FPS full-strip: interface+ViewModel+callsite+data / Rule 24 / .bak deleted — 待 /sv）
-**Last Updated**: 2026-05-14
+**Current Day**: D9 → P05-T2 QA ✅（TapFocusRing.kt 新建 5態渲染 + 5 @Preview + AmbientConstants 2常數）
+**Last Updated**: 2026-05-18
 
 ---
 
@@ -11,7 +11,7 @@
 | Metric | Status |
 | -------- | -------- |
 | Schedule | Stage0 W1 ✅ CLOSED — FIX-P0-SESSION-B ✅ CLOSED — FIX-P0-SESSION-B-POLISH ✅ SV CLOSED — 待 Traycer 終審 |
-| Compile | 0 errors ✅ (assembleDeviceDebug 14s incremental / 37s full) |
+| Compile | 0 errors ✅ (assembleDebug 73s full / 14s incremental) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
@@ -66,15 +66,17 @@
 
 ## Next Actions
 
-> **Session E 完成：P0-FPS ✅ QA PASS + P0-FOCUS ✅ QA PASS**
-> **下一步：/sv 驗收 → Traycer 終審 → Baseline Tickets**
+> **Session F 進行中：P05-T2 ✅ QA PASS**
+> **下一步：/sv 驗收 → P05-T3 Tap 事件接線**
 
-1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待通過）：FPS overlay 四層完整剝離：UI callsite（`FPSOverlay.kt` 已刪除）/ ViewModel（`currentFps` 已移除）/ Repository + InputSource 介面 / data calculation（`_currentFps` 已刪除）；Rule 24 新增
-2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：`EyeAfController.process()` Guard 7（drift < 0.05 → preserveStableId 防 LaunchedEffect 重置）+ `lastTriggerPoint` + `lastStableId` instance vars；`FocusIndicatorOverlay` `VisualLocked` 1.5s→alpha=0f、`Lost` 0.8s→alpha=0f
-3. **🔴 Baseline**：
+1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待通過）：FPS overlay 四層完整剝離
+2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
+3. ~~**P05-T1**~~（✅ SV PASS 2026-05-18）：`FocusIndicatorOverlay` gated by `isTapFocusReady=false`
+4. ~~**P05-T2**~~（✅ QA PASS 2026-05-18）：`TapFocusRing.kt` 新建 — 5態渲染 + 5 @Preview + `AmbientConstants` FOCUS_RING_SIZE_DP/STROKE_DP
+5. **🔴 Baseline**：
    - `BUG-MLKIT-DUAL-EMIT`：`CameraViewModel.kt` 切換鏡頭清空 `detectionResult` 或改用 `flatMapLatest`
    - `BUG-PTF-HALO-SIZE`：PTF Halo 渲染層 bbox → 圓半徑轉換修正
-4. **T03 重啟**（以上通過後）：Pill Toggle 重寫
+6. **T03 重啟**（以上通過後）：Pill Toggle 重寫
 
 ## Active Debt（僅列未解決項）
 
