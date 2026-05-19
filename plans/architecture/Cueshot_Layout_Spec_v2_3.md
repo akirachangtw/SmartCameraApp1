@@ -1,13 +1,14 @@
-# Cueshot 佈局規格 v2.2 — 兩區塊模型
+# Cueshot 佈局規格 v2.3 — 兩區塊模型
 
-**版本**: Layout Spec v2.2 (Naming Purge + SSOT v4.0 Alignment)  
-**最後更新**: 2026-05-12  
+**版本**: Layout Spec v2.3 (SSOT v4.0.2 Full Alignment + R14 + Scrim Confirmation)  
+**最後更新**: 2026-05-18  
 **變更歷程**:  
 - v2.0 → v2.1：§5 Pill Toggle 文字標籤改為圖示（Camera / Users）  
 - v2.1 → v2.2：Edge Warmth 命名全面淨化（4 處）+ SSOT v4.0 數值對齊（Scrim 120px）+ 文件引用更新  
-**決策來源**: CSO Session D8 — Top Bar Overlay 化 + Photo/PTF Pill Toggle  
-**取代**: v2.1 及所有前版（v1.1 三區塊模型）  
-**上游文件**: `SSOT_v4_0.md`（唯一真理文件）  
+- v2.2 → v2.3：**16 項修訂**（見 §11 修訂追蹤）— SSOT v4.0.2 交叉審計全面對齊 + R14 快門下移落地 + Overlay 圖層重寫  
+**決策來源**: CSO Session D8 — Top Bar Overlay 化 + Photo/PTF Pill Toggle · Session 4 D-12 快門下移  
+**取代**: v2.2 及所有前版（v2.1, v2.0, v1.1 三區塊模型）  
+**上游文件**: `SSOT_v4_0_2.md`（唯一真理文件）  
 **下游文件**: Prototyper Prompt v2 · Background Image Prompts v2
 
 ---
@@ -50,7 +51,7 @@
 │                                  │
 │        [ Photo | PTF ]           │   ← Pill Toggle（40px）
 │                                  │
-│    [📷]      ( ● )      [🔄]    │   ← 快門區（80px）
+│  [📷]        ( ● )        [🔄]  │   ← 快門區（80px, centerY=748px — D-12）
 │                                  │
 │         safe area                │   ← Navigation Safe Area（60px）
 │                                  │
@@ -80,7 +81,7 @@ Top Bar **不是獨立區塊** — 它是 Viewfinder 上方的浮動 overlay。
 |------|-----|
 | Scrim 類型 | 線性漸層（從頂部向下） |
 | Scrim 起始 | y = 0px, #000000 alpha **0.22** |
-| Scrim 結束 | y = 120px, #000000 alpha **0** |
+| Scrim 結束 | y = **120px**, #000000 alpha **0** |
 | Scrim 漸變曲線 | `FastOutSlowInEasing`（頂部濃 → 快速淡出） |
 | 圖示位置 | y = 24px + `statusBarsPadding()` |
 | 圖示顏色 | #FFFFFF, alpha **0.85** |
@@ -88,23 +89,49 @@ Top Bar **不是獨立區塊** — 它是 Viewfinder 上方的浮動 overlay。
 | 圖示尺寸 | 24dp, touch target 48dp |
 | 圖示間距 | 左右 padding 16dp |
 
+> ✅ **Scrim endpoint 120px — CSO 已確認（D-13, 2026-05-18）**。原 v2.1 值為 72px。待實測後若需調整，同步修改本表 + §2 佈局圖 + SSOT v4.0.2 §B.5。
+
 **設計原則**:
 - Scrim alpha 上限 0.25 — 超過就變成「另一種不透明黑條」
 - 圖示優先 (Icon-First)，左側排列高頻控制 (⚡, HDR, 💧)，右側排列極低頻設定 (⚙, ?)
 - 不出現其他文字標籤（圖示即功能，唯一文字標籤為 HDR，視為圖示）
 - 動態插入的髒污提示等使用 `AnimatedVisibility(slideIn)`，閃光燈及 HDR 位置固定
 
-### 3.3 Viewfinder Overlay 圖層（對齊 SSOT v4.0 §Viewfinder Overlay）
+### 3.3 Viewfinder Overlay 圖層（對齊 SSOT v4.0.2 §Viewfinder Overlay — 逐字對齊）
 
 ```
 Layer 0: Camera Preview（CameraX PreviewView）
 Layer 1: 三分網格線（#FFFFFF alpha 0.08, 線寬 0.5px）
-Layer 2: Pitch Traction 漸層（邊緣向內 60px, 琥珀金 #D4A030, alpha ≤ 0.20）
-Layer 3: Halo Traction 圓環（琥珀金 / 綠色, alpha 0.20 ~ 0.35）
-Layer 4: 對焦圓環（Tap-to-focus, 白色 → 綠色）
+Layer 2: Pitch Traction 指示柱（右側 16dp, 36×25% viewfinder, 琥珀金/綠色 — D-2）
+Layer 3: Halo Traction 圓環（琥珀金 / 綠色, 呼吸 alpha 0.10→0.18 — D-3）
+Layer 4: 對焦圓環（Tap-to-focus, 60dp, 四狀態生命週期 — 見 SSOT 附錄 A）
 Layer 5: Level Traction（白色虛線 reference + 動態 dynamic 層）
 Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 ```
+
+**Layer 2 詳細規格（D-2 指示柱設計，完整定義見 SSOT v4.0.2 §2.3）**：
+
+| 屬性 | 值 | 備註 |
+|------|-----|------|
+| 結構 | 中軸線 + 定位環 + 浮動圓點 | 三元素組成 |
+| 容器寬度 | 36dp | `PitchTractionConstants.COLUMN_WIDTH_DP` |
+| 容器高度 | viewfinder 高度 × 25% | `PitchTractionConstants.COLUMN_HEIGHT_RATIO` |
+| 右側邊距 | 16dp | `PitchTractionConstants.COLUMN_RIGHT_MARGIN_DP` |
+| 中軸線寬度 | 2dp | 靜態軌道 |
+| 定位環直徑 | 32dp, stroke 1.5dp | 固定在軸線中點 = 目標角度 |
+| 浮動圓點直徑 | 20dp | 沿中軸移動 = 當前 pitch |
+| 顏色邏輯 | ≤10° 偏差：綠 #50C864；>10° 偏差：琥珀 #D4A030 | 50% 閾值（R17） |
+| 對齊呼吸 | 整體進入 α 0.10→0.18 呼吸（全局呼吸驅動） | 與快門外環同步 |
+| Canvas 呼叫 | **3 次**（drawLine + drawCircle ×2） | — |
+
+**Layer 3 詳細規格（D-3 Halo alpha，完整定義見 SSOT v4.0.2 §2.5）**：
+
+| 狀態 | Alpha | 備註 |
+|------|-------|------|
+| 未對齊（靜態） | **0.25** | 方向加亮弧指向目標（D-11: atan2 連續角度） |
+| 已對齊（呼吸） | **0.10 → 0.18**（2000ms 週期） | D-3 鎖定值 |
+| 群組 Halo（未對齊） | **0.20** | 單人 α − 0.05，補償大面積壓迫感 |
+| 群組 Halo（已對齊） | **0.30** | — |
 
 ---
 
@@ -131,7 +158,7 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 │                                  │
 ├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┤ ← y = 704px
 │                                  │
-│    [📷]      ( ● )      [🔄]    │   4.2b 快門區（80px）
+│  [📷]        ( ● )        [🔄]  │   4.2b 快門區（80px, centerY=748px）
 │                                  │
 ├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┤ ← y = 784px
 │                                  │
@@ -144,13 +171,19 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 
 **此區域僅包含 Photo/PTF Pill Toggle,居中放置。**
 
-#### 4.2b 快門區（y = 704 ~ 784px, 80px）
+#### 4.2b 快門區（y = 704 ~ 784px, 80px）— D-12 更新
 
-| 元素 | 位置 | 尺寸 | 樣式 |
-|------|------|------|------|
-| 快門按鈕 (Shutter) | 水平居中 | 72dp | 外環: 綠色呼吸 (條件達成) 或 白色靜態 |
-| 檔案庫 (Gallery) | 快門左側 | 40dp | 存取相簿 |
-| 鏡頭切換 (Flip) | 快門右側 | 40dp | 前後鏡頭切換 |
+三個圖示共享 **centerY = 748px**（D-12: 全局下移 4dp，原 744px），水平等間距佈局：
+
+| 元素 | centerX | centerY | 尺寸 | 樣式 |
+|------|---------|---------|------|------|
+| 檔案庫 (Gallery) | **screenWidth × 20%** = 78px | **748px** | 40dp | 存取相簿 |
+| 快門按鈕 (Shutter) | **screenWidth × 50%** = 195px | **748px** | 72dp | 外環: 綠色呼吸 (條件達成) 或 白色靜態 |
+| 鏡頭切換 (Flip) | **screenWidth × 80%** = 312px | **748px** | 40dp | 前後鏡頭切換 |
+
+**等間距約束**：Gallery centerX（20%）、Shutter centerX（50%）、Flip centerX（80%）三點等間距（各 30% 螢幕寬），快門居中，Gallery 和 Flip 對稱。
+
+**D-12 設計理由**：原 centerY=744px（快門區精確中點）在視覺上偏高，因 Navigation Safe Area 為純留白。下移 4dp 後三圖示視覺重心更穩定，Gallery/Flip 與快門外環底部對齊更自然。
 
 **互動狀態**: PTF 模式下快門放大至 80dp，且左右兩側 (Gallery, Flip) 將隱藏 (fadeOut) 避免干擾，並於左側浮現 PTF Exit (✕) 按鈕。
 
@@ -337,26 +370,63 @@ The image will be used as a full-screen background layer in a camera app UI prot
 ## 10. 文件相依性地圖
 
 ```
-本文件 (Layout Spec v2.2)
-  ├─→ SSOT v4.0 §Viewfinder Overlay / §B.5 — 雙向對齊（佈局定義 + Scrim 規格）
+本文件 (Layout Spec v2.3)
+  ├─→ SSOT v4.0.2 §Viewfinder Overlay / §B.5 — 雙向對齊（佈局定義 + Scrim 規格）
+  ├─→ SSOT v4.0.2 §2.3 — Pitch Traction 指示柱規格（D-2）
+  ├─→ SSOT v4.0.2 §2.5 — Halo Traction alpha 規格（D-3）
+  ├─→ SSOT v4.0.2 §附錄 A — Focus Ring 四狀態生命週期
   ├─→ Prototyper Prompt v2 — 更新佈局段落（兩區塊 + Pill + Scrim）
   ├─→ Background Image Prompts v2 — 更新比例與構圖指引
-  └─→ Claude Code 實作 — 按 SSOT v4.0 + 本文件拆票
+  └─→ Claude Code 實作 — 按 SSOT v4.0.2 + 本文件拆票
 ```
+
+---
+
+## 11. v2.2 → v2.3 修訂追蹤
+
+### 修訂總覽：16 項，全部完成
+
+| # | 嚴重度 | 段落 | 修訂摘要 | 對應決策/審計項 |
+|---|--------|------|---------|---------------|
+| F-1 | 🔴 Critical | §3.3 Layer 2 | **「漸層（邊緣向內 60px）」→「指示柱（右側 16dp, 36×25% viewfinder）」** | D-2, C-1 |
+| F-2 | 🔴 Critical | §3.3 Layer 3 | **「alpha 0.20 ~ 0.35」→「呼吸 alpha 0.10→0.18 — D-3」** | D-3, C-2 |
+| F-3 | 🔴 Critical | §3.3 Layer 4 | **補齊「60dp, 四狀態生命週期 — 見 SSOT 附錄 A」** | C-3 |
+| F-4 | 🟠 High | §3.3 下方 | **新增 Layer 2 詳細規格表**（指示柱結構、尺寸、顏色邏輯、Canvas 呼叫數） | D-2 補充 |
+| F-5 | 🟠 High | §3.3 下方 | **新增 Layer 3 詳細規格表**（四種 alpha 狀態精確值） | D-3 補充 |
+| F-6 | 🟠 High | 標題 L3 | 版本描述更新為 `SSOT v4.0.2 Full Alignment` | H-1 |
+| F-7 | 🟠 High | 變更歷程 L7 | 新增 v2.2→v2.3 變更記錄 | H-1 |
+| F-8 | 🟠 High | 上游文件 L10 | `SSOT_v4_0.md` → `SSOT_v4_0_2.md` | H-2 |
+| F-9 | 🟠 High | §3.3 標題 | `SSOT v4.0` → `SSOT v4.0.2` | H-1 |
+| F-10 | 🟠 High | §10 相依性 | `SSOT v4.0` → `SSOT v4.0.2`（全部 4 處） + 新增 §2.3/§2.5/附錄 A 引用 | H-1, H-2 |
+| F-11 | 🟠 High | 文件元資訊 | 全部 `v4.0` 引用更新為 `v4.0.2` | H-1, H-2 |
+| F-12 | 🟡 Medium | §4.2b | **快門區三圖示 centerY 744→748px**（D-12 全局下移 4dp） | R14, M-1 |
+| F-13 | 🟡 Medium | §4.2b | **新增 Gallery/Flip 水平等間距約束**（20%/50%/80%） | R14, M-2 |
+| F-14 | 🟡 Medium | §2 佈局圖 | 更新 ASCII 圖：加入 `centerY=748px — D-12` 標註 | R14, M-3 |
+| F-15 | 🟡 Medium | §4.2 子區塊圖 | 更新 ASCII 圖：加入 `centerY=748px` 標註 | R14, M-3 |
+| F-16 | 🔵 Low → ✅ | §3.2 | **Scrim 120px CSO 確認鎖定（D-13）**，待實測調整 | L-1, D-13 |
+
+### 零殘留驗證
+
+本文件已通過以下自動化檢查：
+- ✅ **命名淨化**：全文不存在 "Edge Warmth" 或 "水平儀" 作為渲染元件名稱
+- ✅ **上游引用**：全部指向 `SSOT_v4_0_2.md`，零殘留 `SSOT_v4_0.md`
+- ✅ **Overlay 圖層描述**：§3.3 逐字對齊 SSOT v4.0.2 §Viewfinder Overlay（L1576~1583）
+- ✅ **D-series 決策傳播**：D-2（指示柱）、D-3（Halo alpha）、D-12（快門下移）全部落地
 
 ---
 
 ## 文件元資訊
 
-- **版本**: Layout Spec v2.2 (Naming Purge + SSOT v4.0 Alignment)
+- **版本**: Layout Spec v2.3 (SSOT v4.0.2 Full Alignment + R14 + Scrim Confirmation)
 - **建立日期**: 2026-04-25
-- **淨化日期**: 2026-05-12
-- **決策鏈**: CSO Session D8 → Top Bar Overlay 化 → Photo/PTF Pill Toggle (Option A + Color C) → 暖色偏移
-- **取代**: v2.1 及所有前版（v1.1 三區塊模型）
-- **上游文件**: `SSOT_v4_0.md`（唯一真理文件）
-- **審查狀態**: UITA Edge Warmth 淨化完成 + SSOT v4.0 對齊完成
+- **修訂日期**: 2026-05-18
+- **決策鏈**: CSO Session D8 → Top Bar Overlay 化 → Photo/PTF Pill Toggle (Option A + Color C) → 暖色偏移 → **Session 4 D-12 快門下移 4dp**
+- **取代**: v2.2 及所有前版（v2.1, v2.0, v1.1 三區塊模型）
+- **上游文件**: `SSOT_v4_0_2.md`（唯一真理文件）
+- **審查狀態**: UITA 交叉審計完成 — 16 項修訂全部落地 + 零殘留驗證通過
 - **命名規範**: 本文件中不存在 "Edge Warmth" 或 "水平儀" 作為渲染元件名稱。三通道體系統一使用 Pitch Traction / Level Traction / Halo Traction。
+- **Open Item**: 無 — Scrim endpoint 120px 已由 CSO 確認鎖定（D-13, 2026-05-18），待實測調整
 
 ---
 
-**End of Layout Spec v2.2**
+**End of Layout Spec v2.3**
