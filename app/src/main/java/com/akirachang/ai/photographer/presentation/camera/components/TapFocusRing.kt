@@ -204,8 +204,8 @@ fun TapFocusRing(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer {
-                        translationX = center.x + ringRadiusPx - 8.dp.toPx()
-                        translationY = center.y - ringRadiusPx - 8.dp.toPx()
+                        translationX = center.x + ringRadiusPx - AmbientConstants.FOCUS_RING_BADGE_OFFSET_DP.dp.toPx()
+                        translationY = center.y - ringRadiusPx - AmbientConstants.FOCUS_RING_BADGE_OFFSET_DP.dp.toPx()
                         scaleX = badgeScale.value
                         scaleY = badgeScale.value
                         alpha = badgeAlpha.value

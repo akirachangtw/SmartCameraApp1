@@ -62,4 +62,7 @@ object AmbientConstants {
 
     /** Tap focus ring stroke width (dp). SSOT Appendix A. */
     const val FOCUS_RING_STROKE_DP = 1.5f
+
+    /** Locked badge offset from ring edge (dp). SSOT Slice Protocol v2.1: right-top -4dp,-4dp. */
+    const val FOCUS_RING_BADGE_OFFSET_DP = 4f
 }
