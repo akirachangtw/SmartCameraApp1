@@ -22,12 +22,14 @@ data/     → Android 框架依賴，實作 domain 介面
   └── di/             Hilt Modules
 
 presentation/ → Jetpack Compose + ViewModel
-  ├── camera/         CameraViewModel, CameraScreen
-  ├── camera/focus/   TapFocusController (P05-T3: 狀態機 + CameraX 接線)
-  ├── overlay/        PitchTractionLayer, HaloGuidanceLayer, GridOverlay,
-  │                   TapFocusRing (P05-T2), FocusIndicatorOverlay (MVP 關閉)
-  ├── controls/       ShutterButton, PillToggle, PTF controls
-  └── postCapture/    ScoreCard, DOF pipeline UI
+  ├── camera/                    CameraViewModel, CameraScreen, FocusIndicatorOverlay (MVP 關閉)
+  ├── camera/focus/              TapFocusController (P05-T3: 狀態機 + CameraX 接線)
+  ├── camera/overlay/            PitchTractionLayer
+  ├── camera/components/         HaloGuidanceLayer, TapFocusRing (P05-T2)
+  ├── camera/components/overlay/ GridOverlay
+  ├── controls/                  ShutterButton, PillToggle, PTF controls
+  └── postCapture/               ScoreCard, DOF pipeline UI
+  注意：實際 package 路徑以 camera/ 為根，無獨立 presentation/overlay/ 層
 ```
 
 **依賴方向鐵律**: presentation → domain ← data（domain 不依賴任何人）
@@ -48,8 +50,8 @@ presentation/ → Jetpack Compose + ViewModel
 | `PitchTractionLayer` | presentation/overlay | 俯仰角引導 overlay（P0-NAMING 遷移自 EdgeWarmthLayer） |
 | `HaloGuidanceLayer` | presentation/overlay | 主體光環 overlay |
 | `EyeAfDecision` | domain/model | Eye-AF 決策封裝 |
-| `TapFocusState` | presentation/overlay | Sealed class: Idle/Focusing/Focused/Failed/Locked (P05-T2) |
-| `TapFocusRing` | presentation/overlay | 單圈 60dp 渲染 Composable (P05-T2, SSOT 附錄 A) |
+| `TapFocusState` | presentation/camera/components | Sealed class: Idle/Focusing/Focused/Failed/Locked (P05-T2) |
+| `TapFocusRing` | presentation/camera/components | 單圈 60dp 渲染 Composable (P05-T2, SSOT 附錄 A) |
 | `TapFocusController` | presentation/camera/focus | Tap 狀態機 + CameraX AF 接線 (P05-T3) |
 
 **架構狀態標註**:
