@@ -11,6 +11,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -185,8 +187,7 @@ fun TapFocusRing(
             }
         }
 
-        // Locked Badge — separate Composable outside ring-draw Canvas budget (Hard Constraint 1)
-        // Badge uses its own inner Canvas for rounded-rect background/border drawing.
+        // Locked Badge — HC-1: zero Canvas calls (uses Modifier.background+border, no drawXxx)
         if (state is TapFocusState.Locked) {
             LaunchedEffect(Unit) {
                 badgeScale.animateTo(
@@ -215,22 +216,11 @@ fun TapFocusRing(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .size(18.dp)
+                        .background(BadgeBackground, shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                        .border(1.dp, BadgeBorder, shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
                         .semantics(mergeDescendants = false) {},
                     contentAlignment = Alignment.Center,
                 ) {
-                    Canvas(modifier = Modifier.size(18.dp)) {
-                        drawRoundRect(
-                            color = BadgeBackground,
-                            size = this.size,
-                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()),
-                        )
-                        drawRoundRect(
-                            color = BadgeBorder,
-                            size = this.size,
-                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()),
-                            style = Stroke(width = 1.dp.toPx()),
-                        )
-                    }
                     Icon(
                         imageVector = Icons.Filled.Lock,
                         contentDescription = null,
