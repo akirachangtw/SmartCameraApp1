@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gstack v1.5 — Codex CLI Cross-Review Automation
+# gstack v1.2 — Codex CLI Cross-Review Automation
 # 複合審查：Layer 1 Architectural Review + Layer 2 SV Report Cross-Review
 #
 # 設計原則：
@@ -9,7 +9,10 @@
 # - 嚴格輸出格式：第一行 PASS 或 FAIL，杜絕模糊判斷
 #
 # 用法：
-#   bash .claude/scripts/cross_review.sh ./sv_report.md [diff_scope] [ssot_context_path]
+#   bash .claude/scripts/cross_review.sh ./sv_report.md [diff_scope] [extra_exclude] [ssot_context_path]
+#   extra_exclude: 逗號分隔的 pathspec，排除已通過獨立審查的跨票檔案
+#                 例如 "*/CameraScreen.kt,*/Foo.kt"
+#                 必須有 CSO 授權，sv_report.md Scope Check 段落須聲明排除理由。
 #
 # 退出碼：
 #   0 — Cross-review PASS，可進 Traycer 終審
@@ -24,7 +27,8 @@ set -euo pipefail
 
 SV_REPORT="${1:-}"
 DIFF_SCOPE="${2:-HEAD~1..HEAD}"
-SSOT_CONTEXT="${3:-.claude/skills/sv/ssot_context.md}"
+EXTRA_EXCLUDE="${3:-}"
+SSOT_CONTEXT="${4:-.claude/skills/sv/ssot_context.md}"
 TMP_DIR=".tmp"
 
 PAYLOAD="$TMP_DIR/cross_review_payload.md"
@@ -202,7 +206,15 @@ fi
   echo "## Git Diff (scope: $DIFF_SCOPE)"
   echo
   if [[ "$DIFF_AVAILABLE" == true ]]; then
-    git diff "$DIFF_SCOPE" -- ':!sv_report.md' ':!.claude/' ':!docs/' ':!plans/'
+    # Build exclusion list (array-based, avoids eval shell injection)
+    EXCLUDE_ARGS=(':!sv_report.md' ':!.claude/' ':!docs/' ':!plans/')
+    if [ -n "$EXTRA_EXCLUDE" ]; then
+      IFS=',' read -ra EXTRA_PATHS <<< "$EXTRA_EXCLUDE"
+      for path in "${EXTRA_PATHS[@]}"; do
+        EXCLUDE_ARGS+=( ":!${path}" )
+      done
+    fi
+    git diff "$DIFF_SCOPE" -- "${EXCLUDE_ARGS[@]}"
   else
     echo "(no diff detected)"
   fi
@@ -217,6 +229,9 @@ PAYLOAD_BYTES="$(wc -c < "$PAYLOAD" | xargs)"
 echo "🔍 Codex Cross-Review in progress..."
 echo "   SV Report: $SV_REPORT"
 echo "   Diff scope: $DIFF_SCOPE"
+if [ -n "$EXTRA_EXCLUDE" ]; then
+  echo "   Extra excludes: $EXTRA_EXCLUDE"
+fi
 echo "   SSOT context: $(if $SSOT_AVAILABLE; then echo 'loaded'; else echo 'not available'; fi)"
 echo "   Payload: ${PAYLOAD_BYTES} bytes"
 echo "   Codex model: $CODEX_MODEL"
