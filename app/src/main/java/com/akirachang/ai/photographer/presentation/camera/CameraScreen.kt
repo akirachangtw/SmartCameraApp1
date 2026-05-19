@@ -619,14 +619,10 @@ internal fun ShutterButtonSection(
             },
             modifier = Modifier
                 .size(shutterSize)
-                .border(4.dp, Color.White, CircleShape)
+                .border(4.dp, Color.White.copy(alpha = 0.30f), CircleShape)
                 .alpha(if (isCapturing) 0.5f else 1.0f),
             shape = CircleShape,
-            containerColor = if (isCapturing) {
-                MaterialTheme.colorScheme.secondary
-            } else {
-                MaterialTheme.colorScheme.primary
-            }
+            containerColor = Color.White
         ) {
             Icon(
                 imageVector = Icons.Default.CameraAlt,
@@ -644,7 +640,7 @@ internal fun ShutterButtonSection(
                 modifier = Modifier
                     .requiredSize(ringBaseSize)
                     .testTag(TAG_SHUTTER_PROGRESS_CIRCLE),
-                color = Color.White,
+                color = Color(0xFF50C864).copy(alpha = 0.80f),
                 strokeWidth = 3.dp
             )
         }
