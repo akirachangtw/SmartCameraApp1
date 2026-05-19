@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → P05-T5 QA ✅ PASS — 待 /sv
+**Current Day**: D9 → P05-T5 + P05-T6 SV ✅ Cross-Review ✅ PASS — 待 Traycer 終審
 **Last Updated**: 2026-05-19
 
 ---
@@ -10,7 +10,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ SV — P05-T2 ✅ SV + Cross-Review PASS — P05-T6 ✅ SV PASS — P05-T5 ✅ QA PASS — 待 /sv |
+| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ SV — P05-T2 ✅ SV+CR PASS — P05-T6 ✅ SV+CR PASS — P05-T5 ✅ SV+CR PASS — 待 Traycer |
 | Compile | 0 errors ✅ (assembleDebug 25s incremental) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
@@ -66,15 +66,15 @@
 
 ## Next Actions
 
-> **Session G 進行中：P05-T5 QA ✅ PASS**
-> **下一步：/sv → Git → P05-T3 Tap 事件接線**
+> **Session G 完成：P05-T5 + P05-T6 SV ✅ Cross-Review ✅ PASS**
+> **下一步：Traycer 終審 → P05-T3 Tap 事件接線（新 session）**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
 3. ~~**P05-T1**~~（✅ SV + Cross-Review PASS 2026-05-19）：`FocusIndicatorOverlay` runtime-disabled gate `isTapFocusReady=false`
 4. ~~**P05-T2**~~（✅ SV + Cross-Review PASS 2026-05-19）：`TapFocusRing.kt` 新建 — 5態渲染 + 5 @Preview + `AmbientConstants` FOCUS_RING_SIZE_DP/STROKE_DP + Layer 3.1/semantics fix + PreviewCenter fix
 4.5. ~~**P05-T6**~~（✅ SV + Cross-Review PASS 2026-05-19）：`CameraScreen.kt` GridOverlay visible 移除 `!contentBounds.isEmpty` 條件，修復啟動時 Grid 消失
-4.6. ~~**P05-T5**~~（✅ QA PASS 2026-05-19）：`CameraScreen.kt` ShutterButton 色彩硬編碼 — 外環 α0.30 / 內圓 White / 進度環 #50C864 α0.80，移除 MaterialTheme 依賴
+4.6. ~~**P05-T5**~~（✅ SV + Cross-Review PASS 2026-05-19）：`CameraScreen.kt` ShutterButton 色彩硬編碼 — 外環 α0.30 / 內圓 White / 進度環 #50C864 α0.80，移除 MaterialTheme 依賴
 5. **🔴 Baseline**：
    - `BUG-MLKIT-DUAL-EMIT`：`CameraViewModel.kt` 切換鏡頭清空 `detectionResult` 或改用 `flatMapLatest`
    - `BUG-PTF-HALO-SIZE`：PTF Halo 渲染層 bbox → 圓半徑轉換修正
