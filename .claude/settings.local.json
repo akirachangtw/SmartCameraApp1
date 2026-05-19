@@ -68,7 +68,8 @@
       "Bash(Write-Host *)",
       "Bash(curl *)",
       "Skill(qa)",
-      "Skill(qa:*)"
+      "Skill(qa:*)",
+      "Bash(git -C *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
