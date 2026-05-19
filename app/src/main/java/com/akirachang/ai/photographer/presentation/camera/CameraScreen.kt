@@ -289,7 +289,7 @@ fun CameraScreen(
 
                         GridOverlay(
                             modifier = Modifier.fillMaxSize(),
-                            visible = isGridEnabled && !contentBounds.isEmpty && !isPtfActive,
+                            visible = isGridEnabled && !isPtfActive,
                             contentBounds = contentBounds.takeIf { !it.isEmpty }
                         )
 
