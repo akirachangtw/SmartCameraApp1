@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → P05-T2 QA ✅（TapFocusRing.kt 新建 5態渲染 + 5 @Preview + AmbientConstants 2常數）
-**Last Updated**: 2026-05-18
+**Current Day**: D9 → P05-T1 + P05-T2 SV ✅ Cross-Review ✅ PASS（Round 14）— 待 Traycer 終審
+**Last Updated**: 2026-05-19
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ CLOSED — FIX-P0-SESSION-B ✅ CLOSED — FIX-P0-SESSION-B-POLISH ✅ SV CLOSED — 待 Traycer 終審 |
+| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ SV — P05-T2 ✅ SV + Cross-Review PASS — 待 Traycer 終審 |
 | Compile | 0 errors ✅ (assembleDebug 73s full / 14s incremental) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
@@ -46,8 +46,8 @@
 
 ### Source Documents (Phase 0 現行基準)
 
-- **SSOT v4.0**: `plans/architecture/SSOT_v4_0.md` ← 唯一真理文件
-- **Layout Spec v2.2**: `plans/architecture/Cueshot_Layout_Spec_v2_2.md` ← 佈局精確定義
+- **SSOT v4.0**: `plans/architecture/SSOT_v4_0_2.md` ← 唯一真理文件
+- **Layout Spec v2.2**: `plans/architecture/Cueshot_Layout_Spec_v2_3.md` ← 佈局精確定義
 - **Phase0 UI Contract**: `plans/cso_briefing/Phase0_UI_Realignment_Contract_v1.md`
 
 ---
@@ -66,13 +66,13 @@
 
 ## Next Actions
 
-> **Session F 進行中：P05-T2 ✅ QA PASS**
-> **下一步：/sv 驗收 → P05-T3 Tap 事件接線**
+> **Session F 完成：P05-T1 + P05-T2 SV ✅ Cross-Review ✅ PASS（Round 14）**
+> **下一步：Traycer 終審 → P05-T3 Tap 事件接線（新 session）**
 
-1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待通過）：FPS overlay 四層完整剝離
+1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
-3. ~~**P05-T1**~~（✅ SV PASS 2026-05-18）：`FocusIndicatorOverlay` gated by `isTapFocusReady=false`
-4. ~~**P05-T2**~~（✅ QA PASS 2026-05-18）：`TapFocusRing.kt` 新建 — 5態渲染 + 5 @Preview + `AmbientConstants` FOCUS_RING_SIZE_DP/STROKE_DP
+3. ~~**P05-T1**~~（✅ SV + Cross-Review PASS 2026-05-19）：`FocusIndicatorOverlay` runtime-disabled gate `isTapFocusReady=false`
+4. ~~**P05-T2**~~（✅ SV + Cross-Review PASS 2026-05-19）：`TapFocusRing.kt` 新建 — 5態渲染 + 5 @Preview + `AmbientConstants` FOCUS_RING_SIZE_DP/STROKE_DP + Layer 3.1/semantics fix + PreviewCenter fix
 5. **🔴 Baseline**：
    - `BUG-MLKIT-DUAL-EMIT`：`CameraViewModel.kt` 切換鏡頭清空 `detectionResult` 或改用 `flatMapLatest`
    - `BUG-PTF-HALO-SIZE`：PTF Halo 渲染層 bbox → 圓半徑轉換修正
@@ -97,6 +97,6 @@
 
 ## Quick Links
 
-- SSOT: `plans/architecture/SSOT_v4_0.md`
-- Layout Spec: `plans/architecture/Cueshot_Layout_Spec_v2_2.md`
+- SSOT: `plans/architecture/SSOT_v4_0_2.md`
+- Layout Spec: `plans/architecture/Cueshot_Layout_Spec_v2_3.md`
 - Full History: `PROGRESS_ARCHIVE.md`
