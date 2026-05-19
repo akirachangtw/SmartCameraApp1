@@ -356,10 +356,16 @@ fun CameraScreen(
                         }
 
 
-                        FocusIndicatorOverlay(
-                            focusUiStateFlow = viewModel.focusUiStateFlow,
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                        // P05-T1: Eye-AF visual ring disabled for MVP.
+                        // Optical AF (EyeAfController → CameraX) still active.
+                        // Enable when T2/T3 tap-focus ring is ready.
+                        val isTapFocusReady = false
+                        if (isTapFocusReady) {
+                            FocusIndicatorOverlay(
+                                focusUiStateFlow = viewModel.focusUiStateFlow,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
 
                         // Floating Top Bar — Layout Spec v2.2 §3.2 (Layer 6, above scrim)
                         Row(
