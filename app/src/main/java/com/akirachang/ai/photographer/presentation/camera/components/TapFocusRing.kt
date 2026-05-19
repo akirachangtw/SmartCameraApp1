@@ -117,6 +117,8 @@ fun TapFocusRing(
     LaunchedEffect(state) {
         when (state) {
             is TapFocusState.Focusing -> {
+                badgeScale.snapTo(0.5f)
+                badgeAlpha.snapTo(0f)
                 scale.snapTo(1.3f)
                 arcRotation.snapTo(0f)
                 scale.animateTo(
@@ -132,10 +134,14 @@ fun TapFocusRing(
                 )
             }
             is TapFocusState.Focused -> {
+                badgeScale.snapTo(0.5f)
+                badgeAlpha.snapTo(0f)
                 scale.snapTo(1.0f)
                 arcRotation.snapTo(0f)
             }
             is TapFocusState.Failed -> {
+                badgeScale.snapTo(0.5f)
+                badgeAlpha.snapTo(0f)
                 scale.snapTo(1.0f)
                 // ±4px oscillation → 1.20 expansion → settle (keyframes 800ms)
                 scale.animateTo(
@@ -155,8 +161,21 @@ fun TapFocusRing(
             is TapFocusState.Locked -> {
                 scale.snapTo(0.85f)
                 arcRotation.snapTo(0f)
+                // Badge enter animation — re-triggers on every Locked re-entry (key = state)
+                badgeScale.snapTo(0.5f)
+                badgeAlpha.snapTo(0f)
+                badgeScale.animateTo(
+                    targetValue = 1.0f,
+                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                )
+                badgeAlpha.animateTo(
+                    targetValue = 1.0f,
+                    animationSpec = tween(durationMillis = 300),
+                )
             }
             TapFocusState.Idle -> {
+                badgeScale.snapTo(0.5f)
+                badgeAlpha.snapTo(0f)
                 scale.snapTo(1f)
                 arcRotation.snapTo(0f)
             }
@@ -189,17 +208,6 @@ fun TapFocusRing(
 
         // Locked Badge — HC-1: zero Canvas calls (uses Modifier.background+border, no drawXxx)
         if (state is TapFocusState.Locked) {
-            LaunchedEffect(Unit) {
-                badgeScale.animateTo(
-                    targetValue = 1.0f,
-                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-                )
-                badgeAlpha.animateTo(
-                    targetValue = 1.0f,
-                    animationSpec = tween(durationMillis = 300),
-                )
-            }
-
             Box(
                 modifier = Modifier
                     .fillMaxSize()
