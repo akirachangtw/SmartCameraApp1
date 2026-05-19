@@ -9,6 +9,7 @@ Session 啟動 → 讀 PROGRESS.md → 輸出 Boot Report → **停止等 Ticket
 📍 Ticket: [ID] / 無 → 停止
 📊 CLAUDE.md [N]行 | PROGRESS.md [N]行
 ⚠️ Blockers: [列出或「無」]
+🌐 Output Language: [繁體中文 / EN]
 ```
 
 ---
