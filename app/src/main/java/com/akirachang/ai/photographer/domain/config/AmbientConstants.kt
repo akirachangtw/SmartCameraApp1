@@ -82,4 +82,7 @@ object AmbientConstants {
 
     /** IMU drift threshold (degrees): Focused → fadeout → Idle when pitch+roll deviation exceeds this. */
     const val FOCUS_DRIFT_THRESHOLD_DEG = 15f
+
+    /** Re-tap Failed flash duration (ms): old ring shows Failed before new Focusing starts (SSOT A.4). */
+    const val FOCUS_RETAP_FLASH_MS = 100L
 }

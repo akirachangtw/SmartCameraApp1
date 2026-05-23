@@ -39,8 +39,6 @@ class TapFocusController @Inject constructor(
 
     companion object {
         private const val TAG = "TapFocusController"
-        // Brief Failed flash at old position before Focusing at new position on re-tap
-        private const val RE_TAP_FAILED_FLASH_MS = 100L
     }
 
     private val _tapFocusState = MutableStateFlow<TapFocusState>(TapFocusState.Idle)
@@ -108,7 +106,7 @@ class TapFocusController @Inject constructor(
         val mySession = ++sessionId
         _tapFocusState.value = TapFocusState.Failed(oldCenter)
         flashJob = viewModelScope.launch {
-            delay(RE_TAP_FAILED_FLASH_MS)
+            delay(AmbientConstants.FOCUS_RETAP_FLASH_MS)
             if (sessionId == mySession) {
                 doFocus(newCenter, x, y, viewWidth, viewHeight, mySession)
             }
