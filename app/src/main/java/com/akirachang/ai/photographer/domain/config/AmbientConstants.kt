@@ -65,4 +65,21 @@ object AmbientConstants {
 
     /** Locked badge offset from ring edge (dp). SSOT Slice Protocol v2.1: right-top -4dp,-4dp. */
     const val FOCUS_RING_BADGE_OFFSET_DP = 4f
+
+    // ── Tap Focus timing / thresholds (P05-T3) ───────────────────────────────
+
+    /** Focusing → Failed if CameraX AF callback is absent after this window (ms). */
+    const val FOCUS_AF_TIMEOUT_MS = 2000L
+
+    /** Focused → Idle fadeout duration (ms) after IMU drift ≥ FOCUS_DRIFT_THRESHOLD_DEG. */
+    const val FOCUS_FADEOUT_MS = 500L
+
+    /** Failed state hold duration (ms) before beginning fadeout → Idle. */
+    const val FOCUS_FAILED_MS = 800L
+
+    /** Minimum long-press duration (ms) to trigger Locked + AE/AF lock. */
+    const val FOCUS_LONG_PRESS_MS = 500L
+
+    /** IMU drift threshold (degrees): Focused → fadeout → Idle when pitch+roll deviation exceeds this. */
+    const val FOCUS_DRIFT_THRESHOLD_DEG = 15f
 }

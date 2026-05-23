@@ -118,8 +118,11 @@ import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.R
 import com.akirachang.ai.photographer.domain.camera.CameraMode
 import com.akirachang.ai.photographer.domain.config.AmbientConstants
-import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import com.akirachang.ai.photographer.BuildConfig
+import com.akirachang.ai.photographer.domain.model.CameraLens
+import com.akirachang.ai.photographer.presentation.camera.components.TapFocusRing
+import com.akirachang.ai.photographer.presentation.camera.components.TapFocusState
+import com.akirachang.ai.photographer.presentation.camera.focus.TapFocusController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -155,10 +158,11 @@ fun CameraScreen(
     // Rule 14: collectAsState at composable top before any conditional logic.
     val isPtfOnboarded by viewModel.isPtfOnboarded.collectAsState(initial = true)
 
+    val tapFocusController: TapFocusController = hiltViewModel()
+    val tapFocusState by tapFocusController.tapFocusState.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-    // v2.12.0-18: Capture density here (composable scope) so pointerInput lambda can use it
-    val screenDensity = LocalDensity.current.density
 
     // v2.6.1: Bind camera to lifecycle for LiveCameraSource
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -238,17 +242,12 @@ fun CameraScreen(
                                         if (!bounds.isEmpty && !bounds.contains(offset.x, offset.y)) {
                                             return@detectTapGestures
                                         }
-                                        if (FeatureFlags.enableManualFocus &&
-                                            previewSize.width > 0 &&
-                                            previewSize.height > 0) {
-                                            viewModel.onEvent(
-                                                CameraUiEvent.FocusOnPoint(
-                                                    x = offset.x,
-                                                    y = offset.y,
-                                                    viewWidth = previewSize.width,
-                                                    viewHeight = previewSize.height,
-                                                    density = screenDensity,
-                                                )
+                                        if (previewSize.width > 0 && previewSize.height > 0) {
+                                            tapFocusController.onTap(
+                                                x = offset.x,
+                                                y = offset.y,
+                                                viewWidth = previewSize.width,
+                                                viewHeight = previewSize.height,
                                             )
                                         }
                                     },
@@ -257,16 +256,13 @@ fun CameraScreen(
                                         if (!bounds.isEmpty && !bounds.contains(offset.x, offset.y)) {
                                             return@detectTapGestures
                                         }
-                                        if (FeatureFlags.enableManualFocus &&
-                                            previewSize.width > 0 &&
-                                            previewSize.height > 0) {
-                                            viewModel.onEvent(
-                                                CameraUiEvent.LockAEAF(
-                                                    x = offset.x,
-                                                    y = offset.y,
-                                                    viewWidth = previewSize.width,
-                                                    viewHeight = previewSize.height
-                                                )
+                                        if (previewSize.width > 0 && previewSize.height > 0) {
+                                            tapFocusController.onLongPress(
+                                                x = offset.x,
+                                                y = offset.y,
+                                                viewWidth = previewSize.width,
+                                                viewHeight = previewSize.height,
+                                                isFrontCamera = state.currentCamera == CameraLens.FRONT,
                                             )
                                         }
                                     }
@@ -356,13 +352,12 @@ fun CameraScreen(
                         }
 
 
-                        // P05-T1: Eye-AF visual ring disabled for MVP.
-                        // Optical AF (EyeAfController → CameraX) still active.
-                        // Enable when T2/T3 tap-focus ring is ready.
-                        val isTapFocusReady = false
+                        // P05-T3: TapFocusRing wired — replaces FocusIndicatorOverlay.
+                        // Idle state renders nothing (early return in TapFocusRing).
+                        val isTapFocusReady = true
                         if (isTapFocusReady) {
-                            FocusIndicatorOverlay(
-                                focusUiStateFlow = viewModel.focusUiStateFlow,
+                            TapFocusRing(
+                                state = tapFocusState,
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }
