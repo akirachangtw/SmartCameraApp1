@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → P05-T3 🟡 Code DONE，待 /sv + Cross-Review
-**Last Updated**: 2026-05-23
+**Current Day**: D9 → P05-T1 SV ✅ PASS (R3) · P05-T2 SV Round 7 待執行（badge fix 已提交）
+**Last Updated**: 2026-05-19
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T6 ✅ — P05-T5 ✅ — P05-T3 🟡 Code DONE 待 /sv |
-| Compile | 0 errors ✅ (assembleDebug 2m14s) |
+| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ SV PASS (R3) — P05-T2 🟡 SV Round 7 待執行 — P05-T6 ✅ SV+CR PASS — P05-T5 ✅ SV+CR PASS — 待 Traycer |
+| Compile | 0 errors ✅ (assembleDebug 25s incremental) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
-| Lint | 0 errors ✅ / +8 LogNotTimber warnings (pre-existing project pattern, 515 baseline) |
+| Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
 ---
 
@@ -66,14 +66,13 @@
 
 ## Next Actions
 
-> **Session I 完成：P05-T3 TapFocusController 實作 + CameraScreen 接線 — assembleDebug ✅ / 181 tests ✅**
-> **下一步：/sv P05-T3 → cross_review → Traycer → P05-T4**
+> **Session H 完成：P05-T1 SV PASS (R3) + commit 拆分 · P05-T2 badge HC-1 fix 已提交**
+> **下一步：P05-T2 /sv Round 7（`bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md "a9558fc..99ae527"`）→ PASS 後 Traycer 終審 → P05-T3**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
 3. ~~**P05-T1**~~（✅ SV + Cross-Review PASS 2026-05-19）：`FocusIndicatorOverlay` runtime-disabled gate `isTapFocusReady=false`
 4. ~~**P05-T2**~~（✅ SV + Cross-Review PASS 2026-05-19）：`TapFocusRing.kt` 新建 — 5態渲染 + 5 @Preview + `AmbientConstants` FOCUS_RING_SIZE_DP/STROKE_DP + Layer 3.1/semantics fix + PreviewCenter fix
-4.7. **🟡 P05-T3**（Code DONE 2026-05-23，待 /sv）：`TapFocusController.kt` 新建 — 狀態機 + CameraX AF + IMU drift + AE/AF Lock；`CameraScreen` 接線：TapFocusRing + tap/longpress 路由；`AmbientConstants` 補 5 個 FOCUS_* 常數
 4.5. ~~**P05-T6**~~（✅ SV + Cross-Review PASS 2026-05-19）：`CameraScreen.kt` GridOverlay visible 移除 `!contentBounds.isEmpty` 條件，修復啟動時 Grid 消失
 4.6. ~~**P05-T5**~~（✅ SV + Cross-Review PASS 2026-05-19）：`CameraScreen.kt` ShutterButton 色彩硬編碼 — 外環 α0.30 / 內圓 White / 進度環 #50C864 α0.80，移除 MaterialTheme 依賴
 5. **🔴 Baseline**：
