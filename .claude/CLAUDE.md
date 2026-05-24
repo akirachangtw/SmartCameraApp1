@@ -113,7 +113,28 @@ Status code 已能回答的問題，code 回答。
 - 策略: `plans/architecture/SSOT_v4_0_2.md` · 佈局: `plans/architecture/Cueshot_Layout_Spec_v2_3.md`
 - 進度: `PROGRESS.md` · 歸檔: `PROGRESS_ARCHIVE.md`
 
-## Cross-Review
+## Cross-Review FAIL 硬規範（不可違反）
+
+**立即停 + Checkpoint 觸發條件**（任一觸發 → 輸出 Checkpoint 格式，等待裁決）：
+
+- 修正涉及：PROGRESS.md / sv_report*.md / ssot_context.md / CLAUDE.md / SSOT*.md / *_Contract*.md
+- 修正含 token：FeatureFlags / gate / Gate / cooldown / @Inject / @Module / @Provides
+- 第 2 次 FAIL（同票任何維度）
+
+**次數限制**：第 1 次 FAIL 純 .kt fix 可 inline，完成後立即回報等 ack。第 2 次 → 停。
+
+**Checkpoint 格式**（強制）：
+
+```text
+📍 CROSS_REVIEW CHECKPOINT | Ticket: [ID] | Round: R[N]
+Codex: [判定原文] | 選項: A.[方案A] / B.[方案B] / D.[Codex誤判理由]
+⏸️ 等待 Akira 裁決
+```
+
+**退出機制**：無 Akira ack 不得連續執行 2 次以上 cross_review.sh。
+
+## Cross-Review 路由
+
 diff 跨三層 or 涉及 CameraViewModel.kt → `xhigh`。純 domain 新建 → `high`（預設）。
 
 ## Path-Scoped Rules（匹配檔案時自動載入）
