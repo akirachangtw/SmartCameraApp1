@@ -118,7 +118,6 @@ import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.R
 import com.akirachang.ai.photographer.domain.camera.CameraMode
 import com.akirachang.ai.photographer.domain.config.AmbientConstants
-import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import com.akirachang.ai.photographer.BuildConfig
 import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.presentation.camera.components.TapFocusRing
@@ -243,9 +242,7 @@ fun CameraScreen(
                                         if (!bounds.isEmpty && !bounds.contains(offset.x, offset.y)) {
                                             return@detectTapGestures
                                         }
-                                        if (FeatureFlags.enableManualFocus &&
-                                            previewSize.width > 0 &&
-                                            previewSize.height > 0) {
+                                        if (previewSize.width > 0 && previewSize.height > 0) {
                                             tapFocusController.onTap(
                                                 x = offset.x,
                                                 y = offset.y,
@@ -259,9 +256,7 @@ fun CameraScreen(
                                         if (!bounds.isEmpty && !bounds.contains(offset.x, offset.y)) {
                                             return@detectTapGestures
                                         }
-                                        if (FeatureFlags.enableManualFocus &&
-                                            previewSize.width > 0 &&
-                                            previewSize.height > 0) {
+                                        if (previewSize.width > 0 && previewSize.height > 0) {
                                             tapFocusController.onLongPress(
                                                 x = offset.x,
                                                 y = offset.y,
