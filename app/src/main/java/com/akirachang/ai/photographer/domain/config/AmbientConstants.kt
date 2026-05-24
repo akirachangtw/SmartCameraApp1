@@ -17,8 +17,8 @@ object AmbientConstants {
 
     // ── Level Traction fade ────────────────────────────────────────────────────
 
-    /** Roll/pitch range (degrees) over which Level Traction UI fades in. 0° = invisible, 5° = fully visible. */
-    const val LEVEL_FADE_RANGE_DEG = 5f
+    /** Roll/pitch range (degrees) over which Level Traction UI fades in. 0° = invisible, 10° = fully visible. SSOT §2.0.1 D-10. */
+    const val LEVEL_FADE_RANGE_DEG = 10f
 
     // ── Layout proportions ─────────────────────────────────────────────────────
 
