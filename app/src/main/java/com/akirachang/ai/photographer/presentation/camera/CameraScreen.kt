@@ -248,6 +248,7 @@ fun CameraScreen(
                                                 y = offset.y,
                                                 viewWidth = previewSize.width,
                                                 viewHeight = previewSize.height,
+                                                isFrontCamera = state.currentCamera == CameraLens.FRONT,
                                             )
                                         }
                                     },

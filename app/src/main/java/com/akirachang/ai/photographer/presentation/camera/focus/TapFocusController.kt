@@ -26,8 +26,9 @@ import kotlinx.coroutines.withTimeoutOrNull
  * Owns the tap-focus state machine: Tap event → state transition → CameraX AF → result write-back.
  * State is exposed via [tapFocusState] for TapFocusRing rendering in CameraScreen.
  *
- * Front-camera guard: [onLongPress] rejects Locked state when isFrontCamera == true
- * (Rule §3.2: fixed-focus lens, AE/AF lock has no physical meaning).
+ * Front-camera guard: [onTap] skips physical AF and resolves visual Focused immediately.
+ * [onLongPress] rejects Locked state when isFrontCamera == true
+ * (Rule §3.2 / camera-constraints Rule 16: fixed-focus lens, two-layer guard required).
  *
  * All CameraX AF calls route through [CameraRepository] (no direct CameraControl access).
  */
@@ -51,7 +52,7 @@ class TapFocusController @Inject constructor(
     private var driftJob: Job? = null
     private var failedResetJob: Job? = null
 
-    fun onTap(x: Float, y: Float, viewWidth: Int, viewHeight: Int) {
+    fun onTap(x: Float, y: Float, viewWidth: Int, viewHeight: Int, isFrontCamera: Boolean) {
         val newCenter = Offset(x, y)
         val current = _tapFocusState.value
 
@@ -64,18 +65,18 @@ class TapFocusController @Inject constructor(
                     cameraRepository.cancelFocusAndMetering()
                     Log.d(TAG, "[Re-tap] AE/AF unlocked")
                 }
-                flashAndFocus(current.center, newCenter, x, y, viewWidth, viewHeight)
+                flashAndFocus(current.center, newCenter, x, y, viewWidth, viewHeight, isFrontCamera)
             }
             // SSOT A.4: re-tap from Focusing/Focused → Failed flash at old position → new Focusing
             is TapFocusState.Focusing -> {
-                flashAndFocus(current.center, newCenter, x, y, viewWidth, viewHeight)
+                flashAndFocus(current.center, newCenter, x, y, viewWidth, viewHeight, isFrontCamera)
             }
             is TapFocusState.Focused -> {
-                flashAndFocus(current.center, newCenter, x, y, viewWidth, viewHeight)
+                flashAndFocus(current.center, newCenter, x, y, viewWidth, viewHeight, isFrontCamera)
             }
             else -> {
                 val mySession = ++sessionId
-                doFocus(newCenter, x, y, viewWidth, viewHeight, mySession)
+                doFocus(newCenter, x, y, viewWidth, viewHeight, mySession, isFrontCamera)
             }
         }
     }
@@ -102,20 +103,31 @@ class TapFocusController @Inject constructor(
         y: Float,
         viewWidth: Int,
         viewHeight: Int,
+        isFrontCamera: Boolean,
     ) {
         val mySession = ++sessionId
         _tapFocusState.value = TapFocusState.Failed(oldCenter)
         flashJob = viewModelScope.launch {
             delay(AmbientConstants.FOCUS_RETAP_FLASH_MS)
             if (sessionId == mySession) {
-                doFocus(newCenter, x, y, viewWidth, viewHeight, mySession)
+                doFocus(newCenter, x, y, viewWidth, viewHeight, mySession, isFrontCamera)
             }
         }
     }
 
-    private fun doFocus(center: Offset, x: Float, y: Float, viewWidth: Int, viewHeight: Int, mySession: Int) {
+    private fun doFocus(center: Offset, x: Float, y: Float, viewWidth: Int, viewHeight: Int, mySession: Int, isFrontCamera: Boolean) {
         _tapFocusState.value = TapFocusState.Focusing(center)
         viewModelScope.launch {
+            if (isFrontCamera) {
+                // Front camera: fixed-focus lens — visual success only, skip physical AF
+                // (SSOT camera-constraints Rule 16: Controller-layer guard, defense in depth)
+                if (sessionId == mySession) {
+                    _tapFocusState.value = TapFocusState.Focused(center)
+                    Log.i(TAG, "[AF] Front camera — visual Focused at $center session=$mySession")
+                    startDriftMonitoring(center, mySession)
+                }
+                return@launch
+            }
             val result = withTimeoutOrNull(AmbientConstants.FOCUS_AF_TIMEOUT_MS) {
                 try {
                     cameraRepository.focusOnPoint(x, y, viewWidth, viewHeight)
