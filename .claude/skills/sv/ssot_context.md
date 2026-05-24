@@ -89,9 +89,17 @@ presentation/ → Jetpack Compose + ViewModel
 | DOF 後置管線 | ML Kit Selfie Seg + StackBlur，拍後處理 | CameraX rebinding 黑屏 |
 | 前鏡頭 Fixed-Focus | 只追求視覺成功，不等物理對焦 | AF 超時死鎖 |
 | VCM 馬達冷卻 | Eye-AF 呼叫間隔 ≥ 2-3 秒 | 馬達過熱 |
-| Focus AF 超時 | `FOCUS_AF_TIMEOUT_MS` = 2000ms | 超時 → Failed 狀態 |
-| Focus drift 閾值 | `FOCUS_DRIFT_THRESHOLD_DEG` = 15° | Focused → fadeout → Idle |
-| Focus 長按閾值 | `FOCUS_LONG_PRESS_MS` = 500ms | 觸發 AE/AF Lock |
+| Focus 圓環尺寸 | `FOCUS_RING_SIZE_DP` = 60dp | 圓環外徑（SSOT A.1） |
+| Focus 圓環線寬 | `FOCUS_RING_STROKE_DP` = 1.5dp | 邊框寬度（SSOT A.1） |
+| Focus AF 超時 | `FOCUS_AF_TIMEOUT_MS` = 2000ms | 超時 → Failed 狀態（SSOT A.2.1） |
+| Focus fadeout | `FOCUS_FADEOUT_MS` = 500ms | drift 後淡出（SSOT A.2.2.1） |
+| Focus Failed | `FOCUS_FAILED_MS` = 800ms | Failed 振盪時長（SSOT A.2.3） |
+| Focus 長按閾值 | `FOCUS_LONG_PRESS_MS` = 500ms | 觸發 AE/AF Lock（SSOT A.2.4） |
+| Focus drift 閾值 | `FOCUS_DRIFT_THRESHOLD_DEG` = 15° | Focused → fadeout → Idle（SSOT A.2.2.1） |
+| 對齊統一門檻 | `ALIGNED_THRESHOLD_DEG` = 5° | 三通道共用（SSOT §2.0） |
+| Level 漸入區間 | `LEVEL_FADE_RANGE_DEG` = 10° | N=10°，T7 核心公式（SSOT §2.0.1） |
+| 快門閃爍 | `SHUTTER_FLASH_DURATION_MS` = 300ms | 拍攝確認（SSOT §10.3.1） |
+| 標準過渡 | `TRANSITION_FAST_MS` = 300ms | 動畫通用時長（SSOT §2.0） |
 
 ---
 
@@ -118,9 +126,23 @@ presentation/ → Jetpack Compose + ViewModel
 ### 5.4 場景判斷優先級
 
 ```
-PASS_TO_FRIEND (手動) > pitch > 35° (Food) > face detected (Portrait) > General
+PASS_TO_FRIEND (手動) > pitch > 35° (Food) > pitch ∈ [-10°,35°] + face (Portrait) > General > pitch < -10° (LowAngle)
 切換 hysteresis: 500ms
 ```
+
+### 5.5 P05 Photo Mode Recovery 活躍範圍
+
+| Ticket | 狀態 | 驗收焦點 |
+| ------ | ---- | ------- |
+| T1 | ✅ Done | Eye-AF 視覺環 flag 關閉，FocusIndicatorOverlay 不渲染 |
+| T2 | ✅ Done | TapFocusRing 五態渲染，Canvas ≤1 次 drawCircle |
+| T3 | 🔧 Active | TapFocusController 狀態機 SSOT A.3 + CameraX AF 接線 |
+| T4 | 🔧 Active | Scrim y=0 α0.22 → y=120px α0 |
+| T5 | ✅ Done | 快門色彩硬編碼 B.3.3 |
+| T6 | ✅ Done | Grid 預設可見 |
+| T7 | 🔧 Active | Level Traction 退場 N=10° 公式 |
+
+**Strangler Fig 架構**：TapFocusRing/Controller 為新建系統，FocusIndicatorOverlay 為 MVP 關閉但保留的舊系統。兩套共存不衝突。
 
 ---
 
@@ -129,7 +151,7 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > face detected (Portrait) > Gener
 | 用途 | 色值 | Alpha 上限 |
 |------|------|-----------|
 | Pitch Traction / Halo 未對齊 | `#D4A030` | 0.20 / 0.25 |
-| Halo 對齊 | `#50C864` | 0.35 |
+| Halo 對齊（呼吸峰值） | `#50C864` | 0.18（呼吸 0.10↔0.18） |
 | 呼吸韻律 | alpha 0.10 ↔ 0.18 | 2000ms 週期 |
 | 底部 Photo 背景 | `#0D0D0D` | — |
 | 底部 PTF 背景 | `#1A1714` | — |
@@ -146,11 +168,17 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > face detected (Portrait) > Gener
 
 ## 文件元資訊
 
-- **版本**: ssot_context v1.3
+- **版本**: ssot_context v1.4
 - **建立日期**: 2026-05-04
-- **更新日期**: 2026-05-19
+- **更新日期**: 2026-05-24
 - **來源**: SSOT v4.0.2 + Layout Spec v2.3 + P05 Contract (Strangler Fig 架構變更)
-- **行數**: ~130 行
+- **行數**: ~155 行
+- **變更摘要 (v1.3 → v1.4)**:
+  - §4 FOCUS_* 常數從 3 → 7（補 RING_SIZE, RING_STROKE, FADEOUT, FAILED）
+  - §4 新增 ALIGNED_THRESHOLD_DEG, LEVEL_FADE_RANGE_DEG (10°), SHUTTER_FLASH_DURATION_MS, TRANSITION_FAST_MS
+  - §5.4 補 LowAngleMode (pitch < -10°)
+  - §5.5 新增 P05 活躍範圍（T1-T7 狀態表）
+  - §6 Halo 對齊 alpha 0.35 → 0.18（修正 SSOT 代碼對齊）
 - **變更摘要 (v1.2 → v1.3)**:
   - SSOT 版本 v4.0 → v4.0.2, Layout Spec v2.2 → v2.3
   - §1 新增 `camera/focus/` 子目錄 + overlay 條目更新
