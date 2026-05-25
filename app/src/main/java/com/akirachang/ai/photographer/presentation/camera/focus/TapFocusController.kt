@@ -60,12 +60,18 @@ class TapFocusController @Inject constructor(
 
         when (current) {
             is TapFocusState.Locked -> {
-                // Unlock AE/AF before switching to new focus point
-                viewModelScope.launch {
+                // RC-2: await cancelFocusAndMetering() before starting new focus to prevent CameraX race.
+                // Single sequential coroutine: cancel → flash delay → doFocus (no fire-and-forget).
+                val mySession = ++sessionId
+                _tapFocusState.value = TapFocusState.Failed(current.center)
+                flashJob = viewModelScope.launch {
                     cameraRepository.cancelFocusAndMetering()
-                    Log.d(TAG, "[Re-tap] AE/AF unlocked")
+                    Log.d(TAG, "[Re-tap] AE/AF unlocked session=$mySession")
+                    delay(AmbientConstants.FOCUS_RETAP_FLASH_MS)
+                    if (sessionId == mySession) {
+                        doFocus(newCenter, x, y, viewWidth, viewHeight, mySession, isFrontCamera)
+                    }
                 }
-                flashAndFocus(current.center, newCenter, x, y, viewWidth, viewHeight, isFrontCamera)
             }
             // SSOT A.4: re-tap from Focusing/Focused → Failed flash at old position → new Focusing
             is TapFocusState.Focusing -> {
@@ -92,7 +98,13 @@ class TapFocusController @Inject constructor(
         _tapFocusState.value = TapFocusState.Locked(center)
         viewModelScope.launch {
             val result = cameraRepository.lockAEAF(x, y, viewWidth, viewHeight)
-            Log.i(TAG, "[LongPress] lockAEAF result=${result.isSuccess} session=$mySession")
+            // RC-5: rollback UI from Locked to Failed if hardware lock fails.
+            if (result.isFailure && sessionId == mySession && _tapFocusState.value is TapFocusState.Locked) {
+                Log.w(TAG, "[LongPress] lockAEAF failed — rollback to Failed session=$mySession")
+                transitionToFailed(center, mySession)
+            } else {
+                Log.i(TAG, "[LongPress] lockAEAF result=${result.isSuccess} session=$mySession")
+            }
         }
     }
 
@@ -168,13 +180,11 @@ class TapFocusController @Inject constructor(
                     val dPitch = orientation.pitch - basePitch!!
                     sqrt(dRoll * dRoll + dPitch * dPitch) >= AmbientConstants.FOCUS_DRIFT_THRESHOLD_DEG
                 }
-                // Drift detected: run fadeout then reset to Idle
+                // RC-3 (CSO-B): drift detected → set Idle; TapFocusRing handles 500ms alpha fadeout
+                // in render layer (Animatable<Float> previousState tracking, SSOT A.2.2.1).
                 if (sessionId == mySession && _tapFocusState.value is TapFocusState.Focused) {
-                    Log.i(TAG, "[Drift] ≥${AmbientConstants.FOCUS_DRIFT_THRESHOLD_DEG}° — fadeout ${AmbientConstants.FOCUS_FADEOUT_MS}ms")
-                    delay(AmbientConstants.FOCUS_FADEOUT_MS)
-                    if (sessionId == mySession) {
-                        _tapFocusState.value = TapFocusState.Idle
-                    }
+                    Log.i(TAG, "[Drift] ≥${AmbientConstants.FOCUS_DRIFT_THRESHOLD_DEG}° — fadeout ${AmbientConstants.FOCUS_FADEOUT_MS}ms (render layer)")
+                    _tapFocusState.value = TapFocusState.Idle
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "[Drift] monitoring ended: ${e.message}")
@@ -190,6 +200,17 @@ class TapFocusController @Inject constructor(
                 _tapFocusState.value = TapFocusState.Idle
             }
         }
+    }
+
+    fun resetToIdle() {
+        cancelActiveJobs()
+        if (_tapFocusState.value is TapFocusState.Locked) {
+            viewModelScope.launch {
+                cameraRepository.cancelFocusAndMetering()
+                Log.i(TAG, "[resetToIdle] AE/AF unlocked — lifecycle cleanup")
+            }
+        }
+        _tapFocusState.value = TapFocusState.Idle
     }
 
     private fun cancelActiveJobs() {

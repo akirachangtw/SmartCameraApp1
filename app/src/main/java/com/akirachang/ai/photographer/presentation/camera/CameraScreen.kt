@@ -178,6 +178,7 @@ fun CameraScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP) {
                 viewModel.onEvent(CameraUiEvent.UnlockAEAF)
+                tapFocusController.resetToIdle()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
