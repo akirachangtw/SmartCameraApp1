@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → RC-1~RC-5 全部修復完成 · P05-T3 待 Traycer 終審
-**Last Updated**: 2026-05-24
+**Current Day**: D9 → RC-3-FOLLOWUP + RC-4-FOLLOWUP code DONE · P05-T3 待 Traycer 終審
+**Last Updated**: 2026-05-25
 
 ---
 
@@ -11,7 +11,7 @@
 | Metric | Status |
 | -------- | -------- |
 | Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 T7 pre-commit fa5afb8 done |
-| Compile | 0 errors ✅ (assembleDebug 44s incremental) |
+| Compile | 0 errors ✅ (assembleDebug 63s incremental) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
@@ -67,6 +67,7 @@
 ## Next Actions
 
 > **Session J 完成（2026-05-24）：RC-1~RC-5 全部修復 — Split-Brain(RC-1) / Await Cancel(RC-2) / FadingOut 中間態(RC-3) / FOCUS_FAILED_MS 常數化(RC-4) / Lock Rollback(RC-5)，QA PASS（181 tests, 0 failed）**
+> **Session K 完成（2026-05-25）：RC-3-FOLLOWUP（Failed→Idle render fadeout 補齊）+ RC-4-FOLLOWUP（TapFocusRing magic number 常數治理）QA PASS（181 tests, 0 failed）**
 > **下一步：Traycer execute_review（VSCode Extension，手動觸發，diff: fccd5cf..HEAD）→ PASS 後 PROGRESS.md docs commit → P05-T4 或 P05-T7**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
