@@ -67,8 +67,8 @@ private val BadgeBorder     = Color(0xFFD4A030)   // 琥珀金
  *
  * State transitions and tap wiring are T3 scope; this composable is pure rendering.
  *
- * RC-3 (CSO-B): Focused→Idle fadeout is a render-layer concern only.
- * fadeAlpha animates 1f→0f over FOCUS_FADEOUT_MS when previousState was Focused.
+ * RC-3 (CSO-B): Focused/Failed→Idle fadeout is a render-layer concern only.
+ * fadeAlpha animates 1f→0f over FOCUS_FADEOUT_MS when previousState was Focused or Failed.
  * No FadingOut state machine member — SSOT 5-state set is preserved.
  */
 @Composable
@@ -96,7 +96,7 @@ fun TapFocusRing(
         initialValue = 0.85f,
         targetValue = 0.92f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+            animation = tween(durationMillis = AmbientConstants.FOCUS_PULSE_CYCLE_MS.toInt(), easing = FastOutSlowInEasing),
             repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
         ),
         label = "pulseScale",
@@ -119,14 +119,14 @@ fun TapFocusRing(
     // RC-4: 200ms color transition — SSOT has no explicit constant for color-transition duration.
     val animatedColor by animateColorAsState(
         targetValue = colorTarget.copy(alpha = alphaTarget),
-        animationSpec = tween(200),
+        animationSpec = tween(AmbientConstants.FOCUS_COLOR_TRANSITION_MS.toInt()),
         label = "ringColor",
     )
 
     // ── Per-state animation launch ────────────────────────────────────────────
     LaunchedEffect(state) {
-        // RC-3 (CSO-B): SSOT A.2.2.1 α 0.8→0 over FOCUS_FADEOUT_MS — render layer only.
-        if (previousState.value is TapFocusState.Focused && state == TapFocusState.Idle) {
+        // RC-3 (CSO-B): SSOT A.2.2.1 α→0 over FOCUS_FADEOUT_MS — render layer only.
+        if ((previousState.value is TapFocusState.Focused || previousState.value is TapFocusState.Failed) && state == TapFocusState.Idle) {
             fadeAlpha.animateTo(0f, tween(AmbientConstants.FOCUS_FADEOUT_MS.toInt()))
         } else {
             fadeAlpha.snapTo(1f)
@@ -148,7 +148,7 @@ fun TapFocusRing(
                 )
                 arcRotation.animateTo(
                     targetValue = 60f,
-                    animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+                    animationSpec = tween(durationMillis = AmbientConstants.FOCUS_ARC_ROTATION_MS.toInt(), easing = FastOutSlowInEasing),
                 )
             }
             is TapFocusState.Focused -> {
@@ -167,11 +167,11 @@ fun TapFocusRing(
                     animationSpec = keyframes {
                         durationMillis = AmbientConstants.FOCUS_FAILED_MS.toInt()
                         1.0f at 0
-                        0.97f at 60
-                        1.03f at 120
-                        0.97f at 180
-                        1.03f at 240
-                        1.20f at 500
+                        0.97f at AmbientConstants.FOCUS_FAILED_KEYFRAME_1_MS.toInt()
+                        1.03f at AmbientConstants.FOCUS_FAILED_KEYFRAME_2_MS.toInt()
+                        0.97f at AmbientConstants.FOCUS_FAILED_KEYFRAME_3_MS.toInt()
+                        1.03f at AmbientConstants.FOCUS_FAILED_KEYFRAME_4_MS.toInt()
+                        1.20f at AmbientConstants.FOCUS_FAILED_EXPAND_MS.toInt()
                         1.0f at AmbientConstants.FOCUS_FAILED_MS.toInt()
                     },
                 )
@@ -184,11 +184,11 @@ fun TapFocusRing(
                 badgeAlpha.snapTo(0f)
                 badgeScale.animateTo(
                     targetValue = 1.0f,
-                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                    animationSpec = tween(durationMillis = AmbientConstants.FOCUS_BADGE_ENTER_MS.toInt(), easing = FastOutSlowInEasing),
                 )
                 badgeAlpha.animateTo(
                     targetValue = 1.0f,
-                    animationSpec = tween(durationMillis = 300),
+                    animationSpec = tween(durationMillis = AmbientConstants.FOCUS_BADGE_ENTER_MS.toInt()),
                 )
             }
             TapFocusState.Idle -> {
@@ -205,7 +205,11 @@ fun TapFocusRing(
     if (state == TapFocusState.Idle && !isFadingOut) return
 
     val center = when {
-        isFadingOut -> (previousState.value as? TapFocusState.Focused)?.center ?: Offset.Zero
+        isFadingOut -> when (val prev = previousState.value) {
+            is TapFocusState.Focused -> prev.center
+            is TapFocusState.Failed  -> prev.center
+            else -> Offset.Zero
+        }
         state is TapFocusState.Focusing -> state.center
         state is TapFocusState.Focused  -> state.center
         state is TapFocusState.Failed   -> state.center
@@ -213,9 +217,13 @@ fun TapFocusRing(
         else -> Offset.Zero
     }
 
-    // RC-3 (CSO-B): during fadeout use Focused color at decaying alpha; otherwise use animatedColor.
+    // RC-3 (CSO-B): during fadeout use previous state color at decaying alpha; otherwise use animatedColor.
     val drawColor = if (isFadingOut) {
-        ColorFocused.copy(alpha = 0.8f * fadeAlpha.value)
+        when (val prev = previousState.value) {
+            is TapFocusState.Focused -> ColorFocused.copy(alpha = 0.8f * fadeAlpha.value)
+            is TapFocusState.Failed  -> ColorFailed.copy(alpha = 0.6f * fadeAlpha.value)
+            else -> animatedColor
+        }
     } else {
         animatedColor
     }

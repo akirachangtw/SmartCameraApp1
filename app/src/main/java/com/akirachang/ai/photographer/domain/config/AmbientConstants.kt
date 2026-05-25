@@ -85,4 +85,25 @@ object AmbientConstants {
 
     /** Re-tap Failed flash duration (ms): old ring shows Failed before new Focusing starts (SSOT A.4). */
     const val FOCUS_RETAP_FLASH_MS = 100L
+
+    /** Duration (ms) of the ring color cross-fade animation when state changes. */
+    const val FOCUS_COLOR_TRANSITION_MS = 200L
+
+    /** Duration (ms) of one pulse half-cycle for Focused state breathing animation. */
+    const val FOCUS_PULSE_CYCLE_MS = 800L
+
+    /** Duration (ms) of arc rotation animation during Focusing state. */
+    const val FOCUS_ARC_ROTATION_MS = 400L
+
+    /** Duration (ms) of Locked badge enter animation (scale + alpha). */
+    const val FOCUS_BADGE_ENTER_MS = 300L
+
+    /** Failed oscillation keyframe timestamps (ms). */
+    const val FOCUS_FAILED_KEYFRAME_1_MS = 60L
+    const val FOCUS_FAILED_KEYFRAME_2_MS = 120L
+    const val FOCUS_FAILED_KEYFRAME_3_MS = 180L
+    const val FOCUS_FAILED_KEYFRAME_4_MS = 240L
+
+    /** Failed state max-expansion keyframe (ms) — peak scale before settle. */
+    const val FOCUS_FAILED_EXPAND_MS = 500L
 }

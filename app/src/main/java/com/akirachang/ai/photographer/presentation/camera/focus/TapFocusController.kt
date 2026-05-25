@@ -195,7 +195,7 @@ class TapFocusController @Inject constructor(
     private fun transitionToFailed(center: Offset, mySession: Int) {
         _tapFocusState.value = TapFocusState.Failed(center)
         failedResetJob = viewModelScope.launch {
-            delay(AmbientConstants.FOCUS_FAILED_MS + AmbientConstants.FOCUS_FADEOUT_MS)
+            delay(AmbientConstants.FOCUS_FAILED_MS)
             if (sessionId == mySession && _tapFocusState.value is TapFocusState.Failed) {
                 _tapFocusState.value = TapFocusState.Idle
             }
