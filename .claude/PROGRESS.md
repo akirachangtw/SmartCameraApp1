@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → P05-T1 SV ✅ PASS (R3) · P05-T2 SV Round 7 待執行（badge fix 已提交）
-**Last Updated**: 2026-05-19
+**Current Day**: D9 → RC-1~RC-5 全部修復完成 · P05-T3 待 Traycer 終審
+**Last Updated**: 2026-05-24
 
 ---
 
@@ -10,8 +10,8 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ SV PASS (R3) — P05-T2 🟡 SV Round 7 待執行 — P05-T6 ✅ SV+CR PASS — P05-T5 ✅ SV+CR PASS — 待 Traycer |
-| Compile | 0 errors ✅ (assembleDebug 25s incremental) |
+| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 T7 pre-commit fa5afb8 done |
+| Compile | 0 errors ✅ (assembleDebug 44s incremental) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
@@ -66,8 +66,8 @@
 
 ## Next Actions
 
-> **Session H 完成：P05-T1 SV PASS (R3) + commit 拆分 · P05-T2 badge HC-1 fix 已提交**
-> **下一步：P05-T2 /sv Round 7（`bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md "a9558fc..99ae527"`）→ PASS 後 Traycer 終審 → P05-T3**
+> **Session J 完成（2026-05-24）：RC-1~RC-5 全部修復 — Split-Brain(RC-1) / Await Cancel(RC-2) / FadingOut 中間態(RC-3) / FOCUS_FAILED_MS 常數化(RC-4) / Lock Rollback(RC-5)，QA PASS（181 tests, 0 failed）**
+> **下一步：Traycer execute_review（VSCode Extension，手動觸發，diff: fccd5cf..HEAD）→ PASS 後 PROGRESS.md docs commit → P05-T4 或 P05-T7**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
