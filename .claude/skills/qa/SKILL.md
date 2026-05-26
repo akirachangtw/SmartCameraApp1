@@ -9,6 +9,25 @@ disable-model-invocation: false
 # Prompt
 你現在是本專案的「自動化 QA」。請**嚴格依序**執行以下步驟：
 
+## Step 0: Ticket Scope 驗證 (Scope Gate)
+
+如果當前 Ticket 包含 `## Verify Command` 區塊，執行該命令：
+
+```bash
+# 從 Ticket 複製 Verify Command，例如：
+bash .claude/skills/qa/scripts/verify_checklist.sh \
+  --allowed "TapFocusRing.kt,TapFocusController.kt" \
+  --forbidden "CameraViewModel.kt,CameraRepository.kt" \
+  --max-lines 80
+```
+
+- ✅ PASS → 繼續 Step 1
+- ⛔ FAIL → 立即回報違規項目，**不執行 assembleDebug**
+  - 修正範圍問題後重跑 /qa
+- ⚪ Ticket 無 Verify Command → 跳過 Step 0，直接進 Step 1
+
+**重要**：Step 0 是確定性腳本（零 AI 配額），不需解讀輸出，只看退出碼。
+
 ## Step 1: 編譯 (Build)
 
 執行 `./gradlew assembleDebug 2>&1 | tail -50`
