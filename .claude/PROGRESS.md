@@ -2,7 +2,7 @@
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
 **Current Day**: D9 → RC-3-FOLLOWUP + RC-4-FOLLOWUP DONE · INFRA-002~005 DONE · P05-T3 待 Traycer 終審
-**Last Updated**: 2026-05-26
+**Last Updated**: 2026-05-27
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 T7 pre-commit fa5afb8 done |
+| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 T7 pre-commit fa5afb8 done — **3 Bugs 待 CSO 裁決（GazeAF/PitchDot5/Pixel9aLayout）** |
 | Compile | 0 errors ✅ (assembleDebug 63s incremental) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
@@ -69,7 +69,8 @@
 > **Session J 完成（2026-05-24）：RC-1~RC-5 全部修復 — Split-Brain(RC-1) / Await Cancel(RC-2) / FadingOut 中間態(RC-3) / FOCUS_FAILED_MS 常數化(RC-4) / Lock Rollback(RC-5)，QA PASS（181 tests, 0 failed）**
 > **Session K 完成（2026-05-25）：RC-3-FOLLOWUP（Failed→Idle render fadeout 補齊）+ RC-4-FOLLOWUP（TapFocusRing magic number 常數治理）QA PASS（181 tests, 0 failed）**
 > **Session L 完成（2026-05-26）：INFRA-002~005 — .gitignore session_handoff、/qa Step 0 Scope Gate verify_checklist.sh、CSO briefing 重組、CSO_Session_Startup_SOP 永駐層精簡（19K→2K）**
-> **下一步：Traycer execute_review（VSCode Extension，手動觸發，diff: fccd5cf..HEAD，path filter: 3 Kotlin 檔）→ PASS → P05-T4 或 P05-T7**
+> **Session M 完成（2026-05-27）：純調查 — GazeAF 琥珀圓環根因定位（Ghost Face bbox + gazeScore=0.0 雙層 Bug）、PitchTraction 第5顆光點 Sony nav bar 遮蔽分析、Pixel 9a 預覽雙層覆蓋三因子分析、UITA SOP v2.1 更新。三項 Bug 等待 CSO 裁決選項後開 Ticket**
+> **下一步：CSO 裁決 GazeAF 修復選項（A/B/C/D）→ 開 Ticket → `EyeAfController.kt` Guard 修補**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
