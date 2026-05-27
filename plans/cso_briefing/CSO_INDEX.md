@@ -29,14 +29,6 @@
 | RULES | Claude Code 路徑規則 | `.claude/rules/*.md` | 特定領域審查 |
 | PROGRESS | 進度 Dashboard | `.claude/PROGRESS.md` | Session 開場確認狀態 |
 
-### 角色 Prompt 文件
-
-| ID | 文件 | Filesystem 路徑 | 讀取時機 |
-|----|------|----------------|---------|
-| GPT-ORDER | GPT 執行令 Prompt | `plans/cso_briefing/role/Cueshot_GPT55_Execution_Order_v1.md` | 產出 GPT 修補單 |
-| GPT-PHASE | GPT Phase B Prompt | `plans/cso_briefing/role/Cueshot_PhaseB_GPT55_Prompt_v1.md` | GPT 審查 |
-| GEMINI | Gemini CoS PDCA Prompt | `plans/cso_briefing/role/Gemini PDCA Role Prompt.md` | Dispatch 產出 |
-
 ### 狀態追蹤
 
 | ID | 文件 | Filesystem 路徑 | 讀取時機 |
@@ -102,10 +94,6 @@ plans/cso_briefing/
 │   ├── Pending/                    ← 待執行提交
 │   │   └── T7_Addendum_LevelFadeRange.md
 │   └── Postponed.md                ← 暫緩執行
-├── role/                           ← 角色 Prompt
-│   ├── Cueshot_GPT55_Execution_Order_v1.md
-│   ├── Cueshot_PhaseB_GPT55_Prompt_v1.md
-│   └── Gemini PDCA Role Prompt.md
 ├── reports/                        ← 審查報告
 │   ├── full_audit_and_tickets.md
 │   └── scorched_earth_report.md
