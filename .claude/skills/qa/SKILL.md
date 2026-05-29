@@ -118,14 +118,15 @@ Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error
 /sv + Cross-Review PASS 後，執行最終結構完整性驗證：
 
 ```bash
-bash .claude/skills/qa/scripts/structural_verify.sh
+bash .claude/skills/qa/scripts/structural_verify.sh ./sv_report.md "" --post
 ```
 
 - ✅ PASS (exit 0) → Ticket 驗收完成，可提交 Traycer
 - ⛔ FAIL (exit 1) → 回報具體失敗項，**不標記 Ticket Done**
 - ⚪ ENV ERROR (exit 2) → 回報環境問題，不阻斷 Traycer 提交
 
-檢查項目：A/B/C（SV Report vs diff 一致）+ D（sv_report 五段結構）+ E（cross_review PASS）+ F（PROGRESS.md 格式）
+`--post` 模式執行 A/B/C/D/E/F（D: sv_report 五段結構 / E: cross_review PASS / F: PROGRESS.md 格式）。
+不帶 `--post`（cross_review.sh pre-check）只跑 A/B/C，不讀 `.tmp/cross_review_state`。
 
 ## 回報格式
 

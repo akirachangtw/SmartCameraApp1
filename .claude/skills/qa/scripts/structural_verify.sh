@@ -2,16 +2,18 @@
 # structural_verify.sh v1.3 — SV Report vs Git Diff 三向一致性驗證 + Pipeline 結構校驗
 #
 # 用法：
-#   bash .claude/skills/qa/scripts/structural_verify.sh [sv_report] [diff_scope_or_ref]
+#   bash .claude/skills/qa/scripts/structural_verify.sh [sv_report] [diff_scope_or_ref] [--post]
 #   arg2: "ref..HEAD" (scope) 或單一 commit ref (自動補 ..HEAD)
+#   --post: 啟用 post mode，額外執行 Check D/E/F（/qa Step 5 使用）
+#           pre-check 模式（cross_review.sh 呼叫，不帶 --post）只跑 A/B/C
 #
 # 檢查規則：
-#   A. report 宣稱但 diff 無此檔 → FAIL (幽靈宣稱)
-#   B. diff 有但 report 未列    → FAIL (漏揭露)
-#   C. Excluded Payload 的每個檔案必須也出現在 Files Changed → FAIL (排除但未揭露)
-#   D. sv_report 五段結構完整性 → FAIL (缺必要段落)
-#   E. cross_review PASS 確認   → FAIL (未通過或 BLOCKER)
-#   F. PROGRESS.md 格式校驗     → FAIL (缺必要欄位)
+#   A. report 宣稱但 diff 無此檔 → FAIL (幽靈宣稱)         [pre + post]
+#   B. diff 有但 report 未列    → FAIL (漏揭露)              [pre + post]
+#   C. Excluded Payload 的每個檔案必須也出現在 Files Changed → FAIL [pre + post]
+#   D. sv_report 五段結構完整性 → FAIL (缺必要段落)          [post only]
+#   E. cross_review PASS 確認   → FAIL (未通過或 BLOCKER)    [post only]
+#   F. PROGRESS.md 格式校驗     → FAIL (缺必要欄位)          [post only]
 #
 # 退出碼：
 #   0 — PASS
@@ -20,8 +22,19 @@
 
 set -euo pipefail
 
-SV_REPORT="${1:-./sv_report.md}"
-SCOPE_ARG="${2:-}"
+# ─── Parse --post flag (may appear in any position) ───
+POST_MODE=false
+POSITIONAL=()
+for _arg in "$@"; do
+  if [[ "$_arg" == "--post" ]]; then
+    POST_MODE=true
+  else
+    POSITIONAL+=("$_arg")
+  fi
+done
+
+SV_REPORT="${POSITIONAL[0]:-./sv_report.md}"
+SCOPE_ARG="${POSITIONAL[1]:-}"
 
 fail_env() { echo "❌ ENV ERROR: $*" >&2; exit 2; }
 
@@ -108,6 +121,10 @@ if [[ $FAIL -eq 1 ]]; then
 fi
 
 echo "✅ STRUCTURAL VERIFY PASS (A/B/C) — git diff ${DIFF_SCOPE}"
+
+if [[ "$POST_MODE" != "true" ]]; then
+  exit 0
+fi
 
 # ─── Check D: sv_report 五段結構 ───
 echo ""

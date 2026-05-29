@@ -112,6 +112,7 @@ _SV_SCRIPT=".claude/skills/qa/scripts/structural_verify.sh"
 if [[ -f "$_SV_SCRIPT" ]]; then
   echo "🔍 Pre-check: structural_verify.sh..."
   set +e
+  # pre-check: no --post flag → only A/B/C (D/E/F reserved for /qa Step 5 --post mode)
   bash "$_SV_SCRIPT" "$SV_REPORT" "$DIFF_SCOPE"
   _SV_EXIT=$?
   set -e
