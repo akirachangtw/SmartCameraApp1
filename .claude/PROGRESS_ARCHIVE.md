@@ -143,6 +143,14 @@
 
 ---
 
+### D12 — Pipeline 微學習建議器
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D12-T1 | Stop Hook CLAUDE.md 微學習建議器（session >50 行時輸出 ≤2 條 CLAUDE.md 更新建議）| ✅ Done | `.claude/hooks/stop.sh`, `.claude/settings.local.json` |
+
+---
+
 ## KAIROS Retrospectives
 
 ### KAIROS #1 — D2 (2026-04-10) ✅ EXECUTED
