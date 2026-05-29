@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D9 → RC-3-FOLLOWUP + RC-4-FOLLOWUP DONE · INFRA-002~005 DONE · P05-T3 待 Traycer 終審
+**Current Day**: D10 → D10-T1 DONE（Pipeline Boot 基礎建設）
 **Last Updated**: 2026-05-29
 
 ---
@@ -10,8 +10,8 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **4 Bugs 待 Ticket（GridOverlay/GazeAF/PitchDot5/Pixel9aLayout）** |
-| Compile | 0 errors ✅ (assembleDebug 63s incremental) |
+| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ QA PASS** — **4 Bugs 待 Ticket（GridOverlay/GazeAF/PitchDot5/Pixel9aLayout）** |
+| Compile | 0 errors ✅ (assembleDebug 62s incremental) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 

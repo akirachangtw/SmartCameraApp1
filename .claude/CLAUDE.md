@@ -4,13 +4,15 @@
 
 ## ⚡ Boot Sequence
 
-Session 啟動 → 讀 PROGRESS.md → 輸出 Boot Report → **停止等 Ticket**。
+Session 啟動 → `mkdir -p tmp && rm -f tmp/verify_cmd.conf tmp/sv_report.md tmp/handoff.md` → 讀 PROGRESS.md → 輸出 Boot Report → **停止等 Ticket**。
 ```
 📍 Ticket: [ID] / 無 → 停止
 📊 CLAUDE.md [N]行 | PROGRESS.md [N]行
 ⚠️ Blockers: [列出或「無」]
 🌐 Output Language: [繁體中文 / EN]
 ```
+
+Ticket 含 `## Verify Config` 區塊時，必須將該區塊內容複製為 `tmp/verify_cmd.conf`（純文字，原樣複製，不加工）。
 
 ---
 
