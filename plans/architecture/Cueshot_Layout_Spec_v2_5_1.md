@@ -1,15 +1,16 @@
-# Cueshot 佈局規格 v2.5 — 兩區塊模型
+# Cueshot 佈局規格 v2.5.1 — 兩區塊模型
 
 **版本**: Layout Spec v2.5.1 (SSOT v4.0.5 Alignment + D-25 Layer 1 文案修正 + D-26 LEGACY 光線指示修復)  
-**最後更新**: 2026-05-28  
+**最後更新**: 2026-05-29  
 **變更歷程**:  
 - v2.0 → v2.1：§5 Pill Toggle 文字標籤改為圖示（Camera / Users）  
 - v2.1 → v2.2：Edge Warmth 命名全面淨化（4 處）+ SSOT v4.0 數值對齊（Scrim 120px）+ 文件引用更新  
 - v2.2 → v2.3：**16 項修訂**（見 §11 修訂追蹤 v2.2→v2.3）— SSOT v4.0.2 交叉審計全面對齊 + R14 快門下移落地 + Overlay 圖層重寫  
 - v2.3 → v2.4：**8 項修訂**（見 §12 修訂追蹤 v2.3→v2.4）— SSOT v4.0.3 交叉審計：版本錨點全量更新 + Top Bar 光線指示三態 pulse 規格 + Edge-to-Edge/Cutout 規格 + FILL_CENTER 禁止聲明 + Scaffold padding 規則  
 - v2.4 → v2.5：**3 項修訂**（見 §13 修訂追蹤 v2.4→v2.5）— Grid α0.35/1.5px + Z-order 交換 + Grid 詳細規格表
+- v2.5 → v2.5.1：**2 項修訂**（見 §14 修訂追蹤 v2.5→v2.5.1）— Layer 1 文案修正 + LEGACY 光線指示修復
 **決策來源**: CSO Session D8 — Top Bar Overlay 化 + Photo/PTF Pill Toggle · Session 4 D-12 快門下移 · Session 6 D-14~D-19 · **Session 8 D-24 Grid 規格**
-**取代**: v2.5 及所有前版（v2.4, v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）（v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）  
+**取代**: v2.5 及所有前版（v2.4, v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）  
 **上游文件**: `SSOT_v4_0_5.md`（唯一真理文件）  
 **下游文件**: Prototyper Prompt v2 · Background Image Prompts v2
 
@@ -532,10 +533,29 @@ The image will be used as a full-screen background layer in a camera app UI prot
 
 本文件已通過以下自動化檢查：
 - ✅ **命名淨化**：全文不存在 "Edge Warmth" 或 "水平儀" 作為渲染元件名稱
-- ✅ **上游引用**：全部指向 `SSOT_v4_0_5.md`，零殘留 `SSOT_v4_0_3.md`
+- ✅ **上游引用**：當前有效引用全部指向 `SSOT_v4_0_5.md`，不再指向 v2.5 以前的 SSOT 入口
 - ✅ **Overlay 圖層描述**：§3.3 逐字對齊 SSOT v4.0.5 §Viewfinder Overlay
 - ✅ **D-series 決策傳播**：D-24（Grid 規格 + Z-order + cold start 過渡）落地
 - ✅ **Layer 詳細規格完整性**：Layer 1（Pitch）+ Layer 2（Grid）+ Layer 3（Halo）均有詳細規格表
+
+---
+
+## 14. v2.5 → v2.5.1 修訂追蹤
+
+### 修訂總覽：2 項，全部完成
+
+| # | 嚴重度 | 段落 | 修訂摘要 | 對應審計項 |
+|---|--------|------|---------|-----------|
+| H-4 | 🔴 Critical | §3.3 Overlay 總表 Layer 1 | **Pitch Traction「漸層（邊帶 15% viewport）」→「指示柱（右側 16dp, 36dp×25% viewfinder）」** | SSOT R35 / D-25 |
+| H-5 | 🟠 High | §3.2.1 三級裝置降級 | **LEGACY 光線指示「靜態 amber α0.60」→「不顯示光線狀態（靜態白色 α0.85）」** | SSOT R36 / D-26 |
+
+### 零殘留驗證
+
+本文件已通過以下自動化檢查：
+- ✅ **版本錨點**：當前有效上游文件指向 `SSOT_v4_0_5.md`
+- ✅ **Overlay 圖層描述**：§3.3 Layer 1 已對齊 SSOT v4.0.5 R35 / D-25
+- ✅ **LEGACY 光線指示**：§3.2.1 已對齊 SSOT v4.0.5 R36 / D-26，無數據源時不渲染 amber 狀態色
+- ✅ **修訂追溯性**：H-4 / H-5 已登記於本 §14
 
 ---
 
@@ -543,11 +563,11 @@ The image will be used as a full-screen background layer in a camera app UI prot
 
 - **版本**: Layout Spec v2.5.1 (SSOT v4.0.5 Alignment + D-25 Layer 1 文案修正 + D-26 LEGACY 光線指示修復)
 - **建立日期**: 2026-04-25
-- **修訂日期**: 2026-05-28
+- **修訂日期**: 2026-05-29
 - **決策鏈**: CSO Session D8 → Top Bar Overlay 化 → Photo/PTF Pill Toggle (Option A + Color C) → 暖色偏移 → **Session 4 D-12 快門下移 4dp** → **Session 6 D-14~D-19 全面修復** → **Session 8 D-24 Grid 規格鎖定**
-- **取代**: v2.5 及所有前版（v2.4, v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）（v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）
+- **取代**: v2.5 及所有前版（v2.4, v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）
 - **上游文件**: `SSOT_v4_0_5.md`（唯一真理文件）
-- **審查狀態**: UITA 交叉審計完成 — v2.2→v2.3 16 項 + v2.3→v2.4 8 項 + v2.4→v2.5 3 項修訂全部落地 + 零殘留驗證通過
+- **審查狀態**: UITA 交叉審計完成 — v2.2→v2.3 16 項 + v2.3→v2.4 8 項 + v2.4→v2.5 3 項 + v2.5→v2.5.1 2 項修訂全部落地 + 零殘留驗證通過
 - **命名規範**: 本文件中不存在 "Edge Warmth" 或 "水平儀" 作為渲染元件名稱。三通道體系統一使用 Pitch Traction / Level Traction / Halo Traction。PitchTractionLayer 禁止包含 null/radialGradient 渲染邏輯（D-14）。
 - **Open Item**: 無 — Scrim endpoint 120px 已由 CSO 確認鎖定（D-13, 2026-05-18），待實測調整
 

@@ -1,9 +1,9 @@
-# Cueshot 策略與架構 SSOT v4.0
+# Cueshot 策略與架構 SSOT v4.0.5
 
 **文件版本**: 4.0.5 (Session 9 Micro-Revision — D-25~D-26 + R35~R36)  
 **建立日期**: 2026-05-12  
-**修訂日期**: 2026-05-28  
-**文件性質**: 唯一真理文件 — 本文件作廢所有前版（v3.0~v3.3, Delta v3.4~v3.4.1, v4.0~v4.0.2）  
+**修訂日期**: 2026-05-29  
+**文件性質**: 唯一真理文件 — 本文件作廢所有前版（v3.0~v3.3, Delta v3.4~v3.4.1, v4.0~v4.0.4）  
 **作者**: CSO 策略分析 + Ambient UI Tech Auditor (Claude Opus 4.6) + 開發者 Akira  
 **合併來源**: v4.0.4 + Session 9 (D-25~D-26, R35~R36: Overlay 總表文案修正 · LEGACY 光線指示語義修復)  
 **搭配文件**: `Cueshot_Layout_Spec_v2_5_1.md`（佈局精確定義）
@@ -1690,13 +1690,13 @@ Phase 1.5 擴展：進度環動態跟隨 DOF 處理時間。
 ### B.4 Photo/PTF Pill Toggle
 
 PTF 入口為 Photo/PTF Pill Toggle，取代舊版底部全寬 Tab。  
-完整規格見 `Cueshot_Layout_Spec_v2_5.md` §5。
+完整規格見 `Cueshot_Layout_Spec_v2_5_1.md` §5。
 
 ### B.5 Top Bar Scrim + 光線指示（D-13/D-15/D-16/D-19）
 
 Top Bar 為浮動 Overlay + 線性漸層 Scrim（取代原毛玻璃膠囊設計）。  
 Scrim 起始 y=0 alpha 0.22 → 結束 y=**120px** alpha 0。（D-13: CSO 確認 120px，待實測調整）  
-完整 Scrim 規格見 `Cueshot_Layout_Spec_v2_5.md` §3.2。
+完整 Scrim 規格見 `Cueshot_Layout_Spec_v2_5_1.md` §3.2。
 
 **Top Bar 圖示光線指示動畫**：三態映射（正常/需HDR/需補光），pulse 週期 3000ms，debounce 1000ms。完整規格見 §2.9。
 
@@ -1798,7 +1798,7 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 
 - **版本**: SSOT v4.0.5 (Session 9 Micro-Revision — D-25~D-26 + R35~R36)
 - **建立日期**: 2026-05-12
-- **修訂日期**: 2026-05-28
+- **修訂日期**: 2026-05-29
 - **合併來源**:
   - v3.3 SSOT (2026-04-04) — 基底
   - Delta v3.4 (2026-05-01~02) — 11 項決策
@@ -1846,8 +1846,8 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 - **命名規範**: 本文件中不存在 "Edge Warmth" 作為渲染元件名稱。三通道體系統一使用 Pitch Traction / Level Traction / Halo Traction。PitchTractionLayer 禁止包含 null/radialGradient 渲染邏輯（D-14）。
 - **決策記錄**: D-1~D-4 (Session 3), D-5r~D-12 (Session 4), D-13 (Session 5), D-14~D-19 (Session 6), D-20~D-24 (Session 8), D-25~D-26 (Session 9) — 全部 locked
 - **下一步**:
-  1. ~~Layout Spec v2.4 → v2.5~~ → 待部署
-  2. Claude Code 按 SSOT v4.0.4 + Layout Spec v2.5 實作：
+  1. ~~Layout Spec v2.4 → v2.5.1~~ → 待部署
+  2. Claude Code 按 SSOT v4.0.5 + Layout Spec v2.5.1 實作：
      a. C-1: GridOverlay alpha 0.35 + strokeWidth 1.5f（D-24, R29）
      b. C-2: PitchTractionLayer null vignette 刪除（D-14, R22）
      c. C-3: CameraScreen Z-order Grid↔Pitch 交換（D-24, R29）
