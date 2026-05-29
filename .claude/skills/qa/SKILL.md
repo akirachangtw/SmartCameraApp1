@@ -113,6 +113,20 @@ Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error
 
 停止時輸出：`⛔ Auto-Chain STOPPED: [原因]`
 
+## Step 5: Pipeline 結構校驗
+
+/sv + Cross-Review PASS 後，執行最終結構完整性驗證：
+
+```bash
+bash .claude/skills/qa/scripts/structural_verify.sh
+```
+
+- ✅ PASS (exit 0) → Ticket 驗收完成，可提交 Traycer
+- ⛔ FAIL (exit 1) → 回報具體失敗項，**不標記 Ticket Done**
+- ⚪ ENV ERROR (exit 2) → 回報環境問題，不阻斷 Traycer 提交
+
+檢查項目：A/B/C（SV Report vs diff 一致）+ D（sv_report 五段結構）+ E（cross_review PASS）+ F（PROGRESS.md 格式）
+
 ## 回報格式
 
 ```
@@ -124,6 +138,7 @@ Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error
 ✅ Auto Commit: [hash] [TICKET_ID]
 
 Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error)
+🏗️ Step 5: ✅ STRUCTURAL VERIFY PASS (A/B/C/D/E/F)
 ```
 
 ## Session 健康度

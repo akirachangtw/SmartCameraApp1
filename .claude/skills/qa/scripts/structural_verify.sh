@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# structural_verify.sh v1.2 — SV Report vs Git Diff 三向一致性驗證
+# structural_verify.sh v1.3 — SV Report vs Git Diff 三向一致性驗證 + Pipeline 結構校驗
 #
 # 用法：
 #   bash .claude/skills/qa/scripts/structural_verify.sh [sv_report] [diff_scope_or_ref]
@@ -9,6 +9,9 @@
 #   A. report 宣稱但 diff 無此檔 → FAIL (幽靈宣稱)
 #   B. diff 有但 report 未列    → FAIL (漏揭露)
 #   C. Excluded Payload 的每個檔案必須也出現在 Files Changed → FAIL (排除但未揭露)
+#   D. sv_report 五段結構完整性 → FAIL (缺必要段落)
+#   E. cross_review PASS 確認   → FAIL (未通過或 BLOCKER)
+#   F. PROGRESS.md 格式校驗     → FAIL (缺必要欄位)
 #
 # 退出碼：
 #   0 — PASS
@@ -105,4 +108,81 @@ if [[ $FAIL -eq 1 ]]; then
 fi
 
 echo "✅ STRUCTURAL VERIFY PASS (A/B/C) — git diff ${DIFF_SCOPE}"
+
+# ─── Check D: sv_report 五段結構 ───
+echo ""
+echo "=== [D] SV Report 五段結構 ==="
+_MISSING_SECTIONS=""
+for section in "## Files Changed" "## Implementation Scope" "## Stage A" "## Stage B" "## Stage C"; do
+  if ! grep -qF "$section" "$SV_REPORT"; then
+    _MISSING_SECTIONS="${_MISSING_SECTIONS}  - ${section}\n"
+  fi
+done
+if [[ -n "$_MISSING_SECTIONS" ]]; then
+  echo "❌ STRUCTURAL FAIL — [D] SV Report 缺少必要段落："
+  printf '%b' "$_MISSING_SECTIONS"
+  FAIL=1
+else
+  echo "✅ SV Report 五段結構完整"
+fi
+
+# ─── Check E: cross_review PASS 確認 ───
+echo ""
+echo "=== [E] Cross-Review PASS 確認 ==="
+_TICKET_ID=""
+if [[ -f "tmp/verify_cmd.conf" ]]; then
+  _TICKET_ID="$(grep "^TICKET_ID=" "tmp/verify_cmd.conf" | head -1 | cut -d'=' -f2- || true)"
+fi
+if [[ -n "$_TICKET_ID" ]]; then
+  _STATE_FILE=".tmp/cross_review_state/${_TICKET_ID}"
+  if [[ -f "$_STATE_FILE" ]]; then
+    _LAST_VERDICT="$(grep "^LAST=" "$_STATE_FILE" | head -1 | cut -d'=' -f2- || true)"
+    if [[ "$_LAST_VERDICT" == "PASS" || "$_LAST_VERDICT" == "ADVISORY" ]]; then
+      echo "✅ Cross-Review PASS (Ticket: ${_TICKET_ID}, Verdict: ${_LAST_VERDICT})"
+    else
+      echo "❌ STRUCTURAL FAIL — [E] Cross-Review 未 PASS (Ticket: ${_TICKET_ID}, Verdict: ${_LAST_VERDICT:-UNKNOWN})"
+      FAIL=1
+    fi
+  else
+    echo "⚪ Cross-Review state 不存在 (${_TICKET_ID}) — 跳過 Check E"
+  fi
+else
+  echo "⚪ TICKET_ID 不存在 — 跳過 Check E"
+fi
+
+# ─── Check F: PROGRESS.md 格式校驗 ───
+echo ""
+echo "=== [F] PROGRESS.md 格式校驗 ==="
+_PROGRESS=".claude/PROGRESS.md"
+if [[ -f "$_PROGRESS" ]]; then
+  _MISSING_FIELDS=""
+  for field in "**Sprint**" "**Current Day**" "## Sprint Health"; do
+    if ! grep -qF "$field" "$_PROGRESS"; then
+      _MISSING_FIELDS="${_MISSING_FIELDS}  - ${field}\n"
+    fi
+  done
+  if [[ -n "$_MISSING_FIELDS" ]]; then
+    echo "❌ STRUCTURAL FAIL — [F] PROGRESS.md 缺少必要欄位："
+    printf '%b' "$_MISSING_FIELDS"
+    FAIL=1
+  else
+    echo "✅ PROGRESS.md 格式正常"
+  fi
+else
+  echo "⚪ PROGRESS.md 不存在 — 跳過 Check F"
+fi
+
+# ─── 最終結果 ───
+echo ""
+if [[ $FAIL -eq 1 ]]; then
+  echo "══════════════════════════════════════"
+  echo "⛔ STRUCTURAL VERIFY FAIL (D/E/F)"
+  echo "   修正後重新執行 structural_verify.sh"
+  echo "══════════════════════════════════════"
+  exit 1
+fi
+
+echo "══════════════════════════════════════"
+echo "✅ STRUCTURAL VERIFY PASS (A/B/C/D/E/F)"
+echo "══════════════════════════════════════"
 exit 0

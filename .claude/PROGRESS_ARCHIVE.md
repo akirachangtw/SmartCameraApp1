@@ -133,6 +133,14 @@
 
 ---
 
+### D11 — Pipeline 自動化強化
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| D11-T1 | /qa→/sv Auto-Chain + PROGRESS 寫入拆分（Step 0 conf 化 / Step 4 責任分離 / Auto-Chain 銜接 / sv Step 10） | ✅ Done | `.claude/skills/qa/SKILL.md`, `.claude/skills/sv/SKILL.md` |
+
+---
+
 ## KAIROS Retrospectives
 
 ### KAIROS #1 — D2 (2026-04-10) ✅ EXECUTED
