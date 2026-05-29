@@ -138,6 +138,8 @@
 | Ticket | 任務 | Status | 檔案 |
 |--------|------|--------|------|
 | D11-T1 | /qa→/sv Auto-Chain + PROGRESS 寫入拆分（Step 0 conf 化 / Step 4 責任分離 / Auto-Chain 銜接 / sv Step 10） | ✅ Done | `.claude/skills/qa/SKILL.md`, `.claude/skills/sv/SKILL.md` |
+| D11-T2 | structural_verify.sh v1.3 + /qa Step 5（Check D/E/F 新增）| ✅ Done | `structural_verify.sh`, `qa/SKILL.md` |
+| D11-T2-HF1 | structural_verify pre/post mode 切分（Check E 循環依賴修復）| ✅ Done | `structural_verify.sh`, `cross_review.sh`, `qa/SKILL.md` |
 
 ---
 
