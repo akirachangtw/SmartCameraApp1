@@ -72,7 +72,8 @@
 > **Session M 完成（2026-05-27）：純調查 — GazeAF 琥珀圓環根因定位（Ghost Face bbox + gazeScore=0.0 雙層 Bug）、PitchTraction 第5顆光點 Sony nav bar 遮蔽分析、Pixel 9a 預覽雙層覆蓋三因子分析、UITA SOP v2.1 更新。三項 Bug 等待 CSO 裁決選項後開 Ticket**
 > **Session N 完成（2026-05-29）：GridOverlay 不可見三層根因定位（alpha=0.08f/strokeWidth=0.5f/Z-order）、Sony logcat 驗證 contentBounds 正常、INFRA-14/15 git untrack cso_briefing+uita_project**
 > **Session O 完成（2026-05-29）：D10-T1 Pipeline Boot 基礎建設（CLAUDE.md Boot Sequence + tmp 清除 + Verify Config 規則）、D10-T2 verify_checklist.sh conf 模式（get_conf / [0.5] 新鮮度 / path 比對修正）、D10-T2-HF1 /qa Step 4.5 Auto Commit Gate + /sv Ticket Commit 前置檢查 + cross_review .claude/ 動態路由 — 3 commits, 181 tests PASS**
-> **下一步：開新 session → /sv（D10-T2 + D10-T2-HF1 合併驗收）→ 完成後接 GridOverlay Ticket**
+> **Session P 完成（2026-05-29）：Pipeline v1.6 全鏈路 — D10-T2 HF2~HF4（DIFF_SCOPE 修正 + Pipeline Artifact 揭露 + annotation stripping）、V16-CR2（cross_review.sh v1.6 4-Verdict + Fail Budget + structural_verify.sh v1.2 Check C + sv/SKILL.md exit code 對應表）— HOTFIX-16~21，SV + Cross-Review R1 ✅ PASS，181 tests PASS**
+> **下一步：D10 KAIROS /dream 回顧（議程見 § D10 KAIROS #3）或開 GridOverlay Bug Ticket（alpha/strokeWidth/Z-order 三層根因已定位）**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
