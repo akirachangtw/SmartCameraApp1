@@ -7,6 +7,17 @@ disable-model-invocation: false
 # Prompt
 你現在是本專案的「本地 Reviewer」。請依序執行以下 **四階段驗收**，任一階段失敗則停止並回報：
 
+## 前置檢查：Ticket 已 Commit Gate
+
+執行 `git diff --name-only HEAD`，若 `tmp/verify_cmd.conf` 存在，讀取 `ALLOWED` 後比對：
+- 若結果含有任何 ALLOWED 中的實作檔案（即 Ticket 代碼尚未 commit）→ **停止整個 SV 流程**，回報：
+  ```
+  ⛔ SV BLOCKED: Ticket not committed after /qa
+  提示：請先完成 /qa Step 4.5 Auto Commit，再執行 /sv
+  ```
+- 若 `tmp/verify_cmd.conf` 不存在 → ⚪ 跳過此檢查，繼續階段 A
+- 若 `git diff --name-only HEAD` 為空（working tree clean）→ ✅ 通過，繼續階段 A
+
 ## 階段 A：確定性驗證 (Deterministic Gate)
 
 1. **編譯驗證**：執行 `./gradlew assembleDebug 2>&1 | tail -30`

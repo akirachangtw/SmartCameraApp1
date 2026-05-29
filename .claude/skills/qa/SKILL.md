@@ -76,6 +76,31 @@ Step 3.5 產出 ⚠️ WARNING 而非硬 FAIL；所有 ⚠️ 項目必須在 `s
 - Next Actions（更新下一步）
 - 若 Ticket 完成，在 `PROGRESS_ARCHIVE.md` 對應 Day 段落標記 ✅ DONE
 
+## Step 4.5: Ticket Auto Commit
+
+/qa Step 4 完成後，從 `tmp/verify_cmd.conf` 讀取 Ticket 範圍並自動提交：
+
+1. **前置確認**：
+   - `tmp/verify_cmd.conf` 必須存在且可讀；否則 → `⛔ Auto Commit BLOCKED: tmp/verify_cmd.conf 不存在`
+   - 從 conf 讀取 `TICKET_ID`、`ALLOWED`（使用 `grep "^KEY=" | head -1 | cut -d'=' -f2-`，禁止 `source`）
+   - `ALLOWED` 不得為空；否則 → `⛔ Auto Commit BLOCKED: ALLOWED 為空`
+
+2. **Scope 汙染確認**：
+   - 執行 `git status --short`，確認無非 ALLOWED 且非 `.claude/PROGRESS.md` 的 dirty 檔案
+   - 若有 → 停止並回報 `⛔ Scope 汙染: [檔案名]`，**不執行 commit**
+
+3. **Staging（精確 stage，禁止 `git add .`）**：
+   - 只 stage `ALLOWED` 中每個檔案路徑 + `.claude/PROGRESS.md`
+
+4. **Commit**：
+   - Message 格式：`[TICKET_ID] <變更摘要>`
+   - 必須加 `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>` trailer
+   - Commit 失敗 → `⛔ Auto Commit FAILED`，**不進入 /sv**
+
+5. **成功確認**：輸出 commit hash，在 QA Report 附加 `✅ Auto Commit: [hash] [TICKET_ID]`
+
+---
+
 ## 回報格式
 
 ```

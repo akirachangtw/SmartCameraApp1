@@ -206,8 +206,20 @@ fi
   echo "## Git Diff (scope: $DIFF_SCOPE)"
   echo
   if [[ "$DIFF_AVAILABLE" == true ]]; then
+    # 動態調整 .claude/ 排除：workflow ticket（ALLOWED 含 .claude/）時納入 .claude/ diff
+    CLAUDE_ALLOWED=false
+    if [[ -f "tmp/verify_cmd.conf" ]]; then
+      CONF_ALLOWED=$(grep "^ALLOWED=" "tmp/verify_cmd.conf" | head -1 | cut -d'=' -f2-)
+      if echo "$CONF_ALLOWED" | grep -q "\.claude/"; then
+        CLAUDE_ALLOWED=true
+      fi
+    fi
     # Build exclusion list (array-based, avoids eval shell injection)
-    EXCLUDE_ARGS=(':!sv_report.md' ':!.claude/' ':!docs/' ':!plans/')
+    if [[ "$CLAUDE_ALLOWED" == true ]]; then
+      EXCLUDE_ARGS=(':!sv_report.md' ':!docs/' ':!plans/')
+    else
+      EXCLUDE_ARGS=(':!sv_report.md' ':!.claude/' ':!docs/' ':!plans/')
+    fi
     if [ -n "$EXTRA_EXCLUDE" ]; then
       IFS=',' read -ra EXTRA_PATHS <<< "$EXTRA_EXCLUDE"
       for path in "${EXTRA_PATHS[@]}"; do
