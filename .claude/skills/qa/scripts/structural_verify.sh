@@ -62,7 +62,7 @@ FAIL=0
 GHOST=""
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
-  if ! echo "$ACTUAL_FILES" | grep -qF "$f"; then
+  if ! echo "$ACTUAL_FILES" | grep -qxF "$f"; then
     GHOST="${GHOST}  - ${f}\n"
   fi
 done <<< "$REPORTED_FILES"
@@ -71,7 +71,7 @@ done <<< "$REPORTED_FILES"
 UNDISCLOSED=""
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
-  if ! echo "$REPORTED_FILES" | grep -qF "$f"; then
+  if ! echo "$REPORTED_FILES" | grep -qxF "$f"; then
     UNDISCLOSED="${UNDISCLOSED}  - ${f}\n"
   fi
 done <<< "$ACTUAL_FILES"
