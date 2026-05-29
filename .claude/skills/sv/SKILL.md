@@ -84,7 +84,13 @@ disable-model-invocation: false
    - `## Files Changed (payload)` — 列出 `git diff --name-only DIFF_REF..HEAD` 的**全部**檔案（完整 payload）
      - `.claude/PROGRESS.md` 如果出現在 diff → **必須列出**，並在行尾標註 `← Pipeline Artifact`
    - `## Implementation Scope` — 只列 ALLOWED 實作檔（`tmp/verify_cmd.conf` 中的 `ALLOWED`）
-   - 禁止只列 ALLOWED 而省略 payload 其他檔案，否則 `structural_verify.sh` 會 FAIL
+   - `## Excluded Payload`（選填）— 已授權排除出 Codex diff 的跨票檔案，格式：
+     ```
+     ## Excluded Payload
+     - AmbientConstants.kt — pre-approved constant; reviewed R1; CSO auth 2026-05-19
+     ```
+     每個 excluded 檔案仍須出現在 `## Files Changed`，否則 `structural_verify.sh` Check C FAIL
+   - 禁止只列 ALLOWED 而省略 payload 其他檔案，否則 `structural_verify.sh` Check B FAIL
 
 10. **Cross-Review 自動路由**：
     - 檢查 `codex` CLI 是否可用：`command -v codex`
@@ -100,6 +106,14 @@ disable-model-invocation: false
       fi
       ```
       並將 Codex 回傳結果附加至 SV Report 末尾。
+    - **退出碼對應行動**：
+      - `exit 0` (PASS/ADVISORY) → ✅ 繼續 Traycer 終審
+      - `exit 1` (BLOCKER) → 🔴 修程式碼後重新 /qa → /sv
+      - `exit 3` (REPORT_FIX) → 📋 修 sv_report.md 後重新執行 cross_review（不需重跑 /qa）
+      - `exit 2` (ENV / FAIL BUDGET) → ⛔ 人工介入，檢查 `.tmp/cross_review_state/<ticket>`
+    - **Fail Budget**: `.tmp/cross_review_state/<TICKET_ID>` 記錄 Round 與 Last Verdict
+      - R2 BLOCKER → ⚠️ Checkpoint 警告，等待裁決
+      - R3 BLOCKER → ⛔ 強制停止 (exit 2)，需人工審查
     - **若 codex 不可用**：在 SV Report 末尾附加提示：
       ```
       ⚠️ Codex CLI 不可用 — 請手動執行 cross-review 或直接提交 Traycer 終審。
@@ -123,7 +137,7 @@ disable-model-invocation: false
 🎭 Mock: ✅ CLEAN
 🏗️ UDF: ✅ COMPLIANT
 📐 SSOT: ✅ ALIGNED
-🔍 Cross-Review: ✅ PASS / 🔴 FAIL / ⚠️ SKIPPED (codex unavailable)
+🔍 Cross-Review: ✅ PASS / 💡 ADVISORY / 📋 REPORT_FIX / 🔴 BLOCKER / ⚠️ SKIPPED (codex unavailable)
 
 → 本地 SV + Cross-Review 通過，準備提交 Traycer 終審。
 📊 Status: ~[X]K/200K ([Y]%) [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]
@@ -138,7 +152,7 @@ Token 估算基準
 📋 Ticket: [Ticket ID]
 🔨 Compile: 🔴 FAIL — [錯誤摘要]
 📦 16KB ELF: 🟡 WARNING — [UNALIGNED .so 清單] (Release 前必須清零)
-🔍 Cross-Review: 🔴 FAIL — [Codex 問題清單]
+🔍 Cross-Review: 🔴 BLOCKER — [問題清單] / 📋 REPORT_FIX — [sv_report 段落]
 ...
 → 🚫 SV 未通過。已自動修復 X 項，仍有 Y 項需人工介入。
 📊 Status: ~[X]K/200K ([Y]%) [狀態 emoji]

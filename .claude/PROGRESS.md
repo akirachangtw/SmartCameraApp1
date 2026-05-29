@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D10 → D10-T1 ✅ · D10-T2 ✅ committed · D10-T2-HF1 ✅ committed · D10-T2-HF2 🟡 code DONE 待 commit+/sv
+**Current Day**: D10 → D10-T1 ✅ · D10-T2 ✅ · HF1 ✅ · HF2 ✅ · HF3 ✅ · HF4 ✅ committed · V16-CR2 🟡 code DONE 待 commit+/sv
 **Last Updated**: 2026-05-29
 
 ---
