@@ -175,6 +175,13 @@ cat > "$PAYLOAD" << 'PROMPT_HEADER'
 - [ ] 若存在「尚未實作但已規劃」的 UI 槽位，是否留有隱形佔位符（不可有可見 placeholder text）？
 - [ ] sv_report.md 的 diff 範圍是否與本次 Ticket Scope 精確對應？（diff 超出 = 越權嫌疑）
 
+### 3.5 Pipeline Artifact 判準（v1.6 新增）
+- `.claude/PROGRESS.md` 是標準 Pipeline Artifact（每 Ticket 皆有的文件更新），規則如下：
+  - 若 payload（git diff）中含 `.claude/PROGRESS.md`，且 SV Report `## Files Changed` 列出並標示 `← Pipeline Artifact` → **視為合規，不判 scope violation**
+  - 若 payload 含 `.claude/PROGRESS.md` 但 SV Report **未列出** → FAIL（漏揭露）
+  - 若 SV Report 列出但 payload **無此檔** → FAIL（幽靈宣稱）
+- `## Files Changed` 定義為 payload 全量（`git diff --name-only DIFF_REF..HEAD`），不是 ALLOWED 子集；`## Implementation Scope` 才是 ALLOWED 子集
+
 ## 回答格式（嚴格遵守）
 
 第一行必須且只能輸出 `PASS` 或 `FAIL`（無其他文字）

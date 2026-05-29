@@ -80,6 +80,12 @@ disable-model-invocation: false
 
 9. **SV Report 輸出**：刪除舊資料的 `sv_report.md` 後，將以上審查結果寫入 `sv_report.md`（工作目錄根）。
 
+   **SV Report payload disclosure 規則**（不可省略）：
+   - `## Files Changed (payload)` — 列出 `git diff --name-only DIFF_REF..HEAD` 的**全部**檔案（完整 payload）
+     - `.claude/PROGRESS.md` 如果出現在 diff → **必須列出**，並在行尾標註 `← Pipeline Artifact`
+   - `## Implementation Scope` — 只列 ALLOWED 實作檔（`tmp/verify_cmd.conf` 中的 `ALLOWED`）
+   - 禁止只列 ALLOWED 而省略 payload 其他檔案，否則 `structural_verify.sh` 會 FAIL
+
 10. **Cross-Review 自動路由**：
     - 檢查 `codex` CLI 是否可用：`command -v codex`
     - 檢查 SSOT context 是否存在：`.claude/skills/sv/ssot_context.md`
