@@ -11,20 +11,17 @@ disable-model-invocation: false
 
 ## Step 0: Ticket Scope 驗證 (Scope Gate)
 
-如果當前 Ticket 包含 `## Verify Command` 區塊，執行該命令：
+若 `tmp/verify_cmd.conf` 存在，執行：
 
 ```bash
-# 從 Ticket 複製 Verify Command，例如：
-bash .claude/skills/qa/scripts/verify_checklist.sh \
-  --allowed "TapFocusRing.kt,TapFocusController.kt" \
-  --forbidden "CameraViewModel.kt,CameraRepository.kt" \
-  --max-lines 80
+bash .claude/skills/qa/scripts/verify_checklist.sh tmp/verify_cmd.conf
 ```
 
 - ✅ PASS → 繼續 Step 1
+- ⚠️ WARNING (STALE/MISMATCH) → 回報警告後繼續 Step 1
 - ⛔ FAIL → 立即回報違規項目，**不執行 assembleDebug**
   - 修正範圍問題後重跑 /qa
-- ⚪ Ticket 無 Verify Command → 跳過 Step 0，直接進 Step 1
+- ⚪ `tmp/verify_cmd.conf` 不存在 → 跳過 Step 0，直接進 Step 1
 
 **重要**：Step 0 是確定性腳本（零 AI 配額），不需解讀輸出，只看退出碼。
 
@@ -74,7 +71,8 @@ Step 3.5 產出 ⚠️ WARNING 而非硬 FAIL；所有 ⚠️ 項目必須在 `s
 - Sprint Health 指標（Compile/Tests/Lint）
 - Active Blockers（新增或移除阻塞點）
 - Next Actions（更新下一步）
-- 若 Ticket 完成，在 `PROGRESS_ARCHIVE.md` 對應 Day 段落標記 ✅ DONE
+
+**不在此步驟標記 Ticket Done**。`PROGRESS_ARCHIVE.md` ✅ Done 標記由 `/sv` PASS 後執行（見 sv/SKILL.md Step 10）。
 
 ## Step 4.5: Ticket Auto Commit
 
@@ -101,6 +99,20 @@ Step 3.5 產出 ⚠️ WARNING 而非硬 FAIL；所有 ⚠️ 項目必須在 `s
 
 ---
 
+## Step 4.5 完成後：Auto-Chain 銜接點
+
+若 Step 0-4.5 全部 PASS（無任何 FAIL），輸出單行摘要後**自動進入 /sv**：
+
+```
+Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error)
+```
+
+**Auto-Chain 停止條件**（任一觸發即停止，不進入 /sv）：
+- 任一 QA Step FAIL
+- context 剩餘 ≤ 30K tokens
+
+停止時輸出：`⛔ Auto-Chain STOPPED: [原因]`
+
 ## 回報格式
 
 ```
@@ -109,9 +121,9 @@ Step 3.5 產出 ⚠️ WARNING 而非硬 FAIL；所有 ⚠️ 項目必須在 `s
 🧪 Tests: ✅ 42 passed, 0 failed
 🔍 Lint: ✅ 0 new warnings (3 existing baseline)
 📋 Progress: ✅ PROGRESS.md updated
+✅ Auto Commit: [hash] [TICKET_ID]
 
-→ QA 通過。可執行 /sv 進行語意驗收。
-📊 Session: ~[N] turns | [狀態 emoji]
+Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error)
 ```
 
 ## Session 健康度

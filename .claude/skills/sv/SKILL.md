@@ -124,6 +124,17 @@ disable-model-invocation: false
       ⚠️ ssot_context.md 不存在 — Codex cross-review 降級為純報告驗證（無架構重審）。
       ```
 
+## Step 10: Ticket Done 標記
+
+Cross-Review PASS（exit 0）後，在 `PROGRESS_ARCHIVE.md` 對應 Day 段落標記 ✅ Done：
+
+1. 讀取 `tmp/verify_cmd.conf`，取得 `TICKET_ID`
+2. 在 `PROGRESS_ARCHIVE.md` 找到對應 Ticket 行，附加 `✅ Done`
+3. 同步更新 `PROGRESS.md` Header 與 Sprint Health 中的 Ticket 狀態
+4. 回報：`✅ PROGRESS_ARCHIVE.md: [TICKET_ID] marked Done`
+
+若 `tmp/verify_cmd.conf` 不存在或 `TICKET_ID` 為空 → `⚠️ Done 標記跳過：無 TICKET_ID`
+
 ## 回報格式
 
 ```
