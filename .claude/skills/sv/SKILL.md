@@ -83,9 +83,15 @@ disable-model-invocation: false
 10. **Cross-Review 自動路由**：
     - 檢查 `codex` CLI 是否可用：`command -v codex`
     - 檢查 SSOT context 是否存在：`.claude/skills/sv/ssot_context.md`
-    - **若兩者皆備**：自動執行
+    - **若兩者皆備**：自動執行（`tmp/verify_cmd.conf` 存在時必須傳入 `DIFF_REF..HEAD` 作為第二參數）
       ```
-      bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md
+      # 讀取 DIFF_REF（禁止 source，使用 grep/cut）
+      _DIFF_REF=$(grep "^DIFF_REF=" tmp/verify_cmd.conf 2>/dev/null | head -1 | cut -d'=' -f2-)
+      if [[ -n "$_DIFF_REF" ]]; then
+        bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md "${_DIFF_REF}..HEAD"
+      else
+        bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md
+      fi
       ```
       並將 Codex 回傳結果附加至 SV Report 末尾。
     - **若 codex 不可用**：在 SV Report 末尾附加提示：

@@ -26,7 +26,7 @@ set -euo pipefail
 # ═══════════════════════════════════════
 
 SV_REPORT="${1:-}"
-DIFF_SCOPE="${2:-HEAD~1..HEAD}"
+DIFF_SCOPE="${2:-}"
 EXTRA_EXCLUDE="${3:-}"
 SSOT_CONTEXT="${4:-.claude/skills/sv/ssot_context.md}"
 TMP_DIR=".tmp"
@@ -66,6 +66,21 @@ command -v codex >/dev/null 2>&1 || fail_env "codex CLI not found — install: n
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail_env "not inside a git repository"
 git rev-parse --verify HEAD >/dev/null 2>&1 || fail_env "no git HEAD found (first commit?)"
+
+# Resolve DIFF_SCOPE: arg2 > verify_cmd.conf DIFF_REF..HEAD > HEAD~1..HEAD (legacy fallback)
+if [[ -z "$DIFF_SCOPE" ]]; then
+  _CONF_REF=""
+  if [[ -f "tmp/verify_cmd.conf" ]]; then
+    _CONF_REF="$(grep "^DIFF_REF=" "tmp/verify_cmd.conf" 2>/dev/null | head -1 | cut -d'=' -f2- || true)"
+  fi
+  if [[ -n "$_CONF_REF" ]] && git rev-parse --verify "$_CONF_REF" >/dev/null 2>&1; then
+    DIFF_SCOPE="${_CONF_REF}..HEAD"
+    echo "📌 DIFF_SCOPE from verify_cmd.conf: $DIFF_SCOPE"
+  else
+    echo "⚠️ WARNING: No DIFF_REF in tmp/verify_cmd.conf — falling back to HEAD~1..HEAD (legacy)" >&2
+    DIFF_SCOPE="HEAD~1..HEAD"
+  fi
+fi
 
 # SSOT context 檢查（非阻塞 — 無則降級為純 cross-review）
 SSOT_AVAILABLE=false

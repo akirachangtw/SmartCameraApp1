@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D10 → D10-T1 DONE · D10-T2 QA PASS（verify_checklist.sh conf mode）
+**Current Day**: D10 → D10-T1 ✅ · D10-T2 ✅ committed · D10-T2-HF1 ✅ committed · D10-T2-HF2 🟡 code DONE 待 commit+/sv
 **Last Updated**: 2026-05-29
 
 ---
@@ -10,7 +10,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 🟡 QA PASS 待 commit+/sv** — **4 Bugs 待 Ticket（GridOverlay/GazeAF/PitchDot5/Pixel9aLayout）** |
+| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 ✅ · D10-T2-HF1 ✅ · D10-T2-HF2 🟡 待 commit+/sv** — **4 Bugs 待 Ticket（GridOverlay/GazeAF/PitchDot5/Pixel9aLayout）** |
 | Compile | 0 errors ✅ (assembleDebug 1s cached) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
@@ -71,7 +71,8 @@
 > **Session L 完成（2026-05-26）：INFRA-002~005 — .gitignore session_handoff、/qa Step 0 Scope Gate verify_checklist.sh、CSO briefing 重組、CSO_Session_Startup_SOP 永駐層精簡（19K→2K）**
 > **Session M 完成（2026-05-27）：純調查 — GazeAF 琥珀圓環根因定位（Ghost Face bbox + gazeScore=0.0 雙層 Bug）、PitchTraction 第5顆光點 Sony nav bar 遮蔽分析、Pixel 9a 預覽雙層覆蓋三因子分析、UITA SOP v2.1 更新。三項 Bug 等待 CSO 裁決選項後開 Ticket**
 > **Session N 完成（2026-05-29）：GridOverlay 不可見三層根因定位（alpha=0.08f/strokeWidth=0.5f/Z-order）、Sony logcat 驗證 contentBounds 正常、INFRA-14/15 git untrack cso_briefing+uita_project**
-> **下一步：取得 Ticket → `GridOverlay.kt:48-49`（alpha 0.08→0.35、strokeWidth 0.5→1.5）+ `CameraScreen.kt:288`（GridOverlay Z-order 移至 PitchTractionLayer 之後）**
+> **Session O 完成（2026-05-29）：D10-T1 Pipeline Boot 基礎建設（CLAUDE.md Boot Sequence + tmp 清除 + Verify Config 規則）、D10-T2 verify_checklist.sh conf 模式（get_conf / [0.5] 新鮮度 / path 比對修正）、D10-T2-HF1 /qa Step 4.5 Auto Commit Gate + /sv Ticket Commit 前置檢查 + cross_review .claude/ 動態路由 — 3 commits, 181 tests PASS**
+> **下一步：開新 session → /sv（D10-T2 + D10-T2-HF1 合併驗收）→ 完成後接 GridOverlay Ticket**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
