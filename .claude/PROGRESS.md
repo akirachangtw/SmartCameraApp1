@@ -11,7 +11,7 @@
 | Metric | Status |
 | -------- | -------- |
 | Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ SV PASS 待 Traycer** — **D11-T1 ✅ SV PASS 待 Traycer** — **D11-T2 ✅ SV PASS 待 Traycer** — **D11-T2-HF1 ✅ SV+Cross-Review PASS 待 Traycer** — **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** — **4 Bugs 待 Ticket（GridOverlay/GazeAF/PitchDot5/Pixel9aLayout）** |
-| Compile | 0 errors ✅ (assembleDebug 20s) |
+| Compile | 0 errors ✅ (assembleDebug 1s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
