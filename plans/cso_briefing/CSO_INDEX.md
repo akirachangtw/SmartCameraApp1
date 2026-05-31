@@ -20,6 +20,7 @@
 | CONTRACT | 當前活躍 Contract | `plans/cso_briefing/project/file/P05_Photo_Mode_Recovery_Contract.md` | 票定義 / 禁區 / 驗收 |
 | LAYOUT | Layout Spec v2.5.1 | `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md` | UI 佈局判斷 |
 | EFFORT | Model Effort 解析 | `plans/cso_briefing/project/file/Sonnet4.6-Effort等級解析.md` | Mode / Effort 指定 |
+| TICKET_TPL | Ticket 範本 v3 | `plans/cso_briefing/project/file/Unified_Ticket_Template_v3.md` | 開票格式參考 |
 
 ### 執行體系文件
 
@@ -43,6 +44,7 @@
 |----|------|----------------|---------|
 | BHA | 架構健康度報告 | `.claude/bha_report.md` | 架構變更決策 |
 | AUDIT | 完整審計 + 票清單 | `plans/cso_briefing/reports/full_audit_and_tickets.md` | Wave 回顧 |
+| SCORCHED | Scorched Earth 報告 | `plans/cso_briefing/reports/scorched_earth_report.md` | 架構健康度回顧 |
 | ARCHIVE | CSO 歷史交付物 | `plans/cso_briefing/archive/` | 追溯歷史決策 |
 
 ---
@@ -87,18 +89,20 @@ plans/cso_briefing/
 ├── CSO_INDEX.md                    ← 本文件（Project Knowledge 唯一常駐）
 ├── CSO_Session_Startup_SOP.md      ← Session SOP
 ├── project/
-│   ├── file/                       ← Project File（KB / Contract / Effort）
+│   ├── file/                       ← Project File（KB / Contract / Effort / Template）
 │   │   ├── Cueshot_CSO_Knowledge_Base_v2.md
 │   │   ├── P05_Photo_Mode_Recovery_Contract.md
-│   │   └── Sonnet4.6-Effort等級解析.md
+│   │   ├── Sonnet4.6-Effort等級解析.md
+│   │   └── Unified_Ticket_Template_v3.md
 │   ├── Pending/                    ← 待執行提交
-│   │   └── T7_Addendum_LevelFadeRange.md
+│   │   ├── T7_Addendum_LevelFadeRange.md
+│   │   └── Pipeline_v1_6_Implementation.md
 │   └── Postponed.md                ← 暫緩執行
 ├── reports/                        ← 審查報告
 │   ├── full_audit_and_tickets.md
 │   └── scorched_earth_report.md
-└── archive/                        ← 歷史封存
-    └── (11 份歷史文件)
+└── archive/                        ← 歷史封存（含 SSOT/Layout DIFF 版本）
+    └── (13 份歷史文件)
 ```
 
 ---
