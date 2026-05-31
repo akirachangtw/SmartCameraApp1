@@ -151,6 +151,15 @@
 
 ---
 
+### INFRA — Pipeline 治理
+
+| Ticket | 任務 | Status | 檔案 |
+|--------|------|--------|------|
+| INFRA-17 | DIFF_REF 四段式合約（STALE_DIFF_REF 分類 + Suggested base + 三腳本協作）| ✅ Done | `verify_checklist.sh`, `structural_verify.sh`, `cross_review.sh` |
+| INFRA-18 | DIFF_END 鎖定 Ticket 審查終點（FUTURE_CONTAMINATION + locked range + /qa 自動寫入 + /sv 前置防護）| ✅ Done | `verify_checklist.sh`, `structural_verify.sh`, `cross_review.sh`, `qa/SKILL.md`, `sv/SKILL.md` |
+
+---
+
 ## KAIROS Retrospectives
 
 ### KAIROS #1 — D2 (2026-04-10) ✅ EXECUTED
