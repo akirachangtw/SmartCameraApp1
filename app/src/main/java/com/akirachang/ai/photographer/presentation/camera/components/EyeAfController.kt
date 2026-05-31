@@ -104,10 +104,20 @@ class EyeAfController {
         // ── Guard 3: No faces detected ───────────────────────────────────────────
         if (faces.isEmpty()) return null
 
-        // ── Guard 4: Gaze is aligned — no need to drive AF ───────────────────────
+        // ── Guard 3.5 [P05-R1]: Filter Ghost Face — bbox must be fully within [0,1] ──
+        val validFaces = faces.filter { face ->
+            val box = face.boundingBoxNormalized
+            box.left >= 0f && box.top >= 0f && box.right <= 1f && box.bottom <= 1f
+        }
+        if (validFaces.isEmpty()) {
+            Log.v(TAG, "[P05-R1] All faces filtered — bbox out of [0,1] bounds, AF suppressed")
+            return null
+        }
+
+        // ── Guard 4: Gaze is aligned or score too low — no need to drive AF ─────
         val gazeScore = compositionResult.ruleScores[GAZE_RULE_KEY]
-        if (gazeScore == null || gazeScore.isAligned) {
-            Log.v(TAG, "[D6-B3] Gaze aligned or absent — AF suppressed")
+        if (gazeScore == null || gazeScore.isAligned || gazeScore.score <= 0.1f) {
+            Log.v(TAG, "[D6-B3] Gaze aligned/absent/near-zero(${gazeScore?.score}) — AF suppressed")
             return null
         }
 
@@ -124,7 +134,7 @@ class EyeAfController {
         }
 
         // ── Select primary face (index 0 — highest confidence per ML Kit contract) ─
-        val primaryFace = faces[0]
+        val primaryFace = validFaces[0]
 
         // ── Resolve eye midpoint in normalized [0,1] space ────────────────────────
         val eyeMidpointNorm = resolveEyeMidpointNormalized(primaryFace)

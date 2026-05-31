@@ -617,13 +617,19 @@ class LiveCameraSource @Inject constructor(
 
             val cameraControl = camera.cameraControl
 
+            // [P05-R1] Clamp coordinates to valid view bounds — prevents IllegalArgumentException
+            // from MeteringPointFactory when Eye-AF produces out-of-bounds coordinates
+            // (Ghost Face bbox overflow or IMU-compensated drift beyond preview edges).
+            val clampedX = x.coerceIn(0f, viewWidth.toFloat())
+            val clampedY = y.coerceIn(0f, viewHeight.toFloat())
+
             // v2.11.1 P0-1: Use PreviewView.meteringPointFactory if available
             // This provides accurate coordinate mapping that respects FIT_CENTER letterboxing
             val focusPoint = if (previewView != null) {
                 // ✅ FIX Issue #1: Check if tap is within content bounds (exclude letterbox)
                 // PreviewView.meteringPointFactory automatically handles this validation
                 val factory = previewView!!.meteringPointFactory
-                factory.createPoint(x, y)
+                factory.createPoint(clampedX, clampedY)
             } else {
                 // Fallback to SurfaceOrientedMeteringPointFactory (legacy behavior)
                 // ⚠️ WARNING: This does NOT account for FIT_CENTER letterboxing
@@ -632,7 +638,7 @@ class LiveCameraSource @Inject constructor(
                     viewWidth.toFloat(),
                     viewHeight.toFloat()
                 )
-                factory.createPoint(x, y)
+                factory.createPoint(clampedX, clampedY)
             }
 
             // v2.12.0-07: Fixed-focus bypass — skip FLAG_AF entirely.
@@ -642,7 +648,7 @@ class LiveCameraSource @Inject constructor(
             // Instead: trigger AE+AWB only (exposure/white-balance still benefit from
             // metering point) and return success immediately so ViewModel sets AfState.Locked.
             if (isFixedFocus) {
-                Log.i(TAG, "[v2.12.0-07] Fixed-focus lens — AE/AWB metering only at ($x, $y)")
+                Log.i(TAG, "[v2.12.0-07] Fixed-focus lens — AE/AWB metering only at ($clampedX, $clampedY)")
                 val aeOnlyAction = androidx.camera.core.FocusMeteringAction.Builder(
                     focusPoint,
                     androidx.camera.core.FocusMeteringAction.FLAG_AE or
@@ -675,12 +681,12 @@ class LiveCameraSource @Inject constructor(
                 try {
                     val result = future.get()  // Called in Executor thread, doesn't block main thread
                     if (result.isFocusSuccessful) {
-                        Log.d(TAG, "[v2.11.1] Focus successful at ($x, $y) - factory: ${if (previewView != null) "PreviewView" else "SurfaceOriented"}")
-                        Timber.d("LiveCameraSource: Focus successful at ($x, $y)")
+                        Log.d(TAG, "[v2.11.1] Focus successful at ($clampedX, $clampedY) - factory: ${if (previewView != null) "PreviewView" else "SurfaceOriented"}")
+                        Timber.d("LiveCameraSource: Focus successful at ($clampedX, $clampedY)")
                         continuation.resume(Result.success(Unit))
                     } else {
-                        Log.w(TAG, "[v2.11.1] Focus failed at ($x, $y) - factory: ${if (previewView != null) "PreviewView" else "SurfaceOriented"}")
-                        Timber.w("LiveCameraSource: Focus failed at ($x, $y)")
+                        Log.w(TAG, "[v2.11.1] Focus failed at ($clampedX, $clampedY) - factory: ${if (previewView != null) "PreviewView" else "SurfaceOriented"}")
+                        Timber.w("LiveCameraSource: Focus failed at ($clampedX, $clampedY)")
                         continuation.resume(Result.failure(Exception("Focus failed")))
                     }
                 } catch (e: Exception) {
