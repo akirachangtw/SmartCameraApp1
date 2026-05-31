@@ -22,7 +22,7 @@ Ticket 含 `## Verify Config` 區塊時，必須將該區塊內容複製為 `tmp
 - 不假設。有歧義就問，不要靜默選擇。
 - 如果存在多種解讀，全部列出——不要替 user 挑。
 - 如果有更簡單的做法，推回來。推回是職責不是越權。
-- 修改核心邏輯前，先查閱 SSOT（`plans/architecture/SSOT_v4_0_2.md`）。
+- 修改核心邏輯前，先查閱 SSOT（`plans/architecture/SSOT_v4_0_5.md`）。
   文件是架構唯一真理，程式碼的解釋以文件為準。
 
 ### 2. 最小修改
@@ -112,7 +112,7 @@ Status code 已能回答的問題，code 回答。
 `/sv` 語意審查 · `/qa` Build+Test+靜態掃描 · `/uc` 臥底模式 · `/compact` 壓縮交接 · `/dream` KAIROS 回顧(D2/D6/D10/D13/D15)
 
 ## SSOT
-- 策略: `plans/architecture/SSOT_v4_0_2.md` · 佈局: `plans/architecture/Cueshot_Layout_Spec_v2_3.md`
+- 策略: `plans/architecture/SSOT_v4_0_5.md` · 佈局: `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md`
 - 進度: `PROGRESS.md` · 歸檔: `PROGRESS_ARCHIVE.md`
 
 ## Cross-Review FAIL 硬規範（不可違反）

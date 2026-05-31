@@ -46,7 +46,7 @@
 
 ### Source Documents (Phase 0 現行基準)
 
-- **SSOT v4.0**: `plans/architecture/SSOT_v4_0_2.md` ← 唯一真理文件
+- **SSOT v4.0**: `plans/architecture/SSOT_v4_0_5.md` ← 唯一真理文件
 - **Layout Spec v2.2**: `plans/architecture/Cueshot_Layout_Spec_v2_3.md` ← 佈局精確定義
 - **Phase0 UI Contract**: `plans/cso_briefing/Phase0_UI_Realignment_Contract_v1.md`
 
@@ -108,6 +108,6 @@
 
 ## Quick Links
 
-- SSOT: `plans/architecture/SSOT_v4_0_2.md`
+- SSOT: `plans/architecture/SSOT_v4_0_5.md`
 - Layout Spec: `plans/architecture/Cueshot_Layout_Spec_v2_3.md`
 - Full History: `PROGRESS_ARCHIVE.md`
