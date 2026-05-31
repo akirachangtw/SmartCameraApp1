@@ -1,6 +1,6 @@
 # CSO_INDEX.md — CSO 對話唯一常駐文件
 
-**版本**: v1.2
+**版本**: v1.1
 **用途**: 取代 Project Knowledge 全量載入，作為按需讀取的導航 index
 **常駐方式**: Project Knowledge（唯一一份）— 僅保留靜態導航內容
 **Handoff**: 由 Akira Upload（保留對話前後順序識別）
@@ -16,10 +16,10 @@
 
 | ID | 文件 | Filesystem 路徑 | 讀取時機 |
 |----|------|----------------|---------|
-| SSOT | 唯一真理文件（現行版） | `plans/architecture/` ▸ 精確版本見 SOP 版本指針 | 任何技術規格判斷 |
+| SSOT | 唯一真理文件 v4.0.5 | `plans/architecture/SSOT_v4_0_5.md` | 任何技術規格判斷 |
 | KB | CSO Knowledge Base v2 | `plans/cso_briefing/project/file/Cueshot_CSO_Knowledge_Base_v2.md` | 產品 DNA / 拷問模板 / gstack |
-| CONTRACT | 當前活躍 Contract（現行版） | `plans/cso_briefing/project/file/` ▸ 精確版本見 SOP 版本指針 | 票定義 / 禁區 / 驗收 |
-| LAYOUT | Layout Spec（現行版） | `plans/architecture/` ▸ 精確版本見 SOP 版本指針 | UI 佈局判斷 |
+| CONTRACT | 當前活躍 Contract | `plans/cso_briefing/project/file/P05_Photo_Mode_Recovery_Contract.md` | 票定義 / 禁區 / 驗收 |
+| LAYOUT | Layout Spec v2.5.1 | `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md` | UI 佈局判斷 |
 | EFFORT | Model Effort 解析 | `plans/cso_briefing/project/file/Sonnet4.6-Effort等級解析.md` | Mode / Effort 指定 |
 | TICKET_TPL | Ticket 範本 v3 | `plans/cso_briefing/project/file/Unified_Ticket_Template_v3.md` | 開票格式參考 |
 
@@ -83,5 +83,5 @@
 
 ---
 
-**End of CSO_INDEX.md v1.2**
+**End of CSO_INDEX.md v1.1**
 > 目錄結構 / Session Checklist / 載入策略 → 見 `CSO_Session_Startup_SOP.md`

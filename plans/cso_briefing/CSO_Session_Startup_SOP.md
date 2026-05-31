@@ -1,20 +1,10 @@
 # CSO Session 精實啟動 SOP
 
-**版本**: v1.2
-**建立日期**: 2026-05-24 | **最後更新**: 2026-06-01
+**版本**: v1.1
+**建立日期**: 2026-05-24 | **最後更新**: 2026-05-31
 **適用**: 每次新開 CSO 對話時的文件載入策略
 **設計原則**: 最少文件數達到「CSO 能獨立做決策」的最低閾值
 **靜態導航索引**: `plans/cso_briefing/CSO_INDEX.md`（Project Knowledge 唯一常駐）
-
----
-
-## 現行版本指針（Session 結束時如有升版即更新）
-
-| ID | 精確路徑 |
-|----|---------|
-| SSOT | `plans/architecture/SSOT_v4_0_5.md` |
-| LAYOUT | `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md` |
-| CONTRACT | `plans/cso_briefing/project/file/P05_Photo_Mode_Recovery_Contract.md` |
 
 ---
 
