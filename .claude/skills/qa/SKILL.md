@@ -97,6 +97,17 @@ Step 3.5 產出 ⚠️ WARNING 而非硬 FAIL；所有 ⚠️ 項目必須在 `s
 
 5. **成功確認**：輸出 commit hash，在 QA Report 附加 `✅ Auto Commit: [hash] [TICKET_ID]`
 
+6. **DIFF_END 更新**：Commit 成功後，將 commit hash 寫入 `tmp/verify_cmd.conf` 的 `DIFF_END`：
+   ```bash
+   _LAST_COMMIT=$(git rev-parse --short HEAD)
+   if grep -q "^DIFF_END=" tmp/verify_cmd.conf 2>/dev/null; then
+     sed -i "s/^DIFF_END=.*/DIFF_END=${_LAST_COMMIT}/" tmp/verify_cmd.conf
+   else
+     echo "DIFF_END=${_LAST_COMMIT}" >> tmp/verify_cmd.conf
+   fi
+   ```
+   輸出：`📌 DIFF_END=${_LAST_COMMIT} → tmp/verify_cmd.conf（鎖定 Ticket 審查終點）`
+
 ---
 
 ## Step 4.5 完成後：Auto-Chain 銜接點

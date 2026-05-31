@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# /qa Step 0 — Ticket Scope 驗證 v2（DIFF_REF 四段式合約）
-# 來源: INFRA-17 DIFF_REF 精準性治理
+# /qa Step 0 — Ticket Scope 驗證 v3（DIFF_END 鎖定終點）
+# 來源: INFRA-18 DIFF_END 精準終點治理
 #
 # 用法（conf 模式）:
 #   bash .claude/skills/qa/scripts/verify_checklist.sh tmp/verify_cmd.conf
@@ -8,12 +8,13 @@
 #   bash .claude/skills/qa/scripts/verify_checklist.sh \
 #     --allowed "File1.kt,File2.kt" --diff-ref HEAD~1 --max-lines 100
 #
-# DIFF_REF 合約：
-#   DIFF_REF 必須等於 Ticket 開工前的 git HEAD（精確起點）。
-#   DIFF_REF..HEAD 只能包含 ALLOWED + Pipeline Artifact + Excluded Payload。
-#   其他檔案 → STALE_DIFF_REF（base 過舊）或 SCOPE_VIOLATION（真實越權）。
+# DIFF_REF/DIFF_END 合約：
+#   DIFF_REF = Ticket 開工前的 git HEAD（精確起點）
+#   DIFF_END = Ticket 最後一個 commit（精確終點）；缺少時 fallback HEAD
+#   DIFF_REF..DIFF_END 只能包含 ALLOWED + Pipeline Artifact + Excluded Payload
+#   分類: STALE_DIFF_REF（base 過舊）/ FUTURE_CONTAMINATION（end 過新）/ SCOPE_VIOLATION（真實越權）
 #
-# 退出碼: 0 = PASS, 1 = FAIL (STALE_DIFF_REF or SCOPE_VIOLATION)
+# 退出碼: 0 = PASS, 1 = FAIL
 
 set -u
 
@@ -32,6 +33,7 @@ FORBIDDEN="$DEFAULT_FORBIDDEN"
 EXCLUDED_PAYLOAD=""
 MAX_LINES=999
 DIFF_REF="HEAD~1"
+DIFF_END=""
 TICKET_ID=""
 CREATED=""
 CONF_MODE=0
@@ -52,6 +54,8 @@ if [[ $# -ge 1 && "$1" == *.conf ]]; then
   [[ -n "$MAX_LINES_CONF" ]] && MAX_LINES="$MAX_LINES_CONF"
   DIFF_REF_CONF=$(get_conf "DIFF_REF" "$CONF_FILE")
   [[ -n "$DIFF_REF_CONF" ]] && DIFF_REF="$DIFF_REF_CONF"
+  DIFF_END_CONF=$(get_conf "DIFF_END" "$CONF_FILE")
+  [[ -n "$DIFF_END_CONF" ]] && DIFF_END="$DIFF_END_CONF"
 else
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -60,27 +64,45 @@ else
       --excluded-payload) EXCLUDED_PAYLOAD="$2"; shift 2 ;;
       --max-lines)        MAX_LINES="$2";        shift 2 ;;
       --diff-ref)         DIFF_REF="$2";         shift 2 ;;
+      --diff-end)         DIFF_END="$2";         shift 2 ;;
       *) echo "Unknown option: $1"; exit 1 ;;
     esac
   done
 fi
 
+# ─── DIFF_REF 驗證 ───
 git rev-parse --verify "$DIFF_REF" >/dev/null 2>&1 || { echo "❌ DIFF_REF not found in git history: $DIFF_REF"; exit 1; }
+
+# ─── DIFF_END 解析與驗證 ───
+DIFF_END_RESOLVED="HEAD"
+DIFF_END_SOURCE="HEAD"
+if [[ -n "$DIFF_END" ]]; then
+  git rev-parse --verify "$DIFF_END" >/dev/null 2>&1 \
+    || { echo "❌ DIFF_END not found in git history: $DIFF_END"; exit 1; }
+  git merge-base --is-ancestor "$DIFF_REF" "$DIFF_END" 2>/dev/null \
+    || { echo "❌ DIFF_END ($DIFF_END) is not a descendant of DIFF_REF ($DIFF_REF)"; exit 1; }
+  DIFF_END_RESOLVED="$DIFF_END"
+  DIFF_END_SOURCE="DIFF_END"
+fi
 
 echo "# /qa Step 0 — Ticket Scope 驗證"
 echo "  diff-ref: $DIFF_REF"
+echo "  diff-end: ${DIFF_END:-<HEAD (unfixed)>} [source: $DIFF_END_SOURCE]"
 echo "  allowed: ${ALLOWED:-<any>}"
 echo "  forbidden: $FORBIDDEN"
 echo "  max-lines: $MAX_LINES"
 echo
 
 FAIL=0
+GENUINE_VIOLATION=0
 STALE=0
 STALE_DIFF_REF_FILES=""
+FUTURE_CONTAMINATION=0
+FUTURE_CONTAMINATION_FILES=""
 
-# ─── 取得 DIFF_REF..HEAD 全量變更 ───
+# ─── 取得 DIFF_REF..DIFF_END_RESOLVED 全量變更 ───
 if [[ $CONF_MODE -eq 1 ]]; then
-  CHANGED=$(git diff --name-only "${DIFF_REF}..HEAD" 2>/dev/null || true)
+  CHANGED=$(git diff --name-only "${DIFF_REF}..${DIFF_END_RESOLVED}" 2>/dev/null || true)
 else
   CHANGED=$(git diff --name-only "$DIFF_REF" 2>/dev/null || true)
 fi
@@ -94,12 +116,11 @@ fi
 # ─── [0.0] DIFF_REF Scope Preview ───
 echo "=== [0.0] DIFF_REF Scope Preview ==="
 BASE_SHORT=$(git rev-parse --short "$DIFF_REF" 2>/dev/null || echo "?")
-HEAD_SHORT=$(git rev-parse --short HEAD 2>/dev/null || echo "?")
-COMMIT_COUNT=$(git log --oneline "${DIFF_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')
-echo "  base: $BASE_SHORT → $HEAD_SHORT ($COMMIT_COUNT commits in scope)"
+END_SHORT=$(git rev-parse --short "$DIFF_END_RESOLVED" 2>/dev/null || echo "?")
+COMMIT_COUNT=$(git log --oneline "${DIFF_REF}..${DIFF_END_RESOLVED}" 2>/dev/null | wc -l | tr -d ' ')
+echo "  base: $BASE_SHORT → $END_SHORT ($COMMIT_COUNT commits in scope) [end source: $DIFF_END_SOURCE]"
 
-# Find ticket anchor: first commit in DIFF_REF..HEAD touching any ALLOWED file
-# (--reverse = oldest first → TICKET_BASE_COMMIT = oldest ALLOWED-touching commit)
+# Find ticket anchor: oldest ALLOWED-touching commit in range (--reverse = oldest first)
 TICKET_BASE_COMMIT=""
 SUGGESTED_BASE=""
 if [[ -n "$ALLOWED" && $CONF_MODE -eq 1 ]]; then
@@ -113,21 +134,20 @@ if [[ -n "$ALLOWED" && $CONF_MODE -eq 1 ]]; then
         break 2
       fi
     done
-  done < <(git log --reverse --format="%h" "${DIFF_REF}..HEAD" 2>/dev/null || true)
+  done < <(git log --reverse --format="%h" "${DIFF_REF}..${DIFF_END_RESOLVED}" 2>/dev/null || true)
 
   if [[ -n "$TICKET_BASE_COMMIT" ]]; then
     SUGGESTED_BASE=$(git rev-parse --short "${TICKET_BASE_COMMIT}^" 2>/dev/null || true)
     echo "  ticket anchor: $TICKET_BASE_COMMIT (first ALLOWED-touching commit)"
     [[ -n "$SUGGESTED_BASE" ]] && echo "  ✅ Suggested DIFF_REF: $SUGGESTED_BASE"
   else
-    echo "  ⚠️ No ALLOWED-file commits found in ${BASE_SHORT}..${HEAD_SHORT}"
+    echo "  ⚠️ No ALLOWED-file commits found in ${BASE_SHORT}..${END_SHORT}"
   fi
 fi
 echo
 
 # ─── Helper: is_stale_commit ───
-# Returns 0 (true) if a commit is a strict ancestor of TICKET_BASE_COMMIT
-# i.e. it was made BEFORE the ticket's first ALLOWED commit
+# Returns 0 (true) if commit is a strict ancestor of TICKET_BASE_COMMIT (pre-ticket)
 is_stale_commit() {
   local cmt="$1"
   [[ -z "$TICKET_BASE_COMMIT" ]] && return 1
@@ -135,8 +155,19 @@ is_stale_commit() {
   git merge-base --is-ancestor "$cmt" "$TICKET_BASE_COMMIT" 2>/dev/null
 }
 
+# ─── Helper: is_future_commit ───
+# Returns 0 (true) if commit is a strict descendant of TICKET_BASE_COMMIT (post-ticket)
+is_future_commit() {
+  local cmt="$1"
+  [[ -z "$TICKET_BASE_COMMIT" ]] && return 1
+  [[ "$cmt" == "$TICKET_BASE_COMMIT" ]] && return 1
+  git merge-base --is-ancestor "$TICKET_BASE_COMMIT" "$cmt" 2>/dev/null
+}
+
 # ─── [0.1] 允許檔案範圍 ───
 echo "=== [0.1] 允許檔案範圍 ==="
+
+ALLOWED_COUNT=0
 
 if [[ -n "$ALLOWED" ]]; then
   IFS=',' read -ra AARR <<< "$ALLOWED"
@@ -161,10 +192,11 @@ if [[ -n "$ALLOWED" ]]; then
     done
     if [[ $MATCH -eq 1 ]]; then
       echo "  ✅ ALLOWED: $BASENAME"
+      ALLOWED_COUNT=$((ALLOWED_COUNT + 1))
       continue
     fi
 
-    # Check: EXCLUDED_PAYLOAD (conf key or CLI flag)
+    # Check: EXCLUDED_PAYLOAD
     EXCL_MATCH=0
     if [[ -n "$EXCLUDED_PAYLOAD" ]]; then
       IFS=',' read -ra EXCL_ARR <<< "$EXCLUDED_PAYLOAD"
@@ -180,18 +212,22 @@ if [[ -n "$ALLOWED" ]]; then
       continue
     fi
 
-    # Unexpected file: classify as STALE_DIFF_REF or genuine SCOPE_VIOLATION
-    _file_commit=$(git log --format="%h" -1 "${DIFF_REF}..HEAD" -- "$f" 2>/dev/null | head -1 || true)
+    # Unexpected file: classify as STALE / FUTURE_CONTAMINATION / SCOPE_VIOLATION
+    _file_commit=$(git log --format="%h" -1 "${DIFF_REF}..${DIFF_END_RESOLVED}" -- "$f" 2>/dev/null | head -1 || true)
     if [[ -n "$_file_commit" ]] && is_stale_commit "$_file_commit"; then
       STALE_DIFF_REF_FILES="${STALE_DIFF_REF_FILES}  ⚠️ [stale] $BASENAME (commit: $_file_commit)\n"
       STALE=1
+    elif [[ -n "$_file_commit" ]] && is_future_commit "$_file_commit"; then
+      FUTURE_CONTAMINATION_FILES="${FUTURE_CONTAMINATION_FILES}  ⚠️ [future] $BASENAME (commit: $_file_commit)\n"
+      FUTURE_CONTAMINATION=1
     else
       echo "  ⛔ SCOPE VIOLATION: $BASENAME (不在允許清單)"
+      GENUINE_VIOLATION=1
       FAIL=1
     fi
   done <<< "$CHANGED"
 
-  if [[ $FAIL -eq 0 && $STALE -eq 0 ]]; then
+  if [[ $FAIL -eq 0 && $STALE -eq 0 && $FUTURE_CONTAMINATION -eq 0 ]]; then
     echo "  ✅ 所有變更檔案在允許範圍內"
   fi
 
@@ -202,6 +238,20 @@ if [[ -n "$ALLOWED" ]]; then
     if [[ -n "$SUGGESTED_BASE" ]]; then
       echo "  💡 修正: 更新 verify_cmd.conf → DIFF_REF=$SUGGESTED_BASE（ticket 真正起點）"
     fi
+    FAIL=1
+  fi
+
+  if [[ $FUTURE_CONTAMINATION -eq 1 ]]; then
+    echo
+    echo "  ⚠️ FUTURE_CONTAMINATION: 以下檔案來自本 Ticket 之後的提交（HEAD 超出 Ticket 終點）："
+    printf '%b' "$FUTURE_CONTAMINATION_FILES"
+    echo "  💡 修正: 在 verify_cmd.conf 設定 DIFF_END=<ticket-last-commit> 鎖定審查終點"
+    FAIL=1
+  fi
+
+  # Error: DIFF_END set but no ALLOWED files found in locked range
+  if [[ -n "$DIFF_END" && $ALLOWED_COUNT -eq 0 ]]; then
+    echo "  ⛔ ERROR: DIFF_REF..DIFF_END 不含任何 ALLOWED 檔案，請確認 DIFF_END 設定正確"
     FAIL=1
   fi
 else
@@ -217,8 +267,7 @@ if [[ -n "$FORBIDDEN" ]]; then
   for fb in "${FARR[@]}"; do
     fb_trimmed=$(echo "$fb" | xargs)
     if echo "$CHANGED" | grep -q "$fb_trimmed"; then
-      # Apply STALE classification to forbidden files as well
-      _fb_commit=$(git log --format="%h" -1 "${DIFF_REF}..HEAD" -- "*/$fb_trimmed" "$fb_trimmed" 2>/dev/null | head -1 || true)
+      _fb_commit=$(git log --format="%h" -1 "${DIFF_REF}..${DIFF_END_RESOLVED}" -- "*/$fb_trimmed" "$fb_trimmed" 2>/dev/null | head -1 || true)
       if [[ -n "$_fb_commit" ]] && is_stale_commit "$_fb_commit"; then
         echo "  ⚠️ [stale] FORBIDDEN $fb_trimmed (pre-ticket commit $_fb_commit — not this ticket)"
       else
@@ -237,12 +286,11 @@ fi
 echo
 echo "=== [0.3] 新增行數 ==="
 if [[ -n "$ALLOWED" ]]; then
-  # Count lines only for ALLOWED files — ignore stale payload bloat
   ADDED=0
   for a in "${AARR[@]}"; do
     _abase=$(basename "$a")
     if [[ $CONF_MODE -eq 1 ]]; then
-      _lines=$(git diff "${DIFF_REF}..HEAD" --numstat 2>/dev/null | \
+      _lines=$(git diff "${DIFF_REF}..${DIFF_END_RESOLVED}" --numstat 2>/dev/null | \
         awk -v n="$_abase" '$3 ~ n {s+=$1} END {print s+0}')
     else
       _lines=$(git diff "$DIFF_REF" --numstat 2>/dev/null | \
@@ -253,7 +301,7 @@ if [[ -n "$ALLOWED" ]]; then
   echo "  (ALLOWED files only)"
 else
   if [[ $CONF_MODE -eq 1 ]]; then
-    ADDED=$(git diff "${DIFF_REF}..HEAD" --numstat 2>/dev/null | awk '{s+=$1} END {print s+0}')
+    ADDED=$(git diff "${DIFF_REF}..${DIFF_END_RESOLVED}" --numstat 2>/dev/null | awk '{s+=$1} END {print s+0}')
   else
     ADDED=$(git diff "$DIFF_REF" --numstat 2>/dev/null | awk '{s+=$1} END {print s+0}')
   fi
@@ -268,7 +316,6 @@ fi
 # ─── [0.4] 自創常數掃描（ticket 起點以後） ───
 echo
 echo "=== [0.4] 自創常數掃描 ==="
-# Use ticket anchor for scan scope (ignore pre-ticket AmbientConstants changes)
 if [[ -n "$SUGGESTED_BASE" ]]; then
   _SCAN_BASE="$SUGGESTED_BASE"
 elif [[ $CONF_MODE -eq 1 ]]; then
@@ -276,7 +323,7 @@ elif [[ $CONF_MODE -eq 1 ]]; then
 else
   _SCAN_BASE="$DIFF_REF"
 fi
-NEW_CONSTANTS=$(git diff "${_SCAN_BASE}..HEAD" --unified=0 -- "*/AmbientConstants.kt" 2>/dev/null \
+NEW_CONSTANTS=$(git diff "${_SCAN_BASE}..${DIFF_END_RESOLVED}" --unified=0 -- "*/AmbientConstants.kt" 2>/dev/null \
   | grep "^+" | grep -v "^+++" | grep -v "^+\s*//" || true)
 if [[ -n "$NEW_CONSTANTS" ]]; then
   echo "  ⚠️ AmbientConstants 有新增行，需確認是否為授權變更："
@@ -304,23 +351,20 @@ fi
 echo
 echo "══════════════════════════════════════"
 if [[ $FAIL -ne 0 ]]; then
-  if [[ $STALE -eq 1 && $FAIL -eq 1 ]]; then
-    # Distinguish: if FAIL came ONLY from stale (not genuine violations)
-    # We need to check if there were genuine violations too
-    # FAIL=1 could be from stale-only or from genuine violations
-    # The STALE_DIFF_REF_FILES variable captures stale ones
-    # If all violations were stale → STALE_DIFF_REF error type
-    # If there were genuine violations → SCOPE_VIOLATION error type
-    # We track this via FORBIDDEN_FAIL and the SCOPE VIOLATION echo above
-    # Since we can't easily distinguish here, output both if stale exists
+  if [[ $STALE -eq 1 ]]; then
     echo "⛔ Step 0 — STALE_DIFF_REF"
     if [[ -n "$SUGGESTED_BASE" ]]; then
       echo "  修正: 在 verify_cmd.conf 中將 DIFF_REF 更新為 $SUGGESTED_BASE"
     else
       echo "  修正: 更新 DIFF_REF 為 Ticket 開工前的 HEAD"
     fi
-  else
-    echo "⛔ Step 0 — SCOPE VERIFICATION FAILED"
+  fi
+  if [[ $FUTURE_CONTAMINATION -eq 1 ]]; then
+    echo "⛔ Step 0 — FUTURE_CONTAMINATION"
+    echo "  修正: 在 verify_cmd.conf 設定 DIFF_END=<ticket-last-commit> 後重新執行 /qa"
+  fi
+  if [[ $GENUINE_VIOLATION -eq 1 ]]; then
+    echo "⛔ Step 0 — SCOPE VIOLATION"
     echo "  修正範圍問題後重新執行 /qa"
   fi
   echo "══════════════════════════════════════"

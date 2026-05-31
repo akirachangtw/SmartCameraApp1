@@ -95,12 +95,32 @@ disable-model-invocation: false
 10. **Cross-Review 自動路由**：
     - 檢查 `codex` CLI 是否可用：`command -v codex`
     - 檢查 SSOT context 是否存在：`.claude/skills/sv/ssot_context.md`
-    - **若兩者皆備**：自動執行（`tmp/verify_cmd.conf` 存在時必須傳入 `DIFF_REF..HEAD` 作為第二參數）
+    - **若兩者皆備**：自動執行（優先使用 `DIFF_REF..DIFF_END` 鎖定範圍；缺 `DIFF_END` 且 HEAD 含非 ALLOWED 變更則停止）
       ```
-      # 讀取 DIFF_REF（禁止 source，使用 grep/cut）
+      # 讀取 DIFF_REF / DIFF_END（禁止 source，使用 grep/cut）
       _DIFF_REF=$(grep "^DIFF_REF=" tmp/verify_cmd.conf 2>/dev/null | head -1 | cut -d'=' -f2-)
+      _DIFF_END=$(grep "^DIFF_END=" tmp/verify_cmd.conf 2>/dev/null | head -1 | cut -d'=' -f2-)
+      if [[ -n "$_DIFF_END" ]]; then
+        _SCOPE="${_DIFF_REF}..${_DIFF_END}"
+      elif [[ -n "$_DIFF_REF" ]]; then
+        # DIFF_END 缺失：檢查 HEAD 是否含非 ALLOWED 變更（FUTURE_CONTAMINATION 風險）
+        _ALLOWED=$(grep "^ALLOWED=" tmp/verify_cmd.conf 2>/dev/null | head -1 | cut -d'=' -f2-)
+        _CONTAMINATED=0
+        while IFS= read -r _f; do
+          [[ -z "$_f" || "$_f" == ".claude/PROGRESS.md" ]] && continue
+          echo "$_ALLOWED" | grep -qF "$(basename "$_f")" || { _CONTAMINATED=1; break; }
+        done < <(git diff --name-only "${_DIFF_REF}..HEAD" 2>/dev/null || true)
+        if [[ $_CONTAMINATED -eq 1 ]]; then
+          echo "⛔ SV BLOCKED: DIFF_END 未設定，但 DIFF_REF..HEAD 含非 ALLOWED 變更（FUTURE_CONTAMINATION 風險）"
+          echo "   修正: 在 tmp/verify_cmd.conf 設定 DIFF_END=<ticket-last-commit> 後重新執行 /sv"
+          echo "   提示: 若剛完成 /qa Step 4.5，DIFF_END 應已自動寫入；確認 verify_cmd.conf 是否更新"
+          exit 1
+        fi
+        _SCOPE="${_DIFF_REF}..HEAD"
+        echo "⚠️ WARNING: DIFF_END 未設定，使用 DIFF_REF..HEAD（HEAD-moving scope）"
+      fi
       if [[ -n "$_DIFF_REF" ]]; then
-        bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md "${_DIFF_REF}..HEAD"
+        bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md "${_SCOPE}"
       else
         bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md
       fi

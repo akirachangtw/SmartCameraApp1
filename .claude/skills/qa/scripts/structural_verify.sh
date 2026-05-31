@@ -41,15 +41,21 @@ fail_env() { echo "❌ ENV ERROR: $*" >&2; exit 2; }
 [[ -f "$SV_REPORT" ]] || fail_env "SV Report not found: $SV_REPORT"
 command -v git >/dev/null 2>&1 || fail_env "git not found"
 
-# Resolve DIFF_SCOPE: arg2 (scope or ref) > verify_cmd.conf > HEAD~1..HEAD
+# Resolve DIFF_SCOPE: arg2 (scope or ref) > verify_cmd.conf DIFF_REF..DIFF_END > HEAD~1..HEAD
 DIFF_SCOPE="$SCOPE_ARG"
 if [[ -z "$DIFF_SCOPE" ]]; then
   _CONF_REF=""
+  _CONF_END=""
   if [[ -f "tmp/verify_cmd.conf" ]]; then
     _CONF_REF="$(grep "^DIFF_REF=" "tmp/verify_cmd.conf" 2>/dev/null | head -1 | cut -d'=' -f2- || true)"
+    _CONF_END="$(grep "^DIFF_END=" "tmp/verify_cmd.conf" 2>/dev/null | head -1 | cut -d'=' -f2- || true)"
   fi
   if [[ -n "$_CONF_REF" ]]; then
-    DIFF_SCOPE="${_CONF_REF}..HEAD"
+    if [[ -n "$_CONF_END" ]]; then
+      DIFF_SCOPE="${_CONF_REF}..${_CONF_END}"
+    else
+      DIFF_SCOPE="${_CONF_REF}..HEAD"
+    fi
   else
     echo "⚠️ WARNING: No DIFF_REF — falling back to HEAD~1..HEAD (legacy)" >&2
     DIFF_SCOPE="HEAD~1..HEAD"
