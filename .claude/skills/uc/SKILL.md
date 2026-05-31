@@ -42,12 +42,14 @@ disable-model-invocation: false
    
    禁止在這行之外加任何文字。這行是你在終端機裡確認「Claude 做完了」的唯一信號。
 7. **多檔修改**：按修改順序列出所有 diff，檔案間用空行分隔。最後一行才輸出 `✅ DONE`。
-8. **自動接力 /qa**：當 Ticket 的所有 code 修改完成（非中間步驟的小修）並輸出 `✅ DONE` 後，**自動執行 /qa 流程**（編譯 + 測試 + PROGRESS 更新）。/qa Report 輸出後停止，**不自動執行 /sv**——/sv 由人工判斷時機後手動觸發。
-   
-   判斷「Ticket 完成」vs「中間修復」的規則：
-   - `✅ DONE | D[N]-T[N] ...` → Ticket 完成 → 自動 /qa
-   - `✅ DONE | compile fix: ...` → 中間修復 → 不觸發 /qa
-   - `✅ DONE | git commit ...` → Git 操作 → 不觸發 /qa
+8. **DONE = 終止信號**：UC 模式只負責代碼修改。
+   輸出 `✅ DONE | D[N]-T[N] ...` 後即停止。不嘗試呼叫其他 Skill。
+   /qa 由使用者在確認 DONE 後手動觸發。
+
+   DONE 行格式（不變）：
+   - `✅ DONE | D[N]-T[N] ...` → Ticket 完成
+   - `✅ DONE | compile fix: ...` → 中間修復
+   - `✅ DONE | git commit ...` → Git 操作
 
 ## 唯一例外
 
