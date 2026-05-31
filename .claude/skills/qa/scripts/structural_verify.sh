@@ -112,7 +112,7 @@ if [[ -n "$EXCLUDED_FILES" ]]; then
 fi
 
 [[ -n "$GHOST" ]] && { echo "❌ STRUCTURAL FAIL — [A] 幽靈宣稱（Report 有，diff 無）："; printf '%b' "$GHOST"; FAIL=1; }
-[[ -n "$UNDISCLOSED" ]] && { echo "❌ STRUCTURAL FAIL — [B] 漏揭露（diff 有，Report 無）："; printf '%b' "$UNDISCLOSED"; echo "   提示：.claude/PROGRESS.md 須列並標示 ← Pipeline Artifact"; FAIL=1; }
+[[ -n "$UNDISCLOSED" ]] && { echo "❌ STRUCTURAL FAIL — [B] 漏揭露（diff 有，Report 無）："; printf '%b' "$UNDISCLOSED"; echo "   提示：.claude/PROGRESS.md 須列並標示 ← Pipeline Artifact"; echo "   提示：若列出大量舊 Ticket 檔案，表示 DIFF_REF 過舊 → 執行 verify_checklist.sh 確認 STALE_DIFF_REF，並更新 verify_cmd.conf DIFF_REF 至 Ticket 起點"; FAIL=1; }
 [[ -n "$EXCLUDED_NOT_DISCLOSED" ]] && { echo "❌ STRUCTURAL FAIL — [C] Excluded Payload 未在 Files Changed 揭露："; printf '%b' "$EXCLUDED_NOT_DISCLOSED"; echo "   提示：排除的檔案仍須出現在 Files Changed"; FAIL=1; }
 
 if [[ $FAIL -eq 1 ]]; then

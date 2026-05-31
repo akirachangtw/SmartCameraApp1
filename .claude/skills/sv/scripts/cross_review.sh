@@ -56,17 +56,33 @@ command -v codex >/dev/null 2>&1 || fail_env "codex CLI not found — install: n
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail_env "not inside a git repository"
 git rev-parse --verify HEAD >/dev/null 2>&1 || fail_env "no git HEAD found (first commit?)"
 
-# Resolve DIFF_SCOPE: arg2 > verify_cmd.conf DIFF_REF..HEAD > HEAD~1..HEAD (legacy fallback)
+# Resolve DIFF_SCOPE: arg2 > verify_cmd.conf DIFF_REF..HEAD > HEAD~1..HEAD (legacy fallback only)
+# RULE: HEAD~1..HEAD fallback is ONLY allowed when tmp/verify_cmd.conf is absent.
+#       If conf exists but DIFF_REF is missing/invalid → hard error (not silent fallback).
 if [[ -z "$DIFF_SCOPE" ]]; then
   _CONF_REF=""
+  _HAS_CONF=0
   if [[ -f "tmp/verify_cmd.conf" ]]; then
+    _HAS_CONF=1
     _CONF_REF="$(grep "^DIFF_REF=" "tmp/verify_cmd.conf" 2>/dev/null | head -1 | cut -d'=' -f2- || true)"
   fi
   if [[ -n "$_CONF_REF" ]] && git rev-parse --verify "$_CONF_REF" >/dev/null 2>&1; then
     DIFF_SCOPE="${_CONF_REF}..HEAD"
-    echo "📌 DIFF_SCOPE from verify_cmd.conf: $DIFF_SCOPE"
+    COMMIT_COUNT="$(git log --oneline "${DIFF_SCOPE}" 2>/dev/null | wc -l | tr -d ' ')"
+    echo "📌 DIFF_SCOPE from verify_cmd.conf: $DIFF_SCOPE ($COMMIT_COUNT commits)"
+    if [[ "$COMMIT_COUNT" -gt 5 ]]; then
+      echo "⚠️ WARNING: DIFF_SCOPE spans $COMMIT_COUNT commits — DIFF_REF may be stale." >&2
+      echo "   Run: bash .claude/skills/qa/scripts/verify_checklist.sh tmp/verify_cmd.conf" >&2
+      echo "   to detect STALE_DIFF_REF and get the suggested correct base." >&2
+    fi
+  elif [[ $_HAS_CONF -eq 1 ]]; then
+    echo "❌ ERROR: tmp/verify_cmd.conf exists but DIFF_REF is missing or invalid." >&2
+    echo "   Fix: set DIFF_REF=<ticket-start-commit> in tmp/verify_cmd.conf" >&2
+    exit 2
   else
-    echo "⚠️ WARNING: No DIFF_REF in tmp/verify_cmd.conf — falling back to HEAD~1..HEAD (legacy)" >&2
+    # Legacy path: no conf file at all
+    echo "⚠️ WARNING: No tmp/verify_cmd.conf — falling back to HEAD~1..HEAD (legacy path)." >&2
+    echo "   This path is only valid for ad-hoc use without a Ticket. Create verify_cmd.conf for tracked tickets." >&2
     DIFF_SCOPE="HEAD~1..HEAD"
   fi
 fi
