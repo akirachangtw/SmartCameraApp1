@@ -1,9 +1,10 @@
 # CSO_INDEX.md — CSO 對話唯一常駐文件
 
-**版本**: v1.0
+**版本**: v1.1
 **用途**: 取代 Project Knowledge 全量載入，作為按需讀取的導航 index
-**常駐方式**: Project Knowledge（唯一一份）
+**常駐方式**: Project Knowledge（唯一一份）— 僅保留靜態導航內容
 **Handoff**: 由 Akira Upload（保留對話前後順序識別）
+**操作 SOP**: `plans/cso_briefing/CSO_Session_Startup_SOP.md`（Session 流程 / 目錄結構 / 載入策略）
 
 ---
 
@@ -82,63 +83,5 @@
 
 ---
 
-## §4 目錄結構總覽
-
-```
-plans/cso_briefing/
-├── CSO_INDEX.md                    ← 本文件（Project Knowledge 唯一常駐）
-├── CSO_Session_Startup_SOP.md      ← Session SOP
-├── project/
-│   ├── file/                       ← Project File（KB / Contract / Effort / Template）
-│   │   ├── Cueshot_CSO_Knowledge_Base_v2.md
-│   │   ├── P05_Photo_Mode_Recovery_Contract.md
-│   │   ├── Sonnet4.6-Effort等級解析.md
-│   │   └── Unified_Ticket_Template_v3.md
-│   ├── Pending/                    ← 待執行提交
-│   │   ├── T7_Addendum_LevelFadeRange.md
-│   │   └── Pipeline_v1_6_Implementation.md
-│   └── Postponed.md                ← 暫緩執行
-├── reports/                        ← 審查報告
-│   ├── full_audit_and_tickets.md
-│   └── scorched_earth_report.md
-└── archive/                        ← 歷史封存（含 SSOT/Layout DIFF 版本）
-    └── (13 份歷史文件)
-```
-
----
-
-## §5 Session 開場 Checklist
-
-```
-□ 1. Filesystem:read_text_file → .claude/PROGRESS.md（確認狀態）
-□ 2. Filesystem:list_directory → project/Pending/（檢查待執行工單）
-□ 3. 讀取 Akira Upload 的 Handoff（確認 Done/TODO/Decisions）
-□ 4. 判斷本次議題 → 查 §2 必讀矩陣 → 按需讀取
-□ 5. 開始推演
-```
-
-## §6 Session 收場 Checklist
-
-```
-□ 1. 產出新 Handoff 供 Akira 下次 Upload
-□ 2. 完成的交付物 → project/Pending/ 建立工單
-□ 3. 暫緩議題 → project/Postponed.md 登錄
-□ 4. 決策歸檔 → Obsidian archive_agent_decision
-□ 5. Token 監控狀態報告
-```
-
----
-
-## §7 載入策略對比
-
-| 指標 | 舊（4 份 Project Knowledge） | 新（1 份 Index + Filesystem） |
-|------|------|------|
-| Project Knowledge 文件數 | 4 | **1** |
-| 常駐 Token | ~19K (10%) | **~2K (1%)** |
-| 可用推理空間 | 181K (90%) | **198K (99%)** |
-| 按需讀取成本 | 0（已全載） | ~1-8K/次（視章節大小） |
-| MCP 斷線影響 | 無 | 降級為手動 Upload |
-
----
-
-**End of CSO_INDEX.md v1.0**
+**End of CSO_INDEX.md v1.1**
+> 目錄結構 / Session Checklist / 載入策略 → 見 `CSO_Session_Startup_SOP.md`
