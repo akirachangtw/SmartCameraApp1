@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer**
-**Last Updated**: 2026-05-29
+**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅ /uc Rule 8 職責分離**
+**Last Updated**: 2026-05-31
 
 ---
 
