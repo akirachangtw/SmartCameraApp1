@@ -151,6 +151,10 @@ bash .claude/skills/qa/scripts/structural_verify.sh ./sv_report.md "" --post
 
 Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error)
 🏗️ Step 5: ✅ STRUCTURAL VERIFY PASS (A/B/C/D/E/F)
+📊 Status: ~[X]K/200K ([Y]%) [狀態 emoji]
+Turns: [N] | Code: ~[M] lines
+Suggestion: [建議]
+Token 估算基準
 ```
 
 ## Session 健康度
