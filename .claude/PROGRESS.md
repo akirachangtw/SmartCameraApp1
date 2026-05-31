@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 🟡 QA PASS 待 /sv** · **INFRA-17 ✅ DIFF_REF 四段式合約** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer**
-**Last Updated**: 2026-05-31
+**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 🔴 Cross-Review R1 BLOCKER 待裁決** · **INFRA-17 ✅ DIFF_REF 四段式合約** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅ index-verify Skill** · **HOTFIX-30~32 ✅ 治理文件維護**
+**Last Updated**: 2026-06-01
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ SV PASS 待 Traycer** — **D11-T1 ✅ SV PASS 待 Traycer** — **D11-T2 ✅ SV PASS 待 Traycer** — **D11-T2-HF1 ✅ SV+Cross-Review PASS 待 Traycer** — **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** — **P05-R1 🟡 QA PASS 待 /sv（GazeAF Ghost Face）** — **INFRA-17 ✅ DIFF_REF 四段式合約** — **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** — **3 Bugs 待 Ticket（GridOverlay/PitchDot5/Pixel9aLayout）** |
+| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ SV PASS 待 Traycer** — **D11-T1 ✅ SV PASS 待 Traycer** — **D11-T2 ✅ SV PASS 待 Traycer** — **D11-T2-HF1 ✅ SV+Cross-Review PASS 待 Traycer** — **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** — **P05-R1 🔴 Cross-Review R1 BLOCKER 待裁決（Sony 實機三項驗收 PASS）** — **INFRA-17 ✅** — **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** — **INFRA-19 ✅ index-verify Skill** — **HOTFIX-30~32 ✅ 治理文件維護** — **3 Bugs 待 Ticket（GridOverlay/PitchDot5/Pixel9aLayout）** |
 | Compile | 0 errors ✅ (assembleDebug 53s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
@@ -75,8 +75,9 @@
 > **Session P 完成（2026-05-29）：Pipeline v1.6 全鏈路 — D10-T2 HF2~HF4（DIFF_SCOPE 修正 + Pipeline Artifact 揭露 + annotation stripping）、V16-CR2（cross_review.sh v1.6 4-Verdict + Fail Budget + structural_verify.sh v1.2 Check C + sv/SKILL.md exit code 對應表）— HOTFIX-16~21，SV + Cross-Review R1 ✅ PASS，181 tests PASS**
 > **Session Q 完成（2026-05-29）：Pipeline v1.6 全鏈路 — D11-T1（/qa→/sv Auto-Chain + PROGRESS 寫入拆分）、D11-T2（structural_verify.sh v1.3 Check D/E/F + /qa Step 5）、D11-T2-HF1（--post flag 解除 Check E 循環依賴）— HOTFIX-22~24，SV + Cross-Review PASS，181 tests PASS**
 > **Session S 完成（2026-05-31）：P05-R1 GazeAF Ghost Face 三層修復（EyeAfController bbox 過濾 + gazeScore≤0.1f + LiveCameraSource coord clamp）QA PASS（181 tests）；INFRA-17 DIFF_REF 四段式合約（verify_checklist.sh v2 STALE_DIFF_REF 分類 + Suggested base + 三腳本協作）— HOTFIX-28 + INFRA-17，3 commits**
-> **Session T 進行中（2026-05-31）：INFRA-18 DIFF_END 鎖定 Ticket 審查終點 — verify_checklist.sh v3（FUTURE_CONTAMINATION + DIFF_END 驗證）+ structural_verify.sh DIFF_END 路由 + cross_review.sh locked range + /qa SKILL DIFF_END 寫入 + /sv SKILL DIFF_END 前置檢查 — QA PASS（181 tests），待 /sv**
-> **下一步：INFRA-18 執行 /sv；P05-R1 執行 /sv；選項B — 開 GridOverlay Bug Ticket；選項C — D10 KAIROS /dream 回顧（K3-1~K3-6）**
+> **Session T 完成（2026-05-31）：INFRA-18 SV+Cross-Review PASS — DIFF_END 鎖定 Ticket 審查終點；P05-R1 QA PASS（181 tests）**
+> **Session U 完成（2026-06-01）：P05-R1 Sony 實機三項驗收 PASS（IllegalArgumentException/gazeScore/bbox）；INFRA-19 index-verify Skill；HOTFIX-30~32 治理文件維護（過期路徑修正 + CSO_INDEX/SOP 靜動態重組）；P05-R1 Cross-Review R1 BLOCKER 等裁決**
+> **下一步：P05-R1 Cross-Review Checkpoint 裁決（A 補授權說明 / D Codex誤判）→ R2 → Done；選項B — GridOverlay Bug Ticket；選項C — D10 KAIROS /dream**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
