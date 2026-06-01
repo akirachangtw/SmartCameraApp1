@@ -28,3 +28,20 @@ D1/骨架 Ticket 中的未實作函數，必須以 `error("Not implemented — w
 對 >200 行的 .kt/.xml，Edit (str_replace) 前必須先 Read 操作區段（±10 行上下文）。
 /compact 後視為強制觸發條件（無論檔案大小）。
 （注意：此規則已內嵌至核心鐵律 5「寫之前先讀」中）
+
+## K3-Rule 25 — Partial Fix 驗收紀律
+Bug 修復 Ticket 若只覆蓋「觸發路徑」而非「所有消費路徑」，/sv **MUST**：
+(a) 明列「已知未覆蓋路徑」於 sv_report.md；
+(b) 開後續 Ticket 追蹤未覆蓋路徑；
+(c) 不得將僅覆蓋部分路徑的修復標記為「完整修復」。
+範例：P05-R1 修 EyeAfController（AF 路徑），但 HaloGuidanceLayer（渲染路徑）
+和 observePtfAlignment（PTF 路徑）未覆蓋 → 琥珀圓環持續亂竄（Ghost Face 壁癌）。
+觸發來源：Session V — GazeAF Ghost Face 壁癌分析。
+
+## K3-Rule 26 — 多消費路徑掃描
+Ticket 動工前（Plan 階段），**MUST** 對 Ticket 要修改的「資料來源」執行：
+`grep -rn "[資料來源名]" app/src/main/java --include=*.kt`
+列出所有消費者路徑，每條路徑標註「是否在 ALLOWED 範圍」。
+若存在消費者不在 ALLOWED 範圍 → 回報 CSO，等待裁決是否擴充 ALLOWED 或開後續 Ticket。
+嚴禁「只修觸手可及的路徑，忽略看不見的消費者」。
+觸發來源：Session V — GazeAF Ghost Face 壁癌分析（三條消費路徑，P05-R1 僅覆蓋一條）。

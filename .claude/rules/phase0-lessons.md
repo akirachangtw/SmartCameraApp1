@@ -8,7 +8,9 @@ globs:
 
 **KAIROS #4 產出 (FIX-P0-SESSION-A, 2026-05-13)**
 
-19. **Decommission 全鏈路紀律**：任何 decommission / debug-overlay 類票據在關閉前，必須同時清空 4 層殘留：①UI Composable 呼叫點、②Settings 開關 UI、③持久化 key（DataStore/SharedPreferences）、④ViewModel/Repository 暴露面。只停用呼叫點而不清除其餘三層，不算完成；`/sv` 必須對這 4 層逐一 grep 驗證。觸發來源：FIX-P0-SESSION-A（DetectionOverlay 殘留 4 層，Traycer 退回）。
+19. **Decommission 全鏈路紀律**：任何 decommission / debug-overlay 類票據在關閉前，**MUST** 同時清空 4 層殘留：①UI Composable 呼叫點、②Settings 開關 UI、③持久化 key（DataStore/SharedPreferences）、④ViewModel/Repository 暴露面。只停用呼叫點而不清除其餘三層，不算完成；`/sv` **MUST** 對這 4 層逐一 grep 驗證。
+    **追加（K3-4）**：Decommission 票閉環前，**MUST** 執行 `find app/src -name "*被刪除模組名*"` 驗證零命中。/sv **MUST** 將此 glob 驗證結果寫入 sv_report.md。
+    觸發來源：FIX-P0-SESSION-A + FIX-INFRA-02-D。
 
 ---
 
@@ -34,4 +36,12 @@ globs:
 
 **FIX-P0-SESSION-C-FINAL 產出 (2026-05-14)**
 
-24. **Debug 功能剝離紀律**：Debug-only 效能覆蓋層（FPS、記憶體、幀率監控等）必須從四層同時剝離：①UI 調用點（`if (BuildConfig.DEBUG) { FPSOverlay(...) }`）、②ViewModel 暴露面（不得暴露 DEBUG 專用 StateFlow 至正式介面）、③Repository / InputSource 介面合約（`CameraRepository`、`CameraInputSource` 不得包含 DEBUG 專用方法）、④資料層計算（`if (BuildConfig.DEBUG) _currentFps.value = fps`）。僅依賴 `visible = BuildConfig.DEBUG` 做 UI 隱藏不足以達到 Release 剝離標準，R8/ProGuard 無法消除未被呼叫路徑遮蔽的介面實作。觸發來源：FIX-P0-SESSION-C-FINAL（Traycer 終審退回：FPS 介面污染 Release 架構合約）。
+24. **Debug 功能剝離紀律**：Debug-only 效能覆蓋層（FPS、記憶體、幀率監控等）**MUST** 從四層同時剝離：①UI 調用點（`if (BuildConfig.DEBUG) { FPSOverlay(...) }`）、②ViewModel 暴露面（不得暴露 DEBUG 專用 StateFlow 至正式介面）、③Repository / InputSource 介面合約（`CameraRepository`、`CameraInputSource` 不得包含 DEBUG 專用方法）、④資料層計算（`if (BuildConfig.DEBUG) _currentFps.value = fps`）。僅依賴 `visible = BuildConfig.DEBUG` 做 UI 隱藏不足以達到 Release 剝離標準，R8/ProGuard 無法消除未被呼叫路徑遮蔽的介面實作。
+    **追加（K3-1）**：任何在 CameraScreen/Preview 可視區域內渲染的 debug 文字（FPS、座標、偵測結果等），無論是否受 BuildConfig.DEBUG 保護，一律視為 /sv **MUST** 退件項。Release build 的用戶預覽不允許任何非 SSOT 定義的視覺元素。
+    觸發來源：FIX-P0-SESSION-C-FINAL + D8 FIX-01~03。
+
+---
+
+**KAIROS #3 產出 (Session V, 2026-06-01)**
+
+27. **SSOT 優先裁決**：Ticket 驗收清單與 SSOT 規格發生衝突時，**MUST** 以 SSOT 為準。Claude Code **MUST** 在 sv_report.md 中記錄衝突內容、SSOT 條款引用、以及「以 SSOT 為準」的裁決。嚴禁靜默選擇 Ticket 版本而忽略 SSOT 約束。觸發來源：TICKET-01（驗收清單與 SSOT 指定的合併規格源衝突）。
