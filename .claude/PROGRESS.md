@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 🔴 Cross-Review R1 BLOCKER 待裁決** · **INFRA-17 ✅ DIFF_REF 四段式合約** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅ index-verify Skill** · **HOTFIX-30~32 ✅ 治理文件維護**
+**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 🔴 Cross-Review R1 BLOCKER 待裁決** · **INFRA-17 ✅** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅** · **HOTFIX-30~32 ✅** · **Session V：Ghost Face 渲染路徑根因定位 + KAIROS K3-8/K3-9 登記 + CSO_INDEX/P05 Contract 更新**
 **Last Updated**: 2026-06-01
 
 ---
@@ -10,7 +10,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ SV PASS 待 Traycer** — **D11-T1 ✅ SV PASS 待 Traycer** — **D11-T2 ✅ SV PASS 待 Traycer** — **D11-T2-HF1 ✅ SV+Cross-Review PASS 待 Traycer** — **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** — **P05-R1 🔴 Cross-Review R1 BLOCKER 待裁決（Sony 實機三項驗收 PASS）** — **INFRA-17 ✅** — **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** — **INFRA-19 ✅ index-verify Skill** — **HOTFIX-30~32 ✅ 治理文件維護** — **3 Bugs 待 Ticket（GridOverlay/PitchDot5/Pixel9aLayout）** |
+| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ SV PASS 待 Traycer** — **D11-T1 ✅ SV PASS 待 Traycer** — **D11-T2 ✅ SV PASS 待 Traycer** — **D11-T2-HF1 ✅ SV+Cross-Review PASS 待 Traycer** — **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** — **P05-R1 🔴 Cross-Review R1 BLOCKER 待裁決（Sony 實機三項驗收 PASS）** — **INFRA-17 ✅** — **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** — **INFRA-19 ✅** — **HOTFIX-30~32 ✅** — **4 Bugs 待 Ticket（Ghost Face 渲染路徑/GridOverlay/PitchDot5/Pixel9aLayout）** |
 | Compile | 0 errors ✅ (assembleDebug 53s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
@@ -77,7 +77,8 @@
 > **Session S 完成（2026-05-31）：P05-R1 GazeAF Ghost Face 三層修復（EyeAfController bbox 過濾 + gazeScore≤0.1f + LiveCameraSource coord clamp）QA PASS（181 tests）；INFRA-17 DIFF_REF 四段式合約（verify_checklist.sh v2 STALE_DIFF_REF 分類 + Suggested base + 三腳本協作）— HOTFIX-28 + INFRA-17，3 commits**
 > **Session T 完成（2026-05-31）：INFRA-18 SV+Cross-Review PASS — DIFF_END 鎖定 Ticket 審查終點；P05-R1 QA PASS（181 tests）**
 > **Session U 完成（2026-06-01）：P05-R1 Sony 實機三項驗收 PASS（IllegalArgumentException/gazeScore/bbox）；INFRA-19 index-verify Skill；HOTFIX-30~32 治理文件維護（過期路徑修正 + CSO_INDEX/SOP 靜動態重組）；P05-R1 Cross-Review R1 BLOCKER 等裁決**
-> **下一步：P05-R1 Cross-Review Checkpoint 裁決（A 補授權說明 / D Codex誤判）→ R2 → Done；選項B — GridOverlay Bug Ticket；選項C — D10 KAIROS /dream**
+> **Session V 完成（2026-06-01）：Ghost Face 渲染路徑根因定位（`observeCompositionAdvice()` → `detectedFaces` → `HaloGuidanceLayer` 無 bbox [0,1] 過濾）；CSO_INDEX CONTRACT 更新至 P08；P05 Contract Frozen 標記；KAIROS K3-8/K3-9 候選登記**
+> **下一步：P05-R1 Cross-Review Checkpoint 裁決（A 補授權說明 / D Codex誤判）→ R2 → Done；開 P05-R2 Ticket 修渲染路徑 bbox 過濾；選項C — D10 KAIROS /dream（含 K3-8/K3-9）**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
