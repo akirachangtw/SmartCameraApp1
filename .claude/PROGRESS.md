@@ -77,8 +77,9 @@
 > **Session S 完成（2026-05-31）：P05-R1 GazeAF Ghost Face 三層修復（EyeAfController bbox 過濾 + gazeScore≤0.1f + LiveCameraSource coord clamp）QA PASS（181 tests）；INFRA-17 DIFF_REF 四段式合約（verify_checklist.sh v2 STALE_DIFF_REF 分類 + Suggested base + 三腳本協作）— HOTFIX-28 + INFRA-17，3 commits**
 > **Session T 完成（2026-05-31）：INFRA-18 SV+Cross-Review PASS — DIFF_END 鎖定 Ticket 審查終點；P05-R1 QA PASS（181 tests）**
 > **Session U 完成（2026-06-01）：P05-R1 Sony 實機三項驗收 PASS（IllegalArgumentException/gazeScore/bbox）；INFRA-19 index-verify Skill；HOTFIX-30~32 治理文件維護（過期路徑修正 + CSO_INDEX/SOP 靜動態重組）；P05-R1 Cross-Review R1 BLOCKER 等裁決**
-> **Session V 完成（2026-06-01）：Ghost Face 渲染路徑根因定位（`observeCompositionAdvice()` → `detectedFaces` → `HaloGuidanceLayer` 無 bbox [0,1] 過濾）；CSO_INDEX CONTRACT 更新至 P08；P05 Contract Frozen 標記；KAIROS K3-8/K3-9 候選登記**
-> **下一步：P05-R1 Cross-Review Checkpoint 裁決（A 補授權說明 / D Codex誤判）→ R2 → Done；開 P05-R2 Ticket 修渲染路徑 bbox 過濾；選項C — D10 KAIROS /dream（含 K3-8/K3-9）**
+> **Session V 完成（2026-06-01）：Ghost Face 渲染路徑根因定位（observeCompositionAdvice() → detectedFaces → HaloGuidanceLayer 無 bbox [0,1] 過濾）；CSO_INDEX CONTRACT 更新至 P08；P05 Contract Frozen 標記；KAIROS K3-8/K3-9 候選登記**
+> **Session W 完成（2026-06-02）：INFRA-RFC2119 — 16 個 rules/skills 文件加 RFC 2119 anchor + MUST/SHOULD/MAY 標記；CSO Option A 裁決（77.3% MUST terminal）；22 降級；QA PASS；commit 1c47797 [INFRA-20]**
+> **下一步：/sv (DIFF_REF=9b7f79a..DIFF_END=1c47797) → Cross-Review → HOTFIX-38 (index_path_verify.sh P05→P08) → P05-R1 Cross-Review 裁決**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
