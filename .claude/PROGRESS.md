@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 🔴 Cross-Review R1 BLOCKER 待裁決** · **INFRA-17 ✅** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅** · **HOTFIX-30~32 ✅** · **Session V：Ghost Face 渲染路徑根因定位 + KAIROS K3-8/K3-9 登記 + CSO_INDEX/P05 Contract 更新** · **INFRA-RFC2119 🟡 QA PASS 待 /sv**
+**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 🔴 Cross-Review R1 BLOCKER 待裁決** · **INFRA-17 ✅** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅** · **HOTFIX-30~32 ✅** · **Session V：Ghost Face 渲染路徑根因定位 + KAIROS K3-8/K3-9 登記 + CSO_INDEX/P05 Contract 更新** · **INFRA-RFC2119 ✅ SV+Cross-Review PASS 待 Traycer**
 **Last Updated**: 2026-06-02
 
 ---
@@ -79,7 +79,8 @@
 > **Session U 完成（2026-06-01）：P05-R1 Sony 實機三項驗收 PASS（IllegalArgumentException/gazeScore/bbox）；INFRA-19 index-verify Skill；HOTFIX-30~32 治理文件維護（過期路徑修正 + CSO_INDEX/SOP 靜動態重組）；P05-R1 Cross-Review R1 BLOCKER 等裁決**
 > **Session V 完成（2026-06-01）：Ghost Face 渲染路徑根因定位（observeCompositionAdvice() → detectedFaces → HaloGuidanceLayer 無 bbox [0,1] 過濾）；CSO_INDEX CONTRACT 更新至 P08；P05 Contract Frozen 標記；KAIROS K3-8/K3-9 候選登記**
 > **Session W 完成（2026-06-02）：INFRA-RFC2119 — 16 個 rules/skills 文件加 RFC 2119 anchor + MUST/SHOULD/MAY 標記；CSO Option A 裁決（77.3% MUST terminal）；22 降級；QA PASS；commit 1c47797 [INFRA-20]**
-> **下一步：/sv (DIFF_REF=9b7f79a..DIFF_END=1c47797) → Cross-Review → HOTFIX-38 (index_path_verify.sh P05→P08) → P05-R1 Cross-Review 裁決**
+> **Session X 完成（2026-06-02）：INFRA-RFC2119 SV+Cross-Review PASS — Build 37s / Lint clean / ELF PASS；Cross-Review R4 ADVISORY（dtaudit/SKILL.md 禁止事項語意反轉，非 BLOCKER，後續 HOTFIX 修正）**
+> **下一步：Traycer 終審 → HOTFIX-38 (index_path_verify.sh P05→P08) → HOTFIX dtaudit/SKILL.md 禁止事項修正 → P05-R1 Cross-Review 裁決**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade

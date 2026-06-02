@@ -202,3 +202,13 @@
 - [Phase 2] Merge SOP: `devspec/MERGE_SOP.md`
 - [Phase 2] Branch Releases: `devspec/BRANCH_RELEASES.md`
 - [Phase 2] 啟用條件：第二位開發者加入 / 產品上架後維護
+
+---
+
+### Session W — INFRA-RFC2119 ✅ CLOSED (2026-06-02)
+
+| Ticket ID | Description | Status | Commit |
+|-----------|-------------|--------|--------|
+| INFRA-RFC2119 (INFRA-20) | 16 個 `.claude/rules/*.md` + `.claude/skills/*/SKILL.md` 加 RFC 2119 anchor + MUST/SHOULD/MAY 標記；CSO Option A 裁決（77.3% MUST terminal）；22 條降至 SHOULD | ✅ Done | `1c47797` |
+
+**Known Issue (ADVISORY)**：`.claude/skills/dtaudit/SKILL.md` `## 禁止事項` 區塊 6 條 ❌ 禁止標記被誤轉為 **MUST**/**SHOULD**，語意反轉。需後續 HOTFIX 修正（restore ❌ 或改為 `MUST NOT`）。
