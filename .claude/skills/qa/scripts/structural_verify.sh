@@ -67,16 +67,18 @@ fi
 _REF="${DIFF_SCOPE%%\.\.*}"
 git rev-parse --verify "$_REF" >/dev/null 2>&1 || fail_env "Ref not in git history: $_REF (scope: $DIFF_SCOPE)"
 
-# Parse ## Files Changed — strip trailing ← Pipeline Artifact annotations, take first field
+# Parse ## Files Changed — strip trailing ← Pipeline Artifact annotations, strip backticks, take first field
 REPORTED_FILES="$(awk '/^## Files Changed/{found=1;next} found && /^## /{exit} found && /^- /{print substr($0,3)}' "$SV_REPORT" \
   | sed 's/[[:space:]]*←.*$//' \
   | sed 's/[[:space:]]*$//' \
+  | sed 's/`//g' \
   | awk 'NF{print $1}')"
 
-# Parse ## Excluded Payload — strip trailing — reason annotations, take first field
+# Parse ## Excluded Payload — strip trailing — reason annotations, strip backticks, take first field
 EXCLUDED_FILES="$(awk '/^## Excluded Payload/{found=1;next} found && /^## /{exit} found && /^- /{print substr($0,3)}' "$SV_REPORT" \
   | sed 's/[[:space:]]*—.*$//' \
   | sed 's/[[:space:]]*$//' \
+  | sed 's/`//g' \
   | awk 'NF{print $1}')"
 
 if [[ -z "$REPORTED_FILES" ]]; then
