@@ -17,7 +17,7 @@
 | ID | 文件 | Filesystem 路徑 | 讀取時機 |
 |----|------|----------------|---------|
 | SSOT | 唯一真理文件 v4.0.5 | `plans/architecture/SSOT_v4_0_5.md` | 任何技術規格判斷 |
-| KB | CSO Knowledge Base v2 | `plans/cso_briefing/project/file/Cueshot_CSO_Knowledge_Base_v2.md` | 產品 DNA / 拷問模板 / gstack |
+| KB | CSO Knowledge Base v3 | `plans/cso_briefing/project/file/Cueshot_CSO_Knowledge_Base_v3.md` | 產品 DNA / gstack v2.0 / 拷問模板 / 治理體系 |
 | CONTRACT | 當前活躍 Contract | `plans/cso_briefing/project/file/P08_Codebase_Sanitization_Contract.md` | 票定義 / 禁區 / 驗收 |
 | LAYOUT | Layout Spec v2.5.1 | `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md` | UI 佈局判斷 |
 | EFFORT | Model Effort 解析 | `plans/cso_briefing/project/file/Sonnet4.6-Effort等級解析.md` | Mode / Effort 指定 |
