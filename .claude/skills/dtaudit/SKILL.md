@@ -13,7 +13,7 @@ description:
 disable-model-invocation: false
 ---
 
-> RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。
+> RFC 2119 Keywords: **MUST** = 違反即 FAIL; **MUST NOT** = 禁止，違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。
 
 # Prompt
 
@@ -166,12 +166,12 @@ disable-model-invocation: false
 
 ## 禁止事項
 
-- **MUST** 關鍵字出現在文件某處就判 PASS — 必須驗證語意正確性
-- **MUST** L1/L2 通過就跳過 L3-L5 — 隱性問題和命名問題藏在後面幾層
-- **MUST** 以修復難易度決定嚴重度 — 嚴重度取決於未修復的影響
-- **SHOULD** 禁止用「補充一個註解」作為 BLOCKER 的修復方案
-- **MUST** 禁止假設早期 session 的決策已被涵蓋 — 每筆都必須驗證
-- **MUST** 禁止未讀完目標文件全文就輸出報告
+- **MUST NOT** 關鍵字出現在文件某處就判 PASS — 必須驗證語意正確性
+- **MUST NOT** L1/L2 通過就跳過 L3-L5 — 隱性問題和命名問題藏在後面幾層
+- **MUST NOT** 以修復難易度決定嚴重度 — 嚴重度取決於未修復的影響
+- **MUST NOT** 用「補充一個註解」作為 BLOCKER 的修復方案
+- **MUST NOT** 假設早期 session 的決策已被涵蓋 — 每筆都必須驗證
+- **MUST NOT** 未讀完目標文件全文就輸出報告
 
 ---
 
