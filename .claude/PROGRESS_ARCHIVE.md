@@ -212,3 +212,11 @@
 | INFRA-RFC2119 (INFRA-20) | 16 個 `.claude/rules/*.md` + `.claude/skills/*/SKILL.md` 加 RFC 2119 anchor + MUST/SHOULD/MAY 標記；CSO Option A 裁決（77.3% MUST terminal）；22 條降至 SHOULD | ✅ Done | `1c47797` |
 
 **Known Issue (ADVISORY)**：`.claude/skills/dtaudit/SKILL.md` `## 禁止事項` 區塊 6 條 ❌ 禁止標記被誤轉為 **MUST**/**SHOULD**，語意反轉。需後續 HOTFIX 修正（restore ❌ 或改為 `MUST NOT`）。
+
+### Session Y — INFRA-21 ✅ CLOSED (2026-06-02)
+
+| Ticket | Status | Commit |
+|--------|--------|--------|
+| INFRA-21 | ✅ Done | `33f98ef` |
+
+CLAUDE.md 行數瘦身：173→145 行（Cross-Review 區塊外遷至 `.claude/rules/cross-review.md` + Path-Scoped Rules 壓縮）；Build/Lint/ELF ✅；Cross-Review R1 PASS
