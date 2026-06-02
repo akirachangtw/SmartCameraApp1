@@ -4,6 +4,8 @@ description: 掃描並自動修復專案 Markdown 文件的 linting warnings（M
 disable-model-invocation: false
 ---
 
+> RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。
+
 # Description
 
 掃描並自動修復專案 Markdown 文件的 linting warnings。針對本專案常見的 10 類 MD 規則執行確定性修正，不改變文件語意內容。
@@ -30,7 +32,7 @@ disable-model-invocation: false
 all          → 目標 = .claude/**/*.md（排除 skills/ 子目錄下的 SKILL.md）
 ```
 
-用 Read 工具讀取目標檔案完整內容，記錄行號。
+**MUST** 用 Read 工具讀取目標檔案完整內容，記錄行號。
 
 ---
 
@@ -98,9 +100,9 @@ all          → 目標 = .claude/**/*.md（排除 skills/ 子目錄下的 SKILL
 使用 Edit 工具逐一套用 Step 2 識別的修正。
 
 **重要限制**：
-- 只修改格式，不修改任何文字內容、規則語意、連結路徑。
-- 若某修正可能影響語意（如 MD029 Rule 編號轉換），先輸出預覽讓使用者確認。
-- 每次 Edit 前，若檔案 > 200 行，必須先 Read 操作區段（±10 行）確認精確上下文（Rule 18）。
+- **MUST** 只修改格式，不修改任何文字內容、規則語意、連結路徑。
+- 若某修正可能影響語意（如 MD029 Rule 編號轉換），**MUST** 先輸出預覽讓使用者確認。
+- 每次 Edit 前，若檔案 > 200 行，**MUST** 先 Read 操作區段（±10 行）確認精確上下文（Rule 18）。
 
 ---
 
@@ -130,6 +132,6 @@ all          → 目標 = .claude/**/*.md（排除 skills/ 子目錄下的 SKILL
 
 ## 注意事項
 
-1. **禁止越權**：本 Skill 僅修復格式，不修復任何 `.kt`/`.xml` 程式碼。
-2. **原子化**：修正完成後提示使用者執行獨立的 `[Docs]` commit（鐵律 2）。
-3. **Session Health**：參照 CLAUDE.md §Session Health 規則，在 Report 末尾附上 turns 狀態。
+1. **MUST** 禁止越權：本 Skill 僅修復格式，**MUST** 不修復任何 `.kt`/`.xml` 程式碼。
+2. **SHOULD** 原子化：修正完成後提示使用者執行獨立的 `[Docs]` commit（鐵律 2）。
+3. **SHOULD** Session Health：參照 CLAUDE.md §Session Health 規則，在 Report 末尾附上 turns 狀態。

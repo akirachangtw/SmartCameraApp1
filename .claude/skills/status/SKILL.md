@@ -3,6 +3,9 @@ name: status
 description: 快速顯示當前對話的 Token 使用估算與 Session 健康度。優先讀取 statusline hook 快取取得真實 API 數據，無快取則 fallback 至估算模式。
 disable-model-invocation: false
 ---
+
+> RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。
+
 # Description
 快速顯示當前對話的 Token 使用估算與 Session 健康度。
 
@@ -48,7 +51,7 @@ bash -c 'cat tmp/claude_status_cache.json 2>/dev/null'
 | 狀態 | 🟢 正常 / 🟡 預警 / 🔴 需優化 | — |
 ```
 
-**Session 健康度**：參照 CLAUDE.md §Session Health 規則。
+**Session 健康度**：**SHOULD** 參照 CLAUDE.md §Session Health 規則。
 
 **建議行動**：[根據 Context 剩餘% 與輪數給出一句建議，例如：繼續工作 / 完成當前 Ticket 後執行 /compact / 立即 /compact]
 

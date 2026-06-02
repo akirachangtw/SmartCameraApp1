@@ -3,6 +3,9 @@ name: handoff
 description: 生成對話交接包 (Handoff Package)，儲存至 docs/handoff/，讓下一個 Claude Code 會話能立即重載 Context，無需重讀歷史對話。
 disable-model-invocation: false
 ---
+
+> RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。
+
 # Description
 生成對話交接包 (Handoff Package)，儲存至 `docs/handoff/`，讓下一個 Claude Code 會話能立即重載 Context，無需重讀歷史對話。
 
@@ -13,7 +16,7 @@ disable-model-invocation: false
 
 ### 儲存路徑
 
-**生成前必須先執行以下指令取得實際系統時間**：
+**MUST** 生成前先執行以下指令取得實際系統時間：
 ```bash
 powershell -command "Get-Date -Format 'yyyyMMdd_HHmm'"
 ```
@@ -23,7 +26,7 @@ docs/handoff/HANDOFF_<實際時間戳>.md
 ```
 例如指令回傳 `20260409_1425`，則檔名為 `HANDOFF_20260409_1425.md`。
 
-⚠️ 禁止估算或硬編碼時間——時間戳必須來自系統指令。
+**MUST** 禁止估算或硬編碼時間——時間戳必須來自系統指令。
 
 ---
 
@@ -50,7 +53,7 @@ docs/handoff/HANDOFF_<實際時間戳>.md
 ## 4. 最新交付成果 (Latest Deliverable)
 > 優先記錄修改過的檔案路徑與關鍵變更摘要。
 > 若單一檔案不超過 50 行，可附上完整程式碼。
-> **禁止**使用 `// ... rest of code` 省略。
+> **SHOULD** 禁止使用 `// ... rest of code` 省略。
 
 ### 修改的檔案清單
 | 檔案路徑 | 變更摘要 |
@@ -79,7 +82,7 @@ git log --oneline -1        # 確認最後一個 commit hash 與說明
 新對話開頭請執行：
 1. 直接貼上 `docs/handoff/HANDOFF_YYYYMMDD_HHMM.md` 的全文
 2. 同時附上 `memory/MEMORY.md` 與相關 `devspec/feature_record_Backlog.md` section
-3. 禁止從記憶口述——以當前倉庫檔案為依據重載 Context
+3. **MUST** 禁止從記憶口述——以當前倉庫檔案為依據重載 Context
 
 ---
 

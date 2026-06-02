@@ -4,11 +4,13 @@ description: 壓縮當前對話為精簡交接摘要。Dashboard-first，細節�
 disable-model-invocation: false
 ---
 
+> RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。
+
 # Prompt
 執行 Context 壓縮。先取得系統時間：
 `powershell -command "Get-Date -Format 'yyyyMMdd_HHmm'"`
 
-產出以下格式，儲存至 `docs/session_handoff/SESSION_HANDOFF_<時間戳>.md`：
+**SHOULD** 產出以下格式，儲存至 `docs/session_handoff/SESSION_HANDOFF_<時間戳>.md`：
 
 ---
 
@@ -55,5 +57,5 @@ disable-model-invocation: false
 
 同步更新 PROGRESS.md Dashboard 段落（Sprint Health + Active Blockers + Next Actions）。
 
-完成後輸出以下確認訊息（必須包含實際檔案路徑）：
+**SHOULD** 完成後輸出以下確認訊息（必須包含實際檔案路徑）：
 「交接文件已儲存至 docs/session_handoff/SESSION_HANDOFF_<實際時間戳>.md，PROGRESS.md 已同步更新。建議：開新對話 → 貼入 Dashboard 段 → 按需展開細節。」
