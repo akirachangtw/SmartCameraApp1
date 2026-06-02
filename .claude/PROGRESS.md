@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 ✅ R2 Skip → Traycer 批次** · **INFRA-17 ✅** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅** · **HOTFIX-30~32 ✅** · **Session V：Ghost Face 渲染路徑根因定位 + KAIROS K3-8/K3-9 登記 + CSO_INDEX/P05 Contract 更新** · **INFRA-RFC2119 ✅ Traycer Skip** · **HOTFIX-38 ✅** · **HOTFIX-dtaudit ✅**
-**Last Updated**: 2026-06-02 22:04
+**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 ✅ R2 Skip → Traycer 批次** · **INFRA-17 ✅** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅** · **HOTFIX-30~32 ✅** · **Session V：Ghost Face 渲染路徑根因定位 + KAIROS K3-8/K3-9 登記 + CSO_INDEX/P05 Contract 更新** · **INFRA-RFC2119 ✅ Traycer Skip** · **HOTFIX-38 ✅** · **HOTFIX-dtaudit ✅** · **INFRA-21 🟡 QA PASS 待 /sv**
+**Last Updated**: 2026-06-02 22:40
 
 ---
 
@@ -11,7 +11,7 @@
 | Metric | Status |
 | -------- | -------- |
 | Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ SV PASS 待 Traycer** — **D11-T1 ✅ SV PASS 待 Traycer** — **D11-T2 ✅ SV PASS 待 Traycer** — **D11-T2-HF1 ✅ SV+Cross-Review PASS 待 Traycer** — **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** — **P05-R1 ✅ R2 Skip → Traycer 批次** — **INFRA-17 ✅** — **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** — **INFRA-19 ✅** — **HOTFIX-30~32 ✅** — **HOTFIX-38 ✅** — **HOTFIX-dtaudit ✅** — **INFRA-RFC2119 ✅ Traycer Skip** — **4 Bugs 待 Ticket（Ghost Face 渲染路徑/GridOverlay/PitchDot5/Pixel9aLayout）** |
-| Compile | 0 errors ✅ (assembleDebug 72s) |
+| Compile | 0 errors ✅ (assembleDebug 51s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
 
