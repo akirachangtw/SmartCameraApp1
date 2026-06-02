@@ -68,11 +68,6 @@ normal_dump.xml
 docs/session_handoff/
 
 # CSO / UITA project knowledge (local AI agent context, not committed)
-# INDEX.md / SOP.md (entrypoints) are tracked; subdirectory content is not.
-plans/cso_briefing/archive/
-plans/cso_briefing/project/
-plans/cso_briefing/reports/
-plans/cso_briefing/role/
-plans/uita_project/file/
-plans/uita_project/reports/
+plans/cso_briefing/
+plans/uita_project/
 plans/archive/
