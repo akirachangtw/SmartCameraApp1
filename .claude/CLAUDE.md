@@ -50,6 +50,7 @@ Ticket 含 `## Verify Config` 區塊時，必須將該區塊內容複製為 `tmp
 
 同一 Commit 嚴禁混合「原始碼 .kt/.xml」與「文件 .md/.log」。
 測試：每一行 diff 都能直接追溯到 user 的 Ticket 要求。
+編輯 `.md` 檔案 **MUST** 遵守 Markdown 格式規範（MD022/MD025/MD040 等）；寫入後若有 warning **SHOULD** 立即執行 `/mdlint` 修復。
 
 ### 4. 越權禁令
 
@@ -126,7 +127,7 @@ Status code 已能回答的問題，code 回答。
 
 ## Skills
 
-`/sv` 語意審查 · `/qa` Build+Test+靜態掃描 · `/uc` 臥底模式 · `/compact` 壓縮交接 · `/dream` KAIROS 回顧(D2/D6/D10/D13/D15)
+`/sv` 語意審查 · `/qa` Build+Test+靜態掃描 · `/uc` 臥底模式 · `/compact` 壓縮交接 · `/dream` KAIROS 回顧(D2/D6/D10/D13/D15) · `/mdlint` .md 格式修復
 
 ## SSOT
 
