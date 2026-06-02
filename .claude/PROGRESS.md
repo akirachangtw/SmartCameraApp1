@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 🔴 Cross-Review R1 BLOCKER 待裁決** · **INFRA-17 ✅** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅** · **HOTFIX-30~32 ✅** · **Session V：Ghost Face 渲染路徑根因定位 + KAIROS K3-8/K3-9 登記 + CSO_INDEX/P05 Contract 更新** · **INFRA-RFC2119 ✅ SV+Cross-Review PASS 待 Traycer**
-**Last Updated**: 2026-06-02
+**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 ✅ R2 Skip → Traycer 批次** · **INFRA-17 ✅** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅** · **HOTFIX-30~32 ✅** · **Session V：Ghost Face 渲染路徑根因定位 + KAIROS K3-8/K3-9 登記 + CSO_INDEX/P05 Contract 更新** · **INFRA-RFC2119 ✅ Traycer Skip** · **HOTFIX-38 ✅** · **HOTFIX-dtaudit ✅**
+**Last Updated**: 2026-06-02 22:04
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ SV PASS 待 Traycer** — **D11-T1 ✅ SV PASS 待 Traycer** — **D11-T2 ✅ SV PASS 待 Traycer** — **D11-T2-HF1 ✅ SV+Cross-Review PASS 待 Traycer** — **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** — **P05-R1 🔴 Cross-Review R1 BLOCKER 待裁決（Sony 實機三項驗收 PASS）** — **INFRA-17 ✅** — **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** — **INFRA-19 ✅** — **HOTFIX-30~32 ✅** — **4 Bugs 待 Ticket（Ghost Face 渲染路徑/GridOverlay/PitchDot5/Pixel9aLayout）** |
+| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ SV PASS 待 Traycer** — **D11-T1 ✅ SV PASS 待 Traycer** — **D11-T2 ✅ SV PASS 待 Traycer** — **D11-T2-HF1 ✅ SV+Cross-Review PASS 待 Traycer** — **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** — **P05-R1 ✅ R2 Skip → Traycer 批次** — **INFRA-17 ✅** — **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** — **INFRA-19 ✅** — **HOTFIX-30~32 ✅** — **HOTFIX-38 ✅** — **HOTFIX-dtaudit ✅** — **INFRA-RFC2119 ✅ Traycer Skip** — **4 Bugs 待 Ticket（Ghost Face 渲染路徑/GridOverlay/PitchDot5/Pixel9aLayout）** |
 | Compile | 0 errors ✅ (assembleDebug 72s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
@@ -80,7 +80,8 @@
 > **Session V 完成（2026-06-01）：Ghost Face 渲染路徑根因定位（observeCompositionAdvice() → detectedFaces → HaloGuidanceLayer 無 bbox [0,1] 過濾）；CSO_INDEX CONTRACT 更新至 P08；P05 Contract Frozen 標記；KAIROS K3-8/K3-9 候選登記**
 > **Session W 完成（2026-06-02）：INFRA-RFC2119 — 16 個 rules/skills 文件加 RFC 2119 anchor + MUST/SHOULD/MAY 標記；CSO Option A 裁決（77.3% MUST terminal）；22 降級；QA PASS；commit 1c47797 [INFRA-20]**
 > **Session X 完成（2026-06-02）：INFRA-RFC2119 SV+Cross-Review PASS — Build 37s / Lint clean / ELF PASS；Cross-Review R4 ADVISORY（dtaudit/SKILL.md 禁止事項語意反轉，非 BLOCKER，後續 HOTFIX 修正）**
-> **下一步：Traycer 終審 → HOTFIX-38 (index_path_verify.sh P05→P08) → HOTFIX dtaudit/SKILL.md 禁止事項修正 → P05-R1 Cross-Review 裁決**
+> **Session X 完成（2026-06-02）：HOTFIX-38/39/40 ✅；dtaudit MUST NOT 修正；CLAUDE.md mdlint + Markdown 紀律規則；structural_verify.sh 反引號修正；commit-msg INFRA-[A-Z0-9]+**
+> **下一步：Traycer Wave L 批次（P05-R1 + P05-T3 + 其他待 Traycer 票）→ 後續 P08 Wave F/L tickets**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
