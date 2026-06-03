@@ -12,7 +12,7 @@
  *
  * Modifications:
  * - 2025-11-25: Initial creation for v1.5.0 prototype
- * - 2026-04-11: D3-T2 Cueshot alignment — solid lines (dashes removed), alpha 0.4→0.5
+ * - 2026-06-03: P08-F2 — alpha 0.25f / strokeWidth 1.5.dp (CSO 裁決, density-independent)
  */
 package com.akirachang.ai.photographer.presentation.camera.components.overlay
 
@@ -25,6 +25,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /**
  * Grid overlay composable for Rule of Thirds guidance
@@ -38,23 +41,24 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
  * @param modifier Modifier for the canvas
  * @param visible Whether to show the grid (default: true)
  * @param color Color of the grid lines (default: semi-transparent white)
- * @param strokeWidth Width of the grid lines in pixels (default: 2f)
+ * @param strokeWidthDp Width of the grid lines in density-independent pixels (default: 1.5.dp)
  * @param contentBounds Actual preview content bounds (excludes FIT_CENTER letterbox). If null, uses full canvas size.
  */
 @Composable
 fun GridOverlay(
     modifier: Modifier = Modifier,
     visible: Boolean = true,
-    color: Color = Color.White.copy(alpha = 0.08f),
-    strokeWidth: Float = 0.5f,
+    color: Color = Color.White.copy(alpha = 0.25f),
+    strokeWidthDp: Dp = 1.5.dp,
     contentBounds: RectF? = null  // v2.11.1 P0-2: Optional content bounds
 ) {
     if (!visible) return
 
+    val strokeWidthPx = with(LocalDensity.current) { strokeWidthDp.toPx() }
     Canvas(modifier = modifier.fillMaxSize()) {
         drawRuleOfThirdsGrid(
             color = color,
-            strokeWidth = strokeWidth,
+            strokeWidth = strokeWidthPx,
             contentBounds = contentBounds
         )
     }

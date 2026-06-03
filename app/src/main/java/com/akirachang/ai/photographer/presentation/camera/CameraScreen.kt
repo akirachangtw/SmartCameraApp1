@@ -284,12 +284,6 @@ fun CameraScreen(
                             }
                         )
 
-                        GridOverlay(
-                            modifier = Modifier.fillMaxSize(),
-                            visible = isGridEnabled && !isPtfActive,
-                            contentBounds = contentBounds.takeIf { !it.isEmpty }
-                        )
-
                         HaloGuidanceLayer(
                             faces = state.detectedFaces,
                             compositionResult = state.compositionResult,
@@ -314,6 +308,12 @@ fun CameraScreen(
                             lightingState = lightingState,
                             hdrMode = state.hdrMode,
                             modifier = Modifier.fillMaxSize()
+                        )
+
+                        GridOverlay(
+                            modifier = Modifier.fillMaxSize(),
+                            visible = isGridEnabled && !isPtfActive,
+                            contentBounds = contentBounds.takeIf { !it.isEmpty }
                         )
 
                         // Top scrim — below FocusIndicatorOverlay so focus ring stays visible
