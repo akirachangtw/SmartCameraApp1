@@ -213,6 +213,16 @@
 
 **Known Issue (ADVISORY)**：`.claude/skills/dtaudit/SKILL.md` `## 禁止事項` 區塊 6 條 ❌ 禁止標記被誤轉為 **MUST**/**SHOULD**，語意反轉。需後續 HOTFIX 修正（restore ❌ 或改為 `MUST NOT`）。
 
+### Session AA — P08-F1 ✅ CLOSED (2026-06-03)
+
+| Ticket | Status | Commit |
+| ------ | ------ | ------ |
+| P08-F1 | ✅ Done (Pre-completed) | `f793483` (PROGRESS.md only) |
+
+P08-F1 LEVEL_FADE_RANGE_DEG 常數修正 — Pre-completed：`LEVEL_FADE_RANGE_DEG = 10f` 已由 D05-T7 commit `fa5afb8` 完成。本 Session 執行 git history 確認、QA PASS（181 tests）、SV PASS、Cross-Review R1 PASS（零代碼 diff）。Ticket 正式閉環。
+
+---
+
 ### Session Z — P08-E1 ✅ CLOSED (2026-06-03)
 
 | Ticket | Status | Commit |
