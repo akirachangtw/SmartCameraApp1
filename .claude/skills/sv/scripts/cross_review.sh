@@ -126,7 +126,7 @@ if [[ -f "$SV_REPORT" ]]; then
   while IFS= read -r _ef; do
     [[ -z "$_ef" ]] && continue
     if [[ -z "$EXTRA_EXCLUDE" ]]; then EXTRA_EXCLUDE="$_ef"; else EXTRA_EXCLUDE="${EXTRA_EXCLUDE},${_ef}"; fi
-  done < <(awk '/^## Excluded Payload/{found=1;next} found && /^## /{exit} found && /^- /{line=substr($0,3); sub(/[[:space:]]*—.*$/,"",line); sub(/[[:space:]]*$/,"",line); if(length(line)>0) print line}' "$SV_REPORT" 2>/dev/null || true)
+  done < <(awk '/^## Excluded Payload/{found=1;next} found && /^## /{exit} found && /^- /{line=substr($0,3); sub(/[[:space:]]*—.*$/,"",line); sub(/[[:space:]]*$/,"",line); gsub(/`/,"",line); if(length(line)>0) print line}' "$SV_REPORT" 2>/dev/null || true)
 fi
 
 # ═══════════════════════════════════════
