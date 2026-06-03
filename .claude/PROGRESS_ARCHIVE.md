@@ -213,6 +213,16 @@
 
 **Known Issue (ADVISORY)**：`.claude/skills/dtaudit/SKILL.md` `## 禁止事項` 區塊 6 條 ❌ 禁止標記被誤轉為 **MUST**/**SHOULD**，語意反轉。需後續 HOTFIX 修正（restore ❌ 或改為 `MUST NOT`）。
 
+### Session AB — P08-F2 ✅ CLOSED (2026-06-03)
+
+| Ticket | Status | Commit |
+| ------ | ------ | ------ |
+| P08-F2 | ✅ Done | `d50ddbd` |
+
+P08-F2 GridOverlay 三因子修復 — alpha 0.08f→0.25f（3× 提升）、strokeWidth Float px→Dp 1.5.dp（消除密度依賴）、Z-order layer 2→layer 5（HaloGuidanceLayer / CompositionGuideOverlay / HDRWarningOverlay 之上，Top scrim 之下）。KDoc stale 記錄同步修正。Build 24s / 181 tests PASS / Lint 0 new warnings / ELF PASS / Cross-Review R1 PASS（gpt-5.5, all layers PASS）。
+
+---
+
 ### Session AA — P08-F1 ✅ CLOSED (2026-06-03)
 
 | Ticket | Status | Commit |
