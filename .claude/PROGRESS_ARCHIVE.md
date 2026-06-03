@@ -213,6 +213,16 @@
 
 **Known Issue (ADVISORY)**：`.claude/skills/dtaudit/SKILL.md` `## 禁止事項` 區塊 6 條 ❌ 禁止標記被誤轉為 **MUST**/**SHOULD**，語意反轉。需後續 HOTFIX 修正（restore ❌ 或改為 `MUST NOT`）。
 
+### Session Z — P08-E1 ✅ CLOSED (2026-06-03)
+
+| Ticket | Status | Commit |
+| ------ | ------ | ------ |
+| P08-E1 | ✅ Done | `400bc7e` |
+
+PitchTractionLayer 整組件消滅（-561 lines）：drawFloatingDots / drawPitchTractionGradient / drawAlignedBreathingGradient + PitchTractionLayerTest 全刪。Build ✅ / Tests 181 PASS / Lint clean / ELF PASS。SV 10/10 PASS。Cross-Review R2 BLOCKER → CSO Override ADVISORY（*Test.kt Scope Ban 例外授權）。HOTFIX-40：ssot_context.md Test Scope Ban 增加 Contract 授權例外條款。
+
+**KAIROS K4 候選**：K4-2（Scope Ban 缺授權例外 → false positive）+ K4-3（Option A 對機械閘門無效，遇 Contract 授權直接 Option D）
+
 ### Session Y — INFRA-21 ✅ CLOSED (2026-06-02)
 
 | Ticket | Status | Commit |

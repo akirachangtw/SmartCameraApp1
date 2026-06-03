@@ -74,7 +74,7 @@ presentation/ → Jetpack Compose + ViewModel
 | `AndroidManifest.xml` | 除權限相關 Ticket | — |
 | `build.gradle.kts` | 除依賴版本升級 Ticket | — |
 | `Hilt Module` 綁定 | 除 DI wiring Ticket | — |
-| 任何 `*Test.kt` 既有邏輯 | 只允許新增，不允許修改既有斷言 | — |
+| 任何 `*Test.kt` 既有邏輯 | 只允許新增，不允許修改既有斷言。例外：Contract 授權整組件消滅時，其專屬測試隨組件一併刪除 | 防止 agent 弱化測試掩蓋缺陷 |
 
 ---
 
