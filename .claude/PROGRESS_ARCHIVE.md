@@ -213,6 +213,16 @@
 
 **Known Issue (ADVISORY)**：`.claude/skills/dtaudit/SKILL.md` `## 禁止事項` 區塊 6 條 ❌ 禁止標記被誤轉為 **MUST**/**SHOULD**，語意反轉。需後續 HOTFIX 修正（restore ❌ 或改為 `MUST NOT`）。
 
+### Session AC — P08-F2 AI-2 追加修正 ✅ CLOSED (2026-06-03)
+
+| Ticket | Status | Commit |
+| ------ | ------ | ------ |
+| P08-F2 AI-2 | ✅ Done | `04f98ee` (code) / `861a3bd` (PROGRESS) |
+
+P08-F2 AI-2 追加修正（CSO 裁決 Option A）— GridOverlay `contentBounds → null`：FILL_CENTER 下 preview 填滿全螢幕，grid fallback 至全 canvas，修復 21:9 螢幕格線覆蓋率 43% 缺口。lambda 參數孤兒清理 `contentBounds → _`（消除 unused-parameter warning）。Scope 紀律：未觸碰 `calculateContentBounds`（F-3 地盤，center-crop 語意陷阱保留）。Build 23s / 181 tests PASS / Lint 0 new warnings / ELF PASS / Cross-Review R2 PASS（gpt-5.5 high, all layers PASS）。至此 P08-F2 四因子（alpha/strokeWidth/Z-order/contentBounds）完整閉環，待 Traycer 終審。
+
+---
+
 ### Session AB — P08-F2 ✅ CLOSED (2026-06-03)
 
 | Ticket | Status | Commit |
