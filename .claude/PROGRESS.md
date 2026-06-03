@@ -85,8 +85,8 @@
 > **Session Z 完成（2026-06-03）：P08-E1 PitchTractionLayer 清場 — drawFloatingDots + drawPitchTractionGradient + drawAlignedBreathingGradient + PitchTractionLayerTest 全數消滅（-561 lines）；SV 10/10 PASS；Cross-Review CSO Override ADVISORY；HOTFIX-40 ssot_context.md 例外條款**
 > **Session AA 完成（2026-06-03）：P08-F1 Pre-completed 確認閉環（D05-T7 fa5afb8 已修正）；QA/SV/Cross-Review/Structural Verify 全 PASS；HOTFIX-41 cross_review.sh Excluded Payload 反引號 Bug 修正；Telegram 觸發條件精簡**
 > **Session AB 完成（2026-06-03）：P08-F2 GridOverlay 三因子修復（alpha 0.08f→0.25f / strokeWidth 0.5px→1.5.dp / Z-order layer 2→5）；SV+Cross-Review R1 PASS；Telegram 觸發規則完善（實作完成、Auto-Chain、pipeline 暫停點全覆蓋）**
-> **Session AC 進行中（2026-06-03）：P08-F2 AI-2 追加修正（CSO 裁決 — GridOverlay contentBounds→null，格線覆蓋全畫面；lambda 參數孤兒清理 → `_`）；/qa PASS（Build 23s / 181 tests / Lint 0 new warnings）；Auto-Chain → /sv**
-> **下一步：P08-F2 AI-2 /sv + Cross-Review 通過後 → Traycer 終審 P08-F2 完整 4 因子（alpha/strokeWidth/Z-order/contentBounds）**
+> **Session AC 完成（2026-06-03）：P08-F2 AI-2 追加修正（CSO 裁決 Option A — GridOverlay contentBounds→null，修復 21:9 格線 43% 缺口；lambda 孤兒清理 `_`）；/qa PASS（23s / 181 tests）；SV+Cross-Review R2 PASS（gpt-5.5 high）；Structural Verify A-F PASS；P08-F3 AI-1 Discovery（HaloGuidanceLayer 不依賴 contentBounds，零 Halo regression）**
+> **下一步：新 Session → Traycer 終審 P08-F2（f224cb2..2d89ed0，完整 4 因子），或 P08-F3 正式 Ticket**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
