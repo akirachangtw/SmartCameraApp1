@@ -269,7 +269,7 @@ fun CameraScreen(
                                     }
                                 )
                             }
-                    ) { contentBounds ->
+                    ) { _ ->
                         val previewBitmap by viewModel.previewBitmap.collectAsState()
                         CameraPreview(
                             previewBitmap = previewBitmap,
@@ -313,7 +313,8 @@ fun CameraScreen(
                         GridOverlay(
                             modifier = Modifier.fillMaxSize(),
                             visible = isGridEnabled && !isPtfActive,
-                            contentBounds = contentBounds.takeIf { !it.isEmpty }
+                            // P08-F2 (CSO 裁決): null → grid 覆蓋全畫面，FILL_CENTER preview 填滿全螢幕
+                            contentBounds = null
                         )
 
                         // Top scrim — below FocusIndicatorOverlay so focus ring stays visible
