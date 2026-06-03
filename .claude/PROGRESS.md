@@ -83,7 +83,8 @@
 > **Session X 完成（2026-06-02）：HOTFIX-38/39/40 ✅；dtaudit MUST NOT 修正；CLAUDE.md mdlint + Markdown 紀律規則；structural_verify.sh 反引號修正；commit-msg INFRA-[A-Z0-9]+**
 > **Session Y 完成（2026-06-02）：INFRA-21 CLAUDE.md 行數瘦身 173→145 行（Cross-Review 外遷至 cross-review.md + Path-Scoped Rules 壓縮）；P08-L1 Contract Amendment 套用（AI-2 CSO Override Skip）；Build/Lint/ELF ✅；Cross-Review R1 PASS**
 > **Session Z 完成（2026-06-03）：P08-E1 PitchTractionLayer 清場 — drawFloatingDots + drawPitchTractionGradient + drawAlignedBreathingGradient + PitchTractionLayerTest 全數消滅（-561 lines）；SV 10/10 PASS；Cross-Review CSO Override ADVISORY；HOTFIX-40 ssot_context.md 例外條款**
-> **下一步：/compact → 新 Session → P08-F1 LEVEL_FADE_RANGE_DEG 常數修正（Effort: Low）**
+> **Session AA 完成（2026-06-03）：P08-F1 Pre-completed 確認閉環（D05-T7 fa5afb8 已修正）；QA/SV/Cross-Review/Structural Verify 全 PASS；HOTFIX-41 cross_review.sh Excluded Payload 反引號 Bug 修正；Telegram 觸發條件精簡**
+> **下一步：/compact → 新 Session → P08-F2 GridOverlay 三因子修復（alpha/strokeWidth/Z-order，Effort: Medium）**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
