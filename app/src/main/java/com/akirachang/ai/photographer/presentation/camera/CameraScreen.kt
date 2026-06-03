@@ -112,7 +112,6 @@ import com.akirachang.ai.photographer.presentation.camera.components.overlay.Gri
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.HDRWarningOverlay
 import com.akirachang.ai.photographer.presentation.camera.components.overlay.LevelIndicator
 import com.akirachang.ai.photographer.presentation.camera.components.HaloGuidanceLayer
-import com.akirachang.ai.photographer.presentation.camera.overlay.PitchTractionLayer
 import com.akirachang.ai.photographer.presentation.camera.model.CompositionState
 import com.akirachang.ai.photographer.presentation.camera.model.AspectRatioMode
 import com.akirachang.ai.photographer.R
@@ -206,7 +205,7 @@ fun CameraScreen(
     // (Button disable + CircularProgressIndicator)
 
     if (cameraPermissionState.status.isGranted) {
-        // D4-T2: Extract isAligned once — passed down to PitchTractionLayer and shutter button (UDF).
+        // D4-T2: Extract isAligned once — passed down to shutter button (UDF).
         // Extreme-left check guards against null compositionResult before first detection frame.
         val isAligned = state.compositionResult?.isAllAligned == true
 
@@ -289,13 +288,6 @@ fun CameraScreen(
                             modifier = Modifier.fillMaxSize(),
                             visible = isGridEnabled && !isPtfActive,
                             contentBounds = contentBounds.takeIf { !it.isEmpty }
-                        )
-
-                        PitchTractionLayer(
-                            modifier = Modifier.fillMaxSize(),
-                            deviceRoll = state.deviceRoll,
-                            capabilityTier = viewModel.deviceCapabilityTier,
-                            isAligned = isAligned,
                         )
 
                         HaloGuidanceLayer(
