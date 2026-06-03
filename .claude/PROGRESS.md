@@ -84,7 +84,8 @@
 > **Session Y 完成（2026-06-02）：INFRA-21 CLAUDE.md 行數瘦身 173→145 行（Cross-Review 外遷至 cross-review.md + Path-Scoped Rules 壓縮）；P08-L1 Contract Amendment 套用（AI-2 CSO Override Skip）；Build/Lint/ELF ✅；Cross-Review R1 PASS**
 > **Session Z 完成（2026-06-03）：P08-E1 PitchTractionLayer 清場 — drawFloatingDots + drawPitchTractionGradient + drawAlignedBreathingGradient + PitchTractionLayerTest 全數消滅（-561 lines）；SV 10/10 PASS；Cross-Review CSO Override ADVISORY；HOTFIX-40 ssot_context.md 例外條款**
 > **Session AA 完成（2026-06-03）：P08-F1 Pre-completed 確認閉環（D05-T7 fa5afb8 已修正）；QA/SV/Cross-Review/Structural Verify 全 PASS；HOTFIX-41 cross_review.sh Excluded Payload 反引號 Bug 修正；Telegram 觸發條件精簡**
-> **下一步：/compact → 新 Session → P08-F2 GridOverlay 三因子修復（alpha/strokeWidth/Z-order，Effort: Medium）**
+> **Session AB 完成（2026-06-03）：P08-F2 GridOverlay 三因子修復（alpha 0.08f→0.25f / strokeWidth 0.5px→1.5.dp / Z-order layer 2→5）；SV+Cross-Review R1 PASS；Telegram 觸發規則完善（實作完成、Auto-Chain、pipeline 暫停點全覆蓋）**
+> **下一步：新 Session → Traycer 終審 P08-F2（commit d50ddbd），或繼續 P08 Contract §4 下一子任務**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
