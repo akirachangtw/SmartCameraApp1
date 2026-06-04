@@ -1628,69 +1628,14 @@ class CameraViewModel @Inject constructor(
         }
     }
 
-    private fun observeDetectionResults() {
-        cameraRepository.detectionResults
-            .onEach { result ->
-                if (result != null) {
-                    // v2.2.1: Stabilization logic to prevent flickering overlays
-                    val hasFaces = result.faces.isNotEmpty()
-                    val hasSubjects = hasFaces || result.objects.isNotEmpty()
-
-                    if (hasSubjects) {
-                        consecutiveFaceDetections = if (hasFaces) consecutiveFaceDetections + 1 else 0
-                        consecutiveNoFaceDetections = 0
-
-                        // Only update state if we have enough consecutive detections
-                        // or if we already have a stable detection
-                        val shouldPublish = !hasFaces ||
-                            consecutiveFaceDetections >= MIN_DETECTIONS_TO_SHOW ||
-                            _state.value.detectionResult?.faces?.isNotEmpty() == true
-                        if (shouldPublish) {
-                            _state.update { it.copy(detectionResult = result) }
-
-                            // v2.11.2 Fix F: Rebuild CoordinateTransformer on first detection with valid dims.
-                            // updateContentBounds() runs at layout time (before ML Kit), so transformer is null.
-                            // Now that imageWidth/imageHeight are available, recreate with correct dimensions.
-                            if (result.imageWidth > 0 && _state.value.coordinateTransformer == null &&
-                                _state.value.contentBounds.width() > 0) {
-                                updateContentBounds(_state.value.contentBounds)
-                            }
-                            rebuildNewPipelineSensorToViewMatrix(result, _state.value)
-
-                            // Perform composition analysis (v1.5.0)
-                            analyzeComposition(result)
-                            autoFocusOnSalientTarget()
-
-                            Log.i(
-                                TAG,
-                                "Detection result updated: ${result.faces.size} faces, ${result.objects.size} objects"
-                            )
-                        }
-                    } else {
-                        consecutiveNoFaceDetections++
-                        consecutiveFaceDetections = 0
-
-                        // Only clear if we have enough consecutive empty frames
-                        if (consecutiveNoFaceDetections >= MIN_NO_DETECTIONS_TO_HIDE) {
-                            _state.update { it.copy(detectionResult = result) }
-
-                            // v2.11.2 Fix F: Rebuild transformer even on no-face result — imageWidth still valid
-                            if (result.imageWidth > 0 && _state.value.coordinateTransformer == null &&
-                                _state.value.contentBounds.width() > 0) {
-                                updateContentBounds(_state.value.contentBounds)
-                            }
-
-                            _compositionState.value = CompositionState.NoSubject
-
-                            Log.i(TAG, "Detection cleared: No stable face detected")
-                        }
-                    }
-
-                    // v2.2.0: Lighting analysis is now handled automatically in SmartCameraAnalyzer
-                    // Results are observed via observeLightingResults()
-                }
-            }
-            .launchIn(viewModelScope)
+    private fun publishDetectionResult(result: DetectionResult) {
+        _state.update { it.copy(detectionResult = result) }
+        if (result.imageWidth > 0 && _state.value.coordinateTransformer == null &&
+            _state.value.contentBounds.width() > 0) {
+            updateContentBounds(_state.value.contentBounds)
+        }
+        rebuildNewPipelineSensorToViewMatrix(result, _state.value)
+        updateTrackedObjectPosition(result)
     }
 
     /**
@@ -1748,6 +1693,7 @@ class CameraViewModel @Inject constructor(
                     var lightingTime = 0.0
 
                     if (detectionResult != null) {
+                        val hadRawFaces = detectionResult.faces.isNotEmpty()
                         val ghostFaceCount = detectionResult.faces.count { face ->
                             val box = face.boundingBox
                             box.left < 0 || box.top < 0 ||
@@ -1757,8 +1703,7 @@ class CameraViewModel @Inject constructor(
                         if (ghostFaceCount > 0) {
                             Log.i(TAG, "[P08-F3] Filtered $ghostFaceCount ghost faces with out-of-bounds bbox")
                         }
-                        @Suppress("NAME_SHADOWING")
-                        val detectionResult = if (ghostFaceCount > 0) {
+                        val sanitizedResult = if (ghostFaceCount > 0) {
                             detectionResult.copy(faces = detectionResult.faces.filter { face ->
                                 val box = face.boundingBox
                                 box.left >= 0 && box.top >= 0 &&
@@ -1766,71 +1711,41 @@ class CameraViewModel @Inject constructor(
                                     box.bottom <= detectionResult.imageHeight
                             })
                         } else detectionResult
-                        val hasFaces = detectionResult.faces.isNotEmpty()
-                        val hasSubjects = hasFaces || detectionResult.objects.isNotEmpty()
+                        val facesFilteredToEmpty = hadRawFaces && sanitizedResult.faces.isEmpty()
+                        val hasFaces = sanitizedResult.faces.isNotEmpty()
+                        val hasSubjects = hasFaces || sanitizedResult.objects.isNotEmpty()
 
                         if (hasSubjects) {
                             consecutiveFaceDetections = if (hasFaces) consecutiveFaceDetections + 1 else 0
                             consecutiveNoFaceDetections = 0
 
-                            // Only update state if we have enough consecutive detections
                             val shouldPublish = !hasFaces ||
                                 consecutiveFaceDetections >= MIN_DETECTIONS_TO_SHOW ||
                                 _state.value.detectionResult?.faces?.isNotEmpty() == true
                             if (shouldPublish) {
-                                _state.update { it.copy(detectionResult = detectionResult) }
-
-                                // v2.11.2 Fix F: Rebuild CoordinateTransformer on first detection with valid dims
-                                if (detectionResult.imageWidth > 0 && _state.value.coordinateTransformer == null &&
-                                    _state.value.contentBounds.width() > 0) {
-                                    updateContentBounds(_state.value.contentBounds)
-                                }
-                                rebuildNewPipelineSensorToViewMatrix(detectionResult, _state.value)
-
-                                // v2.9.10: Update tracked object position (Traycer)
-                                updateTrackedObjectPosition(detectionResult)
-
-                                // v2.11.0: Smart Subject Focus (AI auto-focus)
+                                publishDetectionResult(sanitizedResult)
                                 autoFocusOnSalientTarget()
-
-                                // Perform composition analysis
                                 val compStart = System.nanoTime()
-                                analyzeComposition(detectionResult)
+                                analyzeComposition(sanitizedResult)
                                 compositionTime = (System.nanoTime() - compStart) / 1_000_000.0
-
-                                Log.i(
-                                    TAG,
-                                    "Detection result updated: ${detectionResult.faces.size} faces, ${detectionResult.objects.size} objects"
-                                )
+                                Log.i(TAG, "Detection result updated: ${sanitizedResult.faces.size} faces, ${sanitizedResult.objects.size} objects")
                             }
                         } else {
                             consecutiveNoFaceDetections++
                             consecutiveFaceDetections = 0
 
-                            // Only clear if we have enough consecutive empty frames
-                            if (consecutiveNoFaceDetections >= MIN_NO_DETECTIONS_TO_HIDE) {
-                                _state.update { it.copy(detectionResult = detectionResult) }
-
-                                // v2.11.2 Fix F: Rebuild transformer even on no-face result — imageWidth still valid
-                                if (detectionResult.imageWidth > 0 && _state.value.coordinateTransformer == null &&
-                                    _state.value.contentBounds.width() > 0) {
-                                    updateContentBounds(_state.value.contentBounds)
-                                }
-                                rebuildNewPipelineSensorToViewMatrix(detectionResult, _state.value)
-
-                                // v2.9.10: Update tracking (will clear if target lost)
-                                updateTrackedObjectPosition(detectionResult)
-
+                            val shouldPublishEmpty = facesFilteredToEmpty || consecutiveNoFaceDetections >= MIN_NO_DETECTIONS_TO_HIDE
+                            if (shouldPublishEmpty) {
+                                publishDetectionResult(sanitizedResult)
                                 _compositionState.value = CompositionState.NoSubject
-
                                 Log.i(TAG, "Detection cleared: No stable face detected")
                             }
                         }
 
                         // Analyze lighting (v2.2.0) - Use Bitmap-based analysis with subject context
                         val lightStart = System.nanoTime()
-                        val lightingState = if (detectionResult.faces.isNotEmpty() || detectionResult.objects.isNotEmpty()) {
-                            analyzeLightingUseCase.analyzeWithSubject(bitmap, detectionResult)
+                        val lightingState = if (sanitizedResult.faces.isNotEmpty() || sanitizedResult.objects.isNotEmpty()) {
+                            analyzeLightingUseCase.analyzeWithSubject(bitmap, sanitizedResult)
                         } else {
                             analyzeLightingUseCase(bitmap)
                         }
