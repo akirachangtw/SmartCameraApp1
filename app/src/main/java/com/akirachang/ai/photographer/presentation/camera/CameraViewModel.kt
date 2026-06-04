@@ -1748,6 +1748,24 @@ class CameraViewModel @Inject constructor(
                     var lightingTime = 0.0
 
                     if (detectionResult != null) {
+                        val ghostFaceCount = detectionResult.faces.count { face ->
+                            val box = face.boundingBox
+                            box.left < 0 || box.top < 0 ||
+                                box.right > detectionResult.imageWidth ||
+                                box.bottom > detectionResult.imageHeight
+                        }
+                        if (ghostFaceCount > 0) {
+                            Log.i(TAG, "[P08-F3] Filtered $ghostFaceCount ghost faces with out-of-bounds bbox")
+                        }
+                        @Suppress("NAME_SHADOWING")
+                        val detectionResult = if (ghostFaceCount > 0) {
+                            detectionResult.copy(faces = detectionResult.faces.filter { face ->
+                                val box = face.boundingBox
+                                box.left >= 0 && box.top >= 0 &&
+                                    box.right <= detectionResult.imageWidth &&
+                                    box.bottom <= detectionResult.imageHeight
+                            })
+                        } else detectionResult
                         val hasFaces = detectionResult.faces.isNotEmpty()
                         val hasSubjects = hasFaces || detectionResult.objects.isNotEmpty()
 

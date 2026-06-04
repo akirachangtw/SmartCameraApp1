@@ -291,6 +291,7 @@ private fun DrawScope.drawGazeHalo(
     strokePx: Float,
 ) {
     val box = face.boundingBoxNormalized
+    if (box.left < 0f || box.top < 0f || box.right > 1f || box.bottom > 1f) return
     val paddedRect = NormalizedRect(
         left = box.left - GAZE_HALO_PADDING_NORM,
         top = box.top - GAZE_HALO_PADDING_NORM,
