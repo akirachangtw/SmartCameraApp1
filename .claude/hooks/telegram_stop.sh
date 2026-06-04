@@ -31,7 +31,19 @@ if echo "$LAST_MSG" | grep -qE "停止等.*Ticket|停止等候指示|Boot Report
     exit 0
 fi
 
-# ── 黑名單 3: 純 Git 操作（無 SV/QA 伴隨）─────────────────────
+# ── 黑名單 3: /compact 交接文件產出 ──────────────────────────
+if echo "$LAST_MSG" | grep -qE "SESSION_HANDOFF_|交接文件已儲存至|建議：開新對話"; then
+    echo "[telegram_stop] Skip: /compact handoff output (blacklisted)"
+    exit 0
+fi
+
+# ── 黑名單 4: /handoff 交接包產出 ─────────────────────────────
+if echo "$LAST_MSG" | grep -qE "docs/handoff/|交接提示詞.*儲存|Handoff Package"; then
+    echo "[telegram_stop] Skip: /handoff output (blacklisted)"
+    exit 0
+fi
+
+# ── 黑名單 5: 純 Git 操作（無 SV/QA 伴隨）─────────────────────
 if echo "$LAST_MSG" | grep -qE "提交成功|原子提交完成|commit [0-9a-f]{7}"; then
     if ! echo "$LAST_MSG" | grep -qE "SV.*PASS|Cross-Review.*PASS|QA Report"; then
         echo "[telegram_stop] Skip: git-only operation (blacklisted)"
