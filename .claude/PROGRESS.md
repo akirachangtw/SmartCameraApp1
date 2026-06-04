@@ -86,8 +86,8 @@
 > **Session AA 完成（2026-06-03）：P08-F1 Pre-completed 確認閉環（D05-T7 fa5afb8 已修正）；QA/SV/Cross-Review/Structural Verify 全 PASS；HOTFIX-41 cross_review.sh Excluded Payload 反引號 Bug 修正；Telegram 觸發條件精簡；Traycer execute_review ✅ PASS（2026-06-04）**
 > **Session AB 完成（2026-06-03）：P08-F2 GridOverlay 三因子修復（alpha 0.08f→0.25f / strokeWidth 0.5px→1.5.dp / Z-order layer 2→5）；SV+Cross-Review R1 PASS；Telegram 觸發規則完善（實作完成、Auto-Chain、pipeline 暫停點全覆蓋）**
 > **Session AC 完成（2026-06-03）：P08-F2 AI-2 追加修正（CSO 裁決 Option A — GridOverlay contentBounds→null，修復 21:9 格線 43% 缺口；lambda 孤兒清理 `_`）；/qa PASS（23s / 181 tests）；SV+Cross-Review R2 PASS（gpt-5.5 high）；Structural Verify A-F PASS；P08-F3 AI-1 Discovery（HaloGuidanceLayer 不依賴 contentBounds，零 Halo regression）；Traycer execute_review ✅ PASS（2026-06-04）**
-> **Session AD 完成（2026-06-04）：P08-F3 AI-1 CSO 三維交叉驗證裁決同步 — 裁決 1 F-2 安全性正式結案（HaloGuidanceLayer NormalizedToPixelTransformer 天然免疫）；裁決 2 F-3 範疇不擴充（calculateContentBounds 不進 F-3）；裁決 3 contentBounds 殘餘 Bug 歸入 Visual Baseline Gate 場景 2 觀測（Sony 邊緣 TapFocus）；Contract §4 F-3 AI-1 [x] + §6 Gate Scene 2 追加驗收項**
-> **下一步：P08-F3 AI-2 管線合一執行（ALLOWED: CameraViewModel.kt,CameraScreen.kt,HaloGuidanceLayer.kt）**
+> **Session AD 完成（2026-06-04）：P08-F3 AI-1 CSO 三裁決同步 + AI-3+AI-4 實作閉環（Ghost Face bbox 源頭過濾 + HaloGuidanceLayer normBbox guard）；SV+Cross-Review R1 PASS；INFRA-22/23 Telegram Stop Hook 智能路由（黑名單 + SV PASS 富通知）；P08-E1/F1/F2 Traycer execute_review PASS 狀態同步**
+> **下一步：新 Session → Traycer 終審 P08-F3（b3d819a..7d37acf，CameraViewModel + HaloGuidanceLayer），或 P08-F4 BUG-SONY-ROTATION-CONST Discovery**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
