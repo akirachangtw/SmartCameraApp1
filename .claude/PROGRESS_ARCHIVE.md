@@ -260,3 +260,19 @@ PitchTractionLayer 整組件消滅（-561 lines）：drawFloatingDots / drawPitc
 | INFRA-21 | ✅ Done | `33f98ef` |
 
 CLAUDE.md 行數瘦身：173→145 行（Cross-Review 區塊外遷至 `.claude/rules/cross-review.md` + Path-Scoped Rules 壓縮）；Build/Lint/ELF ✅；Cross-Review R1 PASS
+
+---
+
+### Session AD — P08-F3 AI-3+AI-4 ✅ DONE (2026-06-04)
+
+| Ticket | Status | Commits |
+| ------ | ------ | ------- |
+| P08-F3 (AI-3+AI-4) | ✅ Done | `3e00e80` (code) · `7d37acf` (docs) |
+
+Ghost Face 源頭過濾 + HaloGuidanceLayer normBbox guard：
+- AI-3 `CameraViewModel.observePreviewForAnalysis()` — bbox [0,imageW/H] 過濾，NAME_SHADOWING 替換 detectionResult，Logcat `[P08-F3] Filtered N ghost faces`
+- AI-4 `HaloGuidanceLayer.drawGazeHalo()` — normBbox [0,1] 防禦性末端 guard
+- AI-1 Discovery：單一活躍管線確認（observeDetectionResults commented-out）→ AI-2 跳過
+- Build ✅ (33s) / Tests 181 PASS / Lint clean / ELF PASS / Cross-Review R1 PASS (PASS)
+
+**Contract §4 Coverage**：AI-1 ✅（前次）+ AI-2 skip（單管線）+ AI-3 ✅ + AI-4 ✅
