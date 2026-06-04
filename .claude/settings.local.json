@@ -94,7 +94,7 @@
           },
           {
             "type": "command",
-            "command": "bash .claude/skills/telegram-notify/scripts/notify.sh '⏸️ Claude 已停止，等待 Akira 操作' 0"
+            "command": "bash .claude/hooks/telegram_stop.sh"
           }
         ]
       }
