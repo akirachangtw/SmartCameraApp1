@@ -1,7 +1,7 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 ✅ R2 Skip → Traycer 批次** · **INFRA-17 ✅** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅** · **HOTFIX-30~32 ✅** · **Session V：Ghost Face 渲染路徑根因定位 + KAIROS K3-8/K3-9 登記 + CSO_INDEX/P05 Contract 更新** · **INFRA-RFC2119 ✅ Traycer Skip** · **HOTFIX-38 ✅** · **HOTFIX-dtaudit ✅** · **INFRA-21 ✅ SV+Cross-Review PASS 待 Traycer** · **P08-E1 ✅ Traycer execute_review PASS** · **P08-F1 ✅ Traycer execute_review PASS** · **P08-F2 ✅ Traycer execute_review PASS（四因子 AI-2 contentBounds R2）**
+**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 ✅ R2 Skip → Traycer 批次** · **INFRA-17 ✅** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅** · **HOTFIX-30~32 ✅** · **Session V：Ghost Face 渲染路徑根因定位 + KAIROS K3-8/K3-9 登記 + CSO_INDEX/P05 Contract 更新** · **INFRA-RFC2119 ✅ Traycer Skip** · **HOTFIX-38 ✅** · **HOTFIX-dtaudit ✅** · **INFRA-21 ✅ SV+Cross-Review PASS 待 Traycer** · **P08-E1 ✅ Traycer execute_review PASS** · **P08-F1 ✅ Traycer execute_review PASS** · **P08-F2 ✅ Traycer execute_review PASS（四因子 AI-2 contentBounds R2）** · **P08-F3 AI-1 Discovery ✅ CSO 三裁決同步完成，待 AI-2 執行**
 **Last Updated**: 2026-06-04
 
 ---
@@ -86,7 +86,8 @@
 > **Session AA 完成（2026-06-03）：P08-F1 Pre-completed 確認閉環（D05-T7 fa5afb8 已修正）；QA/SV/Cross-Review/Structural Verify 全 PASS；HOTFIX-41 cross_review.sh Excluded Payload 反引號 Bug 修正；Telegram 觸發條件精簡；Traycer execute_review ✅ PASS（2026-06-04）**
 > **Session AB 完成（2026-06-03）：P08-F2 GridOverlay 三因子修復（alpha 0.08f→0.25f / strokeWidth 0.5px→1.5.dp / Z-order layer 2→5）；SV+Cross-Review R1 PASS；Telegram 觸發規則完善（實作完成、Auto-Chain、pipeline 暫停點全覆蓋）**
 > **Session AC 完成（2026-06-03）：P08-F2 AI-2 追加修正（CSO 裁決 Option A — GridOverlay contentBounds→null，修復 21:9 格線 43% 缺口；lambda 孤兒清理 `_`）；/qa PASS（23s / 181 tests）；SV+Cross-Review R2 PASS（gpt-5.5 high）；Structural Verify A-F PASS；P08-F3 AI-1 Discovery（HaloGuidanceLayer 不依賴 contentBounds，零 Halo regression）；Traycer execute_review ✅ PASS（2026-06-04）**
-> **下一步：P08-F3 正式 Ticket（Contract §4，CoordinateTransformer × contentBounds × TapFocus 依賴鏈）**
+> **Session AD 完成（2026-06-04）：P08-F3 AI-1 CSO 三維交叉驗證裁決同步 — 裁決 1 F-2 安全性正式結案（HaloGuidanceLayer NormalizedToPixelTransformer 天然免疫）；裁決 2 F-3 範疇不擴充（calculateContentBounds 不進 F-3）；裁決 3 contentBounds 殘餘 Bug 歸入 Visual Baseline Gate 場景 2 觀測（Sony 邊緣 TapFocus）；Contract §4 F-3 AI-1 [x] + §6 Gate Scene 2 追加驗收項**
+> **下一步：P08-F3 AI-2 管線合一執行（ALLOWED: CameraViewModel.kt,CameraScreen.kt,HaloGuidanceLayer.kt）**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
