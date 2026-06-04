@@ -275,4 +275,20 @@ Ghost Face 源頭過濾 + HaloGuidanceLayer normBbox guard：
 - AI-1 Discovery：單一活躍管線確認（observeDetectionResults commented-out）→ AI-2 跳過
 - Build ✅ (33s) / Tests 181 PASS / Lint clean / ELF PASS / Cross-Review R1 PASS (PASS)
 
-**Contract §4 Coverage**：AI-1 ✅（前次）+ AI-2 skip（單管線）+ AI-3 ✅ + AI-4 ✅
+**Contract §4 Coverage**：AI-1 ✅（前次）+ AI-2 skip（單管線，HF1 追補）+ AI-3 ✅ + AI-4 ✅
+
+---
+
+### Session AE — P08-F3-HF1 ML Kit 單寫入點收斂 🟡 QA PASS 待 /sv (2026-06-04)
+
+| Ticket | Status | Commits |
+| ------ | ------ | ------- |
+| P08-F3-HF1 | 🟡 QA PASS | code pending commit after /sv |
+
+P08-F3 完整閉環補充 — 管線收斂 + empty result bypass：
+
+- AI-1：`observeDetectionResults()` 函式**完全刪除**（前次僅 comment-out init 呼叫，本次刪除函式體，消除潛在重啟風險）
+- AI-2：`publishSanitizedResult: (DetectionResult) -> Unit` local lambda（CSO Option A）為唯一 `_state.update{it.copy(detectionResult=...)}` 寫入點；包含 ghost face bbox 過濾邏輯，取代原 NAME_SHADOWING 模式
+- AI-3：`facesFilteredToEmpty = hadRawFaces && sanitizedResult.faces.isEmpty()` bypass `MIN_NO_DETECTIONS_TO_HIDE` gate，確保 sanitized empty result 立即覆寫 stale state，不受 5-frame hide 延遲
+- AI-4：`updateContentBounds` / `rebuildNewPipelineSensorToViewMatrix` / `updateTrackedObjectPosition` 副作用保留在兩路 publish 分支，objects 未被修改
+- Build ✅ (20s) / Tests 181 PASS / Scope: CameraViewModel.kt only
