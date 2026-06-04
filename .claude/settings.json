@@ -1,10 +1,111 @@
 {
   "model": "opusplan",
   "permissions": {
-    "allow": []
+    "allow": [
+      "Bash(./gradlew *)",
+      "Edit(*)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(wc *)",
+      "Bash(du *)",
+      "Bash(echo *)",
+      "Bash(test *)",
+      "Bash(file *)",
+      "Bash(more *)",
+      "Bash(tee *)",
+      "Bash(mkdir *)",
+      "Bash(for *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git status)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(git tag *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(git rm *)",
+      "Bash(git mv *)",
+      "Bash(git restore *)",
+      "Bash(git check-ignore *)",
+      "Bash(git remote *)",
+      "Bash(adb devices *)",
+      "Bash(adb install *)",
+      "Bash(adb shell *)",
+      "Bash(adb logcat *)",
+      "Bash(adb wait-for-device *)",
+      "Bash(emulator *)",
+      "Bash(sleep *)",
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(powershell *)",
+      "Bash(gradlew.bat *)",
+      "Bash(./gradlew.bat *)",
+      "Bash(.gradlew.bat *)",
+      "Bash(copy *)",
+      "Bash(move *)",
+      "Bash(dir *)",
+      "Bash(findstr *)",
+      "Bash(where *)",
+      "Bash(timeout *)",
+      "Bash(tasklist *)",
+      "Write(*)",
+      "Edit(.claude/PROGRESS.md)",
+      "Bash(xargs *)",
+      "Bash(awk *)",
+      "Bash(head *)",
+      "Bash(uniq *)",
+      "Bash(gradlew *)",
+      "Bash(.gradlew *)",
+      "Bash(tail *)",
+      "Bash(bash *)",
+      "Bash(git stash *)",
+      "Bash(adb -s *)",
+      "Bash(command -v codex *)",
+      "Bash(codex exec - < .tmp/cross_review_*.md 2>&1)",
+      "Bash(Write-Host *)",
+      "Bash(curl *)",
+      "Skill(qa)",
+      "Skill(qa:*)",
+      "Bash(git -C *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(del /s /q *)",
+      "Bash(git reset --hard *)",
+      "Bash(git push --force *)",
+      "Bash(format *)",
+      "Bash(taskkill /f /im explorer*)"
+    ]
   },
   "statusLine": {
     "type": "command",
     "command": "bash .claude/skills/status/scripts/statusline.sh"
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/skills/status/scripts/statusline.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/stop.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/telegram_stop.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "telegram@claude-plugins-official": true
   }
 }
