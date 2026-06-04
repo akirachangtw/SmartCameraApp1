@@ -1628,16 +1628,6 @@ class CameraViewModel @Inject constructor(
         }
     }
 
-    private fun publishDetectionResult(result: DetectionResult) {
-        _state.update { it.copy(detectionResult = result) }
-        if (result.imageWidth > 0 && _state.value.coordinateTransformer == null &&
-            _state.value.contentBounds.width() > 0) {
-            updateContentBounds(_state.value.contentBounds)
-        }
-        rebuildNewPipelineSensorToViewMatrix(result, _state.value)
-        updateTrackedObjectPosition(result)
-    }
-
     /**
      * Observes preview bitmap stream for ML Kit analysis (v2.5.1 Phase 7)
      *
@@ -1694,23 +1684,29 @@ class CameraViewModel @Inject constructor(
 
                     if (detectionResult != null) {
                         val hadRawFaces = detectionResult.faces.isNotEmpty()
-                        val ghostFaceCount = detectionResult.faces.count { face ->
-                            val box = face.boundingBox
-                            box.left < 0 || box.top < 0 ||
-                                box.right > detectionResult.imageWidth ||
-                                box.bottom > detectionResult.imageHeight
+
+                        val publishSanitizedResult: (DetectionResult) -> Unit = { raw ->
+                            val validFaces = raw.faces.filter { face ->
+                                val box = face.boundingBox
+                                box.left >= 0 && box.top >= 0 &&
+                                    box.right <= raw.imageWidth &&
+                                    box.bottom <= raw.imageHeight
+                            }
+                            if (validFaces.size < raw.faces.size) {
+                                Log.i(TAG, "[P08-F3] Filtered ${raw.faces.size - validFaces.size} ghost faces with out-of-bounds bbox")
+                            }
+                            val sanitized = raw.copy(faces = validFaces)
+                            _state.update { it.copy(detectionResult = sanitized) }
                         }
-                        if (ghostFaceCount > 0) {
-                            Log.i(TAG, "[P08-F3] Filtered $ghostFaceCount ghost faces with out-of-bounds bbox")
-                        }
-                        val sanitizedResult = if (ghostFaceCount > 0) {
-                            detectionResult.copy(faces = detectionResult.faces.filter { face ->
+
+                        val sanitizedResult = detectionResult.copy(
+                            faces = detectionResult.faces.filter { face ->
                                 val box = face.boundingBox
                                 box.left >= 0 && box.top >= 0 &&
                                     box.right <= detectionResult.imageWidth &&
                                     box.bottom <= detectionResult.imageHeight
-                            })
-                        } else detectionResult
+                            }
+                        )
                         val facesFilteredToEmpty = hadRawFaces && sanitizedResult.faces.isEmpty()
                         val hasFaces = sanitizedResult.faces.isNotEmpty()
                         val hasSubjects = hasFaces || sanitizedResult.objects.isNotEmpty()
@@ -1723,7 +1719,13 @@ class CameraViewModel @Inject constructor(
                                 consecutiveFaceDetections >= MIN_DETECTIONS_TO_SHOW ||
                                 _state.value.detectionResult?.faces?.isNotEmpty() == true
                             if (shouldPublish) {
-                                publishDetectionResult(sanitizedResult)
+                                publishSanitizedResult(detectionResult)
+                                if (sanitizedResult.imageWidth > 0 && _state.value.coordinateTransformer == null &&
+                                    _state.value.contentBounds.width() > 0) {
+                                    updateContentBounds(_state.value.contentBounds)
+                                }
+                                rebuildNewPipelineSensorToViewMatrix(sanitizedResult, _state.value)
+                                updateTrackedObjectPosition(sanitizedResult)
                                 autoFocusOnSalientTarget()
                                 val compStart = System.nanoTime()
                                 analyzeComposition(sanitizedResult)
@@ -1736,7 +1738,13 @@ class CameraViewModel @Inject constructor(
 
                             val shouldPublishEmpty = facesFilteredToEmpty || consecutiveNoFaceDetections >= MIN_NO_DETECTIONS_TO_HIDE
                             if (shouldPublishEmpty) {
-                                publishDetectionResult(sanitizedResult)
+                                publishSanitizedResult(detectionResult)
+                                if (sanitizedResult.imageWidth > 0 && _state.value.coordinateTransformer == null &&
+                                    _state.value.contentBounds.width() > 0) {
+                                    updateContentBounds(_state.value.contentBounds)
+                                }
+                                rebuildNewPipelineSensorToViewMatrix(sanitizedResult, _state.value)
+                                updateTrackedObjectPosition(sanitizedResult)
                                 _compositionState.value = CompositionState.NoSubject
                                 Log.i(TAG, "Detection cleared: No stable face detected")
                             }
