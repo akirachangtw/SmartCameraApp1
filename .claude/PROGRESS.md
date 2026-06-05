@@ -1,8 +1,8 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 ✅ R2 Skip → Traycer 批次** · **INFRA-17 ✅** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅** · **HOTFIX-30~32 ✅** · **Session V：Ghost Face 渲染路徑根因定位 + KAIROS K3-8/K3-9 登記 + CSO_INDEX/P05 Contract 更新** · **INFRA-RFC2119 ✅ Traycer Skip** · **HOTFIX-38 ✅** · **HOTFIX-dtaudit ✅** · **INFRA-21 ✅ SV+Cross-Review PASS 待 Traycer** · **P08-E1 ✅ Traycer execute_review PASS** · **P08-F1 ✅ Traycer execute_review PASS** · **P08-F2 ✅ Traycer execute_review PASS（四因子 AI-2 contentBounds R2）** · **P08-F3+HF1 🟡 QA PASS 待 /sv**（single writer local lambda + facesFilteredToEmpty bypass）
-**Last Updated**: 2026-06-04
+**Current Day**: D12 → D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ · D11-T1 ✅ · D11-T2 ✅ · D11-T2-HF1 ✅ · **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-16 ✅** · **P05-R1 ✅ R2 Skip → Traycer 批次** · **INFRA-17 ✅** · **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** · **INFRA-19 ✅** · **HOTFIX-30~32 ✅** · **Session V：Ghost Face 渲染路徑根因定位 + KAIROS K3-8/K3-9 登記 + CSO_INDEX/P05 Contract 更新** · **INFRA-RFC2119 ✅ Traycer Skip** · **HOTFIX-38 ✅** · **HOTFIX-dtaudit ✅** · **INFRA-21 ✅ SV+Cross-Review PASS 待 Traycer** · **P08-E1 ✅ Traycer execute_review PASS** · **P08-F1 ✅ Traycer execute_review PASS** · **P08-F2 ✅ Traycer execute_review PASS（四因子 AI-2 contentBounds R2）** · **P08-F3+HF1 ✅ Traycer execute_review PASS**
+**Last Updated**: 2026-06-05
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ SV PASS 待 Traycer** — **D11-T1 ✅ SV PASS 待 Traycer** — **D11-T2 ✅ SV PASS 待 Traycer** — **D11-T2-HF1 ✅ SV+Cross-Review PASS 待 Traycer** — **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** — **P05-R1 ✅ R2 Skip → Traycer 批次** — **INFRA-17 ✅** — **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** — **INFRA-19 ✅** — **HOTFIX-30~32 ✅** — **HOTFIX-38 ✅** — **HOTFIX-dtaudit ✅** — **INFRA-RFC2119 ✅ Traycer Skip** — **4 Bugs 待 Ticket（Ghost Face 渲染路徑/GridOverlay/PitchDot5/Pixel9aLayout）** — **P08-E1 ✅ Traycer execute_review PASS** — **P08-F1 ✅ Traycer execute_review PASS** — **P08-F2 ✅ Traycer execute_review PASS（四因子 AI-2 contentBounds R2）** — **P08-F3+HF1 🟡 QA PASS 待 /sv**（observeDetectionResults 移除 + single write lambda + facesFilteredToEmpty bypass） |
+| Schedule | Stage0 W1 ✅ — P0-FPS ✅ — P0-FOCUS ✅ — P05-T1 ✅ — P05-T2 ✅ — P05-T5 ✅ — P05-T6 ✅ — **P05-T3 🟡 code DONE，待 Traycer** — P05-T7 🔧 — **D10-T1 ✅ · D10-T2 ✅ · HF1~HF4 ✅ · V16-CR2 ✅ SV PASS 待 Traycer** — **D11-T1 ✅ SV PASS 待 Traycer** — **D11-T2 ✅ SV PASS 待 Traycer** — **D11-T2-HF1 ✅ SV+Cross-Review PASS 待 Traycer** — **D12-T1 ✅ SV+Cross-Review PASS 待 Traycer** — **P05-R1 ✅ R2 Skip → Traycer 批次** — **INFRA-17 ✅** — **INFRA-18 ✅ SV+Cross-Review PASS 待 Traycer** — **INFRA-19 ✅** — **HOTFIX-30~32 ✅** — **HOTFIX-38 ✅** — **HOTFIX-dtaudit ✅** — **INFRA-RFC2119 ✅ Traycer Skip** — **4 Bugs 待 Ticket（Ghost Face 渲染路徑/GridOverlay/PitchDot5/Pixel9aLayout）** — **P08-E1 ✅ Traycer execute_review PASS** — **P08-F1 ✅ Traycer execute_review PASS** — **P08-F2 ✅ Traycer execute_review PASS（四因子 AI-2 contentBounds R2）** — **P08-F3+HF1 ✅ Traycer execute_review PASS**（observeDetectionResults 移除 + single write lambda + facesFilteredToEmpty bypass） |
 | Compile | 0 errors ✅ (assembleDebug 17s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 181 passed, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (baseline unchanged) |
@@ -87,8 +87,7 @@
 > **Session AB 完成（2026-06-03）：P08-F2 GridOverlay 三因子修復（alpha 0.08f→0.25f / strokeWidth 0.5px→1.5.dp / Z-order layer 2→5）；SV+Cross-Review R1 PASS；Telegram 觸發規則完善（實作完成、Auto-Chain、pipeline 暫停點全覆蓋）**
 > **Session AC 完成（2026-06-03）：P08-F2 AI-2 追加修正（CSO 裁決 Option A — GridOverlay contentBounds→null，修復 21:9 格線 43% 缺口；lambda 孤兒清理 `_`）；/qa PASS（23s / 181 tests）；SV+Cross-Review R2 PASS（gpt-5.5 high）；Structural Verify A-F PASS；P08-F3 AI-1 Discovery（HaloGuidanceLayer 不依賴 contentBounds，零 Halo regression）；Traycer execute_review ✅ PASS（2026-06-04）**
 > **Session AD 完成（2026-06-04）：P08-F3 AI-1 CSO 三裁決同步 + AI-3+AI-4 實作閉環（Ghost Face bbox 源頭過濾 + HaloGuidanceLayer normBbox guard）；SV+Cross-Review R1 PASS；INFRA-22/23 Telegram Stop Hook 智能路由（黑名單 + SV PASS 富通知）；P08-E1/F1/F2 Traycer execute_review PASS 狀態同步。注：AI-2 在此 session 判定為 skip（管線已是單一），HF1 後追補完整。**
-> **Session AE 完成（2026-06-04）：P08-F3-HF1 QA PASS（181 tests / 17s）；`observeDetectionResults()` 刪除 + `publishSanitizedResult` local lambda（CSO Option A）+ `facesFilteredToEmpty` bypass gate；HOTFIX-42/43 committed；`telegram_stop.sh` stdin race condition 修正 + `_PREVIEW` 通知截段；memory telegram-notify-trigger.md 精簡 55→9 行**
-> **下一步：新 Session → /sv（DIFF_REF=d67da50 DIFF_END=a5c0c08）→ Cross-Review R3 → Traycer 終審 P08-F3+HF1**
+> **Session AE 完成（2026-06-04）：P08-F3-HF1 QA PASS（181 tests / 17s）；`observeDetectionResults()` 刪除 + `publishSanitizedResult` local lambda（CSO Option A）+ `facesFilteredToEmpty` bypass gate；HOTFIX-42/43 committed；`telegram_stop.sh` stdin race condition 修正 + `_PREVIEW` 通知截段；memory telegram-notify-trigger.md 精簡 55→9 行；SV+Cross-Review R2 PASS；P08-F3+HF1 Traycer execute_review ✅ PASS（2026-06-04）**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
