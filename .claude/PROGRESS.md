@@ -63,6 +63,7 @@
 | BUG-MLKIT-DUAL-EMIT | ML Kit 雙管線交替發射 | 🔴 P0 Blocker | 切換鏡頭/方向後舊鏡頭 DetectionResult 未清除，與新鏡頭結果交替輸出 → Halo 忽大忽小 + 閃爍出現/消失。修復方向：切換時 `_state.update { copy(detectionResult = null) }` 或 `flatMapLatest`。 |
 | BUG-SONY-ROTATION-CONST | Sony rotation 恆為 0 | 🔴 P0 | Sony XQ-BT52 直立/橫向皆回報 `rotationDegrees=0`，rotation swap 邏輯無法觸發。需裝置相容性處理或改用 CameraX Surface rotation。 |
 | BUG-PTF-HALO-SIZE | PTF 圓環渲染過大且不跟隨 | 🔴 P0 | PTF Halo 渲染層 bbox → 圓半徑轉換錯誤。座標數學已正確，純渲染 bug。 |
+| BUG-MLKIT-PAREIDOLIA-FP | Ghost Face — K380 圓鍵觸發琥珀 Halo（Sony+Pixel9a 跨裝置重現） | 🔴 P0 | ML Kit FAST + landmark/classification=NONE → 無五官特徵驗證；K380 圓鍵被讀成眼睛（pareidolia）。假臉 bbox 界內且超過 min-size，但 **landscape w/h≈1.33**（真人臉 ~0.75 portrait）。P08-F3/HF1 現有防線全失效。修復方向：① `publishSanitizedResult` 加長寬比 gate（w/h>1.0 拒絕）② `observeCompositionAdvice` 加 `.distinctUntilChanged()`。裁決報告：`tmp/GazeAF_amber_bug_20260604.md` |
 
 ## Next Actions
 
@@ -88,6 +89,8 @@
 > **Session AC 完成（2026-06-03）：P08-F2 AI-2 追加修正（CSO 裁決 Option A — GridOverlay contentBounds→null，修復 21:9 格線 43% 缺口；lambda 孤兒清理 `_`）；/qa PASS（23s / 181 tests）；SV+Cross-Review R2 PASS（gpt-5.5 high）；Structural Verify A-F PASS；P08-F3 AI-1 Discovery（HaloGuidanceLayer 不依賴 contentBounds，零 Halo regression）；Traycer execute_review ✅ PASS（2026-06-04）**
 > **Session AD 完成（2026-06-04）：P08-F3 AI-1 CSO 三裁決同步 + AI-3+AI-4 實作閉環（Ghost Face bbox 源頭過濾 + HaloGuidanceLayer normBbox guard）；SV+Cross-Review R1 PASS；INFRA-22/23 Telegram Stop Hook 智能路由（黑名單 + SV PASS 富通知）；P08-E1/F1/F2 Traycer execute_review PASS 狀態同步。注：AI-2 在此 session 判定為 skip（管線已是單一），HF1 後追補完整。**
 > **Session AE 完成（2026-06-04）：P08-F3-HF1 QA PASS（181 tests / 17s）；`observeDetectionResults()` 刪除 + `publishSanitizedResult` local lambda（CSO Option A）+ `facesFilteredToEmpty` bypass gate；HOTFIX-42/43 committed；`telegram_stop.sh` stdin race condition 修正 + `_PREVIEW` 通知截段；memory telegram-notify-trigger.md 精簡 55→9 行；SV+Cross-Review R2 PASS；P08-F3+HF1 Traycer execute_review ✅ PASS（2026-06-04）**
+> **Session AF 完成（2026-06-05）：Ghost Face 根因深度調查（K380 圓鍵 pareidolia FP，landscape bbox w/h≈1.33，Sony+Pixel9a 跨裝置實機驗證）；現場 logcat 鐵證（tmp/cam.log）；CSO 裁決報告 tmp/GazeAF_amber_bug_20260604.md；INFRA-26（Telegram py 相容）+ INFRA-27（settings 整理）+ HOTFIX-45（PROGRESS 同步）三筆 commit**
+> **下一步：CSO 裁決 GazeAF_amber_bug_20260604.md → 開 Ticket（建議 HOTFIX-46 或 P08-F4）→ 實作長寬比 sanity gate + observeCompositionAdvice distinctUntilChanged**
 
 1. ~~**🔴 P0-FPS**~~（✅ FIX-P0-SESSION-C-FINAL SV 待 Traycer）：FPS overlay 四層完整剝離
 2. ~~**🔴 P0-FOCUS**~~（✅ QA PASS）：Guard 7 stableId preservation + FocusIndicator dwell fade
