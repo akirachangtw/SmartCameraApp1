@@ -54,7 +54,7 @@ Ticket 含 `## Verify Config` 區塊時，必須將該區塊內容複製為 `tmp
 
 ### 4. 越權禁令
 
-a) 無 Ticket 不動手。格式：`D[X]-T[Y]` / `P0-[NAME]` / `INFRA-[XX]` / `HOTFIX-[XX]` / `V16-[XX]`。
+a) 無 Ticket 不動手。格式：`P[XX]-[CODE]` / `INFRA-[XX]` / `HOTFIX-[XX]` / `SPIKE-[CODE]`。
    無 Ticket → 輸出 Boot Report 並停止。
 b) 不基於 MEMORY.md / PROGRESS.md / TODO / FIXME 自主決定下一步。
 c) /qa /sv /compact /dream 是驗收工具，不是實作授權。發現問題 → 回報，不自行修復。
