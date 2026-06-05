@@ -1,5 +1,4 @@
 {
-  "model": "opusplan",
   "permissions": {
     "allow": [
       "Bash(./gradlew *)",
@@ -81,10 +80,7 @@
       "Bash(taskkill /f /im explorer*)"
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "bash .claude/skills/status/scripts/statusline.sh"
-  },
+  "model": "opusplan",
   "hooks": {
     "Stop": [
       {
@@ -104,6 +100,10 @@
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash .claude/skills/status/scripts/statusline.sh"
   },
   "enabledPlugins": {
     "telegram@claude-plugins-official": true
