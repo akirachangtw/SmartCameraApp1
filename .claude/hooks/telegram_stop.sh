@@ -11,7 +11,7 @@ _HOOK_INPUT=$(cat 2>/dev/null || true)
 LAST_MSG=""
 
 if [[ -n "$_HOOK_INPUT" ]]; then
-    LAST_MSG=$(echo "$_HOOK_INPUT" | python3 -c "
+    LAST_MSG=$(echo "$_HOOK_INPUT" | py -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -24,7 +24,7 @@ fi
 if [[ -z "$LAST_MSG" ]]; then
     CACHE="tmp/claude_status_cache.json"
     if [[ -f "$CACHE" ]]; then
-        LAST_MSG=$(python3 -c "
+        LAST_MSG=$(py -c "
 import json
 try:
     d = json.load(open('$CACHE'))

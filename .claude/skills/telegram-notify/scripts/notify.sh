@@ -25,11 +25,18 @@ FULL_MSG="${STATUS_EMOJI} <b>Claude Code ${STATUS_TEXT}</b>
 🕐 時間：${TIMESTAMP}
 📝 ${MSG_TEXT}"
 
-curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-  --data-urlencode "chat_id=${CHAT_ID}" \
-  --data-urlencode "text=${FULL_MSG}" \
-  --data-urlencode "parse_mode=HTML" \
-  > /dev/null 2>&1 &
+# Use py (Windows Python Launcher) to send — mingw64 curl --data-urlencode
+# corrupts multi-byte UTF-8 (emoji/CJK) by replacing with '?' before encoding.
+TELEGRAM_BOT_TOKEN="$BOT_TOKEN" TELEGRAM_CHAT_ID="$CHAT_ID" TELEGRAM_MSG="$FULL_MSG" \
+  py -c "
+import urllib.request, urllib.parse, os
+token = os.environ['TELEGRAM_BOT_TOKEN']
+chat_id = os.environ['TELEGRAM_CHAT_ID']
+msg = os.environ['TELEGRAM_MSG']
+data = urllib.parse.urlencode({'chat_id': chat_id, 'text': msg, 'parse_mode': 'HTML'}).encode('utf-8')
+req = urllib.request.Request('https://api.telegram.org/bot' + token + '/sendMessage', data=data)
+urllib.request.urlopen(req, timeout=10)
+" > /dev/null 2>&1 &
 
 echo "✅ [telegram-notify] 送出：${MSG_TEXT}"
 exit 0
