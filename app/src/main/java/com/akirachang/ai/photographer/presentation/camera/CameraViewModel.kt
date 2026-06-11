@@ -134,6 +134,12 @@ class CameraViewModel @Inject constructor(
 
         // D8-B1-T3: EMA smoothing factor for PTF face bbox center coordinates.
         internal const val PTF_EMA_ALPHA = 0.3f
+
+        // [HOTFIX-47] Ghost Face guidance gate — SPIKE-GF Phase C validated:
+        // K380 0/91 pass, Pixel 9a real face 328/341 (96%) pass.
+        // This is a guidance eligibility threshold, NOT a universal faceness score.
+        // Future migration target: PortraitThresholds.minEyeOpenProbForGuidance
+        private const val MIN_EYE_OPEN_PROB_FOR_GUIDANCE = 0.9f
     }
 
     private data class TapToFocusIntent(
@@ -1695,6 +1701,15 @@ class CameraViewModel @Inject constructor(
                             if (validFaces.size < raw.faces.size) {
                                 Log.i(TAG, "[P08-F3] Filtered ${raw.faces.size - validFaces.size} ghost faces with out-of-bounds bbox")
                             }
+                            // [HOTFIX-47] Throttled face summary — replaces per-face SPIKE-01 probe.
+                            if (mlkitProcessedFrames % 30L == 0L) {
+                                val eligibleCount = raw.faces.count { face ->
+                                    val r = face.rightEyeOpenProbability
+                                    val l = face.leftEyeOpenProbability
+                                    r != null && l != null && minOf(r, l) > MIN_EYE_OPEN_PROB_FOR_GUIDANCE
+                                }
+                                Log.i(TAG, "[HOTFIX-47] Frame faces: total=${raw.faces.size} guidanceEligible=$eligibleCount oobFiltered=${raw.faces.size - validFaces.size}")
+                            }
                             val sanitized = raw.copy(faces = validFaces)
                             _state.update { it.copy(detectionResult = sanitized) }
                         }
@@ -1929,7 +1944,17 @@ class CameraViewModel @Inject constructor(
                 if (imgW <= 0f || imgH <= 0f) return@onEach
                 Log.d(TAG, "[BHA-01] observeCompositionAdvice raw=${det.imageWidth}x${det.imageHeight} rotation=$rotation effective=${imgW}x${imgH}")
 
-                val landmarkFaces = det.faces.mapIndexed { idx, face ->
+                // [HOTFIX-47] Branch A guidance gate — inline predicate (§3 Scope Ban: no new fun).
+                // Unfiltered faces remain in _state.detectionResult for Branch B (AF).
+                val guidanceEligibleFaces = det.faces.filter { face ->
+                    val r = face.rightEyeOpenProbability
+                    val l = face.leftEyeOpenProbability
+                    r != null && l != null && minOf(r, l) > MIN_EYE_OPEN_PROB_FOR_GUIDANCE
+                }
+                if (mlkitProcessedFrames % 30L == 0L) {
+                    Log.i(TAG, "[HOTFIX-47] Guidance gate: ${guidanceEligibleFaces.size}/${det.faces.size} eligible")
+                }
+                val landmarkFaces = guidanceEligibleFaces.mapIndexed { idx, face ->
                     val box = face.boundingBox
                     val normX = box.left / imgW
                     val normY = box.top / imgH
@@ -2040,7 +2065,12 @@ class CameraViewModel @Inject constructor(
                 val pitch = orientation?.pitch ?: 0f
                 val roll = orientation?.roll ?: 0f
 
-                val firstFace = det.faces.firstOrNull()
+                // [HOTFIX-47] Branch A guidance gate — PTF only tracks guidance-eligible faces.
+                val firstFace = det.faces.firstOrNull { face ->
+                    val r = face.rightEyeOpenProbability
+                    val l = face.leftEyeOpenProbability
+                    r != null && l != null && minOf(r, l) > MIN_EYE_OPEN_PROB_FOR_GUIDANCE
+                }
                 val smoothedFace = if (firstFace != null) {
                     // Compute raw normalized bbox center from ML Kit pixel coords.
                     val rawCx = ((firstFace.boundingBox.left + firstFace.boundingBox.right) / 2f) / imgW

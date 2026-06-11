@@ -38,6 +38,7 @@ import javax.inject.Singleton
  * 封裝 ML Kit 的人臉與物件偵測 API
  * 提供統一的偵測介面
  */
+// [HOTFIX-47] LEGACY — not on active detection path. CameraRepositoryImpl.faceDetector is the production SSOT.
 @Singleton
 class MLKitDetector @Inject constructor() {
 

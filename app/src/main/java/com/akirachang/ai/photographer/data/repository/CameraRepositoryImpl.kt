@@ -114,13 +114,13 @@ class CameraRepositoryImpl @Inject constructor(
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
             .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
             .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
-            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL) // [HOTFIX-47] D-23 crash-safe + classification gate (SPIKE-GF Phase C validated)
             .setMinFaceSize(MIN_FACE_SIZE)
             .enableTracking()
             .build()
 
         FaceDetection.getClient(options).also {
-            Log.i(TAG, "[v2.12.0] Face detector initialized: LANDMARK_MODE_NONE (crash-safe)")
+            Log.i(TAG, "[HOTFIX-47] Face detector: FAST + LANDMARK_NONE + CLASSIFICATION_ALL + tracking")
         }
     }
 
