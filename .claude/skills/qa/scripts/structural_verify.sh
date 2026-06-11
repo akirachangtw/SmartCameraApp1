@@ -193,6 +193,16 @@ if [[ -f "$_PROGRESS" ]]; then
   else
     echo "✅ PROGRESS.md 格式正常"
   fi
+  # Check F.2: PROGRESS.md 行數閾值
+  _PROG_LINES=$(wc -l < "$_PROGRESS")
+  if [[ $_PROG_LINES -gt 80 ]]; then
+    echo "❌ STRUCTURAL FAIL — [F.2] PROGRESS.md ${_PROG_LINES} 行 > 80（目標 ≤80）→ 執行 PROGRESS 精簡或歸檔舊 Session Notes"
+    FAIL=1
+  elif [[ $_PROG_LINES -gt 60 ]]; then
+    echo "⚠️ WARNING [F.2]: PROGRESS.md ${_PROG_LINES} 行 > 60（接近上限，建議於下輪 Session 精簡）"
+  else
+    echo "✅ PROGRESS.md 行數正常（${_PROG_LINES} 行 ≤ 60）"
+  fi
 else
   echo "⚪ PROGRESS.md 不存在 — 跳過 Check F"
 fi

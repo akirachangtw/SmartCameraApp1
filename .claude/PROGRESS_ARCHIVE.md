@@ -205,90 +205,60 @@
 
 ---
 
-### Session W — INFRA-RFC2119 ✅ CLOSED (2026-06-02)
+### P08 清場系列 ✅ CLOSED (2026-06-04)
 
-| Ticket ID | Description | Status | Commit |
-|-----------|-------------|--------|--------|
-| INFRA-RFC2119 (INFRA-20) | 16 個 `.claude/rules/*.md` + `.claude/skills/*/SKILL.md` 加 RFC 2119 anchor + MUST/SHOULD/MAY 標記；CSO Option A 裁決（77.3% MUST terminal）；22 條降至 SHOULD | ✅ Done | `1c47797` |
-
-**Known Issue (ADVISORY)**：`.claude/skills/dtaudit/SKILL.md` `## 禁止事項` 區塊 6 條 ❌ 禁止標記被誤轉為 **MUST**/**SHOULD**，語意反轉。需後續 HOTFIX 修正（restore ❌ 或改為 `MUST NOT`）。
-
-### Session AC — P08-F2 AI-2 追加修正 ✅ CLOSED (2026-06-03)
-
-| Ticket | Status | Commit |
-| ------ | ------ | ------ |
-| P08-F2 AI-2 | ✅ Done | `04f98ee` (code) / `861a3bd` (PROGRESS) |
-
-P08-F2 AI-2 追加修正（CSO 裁決 Option A）— GridOverlay `contentBounds → null`：FILL_CENTER 下 preview 填滿全螢幕，grid fallback 至全 canvas，修復 21:9 螢幕格線覆蓋率 43% 缺口。lambda 參數孤兒清理 `contentBounds → _`（消除 unused-parameter warning）。Scope 紀律：未觸碰 `calculateContentBounds`（F-3 地盤，center-crop 語意陷阱保留）。Build 23s / 181 tests PASS / Lint 0 new warnings / ELF PASS / Cross-Review R2 PASS（gpt-5.5 high, all layers PASS）。至此 P08-F2 四因子（alpha/strokeWidth/Z-order/contentBounds）完整閉環，待 Traycer 終審。
+| Session | Ticket | 任務 | Status | Commit |
+| ------- | ------ | ---- | ------ | ------ |
+| W | INFRA-20 | RFC 2119 標記 (16 files) | ✅ Done | `1c47797` |
+| Y | INFRA-21 | CLAUDE.md 瘦身 173→145 | ✅ Done | `33f98ef` |
+| Z | P08-E1 | PitchTractionLayer 清場 (-561 lines) | ✅ Done | `400bc7e` |
+| AA | P08-F1 | LEVEL_FADE 常數修正 (pre-completed) | ✅ Done | `fa5afb8` |
+| AB | P08-F2 | GridOverlay 三因子修復 | ✅ Done | `d50ddbd` |
+| AC | P08-F2-AI2 | contentBounds→null | ✅ Done | `04f98ee` |
+| AD | P08-F3 | Ghost Face 源頭過濾 | ✅ Done | `3e00e80` |
+| AE | P08-F3-HF1 | ML Kit 單寫入點收斂 | ✅ Done | pending |
 
 ---
 
-### Session AB — P08-F2 ✅ CLOSED (2026-06-03)
+## Archived PROGRESS Sections（2026-06-07 INFRA-31）
 
-| Ticket | Status | Commit |
-| ------ | ------ | ------ |
-| P08-F2 | ✅ Done | `d50ddbd` |
+### Stage0 Realignment（2026-05-05 啟動）
 
-P08-F2 GridOverlay 三因子修復 — alpha 0.08f→0.25f（3× 提升）、strokeWidth Float px→Dp 1.5.dp（消除密度依賴）、Z-order layer 2→layer 5（HaloGuidanceLayer / CompositionGuideOverlay / HDRWarningOverlay 之上，Top scrim 之下）。KDoc stale 記錄同步修正。Build 24s / 181 tests PASS / Lint 0 new warnings / ELF PASS / Cross-Review R1 PASS（gpt-5.5, all layers PASS）。
+#### Active Tickets
 
----
+- **TICKET-00** isAllAligned fix — P0 — Est 30m / Actual 35m (+5m) — DONE
+- **TICKET-01** AmbientConstants SSOT — P0 — Est 30m / Actual 25m (-5m) — DONE
 
-### Session AA — P08-F1 ✅ CLOSED (2026-06-03)
+#### Wave Queue
 
-| Ticket | Status | Commit |
-| ------ | ------ | ------ |
-| P08-F1 | ✅ Done (Pre-completed) | `f793483` (PROGRESS.md only) |
+W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10→T11→T12A→T13→T15 / W5: T12B→T14
 
-P08-F1 LEVEL_FADE_RANGE_DEG 常數修正 — Pre-completed：`LEVEL_FADE_RANGE_DEG = 10f` 已由 D05-T7 commit `fa5afb8` 完成。本 Session 執行 git history 確認、QA PASS（181 tests）、SV PASS、Cross-Review R1 PASS（零代碼 diff）。Ticket 正式閉環。
+#### Source Documents（Phase 0 基準，已封存）
 
----
+- SSOT v4.0.5: `plans/architecture/SSOT_v4_0_5.md`
+- Layout Spec v2.5.1: `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md`
+- Phase0 UI Contract: `plans/cso_briefing/Phase0_UI_Realignment_Contract_v1.md`
 
-### Session Z — P08-E1 ✅ CLOSED (2026-06-03)
+### Session Completion Notes（Session J → AE）
 
-| Ticket | Status | Commit |
-| ------ | ------ | ------ |
-| P08-E1 | ✅ Done | `400bc7e` |
-
-PitchTractionLayer 整組件消滅（-561 lines）：drawFloatingDots / drawPitchTractionGradient / drawAlignedBreathingGradient + PitchTractionLayerTest 全刪。Build ✅ / Tests 181 PASS / Lint clean / ELF PASS。SV 10/10 PASS。Cross-Review R2 BLOCKER → CSO Override ADVISORY（*Test.kt Scope Ban 例外授權）。HOTFIX-40：ssot_context.md Test Scope Ban 增加 Contract 授權例外條款。
-
-**KAIROS K4 候選**：K4-2（Scope Ban 缺授權例外 → false positive）+ K4-3（Option A 對機械閘門無效，遇 Contract 授權直接 Option D）
-
-### Session Y — INFRA-21 ✅ CLOSED (2026-06-02)
-
-| Ticket | Status | Commit |
-|--------|--------|--------|
-| INFRA-21 | ✅ Done | `33f98ef` |
-
-CLAUDE.md 行數瘦身：173→145 行（Cross-Review 區塊外遷至 `.claude/rules/cross-review.md` + Path-Scoped Rules 壓縮）；Build/Lint/ELF ✅；Cross-Review R1 PASS
-
----
-
-### Session AD — P08-F3 AI-3+AI-4 ✅ DONE (2026-06-04)
-
-| Ticket | Status | Commits |
-| ------ | ------ | ------- |
-| P08-F3 (AI-3+AI-4) | ✅ Done | `3e00e80` (code) · `7d37acf` (docs) |
-
-Ghost Face 源頭過濾 + HaloGuidanceLayer normBbox guard：
-- AI-3 `CameraViewModel.observePreviewForAnalysis()` — bbox [0,imageW/H] 過濾，NAME_SHADOWING 替換 detectionResult，Logcat `[P08-F3] Filtered N ghost faces`
-- AI-4 `HaloGuidanceLayer.drawGazeHalo()` — normBbox [0,1] 防禦性末端 guard
-- AI-1 Discovery：單一活躍管線確認（observeDetectionResults commented-out）→ AI-2 跳過
-- Build ✅ (33s) / Tests 181 PASS / Lint clean / ELF PASS / Cross-Review R1 PASS (PASS)
-
-**Contract §4 Coverage**：AI-1 ✅（前次）+ AI-2 skip（單管線，HF1 追補）+ AI-3 ✅ + AI-4 ✅
-
----
-
-### Session AE — P08-F3-HF1 ML Kit 單寫入點收斂 🟡 QA PASS 待 /sv (2026-06-04)
-
-| Ticket | Status | Commits |
-| ------ | ------ | ------- |
-| P08-F3-HF1 | 🟡 QA PASS | code pending commit after /sv |
-
-P08-F3 完整閉環補充 — 管線收斂 + empty result bypass：
-
-- AI-1：`observeDetectionResults()` 函式**完全刪除**（前次僅 comment-out init 呼叫，本次刪除函式體，消除潛在重啟風險）
-- AI-2：`publishSanitizedResult: (DetectionResult) -> Unit` local lambda（CSO Option A）為唯一 `_state.update{it.copy(detectionResult=...)}` 寫入點；包含 ghost face bbox 過濾邏輯，取代原 NAME_SHADOWING 模式
-- AI-3：`facesFilteredToEmpty = hadRawFaces && sanitizedResult.faces.isEmpty()` bypass `MIN_NO_DETECTIONS_TO_HIDE` gate，確保 sanitized empty result 立即覆寫 stale state，不受 5-frame hide 延遲
-- AI-4：`updateContentBounds` / `rebuildNewPipelineSensorToViewMatrix` / `updateTrackedObjectPosition` 副作用保留在兩路 publish 分支，objects 未被修改
-- Build ✅ (20s) / Tests 181 PASS / Scope: CameraViewModel.kt only
+> **Session J 完成（2026-05-24）：RC-1~RC-5 全部修復 — Split-Brain(RC-1) / Await Cancel(RC-2) / FadingOut 中間態(RC-3) / FOCUS_FAILED_MS 常數化(RC-4) / Lock Rollback(RC-5)，QA PASS（181 tests, 0 failed）**
+> **Session K 完成（2026-05-25）：RC-3-FOLLOWUP（Failed→Idle render fadeout 補齊）+ RC-4-FOLLOWUP（TapFocusRing magic number 常數治理）QA PASS（181 tests, 0 failed）**
+> **Session L 完成（2026-05-26）：INFRA-002~005 — .gitignore session_handoff、/qa Step 0 Scope Gate verify_checklist.sh、CSO briefing 重組、CSO_Session_Startup_SOP 永駐層精簡（19K→2K）**
+> **Session M 完成（2026-05-27）：純調查 — GazeAF 琥珀圓環根因定位（Ghost Face bbox + gazeScore=0.0 雙層 Bug）、PitchTraction 第5顆光點 Sony nav bar 遮蔽分析、Pixel 9a 預覽雙層覆蓋三因子分析、UITA SOP v2.1 更新**
+> **Session N 完成（2026-05-29）：GridOverlay 不可見三層根因定位（alpha=0.08f/strokeWidth=0.5f/Z-order）、Sony logcat 驗證 contentBounds 正常、INFRA-14/15 git untrack cso_briefing+uita_project**
+> **Session O 完成（2026-05-29）：D10-T1 Pipeline Boot 基礎建設、D10-T2 verify_checklist.sh conf 模式、D10-T2-HF1 /qa Step 4.5 Auto Commit Gate — 3 commits, 181 tests PASS**
+> **Session P 完成（2026-05-29）：Pipeline v1.6 全鏈路 — D10-T2 HF2~HF4、V16-CR2（cross_review.sh v1.6 4-Verdict + Fail Budget）— HOTFIX-16~21，181 tests PASS**
+> **Session Q 完成（2026-05-29）：D11-T1（/qa→/sv Auto-Chain）、D11-T2（structural_verify.sh v1.3 Check D/E/F）、D11-T2-HF1（--post flag）— HOTFIX-22~24，181 tests PASS**
+> **Session S 完成（2026-05-31）：P05-R1 GazeAF Ghost Face 三層修復；INFRA-17 DIFF_REF 四段式合約 — HOTFIX-28 + INFRA-17，3 commits**
+> **Session T 完成（2026-05-31）：INFRA-18 SV+Cross-Review PASS — DIFF_END 鎖定 Ticket 審查終點**
+> **Session U 完成（2026-06-01）：P05-R1 Sony 實機三項驗收 PASS；INFRA-19 index-verify Skill；HOTFIX-30~32 治理文件維護**
+> **Session V 完成（2026-06-01）：Ghost Face 渲染路徑根因定位；CSO_INDEX CONTRACT 更新至 P08；KAIROS K3-8/K3-9 候選登記**
+> **Session W 完成（2026-06-02）：INFRA-RFC2119 — 16 個 rules/skills 文件加 RFC 2119 anchor；QA PASS；commit 1c47797**
+> **Session X 完成（2026-06-02）：INFRA-RFC2119 SV+Cross-Review PASS；HOTFIX-38/39/40 ✅；dtaudit MUST NOT 修正**
+> **Session Y 完成（2026-06-02）：INFRA-21 CLAUDE.md 行數瘦身 173→145 行；P08-L1 Contract Amendment 套用；Cross-Review R1 PASS**
+> **Session Z 完成（2026-06-03）：P08-E1 PitchTractionLayer 清場（-561 lines）；Traycer execute_review ✅ PASS**
+> **Session AA 完成（2026-06-03）：P08-F1 Pre-completed 確認閉環；HOTFIX-41 cross_review.sh 反引號 Bug 修正；Traycer execute_review ✅ PASS**
+> **Session AB 完成（2026-06-03）：P08-F2 GridOverlay 三因子修復（alpha/strokeWidth/Z-order）；SV+Cross-Review R1 PASS**
+> **Session AC 完成（2026-06-03）：P08-F2 AI-2 contentBounds→null；/qa PASS（181 tests）；Traycer execute_review ✅ PASS**
+> **Session AD 完成（2026-06-04）：P08-F3 AI-1/AI-3/AI-4 實作閉環；INFRA-22/23 Telegram Stop Hook；Traycer PASS 狀態同步**
+> **Session AE 完成（2026-06-04）：P08-F3-HF1 QA PASS（181 tests）；observeDetectionResults 刪除；HOTFIX-42/43；SV+Cross-Review R2 PASS；Traycer ✅ PASS**

@@ -41,9 +41,22 @@ Bug 修復 Ticket 若只覆蓋「觸發路徑」而非「所有消費路徑」�
 觸發來源：Session V — GazeAF Ghost Face 壁癌分析。
 
 ## K3-Rule 26 — 多消費路徑掃描
+
 Ticket 動工前（Plan 階段），**MUST** 對 Ticket 要修改的「資料來源」執行：
 `grep -rn "[資料來源名]" app/src/main/java --include=*.kt`
 列出所有消費者路徑，每條路徑標註「是否在 ALLOWED 範圍」。
 若存在消費者不在 ALLOWED 範圍 → **MUST** 回報 CSO，等待裁決是否擴充 ALLOWED 或開後續 Ticket。
 **MUST** 嚴禁「只修觸手可及的路徑，忽略看不見的消費者」。
 觸發來源：Session V — GazeAF Ghost Face 壁癌分析（三條消費路徑，P05-R1 僅覆蓋一條）。
+
+## K4-Rule 28 — Guidance Gate Hotfix 架構邊界
+
+任何在 detection/face 管線上加入 predicate filter 的 Hotfix，**MUST** 滿足三項架構邊界：
+
+① **Branch 分離**：predicate **MUST** 只能落在 consumer 層（`observeCompositionAdvice` / `observePtfAlignment` 等），**MUST** 禁止在 shared raw state（`_state.detectionResult.faces`）上刪臉；Branch B（AF pipeline）依賴完整 raw list。
+
+② **Branch B 存活驗證**：predicate = 0 eligible 幀時，AF pipeline **MUST** 仍可存活；需實機 Logcat 證明（對焦觸發 + guidance=0 同幀可觀測）。
+
+③ **Magic Number 禁止**：filter threshold **MUST** 定義於 companion object 常數，禁止 inline 魔術數字；所有 consumer 層 inline lambda 引用常數名。
+
+觸發來源：D12 HOTFIX-47（K380 Ghost Face guidance gate；GF-01~03 雙裝置實機驗收 PASS）。

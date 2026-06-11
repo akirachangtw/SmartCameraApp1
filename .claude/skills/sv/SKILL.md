@@ -148,14 +148,31 @@ disable-model-invocation: false
 
 ## Step 10: Ticket Done 標記
 
-Cross-Review PASS（exit 0）後，在 `PROGRESS_ARCHIVE.md` 對應 Day 段落標記 ✅ Done：
+Cross-Review PASS（exit 0）後，標記對應 Ticket 為 ✅ Done：
 
 1. 讀取 `tmp/verify_cmd.conf`，取得 `TICKET_ID`
-2. 在 `PROGRESS_ARCHIVE.md` 找到對應 Ticket 行，附加 `✅ Done`
+2. 執行 bash 標記（不載入全文至 context）：
+
+   ```bash
+   TICKET_ID=$(grep "^TICKET_ID=" tmp/verify_cmd.conf | head -1 | cut -d= -f2-)
+   sed -i "s/| ${TICKET_ID} /| ${TICKET_ID} ✅ Done /" .claude/PROGRESS_ARCHIVE.md
+   ```
+
 3. 同步更新 `PROGRESS.md` Header 與 Sprint Health 中的 Ticket 狀態
 4. 回報：`✅ PROGRESS_ARCHIVE.md: [TICKET_ID] marked Done`
 
 若 `tmp/verify_cmd.conf` 不存在或 `TICKET_ID` 為空 → `⚠️ Done 標記跳過：無 TICKET_ID`
+
+## Step 10.5: Session Note 清理
+
+Cross-Review PASS 且 Done 標記完成後：
+
+1. 讀取 `PROGRESS.md` `## Next Actions` 段落
+2. 計算 `>` 開頭的 Session completion notes 總數
+3. 若超過 5 筆 → 將最舊的 N-3 筆移至 `PROGRESS_ARCHIVE.md` 底部
+4. 回報：`🧹 PROGRESS.md: [N] old session notes archived`
+
+若 `## Next Actions` 段落不存在或 `>` 行數 ≤ 5 → `⚪ Session Note 清理跳過：[N] 筆 ≤ 5`
 
 ## 回報格式
 

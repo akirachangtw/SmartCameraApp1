@@ -26,7 +26,7 @@ bash -c 'cat tmp/claude_status_cache.json 2>/dev/null'
 - `cost.total_cost_usd` → 本 session 累計花費（USD）
 - `model.display_name` → 當前模型名稱
 
-快取時效判斷：若快取存在，標記為「🟢 真實數據（上次 Claude 停止時刷新）」。
+快取時效判斷：若快取存在，標記為「🟢 真實數據（上次 statusLine 更新時刷新）」。
 
 ## Step 2：估算模式（快取不存在或解析失敗時 fallback）
 
@@ -55,4 +55,4 @@ bash -c 'cat tmp/claude_status_cache.json 2>/dev/null'
 
 **建議行動**：[根據 Context 剩餘% 與輪數給出一句建議，例如：繼續工作 / 完成當前 Ticket 後執行 /compact / 立即 /compact]
 
-> 💡 statusline 快取在每次 Claude 停止回應時自動更新（由 `.claude\skills\status\scripts\statusline.sh` hook 寫入 `tmp/claude_status_cache.json`）。
+> 💡 statusline 快取由 IDE statusLine 命令刷新（含 context_window / rate_limits / cost），Stop hook payload 因缺少 rich fields 不覆寫快取。腳本：`.claude\skills\status\scripts\statusline.sh`，快取：`tmp/claude_status_cache.json`。

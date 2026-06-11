@@ -48,6 +48,22 @@ X. **[規則名稱]**：[具體禁止/要求的行為]。觸發來源：[Ticket 
 - 📝 **規格需更新**：實作是對的，SSOT 過時
 - 🔧 **代碼需修正**：SSOT 是對的，代碼偏離
 
+## 4. Tacit Knowledge 壓測審查 (Skill Validation Audit)
+
+**SHOULD** 列出本 Sprint 新增或修改的所有 Skill（`.claude/skills/*/SKILL.md`）及其實際執行次數：
+
+| Skill | 本 Sprint 執行次數 | 壓測狀態 |
+|-------|-----------------|---------|
+| [skill-name] | [N] 次 | ✅ 壓測（≥3）/ ⚠️ 未壓測（<3） |
+
+- ✅ **壓測**：本 Sprint 內經 ≥3 輪實際執行驗證（不含開發當下的冒煙測試）
+- ⚠️ **未壓測**：執行次數 < 3，**SHOULD** 列入下輪 TODO 補跑；若 Skill 屬關鍵路徑（/qa /sv /compact）則升格為 **MUST**
+
+未壓測項目 **SHOULD** 以下格式追加至 PROGRESS.md Next Actions：
+```
+[ ] Skill 壓測補跑：[skill-name]（INFRA-XX，KAIROS [Node] 標記）
+```
+
 ## 輸出
 
 **SHOULD** 產出以下格式的回顧報告，並更新 PROGRESS.md 的 KAIROS Findings 區塊：
