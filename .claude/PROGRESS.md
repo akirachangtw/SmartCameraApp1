@@ -10,7 +10,7 @@
 | INFRA-34~37 | ✅ /sv Step 10/10.5 + ARCHIVE compact + ssot-governance |
 | INFRA-38~39 | ✅ /index-verify 動態掃描 + statusline jq→Python |
 
-**Last Updated**: 2026-06-11 21:20
+**Last Updated**: 2026-06-11 23:12
 
 ## Sprint Health
 
@@ -34,14 +34,13 @@
 
 ## Next Actions
 
-> **Session AJ 完成（2026-06-11）：HOTFIX-47 全流程 DONE — SV R2 + 實機 GF-01~03（Pixel9a+Sony）+ Traycer PASS + K4-Rule 28**
-> **下一步：BUG-MLKIT-DUAL-EMIT 或 BUG-PTF-HALO-SIZE（開新 Ticket）**
+> **Session AJ 完成（2026-06-11）：HOTFIX-47 Traycer PASS — GF-01~03 Pixel9a+Sony + K4-Rule 28 — Handoff: SESSION_HANDOFF_20260611_2312.md**
 
 1. ~~**🔴 P0-FPS / P0-FOCUS / P05-T1/T2/T5/T6**~~（✅ 全部 PASS）
-2. **🔴 Baseline**：
-   - `BUG-MLKIT-DUAL-EMIT`：切換鏡頭清空 `detectionResult`
-   - `BUG-PTF-HALO-SIZE`：PTF Halo bbox → 圓半徑轉換修正
-3. **T03 重啟**（以上通過後）：Pill Toggle 重寫
+2. **🔴 Baseline（開 Ticket）**：
+   - `BUG-MLKIT-DUAL-EMIT`：切換鏡頭清空 `detectionResult`（CameraViewModel.kt `flatMapLatest`）
+   - `BUG-PTF-HALO-SIZE`：PTF Halo bbox → 圓半徑轉換（HaloGuidanceLayer.kt）
+3. **T03 重啟**（Baseline 通過後）：Pill Toggle 重寫
 
 ## Active Debt（僅列未解決項）
 
