@@ -85,11 +85,6 @@ class SmartCameraAnalyzer(
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
         frameCount++
-        // [P08-F4-PROBE] AI-3: cross-device rotationDegrees confirmation — REMOVE after test
-        if (frameCount % 30 == 0) {
-            Log.d("P08-F4", "[P08-F4-PROBE] rotationDegrees=${imageProxy.imageInfo.rotationDegrees}, " +
-                "width=${imageProxy.width}, height=${imageProxy.height}")
-        }
         if (frameCount % analysisInterval != 0) {
             imageProxy.close()
             return
