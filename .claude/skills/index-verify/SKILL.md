@@ -1,13 +1,13 @@
 ---
 name: index-verify
-description: 日常維運：列出 CSO/UITA 角色目錄與 plans/architecture 檔案清單，校對 INDEX/SOP 引用，自動刪除缺檔引用並新增未索引檔案。
+description: 日常維運：列出 CSO/UITA 角色目錄與 plans/architecture 檔案清單，校對 INDEX/SOP 引用，自動刪除缺檔引用、智慧路由新增檔案至對應 Section（核心文件/審查報告）、動態版本偵測、空白行清理。
 disable-model-invocation: false
 ---
 
 > RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。
 
 # Description
-列出 CSO / UITA 角色目錄與 `plans/architecture/` 所有檔案，校對 INDEX / Session Startup SOP 引用路徑有效性，自動刪除缺檔引用，自動新增未索引檔案引用，並掃描已知過期版本引用（SSOT / Layout Spec 版號）。
+列出 CSO / UITA 角色目錄與 `plans/architecture/` 所有檔案，校對 INDEX / Session Startup SOP 引用路徑有效性，自動刪除缺檔引用，智慧路由未索引檔案至 INDEX 對應 Section，掃描動態版本過期引用，並壓縮多餘空白行。
 
 # Prompt
 執行 INDEX 維運驗證：
@@ -24,23 +24,53 @@ bash .claude/skills/index-verify/scripts/index_path_verify.sh
 | UITA | `plans/uita_project/` | `plans/uita_project/UITA_INDEX.md` + `plans/uita_project/UITA_Session_Startup_SOP.md` |
 | Architecture | `plans/architecture/` | 由所有 CSO/UITA INDEX + SOP 共同引用 |
 
+## 智慧路由規則
+
+新增檔案依路徑 pattern 自動路由至 INDEX 對應 Section（取代底部泛用 Auto-Index 區塊）：
+
+| 角色 | 路徑 Pattern | 路由目標 Section | 預設讀取時機 |
+|------|-------------|-----------------|------------|
+| CSO | `project/file/*` | 核心文件 | 按需讀取 |
+| CSO | `reports/*` | 審查報告 | 追溯歷史裁決 |
+| UITA | `file/*` | 核心文件 | 按需讀取 |
+| UITA | `reports/*` | 審查報告 | 追溯歷史審查裁決 |
+| 任一 | 不匹配上述 | fallback Auto-Index 區塊 | 按需讀取 |
+
+**MUST** 路由至 Section 的新行使用 `| short_name | filename | path | timing |` 四欄格式。
+**SHOULD** 路由後手動補正 ID 欄位（script 以 short_name 暫代）。
+
+## 版本偵測模式
+
+- 自動掃描 `plans/architecture/` 取最新 SSOT / Layout Spec 版本
+- 所有 INDEX/SOP/CLAUDE.md/PROGRESS.md 中低於最新版的引用自動標記 ⚠️
+- **MUST NOT** 硬編碼版本號至 script 中
+
+## SOP 語意保護
+
+- INDEX 缺檔引用 → 🧹 自動刪除（純導航，低影響）
+- SOP 缺檔引用 → 🔴 自動刪除 + 語意斷裂告警（操作流程，高影響）
+
+## 空白行清理
+
+每次執行後自動壓縮：
+- 連續 2+ 空白行 → 最多 1 行
+- 檔尾多餘空白行 → 移除
+
 ## 執行順序
 
-1. **MUST** 先列出 `plans/cso_briefing/`、`plans/uita_project/`、`plans/architecture/` 所有檔案清單。
-2. **MUST** 校對 INDEX / Session Startup SOP 中所有反引號包裹的 `plans/` 或 `.claude/` 路徑。
-3. **MUST** 若引用檔案或目錄不存在，直接從對應 INDEX/SOP 刪除相關引用：
-   - 表格列或清單列：刪除整列。
-   - 一般段落：只刪除該反引號 path token。
-4. **MUST** 對角色目錄與 `plans/architecture/` 做覆蓋率檢查；存在但未被引用的檔案自動新增至 INDEX：
-   - CSO 角色目錄新增檔案 → 寫入 `plans/cso_briefing/CSO_INDEX.md` 的 `Auto Index: CSO Role Files` 區塊。
-   - UITA 角色目錄新增檔案 → 寫入 `plans/uita_project/UITA_INDEX.md` 的 `Auto Index: UITA Role Files` 區塊。
-   - `plans/architecture/` 新增檔案 → 同步寫入 CSO / UITA 兩份 INDEX 的 `Auto Index: Architecture Files` 區塊。
+1. **MUST** 列出 `plans/cso_briefing/`、`plans/uita_project/`、`plans/architecture/` 所有檔案清單
+2. **MUST** ⓪ 缺檔引用清理（INDEX + SOP，SOP 附語意告警）
+3. **MUST** ① INDEX/SOP 引用驗證（存在性 + 角色邊界）
+4. **MUST** ② 目錄覆蓋率 + 智慧路由（file/→核心文件、reports/→審查報告、其餘→fallback）
+5. **MUST** ③ 空白行清理
+6. **MUST** 動態過期版本引用掃描
+7. **MUST** 大小寫重複偵測
 
 ## 退出碼對應行動
 
 | 碼 | 意義 | 行動 |
 |----|------|------|
-| 0 | 全部通過（含 ⚠️ 警告 / 🧹 自動刪除 / 🧾 自動新增） | ✅ 檢查 diff，確認自動維護符合預期 |
+| 0 | 全部通過（含 ⚠️ 警告 / 🧹 自動修正 / 📌 路由新增） | ✅ 檢查 diff，確認路由和清理符合預期 |
 | 1 | ❌ 仍有路徑不存在或目錄缺失 | **MUST** 修正 INDEX/SOP 文件中的路徑，或補建遺漏的檔案/目錄 |
 | 2 | 環境問題 | **MUST** 確認在專案根目錄執行 |
 
@@ -51,14 +81,16 @@ bash .claude/skills/index-verify/scripts/index_path_verify.sh
 | 過期 SSOT/Layout 引用（CLAUDE.md / PROGRESS.md） | **MUST** 需 Ticket + Cross-Review Checkpoint 才能修正 |
 | 過期引用（INDEX 文件本身） | **SHOULD** 可直接修正 INDEX 文件 |
 | 大小寫重複檔案 | **MUST** 確認正確版本後刪除重複 |
+| 🔴 SOP 語意引用被刪除 | **MUST** 手動檢查 SOP 載入指令是否需補正 |
 
 ## 回報格式
 
 ```
-=== Index Verify Report ===
+=== Index Verify Report v2.0 ===
 📁 Scope File Inventory: CSO / UITA / Architecture listed
-📁 CSO INDEX+SOP: ✅ [N] 通過 / ❌ [N] 失敗 / 🧹 [N] 自動刪除 / 🧾 [N] 自動新增
-📁 UITA INDEX+SOP: ✅ [N] 通過 / ❌ [N] 失敗 / 🧹 [N] 自動刪除 / 🧾 [N] 自動新增
-⚠️  警告: [N] 項（過期引用 / 大小寫重複）
+📁 CSO INDEX+SOP: ✅ [N] 通過 / ❌ [N] 失敗 / 🧹 [N] 自動修正 / 📌 [N] 路由新增 / 🧾 [N] fallback 新增
+📁 UITA INDEX+SOP: ✅ [N] 通過 / ❌ [N] 失敗 / 🧹 [N] 自動修正 / 📌 [N] 路由新增 / 🧾 [N] fallback 新增
+📌 Version: SSOT=[current] / Layout=[current]
+⚠️  警告: [N] 項（過期引用 / 大小寫重複 / SOP 語意斷裂）
 → 結論: PASS / FAIL
 ```
