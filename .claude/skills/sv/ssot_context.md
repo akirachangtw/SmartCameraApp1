@@ -2,8 +2,8 @@
 
 **用途**: Codex CLI cross_review.sh 專用 — 提供架構審查所需的最小 SSOT 上下文
 **維護頻率**: 每 Sprint 更新一次，或 SSOT 版本變更時同步
-**當前 SSOT 版本**: v4.0.2 (Session 4 Full Revision + Session 5 D-13 Patch)
-**搭配佈局文件**: Layout Spec v2.3
+**當前 SSOT 版本**: v4.0.6 (D-27: LANDMARK_NONE 降級 + Portrait 狀態機 + Detector Lifecycle)
+**搭配佈局文件**: Layout Spec v2.5.1
 
 ---
 
@@ -38,7 +38,7 @@ presentation/ → Jetpack Compose + ViewModel
 
 ## 2. 核心型別清單 (SSOT-Defined Types)
 
-以下型別名稱由 SSOT v4.0.2 定義，任何 diff 中出現非此名稱的同功能型別即為 **Model Drift**：
+以下型別名稱由 SSOT v4.0.6 定義，任何 diff 中出現非此名稱的同功能型別即為 **Model Drift**：
 
 | SSOT 型別 | 所在層 | 用途 |
 |-----------|--------|------|
@@ -83,6 +83,9 @@ presentation/ → Jetpack Compose + ViewModel
 | 約束 | 規則 | 違反後果 |
 |------|------|---------|
 | ML Kit 互斥 | Face Detection 與 Object Detection 不可同時開啟 | 500ms hysteresis 切換 |
+| Face Detector Lifecycle | Detector 生命週期 ≤ Camera Session；暫停時 **MUST** close() + 釋放 native 記憶體；禁止全局 singleton | native memory leak 40-60MB |
+| LANDMARK_MODE | **NONE（D-27 MVP）**：v2.12.0 crash 未根治；EyeLineRule + NEAR_EYE AF 延後 Phase 1.5 | landmark access → crash |
+| Portrait Guidance 狀態機 | 六態順序：NO_FACE → FACES_DETECTED_NONE_ELIGIBLE → SUBJECT_STABILIZING → GUIDANCE_ACTIVE → ALIGNED → SUPPRESSED；禁止跳過 SUBJECT_STABILIZING | Ghost Face guidance 亂竄 |
 | CameraX 零重綁 | PTF 切換不 rebind camera, 不 close ML Kit | 黑屏 crash |
 | Pitch Traction 60fps | 任何裝置等級都必須保證 PT 60fps（IMU 驅動） | 用戶感知卡頓 |
 | IMU 頻率脫鉤 | IMU 200Hz 採樣 → 降頻至 UI 60fps 消費 | 主線程阻塞 |
@@ -168,17 +171,16 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > pitch ∈ [-10°,35°] + face (P
 
 ## 文件元資訊
 
-- **版本**: ssot_context v1.4
+- **版本**: ssot_context v1.5
 - **建立日期**: 2026-05-04
-- **更新日期**: 2026-05-24
-- **來源**: SSOT v4.0.2 + Layout Spec v2.3 + P05 Contract (Strangler Fig 架構變更)
-- **行數**: ~155 行
-- **變更摘要 (v1.3 → v1.4)**:
-  - §4 FOCUS_* 常數從 3 → 7（補 RING_SIZE, RING_STROKE, FADEOUT, FAILED）
-  - §4 新增 ALIGNED_THRESHOLD_DEG, LEVEL_FADE_RANGE_DEG (10°), SHUTTER_FLASH_DURATION_MS, TRANSITION_FAST_MS
-  - §5.4 補 LowAngleMode (pitch < -10°)
-  - §5.5 新增 P05 活躍範圍（T1-T7 狀態表）
-  - §6 Halo 對齊 alpha 0.35 → 0.18（修正 SSOT 代碼對齊）
+- **更新日期**: 2026-06-12
+- **來源**: SSOT v4.0.6 + Layout Spec v2.5.1 + P05 Contract (Strangler Fig 架構變更)
+- **行數**: ~165 行
+- **變更摘要 (v1.4 → v1.5)**:
+  - 版本錨點 v4.0.2 → v4.0.6，Layout Spec v2.3 → v2.5.1（K4-15 GOVERNANCE_DRIFT 修正）
+  - §4 新增 Face Detector Lifecycle 約束（D-27：close() + 禁止 singleton）
+  - §4 新增 LANDMARK_MODE = NONE（D-27 MVP 降級）
+  - §4 新增 Portrait Guidance 六態狀態機約束（SUBJECT_STABILIZING 禁止跳過）
 - **變更摘要 (v1.2 → v1.3)**:
   - SSOT 版本 v4.0 → v4.0.2, Layout Spec v2.2 → v2.3
   - §1 新增 `camera/focus/` 子目錄 + overlay 條目更新

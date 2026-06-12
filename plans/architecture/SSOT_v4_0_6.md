@@ -1,11 +1,11 @@
-# Cueshot 策略與架構 SSOT v4.0.5
+# Cueshot 策略與架構 SSOT v4.0.6
 
-**文件版本**: 4.0.5 (Session 9 Micro-Revision — D-25~D-26 + R35~R36)  
+**文件版本**: 4.0.6 (Session VIII CSO — D-27: LANDMARK_NONE 降級 + Portrait 狀態機 + Detector Lifecycle)  
 **建立日期**: 2026-05-12  
-**修訂日期**: 2026-05-29  
+**修訂日期**: 2026-06-12  
 **文件性質**: 唯一真理文件 — 本文件作廢所有前版（v3.0~v3.3, Delta v3.4~v3.4.1, v4.0~v4.0.4）  
 **作者**: CSO 策略分析 + Ambient UI Tech Auditor (Claude Opus 4.6) + 開發者 Akira  
-**合併來源**: v4.0.4 + Session 9 (D-25~D-26, R35~R36: Overlay 總表文案修正 · LEGACY 光線指示語義修復)  
+**合併來源**: v4.0.4 + Session 9 (D-25~D-26, R35~R36: Overlay 總表文案修正 · LEGACY 光線指示語義修復) + v4.0.6 (D-27: LANDMARK_NONE 降級 + Portrait 狀態機 + Detector Lifecycle)  
 **搭配文件**: `Cueshot_Layout_Spec_v2_5_1.md`（佈局精確定義）
 
 ---
@@ -781,21 +781,54 @@ priority = ruleWeight × (100 - ruleScore) / 100 × confidenceFactor
 |------|-------------|------|---------|
 | ThirdsRule | face.boundingBox.center | 人臉中心 vs 四個黃金交叉點 | MVP (P0) |
 | HeadroomRule | face.boundingBox.top | 比值 10%-20% 為佳 | MVP (P0) |
-| EyeLineRule | landmarks[LEFT_EYE].y | 眼睛 Y vs 上三分線 | MVP (P1) |
+| EyeLineRule | landmarks[LEFT_EYE].y | 眼睛 Y vs 上三分線 | **Phase 1.5**（D-27: LANDMARK_NONE → landmark 不可用） |
 | GazeRule | face.headEulerAngleY | 臉轉左→左側需更多空間 | MVP (P1) |
 | TiltRule | face.headEulerAngleZ | 絕對值 > 8° 提示轉正 | Phase 1.5 |
 | SmileRule | face.smilingProbability | > 0.4 持續 > 300ms = 黃金時刻 | Phase 1.5 |
 
-**Face Detection 配置（D-23）**：
+**Face Detection 配置（D-23, D-27 修正）**：
 
 | 配置項 | 值 | 理由 |
 |--------|-----|------|
-| LANDMARK_MODE | ALL | 解鎖 EyeLineRule（MVP P1）+ true Eye-AF（nearest eye focus） |
-| CLASSIFICATION_MODE | ALL | 解鎖 SmileRule（Phase 1.5）+ eyes-open 偵測 |
-| CONTOUR_MODE | NONE | Google 官方建議：Contour 不可與 Landmark 併用（效能互斥） |
+| LANDMARK_MODE | **NONE（D-27 降級）** | v2.12.0 crash 未根治 + 從未成功部署。EyeLineRule + NEAR_EYE AF 延後至 Phase 1.5（待 ML Kit 穩定性驗證） |
+| CLASSIFICATION_MODE | ALL | Ghost Face eye-open gate（HOTFIX-47）+ SmileRule（Phase 1.5） |
+| CONTOUR_MODE | NONE | Google 官方建議：效能互斥 |
 | PERFORMANCE_MODE | FAST | 正面拍攝場景足夠；PTF 側臉場景 Phase 1.5 評估切 ACCURATE |
 | minFaceSize | 0.15f | 佔畫面 15% 的最小人臉 |
 | enableTracking | true | 跨幀 trackingId 穩定 |
+
+#### 4.4.1 Portrait Guidance 狀態機（D-27）
+
+人像模式的引導系統遵循六態狀態機。此狀態機定義**產品行為**（用戶可觀測的 UI 回饋），具體轉換條件與時間參數由 Contract 層定義。
+
+| 狀態 | 產品語義 | 用戶可觀測行為 |
+|------|---------|---------------|
+| NO_FACE | 畫面中無人臉 | Halo 關閉、Level 低 alpha、無引導文字 |
+| FACES_DETECTED_NONE_ELIGIBLE | 偵測到人臉但無合格主體（閉眼/遮擋/極端側臉/ghost face） | Halo 關閉或極暗、Level 開啟、無引導文字 |
+| SUBJECT_STABILIZING | 合格主體出現，防抖穩定中 | Halo 暗琥珀、Level 開啟、Grid 開啟、無引導文字 |
+| GUIDANCE_ACTIVE | 主體鎖定，有可改善項 | Halo 琥珀 α0.25、Level 開啟、Grid 開啟、顯示最高優先規則文字 |
+| ALIGNED | 主體鎖定，所有規則滿足 | Halo 綠色呼吸 0.10→0.18、Level 綠色、Grid 淡出或維持、隱藏引導文字 |
+| SUPPRESSED | 引導暫時抑制（防閃爍/對焦優先） | Halo 淡出、維持當前 Level/Grid、無引導文字 |
+
+**規則**：
+
+- 從 NO_FACE 到 GUIDANCE_ACTIVE 的轉換必須經過 SUBJECT_STABILIZING 防抖——禁止跳過
+- ALIGNED 綠色呼吸週期 = `AmbientConstants.BREATHE_CYCLE_MS`（2000ms）
+- SUPPRESSED 由 AfCoordinator manual tap 或 flicker guard 觸發，自動 AF 恢復時退出
+- 任何狀態的 face 全部丟失超過 timeout → 回到 NO_FACE
+
+#### 4.4.2 Face Detector Session Lifecycle（D-27）
+
+ML Kit Face Detector 為 stateful resource，需遵循以下 lifecycle 約束：
+
+| 事件 | 行為 | 理由 |
+|------|------|------|
+| Camera Session 開啟（Preview active） | 建立 FaceDetector instance（D-23/D-27 配置） | 與 Preview 生命週期綁定 |
+| Camera Session 暫停（App background / Activity stop） | **close() Detector + 釋放 native 記憶體** | 防止 native memory leak（ML Kit 佔用 40-60MB） |
+| Camera Session 恢復 | 重新建立 Detector instance | 不可復用已 close 的 instance |
+| 切換偵測模式（Food ↔ Portrait，D-22 互斥） | 銷毀舊 Detector → 建立新配置 Detector | D-22 互斥原則 — 禁止雙 Detector 並存 |
+
+**Hard Constraint**：禁止全局 singleton FaceDetector——Detector 生命週期必須 ≤ Camera Session 生命週期。
 
 ### 4.5 遞手機模式規則
 
@@ -1770,6 +1803,17 @@ v2.12.0「Unknown landmark type」crash 需 root-cause 後修復，以 try-catch
 
 **翻盤條件**: 實機驗證側臉偵測率不足 → PTF 模式切 PERFORMANCE_MODE_ACCURATE。
 
+### B.14 Face Detection 配置修正 + Portrait 狀態機入 SSOT（D-27）
+
+D-23 修正：LANDMARK_ALL 降為 NONE（MVP）。v2.12.0 "Unknown landmark type" crash 未根治 + production 從未成功部署 = SSOT 與代碼語義分裂。EyeLineRule 延後至 Phase 1.5；AF focus target 降級為 FACE_CENTER。
+新增 §4.4.1 Portrait Guidance 六態狀態機（NO_FACE → FACES_DETECTED_NONE_ELIGIBLE → SUBJECT_STABILIZING → GUIDANCE_ACTIVE → ALIGNED → SUPPRESSED）。
+新增 §4.4.2 Face Detector Session Lifecycle（建立/暫停/恢復/切換）。
+
+**翻盤條件**：
+
+- LANDMARK_ALL：ML Kit 新版修復 crash + 1000 幀雙裝置零 crash → Phase 1.5 恢復
+- 狀態機：六態不足以覆蓋新產品場景 → 在 SSOT 層增態（禁止 Contract 層自行擴展後再升格）
+
 ### B.13 Grid 三分網格線規格鎖定（D-24）
 
 #FFFFFF α0.35, 線寬 1.5px, StrokeCap.Round, contentBounds 內繪製。  
@@ -1796,9 +1840,9 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 
 ## 文件元資訊
 
-- **版本**: SSOT v4.0.5 (Session 9 Micro-Revision — D-25~D-26 + R35~R36)
+- **版本**: SSOT v4.0.6 (D-27: LANDMARK_NONE 降級 + Portrait 狀態機 + Detector Lifecycle)
 - **建立日期**: 2026-05-12
-- **修訂日期**: 2026-05-29
+- **修訂日期**: 2026-06-12
 - **合併來源**:
   - v3.3 SSOT (2026-04-04) — 基底
   - Delta v3.4 (2026-05-01~02) — 11 項決策
@@ -1841,10 +1885,17 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
     - D-26: LEGACY 光線指示降級 — 不顯示光線狀態，維持靜態白色 α0.85（GPT 交叉審查命中）
     - R35: §Overlay 圖層定義 Layer 1 文案對齊 D-2
     - R36: §2.9 LEGACY 降級行語義修復
+  - **v4.0.6 (D-27: LANDMARK_NONE 降級 + Portrait 狀態機 + Detector Lifecycle)**：
+    - D-27: LANDMARK_ALL → NONE（MVP）— v2.12.0 crash 未根治 + production 從未部署；EyeLineRule 延後 Phase 1.5
+    - R37: §4.4 Face Detection 配置表修正（D-23, D-27 修正）
+    - R38: §4.4 EyeLineRule 階段 MVP(P1) → Phase 1.5
+    - R39: 新增 §4.4.1 Portrait Guidance 六態狀態機
+    - R40: 新增 §4.4.2 Face Detector Session Lifecycle
+    - R41: 附錄 B.14 決策記錄
 - **作廢文件**: v3.0, v3.1, v3.2, v3.3, Delta v3.4, Delta v3.4.1, v4.0, v4.0.1, v4.0.2, v4.0.3, v4.0.4 及所有前版
 - **搭配文件**: `Cueshot_Layout_Spec_v2_5_1.md`（佈局精確定義，獨立維護）
 - **命名規範**: 本文件中不存在 "Edge Warmth" 作為渲染元件名稱。三通道體系統一使用 Pitch Traction / Level Traction / Halo Traction。PitchTractionLayer 禁止包含 null/radialGradient 渲染邏輯（D-14）。
-- **決策記錄**: D-1~D-4 (Session 3), D-5r~D-12 (Session 4), D-13 (Session 5), D-14~D-19 (Session 6), D-20~D-24 (Session 8), D-25~D-26 (Session 9) — 全部 locked
+- **決策記錄**: D-1~D-4 (Session 3), D-5r~D-12 (Session 4), D-13 (Session 5), D-14~D-19 (Session 6), D-20~D-24 (Session 8), D-25~D-26 (Session 9), D-27 (Session VIII CSO) — 全部 locked
 - **下一步**:
   1. ~~Layout Spec v2.4 → v2.5.1~~ → 待部署
   2. Claude Code 按 SSOT v4.0.5 + Layout Spec v2.5.1 實作：
@@ -1863,4 +1914,4 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 
 ---
 
-**End of SSOT v4.0.5**
+**End of SSOT v4.0.6**

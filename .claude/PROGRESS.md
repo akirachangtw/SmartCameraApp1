@@ -62,6 +62,6 @@
 
 ## Quick Links
 
-- SSOT: `plans/architecture/SSOT_v4_0_5.md`
+- SSOT: `plans/architecture/SSOT_v4_0_6.md`
 - Layout Spec: `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md`
 - Full History: `PROGRESS_ARCHIVE.md`

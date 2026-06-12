@@ -25,7 +25,7 @@ Ticket 含 `## Verify Config` 區塊時，必須將該區塊內容複製為 `tmp
 - 不假設。有歧義就問，不要靜默選擇。
 - 如果存在多種解讀，全部列出——不要替 user 挑。
 - 如果有更簡單的做法，推回來。推回是職責不是越權。
-- 修改核心邏輯前，先查閱 SSOT（`plans/architecture/SSOT_v4_0_5.md`）。
+- 修改核心邏輯前，先查閱 SSOT（`plans/architecture/SSOT_v4_0_6.md`）。
   文件是架構唯一真理，程式碼的解釋以文件為準。
 
 ### 2. 最小修改
@@ -54,7 +54,8 @@ Ticket 含 `## Verify Config` 區塊時，必須將該區塊內容複製為 `tmp
 
 ### 4. 越權禁令
 
-a) 無 Ticket 不動手。格式：`P[XX]-[CODE]` / `INFRA-[XX]` / `HOTFIX-[XX]` / `SPIKE-[CODE]`。
+a) 無 Ticket 不動手。合法格式（對齊 gstack commit-msg hook）：
+   `D[N]-T[N]` / `P0-[NAME]` / `P0[N]-[CODE]` / `INFRA-[XX]` / `HOTFIX-[XX]` / `SPIKE-[CODE]` / `KAIROS-D[N]` / `V16-[XX]`
    無 Ticket → 輸出 Boot Report 並停止。
 b) 不基於 MEMORY.md / PROGRESS.md / TODO / FIXME 自主決定下一步。
 c) /qa /sv /compact /dream 是驗收工具，不是實作授權。發現問題 → 回報，不自行修復。
@@ -131,7 +132,7 @@ Status code 已能回答的問題，code 回答。
 
 ## SSOT
 
-- 策略: `plans/architecture/SSOT_v4_0_5.md` · 佈局: `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md`
+- 策略: `plans/architecture/SSOT_v4_0_6.md` · 佈局: `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md`
 - 進度: `PROGRESS.md` · 歸檔: `PROGRESS_ARCHIVE.md`
 
 Cross-Review 行為規範 → `.claude/rules/cross-review.md`

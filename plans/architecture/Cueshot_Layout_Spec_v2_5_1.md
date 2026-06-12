@@ -11,7 +11,7 @@
 - v2.5 → v2.5.1：**2 項修訂**（見 §14 修訂追蹤 v2.5→v2.5.1）— Layer 1 文案修正 + LEGACY 光線指示修復
 **決策來源**: CSO Session D8 — Top Bar Overlay 化 + Photo/PTF Pill Toggle · Session 4 D-12 快門下移 · Session 6 D-14~D-19 · **Session 8 D-24 Grid 規格**
 **取代**: v2.5 及所有前版（v2.4, v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）  
-**上游文件**: `SSOT_v4_0_5.md`（唯一真理文件）  
+**上游文件**: `SSOT_v4_0_6.md`（唯一真理文件）  
 **下游文件**: Prototyper Prompt v2 · Background Image Prompts v2
 
 ---
@@ -533,8 +533,8 @@ The image will be used as a full-screen background layer in a camera app UI prot
 
 本文件已通過以下自動化檢查：
 - ✅ **命名淨化**：全文不存在 "Edge Warmth" 或 "水平儀" 作為渲染元件名稱
-- ✅ **上游引用**：當前有效引用全部指向 `SSOT_v4_0_5.md`，不再指向 v2.5 以前的 SSOT 入口
-- ✅ **Overlay 圖層描述**：§3.3 逐字對齊 SSOT v4.0.5 §Viewfinder Overlay
+- ✅ **上游引用**：當前有效引用全部指向 `SSOT_v4_0_6.md`，不再指向 v2.5 以前的 SSOT 入口
+- ✅ **Overlay 圖層描述**：§3.3 逐字對齊 SSOT v4.0.6 §Viewfinder Overlay
 - ✅ **D-series 決策傳播**：D-24（Grid 規格 + Z-order + cold start 過渡）落地
 - ✅ **Layer 詳細規格完整性**：Layer 1（Pitch）+ Layer 2（Grid）+ Layer 3（Halo）均有詳細規格表
 
@@ -552,9 +552,9 @@ The image will be used as a full-screen background layer in a camera app UI prot
 ### 零殘留驗證
 
 本文件已通過以下自動化檢查：
-- ✅ **版本錨點**：當前有效上游文件指向 `SSOT_v4_0_5.md`
-- ✅ **Overlay 圖層描述**：§3.3 Layer 1 已對齊 SSOT v4.0.5 R35 / D-25
-- ✅ **LEGACY 光線指示**：§3.2.1 已對齊 SSOT v4.0.5 R36 / D-26，無數據源時不渲染 amber 狀態色
+- ✅ **版本錨點**：當前有效上游文件指向 `SSOT_v4_0_6.md`
+- ✅ **Overlay 圖層描述**：§3.3 Layer 1 已對齊 SSOT v4.0.6 R35 / D-25
+- ✅ **LEGACY 光線指示**：§3.2.1 已對齊 SSOT v4.0.6 R36 / D-26，無數據源時不渲染 amber 狀態色
 - ✅ **修訂追溯性**：H-4 / H-5 已登記於本 §14
 
 ---
@@ -566,7 +566,7 @@ The image will be used as a full-screen background layer in a camera app UI prot
 - **修訂日期**: 2026-05-29
 - **決策鏈**: CSO Session D8 → Top Bar Overlay 化 → Photo/PTF Pill Toggle (Option A + Color C) → 暖色偏移 → **Session 4 D-12 快門下移 4dp** → **Session 6 D-14~D-19 全面修復** → **Session 8 D-24 Grid 規格鎖定**
 - **取代**: v2.5 及所有前版（v2.4, v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）
-- **上游文件**: `SSOT_v4_0_5.md`（唯一真理文件）
+- **上游文件**: `SSOT_v4_0_6.md`（唯一真理文件）
 - **審查狀態**: UITA 交叉審計完成 — v2.2→v2.3 16 項 + v2.3→v2.4 8 項 + v2.4→v2.5 3 項 + v2.5→v2.5.1 2 項修訂全部落地 + 零殘留驗證通過
 - **命名規範**: 本文件中不存在 "Edge Warmth" 或 "水平儀" 作為渲染元件名稱。三通道體系統一使用 Pitch Traction / Level Traction / Halo Traction。PitchTractionLayer 禁止包含 null/radialGradient 渲染邏輯（D-14）。
 - **Open Item**: 無 — Scrim endpoint 120px 已由 CSO 確認鎖定（D-13, 2026-05-18），待實測調整
