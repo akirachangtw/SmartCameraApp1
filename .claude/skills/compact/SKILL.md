@@ -57,5 +57,33 @@ disable-model-invocation: false
 
 同步更新 PROGRESS.md Dashboard 段落（Sprint Health + Active Blockers + Next Actions）。
 
+## 最後 Housekeeping
+
+**MUST** 在交接文件寫入且 PROGRESS.md 更新完成後，清理 `docs/session_handoff/`：
+
+1. 使用同一個系統日期 `yyyyMMdd` 作為「當天」判斷基準。
+2. 確保 `docs/session_handoff/Archive/` 存在。
+3. `docs/session_handoff/` 根目錄只保留當天檔案：`SESSION_HANDOFF_<yyyyMMdd>_*.md`。
+4. 將非當天的 `SESSION_HANDOFF_*.md` 搬移至 `docs/session_handoff/Archive/`。
+5. 不處理 `Archive/` 內既有檔案；若 Archive 已存在同名檔案，不覆寫，改為跳過並在最終訊息註明。
+
+建議 PowerShell：
+
+```powershell
+$today = Get-Date -Format 'yyyyMMdd'
+$root = 'docs/session_handoff'
+$archive = Join-Path $root 'Archive'
+New-Item -ItemType Directory -Force -Path $archive | Out-Null
+
+Get-ChildItem -Path $root -File -Filter 'SESSION_HANDOFF_*.md' |
+  Where-Object { $_.Name -notlike "SESSION_HANDOFF_${today}_*.md" } |
+  ForEach-Object {
+    $dest = Join-Path $archive $_.Name
+    if (-not (Test-Path -LiteralPath $dest)) {
+      Move-Item -LiteralPath $_.FullName -Destination $dest
+    }
+  }
+```
+
 **SHOULD** 完成後輸出以下確認訊息（必須包含實際檔案路徑）：
-「交接文件已儲存至 docs/session_handoff/SESSION_HANDOFF_<實際時間戳>.md，PROGRESS.md 已同步更新。建議：開新對話 → 貼入 Dashboard 段 → 按需展開細節。」
+「交接文件已儲存至 docs/session_handoff/SESSION_HANDOFF_<實際時間戳>.md，PROGRESS.md 已同步更新。Housekeeping 已完成：docs/session_handoff/ 僅保留當天 handoff，過期檔已移至 docs/session_handoff/Archive/。建議：開新對話 → 貼入 Dashboard 段 → 按需展開細節。」
