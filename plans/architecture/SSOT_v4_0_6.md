@@ -1803,6 +1803,14 @@ v2.12.0「Unknown landmark type」crash 需 root-cause 後修復，以 try-catch
 
 **翻盤條件**: 實機驗證側臉偵測率不足 → PTF 模式切 PERFORMANCE_MODE_ACCURATE。
 
+### B.13 Grid 三分網格線規格鎖定（D-24）
+
+#FFFFFF α0.35, 線寬 1.5px, StrokeCap.Round, contentBounds 內繪製。  
+Z-order: Grid 在 PitchTractionLayer 之上（Layer 2 > Layer 1）— 確保不被 Pitch aligned 模式遮蓋。  
+Cold start 過渡：ODT warm-up 期間 Grid α0.35 → 首個 Food bbox 到達後 300ms 淡出至 α0.15。
+
+**否決方案**: α0.25 過淡、α0.50 過重、不交換 Z-order（邊緣被 aligned 呼吸削弱）。
+
 ### B.14 Face Detection 配置修正 + Portrait 狀態機入 SSOT（D-27）
 
 D-23 修正：LANDMARK_ALL 降為 NONE（MVP）。v2.12.0 "Unknown landmark type" crash 未根治 + production 從未成功部署 = SSOT 與代碼語義分裂。EyeLineRule 延後至 Phase 1.5；AF focus target 降級為 FACE_CENTER。
@@ -1813,14 +1821,6 @@ D-23 修正：LANDMARK_ALL 降為 NONE（MVP）。v2.12.0 "Unknown landmark type
 
 - LANDMARK_ALL：ML Kit 新版修復 crash + 1000 幀雙裝置零 crash → Phase 1.5 恢復
 - 狀態機：六態不足以覆蓋新產品場景 → 在 SSOT 層增態（禁止 Contract 層自行擴展後再升格）
-
-### B.13 Grid 三分網格線規格鎖定（D-24）
-
-#FFFFFF α0.35, 線寬 1.5px, StrokeCap.Round, contentBounds 內繪製。  
-Z-order: Grid 在 PitchTractionLayer 之上（Layer 2 > Layer 1）— 確保不被 Pitch aligned 模式遮蓋。  
-Cold start 過渡：ODT warm-up 期間 Grid α0.35 → 首個 Food bbox 到達後 300ms 淡出至 α0.15。
-
-**否決方案**: α0.25 過淡、α0.50 過重、不交換 Z-order（邊緣被 aligned 呼吸削弱）。
 
 ---
 
@@ -1898,11 +1898,11 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 - **決策記錄**: D-1~D-4 (Session 3), D-5r~D-12 (Session 4), D-13 (Session 5), D-14~D-19 (Session 6), D-20~D-24 (Session 8), D-25~D-26 (Session 9), D-27 (Session VIII CSO) — 全部 locked
 - **下一步**:
   1. ~~Layout Spec v2.4 → v2.5.1~~ → 待部署
-  2. Claude Code 按 SSOT v4.0.5 + Layout Spec v2.5.1 實作：
+  2. Claude Code 按 SSOT v4.0.6 + Layout Spec v2.5.1 實作：
      a. C-1: GridOverlay alpha 0.35 + strokeWidth 1.5f（D-24, R29）
      b. C-2: PitchTractionLayer null vignette 刪除（D-14, R22）
      c. C-3: CameraScreen Z-order Grid↔Pitch 交換（D-24, R29）
-     d. C-4: MLKitDetector mode-aware 重構（D-22, R31）— 含 LANDMARK_ALL 恢復（D-23, R33）+ enableMultipleObjects 移除（D-21, R30）
+     d. C-4: MLKitDetector mode-aware 重構（D-22, R31）— LANDMARK_NONE（D-27 降級）+ CLASSIFICATION_ALL（D-23/HOTFIX-47）+ enableMultipleObjects 移除（D-21, R30）
      e. C-5: Food mode 雙重確認 + cold start Grid→Halo 過渡（D-24, R31）
      f. PreviewView scaleType → FILL_CENTER（D-18）
      g. edge-to-edge + cutout mode 修復（D-18/B.8）
