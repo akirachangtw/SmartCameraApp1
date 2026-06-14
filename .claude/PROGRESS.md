@@ -5,16 +5,17 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-45 | ✅ D-27 SSOT Amendment — v4.0.5→v4.0.6 + K4-15 修正 |
+| P08-F5 | ✅ S12 Executable Amendment — SSOT v4.0.6 Hotfix (HF-A1/A2/A3) + Contract v0.4 (14 CR) |
 | P08-F4 | ✅ Discovery 完整閉環 — H3 REFUTED · CSO Report → `reports/P08-F4_Discovery_Report.md` |
+| INFRA-45 | ✅ D-27 SSOT Amendment — v4.0.5→v4.0.6 + K4-15 修正 |
 
-**Last Updated**: 2026-06-12 17:40
+**Last Updated**: 2026-06-14 01:05
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **P08-F4 ✅ Discovery 閉環** · INFRA-45 ✅ SSOT v4.0.6 · INFRA-43~44 ✅ |
+| Schedule | **P08-F5 ✅ S12 Amendment** · P08-F4 ✅ Discovery · INFRA-45 ✅ SSOT v4.0.6 |
 | Compile | 0 errors ✅ (assembleDebug 18s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest — 19 suites, 0 failed) |
 | Lint | 0 errors ✅ / 0 new warnings (ALLOWED files clean) |
@@ -32,14 +33,13 @@
 
 ## Next Actions
 
-> **Session AK 完成（2026-06-12）：P08-F4 Discovery 完整閉環 — H3 REFUTED · 四組實機測試 · CSO Report 提交**
+> **Session S12 完成（2026-06-14）：P08-F5 S12 Executable Amendment — SSOT v4.0.6 Hotfix + Portrait Contract v0.4（14 CR，UITA+CSO）**
 
-1. **🔴 CSO 待簽發**：P08-F4-FIX（方案 A：廢棄 Path B，SmartCameraAnalyzer 為唯一偵測路徑）
-2. **🔴 Baseline（開 Ticket）**：
+1. **🔴 Baseline（開 Ticket）**：
    - `BUG-MLKIT-DUAL-EMIT`：切換鏡頭清空 `detectionResult`（CameraViewModel.kt `flatMapLatest`）
    - `BUG-PTF-HALO-SIZE`：PTF Halo bbox → 圓半徑轉換（HaloGuidanceLayer.kt）
-3. **P08-F5/F6** → **Portrait Contract v0.3 redline**（D-27 依賴已解除）
-4. **T03 重啟**（Baseline 通過後）：Pill Toggle 重寫
+2. **P08-F6** → Portrait Contract v0.4 實作（domain/portrait/ 骨架建立）
+3. **T03 重啟**（Baseline 通過後）：Pill Toggle 重寫
 
 ## Active Debt（僅列未解決項）
 
