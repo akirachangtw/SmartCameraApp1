@@ -94,7 +94,7 @@ presentation/ → Jetpack Compose + ViewModel
 | VCM 馬達冷卻 | Eye-AF 呼叫間隔 ≥ 2-3 秒 | 馬達過熱 |
 | Focus 圓環尺寸 | `FOCUS_RING_SIZE_DP` = 60dp | 圓環外徑（SSOT A.1） |
 | Focus 圓環線寬 | `FOCUS_RING_STROKE_DP` = 1.5dp | 邊框寬度（SSOT A.1） |
-| Focus AF 超時 | `FOCUS_AF_TIMEOUT_MS` = 2000ms | 超時 → Failed 狀態（SSOT A.2.1） |
+| Focus AF 超時 | `FOCUS_AF_TIMEOUT_MS` = 2500ms | D-17: Sony PDAF 裕度；超時 → Failed 狀態（SSOT A.2.1） |
 | Focus fadeout | `FOCUS_FADEOUT_MS` = 500ms | drift 後淡出（SSOT A.2.2.1） |
 | Focus Failed | `FOCUS_FAILED_MS` = 800ms | Failed 振盪時長（SSOT A.2.3） |
 | Focus 長按閾值 | `FOCUS_LONG_PRESS_MS` = 500ms | 觸發 AE/AF Lock（SSOT A.2.4） |
@@ -114,7 +114,7 @@ presentation/ → Jetpack Compose + ViewModel
 - 加權門檻公式（SSOT §4.2）取代 Boolean AND-gate
 - 常數抽取至 companion object
 
-### 5.2 PTF 模式規格 (Layout Spec v2.3)
+### 5.2 PTF 模式規格 (Layout Spec v2.5.1)
 
 - 進入: Pill Toggle 點擊 PTF 側
 - 退出: Pill Toggle 點回 Photo / ✕ 按鈕（雙路徑）
@@ -122,7 +122,7 @@ presentation/ → Jetpack Compose + ViewModel
 - 規則引擎: 六規則降為三規則（FramingRule + LevelRule + AngleRule）
 - 零硬體切換鐵律: 不 rebind CameraX, 不 close ML Kit, 不重校 IMU
 
-### 5.3 評分公式權重（D13 待驗證）
+### 5.3 評分公式權重
 
 - 角度 0.40 / 水平 0.25 / 構圖 0.20 / 光線 0.15
 
@@ -139,7 +139,7 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > pitch ∈ [-10°,35°] + face (P
 | ------ | ---- | ------- |
 | T1 | ✅ Done | Eye-AF 視覺環 flag 關閉，FocusIndicatorOverlay 不渲染 |
 | T2 | ✅ Done | TapFocusRing 五態渲染，Canvas ≤1 次 drawCircle |
-| T3 | 🔧 Active | TapFocusController 狀態機 SSOT A.3 + CameraX AF 接線 |
+| T3 | ⏸️ Blocked | TapFocusController 狀態機 SSOT A.3 + CameraX AF 接線（Baseline 通過後重啟） |
 | T4 | 🔧 Active | Scrim y=0 α0.22 → y=120px α0 |
 | T5 | ✅ Done | 快門色彩硬編碼 B.3.3 |
 | T6 | ✅ Done | Grid 預設可見 |
@@ -153,7 +153,9 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > pitch ∈ [-10°,35°] + face (P
 
 | 用途 | 色值 | Alpha 上限 |
 |------|------|-----------|
-| Pitch Traction / Halo 未對齊 | `#D4A030` | 0.20 / 0.25 |
+| Pitch Traction 未對齊（圓點） | `#D4A030` | 動態 `0.1 + pitchDist × 0.7`（§2.3） |
+| Pitch Traction 未對齊（中軸） | `#D4A030` | 0.9 |
+| Halo 未對齊 | `#D4A030` | 0.25 |
 | Halo 對齊（呼吸峰值） | `#50C864` | 0.18（呼吸 0.10↔0.18） |
 | 呼吸韻律 | alpha 0.10 ↔ 0.18 | 2000ms 週期 |
 | 底部 Photo 背景 | `#0D0D0D` | — |
@@ -171,11 +173,17 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > pitch ∈ [-10°,35°] + face (P
 
 ## 文件元資訊
 
-- **版本**: ssot_context v1.5
+- **版本**: ssot_context v1.6
 - **建立日期**: 2026-05-04
-- **更新日期**: 2026-06-12
+- **更新日期**: 2026-06-14
 - **來源**: SSOT v4.0.6 + Layout Spec v2.5.1 + P05 Contract (Strangler Fig 架構變更)
-- **行數**: ~165 行
+- **行數**: ~170 行
+- **變更摘要 (v1.5 → v1.6)**:
+  - SC-1: FOCUS_AF_TIMEOUT_MS 2000→2500ms（D-17 漏同步修正）
+  - SC-2: §5.2 PTF Layout Spec 引用 v2.3→v2.5.1
+  - SC-3: Pitch Traction alpha 拆分為圓點動態公式 + 中軸固定值 + Halo 獨立行
+  - SC-4: T3 狀態 Active→Blocked（與 PROGRESS.md 同步）
+  - SC-5: §5.3 移除過期「D13 待驗證」標記
 - **變更摘要 (v1.4 → v1.5)**:
   - 版本錨點 v4.0.2 → v4.0.6，Layout Spec v2.3 → v2.5.1（K4-15 GOVERNANCE_DRIFT 修正）
   - §4 新增 Face Detector Lifecycle 約束（D-27：close() + 禁止 singleton）
