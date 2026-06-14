@@ -297,12 +297,6 @@ class CameraViewModel @Inject constructor(
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
 
-    // Detection stabilization (v2.2.1) - prevent flickering
-    private var consecutiveFaceDetections = 0
-    private var consecutiveNoFaceDetections = 0
-    private val MIN_DETECTIONS_TO_SHOW = 3  // Need 3 consecutive detections to show
-    private val MIN_NO_DETECTIONS_TO_HIDE = 5  // Need 5 consecutive empty frames to hide
-
     // v2.12.0-03: Adaptive throttle state for ML Kit analysis (device mode)
     // All accessed on Main thread (viewModelScope) — no AtomicLong needed
     private var mlkitThrottleMs: Long      = ADAPTIVE_THROTTLE_DEFAULT_MS
@@ -332,15 +326,15 @@ class CameraViewModel @Inject constructor(
         // D0.3: Log device capability tier on VM creation (runtime wiring verification)
         android.util.Log.i(TAG, "[D0.3] DeviceCapabilityTier=$deviceCapabilityTier")
 
-        // v2.5.1: Analyze preview bitmap stream directly (Phase 7)
-        // This replaces the old ImageProxy-based analysis
+        // v2.5.1: Lighting + IMU analysis on preview bitmap stream (Phase 7)
+        // [P08-F4-FIX] ML Kit detection removed from this path — SmartCameraAnalyzer is the sole detector.
         observePreviewForAnalysis()
+
+        // [P08-F4-FIX] Path A: Observe SmartCameraAnalyzer detection results as the sole source of truth.
+        observeDetectionResults()
 
         // v2.13.0 Ticket 2: Observe detection results for Rule-of-Thirds composition advice
         observeCompositionAdvice()
-
-        // 訂閱偵測結果 (deprecated - will be removed once bitmap analysis is stable)
-        // observeDetectionResults()
 
         // 訂閱光影分析結果 (v2.2.0)
         // observeLightingResults()
@@ -720,6 +714,8 @@ class CameraViewModel @Inject constructor(
             // v2.9.10: Clear tracking state before switching camera
             // v2.9.9 Day 1-2: Clear AE/AF lock state before switching camera
             // v2.12.0-10: Clear generic tap flag so new camera starts with neutral frame sizing.
+            // [P08-F4-FIX] AI-3: Clear detectionResult on camera switch — prevents stale Path A
+            // results from the old lens from being consumed by the new lens's pipeline.
             _state.update {
                 it.copy(
                     trackedObjectId = null,
@@ -727,6 +723,7 @@ class CameraViewModel @Inject constructor(
                     isAEAFLocked = false,
                     lockPoint = null,
                     isGenericTapActive = false,
+                    detectionResult = null,
                 )
             }
 
@@ -1659,11 +1656,6 @@ class CameraViewModel @Inject constructor(
                     val e2eStart = System.nanoTime()
 
                     // D3-T3: All tiers: hardware-first (CameraCharacteristics), fail-safe = previewWidth / 2f (hFov≈90°).
-                    //   factor = focalLengthMm / sensorWidthMm; null until after first camera bind.
-                    //   Fail-safe: if factor unavailable, assume hFov≈90° → f ≈ previewWidth / 2f.
-                    //     previewWidth / 2f corresponds to hFov ≈ 90° (tan(45°)=1).
-                    //   If previewWidth = 0, result = 0f — sentinel for "not ready";
-                    //     ImuCompensator safely returns (0,0) with no motion applied.
                     val focalLengthPixels: Float = computeFocalLengthPixels(
                         factor = cameraRepository.getFocalLengthFactor(),
                         previewWidth = previewWidth ?: 0
@@ -1671,135 +1663,34 @@ class CameraViewModel @Inject constructor(
                     val (imuDx, imuDy) = imuCompensator.consumeCameraMotion(focalLengthPixels = focalLengthPixels)
                     Log.i(TAG, "[D0.3] DeviceCapabilityTier=$deviceCapabilityTier focalLengthPixels=$focalLengthPixels imuDx=$imuDx imuDy=$imuDy")
 
-                    // Convert Bitmap to ML Kit InputImage
-                    val convertStart = System.nanoTime()
-                    val inputImage = com.google.mlkit.vision.common.InputImage.fromBitmap(
-                        bitmap,
-                        0  // Rotation: 0 degrees (bitmap already correctly oriented)
-                    )
-                    val convertTime = (System.nanoTime() - convertStart) / 1_000_000.0
+                    // [P08-F4-FIX] Lighting analysis — uses latest detectionResult from Path A (SmartCameraAnalyzer).
+                    // ML Kit face/object detection removed from this path; detection is now Path A only.
+                    val lightStart = System.nanoTime()
+                    val currentDetection = _state.value.detectionResult
+                    val lightingState = currentDetection
+                        ?.takeIf { it.faces.isNotEmpty() || it.objects.isNotEmpty() }
+                        ?.let { analyzeLightingUseCase.analyzeWithSubject(bitmap, it) }
+                        ?: analyzeLightingUseCase(bitmap)
+                    val lightingTime = (System.nanoTime() - lightStart) / 1_000_000.0
+                    _lightingState.value = lightingState
+                    Log.d(TAG, "Lighting state updated: ${lightingState.javaClass.simpleName}")
 
-                    // Create detection result by analyzing the bitmap
-                    val mlkitStart = System.nanoTime()
-                    val detectionResult = analyzeImageWithMLKit(inputImage)
-                    val mlkitTime = (System.nanoTime() - mlkitStart) / 1_000_000.0
-
-                    // Update detection state with stabilization logic
-                    var compositionTime = 0.0
-                    var lightingTime = 0.0
-
-                    if (detectionResult != null) {
-                        val hadRawFaces = detectionResult.faces.isNotEmpty()
-
-                        val publishSanitizedResult: (DetectionResult) -> Unit = { raw ->
-                            val validFaces = raw.faces.filter { face ->
-                                val box = face.boundingBox
-                                box.left >= 0 && box.top >= 0 &&
-                                    box.right <= raw.imageWidth &&
-                                    box.bottom <= raw.imageHeight
-                            }
-                            if (validFaces.size < raw.faces.size) {
-                                Log.i(TAG, "[P08-F3] Filtered ${raw.faces.size - validFaces.size} ghost faces with out-of-bounds bbox")
-                            }
-                            // [HOTFIX-47] Throttled face summary — replaces per-face SPIKE-01 probe.
-                            if (mlkitProcessedFrames % 30L == 0L) {
-                                val eligibleCount = raw.faces.count { face ->
-                                    val r = face.rightEyeOpenProbability
-                                    val l = face.leftEyeOpenProbability
-                                    r != null && l != null && minOf(r, l) > MIN_EYE_OPEN_PROB_FOR_GUIDANCE
-                                }
-                                Log.i(TAG, "[HOTFIX-47] Frame faces: total=${raw.faces.size} guidanceEligible=$eligibleCount oobFiltered=${raw.faces.size - validFaces.size}")
-                            }
-                            val sanitized = raw.copy(faces = validFaces)
-                            _state.update { it.copy(detectionResult = sanitized) }
-                        }
-
-                        val sanitizedResult = detectionResult.copy(
-                            faces = detectionResult.faces.filter { face ->
-                                val box = face.boundingBox
-                                box.left >= 0 && box.top >= 0 &&
-                                    box.right <= detectionResult.imageWidth &&
-                                    box.bottom <= detectionResult.imageHeight
-                            }
-                        )
-                        val facesFilteredToEmpty = hadRawFaces && sanitizedResult.faces.isEmpty()
-                        val hasFaces = sanitizedResult.faces.isNotEmpty()
-                        val hasSubjects = hasFaces || sanitizedResult.objects.isNotEmpty()
-
-                        if (hasSubjects) {
-                            consecutiveFaceDetections = if (hasFaces) consecutiveFaceDetections + 1 else 0
-                            consecutiveNoFaceDetections = 0
-
-                            val shouldPublish = !hasFaces ||
-                                consecutiveFaceDetections >= MIN_DETECTIONS_TO_SHOW ||
-                                _state.value.detectionResult?.faces?.isNotEmpty() == true
-                            if (shouldPublish) {
-                                publishSanitizedResult(detectionResult)
-                                if (sanitizedResult.imageWidth > 0 && _state.value.coordinateTransformer == null &&
-                                    _state.value.contentBounds.width() > 0) {
-                                    updateContentBounds(_state.value.contentBounds)
-                                }
-                                rebuildNewPipelineSensorToViewMatrix(sanitizedResult, _state.value)
-                                updateTrackedObjectPosition(sanitizedResult)
-                                autoFocusOnSalientTarget()
-                                val compStart = System.nanoTime()
-                                analyzeComposition(sanitizedResult)
-                                compositionTime = (System.nanoTime() - compStart) / 1_000_000.0
-                                Log.i(TAG, "Detection result updated: ${sanitizedResult.faces.size} faces, ${sanitizedResult.objects.size} objects")
-                            }
-                        } else {
-                            consecutiveNoFaceDetections++
-                            consecutiveFaceDetections = 0
-
-                            val shouldPublishEmpty = facesFilteredToEmpty || consecutiveNoFaceDetections >= MIN_NO_DETECTIONS_TO_HIDE
-                            if (shouldPublishEmpty) {
-                                publishSanitizedResult(detectionResult)
-                                if (sanitizedResult.imageWidth > 0 && _state.value.coordinateTransformer == null &&
-                                    _state.value.contentBounds.width() > 0) {
-                                    updateContentBounds(_state.value.contentBounds)
-                                }
-                                rebuildNewPipelineSensorToViewMatrix(sanitizedResult, _state.value)
-                                updateTrackedObjectPosition(sanitizedResult)
-                                _compositionState.value = CompositionState.NoSubject
-                                Log.i(TAG, "Detection cleared: No stable face detected")
-                            }
-                        }
-
-                        // Analyze lighting (v2.2.0) - Use Bitmap-based analysis with subject context
-                        val lightStart = System.nanoTime()
-                        val lightingState = if (sanitizedResult.faces.isNotEmpty() || sanitizedResult.objects.isNotEmpty()) {
-                            analyzeLightingUseCase.analyzeWithSubject(bitmap, sanitizedResult)
-                        } else {
-                            analyzeLightingUseCase(bitmap)
-                        }
-                        lightingTime = (System.nanoTime() - lightStart) / 1_000_000.0
-                        _lightingState.value = lightingState
-                        Log.d(TAG, "Lighting state updated: ${lightingState.javaClass.simpleName}")
-
-                        // Handle Auto HDR (v2.3.0)
-                        val repositoryImpl = cameraRepository as? com.akirachang.ai.photographer.data.repository.CameraRepositoryImpl
-                        if (repositoryImpl != null) {
-                            handleAutoHDR(repositoryImpl, lightingState)
-                        }
+                    val repositoryImpl = cameraRepository as? com.akirachang.ai.photographer.data.repository.CameraRepositoryImpl
+                    if (repositoryImpl != null) {
+                        handleAutoHDR(repositoryImpl, lightingState)
                     }
 
                     // v2.8.4: End-to-end profiling summary
-                    val e2eNs    = System.nanoTime() - e2eStart        // v2.12.0-03: ns for EWMA
+                    val e2eNs    = System.nanoTime() - e2eStart
                     val e2eTotal = e2eNs / 1_000_000.0
                     Log.i(TAG, "[v2.8.4 E2E] Total=${"%.1f".format(e2eTotal)}ms " +
-                               "(Convert=${"%.1f".format(convertTime)}ms, " +
-                               "MLKit=${"%.1f".format(mlkitTime)}ms, " +
-                               "Composition=${"%.1f".format(compositionTime)}ms, " +
-                               "Lighting=${"%.1f".format(lightingTime)}ms)")
-                    updateMlkitAdaptiveThrottle(e2eNs)                 // v2.12.0-03: update EWMA
-                    // v2.12.0-03: Adaptive pacing — add delay if throttle demands slower rate
+                               "(Lighting=${"%.1f".format(lightingTime)}ms)")
+                    updateMlkitAdaptiveThrottle(e2eNs)
                     val extraMs = mlkitThrottleMs - (e2eNs / 1_000_000L)
                     if (extraMs > 0L) delay(extraMs)
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to analyze preview bitmap", e)
                 }
-                // Note: InputImage doesn't require explicit cleanup - it's a lightweight wrapper
-                // Memory management handled by ML Kit detectors' lifecycle
             }
             .launchIn(viewModelScope)
 
@@ -1807,30 +1698,41 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
-     * Analyzes InputImage with ML Kit face and object detection
+     * [P08-F4-FIX] Path A: Observes DetectionResult from SmartCameraAnalyzer (the sole active
+     * detection pipeline). Updates _state.detectionResult and triggers downstream pipelines
+     * (focus, tracking, composition — via observeCompositionAdvice / observePtfAlignment flows).
      *
-     * @param inputImage ML Kit InputImage from Bitmap
-     * @return DetectionResult with faces and objects
+     * rotationDegrees carries the true HAL value (portrait=90, landscape=0) because
+     * SmartCameraAnalyzer uses InputImage.fromMediaImage(mediaImage, rotationDegrees).
      */
-    private suspend fun analyzeImageWithMLKit(inputImage: com.google.mlkit.vision.common.InputImage): DetectionResult? {
-        return try {
-            // Perform face and object detection through repository
-            val faces = cameraRepository.detectFaces(inputImage)
-            val objects = cameraRepository.detectObjects(inputImage)
-
-            // Convert to domain model
-            // v2.5.3: Fix - Add image dimensions and rotation for composition analysis
-            DetectionResult(
-                faces = faces,
-                objects = objects,
-                imageWidth = inputImage.width,
-                imageHeight = inputImage.height,
-                rotationDegrees = inputImage.rotationDegrees
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "ML Kit analysis failed", e)
-            null
-        }
+    private fun observeDetectionResults() {
+        cameraRepository.detectionResults
+            .filterNotNull()
+            .onEach { result ->
+                val sanitized = result.copy(
+                    faces = result.faces.filter { face ->
+                        val box = face.boundingBox
+                        box.left >= 0 && box.top >= 0 &&
+                            box.right <= result.imageWidth &&
+                            box.bottom <= result.imageHeight
+                    }
+                )
+                if (sanitized.faces.size < result.faces.size) {
+                    Log.i(TAG, "[P08-F4-FIX] Filtered ${result.faces.size - sanitized.faces.size} ghost faces with out-of-bounds bbox")
+                }
+                Log.d(TAG, "[P08-F4-FIX] Path A: ${sanitized.faces.size} faces, ${sanitized.objects.size} objects rot=${sanitized.rotationDegrees}")
+                _state.update { it.copy(detectionResult = sanitized) }
+                if (sanitized.imageWidth > 0 && _state.value.coordinateTransformer == null &&
+                    _state.value.contentBounds.width() > 0) {
+                    updateContentBounds(_state.value.contentBounds)
+                }
+                rebuildNewPipelineSensorToViewMatrix(sanitized, _state.value)
+                updateTrackedObjectPosition(sanitized)
+                autoFocusOnSalientTarget()
+            }
+            .catch { e -> Log.e(TAG, "[P08-F4-FIX] observeDetectionResults error", e) }
+            .launchIn(viewModelScope)
+        Log.i(TAG, "[P08-F4-FIX] Path A detection observation initialized")
     }
 
     /**

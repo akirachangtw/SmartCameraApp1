@@ -106,10 +106,12 @@ class CameraRepositoryImpl @Inject constructor(
     // Custom analyzer instance (v2.2.0)
     private var smartAnalyzer: SmartCameraAnalyzer? = null
 
-    // ML Kit 偵測器（延遲初始化）
-    private val faceDetector: FaceDetector by lazy {
-        // v2.12.0: LANDMARK_MODE_NONE — prevents "Unknown landmark type" crash on certain devices.
-        // Eye-AF degrades gracefully to face bbox center (CameraViewModel:929 fallback).
+    // [P08-F4-FIX] AI-4: FaceDetector is lifecycle-aware (SSOT §4.4.2).
+    // Created in startImageAnalysis(), closed + nulled in stopImageAnalysis().
+    // Prohibits global singleton — detector lifetime ≤ Camera Session.
+    private var faceDetector: FaceDetector? = null
+
+    private fun createFaceDetector(): FaceDetector {
         val options = FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
             .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
@@ -118,9 +120,8 @@ class CameraRepositoryImpl @Inject constructor(
             .setMinFaceSize(MIN_FACE_SIZE)
             .enableTracking()
             .build()
-
-        FaceDetection.getClient(options).also {
-            Log.i(TAG, "[HOTFIX-47] Face detector: FAST + LANDMARK_NONE + CLASSIFICATION_ALL + tracking")
+        return FaceDetection.getClient(options).also {
+            Log.i(TAG, "[P08-F4-FIX] FaceDetector created: FAST + LANDMARK_NONE + CLASSIFICATION_ALL + tracking")
         }
     }
 
@@ -533,8 +534,10 @@ class CameraRepositoryImpl @Inject constructor(
 
         try {
             // v2.2.0: Use custom SmartCameraAnalyzer for integrated ML Kit + Lighting analysis
+            // [P08-F4-FIX] AI-4: Create fresh FaceDetector per Camera Session (SSOT §4.4.2)
+            val detector = createFaceDetector().also { faceDetector = it }
             smartAnalyzer = SmartCameraAnalyzer(
-                faceDetector = faceDetector,
+                faceDetector = detector,
                 objectDetector = objectDetector,
                 analyzeLightingUseCase = analyzeLightingUseCase,
                 onDetectionResult = { detectionResult ->
@@ -571,6 +574,9 @@ class CameraRepositoryImpl @Inject constructor(
             // Cleanup analyzer resources (v2.2.0)
             smartAnalyzer?.cleanup()
             smartAnalyzer = null
+            // [P08-F4-FIX] AI-4: Close FaceDetector to release native memory (SSOT §4.4.2)
+            faceDetector?.close()
+            faceDetector = null
 
             // 清除分析器
             _cameraController.clearImageAnalysisAnalyzer()
@@ -586,11 +592,13 @@ class CameraRepositoryImpl @Inject constructor(
     /**
      * 使用 ML Kit 進行人臉偵測
      * v2.5.1 Phase 7: Bitmap-based analysis
+     * [P08-F4-FIX] AI-4: Returns empty list if detector not yet created (Camera Session not started).
      */
     override suspend fun detectFaces(image: com.google.mlkit.vision.common.InputImage): List<com.google.mlkit.vision.face.Face> =
         withContext(Dispatchers.IO) {
+            val detector = faceDetector ?: return@withContext emptyList()
             suspendCancellableCoroutine { continuation ->
-                faceDetector.process(image)
+                detector.process(image)
                     .addOnSuccessListener { faces ->
                         if (continuation.isActive) {
                             continuation.resume(faces)
