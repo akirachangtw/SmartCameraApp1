@@ -68,8 +68,8 @@ presentation/ → Jetpack Compose + ViewModel
 
 | 檔案 | 禁止範圍 | 理由 |
 |------|---------|------|
-| `CameraViewModel.kt` | **全面禁止新增函數** | 2457 行 8.2× 超標，CSO P05 裁決 |
-| `EyeAfController.kt` | **全面禁止修改** | 光學 AF 保留運作，P05 §1 裁決 |
+| `CameraViewModel.kt` | **禁止淨新增函數**（允許具明確 Intent 授權的 1-for-1 semantic replacement） | 2344 行 7.8× 超標，CSO P05 裁決（P08-F4-FIX 後基準 · commit 7d725d8） |
+| `EyeAfController.kt` | **禁止修改既有行為**（除 Contract 明文授權之 Discovery READ-ONLY 存取） | 光學 AF 保留運作，P05 §1 裁決（P08-F8 探勘預計以 READ-ONLY 模式進行） |
 | `FocusIndicatorOverlay.kt` | **禁止刪除** | T2 參考 + 未來評估保留 |
 | `AndroidManifest.xml` | 除權限相關 Ticket | — |
 | `build.gradle.kts` | 除依賴版本升級 Ticket | — |
@@ -173,7 +173,7 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > pitch ∈ [-10°,35°] + face (P
 
 ## 文件元資訊
 
-- **版本**: ssot_context v1.6
+- **版本**: ssot_context v1.7
 - **建立日期**: 2026-05-04
 - **更新日期**: 2026-06-14
 - **來源**: SSOT v4.0.6 + Layout Spec v2.5.1 + P05 Contract (Strangler Fig 架構變更)
@@ -197,4 +197,8 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > pitch ∈ [-10°,35°] + face (P
   - §4 新增 Focus AF 超時 / drift 閾值 / 長按閾值
   - §5.2 Layout Spec 引用 v2.0 → v2.3
   - §6 新增 Focus 四態色彩 + 快門四元素色值
+- **變更摘要 (v1.6 → v1.7)**:
+  - INFRA-51-1: CameraViewModel Scope Ban — 全面禁止→禁止淨新增 + 行數 2457→2344 + P08-F4-FIX 基準標記
+  - INFRA-51-2: EyeAfController Scope Ban — 全面禁止修改→禁止修改既有行為 + READ-ONLY 例外 + P08-F8 預計模式
+  - 來源: P08-F4-FIX CSO Override Directive + Perplexity 交叉審查
 - **下次更新觸發**: SSOT 版本升級 / Sprint 階段變更 / W2 啟動時
