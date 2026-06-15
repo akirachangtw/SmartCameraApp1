@@ -1,50 +1,43 @@
 # Repository Agent Bootstrap
 
-This repository uses the defensive workflow defined in [devspec/Ultimate-Defensive-Hybrid-Workflow_Guide.md](devspec/Ultimate-Defensive-Hybrid-Workflow_Guide.md).
+This repository uses the CSO-centric, cost-optimized workflow defined in [devspec/gstack_v2_0.md](devspec/gstack_v2_0.md).
 
 ## Default Startup Rule
 
 On every new task in this repository:
 
-1. Read `devspec/Ultimate-Defensive-Hybrid-Workflow_Guide.md` first.
-2. Adopt its role and constraints before planning, coding, or reviewing.
-3. Treat its SSOT, scope-control, and defensive PDCA loop as repository defaults.
-4. Load current state from `.claude/PROGRESS.md` when the task depends on project progress, open tickets, or restart context. Do not assume a root-level `PROGRESS.md` exists.
+1. Read `devspec/gstack_v2_0.md` first.
+2. Adopt its CSO-centric role split, Context Firewall, cost-routing, and cross-model review constraints before planning, coding, or reviewing.
+3. Treat SSOT authority, scope control, and defensive verification as repository defaults.
+4. Load `.claude/PROGRESS.md` when the task depends on project progress, active tickets, restart context, or session health. Do not assume a root-level `PROGRESS.md` exists.
+5. Load additional CSO files only through the `CSO Decision Loading Matrix` below.
 
 ## Lean CSO Session Bootstrap
 
-The CSO briefing system is index-first, not full-context-first. Use `plans/cso_briefing/CSO_INDEX.md` as the navigation entry point and `plans/cso_briefing/CSO_Session_Startup_SOP.md` as the loading policy.
+The CSO briefing system is index-first, not full-context-first. Use `plans/cso_briefing/CSO_INDEX.md` as the navigation entry point and defer all nonessential files until the current task requires them.
 
-For a new CSO-oriented session, keep only these always-on inputs:
+For a CSO-oriented session, keep only these always-on inputs:
 
 1. `plans/cso_briefing/CSO_INDEX.md` - static document map and decision matrix.
 2. The latest session handoff - prefer the newest `docs/session_handoff/SESSION_HANDOFF_*.md`, or a user-uploaded handoff if explicitly provided.
 3. `.claude/PROGRESS.md` - current Dashboard and execution state.
 
-Everything else is loaded on demand. Do not preload archive folders, old handoffs, previous SSOT versions, or broad `devspec/` history unless the current task explicitly requires historical traceability.
+Everything else is loaded on demand. Do not preload archive folders, old handoffs, previous SSOT versions, legacy workflow files, or broad `devspec/` history unless the current task explicitly requires historical traceability.
 
 ## CSO Decision Loading Matrix
 
-Use this matrix before making or reviewing decisions:
+Use this matrix before making or reviewing CSO decisions. Load only the rows required by the current task; do not preload optional archives or obsolete contracts.
 
-| Decision type | Required context | Optional context |
-| --- | --- | --- |
-| Technical specification ruling | `plans/architecture/SSOT_v4_0_6.md` relevant sections | Active contract |
-| Ticket repair or scope ruling | Active contract from `plans/cso_briefing/project/file/` + relevant SSOT appendix | `.claude/CLAUDE.md` for forbidden zones |
-| Architecture change | SSOT + `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md` when UI/layout is involved | `.claude/rules/*.md` for domain rules |
-| KAIROS / rule harvesting | `.claude/CLAUDE.md` + relevant `.claude/rules/*.md` | CSO knowledge base + `plans/cso_briefing/project/Postponed.md` |
-| Cross-model workflow or effort routing | CSO knowledge base + `plans/cso_briefing/project/file/Sonnet4.6-Effort等級解析.md` | Current handoff |
-| Pending or postponed work review | `plans/cso_briefing/project/Pending/` + `plans/cso_briefing/project/Postponed.md` | Related archived decision reports |
-
-Current primary authorities:
-
-- SSOT: `plans/architecture/SSOT_v4_0_6.md`. It supersedes v3.0-v3.3, Delta v3.4-v3.4.1, and v4.0-v4.0.4.
-- Layout: `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md`.
-- CSO index: `plans/cso_briefing/CSO_INDEX.md`.
-- CSO startup policy: `plans/cso_briefing/CSO_Session_Startup_SOP.md`.
-- Current CSO contract: `plans/cso_briefing/project/file/P08_Codebase_Sanitization_Contract.md` unless a newer handoff or ticket explicitly replaces it.
-- Claude execution contract: `.claude/CLAUDE.md`.
-- Progress dashboard: `.claude/PROGRESS.md`.
+| ID | 文件 | Filesystem 路徑 | 讀取時機 |
+|----|------|----------------|---------|
+| SSOT | 唯一真理文件 v4.0.6 | `plans/architecture/SSOT_v4_0_6.md` | 任何技術規格判斷 |
+| LAYOUT | Layout Spec v2.5.1 | `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md` | UI 佈局判斷 |
+| KB | CSO Knowledge Base v3 | `plans/cso_briefing/project/file/Cueshot_CSO_Knowledge_Base_v3.md` | 產品 DNA / gstack v2.0 / 拷問模板 / 治理體系 |
+| EFFORT | Model Effort 解析 | `plans/cso_briefing/project/file/Sonnet4.6-Effort等級解析.md` | Mode / Effort 指定 |
+| TICKET_TPL | Ticket 範本 v3 | `plans/cso_briefing/project/file/Unified_Ticket_Template_v3.md` | 開票格式參考 |
+| CLAUDE | Claude Code 行為契約 | `.claude/CLAUDE.md` | 規則收割 / KAIROS |
+| RULES | Claude Code 路徑規則 | `.claude/rules/*.md` | 特定領域審查 |
+| PROGRESS | 進度 Dashboard | `.claude/PROGRESS.md` | Session 開場確認狀態 |
 
 Obsolete or non-resident context:
 
