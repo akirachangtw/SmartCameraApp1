@@ -5,6 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| INFRA-52 | ✅ structural_verify v2.0 — 四級 verdict + lib_verify + policy env |
 | P08-F4-FIX-REPAIR | ✅ SV+Cross-Review PASS · 待 Traycer |
 | P08-F4-FIX | ✅ Pipeline Consolidation — SmartCameraAnalyzer 獨佔 ML Kit · SV+Cross-Review PASS |
 | P08-F5 | ✅ S12 Executable Amendment — SSOT v4.0.6 Hotfix (HF-A1/A2/A3) + Contract v0.4 (14 CR) |
@@ -15,7 +16,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **P08-F4-FIX-REPAIR ✅ SV PASS** · 待 Traycer 終審 |
+| Schedule | **INFRA-52 ✅** · P08-F4-FIX-REPAIR 待 Traycer 終審 |
 | Compile | 0 errors ✅ (compileDeviceDebugKotlin 39s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest 37 tasks, 0 failed) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
