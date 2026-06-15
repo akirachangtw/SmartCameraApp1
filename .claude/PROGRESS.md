@@ -57,6 +57,13 @@
 | K3-6 | `cross_review.sh` payload 驗證 SV scope ↔ diff scope 一致性 | cross_review forensic | 腳本改進 |
 | K3-7 | Edit 前強制 Re-view（>200 行目標檔 / /compact 後無條件觸發） | K3-7 | CLAUDE.md 規則 ✅ Rule 18 |
 
+## D13 KAIROS #4 候選議程（Pre-D13 登記）
+
+| ID | 候選項目 | 來源 | 類型 |
+| ---- | --------- | ------ | ------ |
+| K4-21 | Scope Ban Wording Guideline → `.claude/rules/scope-ban-governance.md`（Perplexity 6 點框架：禁絕對語氣 / Net-New vs Name-New / 行內例外具名化 / 指標對應） | P08-F4-FIX BLOCKER + CSO Override | rules 文件 |
+| K4-22 | ssot_context.md 事實數據（行數/倍率）隨 Ticket 閉環自動更新機制 | CameraViewModel 2457→2344 漂移 | 自動化 |
+
 ## Quick Links
 
 - SSOT: `plans/architecture/SSOT_v4_0_6.md`
