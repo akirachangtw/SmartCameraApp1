@@ -5,7 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| P08-F4-FIX | 🔄 Pipeline Consolidation — SmartCameraAnalyzer 獨佔 ML Kit · commit `7d725d8` · /sv pending |
+| P08-F4-FIX | ✅ Pipeline Consolidation — SmartCameraAnalyzer 獨佔 ML Kit · SV+Cross-Review PASS |
 | P08-F5 | ✅ S12 Executable Amendment — SSOT v4.0.6 Hotfix (HF-A1/A2/A3) + Contract v0.4 (14 CR) |
 | P08-F4 | ✅ Discovery 完整閉環 — H3 REFUTED · CSO Report → `reports/P08-F4_Discovery_Report.md` |
 
@@ -32,9 +32,9 @@
 
 ## Next Actions
 
-> **S12 P08-F4-FIX（2026-06-14）：Pipeline Consolidation — SmartCameraAnalyzer 獨佔 ML Kit · commit `7d725d8` · 待 /sv**
+> **S12 P08-F4-FIX（2026-06-15）：Pipeline Consolidation SV+Cross-Review PASS · 待 Traycer execute_review**
 
-1. **🔴 P08-F4-FIX /sv** → 語意審查 + cross_review + Traycer
+1. **🔴 P08-F4-FIX Traycer** → execute_review 終審（~$0.25）
 2. **🔴 BUG-PTF-HALO-SIZE（下一 P0）**：PTF Halo bbox → 圓半徑轉換（HaloGuidanceLayer.kt）
 3. **P08-F6** → Portrait Contract v0.4 實作（domain/portrait/ 骨架建立）
 4. **T03 重啟**（Baseline 通過後）：Pill Toggle 重寫
