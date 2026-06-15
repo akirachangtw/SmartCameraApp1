@@ -538,7 +538,6 @@ class CameraRepositoryImpl @Inject constructor(
             val detector = createFaceDetector().also { faceDetector = it }
             smartAnalyzer = SmartCameraAnalyzer(
                 faceDetector = detector,
-                objectDetector = objectDetector,
                 analyzeLightingUseCase = analyzeLightingUseCase,
                 onDetectionResult = { detectionResult ->
                     // Update detection state on main thread
@@ -548,7 +547,6 @@ class CameraRepositoryImpl @Inject constructor(
                     // Update lighting state on main thread
                     _lightingResults.value = lightingState
                 },
-                minObjectConfidence = MIN_OBJECT_CONFIDENCE,
             )
 
             // Attach analyzer to camera controller

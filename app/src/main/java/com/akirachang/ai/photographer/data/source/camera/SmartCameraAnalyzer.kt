@@ -21,7 +21,6 @@ import androidx.camera.core.ImageProxy
 import com.google.android.gms.tasks.Task
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetector
-import com.google.mlkit.vision.objects.ObjectDetector
 import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.akirachang.ai.photographer.domain.usecase.AnalyzeLightingUseCase
 import com.akirachang.ai.photographer.presentation.camera.model.LightingState
@@ -44,11 +43,9 @@ private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { conti
 
 class SmartCameraAnalyzer(
     private val faceDetector: FaceDetector,
-    private val objectDetector: ObjectDetector,
     private val analyzeLightingUseCase: AnalyzeLightingUseCase,
     private val onDetectionResult: (DetectionResult) -> Unit,
     private val onLightingResult: (LightingState) -> Unit,
-    private val minObjectConfidence: Float = 0.5f,
 ) : ImageAnalysis.Analyzer {
 
     companion object {
@@ -119,20 +116,9 @@ class SmartCameraAnalyzer(
                     emptyList()
                 }
 
-                val objects = try {
-                    objectDetector.process(inputImage).await()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Object detection failed", e)
-                    emptyList()
-                }
-
-                val filteredObjects = objects.filter { obj ->
-                    (obj.labels.firstOrNull()?.confidence ?: 0f) >= minObjectConfidence
-                }
-
                 val detectionResult = DetectionResult(
                     faces = faces,
-                    objects = filteredObjects,
+                    objects = emptyList(),
                     imageWidth = imageProxy.width,
                     imageHeight = imageProxy.height,
                     rotationDegrees = imageProxy.imageInfo.rotationDegrees,
@@ -148,7 +134,7 @@ class SmartCameraAnalyzer(
                 }
                 onLightingResult(lightingState)
 
-                Log.d(TAG, "Analysis: ${faces.size} faces, ${filteredObjects.size} objects, lighting=${lightingState.javaClass.simpleName}")
+                Log.d(TAG, "Analysis: ${faces.size} faces, lighting=${lightingState.javaClass.simpleName}")
 
             } catch (e: Exception) {
                 Log.e(TAG, "Analysis error", e)

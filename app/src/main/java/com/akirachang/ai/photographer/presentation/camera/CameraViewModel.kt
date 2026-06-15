@@ -714,8 +714,7 @@ class CameraViewModel @Inject constructor(
             // v2.9.10: Clear tracking state before switching camera
             // v2.9.9 Day 1-2: Clear AE/AF lock state before switching camera
             // v2.12.0-10: Clear generic tap flag so new camera starts with neutral frame sizing.
-            // [P08-F4-FIX] AI-3: Clear detectionResult on camera switch — prevents stale Path A
-            // results from the old lens from being consumed by the new lens's pipeline.
+            // [P08-F4-FIX] AI-3: Clear detectionResult + derived state on camera switch.
             _state.update {
                 it.copy(
                     trackedObjectId = null,
@@ -724,6 +723,9 @@ class CameraViewModel @Inject constructor(
                     lockPoint = null,
                     isGenericTapActive = false,
                     detectionResult = null,
+                    compositionResult = null,
+                    detectedFaces = emptyList(),
+                    ptfAlignmentResult = PtfAlignmentResult.NO_FACE,
                 )
             }
 
@@ -735,7 +737,10 @@ class CameraViewModel @Inject constructor(
             imuCompensator.reset()
             Log.i(TAG, "[v2.12.0-23] switchCamera: imuCompensator.reset()")
 
+            val wasAnalysisEnabled = _state.value.isAnalysisEnabled
+            if (wasAnalysisEnabled) cameraRepository.stopImageAnalysis()
             cameraRepository.switchCamera()
+            if (wasAnalysisEnabled) cameraRepository.startImageAnalysis()
             _state.update {
                 it.copy(currentCamera = cameraRepository.getCurrentCamera())
             }
@@ -1707,8 +1712,18 @@ class CameraViewModel @Inject constructor(
      */
     private fun observeDetectionResults() {
         cameraRepository.detectionResults
-            .filterNotNull()
             .onEach { result ->
+                if (result == null) {
+                    _state.update {
+                        it.copy(
+                            detectionResult = null,
+                            compositionResult = null,
+                            detectedFaces = emptyList(),
+                            ptfAlignmentResult = PtfAlignmentResult.NO_FACE,
+                        )
+                    }
+                    return@onEach
+                }
                 val sanitized = result.copy(
                     faces = result.faces.filter { face ->
                         val box = face.boundingBox
@@ -1837,8 +1852,12 @@ class CameraViewModel @Inject constructor(
     private fun observeCompositionAdvice() {
         _state
             .map { it.detectionResult }
-            .filterNotNull()
+            .distinctUntilChanged()
             .onEach { det ->
+                if (det == null) {
+                    _state.update { it.copy(compositionResult = null, detectedFaces = emptyList()) }
+                    return@onEach
+                }
                 // BHA-01-FIX: face.boundingBox is in rotated space; swap dims for 90°/270° to match.
                 val rotation = det.rotationDegrees
                 val imgW = (if (rotation == 90 || rotation == 270) det.imageHeight else det.imageWidth).toFloat()
@@ -1955,7 +1974,12 @@ class CameraViewModel @Inject constructor(
                     return@onEach
                 }
 
-                if (det == null) return@onEach
+                if (det == null) {
+                    ptfEmaX = null
+                    ptfEmaY = null
+                    _state.update { it.copy(ptfAlignmentResult = PtfAlignmentResult.NO_FACE) }
+                    return@onEach
+                }
                 // BHA-01-FIX: face.boundingBox is in rotated space; swap dims for 90°/270° to match.
                 val rotation = det.rotationDegrees
                 val imgW = (if (rotation == 90 || rotation == 270) det.imageHeight else det.imageWidth).toFloat()

@@ -167,17 +167,24 @@ fun CameraScreen(
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
         viewModel.bindCameraToLifecycle(lifecycleOwner)
+        viewModel.onEvent(CameraUiEvent.StartAnalysis)
     }
 
     // v2.11.4-05: Auto-unlock AE/AF when app goes to background (screen lock or home button).
     // Matches Pixel 9a built-in camera behavior: screen lock clears AE/AF lock indicator.
     // ON_STOP fires when Activity is no longer visible (screen off / task switch).
     // ON_PAUSE would be too aggressive (fires on any focus loss, e.g. notification shade).
+    // [P08-F4-FIX-REPAIR] AI-6: ON_START → StartAnalysis (resume); ON_STOP → StopAnalysis.
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) {
-                viewModel.onEvent(CameraUiEvent.UnlockAEAF)
-                tapFocusController.resetToIdle()
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.onEvent(CameraUiEvent.StartAnalysis)
+                Lifecycle.Event.ON_STOP -> {
+                    viewModel.onEvent(CameraUiEvent.StopAnalysis)
+                    viewModel.onEvent(CameraUiEvent.UnlockAEAF)
+                    tapFocusController.resetToIdle()
+                }
+                else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
