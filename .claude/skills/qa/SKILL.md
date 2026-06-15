@@ -135,12 +135,23 @@ Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error
 bash .claude/skills/qa/scripts/structural_verify.sh ./sv_report.md "" --post
 ```
 
-- ✅ PASS (exit 0) → Ticket 驗收完成，可提交 Traycer
-- ⛔ FAIL (exit 1) → **SHOULD** 回報具體失敗項，**不標記 Ticket Done**
-- ⚪ ENV ERROR (exit 2) → 回報環境問題，不阻斷 Traycer 提交
+**四級 Verdict 語義**（`structural_verify.sh v2.0`）：
+
+| Verdict | Exit | 行動 |
+|---------|------|------|
+| PASS | 0 | ✅ Ticket 驗收完成，可提交 Traycer |
+| ADVISORY | 0 | ✅ 可繼續；警告項記錄於報告，建議下輪處理 |
+| REPORT_FIX | 1 | 📋 修正 sv_report.md 後重新執行（不需重跑 /qa） |
+| BLOCKER | 1 | 🔴 修程式碼或 Cross-Review 後重新 /qa → /sv |
+
+Verdict 順序（嚴重度升序）：`PASS < ADVISORY < REPORT_FIX < BLOCKER`
+
+- ⚪ ENV ERROR (exit 2) → 回報環境問題（lib_verify.sh 缺失 / tmp/ 無法建立）
 
 `--post` 模式執行 A/B/C/D/E/F（D: sv_report 五段結構 / E: cross_review PASS / F: PROGRESS.md 格式）。
 不帶 `--post`（cross_review.sh pre-check）只跑 A/B/C，不讀 `.tmp/cross_review_state`。
+
+執行後自動在 `tmp/sv_report_YYYYMMDD_HHMMSS.md` 歸檔當次 sv_report 快照。
 
 ## 回報格式
 
