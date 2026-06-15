@@ -16,7 +16,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **P08-F4-FIX-REPAIR ✅ Traycer PASS** · 下一 P0: BUG-PTF-HALO-SIZE |
+| Schedule | **S14 /compact** · 下一 P0: BUG-PTF-HALO-SIZE (HaloGuidanceLayer.kt) |
 | Compile | 0 errors ✅ (compileDeviceDebugKotlin 39s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest 37 tasks, 0 failed) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
