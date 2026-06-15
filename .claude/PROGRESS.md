@@ -5,18 +5,18 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| P08-F4-FIX-REPAIR | 🔄 QA PASS · 待 /sv |
 | P08-F4-FIX | ✅ Pipeline Consolidation — SmartCameraAnalyzer 獨佔 ML Kit · SV+Cross-Review PASS |
 | P08-F5 | ✅ S12 Executable Amendment — SSOT v4.0.6 Hotfix (HF-A1/A2/A3) + Contract v0.4 (14 CR) |
-| P08-F4 | ✅ Discovery 完整閉環 — H3 REFUTED · CSO Report → `reports/P08-F4_Discovery_Report.md` |
 
-**Last Updated**: 2026-06-14
+**Last Updated**: 2026-06-15
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **P08-F4-FIX ✅ SV PASS** · INFRA-51 ✅ ssot_context v1.7 · 待 Traycer |
-| Compile | 0 errors ✅ (assembleDebug 23s) |
+| Schedule | **P08-F4-FIX-REPAIR 🔄 QA PASS** · 待 /sv → Traycer |
+| Compile | 0 errors ✅ (compileDeviceDebugKotlin 39s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest 37 tasks, 0 failed) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
 
@@ -32,9 +32,9 @@
 
 ## Next Actions
 
-> **S12 P08-F4-FIX（2026-06-15）：Pipeline Consolidation SV+Cross-Review PASS · 待 Traycer execute_review**
+> **S13 P08-F4-FIX-REPAIR（2026-06-15）：Invariant Violation 修補 QA PASS · 待 /sv → Traycer**
 
-1. **🔴 P08-F4-FIX Traycer** → execute_review 終審（~$0.25）
+1. **🔴 P08-F4-FIX-REPAIR /sv** → 語意審查 → cross_review → Traycer execute_review
 2. **🔴 BUG-PTF-HALO-SIZE（下一 P0）**：PTF Halo bbox → 圓半徑轉換（HaloGuidanceLayer.kt）
 3. **P08-F6** → Portrait Contract v0.4 實作（domain/portrait/ 骨架建立）
 4. **T03 重啟**（Baseline 通過後）：Pill Toggle 重寫
