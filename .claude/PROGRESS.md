@@ -15,7 +15,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **P08-F5 ✅ S12 Amendment** · P08-F4 ✅ Discovery · INFRA-45 ✅ SSOT v4.0.6 |
+| Schedule | **P08-F4-FIX ✅ SV PASS** · INFRA-51 ✅ ssot_context v1.7 · 待 Traycer |
 | Compile | 0 errors ✅ (assembleDebug 23s) |
 | Tests | passed ✅ (testDeviceDebugUnitTest 37 tasks, 0 failed) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
