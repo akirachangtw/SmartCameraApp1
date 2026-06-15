@@ -264,3 +264,5 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 > **Session AE 完成（2026-06-04）：P08-F3-HF1 QA PASS（181 tests）；observeDetectionResults 刪除；HOTFIX-42/43；SV+Cross-Review R2 PASS；Traycer ✅ PASS**
 
 > **Session S12 完成（2026-06-15）：P08-F4-FIX Pipeline Consolidation — SmartCameraAnalyzer 獨佔 ML Kit；Path B fromBitmap 移除；FaceDetector lifecycle-aware；switchCamera detectionResult=null；commits fd1c686→3a4a9e3；INFRA-51 ssot_context v1.7；SV+Cross-Review R3 PASS**
+
+> **Session S13 完成（2026-06-15）：P08-F4-FIX-REPAIR — 修補 7 項 Invariant Violation（ML Kit 互斥 objectDetector 移除 AI-1/AI-2、null reset AI-3~5、StartAnalysis 生命週期接線 AI-6、detector lifecycle AI-7）；Build+Tests+Lint PASS；SV+Cross-Review R2 PASS；75adef9 ✅ Done**
