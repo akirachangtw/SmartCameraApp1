@@ -1735,6 +1735,20 @@ class CameraViewModel @Inject constructor(
                 if (sanitized.faces.size < result.faces.size) {
                     Log.i(TAG, "[P08-F4-FIX] Filtered ${result.faces.size - sanitized.faces.size} ghost faces with out-of-bounds bbox")
                 }
+                if (mlkitProcessedFrames % 30L == 0L) {
+                    val rotation = sanitized.rotationDegrees
+                    val effectiveW = if (rotation == 90 || rotation == 270) sanitized.imageHeight else sanitized.imageWidth
+                    val effectiveH = if (rotation == 90 || rotation == 270) sanitized.imageWidth else sanitized.imageHeight
+                    val eyeSummary = sanitized.faces.take(3).joinToString(separator = ";") { face ->
+                        "id=${face.trackingId},eye=${face.rightEyeOpenProbability}/${face.leftEyeOpenProbability},bbox=${face.boundingBox}"
+                    }
+                    val currentState = _state.value
+                    Log.i(TAG, "[P08-F10] detection mode=${currentState.cameraMode} lens=${currentState.currentCamera} " +
+                        "rawFaces=${result.faces.size} sanitizedFaces=${sanitized.faces.size} " +
+                        "oobFiltered=${result.faces.size - sanitized.faces.size} rotation=$rotation " +
+                        "raw=${sanitized.imageWidth}x${sanitized.imageHeight} effective=${effectiveW}x${effectiveH} " +
+                        "eyes=[$eyeSummary]")
+                }
                 Log.d(TAG, "[P08-F4-FIX] Path A: ${sanitized.faces.size} faces, ${sanitized.objects.size} objects rot=${sanitized.rotationDegrees}")
                 _state.update { it.copy(detectionResult = sanitized) }
                 if (sanitized.imageWidth > 0 && _state.value.coordinateTransformer == null &&
@@ -1908,6 +1922,20 @@ class CameraViewModel @Inject constructor(
                 val roll = orientation?.roll ?: 0f
 
                 val result = analyzeCompositionUseCase(landmarkFaces, pitch, roll)
+                if (mlkitProcessedFrames % 30L == 0L) {
+                    val currentState = _state.value
+                    val haloPath = when {
+                        landmarkFaces.isEmpty() -> "HaloGuidanceLayer_Hidden"
+                        result.isAllAligned -> "HaloGuidanceLayer_Green"
+                        result.ruleScores[com.akirachang.ai.photographer.domain.composition.rules.GazeRule.NAME]?.isAligned == false ||
+                            result.ruleScores[com.akirachang.ai.photographer.domain.composition.rules.EyeLineRule.NAME]?.isAligned == false -> "HaloGuidanceLayer_Amber"
+                        else -> "HaloGuidanceLayer_NormalSuppressed"
+                    }
+                    Log.i(TAG, "[P08-F10] composition mode=${currentState.cameraMode} lens=${currentState.currentCamera} " +
+                        "rawFaces=${det.faces.size} guidanceEligible=${guidanceEligibleFaces.size} " +
+                        "rotation=$rotation effective=${imgW.toInt()}x${imgH.toInt()} " +
+                        "isAllAligned=${result.isAllAligned} haloPath=$haloPath")
+                }
                 _state.update { it.copy(compositionResult = result, detectedFaces = landmarkFaces) }
                 Log.d(TAG, "[D2] CompositionResult: isAllAligned=${result.isAllAligned} topRule=${result.topInstruction?.name}")
 
@@ -2033,6 +2061,19 @@ class CameraViewModel @Inject constructor(
                     devicePitch = pitch,
                     deviceRoll = roll,
                 )
+                if (mlkitProcessedFrames % 30L == 0L) {
+                    val currentState = _state.value
+                    val haloPath = when {
+                        smoothedFace == null || (!ptfResult.isAligned && ptfResult.failedRules.isEmpty()) -> "HaloGuidanceLayer_PtfNoFace"
+                        ptfResult.isAligned -> "HaloGuidanceLayer_PtfAligned"
+                        else -> "HaloGuidanceLayer_PtfUnaligned"
+                    }
+                    Log.i(TAG, "[P08-F10] ptf mode=${currentState.cameraMode} lens=${currentState.currentCamera} " +
+                        "rawFaces=${det.faces.size} guidanceEligible=${if (firstFace == null) 0 else 1} " +
+                        "rotation=$rotation effective=${imgW.toInt()}x${imgH.toInt()} " +
+                        "ptfAligned=${ptfResult.isAligned} offset=(${ptfResult.offset.dx},${ptfResult.offset.dy}) " +
+                        "failed=${ptfResult.failedRules} haloPath=$haloPath")
+                }
                 _state.update { it.copy(ptfAlignmentResult = ptfResult) }
                 Log.d(TAG, "[D8-B1-T3] PTF: isAligned=${ptfResult.isAligned} " +
                     "offset=(${ptfResult.offset.dx},${ptfResult.offset.dy}) " +
