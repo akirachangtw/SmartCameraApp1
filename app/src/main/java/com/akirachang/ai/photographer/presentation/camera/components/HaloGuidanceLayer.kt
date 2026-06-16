@@ -23,6 +23,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.akirachang.ai.photographer.domain.composition.PtfAlignmentResult
 import com.akirachang.ai.photographer.domain.composition.rules.EyeLineRule
@@ -37,6 +40,7 @@ import com.akirachang.ai.photographer.presentation.utils.PixelRect
 import kotlinx.coroutines.delay
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.max
 import kotlin.math.sin
 
 // ── Test-tag constants (consumed by HaloGuidanceLayerTest) ─────────────────────
@@ -50,6 +54,14 @@ internal const val TAG_HALO_HIDDEN = "HaloGuidanceLayer_Hidden"
 internal const val TAG_HALO_PTF_UNALIGNED = "HaloGuidanceLayer_PtfUnaligned"
 internal const val TAG_HALO_PTF_ALIGNED = "HaloGuidanceLayer_PtfAligned"
 internal const val TAG_HALO_PTF_NO_FACE = "HaloGuidanceLayer_PtfNoFace"
+
+internal val PtfHaloCenterXKey = SemanticsPropertyKey<Float>("PtfHaloCenterX")
+internal val PtfHaloCenterYKey = SemanticsPropertyKey<Float>("PtfHaloCenterY")
+internal val PtfHaloRadiusKey = SemanticsPropertyKey<Float>("PtfHaloRadius")
+
+internal var SemanticsPropertyReceiver.ptfHaloCenterX by PtfHaloCenterXKey
+internal var SemanticsPropertyReceiver.ptfHaloCenterY by PtfHaloCenterYKey
+internal var SemanticsPropertyReceiver.ptfHaloRadius by PtfHaloRadiusKey
 
 /** Amber guide color per SSOT v3.3 — face Halo when not aligned. */
 private val HaloAmber = Color(0xFFD4A030)
@@ -70,9 +82,8 @@ private const val EYE_LINE_DASH_OFF_PX = 8f
 /** 10fps throttle interval in milliseconds (SSOT §硬體頻率脫鉤). */
 private const val HALO_FRAME_INTERVAL_MS = 100L
 
-/** PTF Halo alpha values per SSOT補丁 §3.5. */
+/** PTF Halo alpha values per SSOT §2.5. */
 private const val PTF_HALO_UNALIGNED_ALPHA = 0.25f
-private const val PTF_HALO_ALIGNED_ALPHA = 0.35f
 
 /** PTF breathing animation spec per Strategic Brief Part D.3. */
 private const val PTF_BREATH_ALPHA_MIN = 0.10f
@@ -175,25 +186,49 @@ fun HaloGuidanceLayer(
     // ── PTF mode branch — entirely separate rendering path ───────────────────
     if (isPtfMode) {
         val ptfResult = effectivePtfResult
+        val ptfFaces = if (throttledFaces.isNotEmpty()) throttledFaces else faces
+        val primaryPtfFace = ptfFaces.maxByOrNull { face ->
+            val box = face.boundingBoxNormalized
+            box.width() * box.height()
+        }
 
         // NO_FACE sentinel: failedRules empty AND not aligned → hidden
-        if (ptfResult == null || (!ptfResult.isAligned && ptfResult.failedRules.isEmpty())) {
+        if (ptfResult == null || primaryPtfFace == null ||
+            (!ptfResult.isAligned && ptfResult.failedRules.isEmpty())) {
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier.fillMaxSize().testTag(TAG_HALO_PTF_NO_FACE)
             )
             return
         }
 
+        val ptfBbox = primaryPtfFace.boundingBoxNormalized
+        if (ptfBbox.left < 0f || ptfBbox.top < 0f ||
+            ptfBbox.right > 1f || ptfBbox.bottom > 1f ||
+            ptfBbox.width() <= 0f || ptfBbox.height() <= 0f) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier.fillMaxSize().testTag(TAG_HALO_PTF_NO_FACE)
+            )
+            return
+        }
+        val ptfCenterXNorm = (ptfBbox.left + ptfBbox.right) / 2f
+        val ptfCenterYNorm = (ptfBbox.top + ptfBbox.bottom) / 2f
+        val ptfRadiusNorm = max(ptfBbox.width(), ptfBbox.height()) * 0.6f
+        val ptfSemantics = Modifier.semantics {
+            ptfHaloCenterX = ptfCenterXNorm
+            ptfHaloCenterY = ptfCenterYNorm
+            ptfHaloRadius = ptfRadiusNorm
+        }
+
         if (ptfResult.isAligned) {
             // State C: aligned — green breathing ring
             val breathAlpha = ptfBreathAlpha
-            Canvas(modifier = modifier.fillMaxSize().testTag(TAG_HALO_PTF_ALIGNED)) {
-                val cx = size.width / 2f
-                val cy = size.height / 2f
-                val radius = size.minDimension * 0.38f
+            Canvas(modifier = modifier.fillMaxSize().then(ptfSemantics).testTag(TAG_HALO_PTF_ALIGNED)) {
+                val cx = ptfCenterXNorm * size.width
+                val cy = ptfCenterYNorm * size.height
+                val radius = max(ptfBbox.width() * size.width, ptfBbox.height() * size.height) * 0.6f
                 val strokePx = size.minDimension * HALO_STROKE_FRACTION
                 drawCircle(
-                    color = ptfHaloColor.copy(alpha = PTF_HALO_ALIGNED_ALPHA + breathAlpha * 0.1f),
+                    color = ptfHaloColor.copy(alpha = breathAlpha),
                     radius = radius,
                     center = Offset(cx, cy),
                     style = Stroke(width = strokePx),
@@ -203,10 +238,10 @@ fun HaloGuidanceLayer(
         }
 
         // State B: unaligned with face — gold ring + gravitational bright arc
-        Canvas(modifier = modifier.fillMaxSize().testTag(TAG_HALO_PTF_UNALIGNED)) {
-            val cx = size.width / 2f
-            val cy = size.height / 2f
-            val radius = size.minDimension * 0.38f
+        Canvas(modifier = modifier.fillMaxSize().then(ptfSemantics).testTag(TAG_HALO_PTF_UNALIGNED)) {
+            val cx = ptfCenterXNorm * size.width
+            val cy = ptfCenterYNorm * size.height
+            val radius = max(ptfBbox.width() * size.width, ptfBbox.height() * size.height) * 0.6f
             val strokePx = size.minDimension * HALO_STROKE_FRACTION
 
             // Base ring

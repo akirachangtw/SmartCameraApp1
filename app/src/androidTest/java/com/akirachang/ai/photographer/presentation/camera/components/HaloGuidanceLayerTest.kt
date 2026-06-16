@@ -5,6 +5,7 @@ import android.graphics.RectF
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -17,6 +18,7 @@ import com.akirachang.ai.photographer.domain.model.RuleScore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.math.abs
 
 /**
  * D6-B2-T3 — HaloGuidanceLayer state-mutex & rendering pipeline tests.
@@ -56,6 +58,22 @@ class HaloGuidanceLayerTest {
         boundingBoxNormalized = RectF(0.35f, 0.1f, 0.65f, 0.5f),
         leftEyeNormalized = PointF(0.4f, 0.25f),
         rightEyeNormalized = PointF(0.6f, 0.25f),
+        headEulerAngleY = 0f,
+    )
+
+    /** PTF face with asymmetric bbox, used to verify center/radius semantics. */
+    private val ptfFaceA = FaceLandmarkData(
+        boundingBoxNormalized = RectF(0.20f, 0.20f, 0.60f, 0.40f),
+        leftEyeNormalized = null,
+        rightEyeNormalized = null,
+        headEulerAngleY = 0f,
+    )
+
+    /** Same PTF state, different bbox center and radius. */
+    private val ptfFaceB = FaceLandmarkData(
+        boundingBoxNormalized = RectF(0.60f, 0.40f, 0.90f, 0.90f),
+        leftEyeNormalized = null,
+        rightEyeNormalized = null,
         headEulerAngleY = 0f,
     )
 
@@ -315,4 +333,78 @@ class HaloGuidanceLayerTest {
         composeTestRule.onNodeWithTag(TAG_HALO_PTF_UNALIGNED)
             .assertDoesNotExist()
     }
+
+    /**
+     * [PTF — Geometry] PTF Halo center/radius must be derived from the primary face bbox,
+     * not the fixed canvas center or screen minDimension.
+     */
+    @Test
+    fun test_ptfMode_unaligned_exposesBboxDerivedGeometry() {
+        composeTestRule.mainClock.autoAdvance = false
+
+        val unalignedPtfResult = PtfAlignmentResult(
+            isAligned = false,
+            offset = PtfOffset(dx = 0.15f, dy = 0.10f),
+            failedRules = listOf(PtfRuleName.FRAMING),
+        )
+
+        composeTestRule.setContent {
+            HaloGuidanceLayer(
+                faces = listOf(ptfFaceA),
+                compositionResult = null,
+                isPtfMode = true,
+                ptfAlignmentResult = unalignedPtfResult,
+            )
+        }
+
+        composeTestRule.mainClock.advanceTimeBy(150L)
+
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_UNALIGNED)
+            .assert(hasPtfGeometry(centerX = 0.40f, centerY = 0.30f, radius = 0.24f))
+    }
+
+    /**
+     * [PTF — Geometry transition] When the face bbox changes, the PTF Halo semantic
+     * geometry changes with it. This guards against regressing to fixed-center rendering.
+     */
+    @Test
+    fun test_ptfMode_bboxChange_updatesGeometry() {
+        composeTestRule.mainClock.autoAdvance = false
+
+        val unalignedPtfResult = PtfAlignmentResult(
+            isAligned = false,
+            offset = PtfOffset(dx = 0.15f, dy = 0.10f),
+            failedRules = listOf(PtfRuleName.FRAMING),
+        )
+        var currentFaces by mutableStateOf(listOf(ptfFaceA))
+
+        composeTestRule.setContent {
+            HaloGuidanceLayer(
+                faces = currentFaces,
+                compositionResult = null,
+                isPtfMode = true,
+                ptfAlignmentResult = unalignedPtfResult,
+            )
+        }
+
+        composeTestRule.mainClock.advanceTimeBy(150L)
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_UNALIGNED)
+            .assert(hasPtfGeometry(centerX = 0.40f, centerY = 0.30f, radius = 0.24f))
+
+        currentFaces = listOf(ptfFaceB)
+        composeTestRule.mainClock.advanceTimeBy(150L)
+
+        composeTestRule.onNodeWithTag(TAG_HALO_PTF_UNALIGNED)
+            .assert(hasPtfGeometry(centerX = 0.75f, centerY = 0.65f, radius = 0.30f))
+    }
+
+    private fun hasPtfGeometry(centerX: Float, centerY: Float, radius: Float): SemanticsMatcher =
+        SemanticsMatcher("PTF Halo geometry center=($centerX,$centerY) radius=$radius") { node ->
+            val actualCenterX = node.config.getOrNull(PtfHaloCenterXKey) ?: return@SemanticsMatcher false
+            val actualCenterY = node.config.getOrNull(PtfHaloCenterYKey) ?: return@SemanticsMatcher false
+            val actualRadius = node.config.getOrNull(PtfHaloRadiusKey) ?: return@SemanticsMatcher false
+            abs(actualCenterX - centerX) < 0.0001f &&
+                abs(actualCenterY - centerY) < 0.0001f &&
+                abs(actualRadius - radius) < 0.0001f
+        }
 }
