@@ -35,9 +35,9 @@
 
 ## Next Actions
 
-> **S16 P08-F4-FIX-v2（2026-06-17）：LiveCameraSource detection 接線 /qa PASS · Contract C2 fromBitmap portrait-space · 互斥 guard · F4v2-Diag 7 欄位**
+> **S16 P08-F4-FIX-v2-REPAIR-3（2026-06-17）：REPAIR chain 完成 · 全鏈路 /sv Cross-Review PASS · Traycer code review 通過 · 待真機 Hard Gate**
 
-1. **🟡 P08-F4-FIX-v2（P0）**：/sv → Traycer execute_review → 真機 Sony XQ-BT52 AC-1~AC-4 Hard Gate（後/前鏡頭 Halo + PTF）
+1. **🟡 P08-F4-FIX-v2（P0）**：真機 Sony XQ-BT52 AC-1~AC-4 Hard Gate → Traycer execute_review 更新 AI-4 確認 → 標 BUG-P08-F4-REAL-DEVICE DONE（Logcat: `adb -s HQ616R2713 logcat -v time LiveCameraSource:D CameraRepositoryImpl:I *:S`）
 2. **🔴 P08-F7（P0）**：PTF Halo bbox 跟隨 + alpha 修正（`HaloGuidanceLayer.kt`，可與 F4v2 驗收平行）
 3. **P08-F6** → Portrait Contract v0.4 實作（domain/portrait/ 骨架建立）
 4. **T03 重啟**（Baseline 通過後）：Pill Toggle 重寫
