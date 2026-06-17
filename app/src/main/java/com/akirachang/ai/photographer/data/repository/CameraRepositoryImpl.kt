@@ -559,13 +559,11 @@ class CameraRepositoryImpl @Inject constructor(
                 smartAnalyzer!!
             )
 
-            // P08-F4-FIX-v2 AI-3: Inject detection callback into LiveCameraSource (real device path)
+            // P08-F4-FIX-v2-REPAIR: Arm detection via session-safe method (resets state + increments token)
             if (isLiveCameraPath) {
-                (cameraInputSource as com.akirachang.ai.photographer.data.source.camera.LiveCameraSource).apply {
-                    liveDetector = detector
-                    onDetectionResult = { result -> _detectionResults.value = result }
-                }
-                Log.i(TAG, "[P08-F4-FIX-v2] LiveCameraSource detection callback injected (Contract C2)")
+                (cameraInputSource as com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)
+                    .armDetection(detector) { result -> _detectionResults.value = result }
+                Log.i(TAG, "[P08-F4-FIX-v2] LiveCameraSource detection armed (Contract C2, session-safe)")
             }
 
             isAnalysisStarted = true
@@ -585,11 +583,8 @@ class CameraRepositoryImpl @Inject constructor(
             // Cleanup analyzer resources (v2.2.0)
             smartAnalyzer?.cleanup()
             smartAnalyzer = null
-            // P08-F4-FIX-v2 AI-4: Clear LiveCameraSource detection path before closing detector
-            (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)?.apply {
-                liveDetector = null
-                onDetectionResult = null
-            }
+            // P08-F4-FIX-v2-REPAIR: Disarm before closing detector — invalidates in-flight callbacks
+            (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)?.disarmDetection()
             // [P08-F4-FIX] AI-4: Close FaceDetector to release native memory (SSOT §4.4.2)
             faceDetector?.close()
             faceDetector = null

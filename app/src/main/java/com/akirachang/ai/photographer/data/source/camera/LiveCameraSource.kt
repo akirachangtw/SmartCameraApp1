@@ -75,6 +75,7 @@ import kotlinx.coroutines.flow.onEach
 import com.akirachang.ai.photographer.domain.model.DetectionResult
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetector
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Live Camera Source for Real Device
@@ -291,12 +292,37 @@ class LiveCameraSource @Inject constructor(
     private var lastCaptureRotationDegrees: Int = 0
 
     // P08-F4-FIX-v2 AI-1: Real-device face detection callback path (Contract C2)
-    // Set by CameraRepositoryImpl.startImageAnalysis() when isLiveCameraPath=true.
-    // Nulled by CameraRepositoryImpl.stopImageAnalysis() and unbind() for lifecycle safety.
+    // Managed via armDetection() / disarmDetection() — never set directly.
     @Volatile var liveDetector: FaceDetector? = null
     var onDetectionResult: ((DetectionResult) -> Unit)? = null
     @Volatile private var lastDetectionTimeMs: Long = 0L
     @Volatile private var lastFaceCount: Int = -1
+    // P08-F4-FIX-v2-REPAIR: in-flight guard — skip frame if previous ML Kit task not complete
+    private val detectionInFlight = AtomicBoolean(false)
+    // P08-F4-FIX-v2-REPAIR: session token — stale callbacks (post-disarm) must not write state
+    @Volatile private var detectionSessionId: Long = 0L
+
+    // P08-F4-FIX-v2-REPAIR: Arm detection for a new camera session.
+    // Called by CameraRepositoryImpl.startImageAnalysis() — resets all session state first.
+    fun armDetection(detector: FaceDetector, callback: (DetectionResult) -> Unit) {
+        detectionSessionId++
+        detectionInFlight.set(false)
+        lastDetectionTimeMs = 0L
+        lastFaceCount = -1
+        liveDetector = detector
+        onDetectionResult = callback
+    }
+
+    // P08-F4-FIX-v2-REPAIR: Disarm detection — invalidates in-flight callbacks via session token.
+    // Called by CameraRepositoryImpl.stopImageAnalysis() and unbind().
+    fun disarmDetection() {
+        detectionSessionId++
+        detectionInFlight.set(false)
+        lastDetectionTimeMs = 0L
+        lastFaceCount = -1
+        liveDetector = null
+        onDetectionResult = null
+    }
 
     /**
      * Get live camera preview stream as Bitmap flow
@@ -361,28 +387,47 @@ class LiveCameraSource @Inject constructor(
                 }
                 val transformTime = (System.nanoTime() - startTransform) / 1_000_000.0
 
-                // P08-F4-FIX-v2 AI-2: Async face detection on portrait bitmap (Contract C2)
-                // fromBitmap() does not hold ImageProxy — imageProxy.close() in finally is safe
-                val detectionBitmap = outputBuffer.bitmap
+                // P08-F4-FIX-v2-REPAIR AI-2: Owned bitmap copy — decoupled from preview pool (Contract C2).
+                // ownedBitmap is an immutable copy; BitmapPool cannot recycle or overwrite its pixels
+                // while the ML Kit async task runs. Released in addOnCompleteListener.
                 liveDetector?.let { detector ->
-                    val inputImage = InputImage.fromBitmap(detectionBitmap, 0)
-                    detector.process(inputImage)
-                        .addOnSuccessListener { faces ->
-                            lastFaceCount = faces.size
-                            lastDetectionTimeMs = System.currentTimeMillis()
-                            onDetectionResult?.invoke(
-                                DetectionResult(
-                                    faces = faces,
-                                    objects = emptyList(),
-                                    imageWidth = detectionBitmap.width,
-                                    imageHeight = detectionBitmap.height,
-                                    rotationDegrees = 0
-                                )
-                            )
+                    if (detectionInFlight.compareAndSet(false, true)) {
+                        val ownedBitmap = outputBuffer.bitmap.copy(Bitmap.Config.ARGB_8888, false)
+                        val capturedSessionId = detectionSessionId
+                        val w = ownedBitmap.width
+                        val h = ownedBitmap.height
+                        try {
+                            detector.process(InputImage.fromBitmap(ownedBitmap, 0))
+                                .addOnSuccessListener { faces ->
+                                    if (detectionSessionId == capturedSessionId) {
+                                        lastFaceCount = faces.size
+                                        lastDetectionTimeMs = System.currentTimeMillis()
+                                        onDetectionResult?.invoke(
+                                            DetectionResult(
+                                                faces = faces,
+                                                objects = emptyList(),
+                                                imageWidth = w,
+                                                imageHeight = h,
+                                                rotationDegrees = 0
+                                            )
+                                        )
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e(TAG, "[F4v2] Face detection failed on frame $frameCount", e)
+                                }
+                                .addOnCompleteListener {
+                                    ownedBitmap.recycle()
+                                    detectionInFlight.set(false)
+                                }
+                        } catch (e: Exception) {
+                            ownedBitmap.recycle()
+                            detectionInFlight.set(false)
+                            Log.e(TAG, "[F4v2] detector.process() threw synchronously on frame $frameCount", e)
                         }
-                        .addOnFailureListener { e ->
-                            Log.e(TAG, "[F4v2] Face detection failed on frame $frameCount", e)
-                        }
+                    } else {
+                        Log.v(TAG, "[F4v2] Detection skipped — previous task in-flight (frame $frameCount)")
+                    }
                 }
 
                 // v2.8.2 Phase C: Timing log (every 30 frames = ~1 second at 30fps)
@@ -407,7 +452,7 @@ class LiveCameraSource @Inject constructor(
                         Log.w(TAG, "[PIPELINE-STALL] Detection heartbeat timeout: ${nowMs - lastDetectionTimeMs}ms since last result")
                     }
                     // AI-7: F4v2-Diag 7-field diagnostic log (Contract C2 geometry verification)
-                    Log.d(TAG, "[F4v2-Diag] currentRotation=$currentRotation rotationDegrees=$rotationDegrees compensatedRotation=$compensatedRotation imageWidth=${detectionBitmap.width} imageHeight=${detectionBitmap.height} faceCount=$lastFaceCount isFrontCamera=$isFrontCamera")
+                    Log.d(TAG, "[F4v2-Diag] currentRotation=$currentRotation rotationDegrees=$rotationDegrees compensatedRotation=$compensatedRotation imageWidth=${outputBuffer.bitmap.width} imageHeight=${outputBuffer.bitmap.height} faceCount=$lastFaceCount isFrontCamera=$isFrontCamera")
                 }
 
                 if (outputBuffer !== rawBuffer) {
@@ -1375,9 +1420,8 @@ Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
             }
             currentLifecycleOwner = null
 
-            // P08-F4-FIX-v2 AI-4: Clear detection path on camera session end (SSOT §4.4.2)
-            liveDetector = null
-            onDetectionResult = null
+            // P08-F4-FIX-v2-REPAIR: Disarm — invalidates in-flight callbacks + resets session state
+            disarmDetection()
 
             // Release SurfaceTexture resources
             previewSurface?.release()
