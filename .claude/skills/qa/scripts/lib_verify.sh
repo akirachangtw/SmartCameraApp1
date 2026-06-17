@@ -2,12 +2,16 @@
 # lib_verify.sh v1.0 — QA Shared Verify Library
 # Usage: source .claude/skills/qa/scripts/lib_verify.sh
 #
-# Provides: load_verify_policy, get_ticket_id, escalate_verdict, emit_check, archive_report
+# Provides: load_verify_policy, get_ticket_id, escalate_verdict, emit_check, archive_report,
+#           read_budget, update_budget, budget_summary, display_verdict
 # Verdict order (severity ascending): PASS < ADVISORY < REPORT_FIX < BLOCKER
 
 # ─── Verdict State (shared across sourcing script) ───
 _CURRENT_VERDICT="PASS"
 _CURRENT_VERDICT_LEVEL=0
+
+# ─── Budget State ───
+_BUDGET_STATE_FILE="tmp/.fail_budget_state"
 
 # ─── load_verify_policy ───
 # Reads .claude/verify-policy.env; uses built-in defaults when file is absent.
@@ -55,12 +59,16 @@ escalate_verdict() {
   case "$_new" in
     PASS)       _new_level=0 ;;
     ADVISORY)   _new_level=1 ;;
-    REPORT_FIX) _new_level=2 ;;
+    REPORT_FIX|REPORTFIX) _new_level=2 ;;
     BLOCKER)    _new_level=3 ;;
     *)          return 0 ;;
   esac
   if [[ $_new_level -gt $_CURRENT_VERDICT_LEVEL ]]; then
-    _CURRENT_VERDICT="$_new"
+    if [[ "$_new" == "REPORTFIX" ]]; then
+      _CURRENT_VERDICT="REPORT_FIX"
+    else
+      _CURRENT_VERDICT="$_new"
+    fi
     _CURRENT_VERDICT_LEVEL=$_new_level
   fi
 }
@@ -73,6 +81,50 @@ emit_check() {
   local _verdict="$2"
   local _msg="$3"
   echo "${_emoji} [${_verdict}] ${_msg}"
+}
+
+# ─── read_budget ───
+# Returns the current structural BLOCKER count for the local fail budget.
+read_budget() {
+  if [[ -f "$_BUDGET_STATE_FILE" ]]; then
+    cat "$_BUDGET_STATE_FILE"
+  else
+    echo "0"
+  fi
+}
+
+# ─── update_budget ───
+# BLOCKER increments the budget counter; PASS resets it. REPORT_FIX and ADVISORY do not consume budget.
+update_budget() {
+  local _verdict="$1"
+  local _count
+  _count="$(read_budget)"
+  mkdir -p "tmp"
+  if [[ "$_verdict" == "BLOCKER" ]]; then
+    _count=$((_count + 1))
+  elif [[ "$_verdict" == "PASS" ]]; then
+    _count=0
+  fi
+  echo "$_count" > "$_BUDGET_STATE_FILE"
+}
+
+# ─── budget_summary ───
+# Emits "<remaining>/<max> remaining" using MAX_BLOCKER_BUDGET from load_verify_policy.
+budget_summary() {
+  local _count _remaining
+  _count="$(read_budget)"
+  _remaining=$((MAX_BLOCKER_BUDGET - _count))
+  if [[ $_remaining -lt 0 ]]; then
+    _remaining=0
+  fi
+  echo "${_remaining}/${MAX_BLOCKER_BUDGET} remaining"
+}
+
+# ─── display_verdict ───
+# Presents REPORT_FIX as REPORTFIX for compatibility with the original fail-budget plugin wording.
+display_verdict() {
+  local _v="${1:-$_CURRENT_VERDICT}"
+  echo "${_v/REPORT_FIX/REPORTFIX}"
 }
 
 # ─── archive_report ───
