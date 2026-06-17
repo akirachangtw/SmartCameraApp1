@@ -11,7 +11,7 @@
 # 退出碼：
 #   0 — PASS 或 ADVISORY（流程繼續）
 #   1 — BLOCKER（真實功能缺陷，修程式碼後重跑）
-#   2 — ENV 錯誤 或 FAIL BUDGET EXHAUSTED (R3)
+#   2 — ENV 錯誤 或 FAIL BUDGET EXHAUSTED (依 MAX_BLOCKER_BUDGET)
 #   3 — REPORT_FIX（sv_report.md 問題，修報告後重跑）
 
 set -euo pipefail
@@ -33,6 +33,15 @@ RESULT_LOG="$TMP_DIR/cross_review_result_${TIMESTAMP}.md"
 CODEX_MODEL="${CODEX_MODEL:-gpt-5.5}"
 CODEX_REASONING_EFFORT="${CODEX_REASONING_EFFORT:-high}"
 CODEX_REASONING_SUMMARY="${CODEX_REASONING_SUMMARY:-auto}"
+MAX_BLOCKER_BUDGET=3
+
+_POLICY=".claude/verify-policy.env"
+if [[ -f "$_POLICY" ]]; then
+  _v="$(grep "^MAX_BLOCKER_BUDGET=" "$_POLICY" 2>/dev/null | head -1 | cut -d'=' -f2- || true)"
+  if [[ "$_v" =~ ^[0-9]+$ ]] && [[ "$_v" -gt 0 ]]; then
+    MAX_BLOCKER_BUDGET="$_v"
+  fi
+fi
 
 # ═══════════════════════════════════════
 #  Error handlers
@@ -203,7 +212,7 @@ cat > "$PAYLOAD" << 'PROMPT_HEADER'
 5. CameraX 重綁、ML Kit 互斥、Edge Warmth 60fps 約束違反
 6. 狀態機時序錯誤（Cooldown timestamp 寫入時機錯誤，有 diff 行號為證）
 
-**REPORT_FIX 情境（修 sv_report.md 即可，不阻塞 pipeline）**：
+**REPORT_FIX 情境（修 sv_report.md 即可，不要求修程式碼，但會阻擋 Cross/Traycer pipeline）**：
 - SV Report 段落描述措辭與 diff 事實輕微不符
 - 治理文件連結問題（PROGRESS.md 死連結等）
 - sv_report.md 格式/完備性問題
@@ -344,19 +353,23 @@ echo "════════════════════════�
 echo
 echo "📝 Full result saved: $RESULT_LOG"
 
-# Parse verdict (after "codex" separator line)
-VERDICT="$(printf '%s\n' "$RESULT" | tr -d '\r' | awk '/^codex$/{found=1;next} found && /^(PASS|BLOCKER|REPORT_FIX|ADVISORY)$/{print;exit}' | xargs)"
+# Parse verdict (after "codex" separator line). REPORTFIX is accepted only as
+# compatibility input from the original generic plugin; project state writes REPORT_FIX.
+VERDICT="$(printf '%s\n' "$RESULT" | tr -d '\r' | awk '/^codex$/{found=1;next} found && /^(PASS|BLOCKER|REPORT_FIX|REPORTFIX|ADVISORY)$/{print;exit}' | xargs)"
+if [[ "$VERDICT" == "REPORTFIX" ]]; then
+  VERDICT="REPORT_FIX"
+fi
 
 # Save fail budget state
 printf 'TICKET=%s\nROUND=%s\nLAST=%s\n' "$TICKET_ID" "$CURRENT_ROUND" "${VERDICT:-UNKNOWN}" > "$STATE_FILE"
 
 # Fail budget enforcement
 if [[ "$VERDICT" == "BLOCKER" ]]; then
-  if [[ $CURRENT_ROUND -ge 3 ]]; then
+  if [[ $CURRENT_ROUND -ge $MAX_BLOCKER_BUDGET ]]; then
     echo "⛔ R${CURRENT_ROUND} BLOCKER — FAIL BUDGET EXHAUSTED. 人工介入必要。"
     fail_budget
-  elif [[ $CURRENT_ROUND -ge 2 ]]; then
-    echo "⚠️ R${CURRENT_ROUND} BLOCKER CHECKPOINT — R3 will hard-stop. 等待 Akira 裁決。"
+  elif [[ $CURRENT_ROUND -ge $((MAX_BLOCKER_BUDGET - 1)) ]]; then
+    echo "⚠️ R${CURRENT_ROUND} BLOCKER CHECKPOINT — R${MAX_BLOCKER_BUDGET} will hard-stop. 等待 Akira 裁決。"
   fi
 fi
 
