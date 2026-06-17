@@ -301,6 +301,10 @@ class LiveCameraSource @Inject constructor(
     private val detectionInFlight = AtomicBoolean(false)
     // P08-F4-FIX-v2-REPAIR: session token — stale callbacks (post-disarm) must not write state
     @Volatile private var detectionSessionId: Long = 0L
+    // P08-F4-FIX-v2-REPAIR-3: Camera session lifecycle hooks — FaceDetector must not survive camera session boundaries.
+    // Set by CameraRepositoryImpl when analysis is active; called before every unbind and after every successful rebind.
+    var onCameraSessionEnding: (() -> Unit)? = null
+    var onCameraSessionBound: (() -> Unit)? = null
 
     // P08-F4-FIX-v2-REPAIR: Arm detection for a new camera session.
     // Called by CameraRepositoryImpl.startImageAnalysis() — resets all session state first.
@@ -1247,6 +1251,8 @@ Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
 
                     // 4. Unbind all previous UseCases before rebinding
                     Log.d(TAG, "Rebinding camera - selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}")
+                    // P08-F4-FIX-v2-REPAIR-3: Notify FaceDetector lifecycle before camera session boundary
+                    onCameraSessionEnding?.invoke()
                     try {
                         cameraProvider.unbindAll()
                         Log.d(TAG, "Previous UseCases unbound successfully")
@@ -1394,6 +1400,9 @@ Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
                         Log.i(TAG, "✅ Preview stream analyzer reattached after rebind - frames should flow")
                     } ?: Log.w(TAG, "⚠️ No previewStreamAnalyzer to attach")
 
+                    // P08-F4-FIX-v2-REPAIR-3: Notify FaceDetector lifecycle after successful camera session rebind
+                    onCameraSessionBound?.invoke()
+
                     // v2.6.2 FIX: Reapply pending exposure compensation after rebind (critical for HDR persistence)
                     pendingExposureIndex?.let { exposureValue ->
                         camera.cameraControl.setExposureCompensationIndex(exposureValue)
@@ -1417,6 +1426,10 @@ Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
      */
     fun unbind() {
         try {
+            // P08-F4-FIX-v2-REPAIR-3: Notify ending before final unbind, then clear hooks (no rebind follows)
+            onCameraSessionEnding?.invoke()
+            onCameraSessionEnding = null
+            onCameraSessionBound = null
             if (::cameraProvider.isInitialized) {
                 cameraProvider.unbindAll()
                 Log.i(TAG, "Camera unbound from lifecycle")

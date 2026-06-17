@@ -561,8 +561,22 @@ class CameraRepositoryImpl @Inject constructor(
 
             // P08-F4-FIX-v2-REPAIR: Arm detection via session-safe method (resets state + increments token)
             if (isLiveCameraPath) {
-                (cameraInputSource as com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)
-                    .armDetection(detector) { result -> _detectionResults.value = result }
+                val lcs = cameraInputSource as com.akirachang.ai.photographer.data.source.camera.LiveCameraSource
+                lcs.armDetection(detector) { result -> _detectionResults.value = result }
+                // P08-F4-FIX-v2-REPAIR-3: Wire camera session hooks — FaceDetector lifecycle must match camera session
+                lcs.onCameraSessionEnding = {
+                    lcs.disarmDetection()
+                    faceDetector?.close()
+                    faceDetector = null
+                    Log.i(TAG, "[P08-F4-FIX-v2-REPAIR-3] Camera session ending — detector closed, detection disarmed")
+                }
+                lcs.onCameraSessionBound = {
+                    if (isAnalysisStarted) {
+                        val freshDetector = createFaceDetector().also { faceDetector = it }
+                        lcs.armDetection(freshDetector) { result -> _detectionResults.value = result }
+                        Log.i(TAG, "[P08-F4-FIX-v2-REPAIR-3] Camera session rebound — fresh detector armed")
+                    }
+                }
                 Log.i(TAG, "[P08-F4-FIX-v2] LiveCameraSource detection armed (Contract C2, session-safe)")
             }
 
@@ -583,6 +597,11 @@ class CameraRepositoryImpl @Inject constructor(
             // Cleanup analyzer resources (v2.2.0)
             smartAnalyzer?.cleanup()
             smartAnalyzer = null
+            // P08-F4-FIX-v2-REPAIR-3: Clear session hooks before disarm — prevent stale hook fire on concurrent rebind
+            (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)?.apply {
+                onCameraSessionEnding = null
+                onCameraSessionBound = null
+            }
             // P08-F4-FIX-v2-REPAIR: Disarm before closing detector — invalidates in-flight callbacks
             (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)?.disarmDetection()
             // [P08-F4-FIX] AI-4: Close FaceDetector to release native memory (SSOT §4.4.2)
