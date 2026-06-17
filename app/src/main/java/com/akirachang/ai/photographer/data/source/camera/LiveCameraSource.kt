@@ -72,6 +72,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import com.akirachang.ai.photographer.domain.model.DetectionResult
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.FaceDetector
 
 /**
  * Live Camera Source for Real Device
@@ -285,6 +288,14 @@ class LiveCameraSource @Inject constructor(
     // v2.9.6 Phase 1 Fix: Store rotation from ImageProxy for EXIF
     private var lastCaptureRotationDegrees: Int = 0
 
+    // P08-F4-FIX-v2 AI-1: Real-device face detection callback path (Contract C2)
+    // Set by CameraRepositoryImpl.startImageAnalysis() when isLiveCameraPath=true.
+    // Nulled by CameraRepositoryImpl.stopImageAnalysis() and unbind() for lifecycle safety.
+    @Volatile var liveDetector: FaceDetector? = null
+    var onDetectionResult: ((DetectionResult) -> Unit)? = null
+    @Volatile private var lastDetectionTimeMs: Long = 0L
+    @Volatile private var lastFaceCount: Int = -1
+
     /**
      * Get live camera preview stream as Bitmap flow
      *
@@ -339,15 +350,6 @@ class LiveCameraSource @Inject constructor(
                 // Front camera: 270° CW (90° CCW, sensor orientation differs from back)
                 val compensatedRotation = if (isFrontCamera) 270 else 90
 
-                // v2.9.6 Phase 2: Diagnostic log for preview rotation issue
-                if (frameCount % 30 == 0L) {
-                    Log.d(TAG, "[Rotation Debug] currentRotation=$currentRotation, " +
-                        "rotationDegrees=$rotationDegrees, " +
-                        "compensatedRotation=$compensatedRotation, " +
-                        "isFront=$isFrontCamera, " +
-                        "frame=${rawBuffer.bitmap.width}x${rawBuffer.bitmap.height}")
-                }
-
                 // Rotate and mirror bitmap if needed to match display orientation
                 val startTransform = System.nanoTime()
                 val outputBuffer = if (compensatedRotation != 0 || isFrontCamera) {
@@ -356,6 +358,30 @@ class LiveCameraSource @Inject constructor(
                     rawBuffer
                 }
                 val transformTime = (System.nanoTime() - startTransform) / 1_000_000.0
+
+                // P08-F4-FIX-v2 AI-2: Async face detection on portrait bitmap (Contract C2)
+                // fromBitmap() does not hold ImageProxy — imageProxy.close() in finally is safe
+                val detectionBitmap = outputBuffer.bitmap
+                liveDetector?.let { detector ->
+                    val inputImage = InputImage.fromBitmap(detectionBitmap, 0)
+                    detector.process(inputImage)
+                        .addOnSuccessListener { faces ->
+                            lastFaceCount = faces.size
+                            lastDetectionTimeMs = System.currentTimeMillis()
+                            onDetectionResult?.invoke(
+                                DetectionResult(
+                                    faces = faces,
+                                    objects = emptyList(),
+                                    imageWidth = detectionBitmap.width,
+                                    imageHeight = detectionBitmap.height,
+                                    rotationDegrees = 0
+                                )
+                            )
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e(TAG, "[F4v2] Face detection failed on frame $frameCount", e)
+                        }
+                }
 
                 // v2.8.2 Phase C: Timing log (every 30 frames = ~1 second at 30fps)
                 if (frameCount % 30 == 0L) {
@@ -373,6 +399,13 @@ class LiveCameraSource @Inject constructor(
                             "Rot=${rotationDegrees}°, Mirror=$isFrontCamera, " +
                             "Keys=${bitmapPool.getKeyCount()}, HitRate=${bitmapPool.getHitRate()}%"
                     )
+                    // AI-5: Heartbeat protection — warn if detection pipeline stalled > 3s
+                    val nowMs = System.currentTimeMillis()
+                    if (liveDetector != null && lastDetectionTimeMs > 0L && (nowMs - lastDetectionTimeMs) > 3000L) {
+                        Log.w(TAG, "[PIPELINE-STALL] Detection heartbeat timeout: ${nowMs - lastDetectionTimeMs}ms since last result")
+                    }
+                    // AI-7: F4v2-Diag 7-field diagnostic log (Contract C2 geometry verification)
+                    Log.d(TAG, "[F4v2-Diag] currentRotation=$currentRotation rotationDegrees=$rotationDegrees compensatedRotation=$compensatedRotation imageWidth=${detectionBitmap.width} imageHeight=${detectionBitmap.height} faceCount=$lastFaceCount isFrontCamera=$isFrontCamera")
                 }
 
                 if (outputBuffer !== rawBuffer) {
@@ -1339,6 +1372,10 @@ Camera2CameraControl.from(cameraControl).clearCaptureRequestOptions()
                 Log.i(TAG, "[D3-T3] focalLengthFactor reset to null on unbind")
             }
             currentLifecycleOwner = null
+
+            // P08-F4-FIX-v2 AI-4: Clear detection path on camera session end (SSOT §4.4.2)
+            liveDetector = null
+            onDetectionResult = null
 
             // Release SurfaceTexture resources
             previewSurface?.release()

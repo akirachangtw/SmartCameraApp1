@@ -535,13 +535,17 @@ class CameraRepositoryImpl @Inject constructor(
         try {
             // v2.2.0: Use custom SmartCameraAnalyzer for integrated ML Kit + Lighting analysis
             // [P08-F4-FIX] AI-4: Create fresh FaceDetector per Camera Session (SSOT §4.4.2)
+            // P08-F4-FIX-v2 AI-3: Mutex guard — SmartCameraAnalyzer only emits on emulator path
+            val isLiveCameraPath = cameraInputSource is com.akirachang.ai.photographer.data.source.camera.LiveCameraSource
             val detector = createFaceDetector().also { faceDetector = it }
             smartAnalyzer = SmartCameraAnalyzer(
                 faceDetector = detector,
                 analyzeLightingUseCase = analyzeLightingUseCase,
                 onDetectionResult = { detectionResult ->
-                    // Update detection state on main thread
-                    _detectionResults.value = detectionResult
+                    // AI-3: Mutex guard — suppress SmartCameraAnalyzer emission on real device
+                    if (!isLiveCameraPath) {
+                        _detectionResults.value = detectionResult
+                    }
                 },
                 onLightingResult = { lightingState ->
                     // Update lighting state on main thread
@@ -549,11 +553,20 @@ class CameraRepositoryImpl @Inject constructor(
                 },
             )
 
-            // Attach analyzer to camera controller
+            // Attach analyzer to camera controller (emulator path — no-op on real device)
             _cameraController.setImageAnalysisAnalyzer(
                 ContextCompat.getMainExecutor(context),
                 smartAnalyzer!!
             )
+
+            // P08-F4-FIX-v2 AI-3: Inject detection callback into LiveCameraSource (real device path)
+            if (isLiveCameraPath) {
+                (cameraInputSource as com.akirachang.ai.photographer.data.source.camera.LiveCameraSource).apply {
+                    liveDetector = detector
+                    onDetectionResult = { result -> _detectionResults.value = result }
+                }
+                Log.i(TAG, "[P08-F4-FIX-v2] LiveCameraSource detection callback injected (Contract C2)")
+            }
 
             isAnalysisStarted = true
             Log.i(TAG, "Image analysis started with SmartCameraAnalyzer (ML Kit + Lighting)")
@@ -572,6 +585,11 @@ class CameraRepositoryImpl @Inject constructor(
             // Cleanup analyzer resources (v2.2.0)
             smartAnalyzer?.cleanup()
             smartAnalyzer = null
+            // P08-F4-FIX-v2 AI-4: Clear LiveCameraSource detection path before closing detector
+            (cameraInputSource as? com.akirachang.ai.photographer.data.source.camera.LiveCameraSource)?.apply {
+                liveDetector = null
+                onDetectionResult = null
+            }
             // [P08-F4-FIX] AI-4: Close FaceDetector to release native memory (SSOT §4.4.2)
             faceDetector?.close()
             faceDetector = null
