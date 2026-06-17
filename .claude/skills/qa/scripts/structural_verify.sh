@@ -24,6 +24,9 @@
 
 set -euo pipefail
 
+_TS="$(date '+%Y-%m-%d %H:%M:%S')"
+_TICKET_ID=""
+
 fail_env() { echo "❌ ENV ERROR: $*" >&2; exit 2; }
 
 # ─── Source lib_verify.sh ───
@@ -33,6 +36,7 @@ _LIB=".claude/skills/qa/scripts/lib_verify.sh"
 source "$_LIB"
 
 load_verify_policy
+_TICKET_ID="$(get_ticket_id)"
 
 # ─── Parse --post flag (may appear in any position) ───
 POST_MODE=false
@@ -74,8 +78,14 @@ elif [[ "$DIFF_SCOPE" != *".."* ]]; then
   DIFF_SCOPE="${DIFF_SCOPE}..HEAD"
 fi
 
-_REF="${DIFF_SCOPE%%\.\.*}"
+_REF="${DIFF_SCOPE%%..*}"
+_END="${DIFF_SCOPE#*..}"
+[[ -n "$_REF" ]] || fail_env "Missing diff start ref (scope: $DIFF_SCOPE)"
+[[ -n "$_END" ]] || _END="HEAD"
 git rev-parse --verify "$_REF" >/dev/null 2>&1 || fail_env "Ref not in git history: $_REF (scope: $DIFF_SCOPE)"
+git rev-parse --verify "$_END" >/dev/null 2>&1 || fail_env "End ref not in git history: $_END (scope: $DIFF_SCOPE)"
+git merge-base --is-ancestor "$_REF" "$_END" 2>/dev/null \
+  || fail_env "End ref is not a descendant of start ref: $_REF..$_END (scope: $DIFF_SCOPE)"
 
 # Parse ## Files Changed — strip trailing Pipeline Artifact annotations, strip backticks, take first field
 REPORTED_FILES="$(awk '/^## Files Changed/{found=1;next} found && /^## /{exit} found && /^- /{print substr($0,3)}' "$SV_REPORT" \
@@ -92,12 +102,16 @@ EXCLUDED_FILES="$(awk '/^## Excluded Payload/{found=1;next} found && /^## /{exit
   | awk 'NF{print $1}')"
 
 if [[ -z "$REPORTED_FILES" ]]; then
-  echo "⚠️ No '## Files Changed' section in SV Report — skipping structural verify"
+  echo "❌ STRUCTURAL FAIL — missing or empty '## Files Changed' section in SV Report"
+  echo "   修正方式：補齊 sv_report.md ## Files Changed，使其與 git diff ${DIFF_SCOPE} 精確一致。"
+  escalate_verdict "REPORT_FIX"
   archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
-  exit 0
+  exit 1
 fi
 
-ACTUAL_FILES="$(git diff --name-only "$DIFF_SCOPE" 2>/dev/null || true)"
+if ! ACTUAL_FILES="$(git diff --name-only "$DIFF_SCOPE" 2>/dev/null)"; then
+  fail_env "git diff failed for scope: $DIFF_SCOPE"
+fi
 
 # Check A: report claims file not in diff (ghost claim)
 GHOST=""
@@ -192,7 +206,9 @@ if [[ -n "$_TICKET_ID" ]]; then
       escalate_verdict "BLOCKER"
     fi
   else
-    echo "⚪ Cross-Review state 不存在 (${_TICKET_ID}) — 跳過 Check E"
+    echo "❌ STRUCTURAL FAIL — [E] Cross-Review state 不存在 (${_TICKET_ID})"
+    echo "   修正方式：先完成 /sv 階段 D cross_review.sh，產生 .tmp/cross_review_state/${_TICKET_ID}"
+    escalate_verdict "BLOCKER"
   fi
 else
   echo "⚪ TICKET_ID 不存在 — 跳過 Check E"
@@ -231,11 +247,62 @@ else
   echo "⚪ PROGRESS.md 不存在 — 跳過 Check F"
 fi
 
+# ─── GH-B: CLAUDE.md line health ───
+echo ""
+echo "=== [GH-B] CLAUDE.md 行數健康檢查 ==="
+_CLAUDE_MD=".claude/CLAUDE.md"
+if [[ -f "$_CLAUDE_MD" ]]; then
+  _CLAUDE_LINES=$(wc -l < "$_CLAUDE_MD")
+  if [[ $_CLAUDE_LINES -gt $CLAUDE_MD_FAIL ]]; then
+    echo "❌ PROJECT HEALTH FAIL — [GH-B] CLAUDE.md ${_CLAUDE_LINES} 行 > ${CLAUDE_MD_FAIL}"
+    escalate_verdict "REPORT_FIX"
+  elif [[ $_CLAUDE_LINES -gt $CLAUDE_MD_WARN ]]; then
+    echo "⚠️ PROJECT HEALTH WARNING — [GH-B] CLAUDE.md ${_CLAUDE_LINES} 行 > ${CLAUDE_MD_WARN}"
+    escalate_verdict "ADVISORY"
+  else
+    echo "✅ CLAUDE.md 行數正常（${_CLAUDE_LINES} 行 ≤ ${CLAUDE_MD_WARN}）"
+  fi
+else
+  echo "⚪ CLAUDE.md 不存在 — 視為 GH-B 未啟用，跳過"
+fi
+
+# ─── GH-C: verify_cmd.conf presence ───
+echo ""
+echo "=== [GH-C] verify_cmd.conf 存在性 ==="
+if [[ -f "tmp/verify_cmd.conf" ]]; then
+  echo "✅ verify_cmd.conf 存在"
+else
+  echo "❌ PROJECT HEALTH FAIL — [GH-C] tmp/verify_cmd.conf 不存在"
+  echo "   修正方式：建立 tmp/verify_cmd.conf 並至少提供 TICKET_ID 與 DIFF_REF"
+  escalate_verdict "BLOCKER"
+fi
+
+# ─── GH-D: SSOT reference presence ───
+echo ""
+echo "=== [GH-D] SSOT 參考檔存在性 ==="
+_SSOT_REF=".claude/skills/sv/ssot_context.md"
+if [[ -f "$_SSOT_REF" ]]; then
+  echo "✅ SSOT 參考檔存在：$_SSOT_REF"
+else
+  echo "⚠️ PROJECT HEALTH WARNING — [GH-D] SSOT 參考檔不存在：$_SSOT_REF"
+  escalate_verdict "ADVISORY"
+fi
+
 # ─── Archive sv_report snapshot ───
 archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
 
+# ─── Update fail budget state ───
+update_budget "$_CURRENT_VERDICT"
+
 # ─── 最終結果 ───
 echo ""
+echo "========== Structural Verify Report =========="
+echo "Ticket: ${_TICKET_ID:-UNKNOWN}"
+echo "Timestamp: ${_TS}"
+echo "Verdict: $(display_verdict "$_CURRENT_VERDICT")"
+echo "Budget: $(budget_summary)"
+echo "============================================="
+
 if [[ "$_CURRENT_VERDICT" == "PASS" || "$_CURRENT_VERDICT" == "ADVISORY" ]]; then
   echo "══════════════════════════════════════"
   echo "✅ STRUCTURAL VERIFY PASS (A/B/C/D/E/F) [${_CURRENT_VERDICT}]"
@@ -244,7 +311,7 @@ if [[ "$_CURRENT_VERDICT" == "PASS" || "$_CURRENT_VERDICT" == "ADVISORY" ]]; the
 fi
 
 echo "══════════════════════════════════════"
-echo "⛔ STRUCTURAL VERIFY FAIL (${_CURRENT_VERDICT})"
+echo "⛔ STRUCTURAL VERIFY FAIL ($(display_verdict "$_CURRENT_VERDICT"))"
 echo "   修正後重新執行 structural_verify.sh"
 echo "══════════════════════════════════════"
 exit 1
