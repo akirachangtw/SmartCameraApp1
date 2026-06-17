@@ -418,11 +418,17 @@ class LiveCameraSource @Inject constructor(
                                 }
                                 .addOnCompleteListener {
                                     ownedBitmap.recycle()
-                                    detectionInFlight.set(false)
+                                    // P08-F4-FIX-v2-REPAIR-2: only release in-flight guard for current session;
+                                    // stale callbacks from a prior session must not unlock the new session's guard
+                                    if (detectionSessionId == capturedSessionId) {
+                                        detectionInFlight.set(false)
+                                    }
                                 }
                         } catch (e: Exception) {
                             ownedBitmap.recycle()
-                            detectionInFlight.set(false)
+                            if (detectionSessionId == capturedSessionId) {
+                                detectionInFlight.set(false)
+                            }
                             Log.e(TAG, "[F4v2] detector.process() threw synchronously on frame $frameCount", e)
                         }
                     } else {
