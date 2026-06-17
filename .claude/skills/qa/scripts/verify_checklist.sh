@@ -28,6 +28,23 @@ get_conf() {
   grep "^${key}=" "$file" | head -1 | cut -d'=' -f2-
 }
 
+trim_token() {
+  echo "$1" | xargs
+}
+
+token_matches_file() {
+  local token file base
+  token="$(trim_token "$1")"
+  file="$2"
+  base=$(basename "$file")
+  [[ -n "$token" ]] || return 1
+  if [[ "$token" == *"/"* || "$token" == *"\\"* ]]; then
+    [[ "$file" == "$token" ]]
+  else
+    [[ "$base" == "$token" ]]
+  fi
+}
+
 ALLOWED=""
 FORBIDDEN="$DEFAULT_FORBIDDEN"
 EXCLUDED_PAYLOAD=""
@@ -128,11 +145,13 @@ if [[ -n "$ALLOWED" && $CONF_MODE -eq 1 ]]; then
   while IFS= read -r _cmt; do
     _cmt_files=$(git diff-tree --no-commit-id -r --name-only "$_cmt" 2>/dev/null || true)
     for _a in "${_AARR_PREVIEW[@]}"; do
-      _abase=$(basename "$_a")
-      if echo "$_cmt_files" | grep -qF "$_abase"; then
-        TICKET_BASE_COMMIT="$_cmt"
-        break 2
-      fi
+      while IFS= read -r _tf; do
+        [[ -z "$_tf" ]] && continue
+        if token_matches_file "$_a" "$_tf"; then
+          TICKET_BASE_COMMIT="$_cmt"
+          break 3
+        fi
+      done <<< "$_cmt_files"
     done
   done < <(git log --reverse --format="%h" "${DIFF_REF}..${DIFF_END_RESOLVED}" 2>/dev/null || true)
 
@@ -185,8 +204,7 @@ if [[ -n "$ALLOWED" ]]; then
     # Check: ALLOWED
     MATCH=0
     for a in "${AARR[@]}"; do
-      A_BASENAME=$(basename "$a")
-      if [[ "$BASENAME" == "$A_BASENAME" ]] || [[ "$f" == "$a" ]]; then
+      if token_matches_file "$a" "$f"; then
         MATCH=1; break
       fi
     done
@@ -201,8 +219,7 @@ if [[ -n "$ALLOWED" ]]; then
     if [[ -n "$EXCLUDED_PAYLOAD" ]]; then
       IFS=',' read -ra EXCL_ARR <<< "$EXCLUDED_PAYLOAD"
       for excl in "${EXCL_ARR[@]}"; do
-        EXCL_BASE=$(basename "$excl")
-        if [[ "$BASENAME" == "$EXCL_BASE" ]] || [[ "$f" == "$excl" ]]; then
+        if token_matches_file "$excl" "$f"; then
           EXCL_MATCH=1; break
         fi
       done
@@ -265,13 +282,21 @@ if [[ -n "$FORBIDDEN" ]]; then
   IFS=',' read -ra FARR <<< "$FORBIDDEN"
   FORBIDDEN_FAIL=0
   for fb in "${FARR[@]}"; do
-    fb_trimmed=$(echo "$fb" | xargs)
-    if echo "$CHANGED" | grep -q "$fb_trimmed"; then
-      _fb_commit=$(git log --format="%h" -1 "${DIFF_REF}..${DIFF_END_RESOLVED}" -- "*/$fb_trimmed" "$fb_trimmed" 2>/dev/null | head -1 || true)
+    fb_trimmed=$(trim_token "$fb")
+    _FORBIDDEN_FILE=""
+    while IFS= read -r _changed; do
+      [[ -z "$_changed" ]] && continue
+      if token_matches_file "$fb_trimmed" "$_changed"; then
+        _FORBIDDEN_FILE="$_changed"
+        break
+      fi
+    done <<< "$CHANGED"
+    if [[ -n "$_FORBIDDEN_FILE" ]]; then
+      _fb_commit=$(git log --format="%h" -1 "${DIFF_REF}..${DIFF_END_RESOLVED}" -- "$_FORBIDDEN_FILE" 2>/dev/null | head -1 || true)
       if [[ -n "$_fb_commit" ]] && is_stale_commit "$_fb_commit"; then
-        echo "  ⚠️ [stale] FORBIDDEN $fb_trimmed (pre-ticket commit $_fb_commit — not this ticket)"
+        echo "  ⚠️ [stale] FORBIDDEN $_FORBIDDEN_FILE (pre-ticket commit $_fb_commit — not this ticket)"
       else
-        echo "  ⛔ FORBIDDEN FILE: $fb_trimmed 被修改"
+        echo "  ⛔ FORBIDDEN FILE: $_FORBIDDEN_FILE 被修改"
         FAIL=1
         FORBIDDEN_FAIL=1
       fi
@@ -288,13 +313,13 @@ echo "=== [0.3] 新增行數 ==="
 if [[ -n "$ALLOWED" ]]; then
   ADDED=0
   for a in "${AARR[@]}"; do
-    _abase=$(basename "$a")
+    _token=$(trim_token "$a")
     if [[ $CONF_MODE -eq 1 ]]; then
       _lines=$(git diff "${DIFF_REF}..${DIFF_END_RESOLVED}" --numstat 2>/dev/null | \
-        awk -v n="$_abase" '$3 ~ n {s+=$1} END {print s+0}')
+        awk -v n="$_token" 'index(n, "/") || index(n, "\\") {if ($3 == n) s+=$1; next} {split($3,p,"/"); if (p[length(p)] == n) s+=$1} END {print s+0}')
     else
       _lines=$(git diff "$DIFF_REF" --numstat 2>/dev/null | \
-        awk -v n="$_abase" '$3 ~ n {s+=$1} END {print s+0}')
+        awk -v n="$_token" 'index(n, "/") || index(n, "\\") {if ($3 == n) s+=$1; next} {split($3,p,"/"); if (p[length(p)] == n) s+=$1} END {print s+0}')
     fi
     ADDED=$((ADDED + ${_lines:-0}))
   done
