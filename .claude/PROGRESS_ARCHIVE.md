@@ -192,6 +192,7 @@
 ---
 
 ## Resolved Debt
+
 - [x] [Coordinate] 移除 CameraViewModel 中的 `previewWidth ?: 800` 魔術數字 (D3)
 - [x] [UI] 移除 A/B Test 黑屏佔位與除錯文字 (D8-FIX)
 - [x] [UI] 移除角度數值渲染 (D8-FIX-04)
@@ -199,6 +200,7 @@
 ---
 
 ## Standby Mechanisms
+
 - [Phase 2] Merge SOP: `devspec/MERGE_SOP.md`
 - [Phase 2] Branch Releases: `devspec/BRANCH_RELEASES.md`
 - [Phase 2] 啟用條件：第二位開發者加入 / 產品上架後維護
