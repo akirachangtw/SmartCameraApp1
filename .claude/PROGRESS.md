@@ -5,8 +5,8 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| P08-F4-FIX-v2 | 🟡 /qa PASS · 待 /sv + Traycer + 真機 AC-1~AC-4 |
-| P08-F4-FIX 真機實測 | 🔴 AC-8 FAIL — SmartCameraAnalyzer 真機從不執行，三情境零偵測 |
+| P08-F4-FIX-v2-REPAIR | 🟡 /qa PASS · 待 /sv + Traycer + 真機 AC-1~AC-4 |
+| P08-F4-FIX-v2 | 🟡 /sv Cross-Review PASS · REPAIR 修補 bitmap ownership 後接續驗收 |
 | INFRA-52 | ✅ structural_verify v2.0 — 四級 verdict + lib_verify + policy env |
 | P08-F4-FIX-REPAIR | ✅ Traycer execute_review PASS · 閉環（模擬器 only） |
 
@@ -16,7 +16,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S16** · P08-F4-FIX-v2 /qa PASS → 待 /sv + Traycer execute_review + 真機 Hard Gate |
+| Schedule | **S16** · P08-F4-FIX-v2-REPAIR /qa PASS → 待 /sv + Traycer execute_review + 真機 Hard Gate |
 | Compile | 0 errors ✅ (assembleDebug PASS, both device+emulator variants, 28s) |
 | Tests | 362 passed ✅ (testDeviceDebugUnitTest + testEmulatorDebugUnitTest, 0 failed) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
@@ -27,7 +27,7 @@
 | ---- | ------- | ---------- | ------------ |
 | I7 / BUG-I7-FOCUS-RING-PERSIST | FocusIndicatorOverlay 雙圓環持續顯示（實機確認） | 🔴 P1 | `EyeAfController` 每 2s 觸發新 `stableId` → `LaunchedEffect` 重置 `alphaTarget=1.0`，dwell fade 永遠被打斷。修復：Guard 7（`LensFocusState.Focused + drift < 閾值 → skip`）+ `lastTriggerPoint` instance var。 |
 | BHA-01 | T02 Hard Gate — 歸一化 ✅，視覺 🔴 | 🟡 部分通過 | 歸一化數學 PASS（所有場景 normBbox [0,1]）。視覺 FAIL：4 個前置 Bug 阻塞。 |
-| BUG-P08-F4-REAL-DEVICE | P08-F4-FIX 真機管線斷線（修復中 P08-F4-FIX-v2）：LiveCameraSource 注入 FaceDetector + `onDetectionResult` callback，fromBitmap portrait-space，rotationDegrees=0。/qa PASS，待 /sv + Traycer + 真機驗收 AC-1~AC-4。 | 🟡 修復中 | CSO 裁決方案 B，Contract C2 已實作。真機 Hard Gate 未完成。 |
+| BUG-P08-F4-REAL-DEVICE | P08-F4-FIX 真機管線斷線（P08-F4-FIX-v2 /sv Cross-Review PASS）：LiveCameraSource 注入 FaceDetector + `onDetectionResult` callback，fromBitmap portrait-space，rotationDegrees=0。待 Traycer execute_review + 真機 AC-1~AC-4 Hard Gate。 | 🟡 Traycer 待審 | Contract C2 已實作，Cross-Review ADVISORY。 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | LiveCameraSource compensatedRotation 硬編碼（後=90°, 前=270°），橫向 HAL=0 但常數不變 → 後+90°、前+270° 偏差。S15 四場景實機量化完成。 | 🟡 P1 | 依賴 P08-F4-FIX 真機修復完成後開立 P08-F9。`LiveCameraSource.kt:340` |
 | BUG-PTF-HALO-SIZE | PTF 圓環渲染過大且不跟隨（三重根因：固定中心 / 固定半徑 / alpha 偏高） | 🔴 P0 | P08-F7 待實作：`HaloGuidanceLayer.kt` bbox 跟隨 + alpha 呼吸韻律修正。 |
 | BUG-MLKIT-PAREIDOLIA-FP | Ghost Face — K380 圓鍵觸發琥珀 Halo | ✅ HOTFIX-47 Traycer PASS | GF-01~03 雙裝置 PASS · K4-Rule 28 歸檔 · Sony F4 Discovery 待後續 |
