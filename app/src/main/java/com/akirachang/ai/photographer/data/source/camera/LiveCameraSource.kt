@@ -95,6 +95,8 @@ class LiveCameraSource @Inject constructor(
         private const val TAG = "LiveCameraSource"
         // v2.11.4-01: AE/AF debug logging throttle interval (1 log per second)
         private const val AEAF_DEBUG_LOG_INTERVAL_MS = 1000L
+        // P08-F4-FIX-v2 AI-5: Contract §4 AI-5 — 連續 N ms 無 detection 結果觸發 PIPELINE-STALL
+        private const val DETECTION_HEARTBEAT_TIMEOUT_MS = 3000L
     }
 
     // v2.11.4-01: Flag to enable Camera2 AE/AF state logging (toggled by lock/unlock)
@@ -401,7 +403,7 @@ class LiveCameraSource @Inject constructor(
                     )
                     // AI-5: Heartbeat protection — warn if detection pipeline stalled > 3s
                     val nowMs = System.currentTimeMillis()
-                    if (liveDetector != null && lastDetectionTimeMs > 0L && (nowMs - lastDetectionTimeMs) > 3000L) {
+                    if (liveDetector != null && lastDetectionTimeMs > 0L && (nowMs - lastDetectionTimeMs) > DETECTION_HEARTBEAT_TIMEOUT_MS) {
                         Log.w(TAG, "[PIPELINE-STALL] Detection heartbeat timeout: ${nowMs - lastDetectionTimeMs}ms since last result")
                     }
                     // AI-7: F4v2-Diag 7-field diagnostic log (Contract C2 geometry verification)
