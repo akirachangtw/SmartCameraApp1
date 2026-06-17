@@ -5,9 +5,9 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| P08-F4-FIX-v2-REPAIR-2 | 🟡 /qa PASS · 待 /sv + Traycer + 真機 AC-1~AC-4 |
-| P08-F4-FIX-v2-REPAIR | 🟡 REPAIR-2 session token guard 補完後接續驗收 |
-| P08-F4-FIX-v2 | 🟡 REPAIR 修補 bitmap ownership + session token · 接續 Traycer + 真機驗收 |
+| P08-F4-FIX-v2-REPAIR-3 | 🟡 /qa PASS · 待 /sv + Traycer + 真機 AC-1~AC-4 |
+| P08-F4-FIX-v2-REPAIR-2 | 🟡 /sv Cross-Review PASS · REPAIR-3 FaceDetector lifecycle 對齊後接續驗收 |
+| P08-F4-FIX-v2-REPAIR | 🟡 REPAIR chain — 待 REPAIR-3 閉環後累積 Traycer |
 | INFRA-52 | ✅ structural_verify v2.0 — 四級 verdict + lib_verify + policy env |
 | P08-F4-FIX-REPAIR | ✅ Traycer execute_review PASS · 閉環（模擬器 only） |
 
@@ -17,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S16** · P08-F4-FIX-v2-REPAIR /sv Cross-Review PASS → 待 Traycer execute_review + 真機 AC-1~AC-4 |
+| Schedule | **S16** · P08-F4-FIX-v2-REPAIR-3 /qa PASS → 待 /sv + Traycer execute_review + 真機 AC-1~AC-4 |
 | Compile | 0 errors ✅ (assembleDebug PASS, both device+emulator variants, 28s) |
 | Tests | 362 passed ✅ (testDeviceDebugUnitTest + testEmulatorDebugUnitTest, 0 failed) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
