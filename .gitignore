@@ -71,3 +71,11 @@ docs/session_handoff/
 plans/cso_briefing/
 plans/uita_project/
 plans/archive/
+
+# Understand-Anything (UA) — 中間產物不入 git
+.understand-anything/intermediate/
+.understand-anything/diff-overlay.json
+.understand-anything/tmp/
+.understand-anything/.trash-*/
+# UA 誤跑於 src/ 子目錄的殘留產物（正確位置為專案根目錄）
+app/src/**/.understand-anything/
