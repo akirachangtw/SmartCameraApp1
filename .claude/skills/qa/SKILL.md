@@ -174,3 +174,8 @@ Token 估算基準
 ## Session 健康度
 
 參照 CLAUDE.md §Session Health 規則。在 Report 末尾附上上述📊摘要。
+
+## SV Archive Retention
+
+`structural_verify.sh` archives each run to `tmp/sv_report_YYYYMMDD_HHMMSS.md`.
+The archive retention policy is latest 5 snapshots only.
