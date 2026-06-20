@@ -5,7 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| UA-01 | 🟡 待執行 — `/understand --language zh-TW` Knowledge Graph Generation |
+| UA-01 | ✅ SV done — knowledge-graph.json 340 nodes / 543 edges · Dashboard 上線 |
 | P08-F4-FIX-v2-REPAIR-3 | 🟡 Detection 真機 PASS · Halo 渲染 5 bugs 阻塞視覺 AC · 待開票修復 |
 | P08-F4-FIX-v2-REPAIR-2 | 🟡 REPAIR-3 補完 · 含入真機驗收 |
 | INFRA-52 | ✅ structural_verify v2.0 — 四級 verdict + lib_verify + policy env |
@@ -17,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S17** · P08-F4-FIX-v2 Detection 真機 PASS · Halo 5 bugs 待開票 · UA-01 下一步 |
+| Schedule | **S17** · UA-01 ✅ · State Contract Phase B 升格為前置（R-1 撤回）· Halo/AF bugs 待 Phase B 後開票 |
 | Compile | 0 errors ✅ (assembleDebug PASS, both device+emulator variants, 28s) |
 | Tests | 362 passed ✅ (testDeviceDebugUnitTest + testEmulatorDebugUnitTest, 0 failed) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
@@ -36,12 +36,12 @@
 
 ## Next Actions
 
-> **S17（2026-06-20）：P08-F4-FIX-v2 Detection 真機 PASS · Halo 渲染 5 bugs 確認待開票 · UA-01 Knowledge Graph 下一步**
+> **S17（2026-06-20）：UA-01 ✅ 閉環 · State Contract Phase B 升格（S17 裁決：R-1 撤回，Phase B 為 Halo/AF 修復前置必做）**
 
-1. **🟡 UA-01（P2 基礎建設）**：`/understand --language zh-TW` → `.understand-anything/knowledge-graph.json` → `/understand-dashboard`（Ticket: `plans/cso_briefing/project/Pending/UA-01_Knowledge_Graph_Generation.md`）
-2. **🔴 BUG-HALO-NOPTF-DEGENERATE（P1）**：`drawGazeHalo()` 對齊 PTF 分支 HaloTraction 規格（`HaloGuidanceLayer.kt:285,299,323-352`）+ gaze Halo alpha 1.0 → 0.25
-3. **🔴 I7-FIX（P1）**：EyeAfController `process()` 加 `lensFocusState` 參數 + Guard 7 skip-when-focused（`EyeAfController.kt:131-174`）；同時 PTF gate 互斥（`CameraViewModel.kt:1945`）
-4. **🔴 P08-F7（P0）**：PTF Halo bbox 跟隨 + alpha 修正（`HaloGuidanceLayer.kt`）
+1. **🔴 State Contract Phase B（CSO 主導）**：StateFlow 訂閱鏈分析 — 6 組檔案（入口組裝 / 主鏈路骨幹 / 幾何狀態 authority / PTF 規則 / 次級 / 排除），產出 State Contract 設計輸入。依賴 UA-01 圖譜已完成。
+2. **🔴 BUG-HALO-NOPTF-DEGENERATE（P1）**：`drawGazeHalo()` 對齊 PTF 分支（`HaloGuidanceLayer.kt:285,299,323-352`）+ alpha 1.0 → 0.25（待 Phase B 後開票）
+3. **🔴 I7-FIX（P1）**：EyeAfController Guard 7 skip-when-focused（`EyeAfController.kt:131-174`）+ PTF gate（`CameraViewModel.kt:1945`）（待 Phase B 後開票）
+4. **🔴 P08-F7（P0）**：PTF Halo bbox 跟隨 + alpha 修正（`HaloGuidanceLayer.kt`）（待 Phase B 後開票）
 
 ## Active Debt（僅列未解決項）
 
