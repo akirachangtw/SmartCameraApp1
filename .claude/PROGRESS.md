@@ -7,7 +7,7 @@
 | ---------- | ---- |
 | UA-01 | ✅ SV done — knowledge-graph.json 340 nodes / 543 edges · Dashboard 上線 |
 | P08-F4-FIX-v2-REPAIR-3 | ✅ Traycer execute_review PASS · Detection 真機 PASS · Halo 5 bugs 待後續票 |
-| P08-F4-FIX-v2-REPAIR-2 | 🟡 REPAIR-3 補完 · 含入真機驗收 |
+| P08-F4-FIX-v2-REPAIR-2 | 🔴 Hard Gate FAIL · Traycer PASS · AC-1/2/3 🟡 Detection PASS Halo 殘缺 · AC-4 🔴 橫向 detection 失效 · AC-5~9 ✅ |
 | INFRA-52 | ✅ structural_verify v2.0 — 四級 verdict + lib_verify + policy env |
 | P08-F4-FIX-REPAIR | ✅ Traycer execute_review PASS · 閉環（模擬器 only） |
 
@@ -28,7 +28,7 @@
 | ---- | ------- | ---------- | ------------ |
 | I7 / BUG-I7-FOCUS-RING-PERSIST | FocusIndicatorOverlay 雙圓環持續顯示（實機確認） | 🔴 P1 | `EyeAfController` 每 2s 觸發新 `stableId` → `LaunchedEffect` 重置 `alphaTarget=1.0`，dwell fade 永遠被打斷。修復：Guard 7（`LensFocusState.Focused + drift < 閾值 → skip`）+ `lastTriggerPoint` instance var。 |
 | BHA-01 | T02 Hard Gate — 歸一化 ✅，視覺 🔴 | 🟡 部分通過 | 歸一化數學 PASS（所有場景 normBbox [0,1]）。視覺 FAIL：4 個前置 Bug 阻塞。 |
-| BUG-P08-F4-REAL-DEVICE | Detection 真機 PASS（faceCount=1 ×551，hooks ×4 輪無洩漏）。Halo 渲染 5 個問題阻塞視覺 AC：①後鏡頭瘋狂對焦(I7) ②對齊後 Halo 消失≥10s(SSOT §2.5 偏離) ③PTF 仍 2-3s AF閃 ④非PTF Halo 退化單圈圓環 ⑤琥珀 alpha=1.0(應 0.25)。證據: `tmp/evidence_halo_realdevice_20260617.md` | 🟡 Halo 修復待開票 | 5 bugs 全在 presentation 層，超出 detection scope |
+| BUG-P08-F4-REAL-DEVICE | 🔴 Hard Gate FAIL · AC-1 🟡 Detection PASS / Halo I7+alpha+退化 · AC-2 🟡 Detection PASS / Halo 偶閃 · AC-3 🟡 PTF HaloTraction OK / 2-3s AF閃 · AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）· AC-5~9 ✅ | 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-HALO-NOPTF-DEGENERATE | 非 PTF gaze Halo = 退化單圈圓環（無呼吸/無方向弧/對齊即隱藏），PTF 分支正確。違反 SSOT §2.5 | 🔴 P1 | `HaloGuidanceLayer.kt:285,299,323-352`（drawGazeHalo 退化實作） |
 | BUG-LCSOURCE-HARDCODED-ROTATION | LiveCameraSource compensatedRotation 硬編碼（後=90°, 前=270°），橫向 HAL=0 但常數不變 → 後+90°、前+270° 偏差。S15 四場景實機量化完成。 | 🟡 P1 | 依賴 P08-F4-FIX 真機修復完成後開立 P08-F9。`LiveCameraSource.kt:340` |
 | BUG-PTF-HALO-SIZE | PTF 圓環渲染過大且不跟隨（三重根因：固定中心 / 固定半徑 / alpha 偏高） | 🔴 P0 | P08-F7 待實作：`HaloGuidanceLayer.kt` bbox 跟隨 + alpha 呼吸韻律修正。 |
