@@ -1,0 +1,71 @@
+# .understandignore — Cueshot UA-01 Knowledge Graph Scan
+# 策略：聚焦 app/src/main/ 產品原始碼，排除所有非核心內容
+# 簽發：CSO Session S17, 2026-06-20
+# 語法：同 .gitignore（glob patterns, # 註解, ! 強制包含）
+
+# ===== 建構產物 / IDE / 依賴 =====
+.gradle/
+.idea/
+.kotlin/
+build/
+gradle/
+*.iml
+local.properties
+.externalNativeBuild/
+.cxx/
+
+# ===== AI Agent 設定檔（非源碼）=====
+.agents/
+.claude/
+.codex/
+.gemini/
+.vscode/
+.clinerules
+.clinerules.bak
+AGENTS.md
+CLAUDE.local.md
+sv_report.md
+normal_dump.xml
+
+# ===== 治理文件 / 設計文件（已有 CSO_INDEX 導航）=====
+plans/
+docs/
+devspec/
+design_references/
+screenshots/
+others/
+tools/
+
+# ===== 備份 / 暫存 =====
+*.tar.gz
+*.tmp
+tmp/
+.tmp/
+docs/session_handoff/
+
+# ===== 非核心根目錄檔案 =====
+CHANGELOG.md
+CONTRIBUTING.md
+DAILY_DEVELOPMENT_SOP.md
+OPENCV_INTEGRATION_RESEARCH.md
+RESTORE_CHAT_LOGS.md
+CHAT_LOGS_BACKUP_MANIFEST.md
+pixel9a_report.md
+
+# ===== 測試碼（首輪排除，聚焦產品碼）=====
+**/src/test/**
+**/src/androidTest/**
+app/src/debug/assets/test_images/
+
+# ===== OpenCV 子專案（低優先）=====
+opencv/
+
+# ===== UA 自身中間產物 =====
+.understand-anything/intermediate/
+.understand-anything/tmp/
+
+# ===== 強制包含（確保核心源碼不被意外排除）=====
+!app/src/main/**
+!app/build.gradle.kts
+!build.gradle.kts
+!settings.gradle.kts
