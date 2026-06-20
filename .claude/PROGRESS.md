@@ -6,7 +6,7 @@
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
 | UA-01 | ✅ SV done — knowledge-graph.json 340 nodes / 543 edges · Dashboard 上線 |
-| P08-F4-FIX-v2-REPAIR-3 | 🟡 Detection 真機 PASS · Halo 渲染 5 bugs 阻塞視覺 AC · 待開票修復 |
+| P08-F4-FIX-v2-REPAIR-3 | ✅ Traycer execute_review PASS · Detection 真機 PASS · Halo 5 bugs 待後續票 |
 | P08-F4-FIX-v2-REPAIR-2 | 🟡 REPAIR-3 補完 · 含入真機驗收 |
 | INFRA-52 | ✅ structural_verify v2.0 — 四級 verdict + lib_verify + policy env |
 | P08-F4-FIX-REPAIR | ✅ Traycer execute_review PASS · 閉環（模擬器 only） |
