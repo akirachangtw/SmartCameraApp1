@@ -5,19 +5,19 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| PHASE-B-01-R1 | ✅ RC1 三紅燈修正完成 · Review Summary 新建 · 待 Traycer T5 cross-file grounding |
+| STATE-CONTRACT-01 | ✅ DI-1～DI-5 設計完成 · 待 Traycer T1 architectural_review · 待 T5 PASS 後 |
+| PHASE-B-01 | ✅ AN-1～AN-6 全完成 · RC1 發現三紅燈 → R1 票修正 |
 | UA-01 | ✅ SV done — knowledge-graph.json 340 nodes / 543 edges · Dashboard 上線 |
-| P08-F4-FIX-v2-REPAIR-3 | ✅ Traycer execute_review PASS · Detection 真機 PASS · Halo 5 bugs 待後續票 |
-| P08-F4-FIX-v2-REPAIR-2 | 🔴 Hard Gate FAIL · Traycer PASS · AC-1/2/3 🟡 Detection PASS Halo 殘缺 · AC-4 🔴 橫向 detection 失效 · AC-5~9 ✅ |
-| INFRA-52 | ✅ structural_verify v2.0 — 四級 verdict + lib_verify + policy env |
-| P08-F4-FIX-REPAIR | ✅ Traycer execute_review PASS · 閉環（模擬器 only） |
+| INFRA-55 | ✅ tools/start-claude-channels.ps1 psmux Telegram 啟動腳本 |
 
-**Last Updated**: 2026-06-20
+**Last Updated**: 2026-06-22
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S17** · UA-01 ✅ · State Contract Phase B 升格為前置（R-1 撤回）· Halo/AF bugs 待 Phase B 後開票 |
+| Schedule | **S18** · PHASE-B-01 ✅ · PHASE-B-01-R1 ✅ · STATE-CONTRACT-01 設計 ✅ · 待 Traycer T5+T1 → 實作票開票 |
 | Compile | 0 errors ✅ (assembleDebug PASS, both device+emulator variants, 28s) |
 | Tests | 362 passed ✅ (testDeviceDebugUnitTest + testEmulatorDebugUnitTest, 0 failed) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
@@ -36,12 +36,12 @@
 
 ## Next Actions
 
-> **S17（2026-06-20）：UA-01 ✅ 閉環 · State Contract Phase B 升格（S17 裁決：R-1 撤回，Phase B 為 Halo/AF 修復前置必做）**
+> **S18（2026-06-22）：PHASE-B-01 ✅ + STATE-CONTRACT-01 設計 ✅ · 待 Traycer 雙重驗收 → 實作票**
 
-1. **🔴 State Contract Phase B（CSO 主導）**：StateFlow 訂閱鏈分析 — 6 組檔案（入口組裝 / 主鏈路骨幹 / 幾何狀態 authority / PTF 規則 / 次級 / 排除），產出 State Contract 設計輸入。依賴 UA-01 圖譜已完成。
-2. **🔴 BUG-HALO-NOPTF-DEGENERATE（P1）**：`drawGazeHalo()` 對齊 PTF 分支（`HaloGuidanceLayer.kt:285,299,323-352`）+ alpha 1.0 → 0.25（待 Phase B 後開票）
-3. **🔴 I7-FIX（P1）**：EyeAfController Guard 7 skip-when-focused（`EyeAfController.kt:131-174`）+ PTF gate（`CameraViewModel.kt:1945`）（待 Phase B 後開票）
-4. **🔴 P08-F7（P0）**：PTF Halo bbox 跟隨 + alpha 修正（`HaloGuidanceLayer.kt`）（待 Phase B 後開票）
+1. **🔴 Traycer T5**：`PHASE-B-01-R1` 四份 deliver 文件 cross-file repo-grounding PASS
+2. **🔴 Traycer T1**：`STATE-CONTRACT-01_Design_Output.md` architectural_review PASS（T5 PASS 後執行）
+3. **🔴 STATE-CONTRACT-01-IMPL**：開實作票（AI-1～AI-6，6 個 ALLOWED .kt 檔）（T1 PASS 後）
+4. **🔴 BUG-HALO-NOPTF-DEGENERATE / I7-FIX / P08-F7**：均由 STATE-CONTRACT-01-IMPL 閉環（Bug #1～#5 對應設計已完成）
 
 ## Active Debt（僅列未解決項）
 
