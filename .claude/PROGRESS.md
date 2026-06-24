@@ -5,19 +5,19 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| PHASE-B-01-R1 | ✅ RC1 三紅燈修正完成 · Review Summary 新建 · 待 Traycer T5 cross-file grounding |
-| STATE-CONTRACT-01 | ✅ DI-1～DI-5 設計完成 · 待 Traycer T1 architectural_review · 待 T5 PASS 後 |
-| PHASE-B-01 | ✅ AN-1～AN-6 全完成 · RC1 發現三紅燈 → R1 票修正 |
-| UA-01 | ✅ SV done — knowledge-graph.json 340 nodes / 543 edges · Dashboard 上線 |
-| INFRA-55 | ✅ tools/start-claude-channels.ps1 psmux Telegram 啟動腳本 |
+| PHASE-B-01-R4 | ✅ Traycer T5 PASS · Consumer Map Q1 + Review Summary stale-pointer 修正完成 |
+| PHASE-B-01-R3 | ✅ RC2 repo-grounding 三紅燈全清（getFocusState / FocusIndicatorOverlay / CompositionGuideOverlay） |
+| STATE-CONTRACT-01 | ✅ DI-1～DI-5 設計完成 · **🔴 待 Traycer T1** |
+| INFRA-57 | ✅ /cleanchat skill — md-formatting.sh Markdown 清理工具 |
+| INFRA-56 | ✅ PROGRESS.md S18 儀表板同步 |
 
-**Last Updated**: 2026-06-22
+**Last Updated**: 2026-06-24
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S18** · PHASE-B-01 ✅ · PHASE-B-01-R1 ✅ · STATE-CONTRACT-01 設計 ✅ · 待 Traycer T5+T1 → 實作票開票 |
+| Schedule | **S20** · PHASE-B-01 R1～R4 ✅ · Traycer T5 ✅ PASS · **待 Traycer T1 → 實作票開票** |
 | Compile | 0 errors ✅ (assembleDebug PASS, both device+emulator variants, 28s) |
 | Tests | 362 passed ✅ (testDeviceDebugUnitTest + testEmulatorDebugUnitTest, 0 failed) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
@@ -36,12 +36,11 @@
 
 ## Next Actions
 
-> **S18（2026-06-22）：PHASE-B-01 ✅ + STATE-CONTRACT-01 設計 ✅ · 待 Traycer 雙重驗收 → 實作票**
+> **S20（2026-06-24）：PHASE-B-01 R1～R4 ✅ · Traycer T5 ✅ PASS · 待 Traycer T1 → 實作票**
 
-1. **🔴 Traycer T5**：`PHASE-B-01-R1` 四份 deliver 文件 cross-file repo-grounding PASS
-2. **🔴 Traycer T1**：`STATE-CONTRACT-01_Design_Output.md` architectural_review PASS（T5 PASS 後執行）
-3. **🔴 STATE-CONTRACT-01-IMPL**：開實作票（AI-1～AI-6，6 個 ALLOWED .kt 檔）（T1 PASS 後）
-4. **🔴 BUG-HALO-NOPTF-DEGENERATE / I7-FIX / P08-F7**：均由 STATE-CONTRACT-01-IMPL 閉環（Bug #1～#5 對應設計已完成）
+1. **🔴 Traycer T1**：`STATE-CONTRACT-01_Design_Output.md` architectural_review PASS
+2. **🔴 STATE-CONTRACT-01-IMPL**：開實作票（AI-1～AI-6，6 個 ALLOWED .kt 檔）（T1 PASS 後）
+3. **🔴 BUG-HALO-NOPTF-DEGENERATE / I7-FIX / P08-F7**：均由 STATE-CONTRACT-01-IMPL 閉環（Bug #1～#5 對應設計已完成）
 
 ## Active Debt（僅列未解決項）
 
