@@ -1,4 +1,4 @@
 interface:
   display_name: "execute"
-  short_description: "Manage ticket execution and drift control"
-  default_prompt: "Use $execute to batch tickets, prepare Claude handoff prompts, and review completed work against the Tech Plan."
+  short_description: "Prepare scoped execution handoffs"
+  default_prompt: "Use $execute to batch scoped tickets and draft Claude Code handoff prompts with target files, ban lists, acceptance criteria, and defensive warnings."

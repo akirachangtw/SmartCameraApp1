@@ -1,28 +1,28 @@
 ---
 name: execute
-description: Orchestrate implementation from ticket handoff through batch completion. Use after ticket-breakdown when Codex must decide which tickets to run, group them into safe batches, draft precise Claude Code handoff prompts, review returned diffs against the Tech Plan, detect implementation drift, and decide whether to continue, issue fix instructions, or stop for user alignment.
+description: Orchestrate scoped implementation handoffs after ticket breakdown. Use when Codex must decide which tickets to run, group them into dependency-safe batches, draft precise Claude Code handoff prompts with target files, absolute ban lists, acceptance criteria, and defensive warnings, then route returned diffs through execution review or strict verification without expanding scope.
 ---
 
 # Execute
 
 ## Role
 
-[Planner Mode] Execution orchestrator who manages the implementation lifecycle from handoff to completion.
+[Planner Mode] Execution orchestrator who manages the handoff lifecycle from scoped ticket to Claude Code execution.
 
 **Focus on:**
 
 - Systematic progression through tickets with proper dependency ordering.
 - Constructing precise handoff instructions for Claude Code, the execution agent.
-- Continuous validation of execution results against the Tech Plan.
-- Proactive detection of implementation drift or scope creep.
-- Ensuring each ticket leaves the codebase in a working state.
+- Separating parallel-executable tickets from sequential tickets.
+- Ensuring each handoff carries full defensive context.
+- Routing returned implementation results to review without rewriting the agreed approach.
 
 ## Core Philosophy
 
-Execution is not fire-and-forget. It is a supervised process where:
+Execution is the bridge between planning and implementation. The primary job is to construct unambiguous handoffs; review uses the bundled checklist or `$strict-verification` after code returns.
 
-- Automation, such as Claude Code, handles the mechanical work, but validation ensures correctness.
-- Implementation drift is detected and corrected promptly.
+- Automation, such as Claude Code, handles mechanical code changes; this skill controls scope and sequencing.
+- One ticket becomes one handoff unless the user explicitly asks for a grouped batch and dependencies permit it.
 - Significant approach changes require user alignment, not autonomous pivots.
 - Tickets progress systematically with clear completion criteria.
 
@@ -32,25 +32,21 @@ Execution is not fire-and-forget. It is a supervised process where:
    - Determine which tickets to execute, specific tickets or all.
    - Group tickets into execution batches, parallel-executable vs sequential.
    - Present the execution plan to the user.
-2. **Execute Batch, Handoff to Claude Code:**
+2. **Construct Handoff Instructions:**
    - For each ticket in the batch, construct the handoff.
-   - Provide the user with the exact prompt to paste to Claude Code. It must reference the ticket, L1 and L2 specs, acceptance criteria, and explicit scope boundaries.
-3. **Review and Validate Completed Work:**
-   - Once Claude Code returns results, review the diff of the code changes.
-   - **Approach Alignment:** Were the agreed technical decisions followed?
-   - **Invariant Preservation:** Were defensive patterns respected?
-   - **Scope Discipline:** Did Claude Code stay within the ticket boundaries?
-4. **Handle Findings and Iterate:**
-   - **Well Implemented:** Mark the ticket done and proceed to the next batch.
-   - **Minor Issues:** Trigger a fix instruction for Claude Code.
-   - **Approach Drift or Invariant Violation:** Stop, involve the user, explain the discrepancy, and do not autonomously update the Tech Plan.
-5. **Confirm Completion:**
-   - Once all batches are done, summarize the implementation.
-   - Suggest running `$strict-verification` for a thorough holistic review of the full refactoring.
+   - Include ticket ID, SSOT/contract/Tech Plan reference, target files, absolute ban list, acceptance criteria, relevant Tech Plan context, and the ticket's defensive warning.
+   - Append the execution discipline declaration from `references/handoff-template.md`.
+3. **Present Before Execution:**
+   - Provide the exact prompt to paste to Claude Code.
+   - Do not claim execution is complete until returned evidence is reviewed.
+4. **Route Returned Work:**
+   - If Claude Code returns a diff or report for one ticket, use `references/execution-review-checklist.md`.
+   - If all scoped tickets are complete, route to `$strict-verification` for holistic review.
+   - Stop for user alignment on approach drift or invariant violations; do not rewrite the Tech Plan autonomously.
 
 ## Acceptance Criteria
 
-- Tickets progress systematically through batches.
-- Drift is detected early and corrected promptly.
-- Invariants are preserved across all tickets.
-- User is prompted to move to `$strict-verification` once all tickets are marked done.
+- Execution plan with batch grouping is presented.
+- Every handoff includes ticket ID, authority reference, target files, ban list, acceptance criteria, relevant context, and defensive warning.
+- Execution discipline declaration is appended to every handoff.
+- Returned work is routed to per-ticket execution review or `$strict-verification` as appropriate.

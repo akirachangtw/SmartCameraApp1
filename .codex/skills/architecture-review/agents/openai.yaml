@@ -1,4 +1,4 @@
 interface:
   display_name: "architecture-review"
   short_description: "Stress-test Android camera architecture"
-  default_prompt: "Use $architecture-review to review an L1 Context and L2 guide for a CameraX/Camera2 design before ticket breakdown."
+  default_prompt: "Use $architecture-review to pressure-test an L1/L2 camera design for hardware limits, state isolation, UDF, mutual exclusion, and device degradation before ticket breakdown."

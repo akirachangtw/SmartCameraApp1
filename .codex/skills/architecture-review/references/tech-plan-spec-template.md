@@ -22,6 +22,15 @@ Use this structure for the final approved output.
 |---|---|---|---|---|
 | Example | Fixed-focus | No physical AF travel | Synthesize bounded lock path | Replace with real data |
 
+### 3.1 Mutual Exclusion And Degradation
+
+- ML Kit Face/Object detector rule:
+- Scene switching hysteresis or cooldown:
+- IMU/render-loop decoupling:
+- FULL device behavior:
+- LIMITED device behavior:
+- LEGACY device behavior:
+
 ### 4. Defensive State Model
 
 - Define the sealed states that matter.
@@ -52,6 +61,7 @@ sealed interface ExampleState {
 - Lens or device consistency rule:
 - Cleanup timing rule:
 - Callback drop policy:
+- Hardware cooldown or throttle rule:
 
 ### 7. Scope Boundaries
 

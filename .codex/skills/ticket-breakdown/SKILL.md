@@ -14,6 +14,7 @@ description: Translate a validated Tech Plan Spec into small, isolated implement
 - Extreme isolation, preventing AI coding agents like Claude Code from accidentally rewriting unrelated components.
 - Atomic progression, making every ticket independently verifiable and logically sequenced.
 - Clear acceptance criteria for every single ticket.
+- SSOT cross-reference and absolute ban lists for every ticket.
 
 ## Core Philosophy
 
@@ -22,19 +23,26 @@ description: Translate a validated Tech Plan Spec into small, isolated implement
 ## Processing User Request
 
 1. **Review Tech Plan:** Read the `Tech Plan Spec` generated in the previous step.
-2. **Slice into Scoped Tickets:** Break down the implementation into atomic steps. Sequence them logically, for example Data and State first, then Hardware Adapter, then UI.
-   - Ticket 1: Define Sealed Classes and UI State objects only.
-   - Ticket 2: Implement hardware bypass logic in CameraControlAdapter only.
-   - Ticket 3: Connect UDF from ViewModel to Compose UI.
-3. **Enforce Rules:** For each ticket, explicitly list:
-   - **Target Files:** Which files are allowed to be touched.
-   - **Acceptance Criteria:** How to prove it works.
+2. **Map To Authority:** For each functionality slice, cite the SSOT, contract, or Tech Plan section it implements. Flag untraceable work as scope creep.
+3. **Slice Into Scoped Tickets:** Break down the implementation into atomic steps. Sequence them logically:
+   - Data/state definitions first.
+   - Domain rules, engines, or use cases second.
+   - Integration, ViewModel wiring, and DI third.
+   - UI rendering and Compose/Canvas changes last.
+4. **Enforce Rules:** For each ticket, explicitly list:
+   - **SSOT Reference:** The authority section this ticket implements.
+   - **Target Files:** Files allowed to be touched.
+   - **Absolute Ban List:** Files, modules, behaviors, or refactors forbidden for this ticket.
+   - **Acceptance Criteria:** Exact tests, build commands, or review checks that prove completion.
+   - **Dependencies:** Required prior tickets, parallel-safe tickets, and expected starting state.
    - **Defensive Warning:** Add this exact string:
-     `Do NOT refactor outside this scope. Once completed and successfully built, STOP and wait for Quality Gate verification.`
+     `Do NOT refactor outside this scope. Do NOT rename variables in unrelated files. Do NOT add TODO() or placeholder implementations. Once completed and successfully built, STOP and wait for Quality Gate verification.`
 
 ## Acceptance Criteria
 
 - The Tech Plan is fully covered by the generated tickets in a logical, step-by-step sequence.
-- No single ticket encompasses a sweeping architectural rewrite.
+- Every ticket maps to SSOT, contract, or Tech Plan authority.
+- No single ticket crosses architectural layers unless the Tech Plan explicitly requires it.
+- Every ticket has target files, absolute ban list, concrete acceptance criteria, and dependencies.
 - Every ticket contains the explicit defensive warning for Claude Code.
 - Ticket output is ready to hand off to `$execute`.

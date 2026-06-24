@@ -1,4 +1,4 @@
 interface:
   display_name: "strict-verification"
   short_description: "Verify implementation against plan intent"
-  default_prompt: "Use $strict-verification to compare implementation against the Tech Plan Spec and decide approve, fix tickets, or re-plan."
+  default_prompt: "Use $strict-verification to review the full implementation against the Tech Plan, run reverse scans, check gstack continuity, and decide approve, fix, or re-plan."

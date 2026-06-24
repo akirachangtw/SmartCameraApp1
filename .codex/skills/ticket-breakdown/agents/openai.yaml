@@ -1,4 +1,4 @@
 interface:
   display_name: "ticket-breakdown"
   short_description: "Slice a tech plan into scoped tickets"
-  default_prompt: "Use $ticket-breakdown to convert a Tech Plan Spec into small, isolated implementation tickets with strict boundaries."
+  default_prompt: "Use $ticket-breakdown to convert a Tech Plan Spec into SSOT-traceable tickets with target files, absolute ban lists, dependencies, and acceptance checks."

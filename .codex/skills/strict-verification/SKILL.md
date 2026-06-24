@@ -14,11 +14,13 @@ description: "Apply the final quality gate after implementation. Use after $exec
 - Checking implementation against the agreed `Tech Plan Spec` and scoped tickets.
 - Identifying implementation drift, such as AI adding unauthorized try-catch blocks to bypass errors.
 - Surfacing issues discovered during implementation that require rethinking.
+- Re-running the reverse scans across the full combined changeset, not just individual tickets.
+- Checking gstack continuity: PROGRESS.md sync, KAIROS trigger, and CLAUDE.md rule harvest.
 - Closing the feedback loop between planning and execution.
 
 ## Core Philosophy
 
-[Reviewer Mode Activated] Trust but verify. Planning cannot anticipate everything. Implementation reveals realities that were not visible during analysis. The goal is correctness, not blame. Assume the coding agent made shortcuts unless proven otherwise.
+[Reviewer Mode Activated] Trust the reviewed parts, verify the assembled whole. Planning cannot anticipate everything, and individual tickets passing does not prove cross-ticket consistency. Assume shortcuts, stale code paths, and lifecycle gaps exist until the integrated changeset proves otherwise.
 
 ## Response Mode
 
@@ -26,19 +28,25 @@ Respond in Plan Mode: explore first, then clarify requirements, and finally prod
 
 ## Processing User Request
 
-1. **Understand Intent:** Read the `Tech Plan Spec` and the specific ticket that was just executed.
-2. **Review Implementation:** Inspect the actual codebase changes made by Claude Code.
-   - **Target State:** Does the refactored code match the defined Sealed Classes and UDF?
-   - **Invariants:** Were the defensive patterns preserved? Did the agent hack around a problem?
-3. **Analyze New Information, Logcat or Errors:** If the user provided Logcat errors from device testing, determine whether this is a minor syntax issue or a fundamental architectural flaw.
-4. **Determine Next Steps, Three Paths:** Based on the findings, take one of three paths:
-   - **Path A, Approved:** The implementation plan is fully consistent with the plan. Display instructions: Instruct users to record key experiences in the `devspec/feature_record_Backlog.md` file. Close the workflow.
-   - **Path B, Create a Fix Ticket:** A deviation has been detected, such as a minor error or omission. Create a highly specific fix ticket and guide the user to run it using Claude Code.
-   - **Path C, Upgrade to Redesign:** A major problem has occurred, such as Logcat indicating hardware limitations causing the solution to fail. Display a description and terminate execution: It is recommended to return to `$architecture-review` to redesign the architecture.
+1. **Understand Intent:** Read the `Tech Plan Spec`, all scoped tickets in the implementation set, and any prior execution-review findings or learnings.
+2. **Holistic Implementation Review:** Inspect the actual codebase changes made by Claude Code.
+   - **Target State:** Does the assembled code match the intended structure, Sealed Classes, UDF, and hardware matrix?
+   - **Cross-Ticket Consistency:** Do shared interfaces, DI bindings, ViewModel wiring, and UI consumers connect without contradictions?
+   - **Invariants:** Were all defensive patterns preserved across the combined changeset?
+   - **Risk Hotspots:** Were concurrency, lifecycle, persistence, ML Kit, CameraX/Camera2, and performance-sensitive flows handled deliberately?
+3. **Run Full-Scope Reverse Scan:** Use `references/verification-checklist.md` to re-run orphan-code, anti-mock, edge-case, and state-mutual-exclusion scans across the entire implementation scope.
+4. **Analyze New Information, Logcat, Or Device Evidence:** If the user provided Logcat errors, runtime results, or device tests, determine whether each issue is a local fix, an implementation drift, or evidence that invalidates the Tech Plan.
+5. **Check gstack Continuity:** Verify PROGRESS.md status, KAIROS sprint trigger, and any candidate CLAUDE.md rules from accumulated learnings.
+6. **Determine Next Steps, Three Paths:**
+   - **Path A, Approve:** Implementation matches the plan, required evidence is present, PROGRESS.md is synchronized, and KAIROS is handled or not applicable.
+   - **Path B, Create Fix Tickets:** The plan still stands, but implementation missed edge cases, left orphan code, drifted in a contained way, or failed gstack sync.
+   - **Path C, Escalate To Re-plan:** Runtime evidence or integration findings invalidate the architecture or reveal a blocker that cannot be repaired inside the existing tickets.
 
 ## Acceptance Criteria
 
-- Implementation has been reviewed against the `Tech Plan Spec`.
+- Implementation has been reviewed against the `Tech Plan Spec` and the full ticket set, not only the most recent ticket.
+- Full-scope reverse scans have been executed.
+- PROGRESS.md, KAIROS trigger, and candidate CLAUDE.md rule harvest have been checked.
 - A clear decision has been made: Approve, Fix Tickets, or Escalate.
-- If Approve, SSOT documentation updates are requested.
-- If Fix or Escalate, concrete next steps are clearly defined.
+- If Approve, closure requirements and observations are recorded.
+- If Fix or Escalate, concrete next steps are clearly defined and routed back to `$execute` or `$architecture-review`.
