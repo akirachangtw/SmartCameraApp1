@@ -7,7 +7,6 @@
 | ---------- | ---- |
 | PHASE-B-01-R4 | ✅ Traycer T5 PASS · Consumer Map Q1 + Review Summary stale-pointer 修正完成 |
 | PHASE-B-01-R3 | ✅ RC2 repo-grounding 三紅燈全清（getFocusState / FocusIndicatorOverlay / CompositionGuideOverlay） |
-| STATE-CONTRACT-01 | ✅ DI-1～DI-5 設計完成 · **🔴 待 Traycer T1** |
 | INFRA-57 | ✅ /cleanchat skill — md-formatting.sh Markdown 清理工具 |
 | INFRA-56 | ✅ PROGRESS.md S18 儀表板同步 |
 
@@ -17,7 +16,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S20** · PHASE-B-01 R1～R4 ✅ · Traycer T5 ✅ PASS · **待 Traycer T1 → 實作票開票** |
+| Schedule | **S20** · PHASE-B-01 R1～R4 ✅ · Traycer T5 ✅ PASS |
 | Compile | 0 errors ✅ (assembleDebug PASS, both device+emulator variants, 28s) |
 | Tests | 362 passed ✅ (testDeviceDebugUnitTest + testEmulatorDebugUnitTest, 0 failed) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
@@ -36,11 +35,9 @@
 
 ## Next Actions
 
-> **S20（2026-06-24）：PHASE-B-01 R1～R4 ✅ · Traycer T5 ✅ PASS · 待 Traycer T1 → 實作票**
+> **S20（2026-06-24）：PHASE-B-01 R1～R4 ✅ · Traycer T5 ✅ PASS**
 
-1. **🔴 Traycer T1**：`STATE-CONTRACT-01_Design_Output.md` architectural_review PASS
-2. **🔴 STATE-CONTRACT-01-IMPL**：開實作票（AI-1～AI-6，6 個 ALLOWED .kt 檔）（T1 PASS 後）
-3. **🔴 BUG-HALO-NOPTF-DEGENERATE / I7-FIX / P08-F7**：均由 STATE-CONTRACT-01-IMPL 閉環（Bug #1～#5 對應設計已完成）
+1. **🔴 BUG-HALO-NOPTF-DEGENERATE / I7-FIX / P08-F7**：待開票實作
 
 ## Active Debt（僅列未解決項）
 
