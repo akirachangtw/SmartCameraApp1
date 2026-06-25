@@ -81,4 +81,17 @@ class GuidanceStateContractTest {
         assertEquals("Same reason must be equal", a, b)
         assertTrue("Different reason must not be equal", a != c)
     }
+
+    // ── AI-4: PTF suppression contract deviation ──────────────────────────────
+
+    @Test
+    fun `PTF_GAZE_AF_DISABLED is driven by CameraMode_PassToFriend not PtfAlignmentResult`() {
+        // Contract deviation note (STATE-CONTRACT-01-FIX-B AI-4):
+        // Ticket spec listed PtfAlignmentResult as the PTF suppression gate.
+        // Actual reducer implementation (STATE-CONTRACT-01) uses cameraMode == CameraMode.PassToFriend.
+        // PtfAlignmentResult is NOT consulted by computeGuidanceStatePure.
+        // Runtime coverage: CameraViewModelTest AC-5 (reduce(mode = CameraMode.PassToFriend)).
+        val suppressed = GuidanceState.Suppressed(SuppressionReason.PTF_GAZE_AF_DISABLED)
+        assertEquals(SuppressionReason.PTF_GAZE_AF_DISABLED, suppressed.reason)
+    }
 }

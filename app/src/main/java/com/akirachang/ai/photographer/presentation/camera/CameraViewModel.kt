@@ -62,6 +62,7 @@ import com.akirachang.ai.photographer.domain.model.guidance.GuidanceState
 import com.akirachang.ai.photographer.domain.model.guidance.SuppressionReason
 import kotlin.math.abs
 import javax.inject.Inject
+import androidx.annotation.VisibleForTesting
 
 @HiltViewModel
 class CameraViewModel @Inject constructor(
@@ -143,7 +144,93 @@ class CameraViewModel @Inject constructor(
         // This is a guidance eligibility threshold, NOT a universal faceness score.
         // Future migration target: PortraitThresholds.minEyeOpenProbForGuidance
         private const val MIN_EYE_OPEN_PROB_FOR_GUIDANCE = 0.9f
+
+        /**
+         * STATE-CONTRACT-01-FIX-B AI-1: Pure GuidanceState reducer — no ViewModel dependency.
+         * Production path: [CameraViewModel.computeGuidanceState] is the sole runtime authority;
+         * this function MUST NOT be called directly from any other runtime path.
+         *
+         * @param weightedScore Pre-computed composition score (0–100); caller supplies via [computeWeightedScore].
+         * @param afFocusing    True when AfState == AfState.Focusing.
+         */
+        @VisibleForTesting
+        internal fun computeGuidanceStatePure(
+            rawFaceCount: Int,
+            eligibleFaceCount: Int,
+            weightedScore: Float,
+            cameraMode: com.akirachang.ai.photographer.domain.camera.CameraMode,
+            afFocusing: Boolean,
+            prevGuidanceState: GuidanceState,
+            counters: GuidanceCounters,
+        ): GuidanceReducerResult {
+            val zeroed = GuidanceCounters()
+            if (cameraMode == com.akirachang.ai.photographer.domain.camera.CameraMode.PassToFriend) {
+                return GuidanceReducerResult(GuidanceState.Suppressed(SuppressionReason.PTF_GAZE_AF_DISABLED), zeroed)
+            }
+            if (afFocusing) {
+                return GuidanceReducerResult(GuidanceState.Suppressed(SuppressionReason.AF_IN_PROGRESS), counters)
+            }
+            if (rawFaceCount == 0) {
+                return GuidanceReducerResult(GuidanceState.NoFace, zeroed)
+            }
+            if (eligibleFaceCount == 0) {
+                return GuidanceReducerResult(
+                    GuidanceState.FacesDetectedNoneEligible,
+                    GuidanceCounters(0, 0, counters.hysteresisFrame),
+                )
+            }
+            var stabilizing = counters.stabilizing
+            if (prevGuidanceState == GuidanceState.NoFace ||
+                prevGuidanceState == GuidanceState.FacesDetectedNoneEligible) {
+                stabilizing = GuidanceStateConstants.ALIGNED_DWELL_FRAMES
+            }
+            if (stabilizing > 0) {
+                return GuidanceReducerResult(
+                    GuidanceState.SubjectStabilizing,
+                    GuidanceCounters(stabilizing - 1, 0, counters.hysteresisFrame),
+                )
+            }
+            val inBand = weightedScore >= GuidanceStateConstants.ALIGNED_EXIT_SCORE &&
+                weightedScore < GuidanceStateConstants.ALIGNED_ENTER_SCORE
+            val hysteresisFrame = if (inBand) counters.hysteresisFrame + 1 else 0
+            if (hysteresisFrame >= GuidanceStateConstants.OSCILLATION_THRESHOLD) {
+                return GuidanceReducerResult(
+                    GuidanceState.Suppressed(SuppressionReason.ALIGNMENT_BOUNDARY_OSCILLATION),
+                    GuidanceCounters(0, counters.alignedDwell, hysteresisFrame),
+                )
+            }
+            return when {
+                prevGuidanceState == GuidanceState.Aligned -> {
+                    val dwell = counters.alignedDwell + 1
+                    if (dwell >= GuidanceStateConstants.ALIGNED_DWELL_FRAMES &&
+                        weightedScore < GuidanceStateConstants.ALIGNED_EXIT_SCORE) {
+                        GuidanceReducerResult(GuidanceState.GuidanceActive, GuidanceCounters(0, 0, hysteresisFrame))
+                    } else {
+                        GuidanceReducerResult(GuidanceState.Aligned, GuidanceCounters(0, dwell, hysteresisFrame))
+                    }
+                }
+                weightedScore >= GuidanceStateConstants.ALIGNED_ENTER_SCORE -> {
+                    GuidanceReducerResult(GuidanceState.Aligned, GuidanceCounters(0, 0, hysteresisFrame))
+                }
+                else -> {
+                    GuidanceReducerResult(GuidanceState.GuidanceActive, GuidanceCounters(0, 0, hysteresisFrame))
+                }
+            }
+        }
     }
+
+    /** Mutable counter snapshot for [computeGuidanceStatePure]; written/read on Main thread. */
+    internal data class GuidanceCounters(
+        val stabilizing: Int = 0,
+        val alignedDwell: Int = 0,
+        val hysteresisFrame: Int = 0,
+    )
+
+    /** Return value of [computeGuidanceStatePure]: next state and updated counters. */
+    internal data class GuidanceReducerResult(
+        val state: GuidanceState,
+        val counters: GuidanceCounters,
+    )
 
     private data class TapToFocusIntent(
         val pointView: PointF,
@@ -1882,65 +1969,24 @@ class CameraViewModel @Inject constructor(
         afState: AfState,
         prevGuidanceState: GuidanceState,
     ): GuidanceState {
-        if (cameraMode == com.akirachang.ai.photographer.domain.camera.CameraMode.PassToFriend) {
-            guidanceAlignedDwellCounter = 0
-            guidanceStabilizingCounter = 0
-            guidanceHysteresisFrameCounter = 0
-            return GuidanceState.Suppressed(SuppressionReason.PTF_GAZE_AF_DISABLED)
-        }
-        if (afState == AfState.Focusing) {
-            return GuidanceState.Suppressed(SuppressionReason.AF_IN_PROGRESS)
-        }
-        if (rawFaceCount == 0) {
-            guidanceAlignedDwellCounter = 0
-            guidanceStabilizingCounter = 0
-            guidanceHysteresisFrameCounter = 0
-            return GuidanceState.NoFace
-        }
-        if (eligibleFaceCount == 0) {
-            guidanceAlignedDwellCounter = 0
-            guidanceStabilizingCounter = 0
-            return GuidanceState.FacesDetectedNoneEligible
-        }
-        if (prevGuidanceState == GuidanceState.NoFace ||
-            prevGuidanceState == GuidanceState.FacesDetectedNoneEligible) {
-            guidanceStabilizingCounter = GuidanceStateConstants.ALIGNED_DWELL_FRAMES
-        }
-        if (guidanceStabilizingCounter > 0) {
-            guidanceStabilizingCounter--
-            return GuidanceState.SubjectStabilizing
-        }
         val weightedScore = compositionResult?.let { computeWeightedScore(it) } ?: 0f
-        val inHysteresisBand = weightedScore >= GuidanceStateConstants.ALIGNED_EXIT_SCORE &&
-            weightedScore < GuidanceStateConstants.ALIGNED_ENTER_SCORE
-        if (inHysteresisBand) {
-            guidanceHysteresisFrameCounter++
-        } else {
-            guidanceHysteresisFrameCounter = 0
-        }
-        if (guidanceHysteresisFrameCounter >= GuidanceStateConstants.OSCILLATION_THRESHOLD) {
-            return GuidanceState.Suppressed(SuppressionReason.ALIGNMENT_BOUNDARY_OSCILLATION)
-        }
-        return when {
-            prevGuidanceState == GuidanceState.Aligned -> {
-                guidanceAlignedDwellCounter++
-                if (guidanceAlignedDwellCounter >= GuidanceStateConstants.ALIGNED_DWELL_FRAMES &&
-                    weightedScore < GuidanceStateConstants.ALIGNED_EXIT_SCORE) {
-                    guidanceAlignedDwellCounter = 0
-                    GuidanceState.GuidanceActive
-                } else {
-                    GuidanceState.Aligned
-                }
-            }
-            weightedScore >= GuidanceStateConstants.ALIGNED_ENTER_SCORE -> {
-                guidanceAlignedDwellCounter = 0
-                GuidanceState.Aligned
-            }
-            else -> {
-                guidanceAlignedDwellCounter = 0
-                GuidanceState.GuidanceActive
-            }
-        }
+        val result = computeGuidanceStatePure(
+            rawFaceCount = rawFaceCount,
+            eligibleFaceCount = eligibleFaceCount,
+            weightedScore = weightedScore,
+            cameraMode = cameraMode,
+            afFocusing = afState == AfState.Focusing,
+            prevGuidanceState = prevGuidanceState,
+            counters = GuidanceCounters(
+                stabilizing = guidanceStabilizingCounter,
+                alignedDwell = guidanceAlignedDwellCounter,
+                hysteresisFrame = guidanceHysteresisFrameCounter,
+            ),
+        )
+        guidanceStabilizingCounter = result.counters.stabilizing
+        guidanceAlignedDwellCounter = result.counters.alignedDwell
+        guidanceHysteresisFrameCounter = result.counters.hysteresisFrame
+        return result.state
     }
 
     private fun computeWeightedScore(result: CompositionResult): Float {

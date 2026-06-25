@@ -1,5 +1,9 @@
 package com.akirachang.ai.photographer.presentation.camera
 
+import com.akirachang.ai.photographer.domain.camera.CameraMode
+import com.akirachang.ai.photographer.domain.config.GuidanceStateConstants
+import com.akirachang.ai.photographer.domain.model.guidance.GuidanceState
+import com.akirachang.ai.photographer.domain.model.guidance.SuppressionReason
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -189,5 +193,28 @@ class CameraViewModelTest {
             lastCaptureTimeMs = lastCapture
         )
         assertTrue("Capture at 999ms must still be blocked", result)
+    }
+    // ── STATE-CONTRACT-01-FIX-B: GuidanceState reducer tests ─────────────────
+    private fun reduce(
+        raw: Int = 1, eligible: Int = 1, score: Float = 0f,
+        mode: CameraMode = CameraMode.Normal, af: Boolean = false,
+        prev: GuidanceState = GuidanceState.GuidanceActive,
+        cnt: CameraViewModel.GuidanceCounters = CameraViewModel.GuidanceCounters(),
+    ) = CameraViewModel.computeGuidanceStatePure(raw, eligible, score, mode, af, prev, cnt).state
+
+    @Test fun `AC-3 eligible0 returns FacesDetectedNoneEligible`() {
+        assertEquals(GuidanceState.FacesDetectedNoneEligible, reduce(raw = 2, eligible = 0))
+    }
+    @Test fun `AC-4 SubjectStabilizing Aligned GuidanceActive transitions`() {
+        assertEquals(GuidanceState.SubjectStabilizing, reduce(prev = GuidanceState.NoFace))
+        assertEquals(GuidanceState.Aligned, reduce(score = GuidanceStateConstants.ALIGNED_ENTER_SCORE))
+        assertEquals(GuidanceState.GuidanceActive, reduce(score = 60f, prev = GuidanceState.Aligned,
+            cnt = CameraViewModel.GuidanceCounters(alignedDwell = GuidanceStateConstants.ALIGNED_DWELL_FRAMES - 1)))
+    }
+    @Test fun `AC-5 all three suppress reasons`() {
+        assertEquals(GuidanceState.Suppressed(SuppressionReason.AF_IN_PROGRESS), reduce(af = true))
+        assertEquals(GuidanceState.Suppressed(SuppressionReason.PTF_GAZE_AF_DISABLED), reduce(mode = CameraMode.PassToFriend))
+        assertEquals(GuidanceState.Suppressed(SuppressionReason.ALIGNMENT_BOUNDARY_OSCILLATION),
+            reduce(score = 70f, cnt = CameraViewModel.GuidanceCounters(hysteresisFrame = GuidanceStateConstants.OSCILLATION_THRESHOLD - 1)))
     }
 }
