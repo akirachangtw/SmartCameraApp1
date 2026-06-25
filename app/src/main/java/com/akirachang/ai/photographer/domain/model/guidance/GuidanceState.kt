@@ -23,6 +23,8 @@ sealed class GuidanceState {
     /**
      * Eligible face(s) detected; composition score < [GuidanceStateConstants.ALIGNED_ENTER_SCORE].
      * Renders amber guidance halo with EyeLine guide.
+     * Under LANDMARK_NONE, EyeLine visual overlay may be unavailable/degraded, but semantic
+     * fallback scoring still participates.
      */
     object GuidanceActive : GuidanceState()
 

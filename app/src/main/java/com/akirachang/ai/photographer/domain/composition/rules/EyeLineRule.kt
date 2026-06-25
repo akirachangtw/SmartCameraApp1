@@ -18,7 +18,9 @@ import kotlin.math.atan2
  * tilt is 0°. Score degrades linearly to 0 at [MAX_TILT_DEG].
  *
  * Falls back to the bounding-box top edge as a proxy if either eye landmark
- * is unavailable, giving a partial score only (capped at [FALLBACK_SCORE_CAP]).
+ * is unavailable (LANDMARK_NONE), giving a partial score only (capped at [FALLBACK_SCORE_CAP]).
+ * Under LANDMARK_NONE, EyeLine visual overlay may be unavailable/degraded, but semantic
+ * fallback scoring still participates.
  * If no faces are present the rule returns score=0, isAligned=false.
  *
  * Face coordinates MUST be pre-normalized to [0..1].

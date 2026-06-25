@@ -342,7 +342,9 @@ private fun DrawScope.drawGuidanceHalo(
 
 /**
  * Draws a dashed amber horizontal guide line through both eye landmarks.
- * Skipped silently if either eye landmark is absent.
+ * Skipped silently if either eye landmark is absent (LANDMARK_NONE).
+ * Under LANDMARK_NONE, EyeLine visual overlay may be unavailable/degraded, but semantic
+ * fallback scoring still participates.
  */
 private fun DrawScope.drawEyeLineGuide(
     face: FaceLandmarkData,
