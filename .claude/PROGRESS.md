@@ -5,10 +5,10 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| STATE-CONTRACT-01-FIX-A | ✅ HaloGuidanceLayerTest 六態 API 重寫 · compileAndroidTest PASS · 7bfd8dd |
-| STATE-CONTRACT-01 | ✅ Done · SV+Cross-Review R2 PASS · 396 tests · 6f8ab9e+2edca83 |
+| STATE-CONTRACT-01-FIX-B | 🟡 /sv 待驗收 · reducer pure 閉環 · AC-3/4/5 + AI-4 測試 4 條 |
+| STATE-CONTRACT-01-FIX-A | ✅ /sv PASS · HaloGuidanceLayerTest 六態 API 重寫 · 7bfd8dd |
+| STATE-CONTRACT-01 | 🟡 Conditional — FIX-A + FIX-B /sv PASS 後方可送 Traycer 終審 |
 | PHASE-B-01-R4 | ✅ Traycer T5 PASS · Consumer Map Q1 + Review Summary stale-pointer 修正完成 |
-| INFRA-59 | ✅ CLAUDE.md + gstack hook R-suffix + STATE-CONTRACT-NN* 白名單補齊 |
 
 **Last Updated**: 2026-06-25
 
@@ -16,9 +16,9 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S23** · STATE-CONTRACT-01 ✅ Done · STATE-CONTRACT-01-FIX-A ✅ · **待 Traycer 終審 + 真機驗收** |
+| Schedule | **S23** · STATE-CONTRACT-01 🟡 Conditional · FIX-A ✅ + FIX-B 🟡 · **待 FIX-B /sv → Traycer 終審** |
 | Compile | 0 errors ✅ (assembleDeviceDebug PASS) |
-| Tests | 396 passed ✅ (EyeAfControllerTest 20 + GuidanceStateContractTest 9 新增；androidTest 編譯 PASS) |
+| Tests | 400 passed ✅ (FIX-B +4 reducer tests；androidTest 編譯 PASS) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
 
 ## Active Blockers
@@ -33,11 +33,12 @@
 
 ## Next Actions
 
-> **S23（2026-06-25）：STATE-CONTRACT-01 + FIX-A ✅ · 待 Traycer + 真機驗收**
+> **S23（2026-06-25）：FIX-B 實作完成 · 兩張 /sv 尚未完成**
 
-1. **🔴 Traycer 終審**：STATE-CONTRACT-01 + STATE-CONTRACT-01-FIX-A execute_review
-2. **🟡 真機驗收（K4-23）**：Bug #1 瘋狂對焦 / #2 Halo 消失 / #3 閃爍 確認閉環
-3. **🟡 STATE-CONTRACT-02**：legacy cleanup（`_compositionState` 刪除 / CompositionGuideOverlay 路由）
+1. **🔴 /sv FIX-B**：STATE-CONTRACT-01-FIX-B 語意審查（FIX-A ✅ PASS，等 FIX-B）
+2. **🟡 Traycer 終審**：FIX-B /sv PASS 後 → STATE-CONTRACT-01 execute_review
+4. **🟡 真機驗收（K4-23）**：Bug #1 瘋狂對焦 / #2 Halo 消失 / #3 閃爍 確認閉環
+5. **🟡 STATE-CONTRACT-02**：legacy cleanup（`_compositionState` 刪除 / CompositionGuideOverlay 路由）
 
 ## Active Debt（僅列未解決項）
 
