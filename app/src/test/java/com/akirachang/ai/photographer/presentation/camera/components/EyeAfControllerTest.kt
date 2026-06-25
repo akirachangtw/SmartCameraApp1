@@ -7,6 +7,8 @@ import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import com.akirachang.ai.photographer.domain.model.RuleScore
+import com.akirachang.ai.photographer.domain.model.guidance.GuidanceState
+import com.akirachang.ai.photographer.presentation.camera.AfState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
@@ -287,7 +289,6 @@ class EyeAfControllerTest {
 
     @Test
     fun `reset clears throttle so next call fires immediately`() {
-        // First call — arms throttle
         controller.process(
             compositionResult = unalignedGazeResult(),
             faces = listOf(faceWithEyes),
@@ -296,8 +297,6 @@ class EyeAfControllerTest {
             previewHeight = previewHeight,
             nowMs = 1000L,
         )
-
-        // Still within cooldown — would be suppressed
         val beforeReset = controller.process(
             compositionResult = unalignedGazeResult(),
             faces = listOf(faceWithEyes),
@@ -307,10 +306,7 @@ class EyeAfControllerTest {
             nowMs = 1100L,
         )
         assertNull("Within cooldown must be suppressed", beforeReset)
-
-        // Reset clears throttle
         controller.reset()
-
         val afterReset = controller.process(
             compositionResult = unalignedGazeResult(),
             faces = listOf(faceWithEyes),
@@ -320,5 +316,162 @@ class EyeAfControllerTest {
             nowMs = 1100L,
         )
         assertNotNull("After reset, trigger must fire regardless of elapsed time", afterReset)
+    }
+
+    // ── STATE-CONTRACT-01 AI-5: Guard 0 — guidanceState gate ─────────────────
+
+    @Test
+    fun `guard 0 NoFace suppresses trigger`() {
+        val trigger = controller.process(
+            guidanceState = GuidanceState.NoFace,
+            compositionResult = unalignedGazeResult(),
+            faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK,
+            previewWidth = previewWidth,
+            previewHeight = previewHeight,
+            nowMs = 1000L,
+        )
+        assertNull("NoFace must suppress AF trigger", trigger)
+    }
+
+    @Test
+    fun `guard 0 FacesDetectedNoneEligible suppresses trigger`() {
+        val trigger = controller.process(
+            guidanceState = GuidanceState.FacesDetectedNoneEligible,
+            compositionResult = unalignedGazeResult(),
+            faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK,
+            previewWidth = previewWidth,
+            previewHeight = previewHeight,
+            nowMs = 1000L,
+        )
+        assertNull("FacesDetectedNoneEligible must suppress AF trigger", trigger)
+    }
+
+    @Test
+    fun `guard 0 Aligned suppresses trigger`() {
+        val trigger = controller.process(
+            guidanceState = GuidanceState.Aligned,
+            compositionResult = unalignedGazeResult(),
+            faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK,
+            previewWidth = previewWidth,
+            previewHeight = previewHeight,
+            nowMs = 1000L,
+        )
+        assertNull("Aligned must suppress AF trigger", trigger)
+    }
+
+    @Test
+    fun `guard 0 Suppressed suppresses trigger`() {
+        val trigger = controller.process(
+            guidanceState = GuidanceState.Suppressed(com.akirachang.ai.photographer.domain.model.guidance.SuppressionReason.AF_IN_PROGRESS),
+            compositionResult = unalignedGazeResult(),
+            faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK,
+            previewWidth = previewWidth,
+            previewHeight = previewHeight,
+            nowMs = 1000L,
+        )
+        assertNull("Suppressed must suppress AF trigger", trigger)
+    }
+
+    @Test
+    fun `guard 0 GuidanceActive allows trigger`() {
+        val trigger = controller.process(
+            guidanceState = GuidanceState.GuidanceActive,
+            compositionResult = unalignedGazeResult(),
+            faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK,
+            previewWidth = previewWidth,
+            previewHeight = previewHeight,
+            nowMs = 1000L,
+        )
+        assertNotNull("GuidanceActive must allow AF trigger", trigger)
+    }
+
+    // ── STATE-CONTRACT-01 AI-5: Guard 7a — skip-when-focused ─────────────────
+
+    @Test
+    fun `guard 7a locked plus stable drift skips re-trigger`() {
+        // First call arms the trigger point
+        controller.process(
+            guidanceState = GuidanceState.GuidanceActive,
+            compositionResult = unalignedGazeResult(),
+            faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK,
+            afState = AfState.Idle,
+            previewWidth = previewWidth,
+            previewHeight = previewHeight,
+            nowMs = 1000L,
+        )
+        // Same face, afState=Locked, same position → Guard 7a must skip
+        val trigger = controller.process(
+            guidanceState = GuidanceState.GuidanceActive,
+            compositionResult = unalignedGazeResult(),
+            faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK,
+            afState = AfState.Locked,
+            previewWidth = previewWidth,
+            previewHeight = previewHeight,
+            nowMs = 1000L + EyeAfController.GAZE_AF_COOLDOWN_MS,
+        )
+        assertNull("Locked + stable drift must skip re-trigger (Guard 7a)", trigger)
+    }
+
+    @Test
+    fun `guard 7a locked plus large drift allows re-trigger`() {
+        controller.process(
+            guidanceState = GuidanceState.GuidanceActive,
+            compositionResult = unalignedGazeResult(),
+            faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK,
+            afState = AfState.Idle,
+            previewWidth = previewWidth,
+            previewHeight = previewHeight,
+            nowMs = 1000L,
+        )
+        // drift = 0.1 > DRIFT_THRESHOLD_NORMALIZED (0.05) — subject moved, trigger allowed
+        val movedFace = faceWithEyes.copy(
+            leftEyeNormalized = PointF(0.4f, 0.35f + 0.1f),
+            rightEyeNormalized = PointF(0.6f, 0.35f + 0.1f),
+        )
+        val trigger = controller.process(
+            guidanceState = GuidanceState.GuidanceActive,
+            compositionResult = unalignedGazeResult(),
+            faces = listOf(movedFace),
+            facing = CameraLens.BACK,
+            afState = AfState.Locked,
+            previewWidth = previewWidth,
+            previewHeight = previewHeight,
+            nowMs = 1000L + EyeAfController.GAZE_AF_COOLDOWN_MS,
+        )
+        assertNotNull("Locked + large drift must allow re-trigger (Guard 7a)", trigger)
+    }
+
+    @Test
+    fun `guard 7a idle state does not skip trigger even with stable drift`() {
+        controller.process(
+            guidanceState = GuidanceState.GuidanceActive,
+            compositionResult = unalignedGazeResult(),
+            faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK,
+            afState = AfState.Idle,
+            previewWidth = previewWidth,
+            previewHeight = previewHeight,
+            nowMs = 1000L,
+        )
+        // Same position but afState=Idle — Guard 7a must NOT apply
+        val trigger = controller.process(
+            guidanceState = GuidanceState.GuidanceActive,
+            compositionResult = unalignedGazeResult(),
+            faces = listOf(faceWithEyes),
+            facing = CameraLens.BACK,
+            afState = AfState.Idle,
+            previewWidth = previewWidth,
+            previewHeight = previewHeight,
+            nowMs = 1000L + EyeAfController.GAZE_AF_COOLDOWN_MS,
+        )
+        assertNotNull("Idle + stable drift must still allow trigger (Guard 7a inactive)", trigger)
     }
 }

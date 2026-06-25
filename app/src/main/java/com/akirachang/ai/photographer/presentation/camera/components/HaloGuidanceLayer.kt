@@ -30,9 +30,10 @@ import androidx.compose.ui.unit.dp
 import com.akirachang.ai.photographer.domain.composition.PtfAlignmentResult
 import com.akirachang.ai.photographer.domain.composition.rules.EyeLineRule
 import com.akirachang.ai.photographer.domain.config.AmbientConstants
+import com.akirachang.ai.photographer.domain.config.GuidanceStateConstants
 import com.akirachang.ai.photographer.domain.composition.rules.GazeRule
-import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
+import com.akirachang.ai.photographer.domain.model.guidance.GuidanceState
 import com.akirachang.ai.photographer.presentation.utils.NormalizedPoint
 import com.akirachang.ai.photographer.presentation.utils.NormalizedRect
 import com.akirachang.ai.photographer.presentation.utils.NormalizedToPixelTransformer
@@ -97,53 +98,43 @@ private val PTF_COLOR_TRANSITION_MS = AmbientConstants.TRANSITION_FAST_MS.toInt(
 private const val PTF_BRIGHT_ARC_OFFSET_DP = 3f
 
 /**
- * HaloGuidanceLayer — Cueshot v3.3 face-guidance Halo overlay.
+ * HaloGuidanceLayer — STATE-CONTRACT-01 six-state guidance Halo overlay.
  *
- * Renders two visual guidance signals over detected faces:
+ * Normal mode rendering is driven exclusively by [guidanceState] (CameraViewModel authority):
+ * - NoFace / FacesDetectedNoneEligible → hidden
+ * - SubjectStabilizing → amber halo at 50% alpha, no EyeLine guide
+ * - GuidanceActive → amber halo at [GuidanceStateConstants.HALO_ACTIVE_ALPHA] + EyeLine guide
+ * - Aligned → green breathing halo ([GuidanceStateConstants.HALO_ALIGNED_ALPHA_MIN]→[MAX])
+ * - Suppressed → muted amber halo at 50% alpha (frozen guidance)
  *
- * 1. **GazeRule Halo** — amber ring (#D4A030) surrounding the face bounding box when
- *    `ruleScores["gaze"]?.isAligned == false`. Prompts the user to direct the subject's
- *    gaze toward the camera.
+ * PTF mode (isPtfMode == true): unchanged three-state PTF branch driven by [ptfAlignmentResult].
  *
- * 2. **EyeLineRule guide** — dashed amber line connecting left and right eye landmarks
- *    when `ruleScores["eye_line"]?.isAligned == false`. Visualises horizontal eye alignment
- *    so the user can tilt the phone to level the eye line.
+ * Update rate: 10fps throttle ([HALO_FRAME_INTERVAL_MS] = 100ms), decoupled from 60fps Compose.
  *
- * PTF mode (isPtfMode == true): renders three-state PTF Halo driven by [ptfAlignmentResult]:
- * - NO_FACE (failedRules empty, isAligned false) → hidden
- * - Unaligned (failedRules non-empty) → gold ring + gravitational bright arc
- * - Aligned (isAligned true) → green ring + breathing rhythm
- *
- * Suppression rules (highest-priority, Cueshot Constitution §6):
- * - `compositionResult == null` (Normal mode) → fully transparent, nothing rendered.
- * - `compositionResult.isAllAligned == true` (Normal mode) → fully hidden.
- *
- * Update rate: 10fps throttle ([HALO_FRAME_INTERVAL_MS] = 100ms), decoupled from the
- * 60fps Compose recomposition cycle and CameraX hardware calls (SSOT §硬體頻率脫鉤).
- *
+ * @param guidanceState        Six-state contract from CameraViewModel — sole Normal mode driver.
  * @param faces                Face landmark data from the latest ML Kit detection frame.
- * @param compositionResult    Aggregated Normal mode rule engine output. Null until first frame.
  * @param isPtfMode            True when camera is in PassToFriend mode.
  * @param ptfAlignmentResult   PTF rule engine output. Null ignored (defaults to NO_FACE behavior).
  * @param modifier             Should be [fillMaxSize] to cover the full preview.
  */
 @Composable
 fun HaloGuidanceLayer(
+    guidanceState: GuidanceState,
     faces: List<FaceLandmarkData>,
-    compositionResult: CompositionResult?,
     isPtfMode: Boolean = false,
     ptfAlignmentResult: PtfAlignmentResult? = null,
     modifier: Modifier = Modifier,
 ) {
-    // ── 10fps throttle state — declared unconditionally before any early return
-    //    to satisfy Compose slot-table stability (Rule 14: remember + LaunchedEffect must
-    //    be called on every recomposition regardless of branch outcome).
+    // ── All remember/LaunchedEffect/animation state MUST be declared unconditionally
+    //    before any early return — Compose slot-table stability Rule 14.
+
+    // 10fps throttle state
     var throttledFaces by remember { mutableStateOf<List<FaceLandmarkData>>(emptyList()) }
-    var throttledResult by remember { mutableStateOf<CompositionResult?>(null) }
+    var throttledGuidanceState by remember { mutableStateOf<GuidanceState>(GuidanceState.NoFace) }
     var lastFrameMs by remember { mutableLongStateOf(0L) }
     var throttledPtfResult by remember { mutableStateOf<PtfAlignmentResult?>(null) }
 
-    // ── PTF animation state — declared unconditionally per Rule 14 ──────────
+    // PTF animation state
     val effectivePtfResult = throttledPtfResult ?: ptfAlignmentResult
     val isPtfAligned = effectivePtfResult?.isAligned == true
     val ptfHaloColor by animateColorAsState(
@@ -151,8 +142,6 @@ fun HaloGuidanceLayer(
         animationSpec = tween(durationMillis = PTF_COLOR_TRANSITION_MS, easing = FastOutSlowInEasing),
         label = "ptfHaloColor",
     )
-
-    // Breathing alpha — only animates when PTF aligned; otherwise held at unaligned alpha.
     val ptfInfiniteTransition = rememberInfiniteTransition(label = "ptfBreathing")
     val ptfBreathAlpha by ptfInfiniteTransition.animateFloat(
         initialValue = PTF_BREATH_ALPHA_MIN,
@@ -163,27 +152,38 @@ fun HaloGuidanceLayer(
         label = "ptfBreathAlpha",
     )
 
+    // Normal Aligned breathing animation
+    val normalInfiniteTransition = rememberInfiniteTransition(label = "normalAlignedBreathing")
+    val normalBreathAlpha by normalInfiniteTransition.animateFloat(
+        initialValue = GuidanceStateConstants.HALO_ALIGNED_ALPHA_MIN,
+        targetValue = GuidanceStateConstants.HALO_ALIGNED_ALPHA_MAX,
+        animationSpec = InfiniteRepeatableSpec(
+            animation = tween(durationMillis = PTF_BREATH_DURATION_MS, easing = FastOutSlowInEasing),
+        ),
+        label = "normalAlignedBreathAlpha",
+    )
+
     val density = LocalDensity.current
     val brightArcOffsetPx = with(density) { PTF_BRIGHT_ARC_OFFSET_DP.dp.toPx() }
 
-    // ── Propagate face snapshot at 10fps cadence (hoisted above all early returns)
-    LaunchedEffect(faces, compositionResult, ptfAlignmentResult) {
+    // Propagate snapshot at 10fps cadence (hoisted above all early returns)
+    LaunchedEffect(faces, guidanceState, ptfAlignmentResult) {
         val now = System.currentTimeMillis()
         if (now - lastFrameMs >= HALO_FRAME_INTERVAL_MS) {
             throttledFaces = faces
-            throttledResult = compositionResult
+            throttledGuidanceState = guidanceState
             throttledPtfResult = ptfAlignmentResult
             lastFrameMs = now
         } else {
             delay(HALO_FRAME_INTERVAL_MS - (now - lastFrameMs))
             throttledFaces = faces
-            throttledResult = compositionResult
+            throttledGuidanceState = guidanceState
             throttledPtfResult = ptfAlignmentResult
             lastFrameMs = System.currentTimeMillis()
         }
     }
 
-    // ── PTF mode branch — entirely separate rendering path ───────────────────
+    // ── PTF mode branch — entirely separate rendering path, unchanged ────────
     if (isPtfMode) {
         val ptfResult = effectivePtfResult
         val ptfFaces = if (throttledFaces.isNotEmpty()) throttledFaces else faces
@@ -192,7 +192,6 @@ fun HaloGuidanceLayer(
             box.width() * box.height()
         }
 
-        // NO_FACE sentinel: failedRules empty AND not aligned → hidden
         if (ptfResult == null || primaryPtfFace == null ||
             (!ptfResult.isAligned && ptfResult.failedRules.isEmpty())) {
             androidx.compose.foundation.layout.Box(
@@ -220,7 +219,6 @@ fun HaloGuidanceLayer(
         }
 
         if (ptfResult.isAligned) {
-            // State C: aligned — green breathing ring
             val breathAlpha = ptfBreathAlpha
             Canvas(modifier = modifier.fillMaxSize().then(ptfSemantics).testTag(TAG_HALO_PTF_ALIGNED)) {
                 val cx = ptfCenterXNorm * size.width
@@ -237,22 +235,17 @@ fun HaloGuidanceLayer(
             return
         }
 
-        // State B: unaligned with face — gold ring + gravitational bright arc
         Canvas(modifier = modifier.fillMaxSize().then(ptfSemantics).testTag(TAG_HALO_PTF_UNALIGNED)) {
             val cx = ptfCenterXNorm * size.width
             val cy = ptfCenterYNorm * size.height
             val radius = max(ptfBbox.width() * size.width, ptfBbox.height() * size.height) * 0.6f
             val strokePx = size.minDimension * HALO_STROKE_FRACTION
-
-            // Base ring
             drawCircle(
                 color = ptfHaloColor.copy(alpha = PTF_HALO_UNALIGNED_ALPHA),
                 radius = radius,
                 center = Offset(cx, cy),
                 style = Stroke(width = strokePx),
             )
-
-            // Gravitational bright arc: offset direction indicates where subject should move
             val pxDx = ptfResult.offset.dx * size.width
             val pxDy = ptfResult.offset.dy * size.height
             if (pxDx != 0f || pxDy != 0f) {
@@ -269,82 +262,78 @@ fun HaloGuidanceLayer(
         return
     }
 
-    // ── Normal mode path below — zero changes from original ─────────────────
-
-    // ── Constitution §6: null result → completely invisible ─────────────────
-    if (compositionResult == null) {
-        androidx.compose.foundation.layout.Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .testTag(TAG_HALO_HIDDEN)
-        )
-        return
-    }
-
-    // ── State-mutex: isAllAligned → hide to avoid collision with breathing UI ─
-    if (compositionResult.isAllAligned) {
-        Canvas(modifier = modifier.fillMaxSize().testTag(TAG_HALO_GREEN)) {
-            // Intentionally empty — green alignment state is owned by PitchTractionLayer.
-        }
-        return
-    }
-
-    val activeResult = throttledResult ?: return
+    // ── Normal mode — six-state GuidanceState rendering ──────────────────────
     val activeFaces = throttledFaces
+    val activeGuidanceState = throttledGuidanceState
 
-    // ── Derive rule alignment flags ──────────────────────────────────────────
-    val gazeNotAligned = activeResult.ruleScores[GazeRule.NAME]?.isAligned == false
-    val eyeLineNotAligned = activeResult.ruleScores[EyeLineRule.NAME]?.isAligned == false
-
-    if (!gazeNotAligned && !eyeLineNotAligned) return
-
-    Canvas(modifier = modifier.fillMaxSize().testTag(TAG_HALO_AMBER)) {
-        val transformer = NormalizedToPixelTransformer(
-            screenWidth = size.width,
-            screenHeight = size.height,
-        )
-        val strokePx = size.minDimension * HALO_STROKE_FRACTION
-
-        activeFaces.forEach { face ->
-            if (gazeNotAligned) {
-                drawGazeHalo(face, transformer, strokePx)
+    when (activeGuidanceState) {
+        GuidanceState.NoFace,
+        GuidanceState.FacesDetectedNoneEligible -> {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier.fillMaxSize().testTag(TAG_HALO_HIDDEN)
+            )
+        }
+        GuidanceState.SubjectStabilizing,
+        is GuidanceState.Suppressed -> {
+            // Muted face-following halo — no directional arc
+            if (activeFaces.isNotEmpty()) {
+                Canvas(modifier = modifier.fillMaxSize().testTag(TAG_HALO_AMBER)) {
+                    val strokePx = size.minDimension * HALO_STROKE_FRACTION
+                    activeFaces.forEach { face ->
+                        drawGuidanceHalo(face, strokePx, HaloAmber.copy(alpha = GuidanceStateConstants.HALO_ACTIVE_ALPHA * 0.5f))
+                    }
+                }
+            } else {
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier.fillMaxSize().testTag(TAG_HALO_HIDDEN)
+                )
             }
-            if (eyeLineNotAligned) {
-                drawEyeLineGuide(face, transformer, strokePx)
+        }
+        GuidanceState.GuidanceActive -> {
+            Canvas(modifier = modifier.fillMaxSize().testTag(TAG_HALO_AMBER)) {
+                val transformer = NormalizedToPixelTransformer(size.width, size.height)
+                val strokePx = size.minDimension * HALO_STROKE_FRACTION
+                activeFaces.forEach { face ->
+                    drawGuidanceHalo(face, strokePx, HaloAmber.copy(alpha = GuidanceStateConstants.HALO_ACTIVE_ALPHA))
+                    drawEyeLineGuide(face, transformer, strokePx)
+                }
+            }
+        }
+        GuidanceState.Aligned -> {
+            val breathAlpha = normalBreathAlpha
+            if (activeFaces.isNotEmpty()) {
+                Canvas(modifier = modifier.fillMaxSize().testTag(TAG_HALO_GREEN)) {
+                    val strokePx = size.minDimension * HALO_STROKE_FRACTION
+                    activeFaces.forEach { face ->
+                        drawGuidanceHalo(face, strokePx, HaloGreen.copy(alpha = breathAlpha))
+                    }
+                }
+            } else {
+                Canvas(modifier = modifier.fillMaxSize().testTag(TAG_HALO_GREEN)) {}
             }
         }
     }
 }
 
 /**
- * Draws an amber ring around the face bounding box with a small outward padding.
- * Signals to the user that the subject's gaze needs adjustment.
+ * Draws a guidance ring around the face bounding box.
+ * radius = max(bboxW, bboxH) * [GuidanceStateConstants.HALO_RADIUS_SCALE] per STATE-CONTRACT-01 AI-4.
  */
-private fun DrawScope.drawGazeHalo(
+private fun DrawScope.drawGuidanceHalo(
     face: FaceLandmarkData,
-    transformer: NormalizedToPixelTransformer,
     strokePx: Float,
+    color: Color,
 ) {
     val box = face.boundingBoxNormalized
     if (box.left < 0f || box.top < 0f || box.right > 1f || box.bottom > 1f) return
-    val paddedRect = NormalizedRect(
-        left = box.left - GAZE_HALO_PADDING_NORM,
-        top = box.top - GAZE_HALO_PADDING_NORM,
-        right = box.right + GAZE_HALO_PADDING_NORM,
-        bottom = box.bottom + GAZE_HALO_PADDING_NORM,
-    )
-    val pixelRect: PixelRect = transformer.transformRect(paddedRect)
-
-    val rectWidth = pixelRect.right - pixelRect.left
-    val rectHeight = pixelRect.bottom - pixelRect.top
-    if (rectWidth <= 0f || rectHeight <= 0f) return
-
-    val centerX = pixelRect.left + rectWidth / 2f
-    val centerY = pixelRect.top + rectHeight / 2f
-    val radius = minOf(rectWidth, rectHeight) / 2f
-
+    val bboxWPx = box.width() * size.width
+    val bboxHPx = box.height() * size.height
+    if (bboxWPx <= 0f || bboxHPx <= 0f) return
+    val centerX = (box.left + box.right) / 2f * size.width
+    val centerY = (box.top + box.bottom) / 2f * size.height
+    val radius = max(bboxWPx, bboxHPx) * GuidanceStateConstants.HALO_RADIUS_SCALE
     drawCircle(
-        color = HaloAmber,
+        color = color,
         radius = radius,
         center = Offset(centerX, centerY),
         style = Stroke(width = strokePx),

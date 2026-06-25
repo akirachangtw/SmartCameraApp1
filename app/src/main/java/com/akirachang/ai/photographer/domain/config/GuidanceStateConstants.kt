@@ -1,0 +1,32 @@
+package com.akirachang.ai.photographer.domain.config
+
+/**
+ * Halo alpha/radius constants and hysteresis thresholds for the GuidanceState six-state contract.
+ * All consumers MUST reference these constants — no inline magic numbers.
+ * STATE-CONTRACT-01 AI-1.
+ */
+object GuidanceStateConstants {
+    /** Amber halo alpha for GuidanceActive state. */
+    const val HALO_ACTIVE_ALPHA = 0.25f
+
+    /** Green breathing halo alpha floor for Aligned state. */
+    const val HALO_ALIGNED_ALPHA_MIN = 0.10f
+
+    /** Green breathing halo alpha ceiling for Aligned state. */
+    const val HALO_ALIGNED_ALPHA_MAX = 0.18f
+
+    /** Halo radius = max(bboxW, bboxH) * this scale. */
+    const val HALO_RADIUS_SCALE = 0.6f
+
+    /** Weighted composition score threshold to enter Aligned state (0–100 scale). */
+    const val ALIGNED_ENTER_SCORE = 75f
+
+    /** Weighted composition score threshold to exit Aligned state (hysteresis). */
+    const val ALIGNED_EXIT_SCORE = 65f
+
+    /** Minimum frames to remain in Aligned before exiting, and SubjectStabilizing entry duration. */
+    const val ALIGNED_DWELL_FRAMES = 3
+
+    /** Consecutive frames in the [ALIGNED_EXIT_SCORE, ALIGNED_ENTER_SCORE) band before oscillation suppression. */
+    const val OSCILLATION_THRESHOLD = 10
+}

@@ -57,6 +57,9 @@ import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import com.akirachang.ai.photographer.di.PtfEngine
 import com.akirachang.ai.photographer.domain.composition.PtfAlignmentResult
 import com.akirachang.ai.photographer.domain.composition.PtfRuleAggregator
+import com.akirachang.ai.photographer.domain.config.GuidanceStateConstants
+import com.akirachang.ai.photographer.domain.model.guidance.GuidanceState
+import com.akirachang.ai.photographer.domain.model.guidance.SuppressionReason
 import kotlin.math.abs
 import javax.inject.Inject
 
@@ -208,6 +211,11 @@ class CameraViewModel @Inject constructor(
 
     // Cueshot D6-B3: Gaze-driven Eye-AF controller — triggers AF when gaze is unaligned.
     private val eyeAfController = com.akirachang.ai.photographer.presentation.camera.components.EyeAfController()
+
+    // STATE-CONTRACT-01 AI-3: GuidanceState reducer counters — all mutable on Main thread only.
+    private var guidanceAlignedDwellCounter = 0
+    private var guidanceStabilizingCounter = 0
+    private var guidanceHysteresisFrameCounter = 0
     // v2.12.0-06 H2.2: 4500ms > CameraX autoCancelDuration(4s) — withTimeout fires only if HAL
     // is truly stuck. Previously 3000ms caused premature TIMEOUT before CameraX could deliver
     // success (e.g. rear-camera face focus succeeds at ~3.5s on some devices).
@@ -726,8 +734,12 @@ class CameraViewModel @Inject constructor(
                     compositionResult = null,
                     detectedFaces = emptyList(),
                     ptfAlignmentResult = PtfAlignmentResult.NO_FACE,
+                    guidanceState = GuidanceState.NoFace,
                 )
             }
+            guidanceAlignedDwellCounter = 0
+            guidanceStabilizingCounter = 0
+            guidanceHysteresisFrameCounter = 0
 
             // Cancel focus metering if locked
             cameraRepository.cancelFocusAndMetering()
@@ -1720,6 +1732,7 @@ class CameraViewModel @Inject constructor(
                             compositionResult = null,
                             detectedFaces = emptyList(),
                             ptfAlignmentResult = PtfAlignmentResult.NO_FACE,
+                            guidanceState = GuidanceState.NoFace,
                         )
                     }
                     return@onEach
@@ -1851,6 +1864,94 @@ class CameraViewModel @Inject constructor(
 
 
     /**
+     * STATE-CONTRACT-01 AI-3: GuidanceState reducer.
+     *
+     * Computes the next GuidanceState from detection inputs, CameraMode, AfState, and the
+     * previous state. Must be called on the Main thread — mutates [guidanceAlignedDwellCounter],
+     * [guidanceStabilizingCounter], [guidanceHysteresisFrameCounter].
+     *
+     * Priority order (first match wins):
+     *   PTF_GAZE_AF_DISABLED > AF_IN_PROGRESS > NoFace > FacesDetectedNoneEligible >
+     *   SubjectStabilizing > ALIGNMENT_BOUNDARY_OSCILLATION > Aligned > GuidanceActive
+     */
+    private fun computeGuidanceState(
+        rawFaceCount: Int,
+        eligibleFaceCount: Int,
+        compositionResult: CompositionResult?,
+        cameraMode: com.akirachang.ai.photographer.domain.camera.CameraMode,
+        afState: AfState,
+        prevGuidanceState: GuidanceState,
+    ): GuidanceState {
+        if (cameraMode == com.akirachang.ai.photographer.domain.camera.CameraMode.PassToFriend) {
+            guidanceAlignedDwellCounter = 0
+            guidanceStabilizingCounter = 0
+            guidanceHysteresisFrameCounter = 0
+            return GuidanceState.Suppressed(SuppressionReason.PTF_GAZE_AF_DISABLED)
+        }
+        if (afState == AfState.Focusing) {
+            return GuidanceState.Suppressed(SuppressionReason.AF_IN_PROGRESS)
+        }
+        if (rawFaceCount == 0) {
+            guidanceAlignedDwellCounter = 0
+            guidanceStabilizingCounter = 0
+            guidanceHysteresisFrameCounter = 0
+            return GuidanceState.NoFace
+        }
+        if (eligibleFaceCount == 0) {
+            guidanceAlignedDwellCounter = 0
+            guidanceStabilizingCounter = 0
+            return GuidanceState.FacesDetectedNoneEligible
+        }
+        if (prevGuidanceState == GuidanceState.NoFace ||
+            prevGuidanceState == GuidanceState.FacesDetectedNoneEligible) {
+            guidanceStabilizingCounter = GuidanceStateConstants.ALIGNED_DWELL_FRAMES
+        }
+        if (guidanceStabilizingCounter > 0) {
+            guidanceStabilizingCounter--
+            return GuidanceState.SubjectStabilizing
+        }
+        val weightedScore = compositionResult?.let { computeWeightedScore(it) } ?: 0f
+        val inHysteresisBand = weightedScore >= GuidanceStateConstants.ALIGNED_EXIT_SCORE &&
+            weightedScore < GuidanceStateConstants.ALIGNED_ENTER_SCORE
+        if (inHysteresisBand) {
+            guidanceHysteresisFrameCounter++
+        } else {
+            guidanceHysteresisFrameCounter = 0
+        }
+        if (guidanceHysteresisFrameCounter >= GuidanceStateConstants.OSCILLATION_THRESHOLD) {
+            return GuidanceState.Suppressed(SuppressionReason.ALIGNMENT_BOUNDARY_OSCILLATION)
+        }
+        return when {
+            prevGuidanceState == GuidanceState.Aligned -> {
+                guidanceAlignedDwellCounter++
+                if (guidanceAlignedDwellCounter >= GuidanceStateConstants.ALIGNED_DWELL_FRAMES &&
+                    weightedScore < GuidanceStateConstants.ALIGNED_EXIT_SCORE) {
+                    guidanceAlignedDwellCounter = 0
+                    GuidanceState.GuidanceActive
+                } else {
+                    GuidanceState.Aligned
+                }
+            }
+            weightedScore >= GuidanceStateConstants.ALIGNED_ENTER_SCORE -> {
+                guidanceAlignedDwellCounter = 0
+                GuidanceState.Aligned
+            }
+            else -> {
+                guidanceAlignedDwellCounter = 0
+                GuidanceState.GuidanceActive
+            }
+        }
+    }
+
+    private fun computeWeightedScore(result: CompositionResult): Float {
+        val scores = result.ruleScores.values
+        if (scores.isEmpty()) return 0f
+        val totalWeight = scores.sumOf { it.weight.toDouble() }.toFloat()
+        if (totalWeight <= 0f) return 0f
+        return scores.sumOf { (it.score * it.weight).toDouble() }.toFloat() / totalWeight
+    }
+
+    /**
      * Cueshot D2: Live composition rule engine pipeline.
      *
      * Observes [CameraState.detectionResult] and [_orientationState] per detection frame.
@@ -1869,7 +1970,10 @@ class CameraViewModel @Inject constructor(
             .distinctUntilChanged()
             .onEach { det ->
                 if (det == null) {
-                    _state.update { it.copy(compositionResult = null, detectedFaces = emptyList()) }
+                    _state.update { it.copy(compositionResult = null, detectedFaces = emptyList(), guidanceState = GuidanceState.NoFace) }
+                    guidanceAlignedDwellCounter = 0
+                    guidanceStabilizingCounter = 0
+                    guidanceHysteresisFrameCounter = 0
                     return@onEach
                 }
                 // BHA-01-FIX: face.boundingBox is in rotated space; swap dims for 90°/270° to match.
@@ -1936,16 +2040,26 @@ class CameraViewModel @Inject constructor(
                         "rotation=$rotation effective=${imgW.toInt()}x${imgH.toInt()} " +
                         "isAllAligned=${result.isAllAligned} haloPath=$haloPath")
                 }
-                _state.update { it.copy(compositionResult = result, detectedFaces = landmarkFaces) }
-                Log.d(TAG, "[D2] CompositionResult: isAllAligned=${result.isAllAligned} topRule=${result.topInstruction?.name}")
+                val prevState = _state.value
+                val guidanceState = computeGuidanceState(
+                    rawFaceCount = det.faces.size,
+                    eligibleFaceCount = guidanceEligibleFaces.size,
+                    compositionResult = result,
+                    cameraMode = prevState.cameraMode,
+                    afState = prevState.afState,
+                    prevGuidanceState = prevState.guidanceState,
+                )
+                _state.update { it.copy(compositionResult = result, detectedFaces = landmarkFaces, guidanceState = guidanceState) }
+                Log.d(TAG, "[D2] CompositionResult: isAllAligned=${result.isAllAligned} guidanceState=$guidanceState topRule=${result.topInstruction?.name}")
 
-                // D6-B3: Gaze-driven Eye-AF — trigger AF when gaze unaligned, back camera only.
-                // Front camera guard is enforced inside EyeAfController (first line of defense).
+                // D6-B3 + STATE-CONTRACT-01 AI-5: Gaze AF gated by GuidanceState — only fires in GuidanceActive.
                 val currentState = _state.value
                 val gazeAfTrigger = eyeAfController.process(
+                    guidanceState = guidanceState,
                     compositionResult = result,
                     faces = landmarkFaces,
                     facing = currentState.currentCamera,
+                    afState = currentState.afState,
                     previewWidth = previewWidth ?: 0,
                     previewHeight = previewHeight ?: 0,
                 )

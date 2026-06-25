@@ -6,6 +6,8 @@ import com.akirachang.ai.photographer.domain.composition.rules.GazeRule
 import com.akirachang.ai.photographer.domain.model.CameraLens
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
+import com.akirachang.ai.photographer.domain.model.guidance.GuidanceState
+import com.akirachang.ai.photographer.presentation.camera.AfState
 import com.akirachang.ai.photographer.presentation.utils.NormalizedPoint
 import com.akirachang.ai.photographer.presentation.utils.NormalizedToPixelTransformer
 
@@ -84,13 +86,21 @@ class EyeAfController {
      * @return [EyeAfTrigger] if AF should fire, null otherwise.
      */
     fun process(
+        guidanceState: GuidanceState = GuidanceState.GuidanceActive,
         compositionResult: CompositionResult?,
         faces: List<FaceLandmarkData>,
         facing: CameraLens,
+        afState: AfState = AfState.Idle,
         previewWidth: Int,
         previewHeight: Int,
         nowMs: Long = System.currentTimeMillis(),
     ): EyeAfTrigger? {
+
+        // ── Guard 0: STATE-CONTRACT-01 AI-5 — only GuidanceActive triggers AF ─────
+        if (guidanceState != GuidanceState.GuidanceActive) {
+            Log.v(TAG, "[Guard0] guidanceState=$guidanceState — AF suppressed")
+            return null
+        }
 
         // ── Guard 1: Constitution §7 — front camera never triggers manual AF ──────
         if (facing == CameraLens.FRONT) {
@@ -139,18 +149,27 @@ class EyeAfController {
         // ── Resolve eye midpoint in normalized [0,1] space ────────────────────────
         val eyeMidpointNorm = resolveEyeMidpointNormalized(primaryFace)
 
-        // ── Guard 7: Preserve stableId when target hasn't drifted past threshold ────
-        // Prevents 2s-cycle stableId churn from re-keying LaunchedEffect and resetting
-        // the dwell-fade animation. Trigger still fires; stableId is reused.
+        // ── Compute drift once for Guard 7a and Guard 7b ─────────────────────────
         val prev = lastTriggerPoint
-        val preserveStableId = prev != null && run {
+        val drift = if (prev != null) {
             val dx = eyeMidpointNorm.x - prev.x
             val dy = eyeMidpointNorm.y - prev.y
-            val drift = kotlin.math.sqrt(dx * dx + dy * dy)
-            if (drift < DRIFT_THRESHOLD_NORMALIZED) {
-                Log.v(TAG, "[Guard7] drift=${"%.3f".format(drift)} < $DRIFT_THRESHOLD_NORMALIZED — reusing stableId to stabilize LaunchedEffect")
-                true
-            } else false
+            kotlin.math.sqrt(dx * dx + dy * dy)
+        } else Float.MAX_VALUE
+
+        // ── Guard 7a: Skip re-trigger when lens is already focused and stable ─────
+        // Prevents AF motor oscillation when afState==Locked and the subject hasn't moved.
+        if (afState == AfState.Locked && drift < DRIFT_THRESHOLD_NORMALIZED) {
+            Log.v(TAG, "[Guard7a] Locked+stable drift=${"%.3f".format(drift)} — skip re-trigger")
+            return null
+        }
+
+        // ── Guard 7b: Preserve stableId when target hasn't drifted past threshold ─
+        // Prevents 2s-cycle stableId churn from re-keying LaunchedEffect and resetting
+        // the dwell-fade animation. Trigger still fires; stableId is reused.
+        val preserveStableId = prev != null && drift < DRIFT_THRESHOLD_NORMALIZED
+        if (preserveStableId) {
+            Log.v(TAG, "[Guard7b] drift=${"%.3f".format(drift)} < $DRIFT_THRESHOLD_NORMALIZED — reusing stableId to stabilize LaunchedEffect")
         }
 
         // ── Transform to view-space pixels ────────────────────────────────────────

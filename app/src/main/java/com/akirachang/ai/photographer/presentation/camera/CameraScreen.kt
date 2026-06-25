@@ -292,8 +292,8 @@ fun CameraScreen(
                         )
 
                         HaloGuidanceLayer(
+                            guidanceState = state.guidanceState,
                             faces = state.detectedFaces,
-                            compositionResult = state.compositionResult,
                             isPtfMode = isPtfActive,
                             ptfAlignmentResult = state.ptfAlignmentResult,
                             modifier = Modifier.fillMaxSize(),

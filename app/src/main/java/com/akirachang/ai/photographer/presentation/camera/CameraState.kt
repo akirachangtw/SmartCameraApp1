@@ -12,6 +12,7 @@ import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import com.akirachang.ai.photographer.domain.camera.CameraMode
 import com.akirachang.ai.photographer.domain.composition.PtfAlignmentResult
+import com.akirachang.ai.photographer.domain.model.guidance.GuidanceState
 
 /**
  * Camera UI State
@@ -70,6 +71,8 @@ data class CameraState(
     // Cueshot D8-B1-T3: PTF alignment result from PtfRuleAggregator AND-Gate.
     // Defaults to NO_FACE sentinel; updated only when cameraMode == PassToFriend.
     val ptfAlignmentResult: PtfAlignmentResult = PtfAlignmentResult.NO_FACE,
+    // STATE-CONTRACT-01 AI-2: Single GuidanceState authority — emitted only by CameraViewModel reducer.
+    val guidanceState: GuidanceState = GuidanceState.NoFace,
 )
 
 /**
