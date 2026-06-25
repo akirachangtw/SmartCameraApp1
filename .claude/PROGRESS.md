@@ -5,39 +5,40 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| STATE-CONTRACT-01 | ✅ AI-1～AI-6 實作完成 · assembleDeviceDebug PASS · 20+9 tests PASS |
 | PHASE-B-01-R4 | ✅ Traycer T5 PASS · Consumer Map Q1 + Review Summary stale-pointer 修正完成 |
 | PHASE-B-01-R3 | ✅ RC2 repo-grounding 三紅燈全清（getFocusState / FocusIndicatorOverlay / CompositionGuideOverlay） |
-| INFRA-57 | ✅ /cleanchat skill — md-formatting.sh Markdown 清理工具 |
-| INFRA-56 | ✅ PROGRESS.md S18 儀表板同步 |
+| INFRA-59 | ✅ CLAUDE.md + gstack hook R-suffix 白名單補齊 |
 
-**Last Updated**: 2026-06-24
+**Last Updated**: 2026-06-25
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S20** · PHASE-B-01 R1～R4 ✅ · Traycer T5 ✅ PASS |
-| Compile | 0 errors ✅ (assembleDebug PASS, both device+emulator variants, 28s) |
-| Tests | 362 passed ✅ (testDeviceDebugUnitTest + testEmulatorDebugUnitTest, 0 failed) |
+| Schedule | **S22** · STATE-CONTRACT-01 ✅ 實作完成 · **待 /sv + Traycer + commit** |
+| Compile | 0 errors ✅ (assembleDeviceDebug PASS) |
+| Tests | 391 passed ✅ (EyeAfControllerTest 20 + GuidanceStateContractTest 9 新增) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
 
 ## Active Blockers
 
 | ID | Issue | Severity | Root Cause |
 | ---- | ------- | ---------- | ------------ |
-| I7 / BUG-I7-FOCUS-RING-PERSIST | FocusIndicatorOverlay 雙圓環持續顯示（實機確認） | 🔴 P1 | `EyeAfController` 每 2s 觸發新 `stableId` → `LaunchedEffect` 重置 `alphaTarget=1.0`，dwell fade 永遠被打斷。修復：Guard 7（`LensFocusState.Focused + drift < 閾值 → skip`）+ `lastTriggerPoint` instance var。 |
-| BHA-01 | T02 Hard Gate — 歸一化 ✅，視覺 🔴 | 🟡 部分通過 | 歸一化數學 PASS（所有場景 normBbox [0,1]）。視覺 FAIL：4 個前置 Bug 阻塞。 |
-| BUG-P08-F4-REAL-DEVICE | 🔴 Hard Gate FAIL · AC-1 🟡 Detection PASS / Halo I7+alpha+退化 · AC-2 🟡 Detection PASS / Halo 偶閃 · AC-3 🟡 PTF HaloTraction OK / 2-3s AF閃 · AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）· AC-5~9 ✅ | 🔴 Hard Gate FAIL | Phase B 後開票 |
-| BUG-HALO-NOPTF-DEGENERATE | 非 PTF gaze Halo = 退化單圈圓環（無呼吸/無方向弧/對齊即隱藏），PTF 分支正確。違反 SSOT §2.5 | 🔴 P1 | `HaloGuidanceLayer.kt:285,299,323-352`（drawGazeHalo 退化實作） |
-| BUG-LCSOURCE-HARDCODED-ROTATION | LiveCameraSource compensatedRotation 硬編碼（後=90°, 前=270°），橫向 HAL=0 但常數不變 → 後+90°、前+270° 偏差。S15 四場景實機量化完成。 | 🟡 P1 | 依賴 P08-F4-FIX 真機修復完成後開立 P08-F9。`LiveCameraSource.kt:340` |
-| BUG-PTF-HALO-SIZE | PTF 圓環渲染過大且不跟隨（三重根因：固定中心 / 固定半徑 / alpha 偏高） | 🔴 P0 | P08-F7 待實作：`HaloGuidanceLayer.kt` bbox 跟隨 + alpha 呼吸韻律修正。 |
-| BUG-MLKIT-PAREIDOLIA-FP | Ghost Face — K380 圓鍵觸發琥珀 Halo | ✅ HOTFIX-47 Traycer PASS | GF-01~03 雙裝置 PASS · K4-Rule 28 歸檔 · Sony F4 Discovery 待後續 |
+| BHA-01 | T02 Hard Gate — 歸一化 ✅，視覺 🔴 | 🟡 部分通過 | 視覺 FAIL：BUG-HALO-NOPTF-DEGENERATE → 已由 STATE-CONTRACT-01 閉環（六態渲染 + Aligned breathing）。 |
+| BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）· AC-5~9 ✅ | 🔴 Hard Gate FAIL | Phase B 後開票 |
+| BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
+| BUG-PTF-HALO-SIZE | PTF 圓環過大且不跟隨 | 🔴 P0 | P08-F7 待實作 |
+| BUG-MLKIT-PAREIDOLIA-FP | Ghost Face | ✅ HOTFIX-47 PASS | GF-01~03 PASS |
 
 ## Next Actions
 
-> **S20（2026-06-24）：PHASE-B-01 R1～R4 ✅ · Traycer T5 ✅ PASS**
+> **S22（2026-06-25）：STATE-CONTRACT-01 AI-1～AI-6 ✅ · 待 /sv + commit + 真機驗收**
 
-1. **🔴 BUG-HALO-NOPTF-DEGENERATE / I7-FIX / P08-F7**：待開票實作
+1. **🔴 /sv**：STATE-CONTRACT-01 語意審查 + 確定性驗收
+2. **🔴 Commit**：兩份 commit（.kt + .md 分開）
+3. **🟡 真機驗收**：Bug #1 瘋狂對焦 / #2 Halo 消失 / #3 閃爍 確認閉環（K4-23 規則）
+4. **🟡 STATE-CONTRACT-02**：legacy cleanup（`_compositionState` 刪除 / CompositionGuideOverlay 路由）
 
 ## Active Debt（僅列未解決項）
 
