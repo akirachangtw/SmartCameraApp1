@@ -274,3 +274,5 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 > **Session S22 完成（2026-06-25）：STATE-CONTRACT-01 GuidanceState 六態契約 AI-1～AI-6 實作完成；396 tests PASS（+34）；SV+Cross-Review R2 PASS；6f8ab9e+2edca83 ✅ Done**
 
 > **Session S23-FIX-A 完成（2026-06-25）：STATE-CONTRACT-01-FIX-A HaloGuidanceLayerTest 全文重寫（159行）對齊 GuidanceState 六態 API；Cross-Review R3 PASS（R1 BLOCKER→R2 REPORT_FIX→R3 PASS）；7bfd8dd ✅ Done**
+
+> **Session S23-FIX-B 完成（2026-06-25）：STATE-CONTRACT-01-FIX-B computeGuidanceStatePure 純函數抽取 + AC-3/4/5 reducer 單元測試閉環；Cross-Review R1 PASS；30653fb ✅ Done**

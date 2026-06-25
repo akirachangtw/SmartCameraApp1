@@ -5,9 +5,10 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| STATE-CONTRACT-01-FIX-B | 🟡 /sv 待驗收 · reducer pure 閉環 · AC-3/4/5 + AI-4 測試 4 條 |
+| STATE-CONTRACT-01-FIX-C | 🟡 /qa PASS · LANDMARK_NONE KDoc + PTF gate 偏移裁決強化 · /sv 待驗收 |
+| STATE-CONTRACT-01-FIX-B | ✅ /sv PASS · reducer pure 閉環 · AC-3/4/5 + AI-4 測試 4 條 · 30653fb |
 | STATE-CONTRACT-01-FIX-A | ✅ /sv PASS · HaloGuidanceLayerTest 六態 API 重寫 · 7bfd8dd |
-| STATE-CONTRACT-01 | 🟡 Conditional — FIX-A + FIX-B /sv PASS 後方可送 Traycer 終審 |
+| STATE-CONTRACT-01 | 🟡 Ready → Traycer 終審（FIX-A ✅ + FIX-B ✅ 雙 /sv PASS） |
 | PHASE-B-01-R4 | ✅ Traycer T5 PASS · Consumer Map Q1 + Review Summary stale-pointer 修正完成 |
 
 **Last Updated**: 2026-06-25
@@ -16,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S23** · STATE-CONTRACT-01 🟡 Conditional · FIX-A ✅ + FIX-B 🟡 · **待 FIX-B /sv → Traycer 終審** |
+| Schedule | **S23** · STATE-CONTRACT-01 🟡 Ready · FIX-A ✅ + FIX-B ✅ · **→ Traycer 終審** |
 | Compile | 0 errors ✅ (assembleDeviceDebug PASS) |
 | Tests | 400 passed ✅ (FIX-B +4 reducer tests；androidTest 編譯 PASS) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
@@ -33,10 +34,9 @@
 
 ## Next Actions
 
-> **S23（2026-06-25）：FIX-B 實作完成 · 兩張 /sv 尚未完成**
+> **S23（2026-06-25）：FIX-A + FIX-B 雙 /sv PASS · Cross-Review 全通過 · /compact 完成**
 
-1. **🔴 /sv FIX-B**：STATE-CONTRACT-01-FIX-B 語意審查（FIX-A ✅ PASS，等 FIX-B）
-2. **🟡 Traycer 終審**：FIX-B /sv PASS 後 → STATE-CONTRACT-01 execute_review
+1. **🔴 Traycer 終審**：STATE-CONTRACT-01 execute_review（FIX-A ✅ + FIX-B ✅）
 4. **🟡 真機驗收（K4-23）**：Bug #1 瘋狂對焦 / #2 Halo 消失 / #3 閃爍 確認閉環
 5. **🟡 STATE-CONTRACT-02**：legacy cleanup（`_compositionState` 刪除 / CompositionGuideOverlay 路由）
 
