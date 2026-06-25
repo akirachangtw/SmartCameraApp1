@@ -5,7 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| STATE-CONTRACT-01 | ✅ AI-1～AI-6 實作完成 · assembleDeviceDebug PASS · 20+9 tests PASS |
+| STATE-CONTRACT-01 | ✅ Done · SV+Cross-Review R2 PASS · 396 tests · 6f8ab9e+2edca83 |
 | PHASE-B-01-R4 | ✅ Traycer T5 PASS · Consumer Map Q1 + Review Summary stale-pointer 修正完成 |
 | PHASE-B-01-R3 | ✅ RC2 repo-grounding 三紅燈全清（getFocusState / FocusIndicatorOverlay / CompositionGuideOverlay） |
 | INFRA-59 | ✅ CLAUDE.md + gstack hook R-suffix 白名單補齊 |
@@ -16,7 +16,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S22** · STATE-CONTRACT-01 ✅ 實作完成 · **待 /sv + Traycer + commit** |
+| Schedule | **S22** · STATE-CONTRACT-01 ✅ Done · SV+Cross-Review R2 PASS · **待 Traycer 終審 + 真機驗收** |
 | Compile | 0 errors ✅ (assembleDeviceDebug PASS) |
 | Tests | 391 passed ✅ (EyeAfControllerTest 20 + GuidanceStateContractTest 9 新增) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
@@ -33,12 +33,11 @@
 
 ## Next Actions
 
-> **S22（2026-06-25）：STATE-CONTRACT-01 AI-1～AI-6 ✅ · 待 /sv + commit + 真機驗收**
+> **S22（2026-06-25）：STATE-CONTRACT-01 ✅ Done · SV R2 PASS · 待 Traycer + 真機驗收**
 
-1. **🔴 /sv**：STATE-CONTRACT-01 語意審查 + 確定性驗收
-2. **🔴 Commit**：兩份 commit（.kt + .md 分開）
-3. **🟡 真機驗收**：Bug #1 瘋狂對焦 / #2 Halo 消失 / #3 閃爍 確認閉環（K4-23 規則）
-4. **🟡 STATE-CONTRACT-02**：legacy cleanup（`_compositionState` 刪除 / CompositionGuideOverlay 路由）
+1. **🔴 Traycer 終審**：STATE-CONTRACT-01 execute_review
+2. **🟡 真機驗收（K4-23）**：Bug #1 瘋狂對焦 / #2 Halo 消失 / #3 閃爍 確認閉環
+3. **🟡 STATE-CONTRACT-02**：legacy cleanup（`_compositionState` 刪除 / CompositionGuideOverlay 路由）
 
 ## Active Debt（僅列未解決項）
 
