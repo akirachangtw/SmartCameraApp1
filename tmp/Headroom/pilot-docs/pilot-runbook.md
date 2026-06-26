@@ -13,7 +13,7 @@
 
 ## Endpoint 決策
 
-`pilot-integration.md` 早期草案提到 `/summary` 作為聚合摘要端點；本輪 repo-decision 已將 Headroom dashboard 的正式輪詢面收斂為 `/health` 與 `/stats`。因此 Phase 0/1 runbook、dashboard schema 與 extension wiring 一律以 `/stats` 表示統計摘要，不再把 `/summary` 當作驗收條件。
+早期草案曾提到 `/summary` 作為聚合摘要端點；目前 `tmp/Headroom/README.md` 與 `.agents/pilot/pilot.config.json` 已將 Headroom dashboard 的正式輪詢面收斂為 `/health` 與 `/stats`。因此 Phase 0/1 runbook、dashboard schema 與 extension wiring 一律以 `/stats` 表示統計摘要，不再把 `/summary` 當作驗收條件。
 
 ## KPI Schema 擴展門檻
 
