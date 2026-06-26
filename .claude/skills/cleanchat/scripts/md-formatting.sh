@@ -2,7 +2,7 @@
 # md-formatting.sh
 # Cleans AI-generated annotation tags and trailing whitespace from Markdown files.
 # Target paths (relative to repo root):
-#   - tmp/*.md              (top-level only, non-recursive)
+#   - tmp/**/*.md           (recursive)
 #   - plans/cso_briefing/**/*.md  (recursive)
 #
 # Usage:
@@ -16,7 +16,7 @@ REPO_ROOT="${1:-$(git rev-parse --show-toplevel)}"
 
 # Each entry: "path:maxdepth"  (maxdepth=1 → non-recursive, 99 → fully recursive)
 declare -A TARGET_DEPTHS=(
-    ["$REPO_ROOT/tmp"]=1
+    ["$REPO_ROOT/tmp"]=99
     ["$REPO_ROOT/plans/cso_briefing"]=99
 )
 
