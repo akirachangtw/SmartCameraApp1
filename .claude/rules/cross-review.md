@@ -3,6 +3,7 @@ description: Cross-Review pipeline 行為規範 — FAIL 處理 / Checkpoint / �
 globs:
   - "app/src/**/*.kt"
   - ".claude/skills/**"
+  - ".agents/skills/**"
   - "tmp/**"
 ---
 
