@@ -1,0 +1,57 @@
+{
+  "name": "vscode-headroom-dashboard",
+  "displayName": "Headroom Dashboard",
+  "description": "Minimal VS Code sidebar dashboard for Headroom sidecar health and stats.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:headroomDashboard.view",
+    "onCommand:headroomDashboard.refresh",
+    "onCommand:headroomDashboard.openConfig"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "headroomDashboard",
+          "title": "Headroom",
+          "icon": "media/headroom.svg"
+        }
+      ]
+    },
+    "views": {
+      "headroomDashboard": [
+        {
+          "type": "webview",
+          "id": "headroomDashboard.view",
+          "name": "Local Sidecar"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "headroomDashboard.refresh",
+        "title": "Headroom: Recheck Health"
+      },
+      {
+        "command": "headroomDashboard.openConfig",
+        "title": "Headroom: Open Pilot Config"
+      }
+    ]
+  },
+  "scripts": {
+    "check": "node --check src/extension.js && node --check src/headroomViewProvider.js",
+    "package": "vsce package --allow-missing-repository --out vscode-headroom-dashboard-0.0.1.vsix"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0"
+  }
+}

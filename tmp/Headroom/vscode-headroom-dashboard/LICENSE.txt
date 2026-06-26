@@ -1,0 +1,4 @@
+UNLICENSED
+
+This local pilot extension is for repository-internal evaluation only.
+Do not publish or redistribute without a separate license decision.
