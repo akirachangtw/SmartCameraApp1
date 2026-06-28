@@ -60,7 +60,7 @@ collect_refs() {
     for doc in "$@"; do
       [[ ! -f "$doc" ]] && continue
       grep -oE '`[^`]+`' "$doc" 2>/dev/null | tr -d '`' \
-        | grep -E '^(plans/|\.claude/)' | grep -v '[*?]'
+        | grep -E '^(plans/|\.claude/)' | grep -v '[*?]' || true
     done
   } | sort -u > "$REFS_TMP"
 }
@@ -419,7 +419,7 @@ prune_missing_refs() {
       ((FIX++)) || true
       pruned=1
     done < <(grep -oE '`[^`]+`' "$doc" 2>/dev/null | tr -d '`' \
-      | grep -E '^(plans/|\.claude/)' | grep -v '[*?]' | sort -u)
+      | grep -E '^(plans/|\.claude/)' | grep -v '[*?]' | sort -u || true)
   done
 
   [[ $pruned -eq 0 ]] && echo "│  ✅ 無缺檔引用需刪除"
