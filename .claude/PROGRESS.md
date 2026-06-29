@@ -11,13 +11,13 @@
 | STATE-CONTRACT-01 | 🟡 Ready → Traycer 終審（FIX-A ✅ + FIX-B ✅ 雙 /sv PASS） |
 | PHASE-B-01-R4 | ✅ Traycer T5 PASS · Consumer Map Q1 + Review Summary stale-pointer 修正完成 |
 
-**Last Updated**: 2026-06-25
+**Last Updated**: 2026-06-27
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S23** · STATE-CONTRACT-01 🟡 Ready · FIX-A ✅ + FIX-B ✅ · **→ Traycer 終審** |
+| Schedule | **S24** · STATE-CONTRACT-01 🟡 Ready · FIX-A/B/C ✅ · 實機驗收 AC-6/7/8/9 進行中 · **→ 實機完成後 Traycer 終審** |
 | Compile | 0 errors ✅ (assembleDeviceDebug PASS) |
 | Tests | 400 passed ✅ (FIX-B +4 reducer tests；androidTest 編譯 PASS) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
@@ -34,9 +34,10 @@
 
 ## Next Actions
 
-> **S23（2026-06-25）：FIX-A + FIX-B + FIX-C 三輪 /sv PASS · Cross-Review 全通過 · STATE-CONTRACT-01 Ready for Traycer**
+> **S24（2026-06-27）：靜態驗收 AC-1/2/6/7/8/10/11 ✅ · 單元測試 AC-3/4/5/10 ✅ · 實機驗收 AC-6/7/8/9 進行中（Sony APK 已安裝）**
 
-1. **🔴 Traycer 終審**：STATE-CONTRACT-01 execute_review（FIX-A ✅ + FIX-B ✅ + FIX-C ✅）
+1. **🔴 實機驗收**：AC-6（Aligned 綠色呼吸）/ AC-7（FacesDetectedNoneEligible 無 Halo）/ AC-8（暗→亮過渡）/ AC-9（PTF 不觸發 AF）
+2. **🔴 Traycer 終審**：STATE-CONTRACT-01 execute_review（實機驗收通過後執行）
 4. **🟡 真機驗收（K4-23）**：Bug #1 瘋狂對焦 / #2 Halo 消失 / #3 閃爍 確認閉環
 5. **🟡 STATE-CONTRACT-02**：legacy cleanup（`_compositionState` 刪除 / CompositionGuideOverlay 路由）
 
