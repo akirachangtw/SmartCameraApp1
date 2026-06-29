@@ -6,6 +6,7 @@ observability pilot.
 ## Files
 
 - `pilot.config.json`: endpoint, dashboard, governance path, and telemetry identity wiring.
+- `codegraph-queries.md`: pilot CodeGraph query patterns, fallback reasons, and usage boundaries.
 
 ## Boundaries
 
@@ -13,4 +14,3 @@ observability pilot.
 - `.agents/skills` remains the cross-agent common skill source.
 - `.claude/skills` and `.codex/skills` remain runtime adapter entrypoints.
 - The VS Code dashboard reads this config but does not own sidecar process lifecycle.
-
