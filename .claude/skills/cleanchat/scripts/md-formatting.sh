@@ -85,7 +85,8 @@ for dir in "${!TARGET_DEPTHS[@]}"; do
             cleaned=$((cleaned + 1))
             cleaned_list+=("  - $rel_path")
         fi
-    done < <(find "$dir" -maxdepth "$maxdepth" -name "*.md" -print0)
+    # 排除第三方依賴目錄（node_modules）：非 AI 對話產物，不在清理 scope
+    done < <(find "$dir" -maxdepth "$maxdepth" -name "*.md" -not -path '*/node_modules/*' -print0)
 done
 
 echo ""
