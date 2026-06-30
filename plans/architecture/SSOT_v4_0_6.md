@@ -125,7 +125,7 @@ if (levelOpacity < 0.01f) return@Canvas  // 省 4 次 drawXxx
 |------|------|--------|--------|---------|
 | **Pitch Traction** | 俯仰角引導（45°/90° 牽引） | IMU (accelerometer + magnetometer) | 60fps | 右側垂直指示柱：中軸線 + 定位環 + 浮動圓點（D-2）|
 | **Level Traction** | 水平修正（Roll 微調） | IMU (accelerometer + magnetometer) | 60fps | 水平儀虛線 + 動態修正指示 |
-| **Halo Traction** | 構圖位置牽引（跟隨 ML Kit bbox） | ML Kit (Face/Object Detection) | 10fps + EMA 平滑 | 主體周圍柔和光環，偏離目標時方向加亮弧 |
+| **Halo Traction** | 構圖位置牽引（跟隨 ML Kit bbox） | ML Kit (Face/Object Detection) | 10fps + EMA 平滑 | 主體周圍柔和光環，偏離目標時內含牽引圓點（沿 atan2 方向位移）|
 
 **三通道獨立運作、獨立降級**：
 - Pitch Traction 操作在螢幕右側（垂直指示柱，D-2）
@@ -136,7 +136,7 @@ if (levelOpacity < 0.01f) return@Canvas  // 省 4 次 drawXxx
 **三通道職責邊界（D-11）**：
 - **Pitch Traction**：俯仰角引導（1D 垂直軸），三態 `TILT_UP / TILT_DOWN / ALIGNED`
 - **Level Traction**：水平偏差引導（1D roll），opacity 漸入/漸出即是引導
-- **Halo Traction**：構圖位置引導（2D 平面），連續角度 `atan2(dy, dx)` 方向加亮弧
+- **Halo Traction**：構圖位置引導（2D 平面），連續角度 `atan2(dy, dx)` 驅動牽引圓點位移
 
 **Pitch Traction 與 Level Traction 場景互斥（D-9）**：Food 場景啟用 Pitch Traction，關閉 Level Traction；其他場景啟用 Level Traction，關閉 Pitch Traction。無任何場景同時啟用兩者。
 
@@ -398,11 +398,6 @@ fun HaloGuidanceLayer(
             center = Offset(haloCx, haloCy),
             style = Stroke(width = 2f)
         )
-
-        if (!isAligned) {
-            // 不對齊 → 向目標側加亮弧（D-11: 方向引導由 Halo 承擔）
-            // 使用 angle = atan2(dy, dx) 連續角度繪製方向加亮弧
-        }
     }
 }
 ```
