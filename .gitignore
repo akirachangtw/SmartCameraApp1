@@ -79,3 +79,4 @@ plans/archive/
 .understand-anything/.trash-*/
 # UA 誤跑於 src/ 子目錄的殘留產物（正確位置為專案根目錄）
 app/src/**/.understand-anything/
+headroom_memory.db
