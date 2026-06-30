@@ -60,3 +60,19 @@ Ticket 動工前（Plan 階段），**MUST** 對 Ticket 要修改的「資料來
 ③ **Magic Number 禁止**：filter threshold **MUST** 定義於 companion object 常數，禁止 inline 魔術數字；所有 consumer 層 inline lambda 引用常數名。
 
 觸發來源：D12 HOTFIX-47（K380 Ghost Face guidance gate；GF-01~03 雙裝置實機驗收 PASS）。
+
+## K5-Rule 29 — Prompt-Layer Governance Ticket 雙層驗證
+
+Prompt-layer 治理 Ticket（只修改 `.sh` / `.md` skill 檔案的 wiring 票）**MUST** 驗證兩個產物均正確運作，僅完成文件修改不算閉環：
+
+① **Payload Emitter（發送端）**：prompt 字串確實包含新問句（可透過 `grep` 或 heredoc diff 驗證）。
+
+② **Reviewer Output Artifact（接收端）**：Cross-Review 實際執行後的 Codex 輸出 **MUST** 包含對應強制回答行（如 `Guard Input Reachability: 無新 Guard`）。
+
+doc-only wiring（只更新 SKILL.md/CROSS_REVIEW.md 說明文字，但未在 `cross_review.sh` PROMPT_HEADER 中硬接線）= 文件層假閉環，不得標 Done。
+
+**Why**：INFRA-REACH-01 原始 AI-3 實作將規則寫入 `sv/SKILL.md`（human reminder 層），但 `cross_review.sh` PROMPT_HEADER 未注入，Codex 在無 ssot_context 的環境中無法執行此檢查——即使本輪 PASS 也只是因 ssot_context 恰好可用。
+
+**How to apply**：Prompt-layer 治理 Ticket /sv 時，Cross-Review 輸出中 **MUST** 出現被注入問句的對應回答行；缺失 → REPORT_FIX，要求補充 prompt wiring 後重跑。
+
+觸發來源：D12 INFRA-REACH-01-FIX-AI3 Traycer Rule Harvest。
