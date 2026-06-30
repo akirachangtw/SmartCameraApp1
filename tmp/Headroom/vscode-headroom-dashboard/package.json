@@ -16,7 +16,7 @@
     "onCommand:headroomDashboard.refresh",
     "onCommand:headroomDashboard.openConfig"
   ],
-  "main": "./src/extension.js",
+  "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -48,10 +48,15 @@
     ]
   },
   "scripts": {
-    "check": "node --check src/extension.js && node --check src/headroomViewProvider.js",
-    "package": "vsce package --allow-missing-repository --out vscode-headroom-dashboard-0.0.1.vsix"
+    "check": "npm run check:ts && node --check out/extension.js && node --check out/headroomViewProvider.js",
+    "check:legacy": "node --check src/extension.js && node --check src/headroomViewProvider.js",
+    "check:ts": "tsc --noEmit",
+    "build": "tsc -p .",
+    "package": "npm run build && vsce package --allow-missing-repository --out vscode-headroom-dashboard-0.0.1.vsix"
   },
   "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^22.10.1",
     "@types/vscode": "^1.90.0"
   }
 }
