@@ -255,7 +255,19 @@ cat > "$PAYLOAD" << 'PROMPT_HEADER'
 ### 3.4 治理證據鏈
 - PROGRESS.md / CLAUDE.md 連結指向已刪除檔案 → REPORT_FIX（非 BLOCKER）
 
-### 3.5 注意事項
+### 3.5 Guard Input Reachability（INFRA-REACH-01 固定項）
+
+以下問題為跨 Ticket 強制回答項（即使本次 diff 無相關新增，也必須明確輸出一行回答）：
+
+1. 本 Ticket diff 是否新增任何 guard / gate / early-return / reducer branch / fallback，且其觸發條件依賴 diff 外部的 CameraState 欄位或 runtime state？
+2. 若有，該 state 是否在 `app/src/main/` 存在 production writer（非預設初始化、非 reset-to-Idle 語意）？
+3. producer 判定三選一：(A) diff 內可見；(B) diff 外但 production 可達；(C) 不存在或不可證明 → 標記 `missing-wiring` 風險
+4. 若 producer 為 (C) → 即使 unit test 全綠，對應 AC **不得標 PASS**，標記 `missing-wiring`
+
+**強制輸出格式（每次必須輸出此行）**：
+`Guard Input Reachability: [無新 Guard] / [有新 Guard — State: X — Producer: (A)/(B)/(C)] / [missing-wiring: State X 無 producer]`
+
+### 3.6 注意事項
 - Pipeline Artifact（PROGRESS.md）揭露問題已由 structural_verify.sh 前置處理
 - 若 SV Report 已通過 structural_verify，不應就 PROGRESS.md 揭露問題重複 flag
 

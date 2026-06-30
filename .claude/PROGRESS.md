@@ -5,7 +5,8 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-REACH-01 | 🟡 /qa PASS · Guard Input Reachability gate · /sv 待執行 |
+| INFRA-REACH-01-FIX-AI3 | 🟡 impl DONE · cross_review.sh §3.5 + CROSS_REVIEW.md wiring · /qa 待執行 |
+| INFRA-REACH-01 | ✅ /sv PASS · Guard Input Reachability gate · 4F +75L · 2a63236 |
 | STATE-CONTRACT-01-FIX-C | ✅ /sv PASS · LANDMARK_NONE KDoc + PTF gate 偏移裁決強化 · 2c7ddff |
 | STATE-CONTRACT-01-FIX-B | ✅ /sv PASS · reducer pure 閉環 · AC-3/4/5 + AI-4 測試 4 條 · 30653fb |
 | STATE-CONTRACT-01-FIX-A | ✅ /sv PASS · HaloGuidanceLayerTest 六態 API 重寫 · 7bfd8dd |

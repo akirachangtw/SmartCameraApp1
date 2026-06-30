@@ -12,7 +12,7 @@ Cross-Review 是 gstack Step 4.5 防線。它使用 Codex CLI 對 Claude Code �
 
 - **Layer 1 — Architectural Review（架構重審）**：SSOT drift、Scope Ban、Clean Architecture 依賴方向、硬體約束
 - **Layer 2 — SV Report Cross-Review（報告驗證）**：SV Report 宣稱 vs diff 事實比對、Orphan Code、Anti-Mock
-- **Layer 3 — Blind Scan（盲區掃描）**：物理邊界、全鏈路退場、狀態機時序、治理證據鏈
+- **Layer 3 — Blind Scan（盲區掃描）**：物理邊界、全鏈路退場、狀態機時序、治理證據鏈、**Guard Input Reachability（固定項）**
 
 `REPORT_FIX` 是本專案的正式 verdict 名稱。原始 fail-budget plugin 的 `REPORTFIX` 只作為相容輸入；任何 state、報告、文件輸出都必須使用 `REPORT_FIX`。
 
@@ -116,6 +116,28 @@ Cross-Review 不取代 Traycer 終審。兩者審查面向不同：
 - **Traycer strict_verification**：行為級 + 系統級（thread safety、lifecycle、效能回歸、商業邏輯）
 
 Cross-Review `PASS` / `ADVISORY` 後仍必須送 Traycer 終審。
+
+## Guard Input Reachability（INFRA-REACH-01 固定項）
+
+此為 Cross-Review 的強制固定提問，不依賴 diff 是否含新 Guard——每次都必須輸出明確回答。
+
+**檢查目標**：本 Ticket diff 是否新增 guard / gate / early-return / reducer branch / fallback，且依賴 diff 外部 CameraState 欄位或 runtime state？
+
+**Producer 判定三選一**：
+
+| 判定 | 說明 |
+|------|------|
+| (A) diff 內可見 | producer 存在於本次 diff 範圍內 |
+| (B) diff 外但 production 可達 | `app/src/main/` 有 non-idle / non-reset 賦值點 |
+| (C) missing-wiring | producer 不存在或不可證明 → 標記風險，對應 AC 不得標 PASS |
+
+**強制輸出格式**（每次 Cross-Review 必須輸出此行）：
+
+```
+Guard Input Reachability: [無新 Guard] / [有新 Guard — State: X — Producer: (A)/(B)/(C)] / [missing-wiring: State X 無 producer]
+```
+
+此規則由 `cross_review.sh §3.5` 實作（prompt wiring），由 `sv/SKILL.md §B-7` 補充語意審查層，由 `static_blind_scan.sh §3.5.5` 提供 Dead-State 偵測工具。
 
 ## 維護
 
