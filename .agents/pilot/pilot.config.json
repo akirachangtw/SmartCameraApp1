@@ -24,6 +24,11 @@
       "poll_interval_ms": 5000,
       "request_timeout_ms": 3000,
       "show_raw_payload": true
+    },
+    "promotion_gate": {
+      "has_schema_note": true,
+      "has_fallback_mapping": true,
+      "readme_aligned": true
     }
   },
   "codegraph": {

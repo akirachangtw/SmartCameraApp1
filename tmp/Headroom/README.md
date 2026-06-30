@@ -9,8 +9,9 @@ This folder contains the working artifacts for the Headroom / CodeGraph pilot. T
 - `.claude/skills` and `.codex/skills` remain runtime adapter roots.
 - `.agents/pilot/pilot.config.json` is the canonical pilot wiring config.
 - The VS Code dashboard polls Headroom `/health` and `/stats`.
-- `/summary` was an early draft endpoint and is no longer an acceptance target.
-- CodeGraph is reserved in config and docs, but its dashboard card is not active in the current phase.
+- `/summary` and `/events/recent` are now implemented in the prototype sidecar as promoted KPI sources.
+- CodeGraph is reserved in config and docs, but its dashboard card is optional and controlled by config flags.
+
 
 ## Kept Artifacts
 

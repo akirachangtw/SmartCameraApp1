@@ -13,18 +13,14 @@
 
 ## Endpoint 決策
 
-早期草案曾提到 `/summary` 作為聚合摘要端點；目前 `tmp/Headroom/README.md` 與 `.agents/pilot/pilot.config.json` 已將 Headroom dashboard 的正式輪詢面收斂為 `/health` 與 `/stats`。因此 Phase 0/1 runbook、dashboard schema 與 extension wiring 一律以 `/stats` 表示統計摘要，不再把 `/summary` 當作驗收條件。
+正式的 Headroom 狀態檢測維持使用 `/health` 與 `/stats` 端點。此外，為了展示檢索率、壓縮比與品質等未來 KPI 指標，Dashboard 可額外向 Sidecar 輪詢 `/summary` 與 `/events/recent` 端點。在 Promotion Gate 通過前，這些 KPI 僅能作為預覽 (Preview) 展示。
 
-## KPI Schema 擴展門檻
+## KPI Schema 擴展與 Promotion 門檻
 
-`dashboard-metrics-schema.json` 是目前 active contract，只驗證 Headroom `/health` 與 `/stats` 的操作狀態。`retrieval-compression-kpi-schema.json` 是下一階段 draft companion schema，用來定義 `retrieval_hit_rate`、`compression_ratio`、`fallback_rate`、`end_to_end_p95_latency_ms` 的事件結構。
+`dashboard-metrics-schema.json` 是目前 active contract，只驗證 Headroom `/health` 與 `/stats` 的操作狀態。`retrieval-compression-kpi-schema.json` 是未來 KPI 的 Companion Schema，對應 Sidecar 的 `/summary`。
 
-擴展到 KPI dashboard 前，必須先完成：
+在 Promotion Gate 通過 (例如包含 20 筆以上事件、Schema 驗證合格) 之前，面板將其顯示為 Preview / Prototype 狀態。若 Sidecar 的 `/summary` 連線失敗或返回錯誤，Dashboard 會安靜地將 Panel B, C, E 降級為 `prototype`/`unavailable`，而絕不影響 `/health` 與 `/stats` 的 Reachability (綠/黃/紅燈) 判定。
 
-- Headroom-only dashboard 在 `.agents/pilot/pilot.config.json` 存在、缺失、JSON 壞掉三種情境下都能正常顯示狀態。
-- `/health` 與 `/stats` 的綠/黃/紅/灰燈規則已被手動或自動測過。
-- extension 仍只負責展示與最小控制，不把 retrieval/compression 判定邏輯塞進 VS Code extension。
-- sidecar 或 metrics aggregator 已能穩定產出 KPI snapshot，再把 draft schema 提升為 active schema。
 
 ## 每日檢查清單
 
