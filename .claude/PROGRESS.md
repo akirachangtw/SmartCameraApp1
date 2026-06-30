@@ -11,13 +11,13 @@
 | STATE-CONTRACT-01 | 🟡 Ready → Traycer 終審（FIX-A ✅ + FIX-B ✅ 雙 /sv PASS） |
 | PHASE-B-01-R4 | ✅ Traycer T5 PASS · Consumer Map Q1 + Review Summary stale-pointer 修正完成 |
 
-**Last Updated**: 2026-06-27
+**Last Updated**: 2026-06-30
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S24** · STATE-CONTRACT-01 🟡 Ready · FIX-A/B/C ✅ · 實機驗收 AC-6/7/8/9 進行中 · **→ 實機完成後 Traycer 終審** |
+| Schedule | **S24** · 實機驗收深度分析完成 · AC-7 ✅ · AC-6/8/9 🔴 BLOCKED by GAP-06 · **→ TRACTION-SSOT-01 修復後重測** |
 | Compile | 0 errors ✅ (assembleDeviceDebug PASS) |
 | Tests | 400 passed ✅ (FIX-B +4 reducer tests；androidTest 編譯 PASS) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
@@ -26,19 +26,19 @@
 
 | ID | Issue | Severity | Root Cause |
 | ---- | ------- | ---------- | ------------ |
-| BHA-01 | T02 Hard Gate — 歸一化 ✅，視覺 🔴 | 🟡 部分通過 | 視覺 FAIL：BUG-HALO-NOPTF-DEGENERATE → 已由 STATE-CONTRACT-01 閉環（六態渲染 + Aligned breathing）。 |
-| BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）· AC-5~9 ✅ | 🔴 Hard Gate FAIL | Phase B 後開票 |
+| GAP-06 | HaloTraction 渲染缺牽引圓點：Normal 無 HaloTraction（出 Focus Ring）；PTF 圓點靜態不磁吸 | 🔴 P0 | SSOT §2.5「加亮弧」設計錯誤；alpha 0.25 過淡；需重寫 HaloGuidanceLayer.kt → TRACTION-SSOT-01 |
+| GAP-07 | afState 回授斷裂 → Guard 7a 死碼 → 瘋狂 AF（Focus Ring 閃動）| 🔴 P0 | CameraViewModel.kt L2117 result 被拋棄、afState 永 Idle；需接線 |
+| BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
-| BUG-PTF-HALO-SIZE | PTF 圓環過大且不跟隨 | 🔴 P0 | P08-F7 待實作 |
-| BUG-MLKIT-PAREIDOLIA-FP | Ghost Face | ✅ HOTFIX-47 PASS | GF-01~03 PASS |
 
 ## Next Actions
 
-> **S24（2026-06-27）：靜態驗收 AC-1/2/6/7/8/10/11 ✅ · 單元測試 AC-3/4/5/10 ✅ · 實機驗收 AC-6/7/8/9 進行中（Sony APK 已安裝）**
+> **S24（2026-06-30）：實機驗收完成分析 · AC-7 Ghost Face ✅ · AC-6/8/9 BLOCKED by GAP-06/07 · Prototype vs SSOT 審查 v2 完成 · alpha 裁定 0.8 · TRACTION-* 格式已登記**
 
-1. **🔴 實機驗收**：AC-6（Aligned 綠色呼吸）/ AC-7（FacesDetectedNoneEligible 無 Halo）/ AC-8（暗→亮過渡）/ AC-9（PTF 不觸發 AF）
-2. **🔴 Traycer 終審**：STATE-CONTRACT-01 execute_review（實機驗收通過後執行）
-4. **🟡 真機驗收（K4-23）**：Bug #1 瘋狂對焦 / #2 Halo 消失 / #3 閃爍 確認閉環
+1. **🔴 開票 TRACTION-SSOT-01**：重寫 `HaloGuidanceLayer.kt`（外環＋牽引圓點 / alpha 0.8 / 三段漸變）+ 同步 SSOT §2.5 + Layout §3.3
+2. **🔴 開票 GAP-07**：修 afState 回授斷裂（CameraViewModel.kt L2117 接線）
+3. **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審
+4. **🟡 TRACTION-GOV-01**：Layout Spec v4.0.5 → v4.0.6 版本漂移修正
 5. **🟡 STATE-CONTRACT-02**：legacy cleanup（`_compositionState` 刪除 / CompositionGuideOverlay 路由）
 
 ## Active Debt（僅列未解決項）
