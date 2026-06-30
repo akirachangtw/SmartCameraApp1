@@ -36,13 +36,13 @@
 
 ## Next Actions
 
-> **S24（2026-06-30）：實機驗收完成分析 · AC-7 Ghost Face ✅ · AC-6/8/9 BLOCKED by GAP-06/07 · Prototype vs SSOT 審查 v2 完成 · alpha 裁定 0.8 · TRACTION-* 格式已登記**
+> **S24（2026-06-30）：INFRA-REACH-01 + FIX-AI3 全鏈路閉環 · Guard Input Reachability gate 完整落地 · K5-Rule 29 收割**
 
 1. **🔴 開票 TRACTION-SSOT-01**：重寫 `HaloGuidanceLayer.kt`（外環＋牽引圓點 / alpha 0.8 / 三段漸變）+ 同步 SSOT §2.5 + Layout §3.3
 2. **🔴 開票 GAP-07**：修 afState 回授斷裂（CameraViewModel.kt L2117 接線）
 3. **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審
-4. **🟡 TRACTION-GOV-01**：Layout Spec v4.0.5 → v4.0.6 版本漂移修正
-5. **🟡 STATE-CONTRACT-02**：legacy cleanup（`_compositionState` 刪除 / CompositionGuideOverlay 路由）
+4. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
+5. **🟡 TRACTION-GOV-01**：Layout Spec v4.0.5 → v4.0.6 版本漂移修正
 
 ## Active Debt（僅列未解決項）
 
