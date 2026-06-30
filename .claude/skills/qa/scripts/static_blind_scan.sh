@@ -63,6 +63,59 @@ else
   echo "✅ 無 Debug Overlay 殘留"
 fi
 
+# 3.5.5 — Dead-State 掃描（CameraState enum/sealed 欄位 production reachability）
+echo
+echo "=== [3.5.5] Dead-State 掃描 ==="
+
+CAMERASTATE_PATH=$(find app/src/main -name "CameraState.kt" 2>/dev/null | head -1)
+
+if [[ -z "$CAMERASTATE_PATH" ]]; then
+  echo "⚪ CameraState.kt 未找到，跳過 3.5.5"
+else
+  # Extract data class fields with non-primitive types (likely enum/sealed)
+  ENUM_FIELDS=$(grep -E "^\s+val\s+\w+\s*:\s*[A-Z]\w+" "$CAMERASTATE_PATH" \
+    | grep -viE ":\s*(String|Int|Float|Double|Boolean|Long|List|Map|Set|Flow|StateFlow|MutableStateFlow|Rect(F)?|PointF|Uri|Size|Bitmap|Any)" \
+    | sed -E 's/.*val ([a-z][a-zA-Z0-9_]*)\s*:.*/\1/' \
+    | grep -E "^[a-z]\w+$" \
+    | sort -u || true)
+
+  if [[ -z "$ENUM_FIELDS" ]]; then
+    echo "⚪ 無 enum/sealed 型別欄位，跳過"
+  else
+    DEAD_COUNT=0
+    for FIELD in $ENUM_FIELDS; do
+      # Pattern: field = <non-=> char (excludes == comparisons)
+      # Exclusions: val <field> = (local var decl), <field> = x.<field> (copy-through)
+      ALL_WRITES=$(grep -rn "\b${FIELD}\s*=\s*[^=]" app/src/main/ --include="*.kt" 2>/dev/null \
+        | grep -v "/CameraState.kt:" \
+        | grep -viE "val\s+${FIELD}\s*=" \
+        | grep -viE "\b${FIELD}\s*=\s*[a-z]\w*\.${FIELD}\b" \
+        || true)
+
+      if [[ -z "$ALL_WRITES" ]]; then
+        echo "⚠️  ${FIELD}: production 無任何賦值點（dead field 候選）"
+        DEAD_COUNT=$((DEAD_COUNT + 1))
+        continue
+      fi
+
+      NON_RESET=$(echo "$ALL_WRITES" \
+        | grep -viE "\b(Idle|None|Default|Initial|Unknown|NotStarted|Inactive|Off|Unset|Empty)\b" || true)
+      if [[ -z "$NON_RESET" ]]; then
+        echo "⚠️  ${FIELD}: 所有 production 賦值均為 reset/Idle（Guard input 不可達）"
+        echo "$ALL_WRITES" | head -2 | sed 's/^/     /'
+        DEAD_COUNT=$((DEAD_COUNT + 1))
+      fi
+    done
+
+    if [[ $DEAD_COUNT -gt 0 ]]; then
+      echo "→ /sv 階段 B-x MUST 確認上述欄位 Guard reachability，結果記錄於 sv_report.md"
+      SCAN_FAIL=1
+    else
+      echo "✅ 所有欄位均有 production 非 reset 賦值點"
+    fi
+  fi
+fi
+
 # 結果彙總
 echo
 echo "══════════════════════════════════════"

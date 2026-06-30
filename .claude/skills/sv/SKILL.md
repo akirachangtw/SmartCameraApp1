@@ -65,6 +65,14 @@ disable-model-invocation: false
    - `when` 分支 **MUST** exhaustive，`return` 防線是否穩固。
    - Compose `if/else` 層次是否正確處理 null 狀態。
 
+7. **Guard Input Reachability（INFRA-REACH-01）**：
+   對本 diff 新增的任何 Guard / gate / early-return，逐一確認依賴的 input：
+   - 在 `app/src/main/` 是否存在 production 寫入點（非預設初始化、非 reset-to-Idle 語意）？
+   - 若任一 input 無 non-idle production producer → 標記 **⚠️ UNREACHABLE GUARD**
+   - 對應 AC **MUST** 不得標 PASS，改為 **⚠️ PARTIAL**，並開後續 follow-up Ticket
+   - 結果（含「已確認可達」或「UNREACHABLE」判定）**MUST** 寫入 `sv_report.md`
+   - 輔助工具：Step 3.5.5 Dead-State 掃描輸出；參考 K3-Rule 26（多消費路徑掃描）
+
 ## 階段 C：架構合規 (Architecture Compliance)
 
 7. **UDF 合規**：
@@ -128,6 +136,12 @@ disable-model-invocation: false
       fi
       ```
       並將 Codex 回傳結果附加至 SV Report 末尾。
+    - **契約落地反向提問（INFRA-REACH-01）**：Cross-Review prompt **MUST** 包含以下固定問句，強制審查跳出 diff 邊界：
+      > 本 Ticket 是否新增任何依賴外部 state 為前提的 Guard / gate / 邏輯？
+      > 該 state 是否在 diff 範圍之外有對應 production producer？
+      > 若無，標記 missing-wiring 風險。
+
+      結果須在 Cross-Review 報告中明確列出（即使無新 Guard 也須明確回答「無」）。
     - **退出碼對應行動**：
       - `exit 0` (PASS/ADVISORY) → ✅ 繼續 Traycer 終審
       - `exit 1` (BLOCKER) → 🔴 修程式碼後重新 /qa → /sv

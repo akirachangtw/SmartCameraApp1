@@ -47,6 +47,8 @@ bash .claude/skills/qa/scripts/verify_checklist.sh tmp/verify_cmd.conf
   - 若是代碼 Bug → **MUST** 修復代碼，重跑測試。
   - 若是測試過期 → **MUST** 更新測試，重跑。
 
+> ⚠️ **Reachability 紀律（INFRA-REACH-01）**：Unit test 綠燈僅證明 isolated logic 正確，**不證明**測試注入的 state 在 production 可達。涉及硬體 / runtime state（如 `afState`、camera lifecycle state）的 AC，reachability 由 Step 3.5.5 + /sv 階段 B-x 把關。**Unit test pass ≠ production reachability confirmed**。
+
 ## Step 3: Warning 審查
 
 執行 `./gradlew lint 2>&1 | grep -E "(Warning|Error)" | head -20`

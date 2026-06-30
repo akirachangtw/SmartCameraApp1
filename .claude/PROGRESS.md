@@ -5,11 +5,11 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| INFRA-REACH-01 | 🟡 /qa PASS · Guard Input Reachability gate · /sv 待執行 |
 | STATE-CONTRACT-01-FIX-C | ✅ /sv PASS · LANDMARK_NONE KDoc + PTF gate 偏移裁決強化 · 2c7ddff |
 | STATE-CONTRACT-01-FIX-B | ✅ /sv PASS · reducer pure 閉環 · AC-3/4/5 + AI-4 測試 4 條 · 30653fb |
 | STATE-CONTRACT-01-FIX-A | ✅ /sv PASS · HaloGuidanceLayerTest 六態 API 重寫 · 7bfd8dd |
 | STATE-CONTRACT-01 | 🟡 Ready → Traycer 終審（FIX-A ✅ + FIX-B ✅ 雙 /sv PASS） |
-| PHASE-B-01-R4 | ✅ Traycer T5 PASS · Consumer Map Q1 + Review Summary stale-pointer 修正完成 |
 
 **Last Updated**: 2026-06-30
 
@@ -27,9 +27,11 @@
 | ID | Issue | Severity | Root Cause |
 | ---- | ------- | ---------- | ------------ |
 | GAP-06 | HaloTraction 渲染缺牽引圓點：Normal 無 HaloTraction（出 Focus Ring）；PTF 圓點靜態不磁吸 | 🔴 P0 | SSOT §2.5「加亮弧」設計錯誤；alpha 0.25 過淡；需重寫 HaloGuidanceLayer.kt → TRACTION-SSOT-01 |
-| GAP-07 | afState 回授斷裂 → Guard 7a 死碼 → 瘋狂 AF（Focus Ring 閃動）| 🔴 P0 | CameraViewModel.kt L2117 result 被拋棄、afState 永 Idle；需接線 |
+| GAP-07 | afState 回授斷裂 → Guard 7a 死碼 → 瘋狂 AF（Focus Ring 閃動）（**=AC-10 假過根因**）| 🔴 P0 | CameraViewModel.kt L2117 result 被拋棄、afState 永 Idle（dead field）；需接線 |
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
+
+> **🟠 治理校正（2026-06-30）**：AC-10（skip-when-focused / Guard 7a）由 ✅ 改 **⚠️ PARTIAL** — unit logic 已實作測試，但 production input `AfState.Locked` 為 dead field（不可達），三道 gate 結構性假過。實際修復 = GAP-07；流程防護 = INFRA-REACH-01（已開票 Pending/）。
 
 ## Next Actions
 
@@ -67,6 +69,8 @@
 | K4-22 | ssot_context.md 事實數據（行數/倍率）隨 Ticket 閉環自動更新機制 | CameraViewModel 2457→2344 漂移 | 自動化 |
 | K4-23 | 靜態驗收 + 模擬器 QA 無法捕捉真機專屬 Camera 後端分流 bug → execute_review 後仍 **MUST** 真機驗收方可標 DONE | P08-F4-FIX S15 真機 FAIL | CLAUDE.md 規則 |
 | K4-24 | Discovery Report 已記載「Path A 從不執行」，FIX 卻扶正 Path A 未修根因 → FIX Ticket **MUST** 對 Discovery 前提缺陷逐項閉環 | P08-F4 Discovery vs P08-F4-FIX 矛盾 | CLAUDE.md 規則 |
+| K4-34 | 真機渲染缺陷無法被靜態/模擬器捕捉 — Halo 牽引圓點在 SSOT「加亮弧」空實作下，靜態+單元全綠但真機完全不渲染 → 視覺渲染類 AC **MUST** 真機 gate（K4-23 由「Camera 後端」擴展至「渲染」維度）| STATE-CONTRACT-01 AC-6/8 靜態 PASS 真機 FAIL（GAP-06）| CLAUDE.md 規則 / camera-constraints |
+| K4-35 | Guard 依賴的 input 若無 production producer（dead field），單元測試注入該 state 造成 false pass → reachability 維度 **MUST** 入 /qa+/sv | AC-10 假過 / afState 永 Idle / Guard 7a 死碼（GAP-07）| /qa+/sv gate 擴充（✅ 已轉 INFRA-REACH-01 票，本候選即其防護）|
 
 ## Quick Links
 
