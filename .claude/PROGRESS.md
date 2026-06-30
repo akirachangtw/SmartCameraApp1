@@ -5,11 +5,11 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| TRACTION-SSOT-02 | ✅ /sv PASS · D-11 加亮弧→牽引圓點（atan2 歸屬保留）· Codex R2 PASS · 1F +2/-7L · 0a336ca |
 | INFRA-REACH-01-FIX-AI3 | ✅ /sv PASS · cross_review.sh §3.5 + CROSS_REVIEW.md wiring · 2F +38L · 3028bd1 |
 | INFRA-REACH-01 | ✅ /sv PASS · Guard Input Reachability gate · 4F +75L · 2a63236 |
 | STATE-CONTRACT-01-FIX-C | ✅ /sv PASS · LANDMARK_NONE KDoc + PTF gate 偏移裁決強化 · 2c7ddff |
 | STATE-CONTRACT-01-FIX-B | ✅ /sv PASS · reducer pure 閉環 · AC-3/4/5 + AI-4 測試 4 條 · 30653fb |
-| STATE-CONTRACT-01-FIX-A | ✅ /sv PASS · HaloGuidanceLayerTest 六態 API 重寫 · 7bfd8dd |
 | STATE-CONTRACT-01 | 🟡 Ready → Traycer 終審（FIX-A ✅ + FIX-B ✅ 雙 /sv PASS） |
 
 **Last Updated**: 2026-06-30
@@ -38,7 +38,7 @@
 
 > **S24（2026-06-30）：INFRA-REACH-01 + FIX-AI3 全鏈路閉環 · Guard Input Reachability gate 完整落地 · K5-Rule 29 收割**
 
-1. **🔴 開票 TRACTION-SSOT-01**：重寫 `HaloGuidanceLayer.kt`（外環＋牽引圓點 / alpha 0.8 / 三段漸變）+ 同步 SSOT §2.5 + Layout §3.3
+1. **🔴 TRACTION-SSOT-01**（前置 SSOT-02 ✅ 已解除）：補 SSOT §2.5 牽引圓點完整規格（alpha 0.8 / 三段 V 曲線 / atan2 圓點）+ §2.5.1 Food + Layout §3.3 同步
 2. **🔴 開票 GAP-07**：修 afState 回授斷裂（CameraViewModel.kt L2117 接線）
 3. **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審
 4. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
