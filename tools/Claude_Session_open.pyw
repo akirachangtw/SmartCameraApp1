@@ -35,21 +35,31 @@ DEFAULT_PROMPT_TEMPLATE = """請讀取 @docs/session_handoff/[交接文檔], @.c
 class Colors:
     PRIMARY = "#2980b9"
     SUCCESS = "#27ae60"
+    WARNING = "#f39c12"
     DANGER = "#c0392b"
     BACKGROUND = "#ecf0f1"
     CARD_BG = "#ffffff"
     TEXT_DARK = "#2c3e50"
     TEXT_LIGHT = "#ffffff"
+    MUTED = "#7f8c8d"
+    TABLE_HEAD = "#f8f9fa"
+    LOG_BG = "#f8f9fa"
     BORDER = "#bdc3c7"
+
+
+UI_FONT = "Microsoft JhengHei UI"
+MONO_FONT = "Consolas"
 
 
 class ClaudeSessionLauncher:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("Claude Session Launcher")
-        self.root.geometry("920x720")
-        self.root.minsize(760, 560)
+        self.root.geometry("1040x780")
+        self.root.minsize(860, 640)
         self.root.configure(bg=Colors.BACKGROUND)
+
+        self._configure_styles()
 
         self.project_path_var = tk.StringVar(value=str(DEFAULT_PROJECT_PATH))
         self.handoff_var = tk.StringVar()
@@ -62,8 +72,25 @@ class ClaudeSessionLauncher:
         self._build_ui()
         self.refresh_handoff_files()
 
+    def _configure_styles(self) -> None:
+        # ttk 僅用於 Combobox 下拉（純 tk 無等效 readonly 下拉元件）；
+        # 其餘結構全部走 manager 的純 tk 語彙。
+        style = ttk.Style(self.root)
+        try:
+            style.theme_use("clam")
+        except tk.TclError:
+            pass
+        style.configure(
+            "TCombobox",
+            padding=(8, 6),
+            font=(UI_FONT, 11),
+            fieldbackground=Colors.CARD_BG,
+            background=Colors.CARD_BG,
+            foreground=Colors.TEXT_DARK,
+        )
+
     def _build_ui(self) -> None:
-        header = tk.Frame(self.root, bg=Colors.TEXT_DARK, height=56)
+        header = tk.Frame(self.root, bg=Colors.TEXT_DARK, height=58)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
 
@@ -72,11 +99,35 @@ class ClaudeSessionLauncher:
             text="Claude Session Launcher",
             bg=Colors.TEXT_DARK,
             fg=Colors.TEXT_LIGHT,
-            font=("Microsoft JhengHei UI", 17, "bold"),
+            font=(UI_FONT, 17, "bold"),
         ).pack(side=tk.LEFT, padx=18)
 
         body = tk.Frame(self.root, bg=Colors.BACKGROUND)
         body.pack(fill=tk.BOTH, expand=True, padx=14, pady=14)
+
+        def field_label(parent: tk.Misc, text: str) -> tk.Label:
+            return tk.Label(
+                parent,
+                text=text,
+                bg=Colors.CARD_BG,
+                fg=Colors.TEXT_DARK,
+                font=(UI_FONT, 10, "bold"),
+                anchor=tk.W,
+            )
+
+        def flat_button(parent: tk.Misc, text: str, command, color: str) -> tk.Button:
+            return tk.Button(
+                parent,
+                text=text,
+                command=command,
+                bg=color,
+                fg=Colors.TEXT_LIGHT,
+                activebackground=color,
+                activeforeground=Colors.TEXT_LIGHT,
+                relief=tk.FLAT,
+                padx=16,
+                pady=7,
+            )
 
         settings = tk.LabelFrame(
             body,
@@ -88,72 +139,91 @@ class ClaudeSessionLauncher:
         )
         settings.pack(fill=tk.X)
         settings.columnconfigure(1, weight=1)
+        settings.columnconfigure(2, weight=0)
 
-        tk.Label(settings, text="Project工作路徑", bg=Colors.CARD_BG).grid(
-            row=0, column=0, sticky=tk.W, pady=6
+        field_label(settings, "Project 工作路徑").grid(
+            row=0, column=0, sticky=tk.W, padx=(0, 10), pady=6
         )
-        ttk.Entry(settings, textvariable=self.project_path_var).grid(
-            row=0, column=1, sticky=tk.EW, padx=8, pady=6
-        )
-        ttk.Button(settings, text="瀏覽資料夾", command=self.browse_project_path).grid(
+        tk.Entry(
+            settings,
+            textvariable=self.project_path_var,
+            font=(UI_FONT, 11),
+            relief=tk.SOLID,
+            bd=1,
+            bg=Colors.CARD_BG,
+        ).grid(row=0, column=1, sticky=tk.EW, padx=(0, 10), pady=6, ipady=3)
+        flat_button(settings, "瀏覽資料夾", self.browse_project_path, Colors.PRIMARY).grid(
             row=0, column=2, sticky=tk.E, pady=6
         )
 
-        tk.Label(settings, text="交接文檔", bg=Colors.CARD_BG).grid(
-            row=1, column=0, sticky=tk.W, pady=6
+        field_label(settings, "交接文檔").grid(
+            row=1, column=0, sticky=tk.W, padx=(0, 10), pady=6
         )
         self.handoff_combo = ttk.Combobox(
             settings,
             textvariable=self.handoff_var,
             state="readonly",
         )
-        self.handoff_combo.grid(row=1, column=1, sticky=tk.EW, padx=8, pady=6)
-        ttk.Button(settings, text="重新載入", command=self.refresh_handoff_files).grid(
+        self.handoff_combo.grid(row=1, column=1, sticky=tk.EW, padx=(0, 10), pady=6)
+        flat_button(settings, "重新載入", self.refresh_handoff_files, Colors.PRIMARY).grid(
             row=1, column=2, sticky=tk.E, pady=6
         )
 
-        tk.Label(settings, text="Session名稱", bg=Colors.CARD_BG).grid(
-            row=2, column=0, sticky=tk.W, pady=6
+        field_label(settings, "Session 名稱").grid(
+            row=2, column=0, sticky=tk.W, padx=(0, 10), pady=6
         )
-        ttk.Entry(settings, textvariable=self.session_name_var).grid(
-            row=2, column=1, columnspan=2, sticky=tk.EW, padx=8, pady=6
-        )
+        tk.Entry(
+            settings,
+            textvariable=self.session_name_var,
+            font=(UI_FONT, 11),
+            relief=tk.SOLID,
+            bd=1,
+            bg=Colors.CARD_BG,
+        ).grid(row=2, column=1, columnspan=2, sticky=tk.EW, pady=6, ipady=3)
 
-        tk.Label(settings, text="Claude啟動", bg=Colors.CARD_BG).grid(
-            row=3, column=0, sticky=tk.W, pady=6
+        field_label(settings, "Claude 啟動參數").grid(
+            row=3, column=0, sticky=tk.W, padx=(0, 10), pady=6
         )
         claude_options = tk.Frame(settings, bg=Colors.CARD_BG)
-        claude_options.grid(row=3, column=1, columnspan=2, sticky=tk.EW, padx=8, pady=6)
+        claude_options.grid(row=3, column=1, columnspan=2, sticky=tk.EW, pady=6)
         claude_options.columnconfigure(1, weight=1)
         claude_options.columnconfigure(3, weight=1)
 
-        tk.Label(claude_options, text="--model", bg=Colors.CARD_BG).grid(
-            row=0, column=0, sticky=tk.W
-        )
+        tk.Label(
+            claude_options,
+            text="--model",
+            bg=Colors.CARD_BG,
+            fg=Colors.MUTED,
+            font=(MONO_FONT, 10),
+        ).grid(row=0, column=0, sticky=tk.W)
         self.claude_model_combo = ttk.Combobox(
             claude_options,
             textvariable=self.claude_model_var,
             values=CLAUDE_MODEL_OPTIONS,
             state="readonly",
-            width=14,
+            width=16,
         )
-        self.claude_model_combo.grid(row=0, column=1, sticky=tk.W, padx=(6, 16))
+        self.claude_model_combo.grid(row=0, column=1, sticky=tk.EW, padx=(8, 18))
 
-        tk.Label(claude_options, text="--effort", bg=Colors.CARD_BG).grid(
-            row=0, column=2, sticky=tk.W
-        )
+        tk.Label(
+            claude_options,
+            text="--effort",
+            bg=Colors.CARD_BG,
+            fg=Colors.MUTED,
+            font=(MONO_FONT, 10),
+        ).grid(row=0, column=2, sticky=tk.W)
         self.claude_effort_combo = ttk.Combobox(
             claude_options,
             textvariable=self.claude_effort_var,
             values=CLAUDE_EFFORT_OPTIONS,
             state="readonly",
-            width=14,
+            width=16,
         )
-        self.claude_effort_combo.grid(row=0, column=3, sticky=tk.W, padx=(6, 0))
+        self.claude_effort_combo.grid(row=0, column=3, sticky=tk.EW, padx=(8, 0))
 
         prompt_frame = tk.LabelFrame(
             body,
-            text="Prompt樣板",
+            text="Prompt 樣板",
             bg=Colors.CARD_BG,
             fg=Colors.TEXT_DARK,
             padx=12,
@@ -161,39 +231,30 @@ class ClaudeSessionLauncher:
         )
         prompt_frame.pack(fill=tk.BOTH, expand=True, pady=(12, 0))
 
+        tk.Label(
+            prompt_frame,
+            text="提示：使用 [交接文檔] 與 [Session名稱] 作為自動替換欄位。",
+            bg=Colors.CARD_BG,
+            fg=Colors.MUTED,
+            font=(UI_FONT, 10),
+            anchor=tk.W,
+        ).pack(fill=tk.X, pady=(0, 8))
+
         self.prompt_text = scrolledtext.ScrolledText(
             prompt_frame,
-            height=16,
+            height=9,
             wrap=tk.WORD,
-            font=("Microsoft JhengHei UI", 10),
+            font=(UI_FONT, 12),
+            relief=tk.FLAT,
+            bg=Colors.CARD_BG,
+            highlightthickness=1,
+            highlightbackground=Colors.BORDER,
+            highlightcolor=Colors.PRIMARY,
+            padx=10,
+            pady=8,
         )
         self.prompt_text.pack(fill=tk.BOTH, expand=True)
         self.prompt_text.insert("1.0", DEFAULT_PROMPT_TEMPLATE)
-
-        button_bar = tk.Frame(body, bg=Colors.BACKGROUND)
-        button_bar.pack(fill=tk.X, pady=(12, 0))
-
-        tk.Button(
-            button_bar,
-            text="複製最終 Prompt",
-            command=self.copy_final_prompt,
-            bg=Colors.PRIMARY,
-            fg=Colors.TEXT_LIGHT,
-            relief=tk.FLAT,
-            padx=18,
-            pady=8,
-        ).pack(side=tk.LEFT)
-
-        tk.Button(
-            button_bar,
-            text="執行 Claude Session",
-            command=self.run_claude_session,
-            bg=Colors.SUCCESS,
-            fg=Colors.TEXT_LIGHT,
-            relief=tk.FLAT,
-            padx=22,
-            pady=8,
-        ).pack(side=tk.RIGHT)
 
         preview_frame = tk.LabelFrame(
             body,
@@ -203,20 +264,42 @@ class ClaudeSessionLauncher:
             padx=12,
             pady=8,
         )
-        preview_frame.pack(fill=tk.X, pady=(12, 0))
+        preview_frame.pack(fill=tk.BOTH, expand=True, pady=(12, 0))
 
         self.preview_text = tk.Text(
             preview_frame,
-            height=4,
+            height=9,
             wrap=tk.WORD,
-            font=("Consolas", 9),
-            bg="#f8f9fa",
+            font=(MONO_FONT, 11),
+            bg=Colors.LOG_BG,
+            fg=Colors.TEXT_DARK,
+            insertbackground=Colors.TEXT_DARK,
             relief=tk.FLAT,
+            padx=10,
+            pady=8,
         )
-        self.preview_text.pack(fill=tk.X)
+        self.preview_text.pack(fill=tk.BOTH, expand=True)
         self.preview_text.configure(state=tk.DISABLED)
 
-        status_bar = tk.Label(
+        button_bar = tk.Frame(body, bg=Colors.BACKGROUND)
+        button_bar.pack(fill=tk.X, pady=(12, 0))
+
+        tk.Label(
+            button_bar,
+            text="確認 Project、handoff 與 Session 名稱後再執行。",
+            bg=Colors.BACKGROUND,
+            fg=Colors.MUTED,
+            font=(UI_FONT, 10),
+        ).pack(side=tk.LEFT)
+
+        flat_button(button_bar, "執行 Claude Session", self.run_claude_session, Colors.SUCCESS).pack(
+            side=tk.RIGHT
+        )
+        flat_button(button_bar, "複製 Prompt", self.copy_final_prompt, Colors.PRIMARY).pack(
+            side=tk.RIGHT, padx=(0, 10)
+        )
+
+        self.status_bar = tk.Label(
             self.root,
             textvariable=self.status_var,
             anchor=tk.W,
@@ -225,7 +308,7 @@ class ClaudeSessionLauncher:
             padx=10,
             pady=5,
         )
-        status_bar.pack(fill=tk.X, side=tk.BOTTOM)
+        self.status_bar.pack(fill=tk.X, side=tk.BOTTOM)
 
         self.project_path_var.trace_add("write", lambda *_: self.update_preview())
         self.handoff_var.trace_add("write", lambda *_: self.update_preview())
@@ -436,6 +519,7 @@ sys.exit(exit_code)
 
     def set_status(self, message: str, error: bool = False) -> None:
         self.status_var.set(message)
+        self.status_bar.configure(bg=Colors.DANGER if error else Colors.TEXT_DARK)
         if error:
             self.root.bell()
 
