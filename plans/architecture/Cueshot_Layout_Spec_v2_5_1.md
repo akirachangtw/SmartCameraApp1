@@ -1,7 +1,7 @@
-# Cueshot 佈局規格 v2.5.1 — 兩區塊模型
+# Cueshot 佈局規格 v2.5.2 — 兩區塊模型
 
-**版本**: Layout Spec v2.5.1 (SSOT v4.0.6 Alignment + D-25 Layer 1 文案修正 + D-26 LEGACY 光線指示修復)  
-**最後更新**: 2026-05-29  
+**版本**: Layout Spec v2.5.2 (SSOT v4.0.6 Alignment + §3.3 Layer 3 Halo 牽引圓點/alpha 0.8 統一 [AI-8/R-T9])  
+**最後更新**: 2026-07-01  
 **變更歷程**:  
 - v2.0 → v2.1：§5 Pill Toggle 文字標籤改為圖示（Camera / Users）  
 - v2.1 → v2.2：Edge Warmth 命名全面淨化（4 處）+ SSOT v4.0 數值對齊（Scrim 120px）+ 文件引用更新  
@@ -9,8 +9,9 @@
 - v2.3 → v2.4：**8 項修訂**（見 §12 修訂追蹤 v2.3→v2.4）— SSOT v4.0.3 交叉審計：版本錨點全量更新 + Top Bar 光線指示三態 pulse 規格 + Edge-to-Edge/Cutout 規格 + FILL_CENTER 禁止聲明 + Scaffold padding 規則  
 - v2.4 → v2.5：**3 項修訂**（見 §13 修訂追蹤 v2.4→v2.5）— Grid α0.35/1.5px + Z-order 交換 + Grid 詳細規格表
 - v2.5 → v2.5.1：**2 項修訂**（見 §14 修訂追蹤 v2.5→v2.5.1）— Layer 1 文案修正 + LEGACY 光線指示修復
+- v2.5.1 → v2.5.2：**1 項修訂**（見 §15 修訂追蹤 v2.5.1→v2.5.2）— §3.3 Layer 3 Halo 加亮弧→牽引圓點 + 未對齊 alpha 0.20→0.8 統一（AI-8/R-T9）
 **決策來源**: CSO Session D8 — Top Bar Overlay 化 + Photo/PTF Pill Toggle · Session 4 D-12 快門下移 · Session 6 D-14~D-19 · **Session 8 D-24 Grid 規格**
-**取代**: v2.5 及所有前版（v2.4, v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）  
+**取代**: v2.5.1 及所有前版（v2.5, v2.4, v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）  
 **上游文件**: `SSOT_v4_0_6.md`（唯一真理文件）  
 **下游文件**: Prototyper Prompt v2 · Background Image Prompts v2
 
@@ -466,7 +467,7 @@ The image will be used as a full-screen background layer in a camera app UI prot
 ## 10. 文件相依性地圖
 
 ```
-本文件 (Layout Spec v2.5.1)
+本文件 (Layout Spec v2.5.2)
   ├─→ SSOT v4.0.6 §Viewfinder Overlay — 雙向對齊（Overlay 圖層定義）
   ├─→ SSOT v4.0.6 §B.5 — Top Bar Scrim + 光線指示（D-13/D-15/D-16/D-19）
   ├─→ SSOT v4.0.6 §2.3 — Pitch Traction 指示柱規格（D-2）
@@ -574,13 +575,23 @@ The image will be used as a full-screen background layer in a camera app UI prot
 
 ---
 
+## 15. 修訂追蹤 v2.5.1 → v2.5.2
+
+| # | 章節 | 修訂內容 | 來源 |
+|---|------|---------|------|
+| 1 | §3.3 Layer 3 | Halo 加亮弧 → 外環 + 牽引圓點雙層；未對齊 alpha 0.20 → 0.8（單人 + 群組統一） | TRACTION-SSOT-01 AI-8 / R-T9 / R-T2 |
+
+> **檔名穩定識別碼聲明**：本規格檔名 `Cueshot_Layout_Spec_v2_5_1.md` 為穩定識別碼，不隨內文版號變動；權威版本以本文件 **版本** metadata 為準。spec 檔名版號策略（SSOT 式檔名帶版號 vs slug）之全專案統一，另案 GOV-03 決議。
+
+---
+
 ## 文件元資訊
 
-- **版本**: Layout Spec v2.5.1 (SSOT v4.0.6 Alignment + D-25 Layer 1 文案修正 + D-26 LEGACY 光線指示修復)
+- **版本**: Layout Spec v2.5.2 (SSOT v4.0.6 Alignment + D-25 Layer 1 文案修正 + D-26 LEGACY 光線指示修復)
 - **建立日期**: 2026-04-25
 - **修訂日期**: 2026-05-29
 - **決策鏈**: CSO Session D8 → Top Bar Overlay 化 → Photo/PTF Pill Toggle (Option A + Color C) → 暖色偏移 → **Session 4 D-12 快門下移 4dp** → **Session 6 D-14~D-19 全面修復** → **Session 8 D-24 Grid 規格鎖定**
-- **取代**: v2.5 及所有前版（v2.4, v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）
+- **取代**: v2.5.1 及所有前版（v2.5, v2.4, v2.3, v2.2, v2.1, v2.0, v1.1 三區塊模型）
 - **上游文件**: `SSOT_v4_0_6.md`（唯一真理文件）
 - **審查狀態**: UITA 交叉審計完成 — v2.2→v2.3 16 項 + v2.3→v2.4 8 項 + v2.4→v2.5 3 項 + v2.5→v2.5.1 2 項修訂全部落地 + 零殘留驗證通過
 - **命名規範**: 本文件中不存在 "Edge Warmth" 或 "水平儀" 作為渲染元件名稱。三通道體系統一使用 Pitch Traction / Level Traction / Halo Traction。PitchTractionLayer 禁止包含 null/radialGradient 渲染邏輯（D-14）。
@@ -588,4 +599,4 @@ The image will be used as a full-screen background layer in a camera app UI prot
 
 ---
 
-**End of Layout Spec v2.5.1**
+**End of Layout Spec v2.5.2**
