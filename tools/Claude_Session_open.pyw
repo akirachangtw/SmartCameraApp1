@@ -33,19 +33,21 @@ DEFAULT_PROMPT_TEMPLATE = """請讀取 @docs/session_handoff/[交接文檔], @.c
 
 
 class Colors:
-    PRIMARY = "#df6919"
-    SUCCESS = "#5cb85c"
-    WARNING = "#ffc107"
-    DANGER = "#d9534f"
-    BACKGROUND = "#0f2537"
-    CARD_BG = "#20374c"
-    HEADER_BG = "#1a252f"
-    TEXT_DARK = "#ebebeb"
+    # 完全套用 mcp_ticket_platform_manager.pyw 淺色 palette（flatui 系）。
+    PRIMARY = "#2980b9"
+    SUCCESS = "#27ae60"
+    WARNING = "#f39c12"
+    DANGER = "#c0392b"
+    BACKGROUND = "#ecf0f1"
+    CARD_BG = "#ffffff"
+    TEXT_DARK = "#2c3e50"
     TEXT_LIGHT = "#ffffff"
-    MUTED = "#868e96"
-    TABLE_HEAD = "#1a252f"
-    LOG_BG = "#0c1a25"
-    BORDER = "#4e5d6c"
+    MUTED = "#7f8c8d"
+    TABLE_HEAD = "#f8f9fa"
+    LOG_BG = "#f8f9fa"
+    # launcher 專屬：manager 無表單欄位故未定義；Entry/Combobox 需邊框對比，
+    # 取 flatui 同系淺灰 Silver 作為欄位邊框色。
+    BORDER = "#bdc3c7"
 
 
 UI_FONT = "Microsoft JhengHei UI"
@@ -56,8 +58,9 @@ class ClaudeSessionLauncher:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("Claude Session Launcher")
-        self.root.geometry("1040x780")
-        self.root.minsize(860, 640)
+        # 預設尺寸貼合筆電螢幕（1366×768 扣工作列後可用高度約 700px）。
+        self.root.geometry("940x680")
+        self.root.minsize(780, 560)
         self.root.configure(bg=Colors.BACKGROUND)
 
         self._configure_styles()
@@ -75,7 +78,7 @@ class ClaudeSessionLauncher:
 
     def _configure_styles(self) -> None:
         # ttk 僅用於 Combobox 下拉（純 tk 無等效 readonly 下拉元件）；
-        # 其餘結構全部走 manager 的純 tk 語彙。
+        # 其餘結構全部走 manager 的純 tk 語彙。淺色 palette。
         style = ttk.Style(self.root)
         try:
             style.theme_use("clam")
@@ -108,20 +111,33 @@ class ClaudeSessionLauncher:
         self.root.option_add("*TCombobox*Listbox.font", (UI_FONT, 11))
 
     def _build_ui(self) -> None:
-        header = tk.Frame(self.root, bg=Colors.HEADER_BG, height=58)
-        header.pack(fill=tk.X)
+        # ── Header（manager 樣式：bg=TEXT_DARK，height=58，標題左對齊）──
+        header = tk.Frame(self.root, bg=Colors.TEXT_DARK, height=58)
+        header.pack(side=tk.TOP, fill=tk.X)
         header.pack_propagate(False)
 
         tk.Label(
             header,
             text="Claude Session Launcher",
-            bg=Colors.HEADER_BG,
+            bg=Colors.TEXT_DARK,
             fg=Colors.TEXT_LIGHT,
             font=(UI_FONT, 17, "bold"),
         ).pack(side=tk.LEFT, padx=18)
 
+        # ── Status bar：在 body 之前先以 side=BOTTOM 預留（修復按鈕/狀態列被裁切）──
+        self.status_bar = tk.Label(
+            self.root,
+            textvariable=self.status_var,
+            anchor=tk.W,
+            bg=Colors.TEXT_DARK,
+            fg=Colors.TEXT_LIGHT,
+            padx=10,
+            pady=5,
+        )
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
         body = tk.Frame(self.root, bg=Colors.BACKGROUND)
-        body.pack(fill=tk.BOTH, expand=True, padx=14, pady=14)
+        body.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=14, pady=14)
 
         def field_label(parent: tk.Misc, text: str) -> tk.Label:
             return tk.Label(
@@ -133,8 +149,13 @@ class ClaudeSessionLauncher:
                 anchor=tk.W,
             )
 
-        def flat_button(parent: tk.Misc, text: str, command, color: str) -> tk.Button:
-            btn = tk.Button(
+        def flat_button(
+            parent: tk.Misc, text: str, command, color: str
+        ) -> tk.Button:
+            # manager 按鈕樣式：flat、activebackground=color、padx=16/pady=7。
+            # 不套 width=9（manager 短英文標籤才適用；長中文標籤會裁切）。
+            # 不加 hover 動畫 / cursor / 字體覆寫，維持 manager 純樣式。
+            return tk.Button(
                 parent,
                 text=text,
                 command=command,
@@ -145,39 +166,18 @@ class ClaudeSessionLauncher:
                 relief=tk.FLAT,
                 padx=16,
                 pady=7,
-                cursor="hand2",
             )
-            
-            # Subtle hover animation helper
-            def adjust_color(hex_color: str, amount: float) -> str:
-                hex_color = hex_color.lstrip('#')
-                r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
-                r = min(255, max(0, int(r * amount)))
-                g = min(255, max(0, int(g * amount)))
-                b = min(255, max(0, int(b * amount)))
-                return f"#{r:02x}{g:02x}{b:02x}"
 
-            # Calculate a slightly brighter/richer hover color
-            hover_color = adjust_color(color, 1.15)
-            
-            btn.bind("<Enter>", lambda e: btn.configure(bg=hover_color))
-            btn.bind("<Leave>", lambda e: btn.configure(bg=color))
-            return btn
-
+        # ── Session Setup 卡片（manager 純 LabelFrame）──
         settings = tk.LabelFrame(
             body,
             text="Session Setup",
             bg=Colors.CARD_BG,
             fg=Colors.TEXT_DARK,
-            font=(UI_FONT, 11, "bold"),
-            padx=16,
-            pady=14,
-            bd=0,
-            highlightthickness=1,
-            highlightbackground=Colors.BORDER,
-            highlightcolor=Colors.BORDER,
+            padx=12,
+            pady=10,
         )
-        settings.pack(fill=tk.X)
+        settings.pack(side=tk.TOP, fill=tk.X)
         settings.columnconfigure(1, weight=1)
         settings.columnconfigure(2, weight=0)
 
@@ -189,9 +189,9 @@ class ClaudeSessionLauncher:
             textvariable=self.project_path_var,
             font=(UI_FONT, 11),
             bg=Colors.CARD_BG,
-            fg=Colors.TEXT_LIGHT,
-            insertbackground=Colors.TEXT_LIGHT,
-            bd=0,
+            fg=Colors.TEXT_DARK,
+            insertbackground=Colors.TEXT_DARK,
+            relief=tk.FLAT,
             highlightthickness=1,
             highlightbackground=Colors.BORDER,
             highlightcolor=Colors.PRIMARY,
@@ -221,9 +221,9 @@ class ClaudeSessionLauncher:
             textvariable=self.session_name_var,
             font=(UI_FONT, 11),
             bg=Colors.CARD_BG,
-            fg=Colors.TEXT_LIGHT,
-            insertbackground=Colors.TEXT_LIGHT,
-            bd=0,
+            fg=Colors.TEXT_DARK,
+            insertbackground=Colors.TEXT_DARK,
+            relief=tk.FLAT,
             highlightthickness=1,
             highlightbackground=Colors.BORDER,
             highlightcolor=Colors.PRIMARY,
@@ -269,20 +269,35 @@ class ClaudeSessionLauncher:
         )
         self.claude_effort_combo.grid(row=0, column=3, sticky=tk.EW, padx=(8, 0))
 
+        # ── Button bar：在 expand frames 之前先以 side=BOTTOM 預留 ──
+        button_bar = tk.Frame(body, bg=Colors.BACKGROUND)
+        button_bar.pack(side=tk.BOTTOM, fill=tk.X, pady=(12, 0))
+
+        tk.Label(
+            button_bar,
+            text="確認 Project、handoff 與 Session 名稱後再執行。",
+            bg=Colors.BACKGROUND,
+            fg=Colors.MUTED,
+            font=(UI_FONT, 10),
+        ).pack(side=tk.LEFT)
+
+        flat_button(button_bar, "執行 Claude Session", self.run_claude_session, Colors.SUCCESS).pack(
+            side=tk.RIGHT, padx=4
+        )
+        flat_button(button_bar, "複製 Prompt", self.copy_final_prompt, Colors.PRIMARY).pack(
+            side=tk.RIGHT, padx=4
+        )
+
+        # ── Prompt 樣板卡片（expand）──
         prompt_frame = tk.LabelFrame(
             body,
             text="Prompt 樣板",
             bg=Colors.CARD_BG,
             fg=Colors.TEXT_DARK,
-            font=(UI_FONT, 11, "bold"),
-            padx=16,
-            pady=14,
-            bd=0,
-            highlightthickness=1,
-            highlightbackground=Colors.BORDER,
-            highlightcolor=Colors.BORDER,
+            padx=12,
+            pady=10,
         )
-        prompt_frame.pack(fill=tk.BOTH, expand=True, pady=(12, 0))
+        prompt_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=(12, 0))
 
         tk.Label(
             prompt_frame,
@@ -295,13 +310,13 @@ class ClaudeSessionLauncher:
 
         self.prompt_text = scrolledtext.ScrolledText(
             prompt_frame,
-            height=9,
+            height=7,
             wrap=tk.WORD,
             font=(UI_FONT, 12),
             relief=tk.FLAT,
             bg=Colors.CARD_BG,
-            fg=Colors.TEXT_LIGHT,
-            insertbackground=Colors.TEXT_LIGHT,
+            fg=Colors.TEXT_DARK,
+            insertbackground=Colors.TEXT_DARK,
             highlightthickness=1,
             highlightbackground=Colors.BORDER,
             highlightcolor=Colors.PRIMARY,
@@ -311,67 +326,31 @@ class ClaudeSessionLauncher:
         self.prompt_text.pack(fill=tk.BOTH, expand=True)
         self.prompt_text.insert("1.0", DEFAULT_PROMPT_TEMPLATE)
 
+        # ── Command Preview 卡片（expand）──
         preview_frame = tk.LabelFrame(
             body,
             text="Command Preview",
             bg=Colors.CARD_BG,
             fg=Colors.TEXT_DARK,
-            font=(UI_FONT, 11, "bold"),
-            padx=16,
-            pady=14,
-            bd=0,
-            highlightthickness=1,
-            highlightbackground=Colors.BORDER,
-            highlightcolor=Colors.BORDER,
+            padx=12,
+            pady=10,
         )
-        preview_frame.pack(fill=tk.BOTH, expand=True, pady=(12, 0))
+        preview_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=(12, 0))
 
         self.preview_text = tk.Text(
             preview_frame,
-            height=9,
+            height=6,
             wrap=tk.WORD,
             font=(MONO_FONT, 11),
             bg=Colors.LOG_BG,
-            fg=Colors.TEXT_LIGHT,
-            insertbackground=Colors.TEXT_LIGHT,
+            fg=Colors.TEXT_DARK,
+            insertbackground=Colors.TEXT_DARK,
             relief=tk.FLAT,
-            highlightthickness=1,
-            highlightbackground=Colors.BORDER,
-            highlightcolor=Colors.PRIMARY,
             padx=10,
             pady=8,
         )
         self.preview_text.pack(fill=tk.BOTH, expand=True)
         self.preview_text.configure(state=tk.DISABLED)
-
-        button_bar = tk.Frame(body, bg=Colors.BACKGROUND)
-        button_bar.pack(fill=tk.X, pady=(12, 0))
-
-        tk.Label(
-            button_bar,
-            text="確認 Project、handoff 與 Session 名稱後再執行。",
-            bg=Colors.BACKGROUND,
-            fg=Colors.MUTED,
-            font=(UI_FONT, 10),
-        ).pack(side=tk.LEFT)
-
-        flat_button(button_bar, "執行 Claude Session", self.run_claude_session, Colors.SUCCESS).pack(
-            side=tk.RIGHT
-        )
-        flat_button(button_bar, "複製 Prompt", self.copy_final_prompt, Colors.PRIMARY).pack(
-            side=tk.RIGHT, padx=(0, 10)
-        )
-
-        self.status_bar = tk.Label(
-            self.root,
-            textvariable=self.status_var,
-            anchor=tk.W,
-            bg=Colors.HEADER_BG,
-            fg=Colors.TEXT_LIGHT,
-            padx=10,
-            pady=5,
-        )
-        self.status_bar.pack(fill=tk.X, side=tk.BOTTOM)
 
         self.project_path_var.trace_add("write", lambda *_: self.update_preview())
         self.handoff_var.trace_add("write", lambda *_: self.update_preview())
@@ -582,7 +561,7 @@ sys.exit(exit_code)
 
     def set_status(self, message: str, error: bool = False) -> None:
         self.status_var.set(message)
-        self.status_bar.configure(bg=Colors.DANGER if error else Colors.HEADER_BG)
+        self.status_bar.configure(bg=Colors.DANGER if error else Colors.TEXT_DARK)
         if error:
             self.root.bell()
 
