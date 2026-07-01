@@ -1,6 +1,6 @@
 # Cueshot 佈局規格 v2.5.1 — 兩區塊模型
 
-**版本**: Layout Spec v2.5.1 (SSOT v4.0.5 Alignment + D-25 Layer 1 文案修正 + D-26 LEGACY 光線指示修復)  
+**版本**: Layout Spec v2.5.1 (SSOT v4.0.6 Alignment + D-25 Layer 1 文案修正 + D-26 LEGACY 光線指示修復)  
 **最後更新**: 2026-05-29  
 **變更歷程**:  
 - v2.0 → v2.1：§5 Pill Toggle 文字標籤改為圖示（Camera / Users）  
@@ -117,7 +117,7 @@ Top Bar **不是獨立區塊** — 它是 Viewfinder 上方的浮動 overlay。
 | 圖示尺寸 | 24dp, touch target 48dp |
 | 圖示間距 | 左右 padding 16dp |
 
-> ✅ **Scrim endpoint 120px — CSO 已確認（D-13, 2026-05-18）**。原 v2.1 值為 72px。待實測後若需調整，同步修改本表 + §2 佈局圖 + SSOT v4.0.5 §B.5。
+> ✅ **Scrim endpoint 120px — CSO 已確認（D-13, 2026-05-18）**。原 v2.1 值為 72px。待實測後若需調整，同步修改本表 + §2 佈局圖 + SSOT v4.0.6 §B.5。
 
 **設計原則**:
 - Scrim alpha 上限 0.25 — 超過就變成「另一種不透明黑條」
@@ -162,7 +162,7 @@ Top Bar **不是獨立區塊** — 它是 Viewfinder 上方的浮動 overlay。
 | LIMITED | pulse 動畫（3000ms） | Composable 動畫成本可忽略 |
 | LEGACY | **不顯示光線狀態**（靜態白色 α0.85，與正常態一致） | LEGACY 已關閉光線分析（SSOT §10.3），無數據源則不渲染狀態色（D-26） |
 
-### 3.3 Viewfinder Overlay 圖層（對齊 SSOT v4.0.5 §Viewfinder Overlay — 逐字對齊）
+### 3.3 Viewfinder Overlay 圖層（對齊 SSOT v4.0.6 §Viewfinder Overlay — 逐字對齊）
 
 ```
 Layer 0: Camera Preview（CameraX PreviewView）
@@ -174,7 +174,7 @@ Layer 5: Level Traction（白色虛線 reference + 動態 dynamic 層）
 Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 ```
 
-**Layer 1 詳細規格（D-2 指示柱設計，完整定義見 SSOT v4.0.5 §2.3）**：
+**Layer 1 詳細規格（D-2 指示柱設計，完整定義見 SSOT v4.0.6 §2.3）**：
 
 | 屬性 | 值 | 備註 |
 |------|-----|------|
@@ -190,7 +190,7 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 | Canvas 呼叫 | **3 次**（drawLine + drawCircle ×2） | — |
 | **禁止** | `null → drawRect(Brush.radialGradient(...))` 或任何全幅暈影 | D-14: Edge Warmth 語義殘留清除（SSOT §B.7） |
 
-**Layer 2 詳細規格（D-24 三分網格線，完整定義見 SSOT v4.0.5 §Viewfinder Overlay）**：
+**Layer 2 詳細規格（D-24 三分網格線，完整定義見 SSOT v4.0.6 §Viewfinder Overlay）**：
 
 | 屬性 | 值 | 備註 |
 |------|-----|------|
@@ -467,18 +467,18 @@ The image will be used as a full-screen background layer in a camera app UI prot
 
 ```
 本文件 (Layout Spec v2.5.1)
-  ├─→ SSOT v4.0.5 §Viewfinder Overlay — 雙向對齊（Overlay 圖層定義）
-  ├─→ SSOT v4.0.5 §B.5 — Top Bar Scrim + 光線指示（D-13/D-15/D-16/D-19）
-  ├─→ SSOT v4.0.5 §2.3 — Pitch Traction 指示柱規格（D-2）
-  ├─→ SSOT v4.0.5 §2.5 — Halo Traction alpha 規格（D-3）
-  ├─→ SSOT v4.0.5 §2.9 — Top Bar 光線指示三態 pulse 規格（D-15/D-16/D-19）
-  ├─→ SSOT v4.0.5 §附錄 A — Focus Ring 四狀態生命週期
-  ├─→ SSOT v4.0.5 §B.6 — PreviewView scaleType FILL_CENTER（D-18）
-  ├─→ SSOT v4.0.5 §B.7 — Edge Warmth 語義殘留清除（D-14）
-  ├─→ SSOT v4.0.5 §B.8 — Edge-to-Edge + Display Cutout（D-18）
+  ├─→ SSOT v4.0.6 §Viewfinder Overlay — 雙向對齊（Overlay 圖層定義）
+  ├─→ SSOT v4.0.6 §B.5 — Top Bar Scrim + 光線指示（D-13/D-15/D-16/D-19）
+  ├─→ SSOT v4.0.6 §2.3 — Pitch Traction 指示柱規格（D-2）
+  ├─→ SSOT v4.0.6 §2.5 — Halo Traction alpha 規格（D-3）
+  ├─→ SSOT v4.0.6 §2.9 — Top Bar 光線指示三態 pulse 規格（D-15/D-16/D-19）
+  ├─→ SSOT v4.0.6 §附錄 A — Focus Ring 四狀態生命週期
+  ├─→ SSOT v4.0.6 §B.6 — PreviewView scaleType FILL_CENTER（D-18）
+  ├─→ SSOT v4.0.6 §B.7 — Edge Warmth 語義殘留清除（D-14）
+  ├─→ SSOT v4.0.6 §B.8 — Edge-to-Edge + Display Cutout（D-18）
   ├─→ Prototyper Prompt v2 — 更新佈局段落（兩區塊 + Pill + Scrim）
   ├─→ Background Image Prompts v2 — 更新比例與構圖指引
-  └─→ Claude Code 實作 — 按 SSOT v4.0.5 + 本文件拆票
+  └─→ Claude Code 實作 — 按 SSOT v4.0.6 + 本文件拆票
 ```
 
 ---
@@ -576,7 +576,7 @@ The image will be used as a full-screen background layer in a camera app UI prot
 
 ## 文件元資訊
 
-- **版本**: Layout Spec v2.5.1 (SSOT v4.0.5 Alignment + D-25 Layer 1 文案修正 + D-26 LEGACY 光線指示修復)
+- **版本**: Layout Spec v2.5.1 (SSOT v4.0.6 Alignment + D-25 Layer 1 文案修正 + D-26 LEGACY 光線指示修復)
 - **建立日期**: 2026-04-25
 - **修訂日期**: 2026-05-29
 - **決策鏈**: CSO Session D8 → Top Bar Overlay 化 → Photo/PTF Pill Toggle (Option A + Color C) → 暖色偏移 → **Session 4 D-12 快門下移 4dp** → **Session 6 D-14~D-19 全面修復** → **Session 8 D-24 Grid 規格鎖定**
