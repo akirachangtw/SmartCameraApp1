@@ -204,7 +204,7 @@ Cross-Review PASS 且 Done 標記完成後：
 🔍 Cross-Review: ✅ PASS / 💡 ADVISORY / 📋 REPORT_FIX / 🔴 BLOCKER / ⚠️ SKIPPED (codex unavailable)
 
 → 本地 SV + Cross-Review 通過，準備提交 Traycer 終審。
-📊 Status: ~[X]K/200K ([Y]%) [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]
+📊 Status: ~[X]K used | [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]（健康度依 Turns 判定）
 Turns: [N] | Code: ~[M] lines
 Suggestion: [建議]
 Token 估算基準
@@ -219,7 +219,7 @@ Token 估算基準
 🔍 Cross-Review: 🔴 BLOCKER — [問題清單] / 📋 REPORT_FIX — [sv_report 段落]
 ...
 → 🚫 SV 未通過。已自動修復 X 項，仍有 Y 項需人工介入。
-📊 Status: ~[X]K/200K ([Y]%) [狀態 emoji]
+📊 Status: ~[X]K used | [狀態 emoji]（健康度依 Turns 判定）
 Turns: [N] | Code: ~[M] lines
 Suggestion: [建議]
 Token 估算基準
@@ -227,4 +227,5 @@ Token 估算基準
 
 ## Session 健康度
 
-參照 CLAUDE.md §Session Health 規則。在 Report 末尾附上上述📊摘要。
+參照 CLAUDE.md §Session Health 規則（以 Turns 判定，非 Context 佔比）。在 Report 末尾附上上述📊摘要。
+📊 只顯示已用 token 絕對值，不顯示佔比：1M 模型佔比因 upstream bug #63447 不可靠（詳見 `status/SKILL.md`）。
