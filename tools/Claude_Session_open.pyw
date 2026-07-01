@@ -87,7 +87,7 @@ class ClaudeSessionLauncher:
         style.configure(
             "TCombobox",
             padding=(8, 6),
-            font=(UI_FONT, 11),
+            font=(UI_FONT, 12),
             fieldbackground=Colors.CARD_BG,
             background=Colors.BORDER,
             foreground=Colors.TEXT_DARK,
@@ -108,7 +108,7 @@ class ClaudeSessionLauncher:
         self.root.option_add("*TCombobox*Listbox.foreground", Colors.TEXT_DARK)
         self.root.option_add("*TCombobox*Listbox.selectBackground", Colors.PRIMARY)
         self.root.option_add("*TCombobox*Listbox.selectForeground", Colors.TEXT_LIGHT)
-        self.root.option_add("*TCombobox*Listbox.font", (UI_FONT, 11))
+        self.root.option_add("*TCombobox*Listbox.font", (UI_FONT, 12))
 
     def _build_ui(self) -> None:
         # ── Header（manager 樣式：bg=TEXT_DARK，height=58，標題左對齊）──
@@ -145,7 +145,7 @@ class ClaudeSessionLauncher:
                 text=text,
                 bg=Colors.CARD_BG,
                 fg=Colors.TEXT_DARK,
-                font=(UI_FONT, 10, "bold"),
+                font=(UI_FONT, 12, "bold"),
                 anchor=tk.W,
             )
 
@@ -154,7 +154,7 @@ class ClaudeSessionLauncher:
         ) -> tk.Button:
             # manager 按鈕樣式：flat、activebackground=color、padx=16/pady=7。
             # 不套 width=9（manager 短英文標籤才適用；長中文標籤會裁切）。
-            # 不加 hover 動畫 / cursor / 字體覆寫，維持 manager 純樣式。
+            # 不加 hover 動畫 / cursor，但字體對齊全域 12 號基準（字體大小一致性）。
             return tk.Button(
                 parent,
                 text=text,
@@ -166,6 +166,7 @@ class ClaudeSessionLauncher:
                 relief=tk.FLAT,
                 padx=16,
                 pady=7,
+                font=(UI_FONT, 12),
             )
 
         # ── Session Setup 卡片（manager 純 LabelFrame）──
@@ -187,7 +188,7 @@ class ClaudeSessionLauncher:
         tk.Entry(
             settings,
             textvariable=self.project_path_var,
-            font=(UI_FONT, 11),
+            font=(UI_FONT, 12),
             bg=Colors.CARD_BG,
             fg=Colors.TEXT_DARK,
             insertbackground=Colors.TEXT_DARK,
@@ -219,7 +220,7 @@ class ClaudeSessionLauncher:
         tk.Entry(
             settings,
             textvariable=self.session_name_var,
-            font=(UI_FONT, 11),
+            font=(UI_FONT, 12),
             bg=Colors.CARD_BG,
             fg=Colors.TEXT_DARK,
             insertbackground=Colors.TEXT_DARK,
@@ -242,7 +243,7 @@ class ClaudeSessionLauncher:
             text="--model",
             bg=Colors.CARD_BG,
             fg=Colors.MUTED,
-            font=(MONO_FONT, 10),
+            font=(MONO_FONT, 12),
         ).grid(row=0, column=0, sticky=tk.W)
         self.claude_model_combo = ttk.Combobox(
             claude_options,
@@ -258,7 +259,7 @@ class ClaudeSessionLauncher:
             text="--effort",
             bg=Colors.CARD_BG,
             fg=Colors.MUTED,
-            font=(MONO_FONT, 10),
+            font=(MONO_FONT, 12),
         ).grid(row=0, column=2, sticky=tk.W)
         self.claude_effort_combo = ttk.Combobox(
             claude_options,
@@ -278,7 +279,7 @@ class ClaudeSessionLauncher:
             text="確認 Project、handoff 與 Session 名稱後再執行。",
             bg=Colors.BACKGROUND,
             fg=Colors.MUTED,
-            font=(UI_FONT, 10),
+            font=(UI_FONT, 12),
         ).pack(side=tk.LEFT)
 
         flat_button(button_bar, "執行 Claude Session", self.run_claude_session, Colors.SUCCESS).pack(
@@ -304,7 +305,7 @@ class ClaudeSessionLauncher:
             text="提示：使用 [交接文檔] 與 [Session名稱] 作為自動替換欄位。",
             bg=Colors.CARD_BG,
             fg=Colors.MUTED,
-            font=(UI_FONT, 10),
+            font=(UI_FONT, 12),
             anchor=tk.W,
         ).pack(fill=tk.X, pady=(0, 8))
 
@@ -341,7 +342,7 @@ class ClaudeSessionLauncher:
             preview_frame,
             height=6,
             wrap=tk.WORD,
-            font=(MONO_FONT, 11),
+            font=(MONO_FONT, 12),
             bg=Colors.LOG_BG,
             fg=Colors.TEXT_DARK,
             insertbackground=Colors.TEXT_DARK,
