@@ -5,9 +5,9 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| TRACTION-GOV-02 | 🟡 /qa PASS · Layout Spec 內文版號 bump v2.5.1→v2.5.2（檔名穩定不變）+ §15 修訂追蹤 · 零 rename · Cross-Review N/A · 待 /index-verify · 1F +19/-8L · ee3bf82 |
-| TRACTION-GOV-03 | 🟡 /qa PASS · 檔名版號慣例建立（活文件 slug / 快照版號入檔名，R-T12）· Naming_Version_Convention.md 新建（N-1 示範）+ CSO_INDEX 指標（gitignored）· 零 rename · Cross-Review N/A · 待 /index-verify · 1F +37L · 36cfc36 |
-| TRACTION-GOV-01 | 🟡 /qa PASS · Layout Spec 版本漂移修正 SSOT v4.0.5→v4.0.6（16 處，殘留 0；含 L120 downstream sweep）· Cross-Review N/A · 待 /index-verify · 1F +16/-16L |
+| TRACTION-GOV-02 | ✅ /index-verify PASS · Layout Spec 內文版號 bump v2.5.1→v2.5.2（檔名穩定不變）+ §15 修訂追蹤 · 零 rename · Cross-Review N/A · 1F +19/-8L · ee3bf82 |
+| TRACTION-GOV-03 | ✅ /index-verify PASS · 檔名版號慣例建立（活文件 slug / 快照版號入檔名，R-T12）· Naming_Version_Convention.md 入索引 + CSO_INDEX 指標 · 零 rename · 1F +37L · 36cfc36 |
+| TRACTION-GOV-01 | ✅ /index-verify PASS · Layout Spec 版本漂移修正 SSOT v4.0.5→v4.0.6（16 處，殘留 0）· Cross-Review N/A · 1F +16/-16L · d1d9047 |
 | TRACTION-SSOT-03 | ✅ /sv PASS · Level roll-only D-9 清理（§2.0.1 pitch 化石移除→abs(rollDiff)）+ §2.4 補全 + Layout Layer 5 表 · Codex R1 PASS · 2F +30/-3L · f87aae0 |
 | TRACTION-SSOT-01 | ✅ /sv PASS · Halo 三層規格重寫（外環 alpha 0.8 + 牽引圓點 atan2/三段V曲線）· Codex R2 PASS · 2F +80/-16L · fc6ffa8 |
 
@@ -17,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S27** · GOV-01/02/03 三票 🟡 /qa PASS 待 /index-verify（GOV-02 Layout v2.5.2 內文 bump · GOV-03 檔名慣例）· SSOT-03 ✅ /sv PASS · GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ 開渲染實作票** |
+| Schedule | **S27** · GOV-01/02/03 三票 ✅ /index-verify PASS（版本漂移修正 + Layout v2.5.2 內文 bump + 檔名慣例 slug）· SSOT-03 ✅ /sv PASS · GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ 開渲染實作票** |
 | Compile | ⚪ N/A (GOV-03 doc-only：零 .kt/.xml) |
 | Tests | ⚪ N/A (GOV-03 doc-only) |
 | Lint | ⚪ N/A (GOV-03 doc-only) |
@@ -41,7 +41,7 @@
 2. **🔴 開票 GAP-07**：修 afState 回授斷裂（CameraViewModel.kt L2117 接線）
 3. **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審
 4. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
-5. **🟡 TRACTION-GOV-01**：Layout Spec v4.0.5 → v4.0.6 版本漂移修正
+5. **✅ GOV-01/02/03 全閉環**（/index-verify PASS）：版本漂移修正 + Layout v2.5.2 內文 bump + 檔名版號慣例（活文件 slug / 快照版號入檔名，R-T12）→ 治理衛生軌清空
 
 ## Active Debt（僅列未解決項）
 
