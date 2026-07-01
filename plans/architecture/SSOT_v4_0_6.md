@@ -109,7 +109,7 @@ val levelOpacity = (maxDeviation / AmbientConstants.LEVEL_FADE_RANGE_DEG)
 if (levelOpacity < 0.01f) return@Canvas  // 省 4 次 drawXxx
 ```
 
-其中 `maxDeviation = max(abs(pitchDiff), abs(rollDiff))`。
+其中 `maxDeviation = abs(rollDiff)`。（pre-D-9 雙基準線殘留：pitch 項依 `DEC-20260526224524` D-9 場景互斥裁決清除；Level 僅在非 Food 直立系運作，不感知 pitch）
 
 **設計理由（D-10, N=10°）**：N=5° 時正常手持微顫（±2°）會產生 opacity 0.40 的可見閃爍，違反 Ambient UI「不產生壓力」原則。N=10° 確保手持微顫（≤3°）僅產生 opacity ≤0.30，在 OLED/LCD 上融入背景不干擾。
 
@@ -299,15 +299,27 @@ fun selectPitchConfig(currentPitch: Float, currentConfig: PitchTractionConfig): 
 
 ### 2.4 Level Traction 規格
 
-Level Traction 是原「水平儀」功能的正式名稱，以雙軸 IMU 驅動。
+Level Traction 是原「水平儀」功能的正式名稱，以 IMU 驅動。
+
+**對齊判定與 opacity（非 Food，roll-only）**：
+- `isAligned = abs(rollDiff) ≤ 5`（對齊 §2.2 1D roll + §2.4.1 rollDeg）
+- `opacity = (abs(rollDiff) / 10).coerceIn(0f, 1f)`（漸入退場見 §2.0.1）
+- Level 僅在非 Food 直立系運作，不感知 pitch（D-9 場景互斥，溯 `DEC-20260526224524`）
 
 **渲染結構**：
 - **reference 層**（靜態）：白色虛線 + 空心圓刻度標記 — 代表「理想水平線」
-- **dynamic 層**（動態）：實線 + 實心圓 — 跟隨手機實際 Roll/Pitch，偏移時顯示琥珀金，對齊時變綠
+- **dynamic 層**（動態）：實線 + 實心圓 — 跟隨手機實際 Roll，偏移時顯示琥珀金，對齊時變綠
 
 **顏色邏輯**：
 - reference 層：固定白色 α0.5
 - dynamic 層：琥珀金 `#D4A030`（未對齊）→ 對齊綠 `#50C864`（已對齊）
+- PTF 模式 dynamic 層固定綠，見 §4.5.1（退場行為不變：α→0）
+
+**精確尺寸（R-T8）**：
+- 位置：`bottom 25% / 寬 60%`
+- reference 虛線：`repeating 8px-16px`；空心刻度點：`8px, border 1.5px white α0.8`
+- dynamic 實心點：`6px`
+- dynamic 變換：`rotate(rollDeg)`（roll-only；非 Food 不顯示 pitch translateY）
 
 **Canvas 優化**：reference 層首次繪製後快取為 Bitmap，後續幀直接 `drawImage`（4 次 drawXxx → 1 次）。
 

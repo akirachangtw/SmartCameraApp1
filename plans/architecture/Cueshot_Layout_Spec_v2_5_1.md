@@ -214,6 +214,21 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 | 群組 Halo（未對齊） | **0.8** | 與單人統一（R-T9；原 −0.05 補償已刪） |
 | 群組 Halo（已對齊） | **0.10 → 0.18** | 同單人呼吸（R-T9） |
 
+**Layer 5 詳細規格（Level Traction roll-only，完整定義見 SSOT §2.4）**：
+
+| 屬性 | 值 | 備註 |
+|------|-----|------|
+| 結構 | reference 靜態層 + dynamic 動態層 | 雙層組成 |
+| 位置 | bottom 25% / 寬 60% | 畫面下方水平置中 |
+| reference 虛線 | repeating 8px-16px, 白色 α0.5 | 理想水平線 |
+| reference 刻度點 | 空心 8px, border 1.5px white α0.8 | — |
+| dynamic 實心點 | 6px | 跟隨當前 roll |
+| dynamic 變換 | `rotate(rollDeg)` | roll-only（無 pitch translateY，D-9） |
+| 對齊判定 | `abs(rollDiff) ≤ 5°` | 對齊 §2.2 1D roll |
+| 顏色邏輯 | 琥珀 #D4A030（未對齊）→ 綠 #50C864（對齊）；PTF 固定綠（§4.5.1） | — |
+| opacity | `(abs(rollDiff)/10).coerceIn(0,1)`；對齊 α→0 退場 | 漸入退場（SSOT §2.0.1） |
+| Canvas 優化 | reference 快取 Bitmap（4→1 drawXxx） | — |
+
 ---
 
 ## 4. 區塊 2: 底部控制列
