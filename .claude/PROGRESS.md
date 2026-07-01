@@ -5,7 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| TRACTION-SSOT-03 | 🟡 /qa PASS · Level roll-only D-9 清理（§2.0.1 pitch 化石移除→abs(rollDiff)）+ §2.4 補全 + Layout Layer 5 表 · 2F +30/-3L · 待 /sv |
+| TRACTION-SSOT-03 | ✅ /sv PASS · Level roll-only D-9 清理（§2.0.1 pitch 化石移除→abs(rollDiff)）+ §2.4 補全 + Layout Layer 5 表 · Codex R1 PASS · 2F +30/-3L · f87aae0 |
 | TRACTION-SSOT-01 | ✅ /sv PASS · Halo 三層規格重寫（外環 alpha 0.8 + 牽引圓點 atan2/三段V曲線）· Codex R2 PASS · 2F +80/-16L · fc6ffa8 |
 | TRACTION-SSOT-02 | ✅ /sv PASS · D-11 加亮弧→牽引圓點（atan2 歸屬保留）· Codex R2 PASS · 1F +2/-7L · 0a336ca |
 | INFRA-REACH-01-FIX-AI3 | ✅ /sv PASS · cross_review.sh §3.5 + CROSS_REVIEW.md wiring · 2F +38L · 3028bd1 |
@@ -17,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S26** · TRACTION-SSOT-03 Level roll-only D-9 清理 🟡 /qa PASS 待 /sv · GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ SSOT-03 /sv PASS 後開渲染實作票** |
+| Schedule | **S26** · TRACTION-SSOT-03 Level roll-only D-9 清理 ✅ /sv + Codex R1 PASS · GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ 開渲染實作票** |
 | Compile | 0 errors ✅ (assembleDeviceDebug PASS) |
 | Tests | 400 passed ✅ (FIX-B +4 reducer tests；androidTest 編譯 PASS) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
