@@ -19,6 +19,10 @@ from tkinter import filedialog, messagebox, scrolledtext, ttk
 
 DEFAULT_PROJECT_PATH = Path("d:/DevSources/AndroidProj/SmartCameraApp1")
 HANDOFF_DIR = Path("docs/session_handoff")
+CLAUDE_MODEL_OPTIONS = ("sonnet", "opus", "haiku")
+CLAUDE_EFFORT_OPTIONS = ("low", "medium", "high")
+DEFAULT_CLAUDE_MODEL = "sonnet"
+DEFAULT_CLAUDE_EFFORT = "medium"
 
 DEFAULT_PROMPT_TEMPLATE = """請讀取 @docs/session_handoff/[交接文檔], @.claude/PROGRESS.md 並回報下列事項:
 1. 上次完成到哪裡？（最後一個 ✅ DONE 的 Ticket）
@@ -50,6 +54,8 @@ class ClaudeSessionLauncher:
         self.project_path_var = tk.StringVar(value=str(DEFAULT_PROJECT_PATH))
         self.handoff_var = tk.StringVar()
         self.session_name_var = tk.StringVar()
+        self.claude_model_var = tk.StringVar(value=DEFAULT_CLAUDE_MODEL)
+        self.claude_effort_var = tk.StringVar(value=DEFAULT_CLAUDE_EFFORT)
         self.status_var = tk.StringVar(value="Ready")
         self.handoff_files: list[Path] = []
 
@@ -112,6 +118,38 @@ class ClaudeSessionLauncher:
         ttk.Entry(settings, textvariable=self.session_name_var).grid(
             row=2, column=1, columnspan=2, sticky=tk.EW, padx=8, pady=6
         )
+
+        tk.Label(settings, text="Claude啟動", bg=Colors.CARD_BG).grid(
+            row=3, column=0, sticky=tk.W, pady=6
+        )
+        claude_options = tk.Frame(settings, bg=Colors.CARD_BG)
+        claude_options.grid(row=3, column=1, columnspan=2, sticky=tk.EW, padx=8, pady=6)
+        claude_options.columnconfigure(1, weight=1)
+        claude_options.columnconfigure(3, weight=1)
+
+        tk.Label(claude_options, text="--model", bg=Colors.CARD_BG).grid(
+            row=0, column=0, sticky=tk.W
+        )
+        self.claude_model_combo = ttk.Combobox(
+            claude_options,
+            textvariable=self.claude_model_var,
+            values=CLAUDE_MODEL_OPTIONS,
+            state="readonly",
+            width=14,
+        )
+        self.claude_model_combo.grid(row=0, column=1, sticky=tk.W, padx=(6, 16))
+
+        tk.Label(claude_options, text="--effort", bg=Colors.CARD_BG).grid(
+            row=0, column=2, sticky=tk.W
+        )
+        self.claude_effort_combo = ttk.Combobox(
+            claude_options,
+            textvariable=self.claude_effort_var,
+            values=CLAUDE_EFFORT_OPTIONS,
+            state="readonly",
+            width=14,
+        )
+        self.claude_effort_combo.grid(row=0, column=3, sticky=tk.W, padx=(6, 0))
 
         prompt_frame = tk.LabelFrame(
             body,
@@ -192,6 +230,8 @@ class ClaudeSessionLauncher:
         self.project_path_var.trace_add("write", lambda *_: self.update_preview())
         self.handoff_var.trace_add("write", lambda *_: self.update_preview())
         self.session_name_var.trace_add("write", lambda *_: self.update_preview())
+        self.claude_model_var.trace_add("write", lambda *_: self.update_preview())
+        self.claude_effort_var.trace_add("write", lambda *_: self.update_preview())
         self.prompt_text.bind("<KeyRelease>", lambda _event: self.update_preview())
 
     def browse_project_path(self) -> None:
@@ -278,9 +318,17 @@ class ClaudeSessionLauncher:
 
         project_path = self.get_project_path()
         session_name = self.session_name_var.get().strip()
+        claude_model = self.claude_model_var.get().strip() or DEFAULT_CLAUDE_MODEL
+        claude_effort = self.claude_effort_var.get().strip() or DEFAULT_CLAUDE_EFFORT
         final_prompt = self.build_final_prompt()
 
-        launcher_path = self.write_temp_launcher(project_path, session_name, final_prompt)
+        launcher_path = self.write_temp_launcher(
+            project_path,
+            session_name,
+            claude_model,
+            claude_effort,
+            final_prompt,
+        )
         python_exe = self.find_console_python()
         creationflags = subprocess.CREATE_NEW_CONSOLE if sys.platform.startswith("win") else 0
 
@@ -299,7 +347,14 @@ class ClaudeSessionLauncher:
 
         self.set_status(f"已啟動 Claude Session: {session_name}")
 
-    def write_temp_launcher(self, project_path: Path, session_name: str, final_prompt: str) -> Path:
+    def write_temp_launcher(
+        self,
+        project_path: Path,
+        session_name: str,
+        claude_model: str,
+        claude_effort: str,
+        final_prompt: str,
+    ) -> Path:
         temp_dir = Path(tempfile.gettempdir()) / "smartcamera_claude_launcher"
         temp_dir.mkdir(parents=True, exist_ok=True)
         launcher_path = temp_dir / "run_claude_session.py"
@@ -307,6 +362,8 @@ class ClaudeSessionLauncher:
         payload = {
             "project_path": str(project_path),
             "session_name": session_name,
+            "claude_model": claude_model,
+            "claude_effort": claude_effort,
             "prompt": final_prompt,
         }
         script = f"""#!/usr/bin/env python3
@@ -319,11 +376,13 @@ import sys
 payload = json.loads({json.dumps(json.dumps(payload, ensure_ascii=False))})
 project_path = payload["project_path"]
 session_name = payload["session_name"]
+claude_model = payload["claude_model"]
+claude_effort = payload["claude_effort"]
 prompt = payload["prompt"]
 claude = shutil.which("claude") or shutil.which("claude.cmd")
 
 print("cd " + project_path)
-print('claude -n "' + session_name + '" "' + prompt.replace(chr(10), "\\\\n") + '"')
+print('claude --model "' + claude_model + '" --effort "' + claude_effort + '" -n "' + session_name + '" "' + prompt.replace(chr(10), "\\\\n") + '"')
 print()
 
 if not claude:
@@ -332,7 +391,10 @@ if not claude:
     sys.exit(1)
 
 try:
-    exit_code = subprocess.call([claude, "-n", session_name, prompt], cwd=project_path)
+    exit_code = subprocess.call(
+        [claude, "--model", claude_model, "--effort", claude_effort, "-n", session_name, prompt],
+        cwd=project_path,
+    )
 except Exception as exc:
     print("ERROR: Claude execution failed:", exc)
     input("Press Enter to close...")
@@ -357,9 +419,15 @@ sys.exit(exit_code)
     def update_preview(self) -> None:
         project_path = self.project_path_var.get().strip() or str(DEFAULT_PROJECT_PATH)
         session_name = self.session_name_var.get().strip() or "[Session名稱]"
+        claude_model = self.claude_model_var.get().strip() or DEFAULT_CLAUDE_MODEL
+        claude_effort = self.claude_effort_var.get().strip() or DEFAULT_CLAUDE_EFFORT
         prompt = self.build_final_prompt() if self.handoff_var.get() else self.get_template_text()
         one_line_prompt = prompt.replace("\n", "\\n")
-        preview = f'cd /d "{project_path}"\nclaude -n "{session_name}" "{one_line_prompt}"'
+        preview = (
+            f'cd /d "{project_path}"\n'
+            f'claude --model "{claude_model}" --effort "{claude_effort}" '
+            f'-n "{session_name}" "{one_line_prompt}"'
+        )
 
         self.preview_text.configure(state=tk.NORMAL)
         self.preview_text.delete("1.0", tk.END)
