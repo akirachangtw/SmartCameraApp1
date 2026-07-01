@@ -33,18 +33,19 @@ DEFAULT_PROMPT_TEMPLATE = """請讀取 @docs/session_handoff/[交接文檔], @.c
 
 
 class Colors:
-    PRIMARY = "#2980b9"
-    SUCCESS = "#27ae60"
-    WARNING = "#f39c12"
-    DANGER = "#c0392b"
-    BACKGROUND = "#ecf0f1"
-    CARD_BG = "#ffffff"
-    TEXT_DARK = "#2c3e50"
+    PRIMARY = "#df6919"
+    SUCCESS = "#5cb85c"
+    WARNING = "#ffc107"
+    DANGER = "#d9534f"
+    BACKGROUND = "#0f2537"
+    CARD_BG = "#20374c"
+    HEADER_BG = "#1a252f"
+    TEXT_DARK = "#ebebeb"
     TEXT_LIGHT = "#ffffff"
-    MUTED = "#7f8c8d"
-    TABLE_HEAD = "#f8f9fa"
-    LOG_BG = "#f8f9fa"
-    BORDER = "#bdc3c7"
+    MUTED = "#868e96"
+    TABLE_HEAD = "#1a252f"
+    LOG_BG = "#0c1a25"
+    BORDER = "#4e5d6c"
 
 
 UI_FONT = "Microsoft JhengHei UI"
@@ -85,19 +86,36 @@ class ClaudeSessionLauncher:
             padding=(8, 6),
             font=(UI_FONT, 11),
             fieldbackground=Colors.CARD_BG,
-            background=Colors.CARD_BG,
+            background=Colors.BORDER,
             foreground=Colors.TEXT_DARK,
+            bordercolor=Colors.BORDER,
+            lightcolor=Colors.BORDER,
+            darkcolor=Colors.BORDER,
+            arrowcolor=Colors.TEXT_DARK,
         )
+        style.map(
+            "TCombobox",
+            fieldbackground=[("readonly", Colors.CARD_BG), ("focus", Colors.CARD_BG)],
+            foreground=[("readonly", Colors.TEXT_DARK), ("focus", Colors.TEXT_DARK)],
+            bordercolor=[("focus", Colors.PRIMARY)],
+            arrowcolor=[("focus", Colors.PRIMARY)],
+        )
+        # Apply standard option database styling for listbox popup of ttk.Combobox
+        self.root.option_add("*TCombobox*Listbox.background", Colors.CARD_BG)
+        self.root.option_add("*TCombobox*Listbox.foreground", Colors.TEXT_DARK)
+        self.root.option_add("*TCombobox*Listbox.selectBackground", Colors.PRIMARY)
+        self.root.option_add("*TCombobox*Listbox.selectForeground", Colors.TEXT_LIGHT)
+        self.root.option_add("*TCombobox*Listbox.font", (UI_FONT, 11))
 
     def _build_ui(self) -> None:
-        header = tk.Frame(self.root, bg=Colors.TEXT_DARK, height=58)
+        header = tk.Frame(self.root, bg=Colors.HEADER_BG, height=58)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
 
         tk.Label(
             header,
             text="Claude Session Launcher",
-            bg=Colors.TEXT_DARK,
+            bg=Colors.HEADER_BG,
             fg=Colors.TEXT_LIGHT,
             font=(UI_FONT, 17, "bold"),
         ).pack(side=tk.LEFT, padx=18)
@@ -116,7 +134,7 @@ class ClaudeSessionLauncher:
             )
 
         def flat_button(parent: tk.Misc, text: str, command, color: str) -> tk.Button:
-            return tk.Button(
+            btn = tk.Button(
                 parent,
                 text=text,
                 command=command,
@@ -127,15 +145,37 @@ class ClaudeSessionLauncher:
                 relief=tk.FLAT,
                 padx=16,
                 pady=7,
+                cursor="hand2",
             )
+            
+            # Subtle hover animation helper
+            def adjust_color(hex_color: str, amount: float) -> str:
+                hex_color = hex_color.lstrip('#')
+                r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+                r = min(255, max(0, int(r * amount)))
+                g = min(255, max(0, int(g * amount)))
+                b = min(255, max(0, int(b * amount)))
+                return f"#{r:02x}{g:02x}{b:02x}"
+
+            # Calculate a slightly brighter/richer hover color
+            hover_color = adjust_color(color, 1.15)
+            
+            btn.bind("<Enter>", lambda e: btn.configure(bg=hover_color))
+            btn.bind("<Leave>", lambda e: btn.configure(bg=color))
+            return btn
 
         settings = tk.LabelFrame(
             body,
             text="Session Setup",
             bg=Colors.CARD_BG,
             fg=Colors.TEXT_DARK,
-            padx=12,
-            pady=10,
+            font=(UI_FONT, 11, "bold"),
+            padx=16,
+            pady=14,
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=Colors.BORDER,
+            highlightcolor=Colors.BORDER,
         )
         settings.pack(fill=tk.X)
         settings.columnconfigure(1, weight=1)
@@ -148,9 +188,13 @@ class ClaudeSessionLauncher:
             settings,
             textvariable=self.project_path_var,
             font=(UI_FONT, 11),
-            relief=tk.SOLID,
-            bd=1,
             bg=Colors.CARD_BG,
+            fg=Colors.TEXT_LIGHT,
+            insertbackground=Colors.TEXT_LIGHT,
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=Colors.BORDER,
+            highlightcolor=Colors.PRIMARY,
         ).grid(row=0, column=1, sticky=tk.EW, padx=(0, 10), pady=6, ipady=3)
         flat_button(settings, "瀏覽資料夾", self.browse_project_path, Colors.PRIMARY).grid(
             row=0, column=2, sticky=tk.E, pady=6
@@ -176,9 +220,13 @@ class ClaudeSessionLauncher:
             settings,
             textvariable=self.session_name_var,
             font=(UI_FONT, 11),
-            relief=tk.SOLID,
-            bd=1,
             bg=Colors.CARD_BG,
+            fg=Colors.TEXT_LIGHT,
+            insertbackground=Colors.TEXT_LIGHT,
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=Colors.BORDER,
+            highlightcolor=Colors.PRIMARY,
         ).grid(row=2, column=1, columnspan=2, sticky=tk.EW, pady=6, ipady=3)
 
         field_label(settings, "Claude 啟動參數").grid(
@@ -226,8 +274,13 @@ class ClaudeSessionLauncher:
             text="Prompt 樣板",
             bg=Colors.CARD_BG,
             fg=Colors.TEXT_DARK,
-            padx=12,
-            pady=10,
+            font=(UI_FONT, 11, "bold"),
+            padx=16,
+            pady=14,
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=Colors.BORDER,
+            highlightcolor=Colors.BORDER,
         )
         prompt_frame.pack(fill=tk.BOTH, expand=True, pady=(12, 0))
 
@@ -247,6 +300,8 @@ class ClaudeSessionLauncher:
             font=(UI_FONT, 12),
             relief=tk.FLAT,
             bg=Colors.CARD_BG,
+            fg=Colors.TEXT_LIGHT,
+            insertbackground=Colors.TEXT_LIGHT,
             highlightthickness=1,
             highlightbackground=Colors.BORDER,
             highlightcolor=Colors.PRIMARY,
@@ -261,8 +316,13 @@ class ClaudeSessionLauncher:
             text="Command Preview",
             bg=Colors.CARD_BG,
             fg=Colors.TEXT_DARK,
-            padx=12,
-            pady=8,
+            font=(UI_FONT, 11, "bold"),
+            padx=16,
+            pady=14,
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=Colors.BORDER,
+            highlightcolor=Colors.BORDER,
         )
         preview_frame.pack(fill=tk.BOTH, expand=True, pady=(12, 0))
 
@@ -272,9 +332,12 @@ class ClaudeSessionLauncher:
             wrap=tk.WORD,
             font=(MONO_FONT, 11),
             bg=Colors.LOG_BG,
-            fg=Colors.TEXT_DARK,
-            insertbackground=Colors.TEXT_DARK,
+            fg=Colors.TEXT_LIGHT,
+            insertbackground=Colors.TEXT_LIGHT,
             relief=tk.FLAT,
+            highlightthickness=1,
+            highlightbackground=Colors.BORDER,
+            highlightcolor=Colors.PRIMARY,
             padx=10,
             pady=8,
         )
@@ -303,7 +366,7 @@ class ClaudeSessionLauncher:
             self.root,
             textvariable=self.status_var,
             anchor=tk.W,
-            bg=Colors.TEXT_DARK,
+            bg=Colors.HEADER_BG,
             fg=Colors.TEXT_LIGHT,
             padx=10,
             pady=5,
@@ -519,7 +582,7 @@ sys.exit(exit_code)
 
     def set_status(self, message: str, error: bool = False) -> None:
         self.status_var.set(message)
-        self.status_bar.configure(bg=Colors.DANGER if error else Colors.TEXT_DARK)
+        self.status_bar.configure(bg=Colors.DANGER if error else Colors.HEADER_BG)
         if error:
             self.root.bell()
 
