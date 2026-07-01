@@ -5,7 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| TRACTION-LAYOUT-01 | 🟡 /qa PASS（doc-only，Build/Test/Lint N/A）· Layout Spec 內文版號 bump v2.5.2→v2.5.3 + §16 修訂追蹤（Layer 5 metadata 閉環）· 零 rename · 待 Cross-Review + Commit · 1F +20/-8L |
+| TRACTION-LAYOUT-01 | ✅ Codex Cross-Review PASS · Layout Spec 內文版號 bump v2.5.2→v2.5.3 + §16 修訂追蹤（Layer 5 metadata 閉環）· 零 rename · 1F +20/-8L · 2ae5bef |
 | TRACTION-GOV-02 | ✅ /index-verify PASS · Layout Spec 內文版號 bump v2.5.1→v2.5.2（檔名穩定不變）+ §15 修訂追蹤 · 零 rename · Cross-Review N/A · 1F +19/-8L · ee3bf82 |
 | TRACTION-GOV-03 | ✅ /index-verify PASS · 檔名版號慣例建立（活文件 slug / 快照版號入檔名，R-T12）· Naming_Version_Convention.md 入索引 + CSO_INDEX 指標 · 零 rename · 1F +37L · 36cfc36 |
 | TRACTION-GOV-01 | ✅ /index-verify PASS · Layout Spec 版本漂移修正 SSOT v4.0.5→v4.0.6（16 處，殘留 0）· Cross-Review N/A · 1F +16/-16L · d1d9047 |
@@ -17,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S27** · LAYOUT-01 🟡 /qa PASS（Layout v2.5.3 §16 metadata 閉環）待 Cross-Review · GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ 待 Cross-Review 後開渲染實作票** |
+| Schedule | **S27** · LAYOUT-01 ✅ Codex Cross-Review PASS（Layout v2.5.3 §16 metadata 閉環）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ 開渲染實作票** |
 | Compile | ⚪ N/A (LAYOUT-01 doc-only：零 .kt/.xml) |
 | Tests | ⚪ N/A (LAYOUT-01 doc-only) |
 | Lint | ⚪ N/A (LAYOUT-01 doc-only) |
