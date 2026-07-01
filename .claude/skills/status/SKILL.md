@@ -34,7 +34,7 @@ bash -c 'cat tmp/claude_status_cache.json 2>/dev/null'
 - 中文字 ≈ 1.5 tokens
 - 英文單詞 ≈ 1.3 tokens
 - 代碼每行 ≈ 10-15 tokens
-- 上下文窗口 ≈ 200K tokens
+- 上下文窗口 ≈ 200K tokens（Claude Code session 實際配置值，與模型 API 理論上限〔可能達 1M〕無關——已於 2026-07-01 以 `/context` 分別對 Sonnet 5 與 Opus 4.8[1m] 實測驗證，兩者皆固定為 200K，`[1m]` 標籤不影響實際 session ceiling，故不做 per-model 查表）
 
 ## 輸出格式
 
