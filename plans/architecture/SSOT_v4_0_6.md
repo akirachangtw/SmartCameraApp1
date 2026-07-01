@@ -365,9 +365,9 @@ fun HaloGuidanceLayer(
     isAligned: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // D-3: 對齊時呼吸韻律 α 0.10→0.18，未對齊時靜態 α 0.25
+    // D-3: 對齊時呼吸 α 0.10→0.18 + scale 0.98→1.02（R-T4），未對齊靜態 α 0.8（R-T2）
     val haloAlpha by animateFloatAsState(
-        targetValue = if (isAligned) 0.18f else 0.25f,
+        targetValue = if (isAligned) 0.18f else 0.8f,
         animationSpec = if (isAligned) {
             infiniteRepeatable(
                 animation = tween(2000, easing = FastOutSlowInEasing),
@@ -377,30 +377,92 @@ fun HaloGuidanceLayer(
             tween(300)
         }
     )
+    // R-T4: 對齊呼吸補 scale 0.98→1.02（breathe-halo-aligned），未對齊靜態 1.0
+    val haloScale by animateFloatAsState(
+        targetValue = if (isAligned) 1.02f else 1.0f,
+        animationSpec = if (isAligned) {
+            infiniteRepeatable(
+                animation = tween(2000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+        } else {
+            tween(300)
+        }
+    )
+    // 牽引圓點呼吸 breathe-dot：scale 0.9↔1.1 / opacity 0.7↔1.0 / 1.8s
+    val dotPulse = rememberInfiniteTransition(label = "breathe-dot")
+    val dotScale by dotPulse.animateFloat(
+        0.9f, 1.1f, infiniteRepeatable(tween(1800), RepeatMode.Reverse), label = "dotScale"
+    )
+    val dotOpacity by dotPulse.animateFloat(
+        0.7f, 1.0f, infiniteRepeatable(tween(1800), RepeatMode.Reverse), label = "dotOpacity"
+    )
 
     Canvas(modifier = modifier.fillMaxSize()) {
         if (subjectBbox == null) return@Canvas
 
         val haloCx = subjectBbox.center.x
         val haloCy = subjectBbox.center.y
-        val haloRadius = max(subjectBbox.width, subjectBbox.height) * 0.6f
+        // R-T3: 半徑 1:1 bbox（直徑 = faceSize，對齊原型）
+        val bboxSize = max(subjectBbox.width, subjectBbox.height)
+        val haloRadius = bboxSize * 0.5f
 
+        // D-11: atan2 方向歸屬（SSOT-02 確立）；dist 正規化 0–100
         val dx = (targetPosition?.x ?: haloCx) - haloCx
         val dy = (targetPosition?.y ?: haloCy) - haloCy
         val angle = atan2(dy, dx)
+        val dist = hypot(dx, dy).coerceIn(0f, 100f)
 
-        val color = if (isAligned) Color(0xFF50C864)  // 綠色
-                    else Color(0xFFD4A030)              // 金色
-
+        // 外環（Halo ring）：金 / 綠，呼吸 alpha + scale
+        val ringColor = if (isAligned) Color(0xFF50C864) else Color(0xFFD4A030)
         drawCircle(
-            color = color.copy(alpha = haloAlpha),
-            radius = haloRadius,
+            color = ringColor.copy(alpha = haloAlpha),
+            radius = haloRadius * haloScale,
             center = Offset(haloCx, haloCy),
             style = Stroke(width = 2f)
+        )
+
+        // 牽引圓點位移：夾在外環內（圓點 36dp，邊界留 2px）
+        val dotDiameter = 36.dp.toPx()
+        val maxOffset = max(0f, (bboxSize - dotDiameter) / 2f - 2f)
+        val dotOffset = maxOffset * (dist / 100f)
+        val dotCx = haloCx + cos(angle) * dotOffset
+        val dotCy = haloCy + sin(angle) * dotOffset
+
+        // R-T3: 三段 V 曲線色（dist=0 綠歸心 scale1.1 / ≤50 綠漸亮 / >50 琥珀漸暗）
+        val (dotColor, dotAlpha, homeScale) = when {
+            dist > 50f -> Triple(Color(0xFFD4A030), 0.1f + ((dist - 50f) / 50f) * 0.75f, 1.0f)
+            dist > 0f  -> Triple(Color(0xFF50C864), 0.1f + (1f - dist / 50f) * 0.75f, 1.0f)
+            else       -> Triple(Color(0xFF50C864), 0.85f, 1.1f)
+        }
+
+        // 牽引圓點：radial-gradient(circle, currentColor 60%, transparent 80%)
+        val dotRadius = (dotDiameter / 2f) * dotScale * homeScale
+        drawCircle(
+            brush = Brush.radialGradient(
+                0.6f to dotColor.copy(alpha = dotAlpha * dotOpacity),
+                0.8f to Color.Transparent,
+                center = Offset(dotCx, dotCy),
+                radius = dotRadius
+            ),
+            radius = dotRadius,
+            center = Offset(dotCx, dotCy)
         )
     }
 }
 ```
+
+**牽引圓點規格（R-T1/R-T3）**：外環內含一顆牽引圓點，沿 `atan2(targetY − faceY, targetX − faceX)` 方向、依 face→target 距離 `dist`（0–100）位移，引導使用者將主體移向構圖目標。
+
+| 項目 | 規格 |
+|------|------|
+| 尺寸 | 36dp，`radial-gradient(circle, currentColor 60%, transparent 80%)` |
+| 位移 | `maxOffset = max(0, (bboxSize − 36) / 2 − 2)`；`offset = maxOffset × (dist / 100)` |
+| 方向 | `angle = atan2(targetY − faceY, targetX − faceX)`；`dotX = cos(angle)·offset`、`dotY = sin(angle)·offset` |
+| 呼吸 | breathe-dot：`scale 0.9↔1.1` / `opacity 0.7↔1.0` / `1.8s` |
+| 三段 V 曲線色 | `dist>50` 琥珀漸暗 `0.1+((dist−50)/50)×0.75`；`dist≤50` 綠漸亮 `0.1+(1−dist/50)×0.75`；`dist=0` 綠 + `scale 1.1` 歸心 |
+
+> **targetPos 來源**：原型 targetPos（50 / 33.33 / 42 / 50）為 demo 簡化值；production target 由 rule engine 輸出（Portrait = 三分法 + headroom + gaze；Food = 最大 bbox + 構圖；Multi-face = 群組 center）。
 
 **統一 Halo 語言表**：
 
@@ -448,6 +510,8 @@ Phase 1.5 擴展：
   → 不做多 Halo（視覺過於複雜）
 ```
 
+**Food Halo 牽引圓點（R-T1, C-7）**：美食 Halo 沿用 §2.5 牽引圓點全套規格（36dp `radial-gradient` 圓點 + `atan2` 方向位移 + 三段 V 曲線色 + 未對齊外環 alpha `0.8`），外環尺寸依最大 food bbox 1:1（`haloRadius = bboxSize × 0.5`）。targetPos 同 §2.5：原型值僅供 demo，production 由 rule engine（最大 bbox + 構圖）輸出。
+
 ### 2.5.2 多人群組 Halo
 
 ```kotlin
@@ -478,8 +542,8 @@ fun calculateGroupHalo(
         else -> Offset(screenWidth * 0.5f, screenHeight * 0.5f)
     }
 
-    val baseAlpha = 0.25f
-    val groupAlpha = baseAlpha - 0.05f  // = 0.20
+    // R-T9: 群組 alpha 與 §2.5 單人統一為 0.8（移除 baseAlpha − 0.05f 相對算式）
+    val groupAlpha = 0.8f
 
     return GroupHaloResult(Offset(cx, cy), radius, target, groupAlpha)
 }
@@ -491,7 +555,7 @@ fun calculateGroupHalo(
 | 3 人 | 中央偏上 (y=40%) | 三角構圖重心略高 |
 | 4+ 人 | 正中央 (y=50%) | 多人合照以居中為優先 |
 
-**Alpha 規則**：群組 Halo alpha = 單人 alpha − 0.05（未對齊 0.20 / 對齊 0.30），補償大面積 Halo 的視覺壓迫感。
+**Alpha 規則（R-T9）**：群組 Halo alpha 與 §2.5 單人統一——未對齊 `0.8`、對齊呼吸 `0.10→0.18` + `scale 0.98→1.02`（複用 `HALO_ALIGNED_ALPHA_MIN/MAX`，同源）。原「群組 = 單人相對減量」補償規則整段已刪除（premise 經 GAP-06 實機證偽；大面積壓迫關切轉 TRACTION-RENDER-01 C3 實機子驗收，禁復活相對式）。
 
 **群組質心 EMA 平滑**：
 
