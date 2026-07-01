@@ -5,22 +5,22 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| TRACTION-LAYOUT-01 | 🟡 /qa PASS（doc-only，Build/Test/Lint N/A）· Layout Spec 內文版號 bump v2.5.2→v2.5.3 + §16 修訂追蹤（Layer 5 metadata 閉環）· 零 rename · 待 Cross-Review + Commit · 1F +20/-8L |
 | TRACTION-GOV-02 | ✅ /index-verify PASS · Layout Spec 內文版號 bump v2.5.1→v2.5.2（檔名穩定不變）+ §15 修訂追蹤 · 零 rename · Cross-Review N/A · 1F +19/-8L · ee3bf82 |
 | TRACTION-GOV-03 | ✅ /index-verify PASS · 檔名版號慣例建立（活文件 slug / 快照版號入檔名，R-T12）· Naming_Version_Convention.md 入索引 + CSO_INDEX 指標 · 零 rename · 1F +37L · 36cfc36 |
 | TRACTION-GOV-01 | ✅ /index-verify PASS · Layout Spec 版本漂移修正 SSOT v4.0.5→v4.0.6（16 處，殘留 0）· Cross-Review N/A · 1F +16/-16L · d1d9047 |
 | TRACTION-SSOT-03 | ✅ /sv PASS · Level roll-only D-9 清理（§2.0.1 pitch 化石移除→abs(rollDiff)）+ §2.4 補全 + Layout Layer 5 表 · Codex R1 PASS · 2F +30/-3L · f87aae0 |
-| TRACTION-SSOT-01 | ✅ /sv PASS · Halo 三層規格重寫（外環 alpha 0.8 + 牽引圓點 atan2/三段V曲線）· Codex R2 PASS · 2F +80/-16L · fc6ffa8 |
 
-**Last Updated**: 2026-07-01
+**Last Updated**: 2026-07-02
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S27** · GOV-01/02/03 三票 ✅ /index-verify PASS（版本漂移修正 + Layout v2.5.2 內文 bump + 檔名慣例 slug）· SSOT-03 ✅ /sv PASS · GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ 開渲染實作票** |
-| Compile | ⚪ N/A (GOV-03 doc-only：零 .kt/.xml) |
-| Tests | ⚪ N/A (GOV-03 doc-only) |
-| Lint | ⚪ N/A (GOV-03 doc-only) |
+| Schedule | **S27** · LAYOUT-01 🟡 /qa PASS（Layout v2.5.3 §16 metadata 閉環）待 Cross-Review · GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ 待 Cross-Review 後開渲染實作票** |
+| Compile | ⚪ N/A (LAYOUT-01 doc-only：零 .kt/.xml) |
+| Tests | ⚪ N/A (LAYOUT-01 doc-only) |
+| Lint | ⚪ N/A (LAYOUT-01 doc-only) |
 
 ## Active Blockers
 
