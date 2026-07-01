@@ -5,20 +5,19 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| TRACTION-SSOT-01 | ✅ /sv PASS · Halo 三層規格重寫（外環 alpha 0.8 + 牽引圓點 atan2/三段V曲線）· Codex R2 PASS · 2F +80/-16L · fc6ffa8 |
 | TRACTION-SSOT-02 | ✅ /sv PASS · D-11 加亮弧→牽引圓點（atan2 歸屬保留）· Codex R2 PASS · 1F +2/-7L · 0a336ca |
 | INFRA-REACH-01-FIX-AI3 | ✅ /sv PASS · cross_review.sh §3.5 + CROSS_REVIEW.md wiring · 2F +38L · 3028bd1 |
 | INFRA-REACH-01 | ✅ /sv PASS · Guard Input Reachability gate · 4F +75L · 2a63236 |
 | STATE-CONTRACT-01-FIX-C | ✅ /sv PASS · LANDMARK_NONE KDoc + PTF gate 偏移裁決強化 · 2c7ddff |
-| STATE-CONTRACT-01-FIX-B | ✅ /sv PASS · reducer pure 閉環 · AC-3/4/5 + AI-4 測試 4 條 · 30653fb |
-| STATE-CONTRACT-01 | 🟡 Ready → Traycer 終審（FIX-A ✅ + FIX-B ✅ 雙 /sv PASS） |
 
-**Last Updated**: 2026-06-30
+**Last Updated**: 2026-07-01
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S24** · 實機驗收深度分析完成 · AC-7 ✅ · AC-6/8/9 🔴 BLOCKED by GAP-06 · **→ TRACTION-SSOT-01 修復後重測** |
+| Schedule | **S25** · TRACTION-SSOT-01 SSOT 規格 ✅ /sv PASS · AC-6/8/9 仍 🔴 BLOCKED by GAP-06（待 HaloGuidanceLayer.kt 渲染實作）· **→ 開渲染實作票後實機重測** |
 | Compile | 0 errors ✅ (assembleDeviceDebug PASS) |
 | Tests | 400 passed ✅ (FIX-B +4 reducer tests；androidTest 編譯 PASS) |
 | Lint | 0 errors ✅ (0 new warnings in ALLOWED files) |
@@ -27,7 +26,7 @@
 
 | ID | Issue | Severity | Root Cause |
 | ---- | ------- | ---------- | ------------ |
-| GAP-06 | HaloTraction 渲染缺牽引圓點：Normal 無 HaloTraction（出 Focus Ring）；PTF 圓點靜態不磁吸 | 🔴 P0 | SSOT §2.5「加亮弧」設計錯誤；alpha 0.25 過淡；需重寫 HaloGuidanceLayer.kt → TRACTION-SSOT-01 |
+| GAP-06 | HaloTraction 渲染缺牽引圓點：Normal 無 HaloTraction（出 Focus Ring）；PTF 圓點靜態不磁吸 | 🔴 P0 | SSOT 規格已修（TRACTION-SSOT-01 ✅：alpha 0.8 + 牽引圓點 + 三段 V 曲線）；待 HaloGuidanceLayer.kt 渲染實作票落地 |
 | GAP-07 | afState 回授斷裂 → Guard 7a 死碼 → 瘋狂 AF（Focus Ring 閃動）（**=AC-10 假過根因**）| 🔴 P0 | CameraViewModel.kt L2117 result 被拋棄、afState 永 Idle（dead field）；需接線 |
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
@@ -38,7 +37,7 @@
 
 > **S24（2026-06-30）：INFRA-REACH-01 + FIX-AI3 全鏈路閉環 · Guard Input Reachability gate 完整落地 · K5-Rule 29 收割**
 
-1. **🔴 TRACTION-SSOT-01**（前置 SSOT-02 ✅ 已解除）：補 SSOT §2.5 牽引圓點完整規格（alpha 0.8 / 三段 V 曲線 / atan2 圓點）+ §2.5.1 Food + Layout §3.3 同步
+1. **✅ TRACTION-SSOT-01**（/sv + Codex R2 PASS · fc6ffa8）：SSOT §2.5/§2.5.1/§2.5.2 + Layout §3.3 規格已落地 → **下一步開 HaloGuidanceLayer.kt 渲染實作票**（GAP-06 解除前置）
 2. **🔴 開票 GAP-07**：修 afState 回授斷裂（CameraViewModel.kt L2117 接線）
 3. **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審
 4. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
