@@ -721,7 +721,9 @@ fun onNewLightState(state: LightState) {
 ```kotlin
 @Composable
 fun HdrIconWithPulse(lightState: LightState) {
-    val needsHdr = lightState == LightState.BACKLIT || lightState == LightState.HIGH_CONTRAST
+    val needsHdr = lightState == LightState.BACKLIT
+            || lightState == LightState.HIGH_CONTRAST
+            || lightState == LightState.OVEREXPOSED
     val needsFlash = lightState == LightState.LOW_LIGHT
 
     val hdrAlpha by if (needsHdr || needsFlash) {
