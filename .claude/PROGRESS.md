@@ -62,16 +62,11 @@
 | K3-6 | `cross_review.sh` payload 驗證 SV scope ↔ diff scope 一致性 | cross_review forensic | 腳本改進 |
 | K3-7 | Edit 前強制 Re-view（>200 行目標檔 / /compact 後無條件觸發） | K3-7 | CLAUDE.md 規則 ✅ Rule 18 |
 
-## D13 KAIROS #4 候選議程（Pre-D13 登記）
+## D13 KAIROS #4 候選議程
 
-| ID | 候選項目 | 來源 | 類型 |
-| ---- | --------- | ------ | ------ |
-| K4-21 | Scope Ban Wording Guideline → `.claude/rules/scope-ban-governance.md`（Perplexity 6 點框架：禁絕對語氣 / Net-New vs Name-New / 行內例外具名化 / 指標對應） | P08-F4-FIX BLOCKER + CSO Override | rules 文件 |
-| K4-22 | ssot_context.md 事實數據（行數/倍率）隨 Ticket 閉環自動更新機制 | CameraViewModel 2457→2344 漂移 | 自動化 |
-| K4-23 | 靜態驗收 + 模擬器 QA 無法捕捉真機專屬 Camera 後端分流 bug → execute_review 後仍 **MUST** 真機驗收方可標 DONE | P08-F4-FIX S15 真機 FAIL | CLAUDE.md 規則 |
-| K4-24 | Discovery Report 已記載「Path A 從不執行」，FIX 卻扶正 Path A 未修根因 → FIX Ticket **MUST** 對 Discovery 前提缺陷逐項閉環 | P08-F4 Discovery vs P08-F4-FIX 矛盾 | CLAUDE.md 規則 |
-| K4-34 | 真機渲染缺陷無法被靜態/模擬器捕捉 — Halo 牽引圓點在 SSOT「加亮弧」空實作下，靜態+單元全綠但真機完全不渲染 → 視覺渲染類 AC **MUST** 真機 gate（K4-23 由「Camera 後端」擴展至「渲染」維度）| STATE-CONTRACT-01 AC-6/8 靜態 PASS 真機 FAIL（GAP-06）| CLAUDE.md 規則 / camera-constraints |
-| K4-35 | Guard 依賴的 input 若無 production producer（dead field），單元測試注入該 state 造成 false pass → reachability 維度 **MUST** 入 /qa+/sv | AC-10 假過 / afState 永 Idle / Guard 7a 死碼（GAP-07）| /qa+/sv gate 擴充（✅ 已轉 INFRA-REACH-01 票，本候選即其防護）|
+**Canonical Registry**：`plans/cso_briefing/project/Pending/KAIROS4_Candidate_Compilation.md`（K4-1~28, K4-34, K4-35，共 30 項；本節僅作暫存區，新候選登記後即合併入該檔並移除本節條目）。
+
+> INFRA-XX（S28）稽核：Compilation 檔內原標「✅ 收錄」的 K4-3/6/8/9 經 grep 核查目標檔案（`cross-review.md` / `kairos-lessons.md` / `camera-constraints.md`）均無對應條文，已改列 🔴 待補寫；`kairos-lessons.md` 確認為必要存在（唯一 path-scoped 自動載入的已落地規則本體，與 Compilation 的候選登記角色不重疊，見下方說明）。
 
 ## Quick Links
 
