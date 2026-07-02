@@ -28,7 +28,7 @@
 |------|------|---------|------|
 | Cueshot_Layout_Spec_v2_5_1.md | 活文件 | ✅ 已凍結 slug（GOV-02）| 無 |
 | SSOT_v4_0_6.md | 活文件 | ⚠️ 版號入檔名 | 凍結 opaque；clean-slug 遷移 = GOV-04 候選（封板點評估）|
-| Cueshot_State_1-6_Prototype_v3_2.html | 快照 | ✅ 合規（版號入檔名）| 無 |
+| plans/architecture/Cueshot_State_1-6_Prototype_v3_3.html | 快照 | ✅ 合規（版號入檔名）| 無 |
 | Portrait_MVP_Kotlin_Contract_v0_3/v0_4.md | 快照（被取代版本）| ✅ 合規 | 無 |
 | Prototyper Prompt v2 / Background Image Prompts v2 | 快照 | ✅ 合規 | 無 |
 
