@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cueshot - Multi-State Master Prototype v3.3</title>
+    <!-- v3.3 NOTE: 基於 v3.2；差異 = Level roll-only reconcile（R-T5）+ Halo α 註解。
+         v3.2 凍結為歷史 baseline（含 Level dual-axis 化石）。 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Ambient UI 核心變數 */
+        :root {
+            --amber-gold: #D4A030;
+            --align-green: #50C864;
+            --grid-alpha: rgba(255, 255, 255, 0.08); 
+            --ui-dark: #0D0D0D;
+            --ptf-warm: #1A1714; 
+            
+            /* v2/v3 統一動畫時序 */
+            --transition-fast: 300ms;
+            --breathe-cycle: 2000ms;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        /* 手機容器模擬 (390x844) */
+        .device-mockup {
+            width: 390px;
+            height: 844px;
+            background-color: var(--ui-dark);
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 8px solid #333;
+            flex-shrink: 0;
+        }
+
+        /* --- 原型控制面板 --- */
+        .simulator-panel {
+            margin-left: 40px;
+            width: 320px;
+            background-color: #222;
+            border: 1px solid #444;
+            border-radius: 16px;
+            padding: 24px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .simulator-title { font-weight: bold; margin-bottom: 16px; font-size: 16px; color: var(--amber-gold); }
+        
+        /* 控制台對齊狀態指示燈樣式 */
+        .status-indicator {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 12px; border-radius: 8px;
+            margin-bottom: 24px; border: 1px solid #444;
+            transition: all var(--transition-fast) ease;
+        }
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            transition: all var(--transition-fast) ease;
+        }
+        .status-text { font-size: 13px; font-weight: bold; transition: color var(--transition-fast) ease; }
+
+        .status-indicator.idle { background-color: rgba(255,255,255,0.05); }
+        .status-indicator.idle .status-dot { background-color: #666; box-shadow: none; }
+        .status-indicator.idle .status-text { color: #888; }
+
+        .status-indicator.unaligned { background-color: rgba(212, 160, 48, 0.1); border-color: rgba(212, 160, 48, 0.3); }
+        .status-indicator.unaligned .status-dot { background-color: var(--amber-gold); box-shadow: 0 0 8px rgba(212, 160, 48, 0.6); }
+        .status-indicator.unaligned .status-text { color: var(--amber-gold); }
+
+        .status-indicator.aligned { background-color: rgba(80, 200, 100, 0.1); border-color: rgba(80, 200, 100, 0.4); }
+        .status-indicator.aligned .status-dot { background-color: var(--align-green); box-shadow: 0 0 8px rgba(80, 200, 100, 0.6); }
+        .status-indicator.aligned .status-text { color: var(--align-green); }
+
+        .slider-group { margin-bottom: 16px; }
+        .slider-label { display: flex; justify-content: space-between; font-size: 12px; color: #aaa; margin-bottom: 8px; }
+        .range-slider { width: 100%; accent-color: var(--amber-gold); }
+        .flex-row { display: flex; gap: 16px; }
+        .flex-row .slider-group { flex: 1; }
+        
+        .state-selector {
+            width: 100%;
+            background-color: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 8px;
+            outline: none;
+            font-size: 13px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .state-selector:focus { border-color: var(--amber-gold); }
+
+        /* --- Viewfinder --- */
+        .viewfinder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 664px;
+            background-size: cover;
+            background-position: center;
+            transition: background-image var(--transition-fast) ease;
+            touch-action: none;
+        }
+
+        .top-scrim {
+            position: absolute;
+            top: 0; left: 0; width: 100%; 
+            height: 120px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.05) 60%, rgba(0,0,0,0) 100%);
+            pointer-events: none;
+            z-index: 9;
+            transition: opacity var(--transition-fast) ease;
+        }
+
+        /* --- Top Bar --- */
+        .top-bar {
+            position: absolute;
+            top: 56px; 
+            left: 16px;
+            right: 16px;
+            height: 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0;
+            z-index: 10;
+            background: transparent;
+            transition: opacity var(--transition-fast) ease;
+        }
+        
+        .icon-btn { 
+            color: rgba(255, 255, 255, 0.85); 
+            width: 48px; height: 48px;
+            display: flex; justify-content: center; align-items: center; 
+            cursor: pointer; transition: transform 0.1s; 
+        }
+        .icon-btn:active { transform: scale(0.9); }
+        .icon-group { display: flex; gap: 4px; align-items: center; } 
+        
+        .hdr-text { font-size: 13px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
+        .hdr-solid { color: rgba(255, 255, 255, 0.85); }
+        .hdr-off { color: rgba(255, 255, 255, 0.5); }
+        .hdr-yellow { color: var(--amber-gold); }
+
+        /* --- Overlays --- */
+        .rule-of-thirds {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .grid-cell { border-right: 0.5px solid var(--grid-alpha); border-bottom: 0.5px solid var(--grid-alpha); }
+        .grid-cell:nth-child(3n) { border-right: none; }
+        .grid-cell:nth-child(n+7) { border-bottom: none; }
+
+        /* --- Tap-to-Focus / AEAF Lock 樣式 --- */
+        .focus-ring-container {
+            position: absolute;
+            width: 60px; height: 60px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 8;
+        }
+        
+        .focus-ring-circle {
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            box-sizing: border-box;
+            transition: border-color var(--transition-fast) ease, transform var(--transition-fast) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .focus-ring-container.searching .focus-ring-circle { border: 1.5px solid rgba(255, 255, 255, 0.9); transform: scale(1); }
+        .focus-ring-container.focused .focus-ring-circle { border: 1.5px solid rgba(80, 200, 100, 0.6); transform: scale(0.85); }
+        .focus-ring-container.locked .focus-ring-circle { border: 1.5px solid rgba(212, 160, 48, 1.0); transform: scale(0.85); }
+
+        .focus-ring-container.lost .focus-ring-circle {
+            border: 1.5px solid rgba(212, 160, 48, 0.6);
+            animation: focus-lost-shake 1s linear forwards;
+        }
+
+        @keyframes focus-lost-shake {
+            0%   { transform: scale(0.85) translateX(0); opacity: 1; }
+            10%  { transform: scale(0.90) translateX(-4px); opacity: 1; }
+            20%  { transform: scale(0.95) translateX(4px); opacity: 0.8; }
+            30%  { transform: scale(1.00) translateX(-4px); opacity: 0.6; }
+            40%  { transform: scale(1.05) translateX(4px); opacity: 0.4; }
+            50%  { transform: scale(1.10) translateX(0); opacity: 0.2; }
+            100% { transform: scale(1.20) translateX(0); opacity: 0; }
+        }
+
+        .focus-lock-icon {
+            position: absolute;
+            top: -6px; right: -6px;
+            background: rgba(13, 13, 13, 0.85);
+            color: var(--amber-gold);
+            border: 1px solid rgba(212, 160, 48, 0.4);
+            border-radius: 50%;
+            padding: 3px;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: opacity 0.2s ease, transform var(--transition-fast) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; justify-content: center; align-items: center;
+        }
+        
+        .focus-ring-container.locked .focus-lock-icon { opacity: 1; transform: scale(1); }
+
+        .dev-target-marker {
+            position: absolute;
+            transform: translate(-50%, -50%); 
+            border: 1px dashed rgba(255, 255, 255, 0.5); 
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 3;
+            transition: opacity var(--transition-fast) ease, top 0.4s ease, left 0.4s ease;
+        }
+        .dev-target-marker::after, .dev-target-marker::before { content: ''; position: absolute; background: rgba(255, 255, 255, 0.5); top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .dev-target-marker::before { width: 12px; height: 1px; }
+        .dev-target-marker::after { width: 1px; height: 12px; }
+
+        /* --- 1. Halo Traction (Portrait & PTF & Food) --- */
+        .halo-traction, .food-halo-traction {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            border: 2px solid var(--amber-gold);
+            /* v3.3: 未對齊 α=0.85 為原型設計原值；SSOT §2.5 用 0.8（R-T2/R-T9 單人↔群組統一，
+               刻意覆蓋）。此差異刻意保留，勿同步。 */
+            opacity: 0.85;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: border-color 0.4s ease, opacity 0.4s ease, width 0.1s ease, height 0.1s ease;
+            z-index: 6;
+            pointer-events: none;
+        }
+
+        .halo-traction.aligned, .food-halo-traction.aligned {
+            border-color: var(--align-green);
+            animation: breathe-halo-aligned var(--breathe-cycle) ease-in-out infinite alternate;
+        }
+
+        .halo-traction-wrapper {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.2s ease, transform var(--transition-fast) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.35));
+            z-index: 2;
+        }
+
+        .halo-traction-dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: radial-gradient(circle, currentColor 60%, transparent 80%);
+            color: var(--amber-gold);
+            transition: color 0.4s ease;
+            animation: breathe-dot 1.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes breathe-dot { 0% { transform: scale(0.9); opacity: 0.7; } 100% { transform: scale(1.1); opacity: 1; } }
+        @keyframes breathe-halo-aligned { 0% { opacity: 0.10; transform: translate(-50%, -50%) scale(0.98); } 100% { opacity: 0.18; transform: translate(-50%, -50%) scale(1.02); } }
+
+        /* --- 2. Level Traction (中央雙軸) --- */
+        .level-traction-wrapper { position: absolute; bottom: 25%; left: 50%; transform: translateX(-50%); width: 60%; height: 0px; z-index: 5; pointer-events: none; transition: opacity var(--transition-fast) ease;}
+        .level-traction-layer { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .level-traction-layer.reference .level-traction-line { flex-grow: 1; height: 1px; background-image: repeating-linear-gradient(to right, rgba(255, 255, 255, 0.5) 0, rgba(255, 255, 255, 0.5) 8px, transparent 8px, transparent 16px); }
+        .level-traction-layer.reference .level-traction-dot { width: 8px; height: 8px; background-color: transparent; border: 1.5px solid rgba(255, 255, 255, 0.8); border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3); flex-shrink: 0; }
+        .level-traction-layer.dynamic { transition: transform 0.15s cubic-bezier(0.25, 1, 0.5, 1); }
+        .level-traction-layer.dynamic .level-traction-line { flex-grow: 1; height: 0.5px; background-color: var(--amber-gold); transition: background-color 0.4s ease; }
+        .level-traction-layer.dynamic .level-traction-dot { width: 6px; height: 6px; background-color: var(--amber-gold); border-radius: 50%; box-shadow: 0 0 4px rgba(212, 160, 48, 0.4); transition: background-color 0.4s ease, box-shadow 0.4s ease; flex-shrink: 0; }
+        
+        .level-traction-wrapper.ptf-mode .level-traction-layer.dynamic .level-traction-line { background-color: var(--align-green); }
+        .level-traction-wrapper.ptf-mode .level-traction-layer.dynamic .level-traction-dot { background-color: var(--align-green); box-shadow: 0 0 4px rgba(80, 200, 100, 0.4); }
+        
+        .level-traction-layer.dynamic.aligned .level-traction-line, .level-traction-layer.dynamic.aligned .level-traction-dot { background-color: var(--align-green); }
+        .level-traction-layer.dynamic.aligned .level-traction-dot { box-shadow: 0 0 6px rgba(80, 200, 100, 0.6); }
+        .level-traction-layer.dynamic.aligned { animation: breathe-ambient var(--breathe-cycle) ease-in-out infinite; }
+        
+        @keyframes breathe-ambient { 0%, 100% { opacity: 0.10; } 50% { opacity: 0.18; } }
+        @keyframes breathe-pitch-dot { 0% { transform: translate(-50%, -50%) scale(0.85); } 100% { transform: translate(-50%, -50%) scale(1.15); } }
+
+        /* --- 3. Pitch Traction (邊緣俯仰) --- */
+        .pitch-traction {
+            position: absolute;
+            right: 16px;
+            bottom: 25%;
+            width: 36px; 
+            height: 25%; 
+            pointer-events: none;
+            z-index: 5;
+            transition: opacity var(--transition-fast) ease;
+        }
+        
+        .pitch-traction-line {
+            position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+            width: 2px; height: 100%; 
+            background-color: rgba(212, 160, 48, 0.9); 
+            transition: background-color 0.4s ease;
+            border-radius: 2px;
+        }
+
+        .pitch-traction.aligned .pitch-traction-line {
+            background-color: rgba(80, 200, 100, 0.4); 
+            animation: breathe-ambient var(--breathe-cycle) ease-in-out infinite; 
+        }
+
+        .pitch-traction-ring {
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            width: 32px; height: 32px; border-radius: 50%;
+            border: 1.5px solid transparent;
+            transition: border-color 0.4s ease;
+        }
+
+        .pitch-traction.aligned .pitch-traction-ring {
+            border-color: rgba(80, 200, 100, 0.6); 
+            animation: breathe-ambient var(--breathe-cycle) ease-in-out infinite; 
+        }
+
+        .pitch-traction-dot {
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            width: 20px; height: 20px; border-radius: 50%;
+            background: radial-gradient(circle, currentColor 40%, transparent 80%);
+            color: rgba(212, 160, 48, 0.8);
+            transition: color 0.4s ease, top 0.15s cubic-bezier(0.25, 1, 0.5, 1);
+            animation: breathe-pitch-dot 1.8s ease-in-out infinite alternate;
+        }
+
+        .pitch-traction.aligned .pitch-traction-dot {
+            color: rgba(80, 200, 100, 0.4); 
+            animation: breathe-ambient var(--breathe-cycle) ease-in-out infinite; 
+        }
+
+        /* --- Bottom Control --- */
+        .bottom-control { 
+            position: absolute; bottom: 0; left: 0; width: 100%; 
+            height: 180px;
+            background-color: var(--ui-dark); display: flex; flex-direction: column; 
+            align-items: center; padding-top: 16px; z-index: 10; 
+            transition: background-color var(--transition-fast) ease;
+        }
+        
+        .device-mockup.ptf-active .bottom-control { background-color: var(--ptf-warm); }
+
+        .mode-toggle { 
+            display: flex; 
+            background-color: transparent; 
+            border: 1px solid #555555; 
+            border-radius: 20px; height: 40px; padding: 4px; margin-bottom: 24px; position: relative; 
+            transition: opacity var(--transition-fast) ease; 
+        }
+        .mode-btn { 
+            color: #666666; 
+            width: 60px; border-radius: 16px; display: flex; align-items: center; justify-content: center; 
+            cursor: pointer; transition: all 0.2s ease-in-out; z-index: 1; 
+        }
+        .mode-btn.active { 
+            background-color: #4A4A4A; 
+            color: #CCCCCC; 
+            box-shadow: none; 
+        }
+        
+        .shutter-row { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 40px; }
+        
+        .left-action-area { position: relative; width: 48px; height: 48px; }
+        .gallery-btn, .ptf-exit-btn, .action-btn { 
+            width: 48px; height: 48px; 
+            background-color: rgba(255, 255, 255, 0.1); border-radius: 8px; 
+            display: flex; justify-content: center; align-items: center; 
+            cursor: pointer; overflow: hidden; border: 1.5px solid rgba(255, 255, 255, 0.3); 
+            transition: opacity var(--transition-fast) ease, transform 0.2s; color: white; 
+        }
+        .ptf-exit-btn { border-radius: 50%; background-color: rgba(255,255,255,0.15); border: none; position: absolute; top: 0; left: 0; }
+        .gallery-btn { position: absolute; top: 0; left: 0; }
+        
+        .action-btn { border-radius: 50%; border: none; }
+        .gallery-btn:active, .ptf-exit-btn:active, .action-btn:active { transform: scale(0.9); opacity: 0.7; }
+        
+        /* Shutter & Glow */
+        .shutter-wrapper { position: relative; display: flex; justify-content: center; align-items: center; }
+        
+        .shutter-glow {
+            position: absolute;
+            width: 72px; height: 72px; 
+            border-radius: 50%;
+            background-color: transparent;
+            box-shadow: 0 0 0 3px white; 
+            opacity: 1; 
+            transform: scale(1);
+            transition: box-shadow var(--transition-fast) ease, opacity var(--transition-fast) ease, transform var(--transition-fast) ease;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .shutter-glow.shutter-large { width: 80px; height: 80px; }
+
+        .shutter-glow.breathing {
+            box-shadow: 0 0 0 3px var(--align-green); 
+            animation: shutter-breathe var(--breathe-cycle) ease-in-out infinite alternate;
+        }
+
+        @keyframes shutter-breathe {
+            0% { transform: scale(0.98); opacity: 0.6; box-shadow: 0 0 0 3px var(--align-green); }
+            100% { transform: scale(1.02); opacity: 1.0; box-shadow: 0 0 0 3px var(--align-green); }
+        }
+
+        .shutter-btn { 
+            width: 72px; height: 72px; 
+            border-radius: 50%; 
+            background-color: var(--ui-dark);
+            position: relative;
+            cursor: pointer; 
+            z-index: 2;
+            display: flex; justify-content: center; align-items: center;
+            transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+
+        .shutter-progress {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: conic-gradient(rgba(80, 200, 100, 0.8) var(--p, 0%), transparent 0);
+            pointer-events: none;
+        }
+
+        .shutter-inner {
+            width: calc(100% - 8px); 
+            height: calc(100% - 8px);
+            background-color: white;
+            border-radius: 50%;
+            z-index: 1;
+            transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        .shutter-btn:active .shutter-inner { transform: scale(0.92); }
+        .shutter-btn.shutter-large { width: 80px; height: 80px; }
+
+        .capture-flash {
+            position: absolute; inset: 0; background-color: white;
+            opacity: 0; pointer-events: none; z-index: 20;
+            transition: opacity 0.4s ease-out;
+            border-radius: 40px; 
+        }
+        .capture-flash.active {
+            opacity: 0.45; 
+            transition: opacity 0.05s ease-in; 
+        }
+
+        .invisible-element { opacity: 0 !important; pointer-events: none !important; }
+        .hide { display: none !important; opacity: 0 !important; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div class="device-mockup" id="mockup-container">
+        <!-- 取景框 -->
+        <div class="viewfinder" id="viewfinder-bg">
+            <div class="top-scrim" id="top-scrim"></div>
+
+            <div class="top-bar" id="top-bar">
+                <div class="icon-group">
+                    <div class="icon-btn" id="btn-flash" onclick="toggleFlash()"><i data-lucide="zap" class="w-6 h-6"></i></div> 
+                    <div class="icon-btn" id="btn-hdr" onclick="toggleHdr()"><span class="hdr-text hdr-off">HDR</span></div> 
+                    <div class="icon-btn" id="btn-dirt" onclick="toggleDirt()"><i data-lucide="droplet" class="w-6 h-6"></i></div>
+                </div>
+                <div class="icon-group">
+                    <div class="icon-btn"><i data-lucide="settings" class="w-6 h-6"></i></div>
+                    <div class="icon-btn"><i data-lucide="help-circle" class="w-6 h-6"></i></div>
+                </div>
+            </div>
+
+            <div class="rule-of-thirds">
+                <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+                <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+                <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+            </div>
+
+            <div class="dev-target-marker" id="dev-target-marker"></div>
+
+            <!-- v3.1 NOTE: State 2 Canvas calls = 14, exceeds budget.
+                 Implementation will pre-render Level reference as Bitmap to reduce to ~12.
+                 Visual appearance unchanged in prototype. -->
+            <div class="halo-traction hide" id="halo-traction">
+                <div class="halo-traction-wrapper" id="halo-traction-wrapper">
+                    <div class="halo-traction-dot" id="halo-traction-dot"></div>
+                </div>
+            </div>
+
+            <!-- 👉 修改 2 修正：新增 Food Halo Traction 與內部牽引圓點結構 -->
+            <div class="food-halo-traction hide" id="food-halo-traction">
+                <div class="halo-traction-wrapper" id="food-halo-traction-wrapper">
+                    <div class="halo-traction-dot" id="food-halo-traction-dot"></div>
+                </div>
+            </div>
+
+            <div class="pitch-traction hide" id="pitch-traction">
+                <div class="pitch-traction-line"></div>
+                <div class="pitch-traction-ring"></div>
+                <div class="pitch-traction-dot" id="pitch-traction-dot"></div>
+            </div>
+
+            <div class="level-traction-wrapper hide" id="level-traction-wrapper">
+                <div class="level-traction-layer reference">
+                    <div class="level-traction-line"></div>
+                    <div class="level-traction-dot"></div>
+                    <div class="level-traction-line"></div>
+                </div>
+                <div class="level-traction-layer dynamic" id="dynamic-level-traction">
+                    <div class="level-traction-line"></div>
+                    <div class="level-traction-dot"></div>
+                    <div class="level-traction-line"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-control">
+            <div class="mode-toggle" id="pill-toggle">
+                <div class="mode-btn active" id="mode-camera" onclick="switchMode(this, false)"><i data-lucide="camera" class="w-5 h-5"></i></div>
+                <div class="mode-btn" id="mode-users" onclick="switchMode(this, true)"><i data-lucide="users" class="w-5 h-5"></i></div>
+            </div>
+            <div class="shutter-row">
+                <div class="left-action-area">
+                    <div class="gallery-btn" id="gallery-btn"><i data-lucide="image" class="w-6 h-6"></i></div>
+                    <div class="ptf-exit-btn hide" id="ptf-exit-btn" onclick="applyState('state1_general')"><i data-lucide="x" class="w-6 h-6"></i></div>
+                </div>
+                <div class="shutter-wrapper">
+                    <div class="shutter-glow" id="shutter-glow"></div>
+                    <div class="shutter-btn" id="shutter-btn" onclick="triggerCapture()">
+                        <div class="shutter-progress" id="shutter-progress" style="--p: 0%;"></div>
+                        <div class="shutter-inner"></div>
+                    </div>
+                </div>
+                <div class="action-btn" id="action-btn"><i data-lucide="refresh-cw" class="w-5 h-5"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 原型控制面板 -->
+    <div class="simulator-panel">
+        <div class="simulator-title">🎛️ Multi-State Simulator v3.2</div>
+        
+        <div id="alignment-status" class="status-indicator idle">
+            <div class="status-dot"></div>
+            <div id="status-text" class="status-text">狀態：閒置 (Idle)</div>
+        </div>
+        
+        <div class="slider-group" style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #444;">
+            <div class="slider-label" style="color: var(--amber-gold); font-weight: bold;"><span>Active State</span></div>
+            <select id="state-selector" class="state-selector" onchange="applyState(this.value)">
+                <option value="state1_general" selected>State 1: General (Idle)</option>
+                <option value="state2_misalign">State 2: Portrait (Unaligned)</option>
+                <option value="state3_aligned">State 3: Portrait (Aligned)</option>
+                <option value="state4_ptf">State 4: PTF (Pass to Friend)</option>
+                <option value="state5_tap_to_focus">State 5: Tap-to-focus</option>
+                <option value="state6_food">State 6: Food (俯拍美食)</option>
+            </select>
+        </div>
+        
+        <div class="slider-group">
+            <div class="slider-label">
+                <span>牽引距離 (ML Kit Distance)</span>
+                <span id="dist-val">80</span>
+            </div>
+            <input type="range" id="dist-slider" class="range-slider" min="0" max="100" value="80" oninput="updateGuidance()">
+        </div>
+
+        <div class="flex-row">
+            <div class="slider-group">
+                <div class="slider-label"><span>人臉/目標 X</span><span id="x-val">29%</span></div>
+                <input type="range" id="x-slider" class="range-slider" min="15" max="85" value="29" oninput="updateGuidance()">
+            </div>
+            <div class="slider-group">
+                <div class="slider-label"><span>人臉/目標 Y</span><span id="y-val">43%</span></div>
+                <input type="range" id="y-slider" class="range-slider" min="15" max="85" value="43" oninput="updateGuidance()">
+            </div>
+        </div>
+        
+        <div class="slider-group">
+            <div class="slider-label"><span>目標大小 (Target Size)</span><span id="size-val">113px</span></div>
+            <input type="range" id="size-slider" class="range-slider" min="90" max="250" value="113" oninput="updateGuidance()">
+        </div>
+
+        <div class="flex-row">
+            <div class="slider-group">
+                <div class="slider-label"><span>前後傾斜</span><span id="pitch-val">0°</span></div>
+                <input type="range" id="pitch-slider" class="range-slider" min="-60" max="60" value="0" oninput="updateGuidance()">
+            </div>
+            <div class="slider-group">
+                <div class="slider-label"><span>左右旋轉</span><span id="roll-val">0°</span></div>
+                <input type="range" id="roll-slider" class="range-slider" min="-45" max="45" value="0" oninput="updateGuidance()">
+            </div>
+        </div>
+
+        <div class="slider-group" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #444; display: flex; gap: 8px;">
+            <div style="flex: 1;">
+                <div class="slider-label" style="color: #aaa; font-weight: bold; margin-bottom: 8px;"><span>展示追蹤遺失</span></div>
+                <button onclick="simulateTrackingLost()" style="width: 100%; padding: 8px; background-color: rgba(212, 160, 48, 0.15); color: var(--amber-gold); border: 1px solid var(--amber-gold); border-radius: 8px; cursor: pointer; transition: background 0.2s; font-size: 12px; font-weight: bold;">
+                    模擬追蹤遺失
+                </button>
+            </div>
+            <div style="flex: 1;">
+                <div class="slider-label" style="color: #aaa; font-weight: bold; margin-bottom: 8px;"><span>系統重置</span></div>
+                <button onclick="clearFocus()" style="width: 100%; padding: 8px; background-color: rgba(255,255,255,0.1); color: white; border: 1px solid #555; border-radius: 8px; cursor: pointer; transition: background 0.2s; font-size: 12px;">
+                    退至背景/鎖定
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const states = {
+            state1_general: { 
+                bg: 'https://file.vidhubfile.com/imgtok/post/0DUU6V0/f_001.png',  
+                tractions: ['levelTraction'],  
+                isPtfMode: false,
+                targetPos: { x: 50, y: 50 }, 
+                defaultParams: { dist: 0, faceX: 50, faceY: 50, faceSize: 150, pitch: 0, roll: 0 },
+                ui: { showTopBar: true, showSecondaryBtns: true, largeShutter: false }
+            },
+            state2_misalign: { 
+                bg: 'https://file.vidhubfile.com/imgtok/post/mrHMTfQ/f_001.png',  
+                tractions: ['levelTraction', 'haloTraction'], 
+                isPtfMode: false, 
+                targetPos: { x: 50, y: 33.33 }, 
+                defaultParams: { dist: 80, faceX: 29, faceY: 43, faceSize: 113, pitch: 0, roll: 0 },
+                ui: { showTopBar: true, showSecondaryBtns: true, largeShutter: false }
+            },
+            state3_aligned: { 
+                bg: 'https://file.vidhubfile.com/imgtok/post/EE9GSdY/f_001.png', 
+                tractions: ['levelTraction', 'haloTraction'], 
+                isPtfMode: false, 
+                targetPos: { x: 50, y: 42 }, 
+                defaultParams: { dist: 0, faceX: 50, faceY: 42, faceSize: 140, pitch: 0, roll: 0 },
+                ui: { showTopBar: true, showSecondaryBtns: true, largeShutter: false }
+            },
+            state4_ptf: { 
+                bg: 'https://file.vidhubfile.com/imgtok/post/SzVM454/f_001.png', 
+                tractions: ['haloTraction', 'levelTraction'], 
+                isPtfMode: true, 
+                targetPos: { x: 50, y: 50 },
+                defaultParams: { dist: 0, faceX: 50, faceY: 50, faceSize: 120, pitch: 0, roll: 0 },
+                ui: { showTopBar: false, showSecondaryBtns: false, largeShutter: true } 
+            },
+            state5_tap_to_focus: {
+                bg: 'https://file.vidhubfile.com/imgtok/post/EGw7LCY/f_001.png',
+                tractions: ['levelTraction'], 
+                isPtfMode: false,        
+                targetPos: { x: 50, y: 50 }, 
+                defaultParams: { dist: 0, faceX: 50, faceY: 50, faceSize: 150, pitch: 0, roll: 0 },
+                ui: { showTopBar: true, showSecondaryBtns: true, largeShutter: false }
+            },
+            state6_food: {
+                bg: 'https://file.vidhubfile.com/imgtok/post/EGw7LCY/f_001.png',
+                // v3.2 D-9: Food 場景關閉 Level Traction（避免與 Pitch Traction 重複引導）
+                tractions: ['pitchTraction', 'foodHaloTraction'], 
+                // v3.2: 目標 pitch 值設為 45（僅供 Pitch Traction 使用，Level Traction 已關閉）
+                levelerTarget: { pitch: 45, roll: 0 },
+                isPtfMode: false,
+                targetPos: { x: 50, y: 50 },
+                defaultParams: { dist: 0, faceX: 50, faceY: 50, faceSize: 150, pitch: 20, roll: 0 },
+                ui: { showTopBar: true, showSecondaryBtns: true, largeShutter: false }
+            }
+        };
+
+        let currentStateKey = 'state1_general';
+
+        function applyState(stateKey) {
+            currentStateKey = stateKey;
+            const config = states[stateKey];
+
+            document.getElementById('viewfinder-bg').style.backgroundImage = `url('${config.bg}')`;
+
+            const haloEl = document.getElementById('halo-traction');
+            const foodHaloEl = document.getElementById('food-halo-traction');
+            const devMarker = document.getElementById('dev-target-marker');
+            const levelTractionEl = document.getElementById('level-traction-wrapper');
+            const pitchTractionEl = document.getElementById('pitch-traction');
+
+            if (config.tractions.includes('haloTraction')) {
+                haloEl?.classList.remove('hide');
+                devMarker?.classList.remove('hide');
+            } else {
+                haloEl?.classList.add('hide');
+                devMarker?.classList.add('hide');
+            }
+
+            if (config.tractions.includes('foodHaloTraction')) {
+                foodHaloEl?.classList.remove('hide');
+                devMarker?.classList.remove('hide');
+            } else {
+                foodHaloEl?.classList.add('hide');
+            }
+
+            if (config.tractions.includes('levelTraction')) {
+                levelTractionEl?.classList.remove('hide');
+            } else {
+                levelTractionEl?.classList.add('hide');
+            }
+
+            if (config.isPtfMode) {
+                levelTractionEl?.classList.add('ptf-mode');
+            } else {
+                levelTractionEl?.classList.remove('ptf-mode');
+            }
+
+            if (config.tractions.includes('pitchTraction')) {
+                pitchTractionEl?.classList.remove('hide');
+            } else {
+                pitchTractionEl?.classList.add('hide');
+            }
+
+            const topBar = document.getElementById('top-bar');
+            const topScrim = document.getElementById('top-scrim');
+            const galleryBtn = document.getElementById('gallery-btn');
+            const ptfExitBtn = document.getElementById('ptf-exit-btn');
+            const actionBtn = document.getElementById('action-btn');
+            const shutterBtn = document.getElementById('shutter-btn');
+            const shutterGlow = document.getElementById('shutter-glow');
+
+            if (config.ui.showTopBar) {
+                topBar.classList.remove('invisible-element');
+                topScrim.classList.remove('invisible-element');
+            } else {
+                topBar.classList.add('invisible-element');
+                topScrim.classList.add('invisible-element');
+            }
+
+            if (config.isPtfMode) {
+                galleryBtn.classList.add('hide');
+                ptfExitBtn.classList.remove('hide');
+                actionBtn.classList.add('invisible-element');
+            } else {
+                if (config.ui.showSecondaryBtns) {
+                    galleryBtn.classList.remove('hide');
+                    ptfExitBtn.classList.add('hide');
+                    actionBtn.classList.remove('invisible-element');
+                } else {
+                    galleryBtn.classList.add('hide');
+                    ptfExitBtn.classList.add('hide');
+                    actionBtn.classList.add('invisible-element');
+                }
+            }
+
+            if (config.ui.largeShutter) {
+                shutterBtn.classList.add('shutter-large');
+                shutterGlow.classList.add('shutter-large');
+            } else {
+                shutterBtn.classList.remove('shutter-large');
+                shutterGlow.classList.remove('shutter-large');
+            }
+
+            const modeCamera = document.getElementById('mode-camera');
+            const modeUsers = document.getElementById('mode-users');
+            switchMode(config.isPtfMode ? modeUsers : modeCamera, config.isPtfMode);
+
+            document.getElementById('dist-slider').value = config.defaultParams.dist;
+            document.getElementById('x-slider').value = config.defaultParams.faceX;
+            document.getElementById('y-slider').value = config.defaultParams.faceY;
+            document.getElementById('size-slider').value = config.defaultParams.faceSize;
+            document.getElementById('pitch-slider').value = config.defaultParams.pitch;
+            document.getElementById('roll-slider').value = config.defaultParams.roll;
+
+            clearFocus();
+            updateGuidance();
+        }
+
+        function switchMode(clickedElement, isPtf) {
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            clickedElement.classList.add('active');
+            const mockup = document.getElementById('mockup-container');
+            if (isPtf) mockup.classList.add('ptf-active');
+            else mockup.classList.remove('ptf-active');
+        }
+
+        const viewfinderBg = document.getElementById('viewfinder-bg');
+        let focusHoldTimer = null;
+        let focusSimTimer = null;
+        let currentFocusEl = null;
+
+        viewfinderBg.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('.top-bar') || e.target.closest('.bottom-control')) return;
+            const rect = viewfinderBg.getBoundingClientRect();
+            handleTapFocus(e.clientX - rect.left, e.clientY - rect.top);
+        });
+
+        viewfinderBg.addEventListener('pointerup', () => clearTimeout(focusHoldTimer));
+        viewfinderBg.addEventListener('pointercancel', () => clearTimeout(focusHoldTimer));
+
+        function handleTapFocus(x, y) {
+            if (currentFocusEl) triggerFocusLost(currentFocusEl);
+
+            const ring = document.createElement('div');
+            ring.className = 'focus-ring-container searching'; 
+            ring.style.left = x + 'px';
+            ring.style.top = y + 'px';
+
+            const circle = document.createElement('div');
+            circle.className = 'focus-ring-circle';
+
+            const lockIcon = document.createElement('div');
+            lockIcon.className = 'focus-lock-icon';
+            lockIcon.innerHTML = `<i data-lucide="lock" style="width: 10px; height: 10px;"></i>`;
+
+            ring.appendChild(circle);
+            ring.appendChild(lockIcon);
+            viewfinderBg.appendChild(ring);
+            
+            lucide.createIcons({root: ring});
+            currentFocusEl = ring;
+            let isLongPress = false;
+
+            focusHoldTimer = setTimeout(() => {
+                isLongPress = true;
+                ring.classList.remove('searching', 'focused');
+                ring.classList.add('locked');
+            }, 600); 
+
+            focusSimTimer = setTimeout(() => {
+                if (!isLongPress && currentFocusEl === ring) {
+                    ring.classList.remove('searching');
+                    ring.classList.add('focused');
+                }
+            }, 400); 
+        }
+
+        function triggerFocusLost(el) {
+            clearTimeout(focusHoldTimer);
+            el.classList.remove('searching', 'focused', 'locked');
+            el.classList.add('lost');
+            setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 1000); 
+            if (currentFocusEl === el) currentFocusEl = null;
+        }
+
+        function simulateTrackingLost() { if (currentFocusEl) triggerFocusLost(currentFocusEl); }
+        function clearFocus() {
+            if (currentFocusEl) { currentFocusEl.remove(); currentFocusEl = null; }
+            document.querySelectorAll('.focus-ring-container.lost').forEach(el => el.remove());
+        }
+
+        let flashState = 0;
+        function toggleFlash() {
+            flashState = (flashState + 1) % 3;
+            const btn = document.getElementById('btn-flash');
+            if (flashState === 0) btn.innerHTML = `<i data-lucide="zap" class="w-6 h-6"></i>`;
+            else if (flashState === 1) btn.innerHTML = `<div style="position: relative; display:flex; justify-content:center; align-items:center;"><i data-lucide="zap" class="w-6 h-6" fill="currentColor"></i><span style="position: absolute; right:-2px; bottom:-2px; font-size:12px; font-weight:900; -webkit-text-stroke:1px var(--ui-dark);">A</span></div>`;
+            else btn.innerHTML = `<i data-lucide="zap" class="w-6 h-6" fill="currentColor"></i>`;
+            lucide.createIcons();
+        }
+
+        let hdrState = 0;
+        function toggleHdr() {
+            hdrState = (hdrState + 1) % 3;
+            const btn = document.getElementById('btn-hdr');
+            if (hdrState === 0) { btn.innerHTML = `<span class="hdr-text hdr-off">HDR</span>`; } 
+            else if (hdrState === 1) { btn.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;"><span class="hdr-text hdr-solid" style="font-size:12px; line-height:1;">HDR</span><span style="font-size:7px; font-weight:700; letter-spacing:0.5px; color:rgba(255,255,255,0.7); line-height:1;">AUTO</span></div>`; } 
+            else { btn.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;"><span class="hdr-text hdr-yellow" style="font-size:12px; line-height:1;">HDR</span><span style="font-size:7px; font-weight:700; letter-spacing:0.5px; color:var(--amber-gold); line-height:1;">ON</span></div>`; }
+            lucide.createIcons();
+        }
+
+        let dirtState = 0;
+        function toggleDirt() {
+            dirtState = (dirtState + 1) % 2;
+            const btn = document.getElementById('btn-dirt');
+            if (dirtState === 0) btn.innerHTML = `<i data-lucide="droplet" class="w-6 h-6"></i>`;
+            else btn.innerHTML = `<i data-lucide="droplet" class="w-6 h-6" fill="currentColor"></i>`;
+            lucide.createIcons();
+        }
+
+        const TOLERANCE = 5; // v3.2: 對齊 SSOT §2.0 ALIGNED_THRESHOLD_DEG = 5°
+        const PITCH_PX_PER_DEGREE = 4;
+
+        function updateGuidance() {
+            const config = states[currentStateKey];
+
+            const currentDist = parseFloat(document.getElementById('dist-slider').value);
+            const faceX = parseFloat(document.getElementById('x-slider').value);
+            const faceY = parseFloat(document.getElementById('y-slider').value);
+            const faceSize = parseFloat(document.getElementById('size-slider').value);
+            const currentPitch = parseFloat(document.getElementById('pitch-slider').value);
+            const currentRoll = parseFloat(document.getElementById('roll-slider').value);
+
+            document.getElementById('dist-val').innerText = currentDist.toFixed(0);
+            document.getElementById('x-val').innerText = faceX.toFixed(0) + '%';
+            document.getElementById('y-val').innerText = faceY.toFixed(0) + '%';
+            document.getElementById('size-val').innerText = faceSize.toFixed(0) + 'px';
+            document.getElementById('pitch-val').innerText = currentPitch.toFixed(0) + '°';
+            document.getElementById('roll-val').innerText = currentRoll.toFixed(0) + '°';
+
+            let allConditionsMet = true;
+            let hasActiveTraction = config.tractions.length > 0;
+
+            if (config.tractions.includes('haloTraction') || config.tractions.includes('foodHaloTraction')) {
+                const targetX = config.targetPos.x;
+                const targetY = config.targetPos.y;
+                
+                const devTarget = document.getElementById('dev-target-marker');
+                devTarget.style.width = faceSize + 'px'; devTarget.style.height = faceSize + 'px';
+                devTarget.style.left = targetX + '%'; devTarget.style.top = targetY + '%';
+            }
+
+            if (config.tractions.includes('haloTraction')) {
+                const targetX = config.targetPos.x;
+                const targetY = config.targetPos.y;
+
+                const haloEl = document.getElementById('halo-traction');
+                const dotWrapper = document.getElementById('halo-traction-wrapper');
+                const dotEl = document.getElementById('halo-traction-dot');
+
+                haloEl.style.left = faceX + '%'; haloEl.style.top = faceY + '%';
+                haloEl.style.width = faceSize + 'px'; haloEl.style.height = faceSize + 'px';
+
+                const dx = targetX - faceX; const dy = targetY - faceY;
+                const angle = (dx === 0 && dy === 0) ? 0 : Math.atan2(dy, dx); 
+                
+                const maxOffset = Math.max(0, (faceSize - 36) / 2 - 2);
+                const currentOffset = maxOffset * (currentDist / 100);
+                const dotX = Math.cos(angle) * currentOffset; const dotY = Math.sin(angle) * currentOffset;
+
+                if (currentDist === 0) {
+                    haloEl.classList.add('aligned'); haloEl.style.opacity = ""; 
+                    dotEl.style.color = 'var(--align-green)'; dotWrapper.style.opacity = 0.85;
+                    dotWrapper.style.transform = `translate(${dotX}px, ${dotY}px) scale(1.1)`; 
+                    allConditionsMet = allConditionsMet && true;
+                } else {
+                    haloEl.classList.remove('aligned'); haloEl.style.opacity = 0.85; 
+                    dotWrapper.style.transform = `translate(${dotX}px, ${dotY}px) scale(1)`;
+                    if (currentDist > 50) { dotEl.style.color = 'var(--amber-gold)'; dotWrapper.style.opacity = 0.1 + ((currentDist - 50) / 50) * 0.75; } 
+                    else { dotEl.style.color = 'var(--align-green)'; dotWrapper.style.opacity = 0.1 + (1 - (currentDist / 50)) * 0.75; }
+                    allConditionsMet = false;
+                }
+            }
+
+            if (config.tractions.includes('foodHaloTraction')) {
+                const foodHaloEl = document.getElementById('food-halo-traction');
+                const dotWrapper = document.getElementById('food-halo-traction-wrapper');
+                const dotEl = document.getElementById('food-halo-traction-dot');
+                
+                foodHaloEl.style.left = faceX + '%'; 
+                foodHaloEl.style.top = faceY + '%';
+                
+                // Food Halo 直徑與目標(faceSize)設為完全相同
+                foodHaloEl.style.width = faceSize + 'px'; 
+                foodHaloEl.style.height = faceSize + 'px';
+
+                const targetX = config.targetPos.x;
+                const targetY = config.targetPos.y;
+                const dx = targetX - faceX; const dy = targetY - faceY;
+                const angle = (dx === 0 && dy === 0) ? 0 : Math.atan2(dy, dx); 
+                
+                const maxOffset = Math.max(0, (faceSize - 36) / 2 - 2);
+                const currentOffset = maxOffset * (currentDist / 100);
+                const dotX = Math.cos(angle) * currentOffset; 
+                const dotY = Math.sin(angle) * currentOffset;
+
+                if (currentDist === 0) {
+                    foodHaloEl.classList.add('aligned'); 
+                    foodHaloEl.style.opacity = "";
+                    dotEl.style.color = 'var(--align-green)'; 
+                    dotWrapper.style.opacity = 0.85;
+                    dotWrapper.style.transform = `translate(${dotX}px, ${dotY}px) scale(1.1)`; 
+                    allConditionsMet = allConditionsMet && true;
+                } else {
+                    foodHaloEl.classList.remove('aligned');
+                    foodHaloEl.style.opacity = 0.85;
+                    dotWrapper.style.transform = `translate(${dotX}px, ${dotY}px) scale(1)`;
+                    
+                    if (currentDist > 50) { 
+                        dotEl.style.color = 'var(--amber-gold)'; 
+                        dotWrapper.style.opacity = 0.1 + ((currentDist - 50) / 50) * 0.75; 
+                    } else { 
+                        dotEl.style.color = 'var(--align-green)'; 
+                        dotWrapper.style.opacity = 0.1 + (1 - (currentDist / 50)) * 0.75; 
+                    }
+                    allConditionsMet = false;
+                }
+            }
+
+            if (config.tractions.includes('pitchTraction')) {
+                const pitchTractionEl = document.getElementById('pitch-traction');
+                const pitchDotEl = document.getElementById('pitch-traction-dot');
+                const TARGET_PITCH = config.levelerTarget ? config.levelerTarget.pitch : 0;
+                const pitchDiff = TARGET_PITCH - currentPitch;
+                const maxOffset = 80;
+                const pitchDist = Math.min(Math.abs(pitchDiff) / 20 * 100, 100); // v3.2: 統一正規化 20°（R2/R17）
+                const isPitchAligned = Math.abs(pitchDiff) <= TOLERANCE;
+
+                if (isPitchAligned) {
+                    pitchTractionEl.classList.add('aligned');
+                    pitchDotEl.style.color = ""; pitchDotEl.style.top = `50%`;
+                    
+                    allConditionsMet = allConditionsMet && true;
+                } else {
+                    pitchTractionEl.classList.remove('aligned');
+                    const offsetPx = Math.max(-maxOffset, Math.min(maxOffset, pitchDiff * PITCH_PX_PER_DEGREE));
+                    pitchDotEl.style.top = `calc(50% + ${offsetPx}px)`;
+                    if (pitchDist > 50) { pitchDotEl.style.color = `rgba(212, 160, 48, ${0.1 + ((pitchDist - 50) / 50) * 0.7})`; } 
+                    else { pitchDotEl.style.color = `rgba(80, 200, 100, ${0.1 + (1 - (pitchDist / 50)) * 0.9})`; }
+                    
+                    allConditionsMet = false;
+                }
+            }
+
+            if (config.tractions.includes('levelTraction')) {
+                // v3.3 Level 閘 roll-only per R-T5 / DEC-20260526224524；v3.2 的 dual-axis（pitch+roll）
+                // 為 pre-D-9 雙基準線化石，v3.3 已清除。Food 關 Level（D-9）、PTF 綠（§4.5.1）不受影響。
+                const TARGET_ROLL = config.levelerTarget ? config.levelerTarget.roll : 0;
+                const rollDiff = TARGET_ROLL - currentRoll;
+                const rotation = currentRoll;
+                const isAligned = Math.abs(rollDiff) <= TOLERANCE;
+
+                const dynamicEl = document.getElementById('dynamic-level-traction');
+                const levelerWrapper = document.getElementById('level-traction-wrapper');
+
+                if (isAligned) {
+                    dynamicEl.classList.add('aligned'); dynamicEl.style.transform = `translateY(-50%) rotate(0deg)`;
+                    levelerWrapper.style.opacity = 0;
+                    levelerWrapper.style.pointerEvents = 'none';
+
+                    allConditionsMet = allConditionsMet && true;
+                } else {
+                    dynamicEl.classList.remove('aligned'); dynamicEl.style.transform = `translateY(-50%) rotate(${rotation}deg)`;
+
+                    const maxDiff = Math.abs(rollDiff);
+                    if (maxDiff <= 10) {
+                        levelerWrapper.style.opacity = (maxDiff / 10).toFixed(2); // v3.2 D-10: N=10°
+                    } else { 
+                        levelerWrapper.style.opacity = 1; 
+                    }
+                    levelerWrapper.style.pointerEvents = 'auto';
+                    
+                    allConditionsMet = false;
+                }
+            }
+
+            const shutterGlow = document.getElementById('shutter-glow');
+            if (hasActiveTraction && allConditionsMet) {
+                shutterGlow.classList.add('breathing');
+            } else {
+                shutterGlow.classList.remove('breathing');
+            }
+
+            const statusInd = document.getElementById('alignment-status');
+            const statusText = document.getElementById('status-text');
+            
+            if (!hasActiveTraction) {
+                statusInd.className = 'status-indicator idle';
+                statusText.innerText = '狀態：閒置 (Idle)';
+            } else if (allConditionsMet) {
+                statusInd.className = 'status-indicator aligned';
+                statusText.innerText = '狀態：🟢 已對齊 (Aligned)';
+            } else {
+                statusInd.className = 'status-indicator unaligned';
+                statusText.innerText = '狀態：🔴 未對齊 (Unaligned)';
+            }
+        }
+
+        let isCapturing = false;
+        function triggerCapture() {
+            if (isCapturing) return; 
+
+            isCapturing = true;
+
+            const flash = document.createElement('div');
+            flash.className = 'capture-flash';
+            document.getElementById('mockup-container').appendChild(flash);
+
+            requestAnimationFrame(() => {
+                flash.classList.add('active');
+                setTimeout(() => {
+                    flash.classList.remove('active');
+                    setTimeout(() => flash.remove(), 400); 
+                }, 50); 
+            });
+
+            const progressEl = document.getElementById('shutter-progress');
+            let startTime = null;
+            const duration = 300; 
+
+            function animateProgress(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const elapsed = timestamp - startTime;
+                const percentage = Math.min((elapsed / duration) * 100, 100);
+
+                progressEl.style.setProperty('--p', `${percentage}%`);
+
+                if (percentage < 100) {
+                    requestAnimationFrame(animateProgress);
+                } else {
+                    setTimeout(() => {
+                        progressEl.style.setProperty('--p', `0%`);
+                        isCapturing = false;
+                    }, 50);
+                }
+            }
+
+            requestAnimationFrame(animateProgress);
+        }
+
+        applyState(document.getElementById('state-selector').value);
+
+    </script>
+</body>
+</html>
