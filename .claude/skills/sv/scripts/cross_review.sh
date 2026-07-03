@@ -120,6 +120,24 @@ STATE_DIR="$TMP_DIR/cross_review_state"
 mkdir -p "$STATE_DIR"
 STATE_FILE="${STATE_DIR}/${TICKET_ID}"
 
+# Sweep historical terminal-success residue so a stale PASS/ADVISORY file never
+# inflates a fresh run into R2/R3. Only PASS/ADVISORY are removed; BLOCKER,
+# REPORT_FIX, UNKNOWN, missing, or malformed LAST= lines are preserved (fail budget).
+# First-level regular files only — never recursive, never rm -rf.
+cleanup_terminal_success_states() {
+  [[ -d "$STATE_DIR" ]] || return 0
+  local _sf _last
+  for _sf in "$STATE_DIR"/*; do
+    [[ -f "$_sf" ]] || continue
+    _last="$(grep "^LAST=" "$_sf" 2>/dev/null | head -1 | cut -d'=' -f2- | tr -d '[:space:]' || true)"
+    case "$_last" in
+      PASS|ADVISORY) rm -f "$_sf" 2>/dev/null || true ;;
+      *) : ;;
+    esac
+  done
+}
+cleanup_terminal_success_states
+
 CURRENT_ROUND=1
 if [[ -f "$STATE_FILE" ]]; then
   _PREV="$(grep "^ROUND=" "$STATE_FILE" 2>/dev/null | head -1 | cut -d'=' -f2- || echo 0)"
@@ -385,10 +403,14 @@ if [[ "$VERDICT" == "BLOCKER" ]]; then
   fi
 fi
 
+# Terminal-success cleanup: fail budget no longer needed once the ticket passes.
+# BLOCKER/REPORT_FIX must KEEP the state file so ROUND keeps accumulating across reruns.
+clear_budget_state() { rm -f "$STATE_FILE" 2>/dev/null || true; rmdir "$STATE_DIR" 2>/dev/null || true; }
+
 # Exit by verdict
 case "$VERDICT" in
-  PASS)       echo; echo "✅ PASS → Ready for Traycer 終審"; exit 0 ;;
-  ADVISORY)   echo; echo "💡 ADVISORY → 記錄觀察，流程繼續"; exit 0 ;;
+  PASS)       clear_budget_state; echo; echo "✅ PASS → Ready for Traycer 終審"; exit 0 ;;
+  ADVISORY)   clear_budget_state; echo; echo "💡 ADVISORY → 記錄觀察，流程繼續"; exit 0 ;;
   REPORT_FIX) echo; fail_report_fix ;;
   BLOCKER)    echo; fail_blocker ;;
   *)

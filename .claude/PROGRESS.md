@@ -5,11 +5,11 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| INFRA-SV-STATE-CLEANUP-01 | 🟡 /qa PASS（bash -n OK · fixture 8 案全綠：PASS/ADVISORY/含空白 PASS 刪，BLOCKER/REPORT_FIX/UNKNOWN/缺失/malformed/子目錄保留）· cross_review.sh 新增 `cleanup_terminal_success_states` 掃除歷史 terminal-success state 殘檔（round 計算前）· Build/Test/Lint N/A（純 .sh）· 待 commit+/sv · 1F |
 | INFRA-TICKETID-01 | ✅ Done · Codex Cross-Review PASS（R1）· commit-hook 由 13-family 列舉收斂為單一結構文法 `^\[[A-Z][A-Z0-9]*(-[A-Z0-9]+)+\]` + 表降 provenance · CLAUDE.md Rule 4a 補償控制單行 · regex 自測全綠（13 PASS/3 REJECT/新 family 免改）· Build/Test/Lint N/A（純治理票）· c7e3035 |
 | KAIROS-BACKFILL-01-FIX-A | ✅ Traycer execute_review PASS · ticket_pattern.md 收斂 `KAIROS-[CODE]-[NN]`→`KAIROS-BACKFILL-[NN][...]` 專用格式（CSO 裁決）+ Registry 歷史稽核敘述改寫（AC-6 乾淨通過，0 殘留負面敘述）· 1F+registry |
 | KAIROS-BACKFILL-01 | ✅ Codex end-state inspection PASS（含撞號檢查回答行）· 假閉環規則補寫 K4-3/6/8/9 + 併補 K4-27 · `cross-review.md` §「Scope Ban BLOCKER 處置」新增 + `kairos-lessons.md` K3-Rule 25 append + `camera-constraints.md` Rule 30/31/32 · Registry 回填 KAIROS4_Candidate_Compilation.md · 4F |
 | TRACTION-PROTO-01 | ✅ Codex Cross-Review PASS · Prototype v3.3 Level dual-axis→roll-only reconcile（R-T5 downstream sweep 結案）· v3.2 凍結為歷史 baseline · Halo α=0.85 保留 · 1F +1123L 新檔 · 84d6cb1 |
-| TRACTION-LAYOUT-01 | ✅ Codex Cross-Review PASS · Layout Spec 內文版號 bump v2.5.2→v2.5.3 + §16 修訂追蹤（Layer 5 metadata 閉環）· 零 rename · 1F +20/-8L · 2ae5bef |
 
 **Last Updated**: 2026-07-03
 
@@ -17,9 +17,9 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S28** · INFRA-TICKETID-01 ✅ Done（Ticket ID 格式列舉→單一結構文法遷移，enforcement 收斂 · Codex PASS · c7e3035）· KAIROS-BACKFILL-01-FIX-A ✅ Traycer PASS · GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ 開渲染實作票** |
-| Compile | ⚪ N/A (INFRA-TICKETID-01：純治理 .md，無 Gradle target) |
-| Tests | ⚪ N/A (governance ticket · regex 自測代替，全綠) |
+| Schedule | **S28** · INFRA-SV-STATE-CLEANUP-01 🟡 /qa PASS（cross_review.sh state 殘檔安全清理）待 commit+/sv · INFRA-TICKETID-01 ✅ Done（格式列舉→結構文法遷移 · c7e3035）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ 開渲染實作票** |
+| Compile | ⚪ N/A (INFRA-SV-STATE-CLEANUP-01：純 .sh skill 腳本，無 Gradle target) |
+| Tests | ⚪ N/A (governance ticket · bash -n + fixture 8 案代替，全綠) |
 | Lint | ⚪ N/A (governance ticket) |
 
 ## Active Blockers
