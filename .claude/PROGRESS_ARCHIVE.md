@@ -278,3 +278,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 > **Session S23-FIX-B 完成（2026-06-25）：STATE-CONTRACT-01-FIX-B computeGuidanceStatePure 純函數抽取 + AC-3/4/5 reducer 單元測試閉環；Cross-Review R1 PASS；30653fb ✅ Done**
 
 > **Session S23-FIX-C 完成（2026-06-25）：STATE-CONTRACT-01-FIX-C LANDMARK_NONE KDoc 三檔補齊 + PTF gate deviation 強化；Cross-Review R2 PASS；2c7ddff ✅ Done**
+
+> **Session S24 完成（2026-06-30）：INFRA-REACH-01 Guard Input Reachability gate — static_blind_scan.sh §3.5.5 Dead-State 掃描 + /sv B-7 + /qa SKILL.md Reachability 紀律；Codex Cross-Review R1 PASS；2a63236 ✅ Done**
+
+> **Session S24 補充（2026-06-30）：INFRA-REACH-01-FIX-AI3 cross_review.sh §3.5 PROMPT_HEADER 硬接線 + CROSS_REVIEW.md 文件補完；Codex Cross-Review R2 PASS（Guard Input Reachability: 無新 Guard 明確輸出）；K5-Rule 29 收割；3028bd1 ✅ Done**
