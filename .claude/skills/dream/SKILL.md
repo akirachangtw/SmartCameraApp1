@@ -7,7 +7,20 @@ disable-model-invocation: false
 > RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。
 
 # Prompt
-你現在進入「KAIROS 整合模式 (Dream Mode)」。本階段開發已告一段落，請執行以下三層回顧：
+你現在進入「KAIROS 整合模式 (Dream Mode)」。本階段開發已告一段落，請執行以下回顧：
+
+## 0. M3 Family Provenance 稽核（前置門控，INFRA-M3-AUDIT-01）
+
+三層回顧前 **MUST** 先執行 family provenance 偵測控制的 liveness 檢查與刷新：
+
+```bash
+bash .claude/scripts/m3_family_audit.sh --stale-check   # 最近戳 > 14 日或缺失 → exit 1 fail-loud
+bash .claude/scripts/m3_family_audit.sh                 # 刷新對帳，寫入當日 dated artifact
+```
+
+- `--stale-check` exit 1（stale）→ **MUST** fail-loud 回報「🔴 M3 控制 stale」，仍續跑刷新指令補戳。
+- 刷新指令 exit 3（≥1 escalate）→ **MUST** 將 escalate 清單（結構合法但 family 未登記之 ID）列入下方 §1 🟢 預防性發現，交 CSO 語意裁決；**MUST NOT** 自動補表 / auto-register（DRA 保護）。
+- exit 0（0 escalate）→ 控制 fresh 且家族全登記，續跑三層回顧。
 
 ## 1. 錯誤模式提煉 (Error Pattern Mining)
 

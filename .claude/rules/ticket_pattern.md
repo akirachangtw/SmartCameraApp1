@@ -3,7 +3,7 @@
 # Ticket Pattern — 合法 Ticket ID 格式
 
 **本檔為唯一真理來源 (SSOT)**。`CLAUDE.md` Rule 4a 與 `.git/hooks/commit-msg` 皆引用此規範。
-修改 Ticket 格式 **MUST** 在本檔完成後，同步更新 hook 的 `TICKET_PATTERN` regex。
+**變更結構文法本身**時 **MUST** 在本檔「## Regex」區塊的 `commit-hook=` 行完成修改（本檔為 SSOT，`.git/hooks/commit-msg` 鏡像本行）；**新增 family 不改 regex**，僅於「## 合法格式一覽」表補登 provenance。
 
 ## 合法格式一覽
 
@@ -43,3 +43,4 @@ commit-hook=^\[[A-Z][A-Z0-9]*(-[A-Z0-9]+)+\]
 | 授權補登 | `STATE-CONTRACT-[NN][...]` | 狀態合約設計 |
 | KAIROS-BACKFILL-01-FIX-A | `KAIROS-BACKFILL-[NN][...]` | KAIROS 節點外規則收割/補寫（非 D[N] 回顧本體）；收斂原 KAIROS-BACKFILL-01 引入的通用 `KAIROS-[CODE]-[NN]` 為專用格式，CSO 裁決治理票授權 |
 | INFRA-TICKETID-01 | `^\[[A-Z][A-Z0-9]*(-[A-Z0-9]+)+\]`（結構文法） | family 列舉遷移為單一結構文法；enforcement 收斂、family 表降 provenance；併記 FIX-A 之 ticket_pattern.md 編輯屬 DRA 越界，已由 CSO 立規追認並以本票消除越界誘因 |
+| INFRA-M3-AUDIT-01 | （無新格式） | 建立 family provenance 偵測控制 `.claude/scripts/m3_family_audit.sh`（唯讀 + escalate，對帳本表 derive 的 family 白名單）；消除第 6 行死指令（結構文法變更 vs 新增 family 分流）；掛 `/dream` stale-gate |
