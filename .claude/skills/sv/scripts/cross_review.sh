@@ -120,6 +120,19 @@ STATE_DIR="$TMP_DIR/cross_review_state"
 mkdir -p "$STATE_DIR"
 STATE_FILE="${STATE_DIR}/${TICKET_ID}"
 
+# Durable PASS/ADVISORY attestation receipt (Concern B) — a SEPARATE carrier from the
+# fail-budget STATE_FILE (Concern A). Lives in cross_review_pass/, untouched by either janitor:
+#   • cleanup_terminal_success_states scans $STATE_DIR/* only (never cross_review_pass/)
+#   • `find .tmp/ -name "cross_review_*.md" -delete` never matches (receipt has no .md extension)
+RECEIPT_DIR="$TMP_DIR/cross_review_pass"
+RECEIPT_FILE="${RECEIPT_DIR}/${TICKET_ID}"
+
+# Stale receipt GC: drop attestations older than 14 days so cross_review_pass/ stays bounded.
+# First-level regular files only — never recursive, never rm -rf.
+if [[ -d "$RECEIPT_DIR" ]]; then
+  find "$RECEIPT_DIR" -maxdepth 1 -type f -mtime +14 -delete 2>/dev/null || true
+fi
+
 # Sweep historical terminal-success residue so a stale PASS/ADVISORY file never
 # inflates a fresh run into R2/R3. Only PASS/ADVISORY are removed; BLOCKER,
 # REPORT_FIX, UNKNOWN, missing, or malformed LAST= lines are preserved (fail budget).
@@ -407,10 +420,20 @@ fi
 # BLOCKER/REPORT_FIX must KEEP the state file so ROUND keeps accumulating across reruns.
 clear_budget_state() { rm -f "$STATE_FILE" 2>/dev/null || true; rmdir "$STATE_DIR" 2>/dev/null || true; }
 
+# Durable range-bound PASS/ADVISORY receipt (Concern B). Written BEFORE clear_budget_state so
+# Check E (structural_verify.sh --post) survives the fail-budget STATE_FILE deletion. DIFF_SCOPE
+# binds the attestation to the reviewed range (Check E rejects a stale scope = false-open defense).
+write_pass_receipt() {
+  mkdir -p "$RECEIPT_DIR" 2>/dev/null || true
+  printf 'TICKET=%s\nVERDICT=%s\nDIFF_SCOPE=%s\nCOMMIT=%s\nTS=%s\n' \
+    "$TICKET_ID" "$VERDICT" "$DIFF_SCOPE" "$(git rev-parse HEAD 2>/dev/null || echo unknown)" "$TIMESTAMP" \
+    > "$RECEIPT_FILE"
+}
+
 # Exit by verdict
 case "$VERDICT" in
-  PASS)       clear_budget_state; echo; echo "✅ PASS → Ready for Traycer 終審"; exit 0 ;;
-  ADVISORY)   clear_budget_state; echo; echo "💡 ADVISORY → 記錄觀察，流程繼續"; exit 0 ;;
+  PASS)       write_pass_receipt; clear_budget_state; echo; echo "✅ PASS → Ready for Traycer 終審"; exit 0 ;;
+  ADVISORY)   write_pass_receipt; clear_budget_state; echo; echo "💡 ADVISORY → 記錄觀察，流程繼續"; exit 0 ;;
   REPORT_FIX) echo; fail_report_fix ;;
   BLOCKER)    echo; fail_blocker ;;
   *)

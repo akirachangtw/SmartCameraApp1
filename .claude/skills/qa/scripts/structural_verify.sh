@@ -191,23 +191,33 @@ else
   echo "✅ SV Report 五段結構完整"
 fi
 
-# ─── Check E: cross_review PASS 確認 ───
+# ─── Check E: cross_review PASS 確認（re-anchored to durable receipt, INFRA-SV-STATE-RECEIPT-01）───
+# Reads the durable PASS/ADVISORY receipt (.tmp/cross_review_pass/) instead of the fail-budget
+# STATE_FILE, which clear_budget_state correctly deletes on PASS (Concern A). VERDICT must be
+# terminal-success AND the receipt's DIFF_SCOPE must match the current --post scope: a stale
+# attestation whose reviewed range has since moved is rejected (false-open defense).
 echo ""
 echo "=== [E] Cross-Review PASS 確認 ==="
 _TICKET_ID="$(get_ticket_id)"
 if [[ -n "$_TICKET_ID" ]]; then
-  _STATE_FILE=".tmp/cross_review_state/${_TICKET_ID}"
-  if [[ -f "$_STATE_FILE" ]]; then
-    _LAST_VERDICT="$(grep "^LAST=" "$_STATE_FILE" | head -1 | cut -d'=' -f2- || true)"
-    if [[ "$_LAST_VERDICT" == "PASS" || "$_LAST_VERDICT" == "ADVISORY" ]]; then
-      echo "✅ Cross-Review PASS (Ticket: ${_TICKET_ID}, Verdict: ${_LAST_VERDICT})"
-    else
-      echo "❌ STRUCTURAL FAIL — [E] Cross-Review 未 PASS (Ticket: ${_TICKET_ID}, Verdict: ${_LAST_VERDICT:-UNKNOWN})"
+  _RECEIPT_FILE=".tmp/cross_review_pass/${_TICKET_ID}"
+  if [[ -f "$_RECEIPT_FILE" ]]; then
+    _R_VERDICT="$(grep "^VERDICT=" "$_RECEIPT_FILE" | head -1 | cut -d'=' -f2- | tr -d '[:space:]' || true)"
+    _R_SCOPE="$(grep "^DIFF_SCOPE=" "$_RECEIPT_FILE" | head -1 | cut -d'=' -f2- | tr -d '[:space:]' || true)"
+    if [[ "$_R_VERDICT" != "PASS" && "$_R_VERDICT" != "ADVISORY" ]]; then
+      echo "❌ STRUCTURAL FAIL — [E] Cross-Review receipt 未 PASS (Ticket: ${_TICKET_ID}, Verdict: ${_R_VERDICT:-UNKNOWN})"
       escalate_verdict "BLOCKER"
+    elif [[ "$_R_SCOPE" != "$DIFF_SCOPE" ]]; then
+      echo "❌ STRUCTURAL FAIL — [E] Cross-Review receipt scope 不符（false-open 防線）"
+      echo "   receipt DIFF_SCOPE=${_R_SCOPE:-<empty>} ≠ 當前 --post scope=${DIFF_SCOPE}"
+      echo "   修正方式：diff 範圍已變動，須對當前 scope 重新 /sv 產生新 receipt"
+      escalate_verdict "BLOCKER"
+    else
+      echo "✅ Cross-Review PASS (Ticket: ${_TICKET_ID}, Verdict: ${_R_VERDICT}, Scope: ${_R_SCOPE})"
     fi
   else
-    echo "❌ STRUCTURAL FAIL — [E] Cross-Review state 不存在 (${_TICKET_ID})"
-    echo "   修正方式：先完成 /sv 階段 D cross_review.sh，產生 .tmp/cross_review_state/${_TICKET_ID}"
+    echo "❌ STRUCTURAL FAIL — [E] Cross-Review receipt 不存在 (${_TICKET_ID})"
+    echo "   修正方式：先完成 /sv 階段 D cross_review.sh（PASS/ADVISORY），產生 .tmp/cross_review_pass/${_TICKET_ID}"
     escalate_verdict "BLOCKER"
   fi
 else
