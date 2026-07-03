@@ -5,11 +5,11 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| KAIROS-BACKFILL-01-FIX-A | ✅ Traycer execute_review PASS · ticket_pattern.md 收斂 `KAIROS-[CODE]-[NN]`→`KAIROS-BACKFILL-[NN][...]` 專用格式（CSO 裁決）+ Registry 歷史稽核敘述改寫（AC-6 乾淨通過，0 殘留負面敘述）· 1F+registry |
 | KAIROS-BACKFILL-01 | ✅ Codex end-state inspection PASS（含撞號檢查回答行）· 假閉環規則補寫 K4-3/6/8/9 + 併補 K4-27 · `cross-review.md` §「Scope Ban BLOCKER 處置」新增 + `kairos-lessons.md` K3-Rule 25 append + `camera-constraints.md` Rule 30/31/32 · Registry 回填 KAIROS4_Candidate_Compilation.md · 4F |
 | TRACTION-PROTO-01 | ✅ Codex Cross-Review PASS · Prototype v3.3 Level dual-axis→roll-only reconcile（R-T5 downstream sweep 結案）· v3.2 凍結為歷史 baseline · Halo α=0.85 保留 · 1F +1123L 新檔 · 84d6cb1 |
 | TRACTION-LAYOUT-01 | ✅ Codex Cross-Review PASS · Layout Spec 內文版號 bump v2.5.2→v2.5.3 + §16 修訂追蹤（Layer 5 metadata 閉環）· 零 rename · 1F +20/-8L · 2ae5bef |
 | TRACTION-GOV-02 | ✅ /index-verify PASS · Layout Spec 內文版號 bump v2.5.1→v2.5.2（檔名穩定不變）+ §15 修訂追蹤 · 零 rename · Cross-Review N/A · 1F +19/-8L · ee3bf82 |
-| TRACTION-GOV-03 | ✅ /index-verify PASS · 檔名版號慣例建立（活文件 slug / 快照版號入檔名，R-T12）· Naming_Version_Convention.md 入索引 + CSO_INDEX 指標 · 零 rename · 1F +37L · 36cfc36 |
 
 **Last Updated**: 2026-07-03
 
@@ -17,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S28** · KAIROS-BACKFILL-01 ✅ 假閉環 debt 清零（K4-3/6/8/9/27 全落地）· 引用修正支線（v3.3 路徑）掃描完成待範圍確認 · GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ 開渲染實作票** |
+| Schedule | **S28** · KAIROS-BACKFILL-01 ✅ 假閉環 debt 清零（K4-3/6/8/9/27 全落地）· KAIROS-BACKFILL-01-FIX-A ✅ Traycer PASS（ticket_pattern.md 格式收斂 + registry 敘述清理）· 引用修正支線（v3.3 路徑）掃描完成待範圍確認 · GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）· **→ 開渲染實作票** |
 | Compile | ⚪ N/A (PROTO-01：prototype .html，無 Gradle target) |
 | Tests | ⚪ N/A (PROTO-01 prototype) |
 | Lint | ⚪ N/A (PROTO-01 prototype) |
