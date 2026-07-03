@@ -16,6 +16,7 @@
 | `HOTFIX-[NN]` | 緊急修復 Ticket（純數字） | `HOTFIX-01`, `HOTFIX-47` |
 | `V16-[XX]` | gstack v1.6 升級 Ticket | `V16-A1` |
 | `KAIROS-D[N]` | KAIROS 階段回顧 Ticket | `KAIROS-D10` |
+| `KAIROS-[CODE]-[NN]` | KAIROS 節點外規則收割/補寫 Ticket（非 D[N] 回顧本體，NAME 全大寫英文） | `KAIROS-BACKFILL-01` |
 | `SPIKE-[CODE]` | 調查 Spike Ticket（英數） | `SPIKE-GF`, `SPIKE-AF` |
 | `UA-[NN]` | Understand-Anything 知識圖譜 Ticket | `UA-01`, `UA-60` |
 | `PHASE-[A]-[NN](-R[N])?` | 分析 Phase Ticket（可選 Revision 後綴） | `PHASE-B-01`, `PHASE-B-01-R3` |
@@ -25,7 +26,7 @@
 ## Regex（commit-msg hook 使用）
 
 ```
-commit-hook=^\[(D[0-9]+-T[0-9]+|P0-[A-Z]+|P0[0-9]+-[A-Z][0-9]+|INFRA-[A-Z0-9-]+|HOTFIX-[0-9]+|V16-[A-Z][0-9]+|KAIROS-D[0-9]+|SPIKE-[A-Z][A-Z0-9]*|UA-[0-9]+|PHASE-[A-Z]-[0-9]+(-R[0-9]+)?|STATE-CONTRACT-[0-9]+[A-Z0-9-]*|TRACTION-[A-Z]+-[0-9]+)\]
+commit-hook=^\[(D[0-9]+-T[0-9]+|P0-[A-Z]+|P0[0-9]+-[A-Z][0-9]+|INFRA-[A-Z0-9-]+|HOTFIX-[0-9]+|V16-[A-Z][0-9]+|KAIROS-D[0-9]+|KAIROS-[A-Z]+-[0-9]+|SPIKE-[A-Z][A-Z0-9]*|UA-[0-9]+|PHASE-[A-Z]-[0-9]+(-R[0-9]+)?|STATE-CONTRACT-[0-9]+[A-Z0-9-]*|TRACTION-[A-Z]+-[0-9]+)\]
 ```
 
 ## 變更紀錄
@@ -38,3 +39,4 @@ commit-hook=^\[(D[0-9]+-T[0-9]+|P0-[A-Z]+|P0[0-9]+-[A-Z][0-9]+|INFRA-[A-Z0-9-]+|
 | INFRA-SSOT-TICKET | `INFRA-[A-Z0-9-]+`（擴充連字號） | INFRA 支援多段式語意化 ID（如 `INFRA-SSOT-TICKET`）|
 | 授權補登 | `PHASE-[A]-[NN](-R[N])?` | 分析 Phase，對齊 CSO 裁決單 |
 | 授權補登 | `STATE-CONTRACT-[NN][...]` | 狀態合約設計 |
+| KAIROS-BACKFILL-01 | `KAIROS-[CODE]-[NN]` | KAIROS 節點外規則收割/補寫（非 D[N] 回顧本體），Akira 2026-07-03 授權 |

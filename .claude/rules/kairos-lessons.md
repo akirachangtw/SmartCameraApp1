@@ -38,6 +38,7 @@ Bug 修復 Ticket 若只覆蓋「觸發路徑」而非「所有消費路徑」�
 (c) **MUST** 不得將僅覆蓋部分路徑的修復標記為「完整修復」。
 範例：P05-R1 修 EyeAfController（AF 路徑），但 HaloGuidanceLayer（渲染路徑）
 和 observePtfAlignment（PTF 路徑）未覆蓋 → 琥珀圓環持續亂竄（Ghost Face 壁癌）。
+- **Bug 品類覆蓋**：修復 scope **MUST** 覆蓋品類邊界而非已知實例。反例：Ghost Face 三次壁癌（AF 越界→全路徑越界→形狀），每次只堵一個子類。（觸發來源：K4-6）
 觸發來源：Session V — GazeAF Ghost Face 壁癌分析。
 
 ## K3-Rule 26 — 多消費路徑掃描

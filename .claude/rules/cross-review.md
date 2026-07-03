@@ -31,6 +31,11 @@ Codex: [判定原文] | 選項: A.[方案A] / B.[方案B] / D.[Codex誤判理由
 
 **退出機制**：無 Akira ack **MUST** 不得連續執行 2 次以上 cross_review.sh。
 
+## Scope Ban BLOCKER 處置 + Payload 一致性
+
+- **Scope Ban BLOCKER + Contract 明文授權** → **MUST** 直接走 Option D（CSO 誤判申訴），**MUST** 不走 Option A（sv_report 補文字）。Layer 3.4 機械閘門不讀推理文字，歷史兩次實證（P05-R1、P08-E1）。（K4-3）
+- **Payload scope 一致性**：`cross_review.sh` payload **MUST** 驗證 SV scope ↔ diff scope 一致（防 scope 錯配漏審）。（K3-6）
+
 ## Cross-Review 路由
 
 diff 跨三層 or 涉及 CameraViewModel.kt → `xhigh`。
