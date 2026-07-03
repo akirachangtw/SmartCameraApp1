@@ -7,6 +7,8 @@
 
 ## 合法格式一覽
 
+> 本表為 family provenance 敘述（記錄各 family 由哪張票引入），非 hook 強制來源；enforcement 唯一來源為下方「## Regex」單行結構文法。新增 family 無需改 regex，僅在 CSO 稽核時補登本表。
+
 | 格式 | 說明 | 範例 |
 |------|------|------|
 | `D[N]-T[N]` | Sprint Day Ticket | `D9-T1` |
@@ -26,7 +28,7 @@
 ## Regex（commit-msg hook 使用）
 
 ```
-commit-hook=^\[(D[0-9]+-T[0-9]+|P0-[A-Z]+|P0[0-9]+-[A-Z][0-9]+|INFRA-[A-Z0-9-]+|HOTFIX-[0-9]+|V16-[A-Z][0-9]+|KAIROS-D[0-9]+|KAIROS-BACKFILL-[0-9]+[A-Z0-9-]*|SPIKE-[A-Z][A-Z0-9]*|UA-[0-9]+|PHASE-[A-Z]-[0-9]+(-R[0-9]+)?|STATE-CONTRACT-[0-9]+[A-Z0-9-]*|TRACTION-[A-Z]+-[0-9]+)\]
+commit-hook=^\[[A-Z][A-Z0-9]*(-[A-Z0-9]+)+\]
 ```
 
 ## 變更紀錄
@@ -40,3 +42,4 @@ commit-hook=^\[(D[0-9]+-T[0-9]+|P0-[A-Z]+|P0[0-9]+-[A-Z][0-9]+|INFRA-[A-Z0-9-]+|
 | 授權補登 | `PHASE-[A]-[NN](-R[N])?` | 分析 Phase，對齊 CSO 裁決單 |
 | 授權補登 | `STATE-CONTRACT-[NN][...]` | 狀態合約設計 |
 | KAIROS-BACKFILL-01-FIX-A | `KAIROS-BACKFILL-[NN][...]` | KAIROS 節點外規則收割/補寫（非 D[N] 回顧本體）；收斂原 KAIROS-BACKFILL-01 引入的通用 `KAIROS-[CODE]-[NN]` 為專用格式，CSO 裁決治理票授權 |
+| INFRA-TICKETID-01 | `^\[[A-Z][A-Z0-9]*(-[A-Z0-9]+)+\]`（結構文法） | family 列舉遷移為單一結構文法；enforcement 收斂、family 表降 provenance；併記 FIX-A 之 ticket_pattern.md 編輯屬 DRA 越界，已由 CSO 立規追認並以本票消除越界誘因 |
