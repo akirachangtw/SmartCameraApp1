@@ -170,7 +170,7 @@ Top Bar **不是獨立區塊** — 它是 Viewfinder 上方的浮動 overlay。
 Layer 0: Camera Preview（CameraX PreviewView）
 Layer 1: Pitch Traction 指示柱（右側 16dp, 36dp×25% viewfinder, 琥珀金/綠色 — D-2; 底層先繪製）
 Layer 2: 三分網格線（#FFFFFF alpha 0.35, 線寬 1.5px — D-24; 在 Pitch 之上確保可見）
-Layer 3: Halo Traction 圓環（琥珀金 / 綠色, 呼吸 alpha 0.10→0.18 — D-3）
+Layer 3: Halo Traction 圓環（琥珀金 / 綠色, 呼吸 alpha 0.25→0.40 — D-3, R-T13 V-1）
 Layer 4: 對焦圓環（Tap-to-focus, 60dp, 四狀態生命週期 — 見 SSOT 附錄 A）
 Layer 5: Level Traction（白色虛線 reference + 動態 dynamic 層）
 Layer 6: Scrim + Top Bar 浮動圖示（最上層）
@@ -188,7 +188,7 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 | 定位環直徑 | 32dp, stroke 1.5dp | 固定在軸線中點 = 目標角度 |
 | 浮動圓點直徑 | 20dp | 沿中軸移動 = 當前 pitch |
 | 顏色邏輯 | ≤10° 偏差：綠 #50C864；>10° 偏差：琥珀 #D4A030 | 50% 閾值（R17） |
-| 對齊呼吸 | 整體進入 α 0.10→0.18 呼吸（全局呼吸驅動） | 與快門外環同步 |
+| 對齊呼吸 | 中軸線+定位環進入 α 0.25→0.40 呼吸（全局呼吸驅動）；浮動圓點強存在 α0.85 不受呼吸調製 | 與快門外環同步（R-T13 V-1/V-3）|
 | Canvas 呼叫 | **3 次**（drawLine + drawCircle ×2） | — |
 | **禁止** | `null → drawRect(Brush.radialGradient(...))` 或任何全幅暈影 | D-14: Edge Warmth 語義殘留清除（SSOT §B.7） |
 
@@ -212,9 +212,9 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
 | 狀態 | Alpha | 備註 |
 |------|-------|------|
 | 未對齊（外環，靜態） | **0.8** | 外環金色；內含牽引圓點沿 target 位移（D-11: atan2；圓點規格見 SSOT §2.5） |
-| 已對齊（外環，呼吸） | **0.10 → 0.18**（2000ms 週期）+ scale 0.98→1.02 | D-3 鎖定值 |
+| 已對齊（外環，呼吸） | **0.25 → 0.40**（2000ms 週期）+ scale 0.98→1.02 | D-3 鎖定值（R-T13 V-1 重錨）|
 | 群組 Halo（未對齊） | **0.8** | 與單人統一（R-T9；原 −0.05 補償已刪） |
-| 群組 Halo（已對齊） | **0.10 → 0.18** | 同單人呼吸（R-T9） |
+| 群組 Halo（已對齊） | **0.25 → 0.40** | 同單人呼吸（R-T9，R-T13 V-1）|
 
 **Layer 5 詳細規格（Level Traction roll-only，完整定義見 SSOT §2.4）**：
 

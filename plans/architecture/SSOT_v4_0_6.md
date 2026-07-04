@@ -93,6 +93,8 @@ object PitchTractionConstants {
 }
 ```
 
+**Alpha 組合語義（R-T13 V-2）**：所有呼吸/漸變 alpha 均指總感知值（total perceived alpha）；承載 alpha 動畫的元素，其色彩一律使用全 alpha（full-alpha color），禁止色彩 alpha × 元素 opacity 疊乘。
+
 ### 2.0.1 Level Traction 漸入退場規格
 
 Level Traction 不是「開/關」二元切換，而是根據偏差程度連續漸入/漸出：
@@ -189,8 +191,18 @@ fun PitchTractionLayer(
         pitchDist > PitchTractionConstants.COLOR_TRANSITION_RATIO -> Color(0xFFD4A030)  // 琥珀（>10° 偏差）
         else -> Color(0xFF50C864)  // 綠色（≤10° 偏差，接近對齊）
     }
-    val axisColor = if (isAligned) Color(0xFF50C864).copy(alpha = 0.4f)
+    // R-T13 V-2: 對齊態全 alpha 色彩，alpha 包絡由呼吸單獨承載
+    val axisColor = if (isAligned) Color(0xFF50C864)
                     else Color(0xFFD4A030).copy(alpha = 0.9f)
+    // R-T13 V-1: 對齊呼吸 α 0.25→0.40（D-3 重錨，同步 §2.5 Halo）
+    val pitchBreatheAlpha by animateFloatAsState(
+        targetValue = if (isAligned) 0.40f else 1f,
+        animationSpec = if (isAligned) {
+            infiniteRepeatable(tween(2000, easing = FastOutSlowInEasing), RepeatMode.Reverse)
+        } else {
+            tween(300)
+        }
+    )
 
     Canvas(modifier = modifier
         .width(PitchTractionConstants.COLUMN_WIDTH_DP.dp)
@@ -206,21 +218,23 @@ fun PitchTractionLayer(
             start = Offset(centerX, 0f),
             end = Offset(centerX, size.height),
             strokeWidth = PitchTractionConstants.AXIS_WIDTH_DP.dp.toPx(),
-            cap = StrokeCap.Round
+            cap = StrokeCap.Round,
+            alpha = if (isAligned) pitchBreatheAlpha else 1f
         )
 
         // 2. 定位環
         drawCircle(
-            color = if (isAligned) Color(0xFF50C864).copy(alpha = 0.6f)
-                    else Color.Transparent,
+            color = if (isAligned) Color(0xFF50C864) else Color.Transparent,
             radius = PitchTractionConstants.RING_SIZE_DP.dp.toPx() / 2,
             center = Offset(centerX, centerY),
-            style = Stroke(PitchTractionConstants.RING_STROKE_DP.dp.toPx())
+            style = Stroke(PitchTractionConstants.RING_STROKE_DP.dp.toPx()),
+            alpha = if (isAligned) pitchBreatheAlpha else 1f
         )
 
-        // 3. 浮動圓點
+        // 3. 浮動圓點（R-T13 V-3: 對齊後強存在 0.85，退場呼吸不作用於圓點；未對齊沿用統一 V 曲線 0.35+x×0.5）
+        val dotAlpha = if (isAligned) 0.85f else (0.35f + pitchDist * 0.5f)
         drawCircle(
-            color = dotColor.copy(alpha = 0.1f + pitchDist * 0.7f),
+            color = dotColor.copy(alpha = dotAlpha),
             radius = PitchTractionConstants.DOT_SIZE_DP.dp.toPx() / 2,
             center = Offset(centerX, centerY + dotOffset)
         )
@@ -230,7 +244,7 @@ fun PitchTractionLayer(
 
 **Canvas 呼叫**：3 次（`drawLine` + `drawCircle` × 2）
 
-**對齊呼吸**：當 `isAligned == true` 時，整個指示柱進入呼吸韻律（由全局呼吸驅動），中軸線與定位環同步 opacity 0.10→0.18。
+**對齊呼吸**：當 `isAligned == true` 時，中軸線與定位環進入呼吸韻律（由全局呼吸驅動）同步 opacity `0.25→0.40`（R-T13 V-1 重錨，色彩為 align-green 全 alpha，alpha 包絡單獨承載——R-T13 V-2）；浮動圓點退場呼吸不作用，保持歸心強存在 `opacity 0.85`（R-T13 V-3，R-T6 圓點統一基元延伸）。
 
 **⚠️ Edge Warmth 殘留清除（D-14, R22）**：PitchTractionLayer **禁止**包含 `null -> drawRect(Brush.radialGradient(...))` 或任何全幅暈影渲染邏輯。此代碼為 Edge Warmth 時代 `Direction` enum 的語義殘留（D-11 已將 Direction enum 移交 Halo Traction）。`PitchGuidance` 三態 `{ TILT_UP, TILT_DOWN, ALIGNED }` 不存在 `null` 值。實作中若存在此分支，必須刪除。
 
@@ -377,9 +391,9 @@ fun HaloGuidanceLayer(
     isAligned: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // D-3: 對齊時呼吸 α 0.10→0.18 + scale 0.98→1.02（R-T4），未對齊靜態 α 0.8（R-T2）
+    // D-3: 對齊時呼吸 α 0.25→0.40 + scale 0.98→1.02（R-T4，R-T13 V-1 重錨），未對齊靜態 α 0.8（R-T2）
     val haloAlpha by animateFloatAsState(
-        targetValue = if (isAligned) 0.18f else 0.8f,
+        targetValue = if (isAligned) 0.40f else 0.8f,
         animationSpec = if (isAligned) {
             infiniteRepeatable(
                 animation = tween(2000, easing = FastOutSlowInEasing),
@@ -441,10 +455,10 @@ fun HaloGuidanceLayer(
         val dotCx = haloCx + cos(angle) * dotOffset
         val dotCy = haloCy + sin(angle) * dotOffset
 
-        // R-T3: 三段 V 曲線色（dist=0 綠歸心 scale1.1 / ≤50 綠漸亮 / >50 琥珀漸暗）
+        // R-T3/R-T13 V-4: 三段 V 曲線色，統一公式 opacity = 0.35 + x×0.5（谷底 0.35、增益 0.5、峰 0.85）
         val (dotColor, dotAlpha, homeScale) = when {
-            dist > 50f -> Triple(Color(0xFFD4A030), 0.1f + ((dist - 50f) / 50f) * 0.75f, 1.0f)
-            dist > 0f  -> Triple(Color(0xFF50C864), 0.1f + (1f - dist / 50f) * 0.75f, 1.0f)
+            dist > 50f -> Triple(Color(0xFFD4A030), 0.35f + ((dist - 50f) / 50f) * 0.5f, 1.0f)
+            dist > 0f  -> Triple(Color(0xFF50C864), 0.35f + (1f - dist / 50f) * 0.5f, 1.0f)
             else       -> Triple(Color(0xFF50C864), 0.85f, 1.1f)
         }
 
@@ -464,6 +478,8 @@ fun HaloGuidanceLayer(
 }
 ```
 
+**D-3 對齊呼吸重錨（R-T13 V-1）**：對齊呼吸 alpha 由 `0.10→0.18` 重錨為 `0.25→0.40`（scale 0.98→1.02 不變）；LIMITED/LEGACY 降級為靜態 `0.35`（無呼吸）。非推翻 D-3 退場原則，係 R-T2 未對齊錨移（0.25→0.8）後之相對值重錨（0.40 = 0.8 之半，維持對齊比未對齊安靜一級）；黑底 demo 可辨 ≠ 實景可辨（K4-42）。**翻盤條件**：夜景/暗場 A/B 過亮 → 降為 `0.22→0.35`（V-6 實機閘為最終權威）。
+
 **牽引圓點規格（R-T1/R-T3）**：外環內含一顆牽引圓點，沿 `atan2(targetY − faceY, targetX − faceX)` 方向、依 face→target 距離 `dist`（0–100）位移，引導使用者將主體移向構圖目標。
 
 | 項目 | 規格 |
@@ -472,7 +488,10 @@ fun HaloGuidanceLayer(
 | 位移 | `maxOffset = max(0, (bboxSize − 36) / 2 − 2)`；`offset = maxOffset × (dist / 100)` |
 | 方向 | `angle = atan2(targetY − faceY, targetX − faceX)`；`dotX = cos(angle)·offset`、`dotY = sin(angle)·offset` |
 | 呼吸 | breathe-dot：`scale 0.9↔1.1` / `opacity 0.7↔1.0` / `1.8s` |
-| 三段 V 曲線色 | `dist>50` 琥珀漸暗 `0.1+((dist−50)/50)×0.75`；`dist≤50` 綠漸亮 `0.1+(1−dist/50)×0.75`；`dist=0` 綠 + `scale 1.1` 歸心 |
+| 三段 V 曲線色 | `dist>50` 琥珀漸暗 `0.35+((dist−50)/50)×0.5`；`dist≤50` 綠漸亮 `0.35+(1−dist/50)×0.5`；`dist=0` 綠 + `scale 1.1` 歸心 `0.85` |
+| 對齊強存在 | 對齊後圓點保持歸心強存在（opacity 0.85 級，scale 1.1），退場呼吸僅作用於環（R-T13 V-3，R-T6 圓點統一基元延伸）|
+
+**翻盤條件（V-4）**：色彩切換突兀 → 谷底最低回調 `0.25`（不回 `0.1`）。
 
 > **targetPos 來源**：原型 targetPos（50 / 33.33 / 42 / 50）為 demo 簡化值；production target 由 rule engine 輸出（Portrait = 三分法 + headroom + gaze；Food = 最大 bbox + 構圖；Multi-face = 群組 center）。
 
@@ -567,7 +586,7 @@ fun calculateGroupHalo(
 | 3 人 | 中央偏上 (y=40%) | 三角構圖重心略高 |
 | 4+ 人 | 正中央 (y=50%) | 多人合照以居中為優先 |
 
-**Alpha 規則（R-T9）**：群組 Halo alpha 與 §2.5 單人統一——未對齊 `0.8`、對齊呼吸 `0.10→0.18` + `scale 0.98→1.02`（複用 `HALO_ALIGNED_ALPHA_MIN/MAX`，同源）。原「群組 = 單人相對減量」補償規則整段已刪除（premise 經 GAP-06 實機證偽；大面積壓迫關切轉 TRACTION-RENDER-01 C3 實機子驗收，禁復活相對式）。
+**Alpha 規則（R-T9）**：群組 Halo alpha 與 §2.5 單人統一——未對齊 `0.8`、對齊呼吸 `0.25→0.40` + `scale 0.98→1.02`（複用 `HALO_ALIGNED_ALPHA_MIN/MAX`，同源；R-T13 V-1 重錨）。原「群組 = 單人相對減量」補償規則整段已刪除（premise 經 GAP-06 實機證偽；大面積壓迫關切轉 TRACTION-RENDER-01 C3 實機子驗收，禁復活相對式）。
 
 **群組質心 EMA 平滑**：
 
@@ -613,7 +632,7 @@ fun smoothGroupHalo(raw: GroupHaloResult): GroupHaloResult {
 
 ```kotlin
 val breatheAlpha by animateFloatAsState(
-    targetValue = if (allConditionsMet) 0.18f else 0.10f,
+    targetValue = if (allConditionsMet) 0.40f else 0.25f,
     animationSpec = infiniteRepeatable(
         animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
         repeatMode = RepeatMode.Reverse
@@ -880,7 +899,7 @@ priority = ruleWeight × (100 - ruleScore) / 100 × confidenceFactor
 | FACES_DETECTED_NONE_ELIGIBLE | 偵測到人臉但無合格主體（閉眼/遮擋/極端側臉/ghost face） | Halo 關閉或極暗、Level 開啟、無引導文字 |
 | SUBJECT_STABILIZING | 合格主體出現，防抖穩定中 | Halo 暗琥珀、Level 開啟、Grid 開啟、無引導文字 |
 | GUIDANCE_ACTIVE | 主體鎖定，有可改善項 | Halo 琥珀 α0.25、Level 開啟、Grid 開啟、顯示最高優先規則文字 |
-| ALIGNED | 主體鎖定，所有規則滿足 | Halo 綠色呼吸 0.10→0.18、Level 綠色、Grid 淡出或維持、隱藏引導文字 |
+| ALIGNED | 主體鎖定，所有規則滿足 | Halo 綠色呼吸 0.25→0.40、Level 綠色、Grid 淡出或維持、隱藏引導文字 |
 | SUPPRESSED | 引導暫時抑制（防閃爍/對焦優先） | Halo 淡出、維持當前 Level/Grid、無引導文字 |
 
 **規則**：
@@ -1344,7 +1363,7 @@ var isFlashing by remember { mutableStateOf(false) }
 
 val breatheAlpha by if (isBreathing) {
     infiniteTransition.animateFloat(
-        initialValue = 0.10f, targetValue = 0.18f,
+        initialValue = 0.25f, targetValue = 0.40f,
         animationSpec = infiniteRepeatable(
             tween(2000, easing = FastOutSlowInEasing),
             RepeatMode.Reverse
@@ -1786,7 +1805,7 @@ Phase 1.5 擴展：進度環動態跟隨 DOF 處理時間。
 | 元素 | 色值 | 備註 |
 |------|------|------|
 | 外環靜態 | #FFFFFF α0.30 | — |
-| 外環呼吸（對齊時） | #50C864 α 0.10→0.18 | 與全局呼吸同步 |
+| 外環呼吸（對齊時） | #50C864 α 0.25→0.40 | 與全局呼吸同步（R-T13 V-1 重錨）|
 | 外環閃爍（拍攝時） | #FFFFFF α0.45→0 | 300ms |
 | 進度環 | #50C864 α0.80 | 拍攝確認 |
 | 內圓 | #FFFFFF | — |
@@ -1903,7 +1922,7 @@ D-23 修正：LANDMARK_ALL 降為 NONE（MVP）。v2.12.0 "Unknown landmark type
 Layer 0: Camera Preview（CameraX PreviewView）
 Layer 1: Pitch Traction 指示柱（右側 16dp, 36dp×25% viewfinder, 琥珀金/綠色 — D-2; 底層先繪製）
 Layer 2: 三分網格線（#FFFFFF alpha 0.35, 線寬 1.5px — D-24; 在 Pitch 之上確保可見）
-Layer 3: Halo Traction 圓環（琥珀金 / 綠色, 呼吸 alpha 0.10→0.18 — D-3）
+Layer 3: Halo Traction 圓環（琥珀金 / 綠色, 呼吸 alpha 0.25→0.40 — D-3, R-T13 V-1）
 Layer 4: 對焦圓環（Tap-to-focus, 60dp, 四狀態生命週期 — 見附錄 A）
 Layer 5: Level Traction（白色虛線 reference + 動態 dynamic 層）
 Layer 6: Scrim + Top Bar 浮動圖示（最上層）
