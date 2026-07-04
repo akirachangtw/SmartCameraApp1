@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cueshot - Multi-State Master Prototype v3.3</title>
     <!-- v3.3 NOTE: 基於 v3.2；差異 = Level roll-only reconcile（R-T5）+ Halo α 註解。
-         v3.2 凍結為歷史 baseline（含 Level dual-axis 化石）。 -->
+         v3.2 凍結為歷史 baseline（含 Level dual-axis 化石）。
+         + R-T13 對齊態可見性修正（V-1~V-5）2026-07-02 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -241,9 +242,9 @@
             transform: translate(-50%, -50%);
             border-radius: 50%;
             border: 2px solid var(--amber-gold);
-            /* v3.3: 未對齊 α=0.85 為原型設計原值；SSOT §2.5 用 0.8（R-T2/R-T9 單人↔群組統一，
-               刻意覆蓋）。此差異刻意保留，勿同步。 */
-            opacity: 0.85;
+            /* v3.3+R-T13 V-5：同步 SSOT §2.5 之 0.8（R-T2/R-T9）。設計原值 0.85 之歷史紀錄見 v3.2（唯讀）。
+               QA 真值常數與 SSOT 一致，無容差帶。 */
+            opacity: 0.8;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -278,7 +279,7 @@
         }
 
         @keyframes breathe-dot { 0% { transform: scale(0.9); opacity: 0.7; } 100% { transform: scale(1.1); opacity: 1; } }
-        @keyframes breathe-halo-aligned { 0% { opacity: 0.10; transform: translate(-50%, -50%) scale(0.98); } 100% { opacity: 0.18; transform: translate(-50%, -50%) scale(1.02); } }
+        @keyframes breathe-halo-aligned { 0% { opacity: 0.25; transform: translate(-50%, -50%) scale(0.98); } 100% { opacity: 0.40; transform: translate(-50%, -50%) scale(1.02); } }
 
         /* --- 2. Level Traction (中央雙軸) --- */
         .level-traction-wrapper { position: absolute; bottom: 25%; left: 50%; transform: translateX(-50%); width: 60%; height: 0px; z-index: 5; pointer-events: none; transition: opacity var(--transition-fast) ease;}
@@ -296,7 +297,7 @@
         .level-traction-layer.dynamic.aligned .level-traction-dot { box-shadow: 0 0 6px rgba(80, 200, 100, 0.6); }
         .level-traction-layer.dynamic.aligned { animation: breathe-ambient var(--breathe-cycle) ease-in-out infinite; }
         
-        @keyframes breathe-ambient { 0%, 100% { opacity: 0.10; } 50% { opacity: 0.18; } }
+        @keyframes breathe-ambient { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.40; } }
         @keyframes breathe-pitch-dot { 0% { transform: translate(-50%, -50%) scale(0.85); } 100% { transform: translate(-50%, -50%) scale(1.15); } }
 
         /* --- 3. Pitch Traction (邊緣俯仰) --- */
@@ -320,8 +321,8 @@
         }
 
         .pitch-traction.aligned .pitch-traction-line {
-            background-color: rgba(80, 200, 100, 0.4); 
-            animation: breathe-ambient var(--breathe-cycle) ease-in-out infinite; 
+            background-color: var(--align-green);
+            animation: breathe-ambient var(--breathe-cycle) ease-in-out infinite;
         }
 
         .pitch-traction-ring {
@@ -332,8 +333,8 @@
         }
 
         .pitch-traction.aligned .pitch-traction-ring {
-            border-color: rgba(80, 200, 100, 0.6); 
-            animation: breathe-ambient var(--breathe-cycle) ease-in-out infinite; 
+            border-color: var(--align-green);
+            animation: breathe-ambient var(--breathe-cycle) ease-in-out infinite;
         }
 
         .pitch-traction-dot {
@@ -346,8 +347,10 @@
         }
 
         .pitch-traction.aligned .pitch-traction-dot {
-            color: rgba(80, 200, 100, 0.4); 
-            animation: breathe-ambient var(--breathe-cycle) ease-in-out infinite; 
+            color: var(--align-green);
+            opacity: 0.85;
+            transform: translate(-50%, -50%) scale(1.1);
+            animation: none;
         }
 
         /* --- Bottom Control --- */
@@ -942,10 +945,10 @@
                     dotWrapper.style.transform = `translate(${dotX}px, ${dotY}px) scale(1.1)`; 
                     allConditionsMet = allConditionsMet && true;
                 } else {
-                    haloEl.classList.remove('aligned'); haloEl.style.opacity = 0.85; 
+                    haloEl.classList.remove('aligned'); haloEl.style.opacity = 0.8;
                     dotWrapper.style.transform = `translate(${dotX}px, ${dotY}px) scale(1)`;
-                    if (currentDist > 50) { dotEl.style.color = 'var(--amber-gold)'; dotWrapper.style.opacity = 0.1 + ((currentDist - 50) / 50) * 0.75; } 
-                    else { dotEl.style.color = 'var(--align-green)'; dotWrapper.style.opacity = 0.1 + (1 - (currentDist / 50)) * 0.75; }
+                    if (currentDist > 50) { dotEl.style.color = 'var(--amber-gold)'; dotWrapper.style.opacity = 0.35 + ((currentDist - 50) / 50) * 0.5; }
+                    else { dotEl.style.color = 'var(--align-green)'; dotWrapper.style.opacity = 0.35 + (1 - (currentDist / 50)) * 0.5; }
                     allConditionsMet = false;
                 }
             }
@@ -981,15 +984,15 @@
                     allConditionsMet = allConditionsMet && true;
                 } else {
                     foodHaloEl.classList.remove('aligned');
-                    foodHaloEl.style.opacity = 0.85;
+                    foodHaloEl.style.opacity = 0.8;
                     dotWrapper.style.transform = `translate(${dotX}px, ${dotY}px) scale(1)`;
-                    
-                    if (currentDist > 50) { 
-                        dotEl.style.color = 'var(--amber-gold)'; 
-                        dotWrapper.style.opacity = 0.1 + ((currentDist - 50) / 50) * 0.75; 
-                    } else { 
-                        dotEl.style.color = 'var(--align-green)'; 
-                        dotWrapper.style.opacity = 0.1 + (1 - (currentDist / 50)) * 0.75; 
+
+                    if (currentDist > 50) {
+                        dotEl.style.color = 'var(--amber-gold)';
+                        dotWrapper.style.opacity = 0.35 + ((currentDist - 50) / 50) * 0.5;
+                    } else {
+                        dotEl.style.color = 'var(--align-green)';
+                        dotWrapper.style.opacity = 0.35 + (1 - (currentDist / 50)) * 0.5;
                     }
                     allConditionsMet = false;
                 }
@@ -1013,8 +1016,8 @@
                     pitchTractionEl.classList.remove('aligned');
                     const offsetPx = Math.max(-maxOffset, Math.min(maxOffset, pitchDiff * PITCH_PX_PER_DEGREE));
                     pitchDotEl.style.top = `calc(50% + ${offsetPx}px)`;
-                    if (pitchDist > 50) { pitchDotEl.style.color = `rgba(212, 160, 48, ${0.1 + ((pitchDist - 50) / 50) * 0.7})`; } 
-                    else { pitchDotEl.style.color = `rgba(80, 200, 100, ${0.1 + (1 - (pitchDist / 50)) * 0.9})`; }
+                    if (pitchDist > 50) { pitchDotEl.style.color = `rgba(212, 160, 48, ${0.35 + ((pitchDist - 50) / 50) * 0.5})`; }
+                    else { pitchDotEl.style.color = `rgba(80, 200, 100, ${0.35 + (1 - (pitchDist / 50)) * 0.5})`; }
                     
                     allConditionsMet = false;
                 }
