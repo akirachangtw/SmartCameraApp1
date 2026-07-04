@@ -231,7 +231,7 @@ fun PitchTractionLayer(
             alpha = if (isAligned) pitchBreatheAlpha else 1f
         )
 
-        // 3. 浮動圓點（R-T13 V-3: 對齊後強存在 0.85，退場呼吸不作用於圓點；未對齊沿用統一 V 曲線 0.35+x×0.5）
+        // 3. 浮動圓點（R-T13 V-3: 對齊後強存在 opacity 0.85 級 + scale 1.1，退場呼吸不作用於圓點；未對齊沿用統一 V 曲線 0.35+x×0.5）
         val dotAlpha = if (isAligned) 0.85f else (0.35f + pitchDist * 0.5f)
         drawCircle(
             color = dotColor.copy(alpha = dotAlpha),
@@ -244,7 +244,7 @@ fun PitchTractionLayer(
 
 **Canvas 呼叫**：3 次（`drawLine` + `drawCircle` × 2）
 
-**對齊呼吸**：當 `isAligned == true` 時，中軸線與定位環進入呼吸韻律（由全局呼吸驅動）同步 opacity `0.25→0.40`（R-T13 V-1 重錨，色彩為 align-green 全 alpha，alpha 包絡單獨承載——R-T13 V-2）；浮動圓點退場呼吸不作用，保持歸心強存在 `opacity 0.85`（R-T13 V-3，R-T6 圓點統一基元延伸）。
+**對齊呼吸**：當 `isAligned == true` 時，中軸線與定位環進入呼吸韻律（由全局呼吸驅動）同步 opacity `0.25→0.40`（R-T13 V-1 重錨，色彩為 align-green 全 alpha，alpha 包絡單獨承載——R-T13 V-2）；浮動圓點保持歸心強存在（opacity 0.85 級，scale 1.1），退場呼吸僅作用於環/線（R-T13 V-3，R-T6 圓點統一基元延伸）。
 
 **⚠️ Edge Warmth 殘留清除（D-14, R22）**：PitchTractionLayer **禁止**包含 `null -> drawRect(Brush.radialGradient(...))` 或任何全幅暈影渲染邏輯。此代碼為 Edge Warmth 時代 `Direction` enum 的語義殘留（D-11 已將 Direction enum 移交 Halo Traction）。`PitchGuidance` 三態 `{ TILT_UP, TILT_DOWN, ALIGNED }` 不存在 `null` 值。實作中若存在此分支，必須刪除。
 
