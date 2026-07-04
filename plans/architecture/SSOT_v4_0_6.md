@@ -586,7 +586,7 @@ fun calculateGroupHalo(
 | 3 人 | 中央偏上 (y=40%) | 三角構圖重心略高 |
 | 4+ 人 | 正中央 (y=50%) | 多人合照以居中為優先 |
 
-**Alpha 規則（R-T9）**：群組 Halo alpha 與 §2.5 單人統一——未對齊 `0.8`、對齊呼吸 `0.25→0.40` + `scale 0.98→1.02`（複用 `HALO_ALIGNED_ALPHA_MIN/MAX`，同源；R-T13 V-1 重錨）。原「群組 = 單人相對減量」補償規則整段已刪除（premise 經 GAP-06 實機證偽；大面積壓迫關切轉 TRACTION-RENDER-01 C3 實機子驗收，禁復活相對式）。
+**Alpha 規則（R-T9）**：群組 Halo alpha 與 §2.5 單人統一——未對齊 `0.8`、對齊呼吸 `0.25→0.40` + `scale 0.98→1.02`（複用 `HALO_ALIGNED_ALPHA_MIN/MAX`，同源；R-T13 V-1 重錨）。原「群組 = 單人相對減量」補償規則整段已刪除（premise 經 GAP-06 實機證偽；大面積壓迫關切轉入 TRACTION-RENDER-01（未開票 placeholder，禁預賦 AC）開票時之 C3 實機子驗收；在此之前禁復活相對式）。
 
 **群組質心 EMA 平滑**：
 
