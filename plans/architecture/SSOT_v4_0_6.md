@@ -862,7 +862,7 @@ priority = ruleWeight × (100 - ruleScore) / 100 × confidenceFactor
 | 規則 | 數據源 | 延遲 | 付費層 | 備註 |
 |------|--------|------|--------|------|
 | AngleRule | IMU pitch vs [45°, 60°, 90°] | < 2ms | Free | Pitch 配置見 §2.3.1 |
-| LevelRule | IMU roll；Food 90° flat-lay 加 dual-axis | < 2ms | Free | D-9 scoring-only：roll 方正度入 Food 構圖評分/EXIF（消費者=FoodCompositionScore），不驅動 Level Traction UI。⚠️保留：dual-axis 有真實評分消費者，禁「刪除而非棄置」清掃誤刪（R-T5 鏡像）|
+| LevelRule | IMU roll；Food 90° flat-lay 加 dual-axis | < 2ms | Free | D-9 scoring-only：roll 方正度入 Food 構圖評分/EXIF（消費者=levelScore，§7.1 評分公式→§7.2 EXIF），不驅動 Level Traction UI。⚠️保留：dual-axis 有真實評分消費者，禁「刪除而非棄置」清掃誤刪（R-T5 鏡像）|
 | FoodCompositionRule | ML Kit Object Detection bbox | < 80ms | Paid | Halo 跟隨最大 bbox；EMA 0.8/0.2（見 §2.5.1）|
 | LightRule | 直方圖平均亮度 | < 10ms | Paid | — |
 | MinimalistRule | bbox ratio + background CV | < 10ms | Paid | — |
