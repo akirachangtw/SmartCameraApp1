@@ -330,14 +330,18 @@ PROMPT_HEADER
 {
   echo; echo "## Git Diff (scope: $DIFF_SCOPE)"; echo
   if [[ "$DIFF_AVAILABLE" == true ]]; then
-    CLAUDE_ALLOWED=false
+    # ALLOWED-aware exclusion: sv_report.md always excluded. Each governance
+    # top-level path (.claude/, docs/, plans/) is excluded UNLESS the ticket's
+    # ALLOWED explicitly authorizes it — otherwise a plans/-scoped SSOT ticket
+    # gets fed an empty diff (:!plans/ strips its only ALLOWED file).
+    CONF_ALLOWED=""
     if [[ -f "tmp/verify_cmd.conf" ]]; then
       CONF_ALLOWED=$(grep "^ALLOWED=" "tmp/verify_cmd.conf" | head -1 | cut -d'=' -f2-)
-      echo "$CONF_ALLOWED" | grep -q "\.claude/" && CLAUDE_ALLOWED=true
     fi
-    [[ "$CLAUDE_ALLOWED" == true ]] \
-      && EXCLUDE_ARGS=(':!sv_report.md' ':!docs/' ':!plans/') \
-      || EXCLUDE_ARGS=(':!sv_report.md' ':!.claude/' ':!docs/' ':!plans/')
+    EXCLUDE_ARGS=(':!sv_report.md')
+    for _gpath in .claude/ docs/ plans/; do
+      echo "$CONF_ALLOWED" | grep -qF "$_gpath" || EXCLUDE_ARGS+=( ":!${_gpath}" )
+    done
     if [[ -n "$EXTRA_EXCLUDE" ]]; then
       IFS=',' read -ra EXTRA_PATHS <<< "$EXTRA_EXCLUDE"
       for path in "${EXTRA_PATHS[@]}"; do EXCLUDE_ARGS+=( ":!${path}" ); done
