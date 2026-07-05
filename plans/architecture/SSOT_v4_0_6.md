@@ -133,7 +133,7 @@ if (levelOpacity < 0.01f) return@Canvas  // 省 4 次 drawXxx
 - Pitch Traction 操作在螢幕右側（垂直指示柱，D-2）
 - Level Traction 操作在螢幕中央（虛線水平儀）
 - Halo Traction 操作在主體周圍（圓形光環）
-- 三者視覺區域不衝突，可同時啟用
+- 三者視覺區域不衝突（Pitch 於邊緣、Level 於中央、Halo 於主體周圍）；Halo 可與 Pitch 或 Level 併存，但 Pitch 與 Level 依 D-9 場景互斥（見本節下方 D-9 條），無任何場景同時啟用 Pitch 與 Level。
 
 **三通道職責邊界（D-11）**：
 - **Pitch Traction**：俯仰角引導（1D 垂直軸），三態 `TILT_UP / TILT_DOWN / ALIGNED`
@@ -862,7 +862,7 @@ priority = ruleWeight × (100 - ruleScore) / 100 × confidenceFactor
 | 規則 | 數據源 | 延遲 | 付費層 | 備註 |
 |------|--------|------|--------|------|
 | AngleRule | IMU pitch vs [45°, 60°, 90°] | < 2ms | Free | Pitch 配置見 §2.3.1 |
-| LevelRule | IMU roll (+ dual-axis at 90°) | < 2ms | Free | D-9: 僅供評分，Level Traction UI 關閉 |
+| LevelRule | IMU roll；Food 90° flat-lay 加 dual-axis | < 2ms | Free | D-9 scoring-only：roll 方正度入 Food 構圖評分/EXIF（消費者=FoodCompositionScore），不驅動 Level Traction UI。⚠️保留：dual-axis 有真實評分消費者，禁「刪除而非棄置」清掃誤刪（R-T5 鏡像）|
 | FoodCompositionRule | ML Kit Object Detection bbox | < 80ms | Paid | Halo 跟隨最大 bbox；EMA 0.8/0.2（見 §2.5.1）|
 | LightRule | 直方圖平均亮度 | < 10ms | Paid | — |
 | MinimalistRule | bbox ratio + background CV | < 10ms | Paid | — |
@@ -1267,6 +1267,8 @@ exif.saveAttributes()  // < 5ms
 | 拍後景深效果 (DOF) | 每次背景不同 |
 | 拍後診斷摘要 | 持續學習價值 |
 | 無限帶評分照片 | 去除限制 |
+
+> 註（D-9 語義清掃, TRACTION-SSOT-05）：「單軸水平儀 / 雙軸水平」為 Freemium 產品層功能標籤，非渲染元件命名，不受 Edge-Warmth 命名禁令約束；§4.5 LevelRule（粗檢）為 roll-only PTF 提示，已檢視無 dual-axis 洩漏。三處（§4.3 scoring-only / §4.5 PTF 粗檢 / §8 產品標籤）詞族一次性審視豁免，杜絕打地鼠。
 
 ### 8.3 Paywall 觸發機制
 
