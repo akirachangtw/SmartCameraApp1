@@ -414,7 +414,7 @@ fi
 
 # Parse REACHABILITY: token (INFRA-REACH-02 AI-4) — machine-parseable companion to the
 # prose "Guard Input Reachability:" line. Missing/malformed → UNSET (receipt still gets
-# the field; structural_verify.sh Check E-2 flags UNSET as a FAIL, not a silent skip).
+# the field; structural_verify.sh Check G flags UNSET as a FAIL, not a silent skip).
 REACHABILITY="$(printf '%s\n' "$RESULT" | tr -d '\r' | grep -E "^REACHABILITY:" | head -1 | sed 's/^REACHABILITY:[[:space:]]*//' | xargs || true)"
 [[ -z "$REACHABILITY" ]] && REACHABILITY="UNSET"
 

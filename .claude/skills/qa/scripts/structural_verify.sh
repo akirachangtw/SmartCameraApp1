@@ -215,17 +215,6 @@ if [[ -n "$_TICKET_ID" ]]; then
     else
       echo "✅ Cross-Review PASS (Ticket: ${_TICKET_ID}, Verdict: ${_R_VERDICT}, Scope: ${_R_SCOPE})"
     fi
-    # Check E-2 (INFRA-REACH-02 AI-4): receipt MUST carry a REACHABILITY= token — its
-    # absence or UNSET means Codex never emitted the machine-parseable line, so a
-    # missing-wiring guard could be hiding behind an otherwise-clean PASS/ADVISORY.
-    _R_REACHABILITY="$(grep "^REACHABILITY=" "$_RECEIPT_FILE" | head -1 | cut -d'=' -f2- || true)"
-    if [[ -z "$_R_REACHABILITY" || "$_R_REACHABILITY" == "UNSET" ]]; then
-      echo "❌ STRUCTURAL FAIL — [E-2] Cross-Review receipt 缺 REACHABILITY: token（Ticket: ${_TICKET_ID}）"
-      echo "   修正方式：cross_review.sh payload 未取得 Codex 輸出的 REACHABILITY: 行，重新執行 cross-review"
-      escalate_verdict "BLOCKER"
-    else
-      echo "✅ REACHABILITY token 存在（${_R_REACHABILITY}）"
-    fi
   else
     echo "❌ STRUCTURAL FAIL — [E] Cross-Review receipt 不存在 (${_TICKET_ID})"
     echo "   修正方式：先完成 /sv 階段 D cross_review.sh（PASS/ADVISORY），產生 .tmp/cross_review_pass/${_TICKET_ID}"
@@ -233,6 +222,34 @@ if [[ -n "$_TICKET_ID" ]]; then
   fi
 else
   echo "⚪ TICKET_ID 不存在 — 跳過 Check E"
+fi
+
+# ─── Check G: REACHABILITY 機械 token 存在性（INFRA-REACH-02 AI-4，CSO 審查 M-1）───
+# Standalone check — independent of Check E's PASS/ADVISORY/scope verdict logic
+# (does not reuse Check E's parsed variables). A receipt can be Check-E-valid
+# (PASS/ADVISORY, correct scope) yet still lack a REACHABILITY= token if Codex
+# never emitted the machine-parseable line — that gap is this check's sole concern.
+echo ""
+echo "=== [G] REACHABILITY 機械 token 存在性 ==="
+_G_TICKET_ID="$(get_ticket_id)"
+if [[ -n "$_G_TICKET_ID" ]]; then
+  _G_RECEIPT_FILE=".tmp/cross_review_pass/${_G_TICKET_ID}"
+  if [[ -f "$_G_RECEIPT_FILE" ]]; then
+    _G_REACHABILITY="$(grep "^REACHABILITY=" "$_G_RECEIPT_FILE" | head -1 | cut -d'=' -f2- || true)"
+    if [[ -z "$_G_REACHABILITY" || "$_G_REACHABILITY" == "UNSET" ]]; then
+      echo "❌ STRUCTURAL FAIL — [G] Cross-Review receipt 缺 REACHABILITY: token（Ticket: ${_G_TICKET_ID}）"
+      echo "   修正方式：cross_review.sh payload 未取得 Codex 輸出的 REACHABILITY: 行，重新執行 cross-review"
+      escalate_verdict "BLOCKER"
+    else
+      echo "✅ REACHABILITY token 存在（${_G_REACHABILITY}）"
+    fi
+  else
+    echo "❌ STRUCTURAL FAIL — [G] Cross-Review receipt 不存在 (${_G_TICKET_ID})"
+    echo "   修正方式：先完成 /sv 階段 D cross_review.sh（PASS/ADVISORY），產生 .tmp/cross_review_pass/${_G_TICKET_ID}"
+    escalate_verdict "BLOCKER"
+  fi
+else
+  echo "⚪ TICKET_ID 不存在 — 跳過 Check G"
 fi
 
 # ─── Check F: PROGRESS.md 格式校驗 ───
@@ -326,7 +343,7 @@ echo "============================================="
 
 if [[ "$_CURRENT_VERDICT" == "PASS" || "$_CURRENT_VERDICT" == "ADVISORY" ]]; then
   echo "══════════════════════════════════════"
-  echo "✅ STRUCTURAL VERIFY PASS (A/B/C/D/E/F) [${_CURRENT_VERDICT}]"
+  echo "✅ STRUCTURAL VERIFY PASS (A/B/C/D/E/F/G) [${_CURRENT_VERDICT}]"
   echo "══════════════════════════════════════"
   exit 0
 fi

@@ -161,11 +161,11 @@ REACHABILITY: <guard1>:<producer位置>,<guard2>:MISSING
 | `<guard>:<producer位置>` | producer 判定 (A)/(B)，位置格式 `檔案:行號` |
 | `<guard>:MISSING` | producer 判定 (C)，對應 AC 不得標 PASS |
 
-**消費鏈**：`cross_review.sh` 從 Codex 輸出解析 `REACHABILITY:` 行 → 寫入 `.tmp/cross_review_pass/<TICKET_ID>` receipt 的 `REACHABILITY=` 欄位 → `structural_verify.sh` Check E-2（`--post` mode）驗證該欄位存在且非 `UNSET`，缺失或未設定 → **BLOCKER**（Codex 未實際輸出機械 token，即使散文回答存在也視為未落地）。
+**消費鏈**：`cross_review.sh` 從 Codex 輸出解析 `REACHABILITY:` 行 → 寫入 `.tmp/cross_review_pass/<TICKET_ID>` receipt 的 `REACHABILITY=` 欄位 → `structural_verify.sh` Check G（`--post` mode，獨立於 Check E receipt 語義之外）驗證該欄位存在且非 `UNSET`，缺失或未設定 → **BLOCKER**（Codex 未實際輸出機械 token，即使散文回答存在也視為未落地）。
 
 ## 維護
 
 - `ssot_context.md`：每 Sprint 更新一次，或 SSOT 版本變更時同步
 - `cross_review.sh`：prompt 結構、verdict 或 fail budget 行為變更時同步更新
-- `structural_verify.sh`：receipt 欄位或 Check E 系列邏輯變更時同步更新
+- `structural_verify.sh`：receipt 欄位或 Check E / Check G 邏輯變更時同步更新
 - 本文件：工作流變更時同步更新
