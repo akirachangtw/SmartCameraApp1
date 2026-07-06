@@ -5,7 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-REACH-02 | ⚠️ 8/9 AC PASS，1 項待 Akira 裁決 · Codex Cross-Review R2 PASS（ADVISORY · `REACHABILITY: NONE` 實測輸出 · 46b8e24）· CSO 審查 M-1 後修正：`structural_verify.sh` REACHABILITY 驗證由內嵌 Check E-2 重構為獨立 Check G（不複用 Check E receipt 語義）、R-1 迴歸防護重跑（INFRA-CR-PLANS-DIFF-01 carve-out 15/15 assertions PASS）、AI-4 雙自測重跑（負向 exit=1/正向 exit=0）· AI-1~AI-7 七項 Action Item 皆完成 · **待裁決**：AC「3.5.5 glob 化對第二 state holder 正向命中 dead-field 樣例」現僅有 1 個真實正向命中（`CameraState.kt`/`afState`），全碼庫無第二個真實 dead-field bug 可證——三選項見票內揭露（接受現況 / 標 PARTIAL 開後續票 / 合成自測 fixture）· 4f06a27（原始）→ 46b8e24（修正） |
+| INFRA-REACH-02 | ✅ Done · 9/9 AC PASS · Codex Cross-Review R2 ADVISORY（`REACHABILITY: NONE` · 46b8e24）+ 補跑正式 /qa→/sv 後 R2 ADVISORY（99a81de，structural_verify A-G PASS）· AC「第二 state holder 正向命中」由 Akira 裁決選項 (C)：合成 `tmp/` 臨時 fixture 自測（不落地 `app/src/main/**`），正向命中 `fakeMode` + `normalMode` 不誤報，見 `reports/REACH02_AI2_SelfTest_SecondHolder_20260706.md`；fixture 已清理 · AI-1~AI-7 七項 Action Item 皆完成 · 已移 deliver/ |
 | INFRA-SKILLS-UC01 | ✅ Done · Codex Cross-Review PASS（R1，完整 cross_review.sh · Guard Reachability 無新 Guard）· `/uc` 新增「## 驗證性動作豁免」段落：零廢話只約束解說性輸出，執行 `.claude/**/*.sh` MUST 用注入〔腳本現況〕canonical 格式 or 讀腳本頭 Usage，MUST NOT 憑記憶組裝參數 · 既有約束（零過渡/純 Diff/DONE 終止）保留 · AC-4 .sh 零觸碰 · +8L · 47fe32d |
 | TRACTION-SSOT-05-FIX-A | ✅ Done · Codex Cross-Review PASS（R1，完整 cross_review.sh + ssot_context 注入，禁手動窄審 · Guard Reachability 無新 Guard · type-drift Findings none）· R-T19 Option C：§4.3 L865 幻名 `FoodCompositionScore`→`levelScore`（§7.1 評分→§7.2 EXIF 既有定義消費者）· 解 SSOT-05 母票 R3 type-drift BLOCKER（Codex 實質正確：全 SSOT 零定義空名）· L866 FoodCompositionRule/R-T5 鏡像零觸碰 · MAX_LINES 5（實 1 行）· 0757dfc · Check E receipt 合法自動寫入 · 母票+FIX-A 同移 deliver/ |
 | INFRA-CR-PLANS-DIFF-01 | ✅ Done · Codex Cross-Review PASS（R1，dogfood：修好的腳本自審自身 diff）· cross_review.sh 粗排除 → ALLOWED-aware carve-out（`.claude//docs//plans/` 逐一，只在 ALLOWED 涵蓋時 carve-out）· 修 plans/-scoped 治理票被 `:!plans/` 餵空 diff bug（實證 0→2564 bytes）· verdict/prompt/fail-budget/exit code 零觸碰 · Fixture A/B/C+EXTRA_EXCLUDE+empty 14 assertions 全綠 · 43a35fb · Traycer execute_review pending |
@@ -17,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S34** · INFRA-REACH-02 ⚠️ 8/9 AC（待裁決第二 state holder 正向命中，Codex R2 ADVISORY · 46b8e24）· INFRA-SKILLS-UC01 ✅ Done（Codex R1 PASS · 47fe32d）· TRACTION-SSOT-05-FIX-A ✅ Done（0757dfc）· TRACTION-SSOT-05 ✅ FIX-A 閉環（母票+FIX-A 同移 deliver/）· INFRA-CR-PLANS-DIFF-01 ✅ Done（43a35fb）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）|
+| Schedule | **S35** · INFRA-REACH-02 ✅ Done（9/9 AC，Akira 裁決 Option C 補證 · 已移 deliver/）· INFRA-SKILLS-UC01 ✅ Done（Codex R1 PASS · 47fe32d）· TRACTION-SSOT-05-FIX-A ✅ Done（0757dfc）· TRACTION-SSOT-05 ✅ FIX-A 閉環（母票+FIX-A 同移 deliver/）· INFRA-CR-PLANS-DIFF-01 ✅ Done（43a35fb）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）|
 | Compile | ✅ PASS `assembleDebug`（53s，2026-07-06 首次真實補跑 /qa，證實無迴歸；票本身零 `.kt`/`.xml` 變更） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest`（2026-07-06 首次真實補跑 · AI-4 REACHABILITY token 雙自測負向 exit=1/正向 exit=0 另補） |
 | Lint | ✅ PASS `lint`（0 new warning，2026-07-06 首次真實補跑） |
@@ -35,6 +35,8 @@
 
 ## Next Actions
 
+> **S35（2026-07-06）：✅ INFRA-REACH-02 Done（9/9 AC）— 補跑正式 /qa→/sv（先前僅直接呼叫底層腳本，非正式 skill 流程）過程中修正兩項票配置錯誤（`ALLOWED` 路徑筆誤、`PROGRESS_ARCHIVE.md` 未登記），structural_verify A-G PASS（ADVISORY）；Akira 裁決 AC「第二 state holder 正向命中」選項 (C)：合成 `tmp/` 臨時 fixture 自測（未觸碰 `app/src/main/**`），已清理 · 票移 deliver/**
+>
 > **S34（2026-07-06）：⚠️ INFRA-REACH-02 8/9 AC PASS（Reachability 防線 v2：AI-1~AI-7 七項全落地，CSO 審查 M-1 後 Check G 標準化重構 + R-1 迴歸防護重跑 + Codex R2 ADVISORY 46b8e24）→ 1 項 AC（第二 state holder 正向命中）待 Akira 裁決，票暫留 Pending/ 未移 deliver/ → KAIROS K4-50「AC 語義折損律」候選登記完成**
 >
 > **S33（2026-07-06）：✅ INFRA-SKILLS-UC01 Done（`/uc` 新增「## 驗證性動作豁免」：零廢話只約束解說性輸出，執行 `.claude/**/*.sh` MUST 用注入 canonical 格式，MUST NOT 憑記憶組裝參數）Codex Cross-Review PASS · 47fe32d**
