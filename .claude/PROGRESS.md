@@ -18,9 +18,9 @@
 | Metric | Status |
 | -------- | -------- |
 | Schedule | **S34** · INFRA-REACH-02 ⚠️ 8/9 AC（待裁決第二 state holder 正向命中，Codex R2 ADVISORY · 46b8e24）· INFRA-SKILLS-UC01 ✅ Done（Codex R1 PASS · 47fe32d）· TRACTION-SSOT-05-FIX-A ✅ Done（0757dfc）· TRACTION-SSOT-05 ✅ FIX-A 閉環（母票+FIX-A 同移 deliver/）· INFRA-CR-PLANS-DIFF-01 ✅ Done（43a35fb）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）|
-| Compile | ⚪ N/A (INFRA-REACH-02：純 shell/prompt 治理票，無 `.kt`/`.xml` 變更，無 Gradle target) |
-| Tests | ⚪ N/A (governance ticket · AI-4 REACHABILITY token 雙自測負向 exit=1/正向 exit=0 代替) |
-| Lint | ⚪ N/A (governance ticket) |
+| Compile | ✅ PASS `assembleDebug`（53s，2026-07-06 首次真實補跑 /qa，證實無迴歸；票本身零 `.kt`/`.xml` 變更） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest`（2026-07-06 首次真實補跑 · AI-4 REACHABILITY token 雙自測負向 exit=1/正向 exit=0 另補） |
+| Lint | ✅ PASS `lint`（0 new warning，2026-07-06 首次真實補跑） |
 
 ## Active Blockers
 
