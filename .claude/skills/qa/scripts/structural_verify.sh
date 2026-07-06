@@ -215,6 +215,17 @@ if [[ -n "$_TICKET_ID" ]]; then
     else
       echo "✅ Cross-Review PASS (Ticket: ${_TICKET_ID}, Verdict: ${_R_VERDICT}, Scope: ${_R_SCOPE})"
     fi
+    # Check E-2 (INFRA-REACH-02 AI-4): receipt MUST carry a REACHABILITY= token — its
+    # absence or UNSET means Codex never emitted the machine-parseable line, so a
+    # missing-wiring guard could be hiding behind an otherwise-clean PASS/ADVISORY.
+    _R_REACHABILITY="$(grep "^REACHABILITY=" "$_RECEIPT_FILE" | head -1 | cut -d'=' -f2- || true)"
+    if [[ -z "$_R_REACHABILITY" || "$_R_REACHABILITY" == "UNSET" ]]; then
+      echo "❌ STRUCTURAL FAIL — [E-2] Cross-Review receipt 缺 REACHABILITY: token（Ticket: ${_TICKET_ID}）"
+      echo "   修正方式：cross_review.sh payload 未取得 Codex 輸出的 REACHABILITY: 行，重新執行 cross-review"
+      escalate_verdict "BLOCKER"
+    else
+      echo "✅ REACHABILITY token 存在（${_R_REACHABILITY}）"
+    fi
   else
     echo "❌ STRUCTURAL FAIL — [E] Cross-Review receipt 不存在 (${_TICKET_ID})"
     echo "   修正方式：先完成 /sv 階段 D cross_review.sh（PASS/ADVISORY），產生 .tmp/cross_review_pass/${_TICKET_ID}"

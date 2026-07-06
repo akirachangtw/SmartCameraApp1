@@ -298,6 +298,11 @@ cat > "$PAYLOAD" << 'PROMPT_HEADER'
 **強制輸出格式（每次必須輸出此行）**：
 `Guard Input Reachability: [無新 Guard] / [有新 Guard — State: X — Producer: (A)/(B)/(C)] / [missing-wiring: State X 無 producer]`
 
+**機械 token 格式（INFRA-REACH-02 AI-4，額外必須輸出，供 structural_verify.sh 機械解析，不得省略）**：
+獨立一行，開頭 `REACHABILITY:`，值為以下二選一：
+- `REACHABILITY: NONE`（無新 Guard，或所有 producer 判定為 (A)/(B)）
+- `REACHABILITY: <guard1>:<producer位置>,<guard2>:MISSING`（逐一列出每個新 Guard；producer 位置格式 `檔案:行號`；判定 (C) 一律填 `MISSING`）
+
 ### 3.6 注意事項
 - Pipeline Artifact（PROGRESS.md）揭露問題已由 structural_verify.sh 前置處理
 - 若 SV Report 已通過 structural_verify，不應就 PROGRESS.md 揭露問題重複 flag
@@ -407,6 +412,12 @@ if [[ "$VERDICT" == "REPORTFIX" ]]; then
   VERDICT="REPORT_FIX"
 fi
 
+# Parse REACHABILITY: token (INFRA-REACH-02 AI-4) — machine-parseable companion to the
+# prose "Guard Input Reachability:" line. Missing/malformed → UNSET (receipt still gets
+# the field; structural_verify.sh Check E-2 flags UNSET as a FAIL, not a silent skip).
+REACHABILITY="$(printf '%s\n' "$RESULT" | tr -d '\r' | grep -E "^REACHABILITY:" | head -1 | sed 's/^REACHABILITY:[[:space:]]*//' | xargs || true)"
+[[ -z "$REACHABILITY" ]] && REACHABILITY="UNSET"
+
 # Save fail budget state
 printf 'TICKET=%s\nROUND=%s\nLAST=%s\n' "$TICKET_ID" "$CURRENT_ROUND" "${VERDICT:-UNKNOWN}" > "$STATE_FILE"
 
@@ -429,8 +440,8 @@ clear_budget_state() { rm -f "$STATE_FILE" 2>/dev/null || true; rmdir "$STATE_DI
 # binds the attestation to the reviewed range (Check E rejects a stale scope = false-open defense).
 write_pass_receipt() {
   mkdir -p "$RECEIPT_DIR" 2>/dev/null || true
-  printf 'TICKET=%s\nVERDICT=%s\nDIFF_SCOPE=%s\nCOMMIT=%s\nTS=%s\n' \
-    "$TICKET_ID" "$VERDICT" "$DIFF_SCOPE" "$(git rev-parse HEAD 2>/dev/null || echo unknown)" "$TIMESTAMP" \
+  printf 'TICKET=%s\nVERDICT=%s\nDIFF_SCOPE=%s\nCOMMIT=%s\nTS=%s\nREACHABILITY=%s\n' \
+    "$TICKET_ID" "$VERDICT" "$DIFF_SCOPE" "$(git rev-parse HEAD 2>/dev/null || echo unknown)" "$TIMESTAMP" "$REACHABILITY" \
     > "$RECEIPT_FILE"
 }
 

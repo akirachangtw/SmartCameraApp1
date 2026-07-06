@@ -65,13 +65,21 @@ disable-model-invocation: false
    - `when` 分支 **MUST** exhaustive，`return` 防線是否穩固。
    - Compose `if/else` 層次是否正確處理 null 狀態。
 
-7. **Guard Input Reachability（INFRA-REACH-01）**：
+7. **Guard Input Reachability（INFRA-REACH-01 / INFRA-REACH-02 機械分級）**：
    對本 diff 新增的任何 Guard / gate / early-return，逐一確認依賴的 input：
    - 在 `app/src/main/` 是否存在 production 寫入點（非預設初始化、非 reset-to-Idle 語意）？
    - 若任一 input 無 non-idle production producer → 標記 **⚠️ UNREACHABLE GUARD**
-   - 對應 AC **MUST** 不得標 PASS，改為 **⚠️ PARTIAL**，並開後續 follow-up Ticket
-   - 結果（含「已確認可達」或「UNREACHABLE」判定）**MUST** 寫入 `sv_report.md`
+   - **機械分級（INFRA-REACH-02）**：UNREACHABLE GUARD **且** 該 guard/欄位名稱出現於本 Ticket AC 文字中 → 判定 **MUST** 升級為 **📋 REPORT_FIX 機械級**（非可自選 WARNING/PARTIAL）；對應 AC **MUST** 不得標 PASS/PARTIAL 自選，**MUST** 停用 sv_report.md 修報告即放行。豁免 **MUST** 僅得引用 Ticket 內**具名白名單**條款（比照 K4-39/K4-48 具名排除格式），**MUST** 禁止 context-gated 理由文（如「本情境下可接受」等臨場豁免）。
+   - UNREACHABLE GUARD 但欄位未出現於本票 AC 文字 → 沿用既有語意豁免：對應 AC **MUST** 不得標 PASS，改為 **⚠️ PARTIAL**，並開後續 follow-up Ticket
+   - 結果（含「已確認可達」「UNREACHABLE-PARTIAL」或「UNREACHABLE-REPORT_FIX」判定）**MUST** 寫入 `sv_report.md`
    - 輔助工具：Step 3.5.5 Dead-State 掃描輸出；參考 K3-Rule 26（多消費路徑掃描）
+
+8. **Integration Test 存在閘（INFRA-REACH-02 G-5）**：
+   凡本 Ticket Acceptance Criteria 含 `[可達性]` 或 `[行為性]` 類型標記 → **MUST** 確認對應 integration/ViewModel 層測試存在且綠：
+   - 於 `app/src/test/` 或 `app/src/androidTest/` 中搜尋以驅動 production 路徑（非直注 fixture state）方式覆蓋該 AC 的測試檔案/方法。
+   - 找不到對應測試 → **MUST** 標記 **⚠️ MISSING-INTEGRATION-TEST**，對應 AC **MUST** 不得標 PASS。
+   - 本項為存在性檢查起步（確認測試「存在且綠」），測試斷言的行為深度由個別 Ticket 自行以更嚴格 AC 承載（不在本項強制範圍）。
+   - 結果 **MUST** 寫入 `sv_report.md`。
 
 ## 階段 C：架構合規 (Architecture Compliance)
 

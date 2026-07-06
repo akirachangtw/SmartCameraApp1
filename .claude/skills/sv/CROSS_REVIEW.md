@@ -139,8 +139,33 @@ Guard Input Reachability: [無新 Guard] / [有新 Guard — State: X — Produc
 
 此規則由 `cross_review.sh §3.5` 實作（prompt wiring），由 `sv/SKILL.md §B-7` 補充語意審查層，由 `static_blind_scan.sh §3.5.5` 提供 Dead-State 偵測工具。
 
+## REACHABILITY 機械 Token（INFRA-REACH-02 AI-4）
+
+Guard Input Reachability 的散文回答（上一節）僅供人類/Codex 語意判讀，不可機械解析。本節定義供 `structural_verify.sh` 消費的機械 token，兩者為同一次審查必須**同時**輸出的獨立行，不可互相替代。
+
+**格式**（Codex 每次 Cross-Review 必須輸出，見 `cross_review.sh §3.5` 機械 token 段落）：
+
+```
+REACHABILITY: NONE
+```
+
+或（至少一個新 Guard 判定為 (C) missing-wiring 時）：
+
+```
+REACHABILITY: <guard1>:<producer位置>,<guard2>:MISSING
+```
+
+| 欄位 | 說明 |
+|------|------|
+| `NONE` | 無新 Guard，或所有 producer 判定為 (A)/(B) |
+| `<guard>:<producer位置>` | producer 判定 (A)/(B)，位置格式 `檔案:行號` |
+| `<guard>:MISSING` | producer 判定 (C)，對應 AC 不得標 PASS |
+
+**消費鏈**：`cross_review.sh` 從 Codex 輸出解析 `REACHABILITY:` 行 → 寫入 `.tmp/cross_review_pass/<TICKET_ID>` receipt 的 `REACHABILITY=` 欄位 → `structural_verify.sh` Check E-2（`--post` mode）驗證該欄位存在且非 `UNSET`，缺失或未設定 → **BLOCKER**（Codex 未實際輸出機械 token，即使散文回答存在也視為未落地）。
+
 ## 維護
 
 - `ssot_context.md`：每 Sprint 更新一次，或 SSOT 版本變更時同步
 - `cross_review.sh`：prompt 結構、verdict 或 fail budget 行為變更時同步更新
+- `structural_verify.sh`：receipt 欄位或 Check E 系列邏輯變更時同步更新
 - 本文件：工作流變更時同步更新
