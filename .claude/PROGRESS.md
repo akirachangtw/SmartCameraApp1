@@ -5,7 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-SKILLS-UC01 | 🔄 QA PASS（Scope Gate ✅ · 純 skill .md prompt）· 待 cross_review.sh 終審 · `/uc` 新增「## 驗證性動作豁免」段落：零廢話只約束解說性輸出，執行 `.claude/**/*.sh` MUST 用注入〔腳本現況〕canonical 格式 or 讀腳本頭 Usage，MUST NOT 憑記憶組裝參數 · 既有約束（零過渡/純 Diff/DONE 終止）保留 · +8L · prompt-only infra |
+| INFRA-SKILLS-UC01 | ✅ Done · Codex Cross-Review PASS（R1，完整 cross_review.sh · Guard Reachability 無新 Guard）· `/uc` 新增「## 驗證性動作豁免」段落：零廢話只約束解說性輸出，執行 `.claude/**/*.sh` MUST 用注入〔腳本現況〕canonical 格式 or 讀腳本頭 Usage，MUST NOT 憑記憶組裝參數 · 既有約束（零過渡/純 Diff/DONE 終止）保留 · AC-4 .sh 零觸碰 · +8L · 47fe32d |
 | TRACTION-SSOT-05-FIX-A | ✅ Done · Codex Cross-Review PASS（R1，完整 cross_review.sh + ssot_context 注入，禁手動窄審 · Guard Reachability 無新 Guard · type-drift Findings none）· R-T19 Option C：§4.3 L865 幻名 `FoodCompositionScore`→`levelScore`（§7.1 評分→§7.2 EXIF 既有定義消費者）· 解 SSOT-05 母票 R3 type-drift BLOCKER（Codex 實質正確：全 SSOT 零定義空名）· L866 FoodCompositionRule/R-T5 鏡像零觸碰 · MAX_LINES 5（實 1 行）· 0757dfc · Check E receipt 合法自動寫入 · 母票+FIX-A 同移 deliver/ |
 | INFRA-CR-PLANS-DIFF-01 | ✅ Done · Codex Cross-Review PASS（R1，dogfood：修好的腳本自審自身 diff）· cross_review.sh 粗排除 → ALLOWED-aware carve-out（`.claude//docs//plans/` 逐一，只在 ALLOWED 涵蓋時 carve-out）· 修 plans/-scoped 治理票被 `:!plans/` 餵空 diff bug（實證 0→2564 bytes）· verdict/prompt/fail-budget/exit code 零觸碰 · Fixture A/B/C+EXTRA_EXCLUDE+empty 14 assertions 全綠 · 43a35fb · Traycer execute_review pending |
 | TRACTION-SSOT-05 | ✅ FIX-A 閉環（母票 type-drift 已由 FIX-A 0757dfc 修正）· Level-D9 語義清掃 §2.2/§4.3/§8 三處落地（9af1223）· 手動窄審 PASS 曾遮蔽 §4.3 幻名 `FoodCompositionScore`（無 ssot_context 未觸發 drift 檢查）· 完整 cross_review R3 BLOCKER 正確揪出 → R-T19 Option C 重錨為 levelScore → 母票+FIX-A 配對同移 deliver/（reflog 閉合）|
@@ -18,7 +18,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S33** · INFRA-SKILLS-UC01 🔄 QA PASS（待 cross_review.sh）· TRACTION-SSOT-05-FIX-A ✅ Done（0757dfc）· TRACTION-SSOT-05 ✅ FIX-A 閉環（母票+FIX-A 同移 deliver/）· INFRA-CR-PLANS-DIFF-01 ✅ Done（43a35fb）· TRACTION-SSOT-04 ✅ Done（565e03e）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）|
+| Schedule | **S33** · INFRA-SKILLS-UC01 ✅ Done（Codex R1 PASS · 47fe32d）· TRACTION-SSOT-05-FIX-A ✅ Done（0757dfc）· TRACTION-SSOT-05 ✅ FIX-A 閉環（母票+FIX-A 同移 deliver/）· INFRA-CR-PLANS-DIFF-01 ✅ Done（43a35fb）· TRACTION-SSOT-04 ✅ Done（565e03e）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）|
 | Compile | ⚪ N/A (INFRA-SKILLS-UC01：純 skill .md prompt，無 Gradle target) |
 | Tests | ⚪ N/A (governance ticket · rg 字串錨 AC-1~4 全綠代替) |
 | Lint | ⚪ N/A (governance ticket) |
