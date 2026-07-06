@@ -5,22 +5,22 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| INFRA-SKILLS-UC01 | 🔄 QA PASS（Scope Gate ✅ · 純 skill .md prompt）· 待 cross_review.sh 終審 · `/uc` 新增「## 驗證性動作豁免」段落：零廢話只約束解說性輸出，執行 `.claude/**/*.sh` MUST 用注入〔腳本現況〕canonical 格式 or 讀腳本頭 Usage，MUST NOT 憑記憶組裝參數 · 既有約束（零過渡/純 Diff/DONE 終止）保留 · +8L · prompt-only infra |
 | TRACTION-SSOT-05-FIX-A | ✅ Done · Codex Cross-Review PASS（R1，完整 cross_review.sh + ssot_context 注入，禁手動窄審 · Guard Reachability 無新 Guard · type-drift Findings none）· R-T19 Option C：§4.3 L865 幻名 `FoodCompositionScore`→`levelScore`（§7.1 評分→§7.2 EXIF 既有定義消費者）· 解 SSOT-05 母票 R3 type-drift BLOCKER（Codex 實質正確：全 SSOT 零定義空名）· L866 FoodCompositionRule/R-T5 鏡像零觸碰 · MAX_LINES 5（實 1 行）· 0757dfc · Check E receipt 合法自動寫入 · 母票+FIX-A 同移 deliver/ |
 | INFRA-CR-PLANS-DIFF-01 | ✅ Done · Codex Cross-Review PASS（R1，dogfood：修好的腳本自審自身 diff）· cross_review.sh 粗排除 → ALLOWED-aware carve-out（`.claude//docs//plans/` 逐一，只在 ALLOWED 涵蓋時 carve-out）· 修 plans/-scoped 治理票被 `:!plans/` 餵空 diff bug（實證 0→2564 bytes）· verdict/prompt/fail-budget/exit code 零觸碰 · Fixture A/B/C+EXTRA_EXCLUDE+empty 14 assertions 全綠 · 43a35fb · Traycer execute_review pending |
 | TRACTION-SSOT-05 | ✅ FIX-A 閉環（母票 type-drift 已由 FIX-A 0757dfc 修正）· Level-D9 語義清掃 §2.2/§4.3/§8 三處落地（9af1223）· 手動窄審 PASS 曾遮蔽 §4.3 幻名 `FoodCompositionScore`（無 ssot_context 未觸發 drift 檢查）· 完整 cross_review R3 BLOCKER 正確揪出 → R-T19 Option C 重錨為 levelScore → 母票+FIX-A 配對同移 deliver/（reflog 閉合）|
 | TRACTION-SSOT-04 | ✅ Done · Codex Cross-Review PASS（複合路徑：R1[S-1/3/5/6] ⊕ R-T18[S-2 具名排除，L481 D-3 重錨敘述行 = 定義性 false-positive] ⊕ FIX-A b8rxia4a9[S-4 消除]）· 對齊態可見性修正（D-3 值重錨 0.25→0.40 + §2.0 alpha 組合語義條款 + §2.3/§2.5 圓點強存在 scale 1.1 統一 + V 曲線 0.35+x×0.5 收斂）· 母體 515d3cc+669cc4a、FIX-A 565e03e · 禁區零觸碰（未對齊 0.8 R-T2/R-T9 / L481 D-3 重錨行）· Build/Test/Lint N/A（純 spec .md）|
 | INFRA-SV-STATE-RECEIPT-01 | ✅ Done · Codex Cross-Review PASS（R1）· 拆 STATE_FILE 語意超載（關切 A round 記帳 vs 關切 B PASS attestation）· cross_review.sh PASS/ADVISORY 於 `clear_budget_state` 前寫 durable range-bound receipt 至 `.tmp/cross_review_pass/${TICKET_ID}`（不受兩 janitor 影響）· structural_verify.sh Check E re-anchor：讀 receipt 驗 VERDICT∈{PASS,ADVISORY} **且** DIFF_SCOPE 匹配當前 --post scope（mismatch→BLOCKER false-open 防線）· **AC-1 真實閉環**：Step 5 --post Check E ✅ 綠（解 SV-CHECK-E-REGRESSION）· 禁區零改（AC-3）· Build/Test/Lint N/A（bash -n + Check E 自測 5/5）· 3eae2b5 |
-| INFRA-M3-AUDIT-01 | ✅ Done · Codex Cross-Review PASS（R1）· family provenance 偵測控制 `m3_family_audit.sh`（唯讀+escalate，`ticket_pattern.md` 表 derive family 白名單，結構文法 drift-check 鏡像 `commit-hook=`）· 對帳 185 ID → 結構合法 158 / 已登記 158 / **escalate 0** · self-test 0 誤報（雙段家族+leading-only FP2 防禦）· `/dream` §0 stale-gate（>14 日 fail-loud）· `ticket_pattern.md` 第 6 行死指令消除（版本 B）· Build/Test/Lint N/A · 7025e39 · ⚠️ /qa Step 5 --post [E] waived-with-cause（Check E 對所有 PASS 票必 BLOCKER 之跨機制 regression；非 M3 缺陷，綁 INFRA-SV-STATE-RECEIPT-01 修票）|
 
-**Last Updated**: 2026-07-05
+**Last Updated**: 2026-07-06
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S32** · TRACTION-SSOT-05-FIX-A ✅ Done（Codex R1 PASS · 0757dfc）· TRACTION-SSOT-05 ✅ FIX-A 閉環（母票+FIX-A 同移 deliver/）· INFRA-CR-PLANS-DIFF-01 ✅ Done（43a35fb）· TRACTION-SSOT-04 ✅ Done（565e03e）· INFRA-SV-STATE-RECEIPT-01 ✅ Done（3eae2b5）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）|
-| Compile | ⚪ N/A (TRACTION-SSOT-05-FIX-A：純 spec .md 重錨，無 Gradle target) |
-| Tests | ⚪ N/A (governance ticket · 字串錨 grep AC-1~5 全綠代替) |
+| Schedule | **S33** · INFRA-SKILLS-UC01 🔄 QA PASS（待 cross_review.sh）· TRACTION-SSOT-05-FIX-A ✅ Done（0757dfc）· TRACTION-SSOT-05 ✅ FIX-A 閉環（母票+FIX-A 同移 deliver/）· INFRA-CR-PLANS-DIFF-01 ✅ Done（43a35fb）· TRACTION-SSOT-04 ✅ Done（565e03e）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）|
+| Compile | ⚪ N/A (INFRA-SKILLS-UC01：純 skill .md prompt，無 Gradle target) |
+| Tests | ⚪ N/A (governance ticket · rg 字串錨 AC-1~4 全綠代替) |
 | Lint | ⚪ N/A (governance ticket) |
 
 ## Active Blockers
@@ -36,11 +36,11 @@
 
 ## Next Actions
 
+> **S33（2026-07-06）：🔄 INFRA-SKILLS-UC01（`/uc` 新增「## 驗證性動作豁免」：零廢話只約束解說性輸出，執行 `.claude/**/*.sh` MUST 用注入 canonical 格式，MUST NOT 憑記憶組裝參數）QA PASS → 待 cross_review.sh 終審 → prompt-only infra 治理票**
+>
 > **S32（2026-07-06）：✅ TRACTION-SSOT-05-FIX-A Done（R-T19 Option C：§4.3 幻名 FoodCompositionScore→levelScore，解母票 R3 type-drift BLOCKER · Codex R1 PASS ssot_context 注入 · 0757dfc）→ 母票+FIX-A 同移 deliver/（reflog 閉合）→ SSOT-05 母票假 ✅ 回滾為「FIX-A 閉環」**
 >
 > **S31（2026-07-05）：✅ INFRA-CR-PLANS-DIFF-01 Done（cross_review.sh ALLOWED-aware 排除，根治 plans/-scoped 空 diff bug · dogfood R1 PASS · 43a35fb）· 修好的完整審查揪出 SSOT-05 §4.3 type-drift（手動窄審曾遮蔽）→ 開 FIX-A**
->
-> **S30（2026-07-05）：✅ TRACTION-SSOT-04 Done（對齊態可見性修正 · Codex Cross-Review PASS 複合路徑 R1⊕R-T18⊕FIX-A · S-4 REAL BLOCKER 消除 565e03e）· 續 HaloGuidanceLayer 渲染票（GAP-06）/ TRACTION-RENDER-01 開票**
 
 1. **🟡 引用修正支線**：使用者要求「`.claude/`、`plans/` 引用新版本路徑 v3.3」，已掃描分類（現行指標多數已於 GOV-03/PROTO-01 同步；`plans/cso_briefing/` 內 v3.2 引用屬 R-T5 化石溯源，Hard Constraint 3 **MUST** 不回改）→ **新 session 待使用者確認範圍或指定具體檔案後執行**
 2. **✅ TRACTION-SSOT-01**（/sv + Codex R2 PASS · fc6ffa8）：SSOT §2.5/§2.5.1/§2.5.2 + Layout §3.3 規格已落地 → **下一步開 HaloGuidanceLayer.kt 渲染實作票**（GAP-06 解除前置）

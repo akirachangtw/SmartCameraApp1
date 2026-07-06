@@ -53,6 +53,14 @@ disable-model-invocation: false
    - `✅ DONE | compile fix: ...` → 中間修復
    - `✅ DONE | git commit ...` → Git 操作
 
+## 驗證性動作豁免
+
+`/uc` 的零廢話要求只適用於解說性輸出，不適用於驗證性動作。
+
+執行 `.claude/**/*.sh` 時，**MUST** 使用 session 開頭注入的〔腳本現況〕中的 canonical 格式；若該腳本不在注入清單中，**MUST** 先讀取腳本頭部 Usage 註解再執行。
+
+**MUST NOT** 憑記憶組裝腳本參數。
+
 ## 唯一例外
 
 遇到以下情況 **MUST** 打破沉默：
