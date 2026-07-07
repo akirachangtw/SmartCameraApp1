@@ -5,12 +5,11 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| SSOT-V407-SWEEP-01 | ✅ Done · CLAUDE.md 現行 SSOT 指針 v4_0_6→v4_0_7（恰 2 處：核心鐵律 1 + `## SSOT` 策略行）· Codex Cross-Review PASS（REACHABILITY NONE）· assembleDebug PASS · AI-3 `.claude/rules/` v4_0_6 零命中 · Layout v2_5_1 零觸碰 · 6a08bed · 執行軌開機契約除雷（GAP-06 渲染票前置）· 已移 deliver/ |
 | SSOT-V407-01 | ✅ Done · SSOT v4.0.6→v4.0.7 七簇條文（§8 Freemium 通道切割+創始買斷 / §9 雙漏斗 / §2.5.4 鎖定態 Halo / §2.6 呼吸韻律 / §11 十六天 / B.15 / B.16 敘事鏈）· Codex Cross-Review ADVISORY→PASS（REACHABILITY NONE · receipt 5714078）· footer 化石 `End of SSOT v4.0.6`→v4.0.7 amend 修正（a881096，+1 行）· AC-5「GUIDANCE_ACTIVE 值在 α0.8、provenance 允留」+ receipt/HEAD 綁定 均 CSO 批准補證 · 唯二 PROVISIONAL（§2.5.4 alpha vaccine / §9 閾值三元組）待回填 · 已移 deliver/ |
 | INFRA-REACH-02 | ✅ Done · 9/9 AC PASS · Codex Cross-Review R2 ADVISORY（`REACHABILITY: NONE` · 46b8e24）+ 補跑正式 /qa→/sv 後 R2 ADVISORY（99a81de，structural_verify A-G PASS）· AC「第二 state holder 正向命中」由 Akira 裁決選項 (C)：合成 `tmp/` 臨時 fixture 自測（不落地 `app/src/main/**`），正向命中 `fakeMode` + `normalMode` 不誤報，見 `reports/REACH02_AI2_SelfTest_SecondHolder_20260706.md`；fixture 已清理 · AI-1~AI-7 七項 Action Item 皆完成 · 已移 deliver/ |
 | INFRA-SKILLS-UC01 | ✅ Done · Codex Cross-Review PASS（R1，完整 cross_review.sh · Guard Reachability 無新 Guard）· `/uc` 新增「## 驗證性動作豁免」段落：零廢話只約束解說性輸出，執行 `.claude/**/*.sh` MUST 用注入〔腳本現況〕canonical 格式 or 讀腳本頭 Usage，MUST NOT 憑記憶組裝參數 · 既有約束（零過渡/純 Diff/DONE 終止）保留 · AC-4 .sh 零觸碰 · +8L · 47fe32d |
 | TRACTION-SSOT-05-FIX-A | ✅ Done · Codex Cross-Review PASS（R1，完整 cross_review.sh + ssot_context 注入，禁手動窄審 · Guard Reachability 無新 Guard · type-drift Findings none）· R-T19 Option C：§4.3 L865 幻名 `FoodCompositionScore`→`levelScore`（§7.1 評分→§7.2 EXIF 既有定義消費者）· 解 SSOT-05 母票 R3 type-drift BLOCKER（Codex 實質正確：全 SSOT 零定義空名）· L866 FoodCompositionRule/R-T5 鏡像零觸碰 · MAX_LINES 5（實 1 行）· 0757dfc · Check E receipt 合法自動寫入 · 母票+FIX-A 同移 deliver/ |
-| INFRA-CR-PLANS-DIFF-01 | ✅ Done · Codex Cross-Review PASS（R1，dogfood：修好的腳本自審自身 diff）· cross_review.sh 粗排除 → ALLOWED-aware carve-out（`.claude//docs//plans/` 逐一，只在 ALLOWED 涵蓋時 carve-out）· 修 plans/-scoped 治理票被 `:!plans/` 餵空 diff bug（實證 0→2564 bytes）· verdict/prompt/fail-budget/exit code 零觸碰 · Fixture A/B/C+EXTRA_EXCLUDE+empty 14 assertions 全綠 · 43a35fb · Traycer execute_review pending |
-| TRACTION-SSOT-05 | ✅ FIX-A 閉環（母票 type-drift 已由 FIX-A 0757dfc 修正）· Level-D9 語義清掃 §2.2/§4.3/§8 三處落地（9af1223）· 手動窄審 PASS 曾遮蔽 §4.3 幻名 `FoodCompositionScore`（無 ssot_context 未觸發 drift 檢查）· 完整 cross_review R3 BLOCKER 正確揪出 → R-T19 Option C 重錨為 levelScore → 母票+FIX-A 配對同移 deliver/（reflog 閉合）|
 
 **Last Updated**: 2026-07-07
 
@@ -18,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S36** · SSOT-V407-01 ✅ Done（七簇 v4.0.7 · Codex ADVISORY→PASS · a881096 · 已移 deliver/）· **S35** · INFRA-REACH-02 ✅（9/9 AC · Option C）· INFRA-SKILLS-UC01 ✅（47fe32d）· TRACTION-SSOT-05(-FIX-A) ✅（0757dfc）· INFRA-CR-PLANS-DIFF-01 ✅（43a35fb）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）|
+| Schedule | **S37** · SSOT-V407-SWEEP-01 ✅ Done（CLAUDE.md SSOT 指針 v4_0_7 · Codex PASS · 6a08bed · 已移 deliver/）· **S36** · SSOT-V407-01 ✅（七簇 v4.0.7 · a881096）· **S35** · INFRA-REACH-02 ✅（9/9 AC）· INFRA-SKILLS-UC01 ✅（47fe32d）· TRACTION-SSOT-05(-FIX-A) ✅（0757dfc）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）|
 | Compile | ✅ PASS `assembleDebug`（53s，2026-07-06 首次真實補跑 /qa，證實無迴歸；票本身零 `.kt`/`.xml` 變更） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest`（2026-07-06 首次真實補跑 · AI-4 REACHABILITY token 雙自測負向 exit=1/正向 exit=0 另補） |
 | Lint | ✅ PASS `lint`（0 new warning，2026-07-06 首次真實補跑） |
@@ -43,15 +42,11 @@
 
 ## Next Actions
 
-> **S36（2026-07-07）：✅ SSOT-V407-01 Done — SSOT v4.0.6→v4.0.7 七簇條文入檔（歸檔 #154-160+#163）· Codex Cross-Review ADVISORY→PASS（footer 化石 amend 修正）· AC-5 provenance 判讀 + receipt(5714078)/HEAD(a881096) 綁定經 CSO 批准補證 · 唯二 PROVISIONAL（§2.5.4 alpha vaccine / §9 閾值三元組）待回填（UITA 退回單並行：live 錨點 0.8 / LIMITED 0.35 / 呼吸帶 0.25→0.40 重推導）→ 票移 deliver/**
+> **S37（2026-07-07）：✅ SSOT-V407-SWEEP-01 Done — CLAUDE.md 現行 SSOT 指針對齊 v4_0_6→v4_0_7（恰 2 處）· Codex Cross-Review PASS · assembleDebug PASS · AI-3 `.claude/rules/` 零命中 · Layout v2_5_1 零觸碰 · 6a08bed · 執行軌開機契約除雷 → 票移 deliver/（S32~S34 Session Notes 歸檔至 PROGRESS_ARCHIVE.md，PROGRESS.md 壓回 ≤80）**
 >
-> **S35（2026-07-06）：✅ INFRA-REACH-02 Done（9/9 AC）— 補跑正式 /qa→/sv（先前僅直接呼叫底層腳本，非正式 skill 流程）過程中修正兩項票配置錯誤（`ALLOWED` 路徑筆誤、`PROGRESS_ARCHIVE.md` 未登記），structural_verify A-G PASS（ADVISORY）；Akira 裁決 AC「第二 state holder 正向命中」選項 (C)：合成 `tmp/` 臨時 fixture 自測（未觸碰 `app/src/main/**`），已清理 · 票移 deliver/**
+> **S36（2026-07-07）：✅ SSOT-V407-01 Done — SSOT v4.0.6→v4.0.7 七簇條文入檔（歸檔 #154-160+#163）· Codex Cross-Review ADVISORY→PASS（footer 化石 amend 修正）· AC-5 provenance 判讀 + receipt(5714078)/HEAD(a881096) 綁定經 CSO 批准補證 · 唯二 PROVISIONAL 待回填（見 PROVISIONAL Ledger）→ 票移 deliver/**
 >
-> **S34（2026-07-06）：⚠️ INFRA-REACH-02 8/9 AC PASS（Reachability 防線 v2：AI-1~AI-7 七項全落地，CSO 審查 M-1 後 Check G 標準化重構 + R-1 迴歸防護重跑 + Codex R2 ADVISORY 46b8e24）→ 1 項 AC（第二 state holder 正向命中）待 Akira 裁決，票暫留 Pending/ 未移 deliver/ → KAIROS K4-50「AC 語義折損律」候選登記完成**
->
-> **S33（2026-07-06）：✅ INFRA-SKILLS-UC01 Done（`/uc` 新增「## 驗證性動作豁免」：零廢話只約束解說性輸出，執行 `.claude/**/*.sh` MUST 用注入 canonical 格式，MUST NOT 憑記憶組裝參數）Codex Cross-Review PASS · 47fe32d**
->
-> **S32（2026-07-06）：✅ TRACTION-SSOT-05-FIX-A Done（R-T19 Option C：§4.3 幻名 FoodCompositionScore→levelScore，解母票 R3 type-drift BLOCKER · Codex R1 PASS ssot_context 注入 · 0757dfc）→ 母票+FIX-A 同移 deliver/（reflog 閉合）→ SSOT-05 母票假 ✅ 回滾為「FIX-A 閉環」**
+> **S35（2026-07-06）：✅ INFRA-REACH-02 Done（9/9 AC）— structural_verify A-G PASS（ADVISORY）；Akira 裁決 AC「第二 state holder 正向命中」選項 (C) 合成 `tmp/` fixture 自測 · 票移 deliver/**
 
 1. **🟡 引用修正支線**：使用者要求「`.claude/`、`plans/` 引用新版本路徑 v3.3」，已掃描分類（現行指標多數已於 GOV-03/PROTO-01 同步；`plans/cso_briefing/` 內 v3.2 引用屬 R-T5 化石溯源，Hard Constraint 3 **MUST** 不回改）→ **新 session 待使用者確認範圍或指定具體檔案後執行**
 2. **✅ TRACTION-SSOT-01**（/sv + Codex R2 PASS · fc6ffa8）：SSOT §2.5/§2.5.1/§2.5.2 + Layout §3.3 規格已落地 → **下一步開 HaloGuidanceLayer.kt 渲染實作票**（GAP-06 解除前置）

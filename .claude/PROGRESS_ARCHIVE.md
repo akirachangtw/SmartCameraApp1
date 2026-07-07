@@ -286,3 +286,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 > **S31（2026-07-05）：✅ INFRA-CR-PLANS-DIFF-01 Done（cross_review.sh ALLOWED-aware 排除，根治 plans/-scoped 空 diff bug · dogfood R1 PASS · 43a35fb）· 修好的完整審查揪出 SSOT-05 §4.3 type-drift（手動窄審曾遮蔽）→ 開 FIX-A**
 
 | INFRA-SV-STATE-RECEIPT-01 | ✅ Done · Codex Cross-Review PASS（R1）· 拆 STATE_FILE 語意超載（關切 A round 記帳 vs 關切 B PASS attestation）· cross_review.sh PASS/ADVISORY 於 `clear_budget_state` 前寫 durable range-bound receipt 至 `.tmp/cross_review_pass/${TICKET_ID}`（不受兩 janitor 影響）· structural_verify.sh Check E re-anchor：讀 receipt 驗 VERDICT∈{PASS,ADVISORY} **且** DIFF_SCOPE 匹配當前 --post scope（mismatch→BLOCKER false-open 防線）· **AC-1 真實閉環**：Step 5 --post Check E ✅ 綠（解 SV-CHECK-E-REGRESSION）· 禁區零改（AC-3）· Build/Test/Lint N/A（bash -n + Check E 自測 5/5）· 3eae2b5 |
+
+> **S32（2026-07-06）：✅ TRACTION-SSOT-05-FIX-A Done（R-T19 Option C §4.3 FoodCompositionScore→levelScore，解母票 R3 type-drift BLOCKER · Codex R1 PASS ssot_context 注入 · 0757dfc）→ 母票+FIX-A 同移 deliver/（reflog 閉合）**
+> **S33（2026-07-06）：✅ INFRA-SKILLS-UC01 Done（/uc 新增「## 驗證性動作豁免」：執行 .sh MUST 用 canonical 格式，MUST NOT 憑記憶組裝參數）· Codex Cross-Review PASS · 47fe32d**
+> **S34（2026-07-06）：⚠️ INFRA-REACH-02 8/9 AC（Reachability v2 AI-1~7 落地 + CSO M-1 後 Check G 標準化重構 + R-1 迴歸 + Codex R2 ADVISORY 46b8e24）→ 1 AC（第二 state holder 正向命中）待 Akira 裁決，票暫留 Pending/ → K4-50「AC 語義折損律」候選登記**
