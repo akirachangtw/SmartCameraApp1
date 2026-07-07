@@ -34,6 +34,13 @@
 
 > **🟠 治理校正（2026-06-30）**：AC-10（skip-when-focused / Guard 7a）由 ✅ 改 **⚠️ PARTIAL** — unit logic 已實作測試，但 production input `AfState.Locked` 為 dead field（不可達），三道 gate 結構性假過。實際修復 = GAP-07；流程防護 = INFRA-REACH-01（已開票 Pending/）。
 
+## PROVISIONAL Ledger（防孤兒追蹤 · 2026-07-07 CSO 提案 Akira 授權）
+
+| PROVISIONAL | Owner | 觸發事件 | 死線 | 孤兒警訊 / 原則 |
+| ---- | ---- | ---- | ---- | ---- |
+| §2.5.4 alpha vaccine（SSOT v4.0.7 L678） | UITA | UITA 退回單返回（live 錨點 0.8 / LIMITED 0.35 / 呼吸帶 0.25→0.40 重推導）→ CSO 驗收回填 | D14（Halo 教學 0.5 天前定稿） | UITA 逾 48h 無回件即升級 CSO |
+| §9 閾值三元組（SSOT v4.0.7 L1363） | Akira＋實測 | D15-16 餐廳實測 P25 校準（CR-7 腳本軌 A，純 IMU 遙測統計，Fable5 零介入） | D16 | **延測不硬測**：GAP-06/07 未閉 → Sprint 順延換乾淨數據，禁污染錨入檔（CSO 裁決 2026-07-07，Akira 核准） |
+
 ## Next Actions
 
 > **S36（2026-07-07）：✅ SSOT-V407-01 Done — SSOT v4.0.6→v4.0.7 七簇條文入檔（歸檔 #154-160+#163）· Codex Cross-Review ADVISORY→PASS（footer 化石 amend 修正）· AC-5 provenance 判讀 + receipt(5714078)/HEAD(a881096) 綁定經 CSO 批准補證 · 唯二 PROVISIONAL（§2.5.4 alpha vaccine / §9 閾值三元組）待回填（UITA 退回單並行：live 錨點 0.8 / LIMITED 0.35 / 呼吸帶 0.25→0.40 重推導）→ 票移 deliver/**
