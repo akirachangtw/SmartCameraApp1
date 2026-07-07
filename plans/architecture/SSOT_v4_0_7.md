@@ -1,0 +1,2141 @@
+# Cueshot 策略與架構 SSOT v4.0.7
+
+**文件版本**: 4.0.7 (SSOT-V407-01 — 歸檔 #154-160 九項裁決入條文：D-28~D-31 Freemium 通道分層 + 創始買斷 + 雙漏斗指標 + F-1/F-2/F-3/F-5 視覺引導 + Sprint v2)  
+**建立日期**: 2026-05-12  
+**修訂日期**: 2026-07-07  
+**文件性質**: 唯一真理文件 — 本文件作廢所有前版（v3.0~v3.3, Delta v3.4~v3.4.1, v4.0~v4.0.6）  
+**作者**: CSO 策略分析 + Ambient UI Tech Auditor (Claude Opus 4.6) + 開發者 Akira  
+**合併來源**: v4.0.6 + Session（CSO 商業可行性 × 視覺引導雙簇裁決，2026-07-07）: D-28 感測器通道分層 · D-29 PTF 成長飛輪 · D-30 創始買斷 SKU · D-31 雙漏斗指標 · F-1 雙軌 IFTR · F-2 鎖定態 Halo · F-3 呼吸韻律免費層 · F-5 購買完成頁 Halo 教學  
+**搭配文件**: `Cueshot_Layout_Spec_v2_5_1.md`（佈局精確定義）
+
+---
+
+## 第一部分：產品定位
+
+### 1.1 一句話定位
+
+> **它不只告訴你怎麼拍對，它還懂得什麼時候不該干預。**
+
+### 1.2 定位拆解
+
+| 能力 | 描述 |
+|------|------|
+| 角度引導 | 即時告訴你「此刻此景」的最佳拍攝角度 |
+| 構圖診斷 | 告訴你主體位置、頭部空間、視線方向哪裡可以更好 |
+| 減法留白偵測 | 辨識出你在刻意留白，閉嘴不干預 |
+| 鏡頭髒汙偵測 | 在你拍之前就守護影像品質 |
+| 遞手機模式 | 讓不會拍照的朋友也能幫你拍出好照片 |
+| 拍後景深效果 | 自動偵測雜亂背景，拍後 AI 虛化突顯主體 |
+
+### 1.3 競爭定位
+
+| 競品 | 定位差異 |
+|------|---------|
+| Google Pixel Camera Coach | 雲端依賴、Pixel 獨佔。我們：離線、全 Android |
+| WayShot | iOS 獨佔、$69.99/年、語音指導人像。我們：Android、創始買斷 $9.99/NT$290（Phase 1.5 訂閱 NT$90/月）、視覺引導美食+日常 |
+| ProCam / Halide | 專業相機替代品。我們：不是相機，是導拍引擎（疊加在拍照流程上的決策層）|
+
+---
+
+## 第二部分：Ambient UI 三通道 Traction 視覺引導體系
+
+### 2.0 全局 Ambient 常數
+
+所有 Ambient UI 元素共用的感知常數。統一後用戶不需要學習不同場景的不同「對齊門檻」— 體感永遠一致。
+
+```kotlin
+object AmbientConstants {
+    // 對齊判定
+    const val ALIGNED_THRESHOLD_DEG = 5f        // 所有場景統一對齊容許（±5°）
+
+    // Level Traction 漸入（D-10: N=10°）
+    const val LEVEL_FADE_RANGE_DEG = 10f         // Level Traction 漸入區間（0°=消失, 10°=完全可見）
+
+    // 場景切換
+    const val HYSTERESIS_SCENE_MS = 500L          // 場景切換防跳動
+    const val HYSTERESIS_PITCH_LOW_DEG = 70f      // 45°→90° 切換下限
+    const val HYSTERESIS_PITCH_HIGH_DEG = 80f     // 45°→90° 切換上限
+
+    // 動畫時序
+    const val BREATHE_CYCLE_MS = 2000L            // 呼吸韻律週期
+    const val TRANSITION_FAST_MS = 300L           // 標準快速過渡
+    const val SHUTTER_FLASH_DURATION_MS = 300L    // 快門閃爍持續時間
+
+    // Focus 動畫（附錄 A）
+    const val FOCUS_RING_SIZE_DP = 60f            // 對焦圓環外徑
+    const val FOCUS_RING_STROKE_DP = 1.5f         // 對焦圓環邊框寬度
+    const val FOCUS_AF_TIMEOUT_MS = 2500L         // D-17: AF 回調超時保護（Sony XQ-BT52 PDAF fine-tune 需額外裕度）
+    const val FOCUS_FADEOUT_MS = 500L              // Focused/drift 淡出時間
+    const val FOCUS_FAILED_MS = 800L              // Failed 振盪時間
+    const val FOCUS_LONG_PRESS_MS = 500L          // AE/AF Lock 長按閾值
+    const val FOCUS_DRIFT_THRESHOLD_DEG = 15f     // D-4: IMU drift 觸發 Focused 消失
+
+    // Top Bar 光線指示（D-15/D-16/D-19, §2.9）
+    const val LIGHT_DEBOUNCE_MS = 1000L           // D-16: 光線狀態 debounce 門檻
+    const val LIGHT_HDR_PULSE_MS = 3000L          // D-19: HDR 圖示 pulse 週期（需 HDR 狀態）
+    const val LIGHT_FLASH_PULSE_MS = 3000L        // D-19: ⚡ 圖示 pulse 週期（需補光狀態）
+    const val LIGHT_PULSE_ALPHA_MIN = 0.35f       // pulse 最低 alpha
+    const val LIGHT_PULSE_ALPHA_MAX = 1.0f        // pulse 最高 alpha
+
+    // 鎖定態 Halo Freemium teaser（F-2 / D-30 · NEW: SSOT-V407-01）
+    const val HALO_TRIAL_WINDOW_SESSIONS = 3      // NEW: 免費層鎖定態 Halo 試用窗（前 N 個 session 顯示鎖定態環）；與 PTF 每月 3 次分享限額常數分名（RG-1 撞名防護），語義為「session 計數」非「月配額」
+}
+
+// Pitch Traction 指示柱常數（D-2, R2/R17）
+object PitchTractionConstants {
+    const val COLUMN_WIDTH_DP = 36f               // 指示柱容器寬度
+    const val COLUMN_HEIGHT_RATIO = 0.25f         // 高度佔 viewfinder 25%
+    const val COLUMN_RIGHT_MARGIN_DP = 16f        // 右側邊距
+    const val AXIS_WIDTH_DP = 2f                  // 中軸線寬度
+    const val RING_SIZE_DP = 32f                  // 定位環直徑
+    const val RING_STROKE_DP = 1.5f               // 定位環線寬
+    const val DOT_SIZE_DP = 20f                   // 浮動圓點直徑
+    const val MAX_DOT_OFFSET_PX = 80f             // 圓點最大偏移量
+    const val MAX_DEVIATION_DEG = 20f             // 偏差正規化基準
+    const val COLOR_TRANSITION_RATIO = 0.5f       // 50%（=10°）以內綠色，以上琥珀
+}
+```
+
+**Alpha 組合語義（R-T13 V-2）**：所有呼吸/漸變 alpha 均指總感知值（total perceived alpha）；承載 alpha 動畫的元素，其色彩一律使用全 alpha（full-alpha color），禁止色彩 alpha × 元素 opacity 疊乘。
+
+### 2.0.1 Level Traction 漸入退場規格
+
+Level Traction 不是「開/關」二元切換，而是根據偏差程度連續漸入/漸出：
+
+- **偏差 0°** → opacity 0.00（完全消失 — 已對齊，退場）
+- **偏差 ≥10°** → opacity 1.00（完全可見 — 最大引導強度）
+- **中間線性插值**（偏差 5° → opacity 0.50）
+
+```kotlin
+val levelOpacity = (maxDeviation / AmbientConstants.LEVEL_FADE_RANGE_DEG)
+    .coerceIn(0f, 1f)
+
+// 繪製跳過優化：alpha 極低時直接跳過整個 Level Canvas
+if (levelOpacity < 0.01f) return@Canvas  // 省 4 次 drawXxx
+```
+
+其中 `maxDeviation = abs(rollDiff)`。（pre-D-9 雙基準線殘留：pitch 項依 `DEC-20260526224524` D-9 場景互斥裁決清除；Level 僅在非 Food 直立系運作，不感知 pitch）
+
+**設計理由（D-10, N=10°）**：N=5° 時正常手持微顫（±2°）會產生 opacity 0.40 的可見閃爍，違反 Ambient UI「不產生壓力」原則。N=10° 確保手持微顫（≤3°）僅產生 opacity ≤0.30，在 OLED/LCD 上融入背景不干擾。
+
+### 2.1 核心原則
+
+**不告訴用戶「你錯了」，而是讓畫面的視覺環境自然牽引用戶做出正確動作。**
+
+類比：道路上的車道標線（你不需要「閱讀」標線，身體自然知道往哪裡開）。
+
+### 2.2 三通道 Traction 引導體系
+
+| 通道 | 職責 | 感測器 | 刷新率 | 視覺表現 |
+|------|------|--------|--------|---------|
+| **Pitch Traction** | 俯仰角引導（45°/90° 牽引） | IMU (accelerometer + magnetometer) | 60fps | 右側垂直指示柱：中軸線 + 定位環 + 浮動圓點（D-2）|
+| **Level Traction** | 水平修正（Roll 微調） | IMU (accelerometer + magnetometer) | 60fps | 水平儀虛線 + 動態修正指示 |
+| **Halo Traction** | 構圖位置牽引（跟隨 ML Kit bbox） | ML Kit (Face/Object Detection) | 10fps + EMA 平滑 | 主體周圍柔和光環，偏離目標時內含牽引圓點（沿 atan2 方向位移）|
+
+**三通道獨立運作、獨立降級**：
+- Pitch Traction 操作在螢幕右側（垂直指示柱，D-2）
+- Level Traction 操作在螢幕中央（虛線水平儀）
+- Halo Traction 操作在主體周圍（圓形光環）
+- 三者視覺區域不衝突（Pitch 於邊緣、Level 於中央、Halo 於主體周圍）；Halo 可與 Pitch 或 Level 併存，但 Pitch 與 Level 依 D-9 場景互斥（見本節下方 D-9 條），無任何場景同時啟用 Pitch 與 Level。
+
+**三通道職責邊界（D-11）**：
+- **Pitch Traction**：俯仰角引導（1D 垂直軸），三態 `TILT_UP / TILT_DOWN / ALIGNED`
+- **Level Traction**：水平偏差引導（1D roll），opacity 漸入/漸出即是引導
+- **Halo Traction**：構圖位置引導（2D 平面），連續角度 `atan2(dy, dx)` 驅動牽引圓點位移
+
+**Pitch Traction 與 Level Traction 場景互斥（D-9）**：Food 場景啟用 Pitch Traction，關閉 Level Traction；其他場景啟用 Level Traction，關閉 Pitch Traction。無任何場景同時啟用兩者。
+
+**三通道均為 IMU 或 ML Kit 驅動，不存在任何名為 Edge Warmth 的渲染元件。**
+
+### 2.3 Pitch Traction 規格（D-2: 指示柱設計）
+
+**視覺結構**：右側垂直指示柱，由三個元素組成：
+- **中軸線**：2dp 寬，全高，引導視線的靜態軌道
+- **定位環**：32dp，1.5dp stroke，固定在軸線中點，代表「目標角度」
+- **浮動圓點**：20dp，沿中軸線移動，代表「當前 pitch 角度」
+
+**引導語義**：圓點在定位環上方 = 需要更俯（TILT_DOWN）；圓點在定位環下方 = 需要更抬（TILT_UP）；圓點在定位環內 = 已對齊（ALIGNED）。
+
+```kotlin
+// presentation/camera/overlay/PitchTractionLayer.kt
+
+enum class PitchGuidance { TILT_UP, TILT_DOWN, ALIGNED }
+
+@Composable
+fun PitchTractionLayer(
+    currentPitch: Float,
+    targetPitch: Float,   // 45f or 90f
+    modifier: Modifier = Modifier
+) {
+    val pitchDiff = targetPitch - currentPitch
+    val isAligned = abs(pitchDiff) <= AmbientConstants.ALIGNED_THRESHOLD_DEG
+
+    // 圓點偏移量（線性映射，±80px）
+    val rawOffset = (pitchDiff / PitchTractionConstants.MAX_DEVIATION_DEG)
+        .coerceIn(-1f, 1f) * PitchTractionConstants.MAX_DOT_OFFSET_PX
+
+    // 吸附動畫：進入對齊區時用 spring 彈性吸附（R17）
+    val dotOffset by animateFloatAsState(
+        targetValue = if (isAligned) 0f else rawOffset,
+        animationSpec = if (isAligned) {
+            spring(dampingRatio = 0.7f, stiffness = 300f)  // 彈性「卡入」
+        } else {
+            tween(150, easing = CubicBezierEasing(0.25f, 1f, 0.5f, 1f))
+        }
+    )
+
+    // 正規化距離（0~1，用於顏色計算）
+    val pitchDist = (abs(pitchDiff) / PitchTractionConstants.MAX_DEVIATION_DEG)
+        .coerceIn(0f, 1f)
+
+    // 顏色邏輯（R17）
+    val dotColor = when {
+        isAligned -> Color(0xFF50C864)  // 綠色
+        pitchDist > PitchTractionConstants.COLOR_TRANSITION_RATIO -> Color(0xFFD4A030)  // 琥珀（>10° 偏差）
+        else -> Color(0xFF50C864)  // 綠色（≤10° 偏差，接近對齊）
+    }
+    // R-T13 V-2: 對齊態全 alpha 色彩，alpha 包絡由呼吸單獨承載
+    val axisColor = if (isAligned) Color(0xFF50C864)
+                    else Color(0xFFD4A030).copy(alpha = 0.9f)
+    // R-T13 V-1: 對齊呼吸 α 0.25→0.40（D-3 重錨，同步 §2.5 Halo）
+    val pitchBreatheAlpha by animateFloatAsState(
+        targetValue = if (isAligned) 0.40f else 1f,
+        animationSpec = if (isAligned) {
+            infiniteRepeatable(tween(2000, easing = FastOutSlowInEasing), RepeatMode.Reverse)
+        } else {
+            tween(300)
+        }
+    )
+
+    Canvas(modifier = modifier
+        .width(PitchTractionConstants.COLUMN_WIDTH_DP.dp)
+        .fillMaxHeight(PitchTractionConstants.COLUMN_HEIGHT_RATIO)
+        .padding(end = PitchTractionConstants.COLUMN_RIGHT_MARGIN_DP.dp)
+    ) {
+        val centerX = size.width / 2
+        val centerY = size.height / 2
+
+        // 1. 中軸線
+        drawLine(
+            color = axisColor,
+            start = Offset(centerX, 0f),
+            end = Offset(centerX, size.height),
+            strokeWidth = PitchTractionConstants.AXIS_WIDTH_DP.dp.toPx(),
+            cap = StrokeCap.Round,
+            alpha = if (isAligned) pitchBreatheAlpha else 1f
+        )
+
+        // 2. 定位環
+        drawCircle(
+            color = if (isAligned) Color(0xFF50C864) else Color.Transparent,
+            radius = PitchTractionConstants.RING_SIZE_DP.dp.toPx() / 2,
+            center = Offset(centerX, centerY),
+            style = Stroke(PitchTractionConstants.RING_STROKE_DP.dp.toPx()),
+            alpha = if (isAligned) pitchBreatheAlpha else 1f
+        )
+
+        // 3. 浮動圓點（R-T13 V-3: 對齊後強存在 opacity 0.85 級 + scale 1.1，退場呼吸不作用於圓點；未對齊沿用統一 V 曲線 0.35+x×0.5）
+        val dotAlpha = if (isAligned) 0.85f else (0.35f + pitchDist * 0.5f)
+        drawCircle(
+            color = dotColor.copy(alpha = dotAlpha),
+            radius = PitchTractionConstants.DOT_SIZE_DP.dp.toPx() / 2,
+            center = Offset(centerX, centerY + dotOffset)
+        )
+    }
+}
+```
+
+**Canvas 呼叫**：3 次（`drawLine` + `drawCircle` × 2）
+
+**對齊呼吸**：當 `isAligned == true` 時，中軸線與定位環進入呼吸韻律（由全局呼吸驅動）同步 opacity `0.25→0.40`（R-T13 V-1 重錨，色彩為 align-green 全 alpha，alpha 包絡單獨承載——R-T13 V-2）；浮動圓點保持歸心強存在（opacity 0.85 級，scale 1.1），退場呼吸僅作用於環/線（R-T13 V-3，R-T6 圓點統一基元延伸）。
+
+**⚠️ Edge Warmth 殘留清除（D-14, R22）**：PitchTractionLayer **禁止**包含 `null -> drawRect(Brush.radialGradient(...))` 或任何全幅暈影渲染邏輯。此代碼為 Edge Warmth 時代 `Direction` enum 的語義殘留（D-11 已將 Direction enum 移交 Halo Traction）。`PitchGuidance` 三態 `{ TILT_UP, TILT_DOWN, ALIGNED }` 不存在 `null` 值。實作中若存在此分支，必須刪除。
+
+**場景映射（D-1, D-9 更新）**：
+
+| 場景 | Traction 通道行為 |
+|------|-----------------|
+| Food 45° | Pitch Traction 向 45° 牽引 + Halo Traction（Food bbox）|
+| Food 90° | Pitch Traction 向 90° 牽引 + Halo Traction（Food bbox）|
+| Portrait | Level Traction 水平修正 + Halo Traction（人臉 bbox）|
+| Pass-to-Friend | Level Traction 水平修正 + Halo Traction（人臉 bbox）（D-1: 不含 Pitch）|
+| Minimalist | Level Traction 水平修正（不做角度引導）|
+| General | Level Traction 水平修正 |
+
+**Pitch Traction 與 Level Traction 場景互斥**：Food 場景關閉 Level Traction（D-9），避免 Pitch 指示柱與 Level 虛線同時出現造成視覺混亂。其他場景關閉 Pitch Traction。
+
+**Level Traction 退場行為**：
+
+> Level Traction 對齊後**完全消失**（alpha → 0），不保留基底 alpha。  
+> 設計理由：符合 Ambient UI「完成即退場」哲學。全局對齊確認由快門外環呼吸韻律承擔。
+
+**橫拍 Level Traction**：
+
+> MVP 階段橫拍時 Level Traction **隱藏不顯示**。  
+> 理由：「不做比做錯好」— 橫拍的水平判定需要四方向旋轉自適應邏輯，MVP 來不及做且做錯會破壞信任。  
+> Phase 1.5 排程：實作 `OrientationAwareLevel` 四方向自適應。
+
+### 2.3.1 Pitch Traction 動態角度配置
+
+```kotlin
+data class PitchTractionConfig(
+    val targetDeg: Float,           // 45f or 90f
+    val alignedThresholdDeg: Float  // 對齊容許誤差
+) {
+    companion object {
+        val FOOD_45 = PitchTractionConfig(
+            targetDeg = 45f,
+            alignedThresholdDeg = 5f
+        )
+        val FOOD_90 = PitchTractionConfig(
+            targetDeg = 90f,
+            alignedThresholdDeg = 5f
+        )
+    }
+}
+
+/**
+ * 場景引擎中的 Pitch 配置選擇邏輯
+ * hysteresis: 從 45° 配置切到 90° 需 pitch > 80°
+ *             從 90° 配置切到 45° 需 pitch < 70°
+ */
+fun selectPitchConfig(currentPitch: Float, currentConfig: PitchTractionConfig): PitchTractionConfig {
+    return when {
+        currentConfig == FOOD_45 && currentPitch > 80f -> FOOD_90
+        currentConfig == FOOD_90 && currentPitch < 70f -> FOOD_45
+        else -> currentConfig  // hysteresis 區間內維持不變
+    }
+}
+```
+
+| 配置 | 目標角度 | 對齊容許 | 啟用條件 |
+|------|---------|---------|---------|
+| `FOOD_45` | 45° | ±5° | pitch ∈ [35°, 80°) |
+| `FOOD_90` | 90° | ±5° | pitch ∈ (70°, 90°] |
+| 切換閾值 | — | — | 75°（hysteresis 70°↔80°）|
+
+### 2.4 Level Traction 規格
+
+Level Traction 是原「水平儀」功能的正式名稱，以 IMU 驅動。
+
+**對齊判定與 opacity（非 Food，roll-only）**：
+- `isAligned = abs(rollDiff) ≤ 5`（對齊 §2.2 1D roll + §2.4.1 rollDeg）
+- `opacity = (abs(rollDiff) / 10).coerceIn(0f, 1f)`（漸入退場見 §2.0.1）
+- Level 僅在非 Food 直立系運作，不感知 pitch（D-9 場景互斥，溯 `DEC-20260526224524`）
+
+**渲染結構**：
+- **reference 層**（靜態）：白色虛線 + 空心圓刻度標記 — 代表「理想水平線」
+- **dynamic 層**（動態）：實線 + 實心圓 — 跟隨手機實際 Roll，偏移時顯示琥珀金，對齊時變綠
+
+**顏色邏輯**：
+- reference 層：固定白色 α0.5
+- dynamic 層：琥珀金 `#D4A030`（未對齊）→ 對齊綠 `#50C864`（已對齊）
+- PTF 模式 dynamic 層固定綠，見 §4.5.1（退場行為不變：α→0）
+
+**精確尺寸（R-T8）**：
+- 位置：`bottom 25% / 寬 60%`
+- reference 虛線：`repeating 8px-16px`；空心刻度點：`8px, border 1.5px white α0.8`
+- dynamic 實心點：`6px`
+- dynamic 變換：`rotate(rollDeg)`（roll-only；非 Food 不顯示 pitch translateY）
+
+**Canvas 優化**：reference 層首次繪製後快取為 Bitmap，後續幀直接 `drawImage`（4 次 drawXxx → 1 次）。
+
+### 2.4.1 IMU 角度計算骨架（R11, R12）
+
+**Pitch 座標定義（R12）**：手機直立時 pitch = 0°，手機水平朝下（俯拍）時 pitch = 90°。
+
+```kotlin
+// data/sensor/OrientationCalculator.kt
+
+data class DeviceOrientation(
+    val pitchDeg: Float,   // 0°=直立, 90°=水平俯拍
+    val rollDeg: Float     // 0°=水平, 正值=順時針傾斜
+)
+
+class OrientationCalculator {
+    private val rotationMatrix = FloatArray(9)
+    private val orientation = FloatArray(3)
+
+    /**
+     * 使用 TYPE_ROTATION_VECTOR（quaternion 融合感測器）
+     * 避免 Euler 角在 pitch=90° 時的 gimbal lock
+     */
+    fun calculate(rotationVector: FloatArray): DeviceOrientation {
+        SensorManager.getRotationMatrixFromVector(rotationMatrix, rotationVector)
+        SensorManager.getOrientation(rotationMatrix, orientation)
+
+        // orientation[1] = pitch（弧度，直立=0, 俯=負）
+        // orientation[2] = roll（弧度）
+        val pitchDeg = Math.toDegrees(-orientation[1].toDouble()).toFloat()
+            .coerceIn(0f, 90f)
+        val rollDeg = Math.toDegrees(orientation[2].toDouble()).toFloat()
+
+        return DeviceOrientation(pitchDeg, rollDeg)
+    }
+}
+```
+
+**使用場景**：
+- **Pitch Traction**（Food 場景）：使用 `pitchDeg` 與目標角度比較
+- **Level Traction**（非 Food 場景）：使用 `rollDeg` 計算水平偏差
+- **場景引擎**（§3.1）：使用 `pitchDeg` 判斷 Food / Portrait / General 場景切換
+
+### 2.5 Halo Traction 規格
+
+所有 Halo 統一為圓形，共用 `HaloGuidanceLayer` 組件。
+
+```kotlin
+// presentation/camera/overlay/HaloGuidanceLayer.kt
+
+@Composable
+fun HaloGuidanceLayer(
+    subjectBbox: Rect?,
+    targetPosition: Offset?,
+    isAligned: Boolean,
+    modifier: Modifier = Modifier
+) {
+    // D-3: 對齊時呼吸 α 0.25→0.40 + scale 0.98→1.02（R-T4，R-T13 V-1 重錨），未對齊靜態 α 0.8（R-T2）
+    val haloAlpha by animateFloatAsState(
+        targetValue = if (isAligned) 0.40f else 0.8f,
+        animationSpec = if (isAligned) {
+            infiniteRepeatable(
+                animation = tween(2000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+        } else {
+            tween(300)
+        }
+    )
+    // R-T4: 對齊呼吸補 scale 0.98→1.02（breathe-halo-aligned），未對齊靜態 1.0
+    val haloScale by animateFloatAsState(
+        targetValue = if (isAligned) 1.02f else 1.0f,
+        animationSpec = if (isAligned) {
+            infiniteRepeatable(
+                animation = tween(2000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+        } else {
+            tween(300)
+        }
+    )
+    // 牽引圓點呼吸 breathe-dot：scale 0.9↔1.1 / opacity 0.7↔1.0 / 1.8s
+    val dotPulse = rememberInfiniteTransition(label = "breathe-dot")
+    val dotScale by dotPulse.animateFloat(
+        0.9f, 1.1f, infiniteRepeatable(tween(1800), RepeatMode.Reverse), label = "dotScale"
+    )
+    val dotOpacity by dotPulse.animateFloat(
+        0.7f, 1.0f, infiniteRepeatable(tween(1800), RepeatMode.Reverse), label = "dotOpacity"
+    )
+
+    Canvas(modifier = modifier.fillMaxSize()) {
+        if (subjectBbox == null) return@Canvas
+
+        val haloCx = subjectBbox.center.x
+        val haloCy = subjectBbox.center.y
+        // R-T3: 半徑 1:1 bbox（直徑 = faceSize，對齊原型）
+        val bboxSize = max(subjectBbox.width, subjectBbox.height)
+        val haloRadius = bboxSize * 0.5f
+
+        // D-11: atan2 方向歸屬（SSOT-02 確立）；dist 正規化 0–100
+        val dx = (targetPosition?.x ?: haloCx) - haloCx
+        val dy = (targetPosition?.y ?: haloCy) - haloCy
+        val angle = atan2(dy, dx)
+        val dist = hypot(dx, dy).coerceIn(0f, 100f)
+
+        // 外環（Halo ring）：金 / 綠，呼吸 alpha + scale
+        val ringColor = if (isAligned) Color(0xFF50C864) else Color(0xFFD4A030)
+        drawCircle(
+            color = ringColor.copy(alpha = haloAlpha),
+            radius = haloRadius * haloScale,
+            center = Offset(haloCx, haloCy),
+            style = Stroke(width = 2f)
+        )
+
+        // 牽引圓點位移：夾在外環內（圓點 36dp，邊界留 2px）
+        val dotDiameter = 36.dp.toPx()
+        val maxOffset = max(0f, (bboxSize - dotDiameter) / 2f - 2f)
+        val dotOffset = maxOffset * (dist / 100f)
+        val dotCx = haloCx + cos(angle) * dotOffset
+        val dotCy = haloCy + sin(angle) * dotOffset
+
+        // R-T3/R-T13 V-4: 三段 V 曲線色，統一公式 opacity = 0.35 + x×0.5（谷底 0.35、增益 0.5、峰 0.85）
+        val (dotColor, dotAlpha, homeScale) = when {
+            dist > 50f -> Triple(Color(0xFFD4A030), 0.35f + ((dist - 50f) / 50f) * 0.5f, 1.0f)
+            dist > 0f  -> Triple(Color(0xFF50C864), 0.35f + (1f - dist / 50f) * 0.5f, 1.0f)
+            else       -> Triple(Color(0xFF50C864), 0.85f, 1.1f)
+        }
+
+        // 牽引圓點：radial-gradient(circle, currentColor 60%, transparent 80%)
+        val dotRadius = (dotDiameter / 2f) * dotScale * homeScale
+        drawCircle(
+            brush = Brush.radialGradient(
+                0.6f to dotColor.copy(alpha = dotAlpha * dotOpacity),
+                0.8f to Color.Transparent,
+                center = Offset(dotCx, dotCy),
+                radius = dotRadius
+            ),
+            radius = dotRadius,
+            center = Offset(dotCx, dotCy)
+        )
+    }
+}
+```
+
+**D-3 對齊呼吸重錨（R-T13 V-1）**：對齊呼吸 alpha 由 `0.10→0.18` 重錨為 `0.25→0.40`（scale 0.98→1.02 不變）；LIMITED/LEGACY 降級為靜態 `0.35`（無呼吸）。非推翻 D-3 退場原則，係 R-T2 未對齊錨移（0.25→0.8）後之相對值重錨（0.40 = 0.8 之半，維持對齊比未對齊安靜一級）；黑底 demo 可辨 ≠ 實景可辨（K4-42）。**翻盤條件**：夜景/暗場 A/B 過亮 → 降為 `0.22→0.35`（V-6 實機閘為最終權威）。
+
+**牽引圓點規格（R-T1/R-T3）**：外環內含一顆牽引圓點，沿 `atan2(targetY − faceY, targetX − faceX)` 方向、依 face→target 距離 `dist`（0–100）位移，引導使用者將主體移向構圖目標。
+
+| 項目 | 規格 |
+|------|------|
+| 尺寸 | 36dp，`radial-gradient(circle, currentColor 60%, transparent 80%)` |
+| 位移 | `maxOffset = max(0, (bboxSize − 36) / 2 − 2)`；`offset = maxOffset × (dist / 100)` |
+| 方向 | `angle = atan2(targetY − faceY, targetX − faceX)`；`dotX = cos(angle)·offset`、`dotY = sin(angle)·offset` |
+| 呼吸 | breathe-dot：`scale 0.9↔1.1` / `opacity 0.7↔1.0` / `1.8s` |
+| 三段 V 曲線色 | `dist>50` 琥珀漸暗 `0.35+((dist−50)/50)×0.5`；`dist≤50` 綠漸亮 `0.35+(1−dist/50)×0.5`；`dist=0` 綠 + `scale 1.1` 歸心 `0.85` |
+| 對齊強存在 | 對齊後圓點保持歸心強存在（opacity 0.85 級，scale 1.1），退場呼吸僅作用於環（R-T13 V-3，R-T6 圓點統一基元延伸）|
+
+**翻盤條件（V-4）**：色彩切換突兀 → 谷底最低回調 `0.25`（不回 `0.1`）。
+
+> **targetPos 來源**：原型 targetPos（50 / 33.33 / 42 / 50）為 demo 簡化值；production target 由 rule engine 輸出（Portrait = 三分法 + headroom + gaze；Food = 最大 bbox + 構圖；Multi-face = 群組 center）。
+
+**統一 Halo 語言表**：
+
+| 元素 | 形狀 | 顏色邏輯 | 觸發 |
+|------|------|---------|------|
+| 手動對焦 | 圓形 Halo | 金色→綠色 | 用戶觸摸螢幕 |
+| 構圖引導（單主體）| 圓形 Halo（跟隨 bbox） | 金色→綠色 | ML Kit 偵測到主體 |
+| 構圖引導（多人）| 群組包圍 Halo | 金色→綠色 | ML Kit 偵測 ≥2 人臉 |
+| 美食引導 | 圓形 Halo（跟隨最大 food bbox） | 金色→綠色 | ML Kit Object Detection FOOD |
+| 遞手機模式 | 圓形 Halo（跟隨人臉） | 金色→綠色 | Pass-to-Friend 模式 |
+| 減法留白確認 | 微小圓形 Halo | 綠色 | MinimalistRule 通過 |
+| 鎖定態 Freemium teaser（F-2）| 圓形 Halo（跟隨主體 bbox） | 琥珀靜態（`0xFFD4A030` α0.35，**永不轉綠**） | 免費層試用窗內（`HALO_TRIAL_WINDOW_SESSIONS`）· 詳見 §2.5.4 |
+
+**場景映射**：
+
+| 場景 | Halo 行為 |
+|------|----------|
+| Food（有 ML Kit Object Detection bbox）| 食物 Halo → 三分法對齊（MVP 策略 A：跟隨最大 bbox）|
+| Portrait（單人，有 Face Detection bbox）| 人臉 Halo → 三分法 + 頭部空間 + 視線空間 |
+| Portrait（多人）| 群組包圍 Halo → 人數依賴 target（見 §2.5.2）|
+| Pass-to-Friend | 人臉 Halo + 中心引力場 |
+| Minimalist（小主體）| 微小確認 Halo（綠色，不說「靠近」）|
+| Food（無 bbox）| 無 Halo，僅用 Pitch Traction + 網格 |
+| General | 無 Halo，僅網格 |
+
+**技術可行性**：CameraX 對焦 API (`CameraControl.startFocusAndMetering()`) 只需座標點，視覺形狀完全由 App UI 層自行繪製。改圓形零技術障礙。
+
+### 2.5.1 美食 Halo 策略
+
+```
+MVP 策略 A：單一 Halo 跟隨最大 food bbox
+
+選擇邏輯：
+  foodObjects.maxByOrNull { it.boundingBox.area() }
+
+EMA 平滑參數：
+  Portrait EMA: smoothed = last * 0.7 + new * 0.3  (歷史權重 70%)
+  Food EMA:     smoothed = last * 0.8 + new * 0.2  (歷史權重 80%)
+
+  理由：食物不會像人臉那樣快速移動，
+        更重歷史值可抑制 ML Kit Object Detection 的 bbox 抖動
+
+Phase 1.5 擴展：
+  多道菜場景 → 偵測到 ≥2 個 food bbox 時
+  → Toast 建議：「多道菜？試試 90° 俯拍」
+  → 不做多 Halo（視覺過於複雜）
+```
+
+**Food Halo 牽引圓點（R-T1, C-7）**：美食 Halo 沿用 §2.5 牽引圓點全套規格（36dp `radial-gradient` 圓點 + `atan2` 方向位移 + 三段 V 曲線色 + 未對齊外環 alpha `0.8`），外環尺寸依最大 food bbox 1:1（`haloRadius = bboxSize × 0.5`）。targetPos 同 §2.5：原型值僅供 demo，production 由 rule engine（最大 bbox + 構圖）輸出。
+
+### 2.5.2 多人群組 Halo
+
+```kotlin
+data class GroupHaloResult(
+    val center: Offset,
+    val radius: Float,
+    val target: Offset,
+    val alpha: Float
+)
+
+fun calculateGroupHalo(
+    faces: List<Face>,
+    screenWidth: Float,
+    screenHeight: Float
+): GroupHaloResult {
+    val centers = faces.map { it.boundingBox.center() }
+
+    val cx = centers.map { it.x }.average().toFloat()
+    val cy = centers.map { it.y }.average().toFloat()
+
+    val maxDist = centers.maxOf { distance(it, Offset(cx, cy)) }
+    val padding = faces.maxOf { max(it.boundingBox.width(), it.boundingBox.height()) } * 0.3f
+    val radius = maxDist + padding
+
+    val target = when (faces.size) {
+        2 -> Offset(screenWidth * 0.5f, screenHeight * 0.33f)
+        3 -> Offset(screenWidth * 0.5f, screenHeight * 0.40f)
+        else -> Offset(screenWidth * 0.5f, screenHeight * 0.5f)
+    }
+
+    // R-T9: 群組 alpha 與 §2.5 單人統一為 0.8（移除 baseAlpha − 0.05f 相對算式）
+    val groupAlpha = 0.8f
+
+    return GroupHaloResult(Offset(cx, cy), radius, target, groupAlpha)
+}
+```
+
+| 人數 | 構圖目標位置 | 理由 |
+|------|------------|------|
+| 2 人 | 水平中央，上三分線 (y=33%) | 雙人並排的經典構圖 |
+| 3 人 | 中央偏上 (y=40%) | 三角構圖重心略高 |
+| 4+ 人 | 正中央 (y=50%) | 多人合照以居中為優先 |
+
+**Alpha 規則（R-T9）**：群組 Halo alpha 與 §2.5 單人統一——未對齊 `0.8`、對齊呼吸 `0.25→0.40` + `scale 0.98→1.02`（複用 `HALO_ALIGNED_ALPHA_MIN/MAX`，同源；R-T13 V-1 重錨）。原「群組 = 單人相對減量」補償規則整段已刪除（premise 經 GAP-06 實機證偽；大面積壓迫關切轉入 TRACTION-RENDER-01（未開票 placeholder，禁預賦 AC）開票時之 C3 實機子驗收；在此之前禁復活相對式）。
+
+**群組質心 EMA 平滑**：
+
+```kotlin
+private var lastGroupCenter: Offset? = null
+private var lastGroupRadius: Float? = null
+
+private companion object {
+    const val GROUP_EMA_HISTORY = 0.75f
+    const val GROUP_EMA_NEW = 0.25f
+}
+
+fun smoothGroupHalo(raw: GroupHaloResult): GroupHaloResult {
+    val smoothedCenter = lastGroupCenter?.let { last ->
+        Offset(
+            x = last.x * GROUP_EMA_HISTORY + raw.center.x * GROUP_EMA_NEW,
+            y = last.y * GROUP_EMA_HISTORY + raw.center.y * GROUP_EMA_NEW
+        )
+    } ?: raw.center
+
+    val smoothedRadius = lastGroupRadius?.let { last ->
+        last * GROUP_EMA_HISTORY + raw.radius * GROUP_EMA_NEW
+    } ?: raw.radius
+
+    lastGroupCenter = smoothedCenter
+    lastGroupRadius = smoothedRadius
+
+    return raw.copy(center = smoothedCenter, radius = smoothedRadius)
+}
+```
+
+**EMA 參數設計對比**：
+
+| 場景 | 歷史權重 | 新值權重 | 設計理由 |
+|------|---------|---------|---------|
+| Portrait 單人 | 0.7 | 0.3 | 人臉會轉頭點頭，需較快反應 |
+| Group 多人 | 0.75 | 0.25 | 多人質心比單人更容易跳，但仍需追蹤隊形變化 |
+| Food 美食 | 0.8 | 0.2 | 食物不動，最重穩定性 |
+
+### 2.5.4 鎖定態 Halo（Freemium teaser · F-2 / D-30）
+
+免費層在試用窗（`HALO_TRIAL_WINDOW_SESSIONS = 3`，§2.0）內顯示「鎖定態 Halo」——一個靜態琥珀環，展示付費構圖引導的存在，但刻意抽掉一切方向載體與對齊回饋，作為「獎勵的缺席」式 upsell（§8.3、敘事鏈統攝原則 §B.16）。渲染數值為 UITA 定稿經 CSO 終審修正（DEC-20260707153625，`reports/CSO_Verdict_UITA_LockedHalo_Numeric_20260707.html`），**禁執行端改動**。
+
+**幾何**：
+
+| 項目 | 規格 |
+|------|------|
+| 半徑 | `bboxSize = max(bbox.w, bbox.h); haloRadius = bboxSize × 0.5f` — 沿用 §2.5 R-T3 付費公式（直徑 = faceSize）。**禁用 0.6 半徑係數**（UITA 原稿 ×0.6 為轉錄筆誤，全 SSOT 無此半徑錨點，唯一 0.6 係數命中為 §2.5 radial-gradient 色標，非半徑） |
+| stroke | 2dp（沿用 §2.5 外環線寬）；與 FOCUS_RING 1.5dp（§2.0）階層關係保持（Halo 環 > 對焦環） |
+
+**色彩 / alpha**：
+
+- 琥珀 `0xFFD4A030` / α `0.35f` **靜態**（無呼吸、無 scale 動畫）
+- **永不轉綠**：對齊完成綠 `0xFF50C864` **禁用於鎖定態**（鎖定態無「對齊」概念，綠色是付費層獎勵）
+- **禁鎖頭**：不繪製任何 🔒 圖示（teaser 語義為「獎勵的缺席」，非「功能被鎖」）
+
+**方向元素雙禁**（兩代方向載體明文點名，防歧義）：
+
+- 牽引圓點（C-1，§2.5 breathe-dot）**不繪製**
+- 加亮弧（D-11 atan2 方向歸屬）**不繪製**
+
+**EMA**：沿用場景既有值（§2.5 同源，**禁另開第三套常數**）——Portrait `0.7/0.3`、Food `0.8/0.2`；疊加 60fps 渲染幀對 EMA 目標線性插值（靜態環 jitter 對策，屬渲染層合法手段）。
+
+**Tooltip**（唯一文字觸點 → Paywall）：
+
+| 項目 | 規格 |
+|------|------|
+| hit-test 環帶 | `[R − 24dp, R + 24dp]`（48dp 觸控合規） |
+| 內排除半徑 | `max(R − 24dp, R × 0.5)`（小 bbox 防護，避免環帶內緣塌陷至圓心） |
+| 一次性註銷 | per install，消耗後全區 tap = 對焦（環帶與對焦互斥） |
+| 錨定 | 環頂上方 12dp |
+| 自動消失 | 4s 或任意點擊 |
+| 文案 | 「即時構圖引導 · 創始會員」→ Paywall |
+
+**Top Bar 靜態琥珀圓點**：
+
+| 項目 | 規格 |
+|------|------|
+| 尺寸 | 8dp 實心圓 |
+| 位置 | 右簇最內側（⚙ Settings 左鄰，間距 16dp） |
+| 色彩 | `0xFFD4A030` α0.65 靜態 |
+| 互動 | **非互動**（無 clickable；明文防實作端自行加 Paywall 入口） |
+| 動畫 | 無（永不 pulse / 呼吸） |
+
+**alpha rationale-vaccine 與關係式**：`PROVISIONAL — 待 UITA 重推導回填`。UITA 原稿以 §4.4.1 L901 之 R-T2 化石（α0.25）為前提推導「鎖定態 α0.35 刻意高於付費琥珀」倒置敘事；然 live 真理為 §2.5 未對齊靜態 `0.8`（L481 R-T2 錨移明載），關係式方向顛倒（0.35 < 0.8）。已退回 UITA 以 live 錨點（未對齊 0.8 / LIMITED 降級 0.35 / 對齊呼吸帶 0.25→0.40）重推導，回填本段。
+
+### 2.6 呼吸韻律 (Breathing Rhythm)
+
+當所有可改善項目都通過時（所有 `canImprove == false`），整個畫面進入均勻呼吸：
+
+```kotlin
+val breatheAlpha by animateFloatAsState(
+    targetValue = if (allConditionsMet) 0.40f else 0.25f,
+    animationSpec = infiniteRepeatable(
+        animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+        repeatMode = RepeatMode.Reverse
+    )
+)
+```
+
+- Pitch Traction：指示柱整體進入綠色呼吸（中軸線 + 定位環 + 圓點同步）
+- Halo Traction：從金色變綠色，進入呼吸
+- 快門按鈕外環：同步呼吸
+- 含義：「一切就緒，隨時可以按快門」
+
+**Freemium 分層（F-3 · SSOT-V407-01）**：呼吸韻律屬**免費層**能力——其驅動源為 IMU / Pitch Traction（免費通道，§8.1），非 ML Kit 付費構圖引導通道（§8.2）。免費層在對齊完成時仍享有完整呼吸回饋（Pitch Traction 綠色呼吸 + 快門外環同步）；付費專屬的是「即時構圖診斷」（Halo 方向載體 + 對齊判定），非呼吸韻律本身。此條確立呼吸韻律不受試用窗（§2.5.4）限制，為免費 Hook 的常駐正向回饋。
+
+### 2.7 首次使用教學動畫
+
+3 秒連續動畫循環一次（不是文字教學頁）：
+1. 手機圖示出現 → 右側指示柱亮起（圓點偏移）
+2. 手機跟著指示方向旋轉 → 圓點滑入定位環
+3. 指示柱變綠 + 全局呼吸韻律啟動 → 快門按鈕呼吸
+4. 「Ready to shoot!」閃爍消失
+
+開發成本：0.5 天。Compose 動畫序列。
+
+### 2.8 雜亂背景區域 UI
+
+**圖示規格**: 黃色三角形 + 黑色驚嘆號 + Alpha 0.4  
+**框線**: 虛線 (dashed) + Alpha 0.4
+
+```kotlin
+@Composable
+fun ClutterWarningIcon(center: Offset, modifier: Modifier) {
+    Canvas(modifier) {
+        val iconSize = 14.dp.toPx()
+        val path = Path().apply {
+            moveTo(center.x, center.y - iconSize * 0.5f)
+            lineTo(center.x + iconSize * 0.5f, center.y + iconSize * 0.4f)
+            lineTo(center.x - iconSize * 0.5f, center.y + iconSize * 0.4f)
+            close()
+        }
+        drawPath(path, color = Color(0xFFFFD040).copy(alpha = 0.4f))
+        drawLine(
+            color = Color.Black.copy(alpha = 0.4f),
+            start = Offset(center.x, center.y - iconSize * 0.15f),
+            end = Offset(center.x, center.y + iconSize * 0.15f),
+            strokeWidth = 2f, cap = StrokeCap.Round
+        )
+        drawCircle(
+            color = Color.Black.copy(alpha = 0.4f),
+            radius = 1.5f,
+            center = Offset(center.x, center.y + iconSize * 0.28f)
+        )
+    }
+}
+```
+
+---
+
+### 2.9 Top Bar 光線指示（D-15/D-16/D-19, R23）
+
+Top Bar 浮動圖示中的 ⚡（閃光燈）與 HDR 圖示承擔光線狀態的 Ambient UI 視覺指示。以 pulse 動畫取代文字告警，對齊 Ambient UI「視覺引導、不干預閱讀」哲學。
+
+**三態映射（D-15: Option 2）**：
+
+| 光線狀態 | 觸發條件 | ⚡ 圖示 | HDR 圖示 | 設計理由 |
+|---------|---------|---------|---------|---------|
+| **正常** | histogram 正常 | 靜態 #FFFFFF α0.85 | 靜態 #FFFFFF α0.85 | 不干預 |
+| **需要 HDR** | `isBacklit` ∥ `isHighContrast` ∥ `isOverexposed` | 靜態（不變） | amber pulse #D4A030 | 逆光/高對比/過曝 → 建議開 HDR |
+| **需要補光** | `isLowLight` | amber slow pulse #D4A030 | amber sync pulse（與 ⚡ 同週期） | 低光 → 建議開閃光燈 + HDR |
+
+**Pulse 動畫規格**：
+
+| 參數 | 需要 HDR | 需要補光 |
+|------|---------|---------|
+| HDR pulse 週期 | **3000ms** | **3000ms**（與 ⚡ 同步） |
+| ⚡ pulse 週期 | — | **3000ms** |
+| Alpha 範圍 | 0.35 → 1.0 → 0.35 | 0.35 → 1.0 → 0.35 |
+| Easing | `FastOutSlowInEasing` | `FastOutSlowInEasing` |
+| 顏色 | #D4A030（琥珀金） | #D4A030（琥珀金） |
+| glow ring | α 0→0.14→0（icon 背後微暈） | α 0→0.14→0 |
+
+**Debounce（D-16: 1000ms）**：
+
+光線狀態來自 Frame 2/4 直方圖分析（§10.1），`confidenceFactor = 0.70`（§4.2 最低值）。為避免相機移動時圖示頻繁閃動：
+
+```kotlin
+// LightStateDebouncer
+private var pendingState: LightState? = null
+private var stateStartMs: Long = 0L
+
+fun onNewLightState(state: LightState) {
+    if (state == pendingState) {
+        if (SystemClock.elapsedRealtime() - stateStartMs >= LIGHT_DEBOUNCE_MS) {
+            commitLightState(state)  // 持續 ≥1000ms → 觸發 pulse
+        }
+    } else {
+        pendingState = state
+        stateStartMs = SystemClock.elapsedRealtime()
+    }
+}
+```
+
+**退出策略**：histogram 回到正常後，相同 debounce（1000ms 持續正常）→ pulse 停止，圖示恢復靜態 α0.85。
+
+**Compose 實作骨架**：
+
+```kotlin
+@Composable
+fun HdrIconWithPulse(lightState: LightState) {
+    val needsHdr = lightState == LightState.BACKLIT
+            || lightState == LightState.HIGH_CONTRAST
+            || lightState == LightState.OVEREXPOSED
+    val needsFlash = lightState == LightState.LOW_LIGHT
+
+    val hdrAlpha by if (needsHdr || needsFlash) {
+        val transition = rememberInfiniteTransition()
+        transition.animateFloat(
+            initialValue = LIGHT_PULSE_ALPHA_MIN,
+            targetValue = LIGHT_PULSE_ALPHA_MAX,
+            animationSpec = infiniteRepeatable(
+                tween(LIGHT_HDR_PULSE_MS.toInt(), easing = FastOutSlowInEasing),
+                RepeatMode.Reverse
+            )
+        )
+    } else {
+        remember { mutableFloatStateOf(0.85f) }
+    }
+
+    Text(
+        text = "HDR",
+        color = if (needsHdr || needsFlash) Color(0xFFD4A030).copy(alpha = hdrAlpha)
+                else Color.White.copy(alpha = 0.85f),
+        fontSize = 10.sp,
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Bold
+    )
+}
+```
+
+**Canvas 呼叫增量：0 次** — Top Bar 圖示為 Composable，不在 Canvas drawXxx pipeline 中。pulse 動畫使用 `InfiniteTransition.animateFloat`，不增加任何 Canvas 呼叫。
+
+**三級裝置降級**：
+
+| 裝置等級 | HDR/⚡ pulse | 備註 |
+|---------|-------------|------|
+| FULL | pulse 動畫（3000ms） | 完整 |
+| LIMITED | pulse 動畫（3000ms） | Composable 動畫成本可忽略 |
+| LEGACY | **不顯示光線狀態**（靜態白色 α0.85，與正常態一致） | LEGACY 已關閉光線分析（§10.3），無數據源則不渲染狀態色（D-26） |
+
+**LightRule 文字映射（Paid 功能，拍後教學卡片用）**：
+
+| 光線狀態 | 診斷文字 | 付費層 |
+|---------|---------|--------|
+| `isBacklit` | "逆光場景 — 建議使用 HDR" | Paid |
+| `isOverexposed` | "過曝風險 — 降低曝光補償" | Paid |
+| `isLowLight` | "光線不足 — 建議開啟閃光燈" | Paid |
+| `isHighContrast` | "高對比場景 — 建議使用 HDR" | Paid |
+| else | "曝光正常" | Free（但在拍後卡片中顯示） |
+
+> 免費版用戶看到 pulse 動畫（所有人可見），但拍後教學卡片中的文字診斷 `blur(3dp)` — 形成「HDR 在閃，怎麼回事？」→ 付費解鎖完整診斷的轉換漏斗。
+
+---
+
+## 第三部分：場景判斷引擎
+
+### 3.1 場景切換邏輯
+
+**Pitch 座標定義（R12）**：手機直立時 pitch = 0°，手機水平朝下（俯拍）時 pitch = 90°。負值 = 手機向上仰（拍天花板）。參見 §2.4.1 `OrientationCalculator`。
+
+```
+if user_selected == PASS_TO_FRIEND:
+    → PassToFriendMode (手動觸發，最高優先)
+elif pitch > 35°:
+    → FoodMode (IMU 自動觸發)
+    → 啟用 Pitch Traction + ML Kit Object Detection (FOOD category)
+    → 關閉 Level Traction（D-9）
+elif pitch ∈ [-10°, 35°] AND face_count >= 1:
+    → PortraitMode (ML Kit Face Detection)
+    → 啟用 Level Traction + Halo Traction
+elif pitch ∈ [-10°, 35°] AND face_count == 0:
+    → GeneralMode (三分法網格 + Level Traction)
+elif pitch < -10°:
+    → LowAngleMode (建議 0.5x 廣角)
+```
+
+### 3.2 ML Kit 模式互斥
+
+Food Mode 使用 ML Kit Object Detection，Portrait Mode 使用 ML Kit Face Detection。
+**兩者不可同時開在同一 ImageProxy 上。場景判斷引擎先決定模式，再啟用對應偵測器。**
+
+切換邏輯需要 hysteresis（遲滯）防止模式跳動：
+
+```kotlin
+if (currentMode == FoodMode && pitch < 30°) {
+    switchAfterDelay(PortraitMode, 500ms)
+}
+```
+
+---
+
+## 第四部分：規則引擎與優先級排序
+
+### 4.1 一屏一指令原則
+
+從所有 RuleResult 中選出 `canImprove == true` 的，按 `priority` 降序排列，只取 TOP 1。
+
+```kotlin
+fun prioritize(rules: List<RuleResult>): Instruction? {
+    return rules
+        .filter { it.canImprove }
+        .maxByOrNull { it.priority * it.improvementEstimate }
+        ?.toInstruction()
+}
+```
+
+### 4.2 優先級計算公式
+
+```
+priority = ruleWeight × (100 - ruleScore) / 100 × confidenceFactor
+
+其中:
+  ruleWeight: 角度 0.40, 水平 0.25, 構圖 0.20, 光線 0.15
+  ruleScore: 0-100
+  confidenceFactor: IMU = 0.95, ML Kit face = 0.80, ML Kit object = 0.75, 直方圖 = 0.70
+```
+
+### 4.3 美食模式規則
+
+| 規則 | 數據源 | 延遲 | 付費層 | 備註 |
+|------|--------|------|--------|------|
+| AngleRule | IMU pitch vs [45°, 60°, 90°] | < 2ms | Free | Pitch 配置見 §2.3.1 |
+| LevelRule | IMU roll；Food 90° flat-lay 加 dual-axis | < 2ms | Free | D-9 scoring-only：roll 方正度入 Food 構圖評分/EXIF（消費者=levelScore，§7.1 評分公式→§7.2 EXIF），不驅動 Level Traction UI。⚠️保留：dual-axis 有真實評分消費者，禁「刪除而非棄置」清掃誤刪（R-T5 鏡像）|
+| FoodCompositionRule | ML Kit Object Detection bbox | < 80ms | Paid | Halo 跟隨最大 bbox；EMA 0.8/0.2（見 §2.5.1）|
+| LightRule | 直方圖平均亮度 | < 10ms | Paid | — |
+| MinimalistRule | bbox ratio + background CV | < 10ms | Paid | — |
+
+### 4.4 人像模式規則
+
+| 規則 | ML Kit 數據源 | 計算 | MVP 階段 |
+|------|-------------|------|---------|
+| ThirdsRule | face.boundingBox.center | 人臉中心 vs 四個黃金交叉點 | MVP (P0) |
+| HeadroomRule | face.boundingBox.top | 比值 10%-20% 為佳 | MVP (P0) |
+| EyeLineRule | landmarks[LEFT_EYE].y | 眼睛 Y vs 上三分線 | **Phase 1.5**（D-27: LANDMARK_NONE → landmark 不可用） |
+| GazeRule | face.headEulerAngleY | 臉轉左→左側需更多空間 | MVP (P1) |
+| TiltRule | face.headEulerAngleZ | 絕對值 > 8° 提示轉正 | Phase 1.5 |
+| SmileRule | face.smilingProbability | > 0.4 持續 > 300ms = 黃金時刻 | Phase 1.5 |
+
+**Face Detection 配置（D-23, D-27 修正）**：
+
+| 配置項 | 值 | 理由 |
+|--------|-----|------|
+| LANDMARK_MODE | **NONE（D-27 降級）** | v2.12.0 crash 未根治 + 從未成功部署。EyeLineRule + NEAR_EYE AF 延後至 Phase 1.5（待 ML Kit 穩定性驗證） |
+| CLASSIFICATION_MODE | ALL | Ghost Face eye-open gate（HOTFIX-47）+ SmileRule（Phase 1.5） |
+| CONTOUR_MODE | NONE | Google 官方建議：效能互斥 |
+| PERFORMANCE_MODE | FAST | 正面拍攝場景足夠；PTF 側臉場景 Phase 1.5 評估切 ACCURATE |
+| minFaceSize | 0.15f | 佔畫面 15% 的最小人臉 |
+| enableTracking | true | 跨幀 trackingId 穩定 |
+
+#### 4.4.1 Portrait Guidance 狀態機（D-27）
+
+人像模式的引導系統遵循六態狀態機。此狀態機定義**產品行為**（用戶可觀測的 UI 回饋），具體轉換條件與時間參數由 Contract 層定義。
+
+| 狀態 | 產品語義 | 用戶可觀測行為 |
+|------|---------|---------------|
+| NO_FACE | 畫面中無人臉 | Halo 關閉、Level 低 alpha、無引導文字 |
+| FACES_DETECTED_NONE_ELIGIBLE | 偵測到人臉但無合格主體（閉眼/遮擋/極端側臉/ghost face） | Halo 關閉或極暗、Level 開啟、無引導文字 |
+| SUBJECT_STABILIZING | 合格主體出現，防抖穩定中 | Halo 暗琥珀、Level 開啟、Grid 開啟、無引導文字 |
+| GUIDANCE_ACTIVE | 主體鎖定，有可改善項 | Halo 琥珀 α0.8（未對齊靜態，R-T2 錨移 0.25→0.8，同步 §2.5 L481；本列 v4.0.7 修正原 α0.25 漏掃化石）、Level 開啟、Grid 開啟、顯示最高優先規則文字 |
+| ALIGNED | 主體鎖定，所有規則滿足 | Halo 綠色呼吸 0.25→0.40、Level 綠色、Grid 淡出或維持、隱藏引導文字 |
+| SUPPRESSED | 引導暫時抑制（防閃爍/對焦優先） | Halo 淡出、維持當前 Level/Grid、無引導文字 |
+
+**規則**：
+
+- 從 NO_FACE 到 GUIDANCE_ACTIVE 的轉換必須經過 SUBJECT_STABILIZING 防抖——禁止跳過
+- ALIGNED 綠色呼吸週期 = `AmbientConstants.BREATHE_CYCLE_MS`（2000ms）
+- SUPPRESSED 由 AfCoordinator manual tap 或 flicker guard 觸發，自動 AF 恢復時退出
+- 任何狀態的 face 全部丟失超過 timeout → 回到 NO_FACE
+
+#### 4.4.2 Face Detector Session Lifecycle（D-27）
+
+ML Kit Face Detector 為 stateful resource，需遵循以下 lifecycle 約束：
+
+| 事件 | 行為 | 理由 |
+|------|------|------|
+| Camera Session 開啟（Preview active） | 建立 FaceDetector instance（D-23/D-27 配置） | 與 Preview 生命週期綁定 |
+| Camera Session 暫停（App background / Activity stop） | **close() Detector + 釋放 native 記憶體** | 防止 native memory leak（ML Kit 佔用 40-60MB） |
+| Camera Session 恢復 | 重新建立 Detector instance | 不可復用已 close 的 instance |
+| 切換偵測模式（Food ↔ Portrait，D-22 互斥） | 銷毀舊 Detector → 建立新配置 Detector | D-22 互斥原則 — 禁止雙 Detector 並存 |
+
+**Hard Constraint**：禁止全局 singleton FaceDetector——Detector 生命週期必須 ≤ Camera Session 生命週期。
+
+### 4.5 遞手機模式規則
+
+簡化版，保留三條核心規則 + Level Traction：
+
+- **FramingRule**（居中）— 朋友幫拍最容易失誤：主體沒居中
+- **LevelRule**（粗檢）— 朋友幫拍第二大失誤：手機歪斜
+- **AngleRule**（粗檢）— 可犧牲：PTF 是社交場景，朋友不會為角度死磕
+
+UI 使用 Halo Traction + Level Traction（D-1: 不含 Pitch Traction）。對齊後 Halo 金色→綠色 + 呼吸。
+
+Level Traction 的 IMU 驅動成本極低（60fps 無額外負擔），加入 PTF 的 Canvas 呼叫從 7 次增至 ~10 次，仍在預算內。
+
+### 4.5.1 PTF Level Traction 顏色策略
+
+> PTF 模式下 Level Traction 的 dynamic 層（移動線 + 圓點）**固定使用對齊綠 `#50C864`**，不經過 amber→green 漸變。  
+> reference 層（虛線 + 空心圓）維持白色不變。
+
+**設計理由**：PTF 用戶是「不懂攝影的朋友」。amber 金色在 Cueshot 全局視覺語言中代表「尚未對齊」，對陌生用戶產生「我做錯了」的焦慮感。固定綠色傳達「跟著這條線走就好」的正向引導，降低認知壓力。
+
+**退場行為不變**：對齊後 α→0 完全消失，與所有模式一致。
+
+```kotlin
+val levelDynamicColor = if (isPtfMode) {
+    AlignGreen  // PTF：固定綠色
+} else {
+    if (isLevelAligned) AlignGreen else AmberGold
+}
+```
+
+### 4.6 減法留白偵測規則 (MinimalistRule)
+
+```kotlin
+data class MinimalistResult(
+    val isMinimalist: Boolean,
+    val confidence: Float,
+    val isBusyBackground: Boolean,
+    val subjectOnPowerPoint: Boolean
+)
+
+fun detectMinimalist(
+    subjectRatio: Float?,
+    bgCV: Float,
+    displacement: Float?,
+    thirdsDistance: Float?
+): MinimalistResult {
+    // Path A: 有主體偵測
+    if (subjectRatio != null && displacement != null) {
+        val isSmall = subjectRatio < 0.10f
+        val isClean = bgCV < 0.20f
+        val isOffCenter = displacement > 0.20f
+        val onPowerPt = (thirdsDistance ?: 1f) < 0.08f
+
+        if (isSmall && isClean && isOffCenter) {
+            return MinimalistResult(
+                isMinimalist = true,
+                confidence = if (onPowerPt) 0.95f else 0.75f,
+                isBusyBackground = false,
+                subjectOnPowerPoint = onPowerPt
+            )
+        }
+        if (isSmall && !isClean) {
+            return MinimalistResult(false, 0f, true, false)
+        }
+    }
+
+    // Path B: 無主體偵測
+    if (bgCV < 0.12f) {
+        return MinimalistResult(true, 0.5f, false, false)
+    }
+
+    return MinimalistResult(false, 0f, bgCV > 0.35f, false)
+}
+```
+
+**負空間均質度 (bgCV) 計算**：
+
+```kotlin
+fun negativeSpaceCV(
+    yPlane: ByteArray, frameW: Int, frameH: Int,
+    subjectCell: Int
+): Float {
+    val cellW = frameW / 3
+    val cellH = frameH / 3
+    val cellMeans = FloatArray(9)
+
+    for (i in 0 until 9) {
+        val col = i % 3; val row = i / 3
+        var sum = 0L; var count = 0
+        for (y in row * cellH until (row + 1) * cellH) {
+            for (x in col * cellW until (col + 1) * cellW) {
+                sum += yPlane[y * frameW + x].toInt() and 0xFF
+                count++
+            }
+        }
+        cellMeans[i] = sum.toFloat() / count
+    }
+
+    val bgCells = cellMeans.toList().filterIndexed { idx, _ -> idx != subjectCell }
+    val mean = bgCells.average().toFloat()
+    if (mean < 1f) return 1f
+    val stdDev = sqrt(bgCells.map { (it - mean).pow(2) }.average().toFloat())
+    return stdDev / mean  // CV: < 0.20 乾淨, > 0.35 雜亂
+}
+```
+
+### 4.7 背景雜亂時的 DOF 建議（拍後處理方案）
+
+#### 4.7.1 技術管線
+
+```
+拍照完成
+  → 原始照片存檔（JPEG，清晰版）
+  → 背景雜亂偵測結果判定（已在拍攝時由 MinimalistRule 計算）
+  → if (bgCV > 0.35 AND 有人臉):
+      自動啟動拍後 DOF 處理（背景執行）
+
+      Step 1: ML Kit Selfie Segmentation
+        輸入: 原始照片 Bitmap
+        輸出: SegmentationMask (每像素 0.0-1.0 前景信心度)
+        延遲: 25-65ms
+
+      Step 2: Mask 邊緣軟化
+        Gaussian blur (kernel=7) 軟化前景/背景過渡
+        延遲: ~10ms
+
+      Step 3: 降解析度模糊
+        原圖 4K → 下採樣 2K → StackBlur(radius=15) → 上採樣回 4K
+        使用 Toolkit.blur()（GPU 加速）
+        延遲: 50-150ms
+
+      Step 4: 逐像素合成
+        output = original * mask + blurred * (1 - mask)
+        延遲: 30-80ms
+
+      Step 5: 儲存散景版 + EXIF 標註
+        延遲: 80-150ms
+
+  → 總處理時間: 高階機 0.3-0.5s, 中階機 0.5-1s, 低階機 1-2s
+  → UI: 拍後預覽底部顯示進度條 + 「正在處理景深效果...」
+  → 處理完成: 顯示 [原始] ← 滑動 → [景深] 切換
+  → 用戶選擇: [保留原始] [保留景深] [兩者都保留]
+```
+
+#### 4.7.2 ML Kit 路徑分階
+
+| 路徑 | API | 適用場景 | 延遲 | 階段 |
+|------|-----|---------|------|------|
+| Selfie Segmentation | `com.google.mlkit:segmentation-selfie` | 人像場景 | 25-65ms | Phase 1.5 |
+| Subject Segmentation | `com.google.mlkit:subject-segmentation` | 人+寵物+食物+物體 | ~200ms | Phase 2 |
+
+#### 4.7.3 散景品質定位
+
+均勻高斯模糊（非距離相關模糊）。品質定位：相當於 Instagram 人像模式或早期 Pixel 2 效果。Phase 2 可用 Subject Segmentation 的多主體分割實現 2-3 層分段模糊。
+
+#### 4.7.4 DOF 替代方案分層（100% 裝置覆蓋）
+
+```
+if (有人臉 AND bgCV > 0.35):
+    → 自動拍後 DOF（ML Kit Selfie Segmentation）
+
+elif (無人臉 AND bgCV > 0.35 AND 有長焦鏡頭):
+    → 拍後教學卡片建議：「可切換到 {maxZoom}x 長焦鏡頭壓縮背景」
+
+elif (無人臉 AND bgCV > 0.35 AND 無長焦):
+    → 拍後教學卡片建議：「讓主體離背景更遠，或找更乾淨的角度」
+
+else:
+    → 不觸發 DOF 相關邏輯
+```
+
+#### 4.7.5 DOF 功能定位
+
+- 付費版功能
+- MVP Sprint 中只做 UI 骨架：雜亂背景偵測 + 虛線框 + DOF 按鈕（反灰）
+- DOF 實際處理在 Phase 1.5 接入
+- 開發成本: 2-3 天
+
+---
+
+## 第五部分：鏡頭髒汙偵測 (LensSmudgeDetector)
+
+### 5.1 六步演算法
+
+**Step 1: 下採樣 + 4x4 網格分割**
+- 輸入: ImageProxy Y 通道, 640x480
+- 分割為 16 個 160x120 區塊
+- 延遲: ~1ms
+
+**Step 2: 每區塊 Laplacian 方差**
+- 3x3 Laplacian kernel: [0,-1,0 / -1,4,-1 / 0,-1,0]
+- 純像素迴圈，無需 OpenCV
+- 延遲: ~8ms
+
+**Step 3: 誤報過濾**
+- 髒汙區塊特徵：低 Laplacian 方差但中等像素方差（紋理存在但邊緣被模糊）
+- 排除自然平滑區域（天空、牆面、散景）
+
+**Step 4: 相對異常偵測**
+- 與鄰近區塊比較，非固定閾值
+- 異常閾值: 區塊方差 < 中位數的 35%
+
+**Step 5: 時序穩定性 (5 幀緩衝)**
+- 真正的髒汙在連續 5 幀中固定在同一 grid 位置
+- 5 幀 × 10fps = 0.5 秒確認窗口
+
+**Step 6: 輸出 + 冷卻**
+- 右上角半透明水滴圖標（微微脈動，opacity 0.4-0.7）
+- 冷卻: 顯示後 30 秒內不重複提示
+
+### 5.2 Settings 開關
+
+`Settings > Camera > Lens smudge detection [Toggle]`
+- 預設: 開啟
+- 關閉後完全停止分析（節省 ~12ms/frame）
+
+### 5.3 適用場景（白名單機制）
+
+```
+✓ 日間戶外拍攝（明亮光線 + 豐富紋理）
+✓ 室內正常照明（餐廳、咖啡廳、辦公室）
+✓ 有清晰前景物體的場景（人像、美食、靜物）
+✓ 手機有輕微移動（走動、轉換角度）
+```
+
+### 5.4 效能
+
+- 總延遲: ~12ms/frame (at 10fps analysis rate)
+- 記憶體: ~600KB (16 blocks + 5-frame history)
+- CPU: 單核心即可
+
+---
+
+## 第六部分：美食主體構圖引導 (FoodCompositionRule)
+
+### 6.1 技術路徑：ML Kit Object Detection FOOD 類別
+
+```kotlin
+val options = ObjectDetectorOptions.Builder()
+    .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
+    .enableClassification()
+    // MVP 策略 A: 單一最大 bbox（D-21）. Phase 1.5 再啟用 enableMultipleObjects()
+    .build()
+val detector = ObjectDetection.getClient(options)
+```
+
+### 6.2 與 Face Detection 的互斥處理
+
+場景判斷引擎決定模式後，啟用對應偵測器。不可同時開啟。切換時先 `detector.close()` 再初始化新偵測器。加入 500ms hysteresis 防跳動。
+
+### 6.3 美食構圖引導能力
+
+| 能力 | 數據源 | Ambient UI 表現 | 備註 |
+|------|--------|----------------|------|
+| 主體三分法對齊 | food bbox center vs golden points | Halo Traction 牽引（與人像相同語法）| MVP：跟隨最大 bbox（策略 A）|
+| 主體佔比 | food bbox area / frame area | 太小觸發減法留白偵測 | — |
+| 多道菜平衡 | 多個 food bbox 的分布 | MVP 不做多 Halo；Toast 建議 90° 俯拍 | Phase 1.5 擴展 |
+| 背景整潔度 | negativeSpaceCV | 雜亂 → 冷色暈提示 | — |
+
+### 6.4 訂閱定位
+
+美食構圖引導列入**付費版**。理由：每次食物位置不同 → 不可學會 → 持續需要。
+
+---
+
+## 第七部分：評分系統與 EXIF 寫入
+
+### 7.1 評分公式
+
+```
+total_score = angle_score × 0.40
+            + level_score × 0.25
+            + composition_score × 0.20
+            + light_score × 0.15
+
+各子分數 0-100。
+angle_score = 100 - min(|current_pitch - nearest_suggested|, 15) / 15 × 100
+level_score = 100 - min(|roll|, 5) / 5 × 100
+composition_score = f(thirds_distance, headroom, eye_line, gaze_space)
+light_score = f(histogram_mean, histogram_spread)
+```
+
+### 7.2 EXIF 寫入規格
+
+**不在照片上印分數。分數寫入 EXIF UserComment。**
+
+```kotlin
+val exif = ExifInterface(outputFilePath)
+val scoreJson = JSONObject().apply {
+    put("smartcamera_version", "1.0.0")
+    put("score", totalScore)
+    put("mode", currentMode.name)
+    put("rules", JSONObject().apply {
+        put("angle", JSONObject().apply {
+            put("score", angleScore)
+            put("target", targetAngle)
+            put("actual", currentPitch)
+        })
+        put("level", JSONObject().apply {
+            put("score", levelScore)
+            put("roll_deg", currentRoll)
+        })
+    })
+    put("iftr", guidanceFollowed)
+    put("minimalist_detected", isMinimalist)
+}
+exif.setAttribute(ExifInterface.TAG_USER_COMMENT, scoreJson.toString())
+exif.saveAttributes()  // < 5ms
+```
+
+### 7.3 Free 版拍後教學卡片
+
+免費用戶看到角度/水平分數（清晰），構圖/光線/診斷文字全部 `blur(3dp)` 模糊。底部顯示「Unlock full diagnosis」CTA。
+
+---
+
+## 第八部分：Freemium 架構
+
+**分層原則（D-28 · SSOT-V407-01）**：Freemium 邊界 = **感測器通道邊界**，非功能清單。免費層只初始化 **IMU 通道**（Pitch/Level Traction、呼吸韻律、角度引導），**不初始化 ML Kit**（Face / Object Detection）；付費層解鎖 **ML Kit 通道**（構圖即時診斷、人像/美食引導）。此切割使 Paywall 邊界 = 技術架構邊界，避免功能清單式縮水爭議。
+
+### 8.1 免費版（Hook — IMU 通道，可學會的技能）
+
+| 功能 | 感測器通道 | 價值定位 |
+|------|-----------|---------|
+| 角度引導（45°/60°/90°） | IMU | 3 次學會 → 建立信任 |
+| 單軸水平儀 | IMU | 基礎工具 |
+| 三分法網格 | 無（純繪製） | 基礎工具 |
+| Ambient UI（Pitch Traction 指示柱 + 呼吸韻律） | IMU | 體驗差異化 |
+| 鏡頭髒汙偵測 | 影像統計（非 ML Kit） | 信任建立器 (Trust Builder) |
+| 閃光燈關閉提醒 | 硬體狀態 | 低成本加分 |
+| 每日 5 張帶評分照片 | — | 限制 → 轉換動力 |
+| 遞手機模式：每月 3 次 | ML Kit（例外窗） | 社交場合 WOW → 轉換入口 |
+| 鎖定態 Halo teaser（試用窗前 3 session） | ML Kit（例外窗） | 「獎勵的缺席」upsell（§2.5.4） |
+
+**免費層 ML Kit 例外清單條文化（AUDIT-1 · D-28）**：免費層原則不初始化 ML Kit，例外**僅列舉如下兩窗**，其餘一律禁止：
+
+1. **PTF session 例外**：遞手機模式（每月 3 次限額）為免費層 ML Kit 唯一功能性例外——PTF 需 Face Detection 定位受讓人臉。
+2. **TRIAL_WINDOW 例外窗（D 表 #4）**：鎖定態 Halo teaser 在 `HALO_TRIAL_WINDOW_SESSIONS = 3`（§2.0）session 內初始化 ML Kit 以取得主體 bbox，僅供繪製靜態琥珀環（§2.5.4），窗後即停止 ML Kit。
+
+### 8.2 付費版（創始買斷 `cueshot_founder_lifetime` — ML Kit 通道，不可學會的即時診斷）
+
+**SKU（D-30）**：`cueshot_founder_lifetime`（Google Play **INAPP** 一次性買斷）· 定價 **$9.99 / NT$290** · **限量 500 席**（Remote Config **軟性計數**，非硬性庫存鎖）· 訂閱模式延至 Phase 1.5（錨點 **NT$450/年 / NT$90/月**）。
+
+**權益仲裁原則（邊際成本劃界）**：付費解鎖之權益以「是否新增顯著邊際成本」劃界——ML Kit 本地推論零邊際雲成本，故一次買斷可涵蓋全部本地 ML 引導；任何未來新增雲端邊際成本之功能（黃金時刻雲觸發等）不自動納入創始買斷，另計。
+
+| 功能 | 感測器通道 | 不可學會原因 |
+|------|-----------|------------|
+| 構圖即時診斷 (L2) | ML Kit | 每次主體位置不同 |
+| 人像四規則 | ML Kit | 每次人和距離不同 |
+| 美食構圖引導 | ML Kit | 每次食物位置不同 |
+| 光線環境分析 | 影像統計 | 每次光線不同 |
+| 減法留白偵測 | ML Kit | 每次場景不同 |
+| 黃金時刻觸發 (Phase 1.5) | — | 時機不可預測 |
+| 遞手機模式：無限 | ML Kit | 每次朋友不同 |
+| 雙軸水平 + 黃金比例網格 | IMU | 進階工具 |
+| 拍後景深效果 (DOF) | ML Kit Segmentation | 每次背景不同 |
+| 拍後診斷摘要 | — | 持續學習價值 |
+| 無限帶評分照片 | — | 去除限制 |
+
+> 註（D-9 語義清掃, TRACTION-SSOT-05）：「單軸水平儀 / 雙軸水平」為 Freemium 產品層功能標籤，非渲染元件命名，不受 Edge-Warmth 命名禁令約束；§4.5 LevelRule（粗檢）為 roll-only PTF 提示，已檢視無 dual-axis 洩漏。三處（§4.3 scoring-only / §4.5 PTF 粗檢 / §8 產品標籤）詞族一次性審視豁免，杜絕打地鼠。
+
+### 8.3 Paywall 觸發機制（「獎勵的缺席」）
+
+teaser 語義為**「獎勵的缺席」**——免費用戶看得到鎖定態琥珀環（§2.5.4）的存在，但**琥珀永不轉綠**（無對齊獎勵）、**無方向載體**、**禁鎖頭圖示**。upsell 動力來自「感受到引導的形狀但拿不到即時診斷」，而非「功能被鎖」的挫折。文字觸點僅一處：鎖定態 Halo tooltip「即時構圖引導 · 創始會員」→ Paywall。拍後教學卡片中構圖/光線/診斷行仍以 blur(3dp) 模糊呈現。
+
+---
+
+## 第九部分：北極星指標
+
+**指標升級（D-31 · SSOT-V407-01）**：北極星由單一 IFTR 升級為**產品 + 商業雙漏斗**；IFTR 本身拆為**雙軌**測量。
+
+### 9.1 北極星：IFTR 雙軌 (Instruction Follow-Through Rate)
+
+**定義**：用戶收到 Ambient UI 引導後，3 秒內手機姿態朝正確方向改變 ≥ 3° 的比例。
+
+**雙軌測量（F-1）**：
+
+| 軌 | 定義 | 角色 |
+|----|------|------|
+| **可感知 IFTR** | 使用者可見的引導事件之遵循率 | **主指標**（公開、對外目標 > 70%） |
+| **全事件 IFTR** | 含不可見引導事件（未渲染但已計算）之遵循率 | **審計軌**（內部） |
+| **差值** | 全事件 − 可感知 | **不可見引導佔比**（可回驗 D-10 引導抑制決策是否過度） |
+
+**閾值三元組**（判定「引導事件」是否成立）：
+
+- Level 偏差 `> 5°` · Halo dist `> 30` · Pitch 偏差 `> 5°`
+- **`PROVISIONAL` — 待 D15-16 實測 P25 校準**（本三元組為暫定分位，實機分佈回填前禁定稿）
+
+### 9.2 雙漏斗七指標表
+
+各指標附觀察窗 `T` / 最小樣本 `N_min` / 翻盤線（低於此線觸發策略重估）。
+
+| # | 漏斗 | 指標 | 定義 | 目標 | T | N_min | 翻盤線 |
+|---|------|------|------|------|---|-------|--------|
+| 1 | 產品 | 可感知 IFTR | 見 §9.1 主指標 | > 70% | session | 200 | < 55% |
+| 2 | 產品 | 模式觸發率 | 美食/人像/遞手機各模式 session 佔比 | 美食 > 40% | 7d | 100 | 美食 < 25% |
+| 3 | 產品 | D7 回訪率（雙門檻）| 7 天後再開 App | **合格 18% / 健康 25%** | 7d cohort | 150 | < 18% |
+| 4 | 產品 | 全事件 IFTR（審計軌）| 見 §9.1 | 監測用 | session | 200 | 差值 > 40% |
+| 5 | 商業 | PTF 一級擴散率 | PTF 分享卡帶新裝置安裝比 | > 1% | 30d | 300 | < 1%（D-29 翻盤線）|
+| 6 | 商業 | 創始買斷轉換率 | 免費→`cueshot_founder_lifetime` 購買比 | 監測用 | 30d | 300 | 席位 30d 未達 20% |
+| 7 | 商業 | 鎖定態 teaser → Paywall CTR | tooltip 點擊進 Paywall 比 | 監測用 | session | 200 | < 2% |
+
+> **D7 雙門檻語義（D-31）**：18% 為「合格線」（低於此觸發留存重估），25% 為「健康線」（達此視為 PMF 訊號）；取代舊單一 > 25% 目標。
+
+---
+
+## 第十部分：效能預算
+
+### 10.1 分幀計算策略
+
+```
+Frame 1: ML Kit + Rules + Priority → 65ms
+Frame 2: Histogram + Minimalist + Clutter → 13ms
+Frame 3: ML Kit + Rules + Priority → 65ms
+Frame 4: Histogram + Minimalist + Clutter → 13ms
+Frame 5: Lens Smudge (每 5 幀一次) → 12ms
+```
+
+每幀最高負擔從 92ms 降到 65ms，餘裕提升至 35ms。
+
+### 10.2 管線延遲預算
+
+| 管線階段 | 延遲上限 | 實際預估 |
+|---------|---------|---------|
+| IMU 讀取 + 平滑 | < 5ms | ~2ms |
+| ML Kit Face 或 Object Detection（互斥，D-22）| < 80ms | 30-60ms |
+| 直方圖分析 | < 10ms | ~5ms |
+| 場景判斷 | < 1ms | ~0.1ms |
+| 規則引擎（含 MinimalistRule） | < 5ms | ~2ms |
+| 鏡頭髒汙偵測 | < 15ms | ~12ms |
+| 優先級排序 | < 1ms | ~0.1ms |
+| UI 渲染 (Compose) | < 16ms | ~8ms |
+| **端到端（分幀後峰值）** | **< 100ms** | **~65ms** |
+
+記憶體預算：< 150MB（含 ML Kit 模型）  
+電池增耗：< 15%
+
+**ML Kit 偵測器互斥運行原則（D-22）**：
+- 同一 ImageProxy 上僅運行**一個** ML Kit 偵測器（Face Detection 或 Object Detection），不可同時開啟兩個
+- 切換模式時先 `detector.close()` 再初始化新偵測器，由 500ms hysteresis（§3.2）吸收
+- Google 官方約束引用：「在即時應用程式中使用串流模式時，請勿使用多個物件偵測功能，因為大多數裝置無法產生足夠的影格速率」
+- ODT STREAM_MODE cold start：首 30 幀（FULL tier ≈ 3s / LIMITED ≈ 3.75s / LEGACY ≈ 6s）Halo Traction 不可用，以 Grid 網格（α0.35）+ Pitch Traction 過渡（見場景映射「Food 無 bbox」）。首個 Food bbox 到達後 300ms crossfade 至 Halo。
+- Thermal throttle 響應：Android PowerManager thermal status ≥ MODERATE 時降頻至 LEGACY tier 分析率（5fps）；≥ SEVERE 時暫停 ML Kit 推理 5 秒冷卻
+
+### 10.3 三級裝置降級策略
+
+| 硬體等級 | Pitch Traction | Level Traction | Halo Traction | 輔助功能 | 關閉功能 | 群組 Halo | 快門冷卻 |
+|---------|---------------|---------------|--------------|---------|---------|----------|---------|
+| FULL / LEVEL_3 | 60fps | 60fps | 10fps + 所有規則 | 髒汙 2fps + 雜亂框框 + 減法留白 | 無 | 完整群組包圍 | 300ms |
+| LIMITED | 60fps | 60fps | 8fps + 核心 4 規則 | 髒汙 1fps + 減法留白 | 雜亂框框（僅冷色暈替代）| 完整群組包圍 | 300ms |
+| LEGACY | 60fps | 60fps | 5fps + 2 規則 | 無 | 髒汙 + 減法留白 + 雜亂框框 + 光線分析 | 降級為最大人臉單人 Halo | 500ms + 外環閃爍 |
+
+**核心保護原則**: 無論哪個等級，Pitch Traction + Level Traction（IMU 驅動）永遠 60fps 運行——任何裝置都能跑。Halo Traction 受 ML Kit 分析頻率限制，按裝置等級降低刷新率。
+
+**LEGACY 500ms 設計理由**：LEGACY 裝置關閉了大部分輔助功能（含 Flash 提醒），冷卻延長至 500ms + 快門外環閃爍一次（白色 alpha 0.45 → 0 在 300ms 內），補償 FULL/LIMITED 裝置上由 Flash 動畫提供的「已拍攝」確認感。
+
+### 10.3.1 快門外環動畫互斥規則
+
+快門外環同時承擔「全條件對齊確認」（呼吸韻律）與「已拍攝確認」（閃爍）兩個視覺職責。兩者**不可同時播放**：
+
+| 時間點 | 行為 | 視覺狀態 | 設計理由 |
+|--------|------|---------|---------|
+| T0: 快門按下 | 暫停呼吸動畫，凍結外環為靜態綠色 | 外環靜態綠色 | 清空視覺通道，準備接收閃爍信號 |
+| T0 ~ T0+300ms | 外環閃爍一次：白色 α0.45→0 | 白色閃爍 | 「已拍攝」確認 |
+| T0+300ms ~ T0+冷卻結束 | 外環維持靜態，不恢復呼吸 | 靜態 | 冷卻期間快門不可按 |
+| T0+冷卻結束 | 判斷是否仍全對齊 → 是則恢復呼吸 | 呼吸或靜態 | 重新允許拍攝 |
+
+| 裝置等級 | 冷卻時長 | 閃爍規格 |
+|---------|---------|---------|
+| FULL / LIMITED | 300ms | 白色 α0.45→0, 300ms |
+| LEGACY | 500ms | 白色 α0.45→0, 300ms + 200ms 靜態等待 |
+
+```kotlin
+var isBreathing by remember { mutableStateOf(false) }
+var isFlashing by remember { mutableStateOf(false) }
+
+val breatheAlpha by if (isBreathing) {
+    infiniteTransition.animateFloat(
+        initialValue = 0.25f, targetValue = 0.40f,
+        animationSpec = infiniteRepeatable(
+            tween(2000, easing = FastOutSlowInEasing),
+            RepeatMode.Reverse
+        )
+    )
+} else {
+    remember { mutableFloatStateOf(0f) }
+}
+
+fun onShutterPressed() {
+    isBreathing = false
+    isFlashing = true
+
+    scope.launch {
+        flashAlpha.animateTo(0.45f, tween(50))
+        flashAlpha.animateTo(0f, tween(250))
+        delay(if (isLegacy) 200L else 0L)
+        isFlashing = false
+        if (allConditionsMet) {
+            isBreathing = true
+        }
+    }
+}
+```
+
+### 10.4 Settings 效能模式
+
+```
+Settings > Performance
+  ○ Auto (recommended) — 根據裝置自動調整
+  ○ Battery saver — 降低分析頻率至 5fps
+  ○ Full features — 強制啟用所有功能
+```
+
+### 10.5 Canvas 呼叫預算
+
+每幀 Compose Canvas `drawXxx` 呼叫次數上限 **< 15 次**。超過需優化。
+
+| 狀態 | 場景 | Canvas 呼叫數 | 狀態 | 優化方案 |
+|------|------|-------------|------|---------|
+| State 1 | General | 11 | ✅ 預算內 | — |
+| State 2 | Portrait Unaligned | 12 | ✅ 預算內 | Level reference 層預渲染為 Bitmap |
+| State 3 | Portrait Aligned | ~8 | ✅ 預算內 | — |
+| State 4 | PTF | ~10 | ✅ 預算內 | 含 Level Traction |
+| State 5 | Focus | 10 | ✅ 預算內 | 方案 B 單圈 + Badge（見附錄 A.5） |
+| State 6 | Food | **9** | ✅ 預算內 | D-9: 移除 Level Traction，僅 Pitch 指示柱 + Food Halo |
+
+**State 2 優化策略**：Level reference 線（虛線 + 刻度標記）首次繪製後快取為 Bitmap，後續幀直接 `drawImage`（4→1 次）。記憶體 ~50KB。
+
+**State 6 明細（D-9 後）**：三分網格 4 + Pitch 指示柱 3 + Food Halo 1 + Scrim 1 = **9 次**。
+
+---
+
+## 第十一部分：MVP Sprint 排程（16 天 · v2）
+
+**v2 修訂（SSOT-V407-01）**：15→16 天——D7-9 納入 PTF 分享機制（D-29 成長飛輪），D14 納入 Billing 1.5 天（創始買斷 `cueshot_founder_lifetime` in-app purchase 接線）+ Halo 教學 0.5 天（F-5 購買完成頁 3 秒 Halo 教學）。
+
+| 天數 | 交付 | 技術棧 |
+|------|------|--------|
+| D1-2 | 角度引導 + Pitch Traction 指示柱 + 場景自動切換 | IMU + Compose Canvas |
+| D3-4 | Level Traction（水平儀）+ 三分法網格 | IMU + Compose |
+| D5-6 | 優先級引擎 + 人像四規則 | ML Kit Face + Kotlin |
+| D7-9 | 遞手機模式（Halo Traction UI）+ 首次教學動畫 + **PTF 分享機制（分享卡 / 回充制 / 雙層歸因，D-29）** | ML Kit Face + Compose |
+| D10-11 | 美食構圖引導 + 減法留白偵測 | ML Kit ODT + Math |
+| D12 | 鏡頭髒汙偵測 + 光線診斷 + 呼吸韻律 | ImageProxy + Compose |
+| D13 | Paywall + 評分引擎 + EXIF + 拍後教學卡片 + DOF UI 骨架 | ExifInterface + UI |
+| D14 | **Billing 1.5d：`cueshot_founder_lifetime` INAPP 接線 + Remote Config 軟性計數** · **Halo 教學 0.5d：購買完成頁 3 秒 Halo 教學（F-5）** | Play Billing + Remote Config + Compose |
+| D15-16 | IFTR 雙軌埋點 + 整合測試 + 餐廳實測 + 閾值三元組 P25 校準 + 參數微調 | 全棧 |
+
+---
+
+## 第十二部分：Phase 路線圖
+
+### MVP (16 天 · v2)
+維持上述排程。DOF 在 MVP 中只做 UI 骨架（反灰按鈕）。
+
+### Phase 1.5 (MVP 上架後 30 天內)
+- 拍後 DOF 處理管線（ML Kit Selfie Segmentation + Toolkit.blur）
+- 人像 TiltRule + SmileRule
+- DOF 按鈕啟用 + 拍後預覽比較 UI
+- 橫拍 Level Traction：`OrientationAwareLevel` 四方向自適應
+- 多道菜 Toast 建議（偵測到 ≥2 food bbox → 建議 90° 俯拍）
+
+### Phase 2 (有現金流後)
+- ML Kit Subject Segmentation 替代 Selfie Segmentation
+- 多主體分段模糊（2-3 層距離分段）
+- 多種構圖網格切換
+- CVPR SPAS 模型評估
+- 焦段建議
+
+---
+
+## 第十三部分：技術發現備忘
+
+### 13.1 Pixel 9a Portrait Mode 技術本質
+
+Pixel 的 Portrait Mode 是後置 AI 處理——先拍清晰照片（HDR+），再用神經網路做深度估計 + 人物分割 + 散景渲染。驗證了「拍後 DOF」是業界主流做法。
+
+### 13.2 CameraX 1.5 的 SessionConfig API
+
+CameraX 1.5 引入 `isSessionConfigSupported` API。在「拍後 DOF」方案中不再需要，但未來即時 Bokeh 預覽時可能有用。
+
+---
+
+## 第十四部分：風險矩陣
+
+| 風險 | 嚴重度 | 機率 | 對沖方案 |
+|------|--------|------|---------|
+| 用戶懶得切 App | 高 | 高 | First-time wow 壓到 10 秒 + IMU 自動場景判斷 |
+| Ambient UI 太微妙用戶沒注意到 | 高 | 中 | 3 秒首次教學動畫 + 漸進強化 |
+| ML Kit Object Detection 對食物偵測不穩定 | 中 | 中 | 降級為純 IMU 模式（角度+水平+網格）|
+| WayShot 推出 Android 版 | 高 | 中-高 | 深做美食+減法留白+遞手機 |
+| 鏡頭髒汙偵測誤報 | 低 | 低 | Settings 開關 + 白名單機制 |
+| 7 天畢業效應 | 高 | 中 | 免費層=可學會 hook，付費層=不可學會即時診斷 |
+| Selfie Segmentation 邊緣粗糙 | 中 | 中 | Mask Gaussian softening (kernel=7) |
+| 低階機 DOF 處理 > 2 秒 | 中 | 中 | 進度條 + 處理提示 |
+| 拍後 DOF 不支援食物場景 | 中 | 確定 | Phase 2 升級到 Subject Segmentation |
+| 散景品質不如 OEM 原生 | 中 | 高 | Phase 2 分段模糊升級 |
+
+---
+
+## 附錄 A：Focus 動畫規格（完整版）
+
+### A.0 概述
+
+Tap-to-Focus 為 Layer 4 對焦圓環，提供用戶手動對焦的視覺反饋。  
+四個狀態形成完整生命週期：**Focusing → Focused → (auto-fadeout)** 或 **Focusing → Failed → (auto-remove)**。  
+Long press 觸發 **Locked (AE/AF Lock)**，獨立於上述生命週期。
+
+### A.1 共用幾何常數
+
+| 常數 | 值 | 說明 |
+|------|-----|------|
+| `FOCUS_RING_SIZE` | **60dp** | 圓環外徑（與快門 72dp 形成階層） |
+| `FOCUS_RING_STROKE` | **1.5dp** | 邊框寬度（輕於 Halo Traction 2dp） |
+| `FOCUS_RING_Z` | Layer 4 | 在 Halo Traction (Layer 3) 之上、Level Traction (Layer 5) 之下 |
+
+### A.2 四狀態精確規格
+
+#### A.2.1 Focusing（正在對焦）
+
+| 參數 | 值 | 備註 |
+|------|-----|------|
+| 觸發 | 用戶點擊 Viewfinder 任意位置 | `pointerInput { detectTapGestures(onTap=...) }` |
+| 圓環顏色 | **白色 #FFFFFF α=0.9** | — |
+| 入場動畫 | **1.3x→1.0x 收縮 + 60° 弧線旋轉** | 兩個動畫同步執行 |
+| 收縮時長 | **300ms** | `FastOutSlowInEasing` |
+| 弧旋時長 | **300ms** | `LinearOutSlowInEasing`（尾端減速停穩） |
+| 結束條件 | CameraX AF 回調成功 → 進入 Focused | — |
+| 超時保護 | **2500ms** 無回調 → 強制進入 Failed | D-17: Sony PDAF fine-tune 裕度 |
+
+```kotlin
+// Focusing 入場動畫
+val focusingScale = remember { Animatable(1.3f) }
+val focusingRotation = remember { Animatable(0f) }
+
+LaunchedEffect(focusState == FocusState.FOCUSING) {
+    launch { focusingScale.animateTo(1.0f, tween(300, easing = FastOutSlowInEasing)) }
+    launch { focusingRotation.animateTo(60f, tween(300, easing = LinearOutSlowInEasing)) }
+}
+
+// Canvas 繪製
+drawCircle(
+    color = Color.White.copy(alpha = 0.9f),
+    radius = FOCUS_RING_SIZE.toPx() / 2,
+    center = focusCenter,
+    style = Stroke(FOCUS_RING_STROKE.toPx()),
+    // scale + rotate applied via graphicsLayer
+)
+```
+
+**Canvas 呼叫**：1 次 `drawCircle`（scale/rotate 由 `graphicsLayer` 處理，不增加 draw call）
+
+---
+
+#### A.2.2 Focused（對焦成功）— D-5r: 永駐 + 雙路徑消失
+
+| 參數 | 值 | 備註 |
+|------|-----|------|
+| 觸發 | CameraX AF 回調成功 | `FocusMeteringResult.isFocusSuccessful` |
+| 圓環顏色 | **綠色 #50C864 α=0.8** | 從白色 → 綠色，300ms `animateColorAsState` |
+| 穩定 scale | **0.85x** | 從 Focusing 1.0x 收縮至 0.85x，暗示「鎖定」 |
+| 脈動確認 | **0.85→0.92→0.85**，200ms | AF 完成瞬間觸發一次，`FastOutSlowInEasing` |
+| 持續時間 | **永駐**（D-5r） | 無 timeout — 直到消失路徑觸發 |
+| 消失路徑 | **雙路徑**（見 §A.2.2.1） | ① IMU drift ≥15° ② 用戶 re-tap |
+
+```kotlin
+// Focused 入場（脈動確認後永駐）
+LaunchedEffect(focusState == FocusState.FOCUSED) {
+    // T0: 脈動確認
+    focusScale.animateTo(0.92f, tween(100, easing = FastOutSlowInEasing))
+    focusScale.animateTo(0.85f, tween(100, easing = FastOutSlowInEasing))
+    // 脈動後靜止 — 無 delay + fadeout，永駐直到外力消除
+}
+```
+
+**Canvas 呼叫**：1 次 `drawCircle`
+
+#### A.2.2.1 Focused 消失路徑（R7）
+
+Focused 圓環只有兩條消失路徑：
+
+| 路徑 | 觸發條件 | 動畫 | 備註 |
+|------|---------|------|------|
+| ① IMU Drift | 手機姿態偏移 ≥ 15°（`FOCUS_DRIFT_THRESHOLD_DEG`） | α 0.8→0, 500ms fadeout | 重新拿起手機時自然觸發 |
+| ② Re-tap | 用戶點擊其他位置 | 觸發 Failed 動畫 → 新 Focusing | 見 §A.4 覆蓋規則 |
+
+```kotlin
+// Drift 監聽（在 Focused 狀態下持續運行）
+LaunchedEffect(focusState == FocusState.FOCUSED) {
+    val initialOrientation = orientationCalculator.current()
+    orientationCalculator.orientationFlow.collect { current ->
+        val drift = abs(current.pitchDeg - initialOrientation.pitchDeg) +
+                    abs(current.rollDeg - initialOrientation.rollDeg)
+        if (drift >= AmbientConstants.FOCUS_DRIFT_THRESHOLD_DEG) {
+            // 觸發淡出
+            focusAlpha.animateTo(0f, tween(500, easing = LinearEasing))
+            onFocusRingDismissed()
+        }
+    }
+}
+```
+
+**設計理由（D-5r）**：刪除 timeout 後，IMU drift 機制成為天然的 timeout 替代品 — 用戶放下手機再拿起時，drift 幾乎必然 >15°，自動觸發消失。比固定 8s timeout 更符合用戶行為模式。
+
+---
+
+#### A.2.3 Failed（對焦失敗 / 追蹤遺失）
+
+| 參數 | 值 | 備註 |
+|------|-----|------|
+| 觸發 | CameraX AF 回調失敗 **或** 2500ms 超時 | — |
+| 圓環顏色 | **琥珀 #D4A030 α=0.6** | 瞬間變色（不漸變，與 Focused 的漸變形成對比） |
+| 動畫 | **衰減振盪 + scale 膨脹 + opacity 衰減** | 三者同步，800ms |
+| 振盪路徑 | `translateX`: 0→-4→+4→-3→+2→-1→0 px | 振幅逐幀遞減 |
+| scale 膨脹 | **0.85→1.20** | 模擬「失焦擴散」感 |
+| opacity 衰減 | **0.6→0.0** | 與振盪同步衰減 |
+| 總時長 | **800ms** | 結束時 opacity=0，無需額外淡出 |
+
+```kotlin
+// Failed 衰減振盪 keyframes
+LaunchedEffect(focusState == FocusState.FAILED) {
+    launch {
+        focusScale.animateTo(1.20f, tween(800, easing = LinearOutSlowInEasing))
+    }
+    launch {
+        focusAlpha.animateTo(0f, tween(800, easing = FastOutLinearInEasing))
+    }
+    launch {
+        focusOffsetX.animateTo(0f, keyframes {
+            durationMillis = 800
+            0f at 0                        // 起始
+            (-4f) at 100                   // 第一次偏移
+            4f at 200                      // 反彈
+            (-3f) at 300                   // 衰減
+            2f at 400                      // 衰減
+            (-1f) at 500                   // 接近靜止
+            0f at 600                      // 停止震動
+            0f at 800                      // 保持
+        })
+    }
+    delay(800)
+    onFocusRingDismissed()
+}
+```
+
+**Canvas 呼叫**：1 次 `drawCircle`（translate/scale 由 `graphicsLayer`）
+
+---
+
+#### A.2.4 Locked（AE/AF Lock）— 方案 B：單圈 + 🔒 Badge（D-6r/D-7 簡化）
+
+| 參數 | 值 | 備註 |
+|------|-----|------|
+| 觸發 | **Long press ≥ 500ms** | 對齊 Android `ViewConfiguration.getLongPressTimeout()` |
+| 圓環顏色 | **亮金 #D4A030 α=0.85** | — |
+| scale | **0.85x**（與 Focused 同） | 從 Focusing 1.0x 收縮，表示「鎖定」 |
+| 🔒 Badge | 右上角 offset **(-4dp, -4dp)** | 背景 #0D0D0D α0.85 + 1px 琥珀金邊框 |
+| Badge 入場 | **scale 0.5→1.0, opacity 0→1, 300ms** | `cubic-bezier(0.175, 0.885, 0.32, 1.275)` overshoot |
+| Badge 圖示 | Lucide `lock` icon, **10dp** | 琥珀金色 |
+| 持續時間 | **永駐至解鎖**（D-6r: 無 timeout） | 唯一消失路徑 = 用戶 re-tap |
+| IMU drift | **不受影響**（D-7） | Locked 是用戶明確意圖，不被環境感測器覆蓋 |
+| 解鎖行為 | 當前 Locked 圈觸發 Failed 動畫 → 新位置產生新 Focusing 圈 | — |
+| CameraX 整合 | `camera.cameraControl.startFocusAndMetering(action)` 帶 `FLAG_AF or FLAG_AE` | 鎖定曝光+對焦 |
+
+**方案 B 選擇理由**：
+- 效能優先：Canvas 呼叫 1 次 `drawCircle` + 1 個 Composable Icon = **2 次**（vs 雙圈方案 3 次）
+- 視覺干擾最小：單圈不增加 Viewfinder 視覺重量
+- 國際化：🔒 圖示無需翻譯，比 "AE/AF" 文字更通用
+
+```kotlin
+// Locked 狀態 Compose 結構
+Box {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        drawCircle(
+            color = Color(0xFFD4A030).copy(alpha = 0.85f),
+            radius = FOCUS_RING_SIZE.toPx() / 2 * 0.85f,
+            center = focusCenter,
+            style = Stroke(FOCUS_RING_STROKE.toPx())
+        )
+    }
+    // Badge 使用 Composable 而非 Canvas drawText
+    AnimatedVisibility(
+        visible = focusState == FocusState.LOCKED,
+        enter = scaleIn(
+            initialScale = 0.5f,
+            animationSpec = tween(300, easing = CubicBezierEasing(0.175f, 0.885f, 0.32f, 1.275f))
+        ) + fadeIn(tween(300))
+    ) {
+        LockBadge(modifier = Modifier.offset(x = (-4).dp, y = (-4).dp))
+    }
+}
+```
+
+**Canvas 呼叫**：1 次 `drawCircle` + 1 次 Composable（不計入 Canvas budget）= **1 次**
+
+---
+
+### A.3 狀態轉換矩陣（D-5r/D-6r 簡化版）
+
+```
+                    ┌───────────┐
+          Tap       │           │    AF Success
+    ─────────────►  │ Focusing  │ ─────────────►  Focused ──(永駐)
+                    │           │                     │
+                    └─────┬─────┘                     ├── IMU drift ≥15° → fadeout 500ms → [移除]
+                          │                           └── Re-tap → Failed + 新 Focusing
+                    AF Fail / 2.5s timeout
+                          │
+                          ▼
+                       Failed ──(0.8s)──► [移除]
+
+                    ┌───────────┐
+     Long press     │           │
+    ─────────────►  │  Locked   │ ──(永駐, 不受 IMU drift)
+     (≥500ms)       │  + 🔒    │
+                    └─────┬─────┘
+                          │
+                     Re-tap → Failed + 新 Focusing
+```
+
+### A.4 再次點擊行為（覆蓋規則）
+
+| 當前狀態 | 用戶行為 | 結果 |
+|---------|---------|------|
+| Focusing | 點擊其他位置 | 當前圈觸發 Failed → 新位置產生 Focusing |
+| Focused | 點擊其他位置 | 當前圈觸發 Failed → 新位置產生 Focusing |
+| Failed | 點擊任意位置 | （圈已在消失中）新位置產生 Focusing |
+| Locked | 點擊任意位置 | 當前 Locked 觸發 Failed → 新位置產生 Focusing |
+| 無圈 | 點擊任意位置 | 新位置產生 Focusing |
+
+**同時只存在一個活躍 Focus Ring**（Failed 動畫中的舊圈不計，它正在消失）。
+
+### A.5 Canvas 預算更新（State 5）
+
+| 元素 | 呼叫數 |
+|------|-------|
+| 三分網格 (Layer 1) | 4 |
+| Focus Ring (Layer 4) — 最大值 Locked | **1** |
+| Level Traction reference (Layer 5) | 1 (bitmap) |
+| Level Traction dynamic (Layer 5) | 3 |
+| Scrim (Layer 6) | 1 |
+| **State 5 總計** | **10** |
+
+方案 B 將 State 5 從原預算 11 降至 **10**，低於 15 次上限。
+
+### A.6 CameraX 整合延遲鏈
+
+```
+T0: 用戶手指觸碰螢幕
+T0+1ms: pointerInput 回調 → 建立 Focus Ring → 開始 Focusing 動畫
+T0+16ms: 第一幀渲染（用戶看到圓環出現）
+T0+16ms: startFocusAndMetering() 發送至 CameraX
+T0+200~800ms: AF 完成回調 → 觸發 Focused 或 Failed
+T0+2200~3000ms: Focus Ring 完全消失
+```
+
+**E2E 視覺反饋延遲**：16ms（1 frame）  
+**E2E AF 完成延遲**：200-800ms（CameraX 硬體依賴，不可控）
+
+### A.7 三級裝置降級
+
+| 裝置等級 | Focusing 動畫 | Focused 脈動 | Failed 振盪 | Locked Badge |
+|---------|-------------|------------|------------|-------------|
+| FULL | 1.3x→1.0x + 60° 弧旋 | 0.85→0.92→0.85 | 衰減振盪 + 膨脹 | 🔒 Badge |
+| LIMITED | 1.3x→1.0x（**無弧旋**） | 0.85→0.92→0.85 | 衰減振盪 + 膨脹 | 🔒 Badge |
+| LEGACY | **無動畫，直接 1.0x 出現** | **無脈動** | **僅 fadeout 0.8s** | 🔒 Badge（靜態出現） |
+
+---
+
+## 附錄 B：全局決策記錄
+
+### B.1 Logo 拍攝畫面移除
+
+拍攝畫面（CameraScreen）移除 Cueshot Logo。Logo 植入拍後評分卡片 + App Splash Screen。  
+理由：拍攝畫面每一個像素都應服務於「引導拍攝」。
+
+### B.2 Haptic 全面移除
+
+MVP 全面移除 Haptic（震動反饋）。替代方案：
+
+| 原 Haptic 場景 | 替代方案 |
+|---------------|---------|
+| Focus Lost | `translateX` 衰減振盪 + scale 膨脹（±4px → 0.85→1.20 — 見附錄 A.2.3） |
+| 快門確認 | 外環白色閃爍（§10.3.1） |
+| 對齊達成 | 快門外環呼吸韻律啟動 |
+
+理由：Haptic 在不同 Android 裝置上的觸感差異極大，視覺通道在所有裝置上可控。
+
+### B.3 進度環規格
+
+快門按下瞬間及冷卻期間，外環以圓弧進度環提供視覺回饋：
+
+**B.3.1 拍攝確認環（Capture Confirmation）**
+
+| 屬性 | 值 |
+|------|-----|
+| 形狀 | 快門外環上的圓弧掃過 |
+| 起始角度 | 12 點鐘方向（-90°） |
+| 掃過方向 | 順時針 |
+| 顏色 | **綠色 #50C864 α0.80** |
+| 持續時間 | **300ms**（0%→100% 掃滿） |
+| 觸發 | 快門按下瞬間 |
+| 結束 | 掃滿後 50ms 重置為 0% |
+
+**B.3.2 冷卻進度環（Cooldown Progress）**（Phase 1.5）
+
+| 屬性 | 值 |
+|------|-----|
+| 形狀 | 快門外環上的圓弧掃過 |
+| 起始角度 | 12 點鐘方向（-90°） |
+| 掃過方向 | 順時針 |
+| 顏色 | 白色 α0.30 |
+| 持續時間 | 與冷卻時長同步 |
+
+Phase 1.5 擴展：進度環動態跟隨 DOF 處理時間。
+
+**B.3.3 快門色彩硬編碼聲明（R15）**
+
+快門按鈕（外環 + 內圓 + 進度環）**不使用 Material Theme 預設色彩**。所有色值必須硬編碼：
+
+| 元素 | 色值 | 備註 |
+|------|------|------|
+| 外環靜態 | #FFFFFF α0.30 | — |
+| 外環呼吸（對齊時） | #50C864 α 0.25→0.40 | 與全局呼吸同步（R-T13 V-1 重錨）|
+| 外環閃爍（拍攝時） | #FFFFFF α0.45→0 | 300ms |
+| 進度環 | #50C864 α0.80 | 拍攝確認 |
+| 內圓 | #FFFFFF | — |
+
+**理由**：Claude Code 在實作中使用了 `MaterialTheme.colorScheme.primary`，導致快門顏色跟隨 Sony（藍色）/ Pixel（粉色）等廠商主題色，破壞 Cueshot 品牌一致性。
+
+### B.4 Photo/PTF Pill Toggle
+
+PTF 入口為 Photo/PTF Pill Toggle，取代舊版底部全寬 Tab。  
+完整規格見 `Cueshot_Layout_Spec_v2_5_1.md` §5。
+
+### B.5 Top Bar Scrim + 光線指示（D-13/D-15/D-16/D-19）
+
+Top Bar 為浮動 Overlay + 線性漸層 Scrim（取代原毛玻璃膠囊設計）。  
+Scrim 起始 y=0 alpha 0.22 → 結束 y=**120px** alpha 0。（D-13: CSO 確認 120px，待實測調整）  
+完整 Scrim 規格見 `Cueshot_Layout_Spec_v2_5_1.md` §3.2。
+
+**Top Bar 圖示光線指示動畫**：三態映射（正常/需HDR/需補光），pulse 週期 3000ms，debounce 1000ms。完整規格見 §2.9。
+
+### B.6 PreviewView scaleType（D-18: FILL_CENTER）
+
+CameraX `PreviewView` 使用 `ScaleType.FILL_CENTER`（裁切填滿，無 Letterbox 黑條）。
+
+| 屬性 | 值 | 備註 |
+|------|-----|------|
+| scaleType | `PreviewView.ScaleType.FILL_CENTER` | Layout Spec v2.5 §3.1 規格 |
+| 裁切行為 | 4:3 影像在 9:19.5 容器中上下各裁切約 8.7% | 主體通常在中央，裁切影響可忽略 |
+| **禁止** | `FIT_CENTER` | 會產生 Letterbox 黑條，與 Scrim/Overlay 疊加造成視覺異常 |
+
+**設計理由**：  
+1. 所有主流相機 App（Google Camera, Samsung Camera, iPhone）均使用 FILL 策略  
+2. Cueshot 為導拍引擎（§1.3），非專業相機替代品 — 用戶不精確計較邊緣裁切  
+3. ML Kit Face/Object bbox 使用 ImageProxy 座標，不受 PreviewView scaleType 影響
+
+### B.7 Edge Warmth 語義殘留清除（D-14）
+
+PitchTractionLayer 在命名淨化（2026-05-12）後仍殘留 Edge Warmth 行為代碼：`null -> drawRect(Brush.radialGradient(WarmAmber))`。  
+此代碼引用已移交 Halo Traction 的 `Direction` enum（D-11），且 `PitchGuidance` 三態不含 `null` 值。
+
+**處理**：實作中刪除 `PitchTractionLayer.kt` 的 `null ->` 分支。無替代邏輯。  
+**教訓**：命名淨化須同步執行**語義淨化** — 檢查每個 when/switch 分支行為是否仍屬於新架構職責。
+
+### B.8 Edge-to-Edge + Display Cutout（D-18 附帶修復）
+
+啟用 edge-to-edge 時，必須同步設定 cutout mode 以避免 Viewfinder 被系統 padding 推下：
+
+```kotlin
+// MainActivity.kt
+enableEdgeToEdge()
+window.attributes.layoutInDisplayCutoutMode =
+    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+```
+
+```xml
+<!-- themes.xml -->
+<item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+```
+
+**Scaffold padding 修正**：移除 `Column.padding(paddingValues)` — Viewfinder 從 y=0 開始。Top Bar 使用 `WindowInsets.statusBars` 動態獲取 inset（避免雙重 padding）。
+
+### B.9 MVP 不含獨立 Tracking 管線（D-20）
+
+ObjectTrackingPipeline.kt 標記 `@Deprecated`，不作為 Eye-AF 替代追蹤器。  
+ML Kit ODT 仍作為 Food mode 的偵測 + 分類引擎運作（§6.1）。  
+Eye-AF 由 DefaultTargetTracker（IoU rebinding + TTL 300ms）完整服務。  
+OpticalFlowTracker.kt / OpticalFlowConfig.kt 已從 Filesystem 永久刪除。
+
+**否決方案**: Option C（重建 OpticalFlow）= Resume-Driven Development，REJECT。
+
+### B.10 MVP 關閉 enableMultipleObjects（D-21）
+
+SSOT §6.1 代碼範例移除 `.enableMultipleObjects()`，對齊 §2.5.1 MVP 策略 A（跟隨最大 bbox）。  
+Google 官方警告：STREAM_MODE + enableMultipleObjects = 大多數裝置幀率不足。  
+Phase 1.5 在多道菜場景需求經實機驗證後重新啟用。
+
+### B.11 ML Kit 偵測器互斥運行原則（D-22）
+
+強化 §3.2 已有文字為正式決策：同一 ImageProxy 僅運行一個偵測器。  
+消除 dual inference 的效能違規（§10.2 peak latency 60-120ms）、記憶體壓力（雙模型 80-120MB）、thermal throttle 加速觸發。  
+MLKitDetector.kt 需重構為 mode-aware：接收 SceneMode 參數，只啟動對應 detector。
+
+### B.12 Face Detection 配置鎖定（D-23）
+
+LANDMARK_ALL + CLASSIFICATION_ALL + CONTOUR_NONE + FAST + minFaceSize 0.15f。  
+解鎖 EyeLineRule（MVP P1）+ SmileRule（Phase 1.5）+ true Eye-AF（nearest eye focus）。  
+v2.12.0「Unknown landmark type」crash 需 root-cause 後修復，以 try-catch graceful degradation 防護。
+
+**翻盤條件**: 實機驗證側臉偵測率不足 → PTF 模式切 PERFORMANCE_MODE_ACCURATE。
+
+### B.13 Grid 三分網格線規格鎖定（D-24）
+
+#FFFFFF α0.35, 線寬 1.5px, StrokeCap.Round, contentBounds 內繪製。  
+Z-order: Grid 在 PitchTractionLayer 之上（Layer 2 > Layer 1）— 確保不被 Pitch aligned 模式遮蓋。  
+Cold start 過渡：ODT warm-up 期間 Grid α0.35 → 首個 Food bbox 到達後 300ms 淡出至 α0.15。
+
+**否決方案**: α0.25 過淡、α0.50 過重、不交換 Z-order（邊緣被 aligned 呼吸削弱）。
+
+### B.14 Face Detection 配置修正 + Portrait 狀態機入 SSOT（D-27）
+
+D-23 修正：LANDMARK_ALL 降為 NONE（MVP）。v2.12.0 "Unknown landmark type" crash 未根治 + production 從未成功部署 = SSOT 與代碼語義分裂。EyeLineRule 延後至 Phase 1.5；AF focus target 降級為 FACE_CENTER。
+新增 §4.4.1 Portrait Guidance 六態狀態機（NO_FACE → FACES_DETECTED_NONE_ELIGIBLE → SUBJECT_STABILIZING → GUIDANCE_ACTIVE → ALIGNED → SUPPRESSED）。
+新增 §4.4.2 Face Detector Session Lifecycle（建立/暫停/恢復/切換）。
+
+**翻盤條件**：
+
+- LANDMARK_ALL：ML Kit 新版修復 crash + 1000 幀雙裝置零 crash → Phase 1.5 恢復
+- 狀態機：六態不足以覆蓋新產品場景 → 在 SSOT 層增態（禁止 Contract 層自行擴展後再升格）
+
+---
+
+### B.15 商業 + 視覺引導雙簇裁決（D-28~D-31 + F-1/F-2/F-3/F-5 · 2026-07-07）
+
+歸檔 #154-160 + #163 九項裁決入條文（SSOT-V407-01）。每條引用 Obsidian 歸檔檔名為 provenance。
+
+| 決議 | 內容摘要 | 落地章節 | Obsidian 歸檔 |
+|------|---------|---------|--------------|
+| D-28 | Freemium 重構為感測器通道分層（IMU 免費 / ML Kit 付費）+ AUDIT-1（PTF session 為免費層 ML 唯一例外） | §8.1 | `2026-07-07_Cueshot_Freemium_Channel_Split.md` |
+| D-29 | PTF 升格 P0 成長飛輪（分享卡 / 回充制 / 雙層歸因；翻盤線 30 天一級擴散 <1%） | §9.2 #5 / §11 D7-9 | `2026-07-07_Cueshot_PTF_Flywheel.md` |
+| D-30 | 創始買斷 `cueshot_founder_lifetime`（INAPP $9.99/NT$290、限量 500、Remote Config 軟性計數、邊際成本劃界） | §8.2 | `2026-07-07_Cueshot_Founder_SKU_Spec.md` |
+| D-31 | 指標升級產品+商業雙漏斗（7 指標各附 T/N_min/翻盤線；D7 雙門檻 18%/25%） | §9 | `2026-07-07_Cueshot_Metrics_Dual_Funnel.md` |
+| F-1 | 雙軌 IFTR（可感知主指標 / 全事件審計軌 / 差值＝不可見引導佔比；閾值三元組待 D15-16 P25 校準） | §9.1 | `2026-07-07_Cueshot_IFTR_DualTrack_Measurement.md` |
+| F-2 | 鎖定態 Halo 規格（琥珀 α0.35、無牽引圓點、永不轉綠、禁鎖頭、`HALO_TRIAL_WINDOW_SESSIONS` 命名）；UITA 定稿 DEC-20260707153625 + CSO 終審 verdict（`reports/CSO_Verdict_UITA_LockedHalo_Numeric_20260707.html`，×0.6f→×0.5f 修正） | §2.5.4 / §2.0 | `2026-07-07_Cueshot_LockedHalo_TrialWindow_Spec.md` |
+| F-3 | 呼吸韻律免費層條文即刻入檔 | §2.6 | `2026-07-07_Cueshot_LockedHalo_TrialWindow_Spec.md`（視覺引導簇） |
+| F-5 | 購買完成頁 3 秒 Halo 教學（所屬敘事鏈見 B.16） | §11 D14 / B.16 | `2026-07-07_Cueshot_Halo_Narrative.md` |
+
+### B.16 Halo 價值敘事鏈統攝原則（NEW · F-5）
+
+> **定義錨點（NEW，全 SSOT 零既存錨點；K4-γ 幻名防護，grep 實證 2026-07-07）**
+
+**敘事鏈統攝原則**：Halo 作為 Cueshot 的核心價值載體，其「價值敘事」貫穿一條使用者旅程鏈，各觸點 MUST 語義連貫、不得孤立設計：
+
+1. **試用窗初見**（§2.5.4 鎖定態 Halo）：免費層看見琥珀環的「存在」——引導的形狀可感知。
+2. **獎勵的缺席**（§8.3）：琥珀永不轉綠、無方向載體——感受到「差一步」的張力（非「被鎖」的挫折）。
+3. **文字觸點**（§2.5.4 tooltip「即時構圖引導 · 創始會員」）：唯一 upsell 文字入口 → Paywall。
+4. **購買完成頁 3 秒 Halo 教學**（F-5 · §11 D14）：轉換後立即以 3 秒動畫教學「琥珀如何轉綠、牽引圓點如何引導」——兌現前三步累積的期待，閉合敘事鏈。
+
+**統攝約束**：任何觸及 Halo teaser / Paywall / 購買完成頁的實作，MUST 對齊本鏈語義；禁止在任一觸點引入與「獎勵的缺席」矛盾的元素（如鎖頭、功能被禁文案）。此原則為全 SSOT 敘事層唯一定義來源，下游文件引用 MUST 指向 §B.16。
+
+---
+
+## Viewfinder Overlay 圖層定義
+
+```
+Layer 0: Camera Preview（CameraX PreviewView）
+Layer 1: Pitch Traction 指示柱（右側 16dp, 36dp×25% viewfinder, 琥珀金/綠色 — D-2; 底層先繪製）
+Layer 2: 三分網格線（#FFFFFF alpha 0.35, 線寬 1.5px — D-24; 在 Pitch 之上確保可見）
+Layer 3: Halo Traction 圓環（琥珀金 / 綠色, 呼吸 alpha 0.25→0.40 — D-3, R-T13 V-1）
+Layer 4: 對焦圓環（Tap-to-focus, 60dp, 四狀態生命週期 — 見附錄 A）
+Layer 5: Level Traction（白色虛線 reference + 動態 dynamic 層）
+Layer 6: Scrim + Top Bar 浮動圖示（最上層）
+```
+
+---
+
+## 文件元資訊
+
+- **版本**: SSOT v4.0.7 (SSOT-V407-01: D-28~D-31 + F-1/F-2/F-3/F-5 商業 + 視覺引導雙簇入條文)
+- **建立日期**: 2026-05-12
+- **修訂日期**: 2026-07-07
+- **合併來源**:
+  - v3.3 SSOT (2026-04-04) — 基底
+  - Delta v3.4 (2026-05-01~02) — 11 項決策
+  - Delta v3.4.1 Patch (2026-05-03) — 7 項補丁 + 2 項補錄
+  - Naming Purge (2026-05-12) — Edge Warmth 全面淨化
+  - Focus Spec v1 (2026-05-15) — 附錄 A 完整規格書（方案 B：單圈 + 🔒 Badge）
+  - Cross-Audit v1 (2026-05-15) — HTML Prototype v3.1.1 vs SSOT 全面校正
+  - **Session 4 Full Revision (2026-05-18)** — D-5r~D-12 鎖定 + R1~R18 全面修訂：
+    - D-2: Pitch Traction 指示柱取代邊緣漸層（R1, R2, R13, R17）
+    - D-5r/D-6r: Focus/Locked timeout 刪除，簡化為永駐（R6~R9）
+    - D-9: Food 場景關閉 Level Traction（R3, R18）
+    - D-10: Level Traction N=10°（R10, R16）
+    - D-11: Direction enum 移交 Halo Traction（R2）
+    - D-12: PTF 快門全局下移 4dp（R14 → Layout Spec v2.3）
+    - R11/R12: IMU 計算骨架 + pitch 座標定義
+    - R15: 快門色彩硬編碼聲明
+  - **Session 5 Patch (2026-05-18)** — D-13 Scrim endpoint 確認 + Layout Spec v2.3 產出：
+    - D-13: Scrim endpoint 120px CSO 確認鎖定（待實測調整）
+  - **Session 6 Revision (2026-05-27)** — D-14~D-19 鎖定 + R19~R28：
+    - D-14: PitchTractionLayer null vignette 刪除 — Edge Warmth 語義殘留清除（R22, §B.7）
+    - D-15: HDR 三態光線指示（Option 2: 正常/需HDR/需補光）（R23, §2.9）
+    - D-16: 光線指示 debounce = 1000ms（R21, §2.9）
+    - D-17: FOCUS_AF_TIMEOUT_MS 2000→2500ms — Sony XQ-BT52 PDAF 裕度（R20/R24/R25/R26）
+    - D-18: PreviewView scaleType = FILL_CENTER + edge-to-edge cutout 修復（R27, §B.6/B.8）
+    - D-19: HDR pulse 3000ms / ⚡ pulse 3000ms（R21/R23, §2.9）
+  - **Session 8 Revision (2026-05-28)** — D-20~D-24 鎖定 + R29~R34：
+    - D-20: MVP 不含獨立 Tracking 管線（ObjectTrackingPipeline @Deprecated）
+    - D-21: MVP 關閉 enableMultipleObjects()（對齊策略 A + Google 官方警告）
+    - D-22: ML Kit 偵測器互斥運行原則（§10.2 效能預算強化）
+    - D-23: Face Detection 配置鎖定（LANDMARK_ALL + CLASSIFICATION_ALL）
+    - D-24: Grid 三分網格線 α0.35/1.5px + Z-order 交換 + cold start 過渡規格
+    - R29: Grid 參數 + Z-order（§Overlay 圖層）
+    - R30: §6.1 enableMultipleObjects 移除
+    - R31: §10.2 互斥運行 + cold start + thermal 備註
+    - R32: §10.2 延遲行精確化
+    - R33: §4.4 Face Detection 配置表
+    - R34: 附錄 B.9~B.13 決策記錄
+  - **Session 9 Micro-Revision (2026-05-28)** — D-25~D-26 鎖定 + R35~R36：
+    - D-25: Overlay 總表 Layer 1 文案修正 — 「漸層（邊帶 15% viewport）」→「指示柱（右側 16dp, 36dp×25% viewfinder）」（GPT 交叉審查命中）
+    - D-26: LEGACY 光線指示降級 — 不顯示光線狀態，維持靜態白色 α0.85（GPT 交叉審查命中）
+    - R35: §Overlay 圖層定義 Layer 1 文案對齊 D-2
+    - R36: §2.9 LEGACY 降級行語義修復
+  - **v4.0.6 (D-27: LANDMARK_NONE 降級 + Portrait 狀態機 + Detector Lifecycle)**：
+    - D-27: LANDMARK_ALL → NONE（MVP）— v2.12.0 crash 未根治 + production 從未部署；EyeLineRule 延後 Phase 1.5
+    - R37: §4.4 Face Detection 配置表修正（D-23, D-27 修正）
+    - R38: §4.4 EyeLineRule 階段 MVP(P1) → Phase 1.5
+    - R39: 新增 §4.4.1 Portrait Guidance 六態狀態機
+    - R40: 新增 §4.4.2 Face Detector Session Lifecycle
+    - R41: 附錄 B.14 決策記錄
+  - **v4.0.7 (SSOT-V407-01, 2026-07-07)** — 商業 + 視覺引導雙簇（歸檔 #154-160 + #163）：
+    - D-28: Freemium 感測器通道分層（IMU 免費 / ML Kit 付費）+ AUDIT-1 例外清單（§8.1, §B.15）
+    - D-29: PTF P0 成長飛輪（分享卡 / 回充制 / 雙層歸因，§9.2, §11 D7-9）
+    - D-30: 創始買斷 `cueshot_founder_lifetime`（INAPP $9.99/NT$290、限量 500、§8.2）
+    - D-31: 雙漏斗七指標 + D7 雙門檻 18%/25%（§9）
+    - F-1: 雙軌 IFTR + 閾值三元組待 P25 校準（§9.1）
+    - F-2: 鎖定態 Halo（琥珀 α0.35 靜態 / 半徑 ×0.5f / 方向元素雙禁 / `HALO_TRIAL_WINDOW_SESSIONS`，§2.5.4, §2.0）
+    - F-3: 呼吸韻律免費層條文（§2.6）
+    - F-5: 購買完成頁 3 秒 Halo 教學 + 敘事鏈統攝原則（§11 D14, §B.16）
+    - AI-7 sweep: §4.4.1 GUIDANCE_ACTIVE α0.25→0.8 R-T2 漏掃化石修正
+- **作廢文件**: v3.0, v3.1, v3.2, v3.3, Delta v3.4, Delta v3.4.1, v4.0, v4.0.1, v4.0.2, v4.0.3, v4.0.4 及所有前版
+- **搭配文件**: `Cueshot_Layout_Spec_v2_5_1.md`（佈局精確定義，獨立維護）
+- **命名規範**: 本文件中不存在 "Edge Warmth" 作為渲染元件名稱。三通道體系統一使用 Pitch Traction / Level Traction / Halo Traction。PitchTractionLayer 禁止包含 null/radialGradient 渲染邏輯（D-14）。
+- **決策記錄**: D-1~D-4 (Session 3), D-5r~D-12 (Session 4), D-13 (Session 5), D-14~D-19 (Session 6), D-20~D-24 (Session 8), D-25~D-26 (Session 9), D-27 (Session VIII CSO) — 全部 locked
+- **下一步**:
+  1. ~~Layout Spec v2.4 → v2.5.1~~ → 待部署
+  2. Claude Code 按 SSOT v4.0.6 + Layout Spec v2.5.1 實作：
+     a. C-1: GridOverlay alpha 0.35 + strokeWidth 1.5f（D-24, R29）
+     b. C-2: PitchTractionLayer null vignette 刪除（D-14, R22）
+     c. C-3: CameraScreen Z-order Grid↔Pitch 交換（D-24, R29）
+     d. C-4: MLKitDetector mode-aware 重構（D-22, R31）— LANDMARK_NONE（D-27 降級）+ CLASSIFICATION_ALL（D-23/HOTFIX-47）+ enableMultipleObjects 移除（D-21, R30）
+     e. C-5: Food mode 雙重確認 + cold start Grid→Halo 過渡（D-24, R31）
+     f. PreviewView scaleType → FILL_CENTER（D-18）
+     g. edge-to-edge + cutout mode 修復（D-18/B.8）
+     h. Scaffold padding 修正（移除雙重 padding）
+     i. FOCUS_AF_TIMEOUT_MS → 2500L（D-17）
+     j. Top Bar HDR 光線指示三態 pulse（D-15/D-16/D-19, §2.9）
+  3. 實機測試 → 截圖帶回 Tech Auditor 比對
+  4. Thermal probe 插樁 + 5 分鐘壓力測試
+
+---
+
+**End of SSOT v4.0.7**

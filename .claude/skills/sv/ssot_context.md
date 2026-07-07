@@ -2,7 +2,7 @@
 
 **用途**: Codex CLI cross_review.sh 專用 — 提供架構審查所需的最小 SSOT 上下文
 **維護頻率**: 每 Sprint 更新一次，或 SSOT 版本變更時同步
-**當前 SSOT 版本**: v4.0.6 (D-27: LANDMARK_NONE 降級 + Portrait 狀態機 + Detector Lifecycle)
+**當前 SSOT 版本**: v4.0.7 (SSOT-V407-01: D-28~D-31 + F-1/F-2/F-3/F-5 商業 + 視覺引導雙簇入條文)
 **搭配佈局文件**: Layout Spec v2.5.1
 
 ---
@@ -38,7 +38,7 @@ presentation/ → Jetpack Compose + ViewModel
 
 ## 2. 核心型別清單 (SSOT-Defined Types)
 
-以下型別名稱由 SSOT v4.0.6 定義，任何 diff 中出現非此名稱的同功能型別即為 **Model Drift**：
+以下型別名稱由 SSOT v4.0.7 定義，任何 diff 中出現非此名稱的同功能型別即為 **Model Drift**：
 
 | SSOT 型別 | 所在層 | 用途 |
 |-----------|--------|------|
@@ -53,6 +53,8 @@ presentation/ → Jetpack Compose + ViewModel
 | `TapFocusState` | presentation/camera/components | Sealed class: Idle/Focusing/Focused/Failed/Locked (P05-T2) |
 | `TapFocusRing` | presentation/camera/components | 單圈 60dp 渲染 Composable (P05-T2, SSOT 附錄 A) |
 | `TapFocusController` | presentation/camera/focus | Tap 狀態機 + CameraX AF 接線 (P05-T3) |
+| `HALO_TRIAL_WINDOW_SESSIONS` | domain（AmbientConstants） | **NEW v4.0.7 (F-2)**：鎖定態 Halo 免費層試用窗 session 數 = 3；非 Model Drift |
+| `cueshot_founder_lifetime` | data（Billing SKU id） | **NEW v4.0.7 (D-30)**：創始買斷 INAPP SKU；非 Model Drift |
 
 **架構狀態標註**:
 - `FocusIndicatorOverlay` — Eye-AF 視覺系統，MVP 階段由 flag 關閉（光學 AF 保留）。檔案保留不刪，非 dead code。
@@ -176,7 +178,7 @@ PASS_TO_FRIEND (手動) > pitch > 35° (Food) > pitch ∈ [-10°,35°] + face (P
 - **版本**: ssot_context v1.7
 - **建立日期**: 2026-05-04
 - **更新日期**: 2026-06-14
-- **來源**: SSOT v4.0.6 + Layout Spec v2.5.1 + P05 Contract (Strangler Fig 架構變更)
+- **來源**: SSOT v4.0.7 + Layout Spec v2.5.1 + P05 Contract (Strangler Fig 架構變更)
 - **行數**: ~170 行
 - **變更摘要 (v1.5 → v1.6)**:
   - SC-1: FOCUS_AF_TIMEOUT_MS 2000→2500ms（D-17 漏同步修正）

@@ -1,17 +1,18 @@
 # Cueshot MVP Sprint Dashboard
 
 **Sprint**: D0-D15 | **Branch**: `feature/cueshot-mvp`
-**Current Day**: D12
+**Current Day**: D13
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| SSOT-V407-01 | 🟡 Rev A 部署 Pending/ 待執行軌 spawn · UITA 鎖定態終審條件性通過（DEC-20260707153625：5 PASS / 1 引用修正後 PASS / 1 退回）· K-1：半徑 ×0.6f 幻錨 CSO 修正引用（SSOT 真值 ×0.5f，R-T3；AC 含防 0.6f 回滲）· K-2：alpha vaccine 引 §4.4.1 L901 R-T2 化石（α0.25 vs live 0.8）→ 退回 UITA 重推導 §2.5.4 · 唯二 PROVISIONAL：§9 閾值三元組 + §2.5.4 alpha 關係式 · DIFF_REF 開工 rev-parse 綁定（07-07 reflog 復驗存活，交叉核對錨 5f2d57a）· K4-51 已登錄 · Obsidian #163 落盤 |
 | INFRA-REACH-02 | ✅ Done · 9/9 AC PASS · Codex Cross-Review R2 ADVISORY（`REACHABILITY: NONE` · 46b8e24）+ 補跑正式 /qa→/sv 後 R2 ADVISORY（99a81de，structural_verify A-G PASS）· AC「第二 state holder 正向命中」由 Akira 裁決選項 (C)：合成 `tmp/` 臨時 fixture 自測（不落地 `app/src/main/**`），正向命中 `fakeMode` + `normalMode` 不誤報，見 `reports/REACH02_AI2_SelfTest_SecondHolder_20260706.md`；fixture 已清理 · AI-1~AI-7 七項 Action Item 皆完成 · 已移 deliver/ |
 | INFRA-SKILLS-UC01 | ✅ Done · Codex Cross-Review PASS（R1，完整 cross_review.sh · Guard Reachability 無新 Guard）· `/uc` 新增「## 驗證性動作豁免」段落：零廢話只約束解說性輸出，執行 `.claude/**/*.sh` MUST 用注入〔腳本現況〕canonical 格式 or 讀腳本頭 Usage，MUST NOT 憑記憶組裝參數 · 既有約束（零過渡/純 Diff/DONE 終止）保留 · AC-4 .sh 零觸碰 · +8L · 47fe32d |
 | TRACTION-SSOT-05-FIX-A | ✅ Done · Codex Cross-Review PASS（R1，完整 cross_review.sh + ssot_context 注入，禁手動窄審 · Guard Reachability 無新 Guard · type-drift Findings none）· R-T19 Option C：§4.3 L865 幻名 `FoodCompositionScore`→`levelScore`（§7.1 評分→§7.2 EXIF 既有定義消費者）· 解 SSOT-05 母票 R3 type-drift BLOCKER（Codex 實質正確：全 SSOT 零定義空名）· L866 FoodCompositionRule/R-T5 鏡像零觸碰 · MAX_LINES 5（實 1 行）· 0757dfc · Check E receipt 合法自動寫入 · 母票+FIX-A 同移 deliver/ |
 | INFRA-CR-PLANS-DIFF-01 | ✅ Done · Codex Cross-Review PASS（R1，dogfood：修好的腳本自審自身 diff）· cross_review.sh 粗排除 → ALLOWED-aware carve-out（`.claude//docs//plans/` 逐一，只在 ALLOWED 涵蓋時 carve-out）· 修 plans/-scoped 治理票被 `:!plans/` 餵空 diff bug（實證 0→2564 bytes）· verdict/prompt/fail-budget/exit code 零觸碰 · Fixture A/B/C+EXTRA_EXCLUDE+empty 14 assertions 全綠 · 43a35fb · Traycer execute_review pending |
 | TRACTION-SSOT-05 | ✅ FIX-A 閉環（母票 type-drift 已由 FIX-A 0757dfc 修正）· Level-D9 語義清掃 §2.2/§4.3/§8 三處落地（9af1223）· 手動窄審 PASS 曾遮蔽 §4.3 幻名 `FoodCompositionScore`（無 ssot_context 未觸發 drift 檢查）· 完整 cross_review R3 BLOCKER 正確揪出 → R-T19 Option C 重錨為 levelScore → 母票+FIX-A 配對同移 deliver/（reflog 閉合）|
 
-**Last Updated**: 2026-07-06
+**Last Updated**: 2026-07-07
 
 ## Sprint Health
 
@@ -35,6 +36,8 @@
 
 ## Next Actions
 
+> **S36（2026-07-07）：🟡 UITA 鎖定態終審條件性通過 → SSOT-V407-01 Rev A 部署 Pending/（AI-3 定稿注入、HC-2 重寫、AC「PROVISIONAL 恰 2 處具名」、AI-7 追加 L901 化石 sweep）→ 待執行軌 spawn（DIFF_REF 開工 `git rev-parse HEAD` 綁定，交叉核對錨 5f2d57a）→ UITA 退回單並行（§2.5.4 以 live 錨點 0.8 / LIMITED 0.35 / 呼吸帶 0.25→0.40 重推導）**
+>
 > **S35（2026-07-06）：✅ INFRA-REACH-02 Done（9/9 AC）— 補跑正式 /qa→/sv（先前僅直接呼叫底層腳本，非正式 skill 流程）過程中修正兩項票配置錯誤（`ALLOWED` 路徑筆誤、`PROGRESS_ARCHIVE.md` 未登記），structural_verify A-G PASS（ADVISORY）；Akira 裁決 AC「第二 state holder 正向命中」選項 (C)：合成 `tmp/` 臨時 fixture 自測（未觸碰 `app/src/main/**`），已清理 · 票移 deliver/**
 >
 > **S34（2026-07-06）：⚠️ INFRA-REACH-02 8/9 AC PASS（Reachability 防線 v2：AI-1~AI-7 七項全落地，CSO 審查 M-1 後 Check G 標準化重構 + R-1 迴歸防護重跑 + Codex R2 ADVISORY 46b8e24）→ 1 項 AC（第二 state holder 正向命中）待 Akira 裁決，票暫留 Pending/ 未移 deliver/ → KAIROS K4-50「AC 語義折損律」候選登記完成**
@@ -68,6 +71,6 @@
 
 ## Quick Links
 
-- SSOT: `plans/architecture/SSOT_v4_0_6.md`
+- SSOT: `plans/architecture/SSOT_v4_0_7.md`
 - Layout Spec: `plans/architecture/Cueshot_Layout_Spec_v2_5_1.md`
 - Full History: `PROGRESS_ARCHIVE.md`
