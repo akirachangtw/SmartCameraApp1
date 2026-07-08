@@ -5,28 +5,28 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| GAP-06-RENDER-DOT-01 | ✅ Done · HaloGuidanceLayer 牽引圓點渲染（AI-1 computeTractionDot atan2/hypot + 三段 V 曲線色/alpha + drawTractionDot radialGradient · AI-2 HALO_DOT_* 6 常數 · AI-3 androidTest 5 條）· /qa 綠（Build/202 test/Lint 0 new）· Codex Cross-Review PASS（Guard Reachability 有新 Guard→Producer B 可達，附行號）· DIFF `2a5103b..feb1732` · targetPosition non-null producer = GAP-06-TARGET placeholder（R-T21 stub-and-report，永久 nullable 契約 SSOT L393）· ticket_pattern.md 拆獨立 `[INFRA-TICKETID-01]` 4392c51 窗外 |
 | SSOT-V407-SWEEP-01 | ✅ Done · CLAUDE.md 現行 SSOT 指針 v4_0_6→v4_0_7（恰 2 處：核心鐵律 1 + `## SSOT` 策略行）· Codex Cross-Review PASS（REACHABILITY NONE）· assembleDebug PASS · AI-3 `.claude/rules/` v4_0_6 零命中 · Layout v2_5_1 零觸碰 · 6a08bed · 執行軌開機契約除雷（GAP-06 渲染票前置）· 已移 deliver/ |
 | SSOT-V407-01 | ✅ Done · SSOT v4.0.6→v4.0.7 七簇條文（§8 Freemium 通道切割+創始買斷 / §9 雙漏斗 / §2.5.4 鎖定態 Halo / §2.6 呼吸韻律 / §11 十六天 / B.15 / B.16 敘事鏈）· Codex Cross-Review ADVISORY→PASS（REACHABILITY NONE · receipt 5714078）· footer 化石 `End of SSOT v4.0.6`→v4.0.7 amend 修正（a881096，+1 行）· AC-5「GUIDANCE_ACTIVE 值在 α0.8、provenance 允留」+ receipt/HEAD 綁定 均 CSO 批准補證 · 唯二 PROVISIONAL（§2.5.4 alpha vaccine / §9 閾值三元組）待回填 · 已移 deliver/ |
 | INFRA-REACH-02 | ✅ Done · 9/9 AC PASS · Codex Cross-Review R2 ADVISORY（`REACHABILITY: NONE` · 46b8e24）+ 補跑正式 /qa→/sv 後 R2 ADVISORY（99a81de，structural_verify A-G PASS）· AC「第二 state holder 正向命中」由 Akira 裁決選項 (C)：合成 `tmp/` 臨時 fixture 自測（不落地 `app/src/main/**`），正向命中 `fakeMode` + `normalMode` 不誤報，見 `reports/REACH02_AI2_SelfTest_SecondHolder_20260706.md`；fixture 已清理 · AI-1~AI-7 七項 Action Item 皆完成 · 已移 deliver/ |
 | INFRA-SKILLS-UC01 | ✅ Done · Codex Cross-Review PASS（R1，完整 cross_review.sh · Guard Reachability 無新 Guard）· `/uc` 新增「## 驗證性動作豁免」段落：零廢話只約束解說性輸出，執行 `.claude/**/*.sh` MUST 用注入〔腳本現況〕canonical 格式 or 讀腳本頭 Usage，MUST NOT 憑記憶組裝參數 · 既有約束（零過渡/純 Diff/DONE 終止）保留 · AC-4 .sh 零觸碰 · +8L · 47fe32d |
-| TRACTION-SSOT-05-FIX-A | ✅ Done · Codex Cross-Review PASS（R1，完整 cross_review.sh + ssot_context 注入，禁手動窄審 · Guard Reachability 無新 Guard · type-drift Findings none）· R-T19 Option C：§4.3 L865 幻名 `FoodCompositionScore`→`levelScore`（§7.1 評分→§7.2 EXIF 既有定義消費者）· 解 SSOT-05 母票 R3 type-drift BLOCKER（Codex 實質正確：全 SSOT 零定義空名）· L866 FoodCompositionRule/R-T5 鏡像零觸碰 · MAX_LINES 5（實 1 行）· 0757dfc · Check E receipt 合法自動寫入 · 母票+FIX-A 同移 deliver/ |
 
-**Last Updated**: 2026-07-07
+**Last Updated**: 2026-07-08
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S37** · SSOT-V407-SWEEP-01 ✅ Done（CLAUDE.md SSOT 指針 v4_0_7 · Codex PASS · 6a08bed · 已移 deliver/）· **S36** · SSOT-V407-01 ✅（七簇 v4.0.7 · a881096）· **S35** · INFRA-REACH-02 ✅（9/9 AC）· INFRA-SKILLS-UC01 ✅（47fe32d）· TRACTION-SSOT-05(-FIX-A) ✅（0757dfc）· GAP-06 仍 🔴 BLOCKED（待 HaloGuidanceLayer.kt 渲染實作）|
-| Compile | ✅ PASS `assembleDebug`（53s，2026-07-06 首次真實補跑 /qa，證實無迴歸；票本身零 `.kt`/`.xml` 變更） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest`（2026-07-06 首次真實補跑 · AI-4 REACHABILITY token 雙自測負向 exit=1/正向 exit=0 另補） |
-| Lint | ✅ PASS `lint`（0 new warning，2026-07-06 首次真實補跑） |
+| Schedule | **S38** · GAP-06-RENDER-DOT-01 ✅ Done（HaloTraction 牽引圓點渲染+磁吸幾何落地 · Codex Cross-Review PASS · feb1732）· **S37** · SSOT-V407-SWEEP-01 ✅（6a08bed）· **S36** · SSOT-V407-01 ✅（a881096）· **S35** · INFRA-REACH-02 ✅（9/9 AC）· GAP-06 母議題剩磁吸 producer wiring（GAP-06-TARGET）+ Normal 渲染路由實機驗 |
+| Compile | ✅ PASS `assembleDebug`（53s · GAP-06 圓點渲染 · 2026-07-08 /qa Step 0 Scope Gate PASS 後補跑） |
+| Tests | ✅ PASS 202 unit（0 fail）+ androidTest compile（20s · GAP-06 AI-3 computeTractionDot V-curve/幾何 5 條） |
+| Lint | ✅ PASS `lint`（0 new warning；1 既存 baseline `ModifierParameter`@HaloGuidanceLayer.kt:151，isPtfMode/ptfAlignmentResult 於 2a5103b 已在 modifier 前，targetPosition 依既有簽名慣例插入，非新品類） |
 
 ## Active Blockers
 
 | ID | Issue | Severity | Root Cause |
 | ---- | ------- | ---------- | ------------ |
-| GAP-06 | HaloTraction 渲染缺牽引圓點：Normal 無 HaloTraction（出 Focus Ring）；PTF 圓點靜態不磁吸 | 🔴 P0 | SSOT 規格已修（TRACTION-SSOT-01 ✅：alpha 0.8 + 牽引圓點 + 三段 V 曲線）；待 HaloGuidanceLayer.kt 渲染實作票落地 |
+| GAP-06 | HaloTraction：圓點渲染+磁吸幾何已落地（GAP-06-RENDER-DOT-01 ✅ feb1732）；剩 producer wiring（圓點恆歸心 dist=0）+ Normal vs Focus Ring 渲染路由實機驗 | 🔴 P0 | render/math 完成；producer = GAP-06-TARGET placeholder（SC-04 閉環後開票）；路由待實機 |
 | GAP-07 | afState 回授斷裂 → Guard 7a 死碼 → 瘋狂 AF（Focus Ring 閃動）（**=AC-10 假過根因**）| 🔴 P0 | CameraViewModel.kt L2117 result 被拋棄、afState 永 Idle（dead field）；需接線 |
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
