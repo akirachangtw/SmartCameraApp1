@@ -290,3 +290,4 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 > **S32（2026-07-06）：✅ TRACTION-SSOT-05-FIX-A Done（R-T19 Option C §4.3 FoodCompositionScore→levelScore，解母票 R3 type-drift BLOCKER · Codex R1 PASS ssot_context 注入 · 0757dfc）→ 母票+FIX-A 同移 deliver/（reflog 閉合）**
 > **S33（2026-07-06）：✅ INFRA-SKILLS-UC01 Done（/uc 新增「## 驗證性動作豁免」：執行 .sh MUST 用 canonical 格式，MUST NOT 憑記憶組裝參數）· Codex Cross-Review PASS · 47fe32d**
 > **S34（2026-07-06）：⚠️ INFRA-REACH-02 8/9 AC（Reachability v2 AI-1~7 落地 + CSO M-1 後 Check G 標準化重構 + R-1 迴歸 + Codex R2 ADVISORY 46b8e24）→ 1 AC（第二 state holder 正向命中）待 Akira 裁決，票暫留 Pending/ → K4-50「AC 語義折損律」候選登記**
+> **INFRA-XX（S28）稽核歸檔**：K4-3/6/8/9 經 grep 核查目標檔案均無對應條文，已改列 🔴 待補寫；KAIROS-BACKFILL-01（S28）已補寫落地。
