@@ -11,7 +11,9 @@ _HOOK_INPUT=$(cat 2>/dev/null || true)
 LAST_MSG=""
 
 if [[ -n "$_HOOK_INPUT" ]]; then
-    LAST_MSG=$(echo "$_HOOK_INPUT" | py -c "
+    # PYTHONUTF8=1: py on Windows defaults stdout to cp1252, which cannot
+    # encode emoji/CJK and would silently fail the whole parse.
+    LAST_MSG=$(echo "$_HOOK_INPUT" | PYTHONUTF8=1 py -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -24,7 +26,7 @@ fi
 if [[ -z "$LAST_MSG" ]]; then
     CACHE="tmp/claude_status_cache.json"
     if [[ -f "$CACHE" ]]; then
-        LAST_MSG=$(py -c "
+        LAST_MSG=$(PYTHONUTF8=1 py -c "
 import json
 try:
     d = json.load(open('$CACHE'))
