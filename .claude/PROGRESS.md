@@ -37,8 +37,9 @@
 
 | PROVISIONAL | Owner | 觸發事件 | 死線 | 孤兒警訊 / 原則 |
 | ---- | ---- | ---- | ---- | ---- |
-| §2.5.4 alpha vaccine（SSOT v4.0.7 L678） | UITA | UITA 退回單返回（live 錨點 0.8 / LIMITED 0.35 / 呼吸帶 0.25→0.40 重推導）→ CSO 驗收回填 | D14（Halo 教學 0.5 天前定稿） | UITA 逾 48h 無回件即升級 CSO |
+| §2.5.4 alpha vaccine（SSOT v4.0.7 L678） | UITA | UITA 退回單返回（live 錨點 0.8 / LIMITED 0.35 / 呼吸帶 0.25→0.40 重推導）→ CSO 驗收回填；**回件後連動觸發 STATE-CONTRACT-04（placeholder · R-T20+R-T22 · 禁預賦 AC）：GuidanceStateConstants 三常數家族單次觸碰重錨 —— HALO_ALIGNED_ALPHA_MIN/MAX（0.10/0.18→呼吸帶）+ HALO_ACTIVE_ALPHA（0.25→未對齊 live 錨，SSOT L397-399/L548 規定 0.8，待 UITA 回件定值）+ ContractTest assert + SSOT 錨同步；盤點 HaloGuidanceLayer L283 `× 0.5f` 弱化環派生消費點（語意隨新錨重映射，禁遺孤）** | D14（Halo 教學 0.5 天前定稿） | UITA 逾 48h 無回件即升級 CSO；回件前任何票禁重錨呼吸帶（GAP-06 Rev B 已 FORBIDDEN 隔離） |
 | §9 閾值三元組（SSOT v4.0.7 L1363） | Akira＋實測 | D15-16 餐廳實測 P25 校準（CR-7 腳本軌 A，純 IMU 遙測統計，Fable5 零介入） | D16 | **延測不硬測**：GAP-06/07 未閉 → Sprint 順延換乾淨數據，禁污染錨入檔（CSO 裁決 2026-07-07，Akira 核准） |
+| GAP-06-TARGET（票 placeholder · R-T21 · 禁預賦 AC） | CSO | STATE-CONTRACT 系列收斂（SC-03/04 落地）後定 scope 開票；producer 接線：rule engine `CompositionAdvice.Adjust(dx,dy)` → guidance 管線 → `HaloGuidanceLayer.targetPosition`（必碰 CameraState/CameraScreen，SC 領土相鄰） | SC-04 閉環後下一收割節點 | producer 未接期間 null→歸心 dist=0 視覺近似「已對齊」假訊號 —— producer 票驗收**必引**此風險；`HaloGuidanceLayer.targetPosition: Offset? = null` 為永久介面契約（SSOT L393），後續票禁改簽名 |
 
 ## Next Actions
 
@@ -49,7 +50,7 @@
 > **S35（2026-07-06）：✅ INFRA-REACH-02 Done（9/9 AC）— structural_verify A-G PASS（ADVISORY）；Akira 裁決 AC「第二 state holder 正向命中」選項 (C) 合成 `tmp/` fixture 自測 · 票移 deliver/**
 
 1. **🟡 引用修正支線**：使用者要求「`.claude/`、`plans/` 引用新版本路徑 v3.3」，已掃描分類（現行指標多數已於 GOV-03/PROTO-01 同步；`plans/cso_briefing/` 內 v3.2 引用屬 R-T5 化石溯源，Hard Constraint 3 **MUST** 不回改）→ **新 session 待使用者確認範圍或指定具體檔案後執行**
-2. **✅ TRACTION-SSOT-01**（/sv + Codex R2 PASS · fc6ffa8）：SSOT §2.5/§2.5.1/§2.5.2 + Layout §3.3 規格已落地 → **下一步開 HaloGuidanceLayer.kt 渲染實作票**（GAP-06 解除前置）
+2. **✅ TRACTION-SSOT-01**（/sv + Codex R2 PASS · fc6ffa8）：SSOT §2.5/§2.5.1/§2.5.2 + Layout §3.3 規格已落地 → **GAP-06 票已 spawn（Rev D · R-T22）**：圓點實作進行中，ALIGNED 呼吸帶雙 SSOT 對撞讓渡 **STATE-CONTRACT-04（placeholder · 掛 UITA D14 回件前置 Gate · 禁預賦 AC）**；targetPosition UPSTREAM-GAP 判 stub-and-report（R-T21 · nullable 永久契約），上游接線登記 **GAP-06-TARGET placeholder（禁預賦 AC · 見 PROVISIONAL Ledger）**；AI-2 Rev D 二度縮編（R-T22）：HALO_UNALIGNED_ALPHA 撤票（消費點被 FORBIDDEN 領土雙點佔據 + 0.8 在 UITA D14 重推導清單），轉圓點域 HALO_DOT_* 常數；環域 0.25→0.8 併入 SC-04 三常數家族
 3. **🔴 開票 GAP-07**：修 afState 回授斷裂（CameraViewModel.kt L2117 接線）
 4. **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審
 5. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
