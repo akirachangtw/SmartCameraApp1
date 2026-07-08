@@ -5,7 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| GAP-06-RENDER-DOT-01 | 🔴 Traycer R1 STOP → **FIX-A spawn**（Approach Drift：Aligned 分支零圓點消費 · Scope Creep：74d4ba0 入 DIFF 窗 · 四象限測試缺口；CSO K4-δ 復驗三發三中）· 修補票 `Pending/GAP-06-RENDER-DOT-01-FIX-A_Aligned_Dot_Render.md`（R-T25 信封裁決 + R-T26 案 C 枚舉 commit 集）· 原自陳：HaloGuidanceLayer 牽引圓點渲染（AI-1 computeTractionDot atan2/hypot + 三段 V 曲線色/alpha + drawTractionDot radialGradient · AI-2 HALO_DOT_* 6 常數 · AI-3 androidTest 5 條）· /qa 綠（Build/202 test/Lint 0 new）· Codex Cross-Review PASS（Guard Reachability 有新 Guard→Producer B 可達，附行號）· DIFF `2a5103b..feb1732` · targetPosition non-null producer = GAP-06-TARGET placeholder（R-T21 stub-and-report，永久 nullable 契約 SSOT L393）· ticket_pattern.md 拆獨立 `[INFRA-TICKETID-01]` 4392c51 窗外 |
+| GAP-06-RENDER-DOT-01 | 🟢 FIX-A 四閘全綠 · CLOSURE-01 PROGRESS 收尾完成（①②已解）· **待 CSO ③ deliver/ 移票 + Done 標記** · AI-1 Aligned 分支疊加 dot Canvas（primaryFace + drawTractionDot L383 + `TAG_HALO_DOT` probe，綠環路徑零觸碰）· AI-2 androidTest +4（軸向四象限 4/4 + T-3 persistence 正負 + T-4 R-T13 V-3 解耦）· 本地 /qa 綠（assembleEmulatorDebug + 202 unit + lint 0 new + **instrumented 21/0/0**）· Codex R2 **PASS**（REACHABILITY: NONE · producer B `CameraScreen.kt:296` · receipt 194528）· structural_verify **ADVISORY**（A-G）· **Traycer R2 review-gate PASS**（建議終極閉環走 strict_verification）· DIFF `d04fe4a..504d49a`（恰 2 .kt · spawn R-T27 案 A · conf R-T28 重建）· targetPosition = GAP-06-TARGET placeholder（R-T21 nullable 永久契約 SSOT L393，未擴大）|
 | SSOT-V407-SWEEP-01 | ✅ Done · CLAUDE.md 現行 SSOT 指針 v4_0_6→v4_0_7（恰 2 處：核心鐵律 1 + `## SSOT` 策略行）· Codex Cross-Review PASS（REACHABILITY NONE）· assembleDebug PASS · AI-3 `.claude/rules/` v4_0_6 零命中 · Layout v2_5_1 零觸碰 · 6a08bed · 執行軌開機契約除雷（GAP-06 渲染票前置）· 已移 deliver/ |
 | SSOT-V407-01 | ✅ Done · SSOT v4.0.6→v4.0.7 七簇條文（§8 Freemium 通道切割+創始買斷 / §9 雙漏斗 / §2.5.4 鎖定態 Halo / §2.6 呼吸韻律 / §11 十六天 / B.15 / B.16 敘事鏈）· Codex Cross-Review ADVISORY→PASS（REACHABILITY NONE · receipt 5714078）· footer 化石 `End of SSOT v4.0.6`→v4.0.7 amend 修正（a881096，+1 行）· AC-5「GUIDANCE_ACTIVE 值在 α0.8、provenance 允留」+ receipt/HEAD 綁定 均 CSO 批准補證 · 唯二 PROVISIONAL（§2.5.4 alpha vaccine / §9 閾值三元組）待回填 · 已移 deliver/ |
 | INFRA-REACH-02 | ✅ Done · 9/9 AC PASS · Codex Cross-Review R2 ADVISORY（`REACHABILITY: NONE` · 46b8e24）+ 補跑正式 /qa→/sv 後 R2 ADVISORY（99a81de，structural_verify A-G PASS）· AC「第二 state holder 正向命中」由 Akira 裁決選項 (C)：合成 `tmp/` 臨時 fixture 自測（不落地 `app/src/main/**`），正向命中 `fakeMode` + `normalMode` 不誤報，見 `reports/REACH02_AI2_SelfTest_SecondHolder_20260706.md`；fixture 已清理 · AI-1~AI-7 七項 Action Item 皆完成 · 已移 deliver/ |
@@ -17,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S38** · GAP-06-RENDER-DOT-01 🔴 Traycer R1 STOP → FIX-A（Aligned 態圓點補渲染；Codex PASS 不足以結案，Traycer 終審否決 · feb1732 凍結待 FIX-A 併同驗收）· **S37** · SSOT-V407-SWEEP-01 ✅（6a08bed）· **S36** · SSOT-V407-01 ✅（a881096）· **S35** · INFRA-REACH-02 ✅（9/9 AC）· GAP-06 母議題剩磁吸 producer wiring（GAP-06-TARGET）+ Normal 渲染路由實機驗 |
+| Schedule | **S39** · GAP-06-RENDER-DOT-01-FIX-A 🟢 四閘全綠（/qa 21/0/0 → Codex R2 PASS → structural ADVISORY → Traycer R2 PASS）→ CLOSURE-01 PROGRESS 收尾（①②已解），待 CSO ③ deliver/+Done · **S38** · FIX-A spawn（母票 Traycer R1 STOP 修補）· **S37** · SSOT-V407-SWEEP-01 ✅（6a08bed）· **S36** · SSOT-V407-01 ✅（a881096）· GAP-06 母議題剩磁吸 producer wiring（GAP-06-TARGET）+ Normal 渲染路由實機驗 |
 | Compile | ✅ PASS `assembleDebug`（53s · GAP-06 圓點渲染 · 2026-07-08 /qa Step 0 Scope Gate PASS 後補跑） |
 | Tests | ✅ PASS 202 unit（0 fail）+ androidTest compile（20s · GAP-06 AI-3 computeTractionDot V-curve/幾何 5 條） |
 | Lint | ✅ PASS `lint`（0 new warning；1 既存 baseline `ModifierParameter`@HaloGuidanceLayer.kt:151，isPtfMode/ptfAlignmentResult 於 2a5103b 已在 modifier 前，targetPosition 依既有簽名慣例插入，非新品類） |
@@ -26,7 +26,7 @@
 
 | ID | Issue | Severity | Root Cause |
 | ---- | ------- | ---------- | ------------ |
-| GAP-06 | HaloTraction：GuidanceActive 圓點已落地，**Aligned 態圓點缺席（Traycer R1 🔴）→ FIX-A 進行中**；後續仍剩 producer wiring + Normal vs Focus Ring 路由實機驗 | 🔴 P0 | Aligned 分支消費斷鏈（能力在、行為缺席）；producer = GAP-06-TARGET placeholder；路由待實機 |
+| GAP-06 | HaloTraction：GuidanceActive + **Aligned 態圓點均已落地（FIX-A 四閘全綠，待 CSO ③ deliver/+Done）**；母議題後續仍剩 producer wiring + Normal vs Focus Ring 路由實機驗 | 🟡 P1 | Aligned 消費斷鏈已修；剩 producer = GAP-06-TARGET placeholder（磁吸接線）；路由待實機 |
 | GAP-07 | afState 回授斷裂 → Guard 7a 死碼 → 瘋狂 AF（Focus Ring 閃動）（**=AC-10 假過根因**）| 🔴 P0 | CameraViewModel.kt L2117 result 被拋棄、afState 永 Idle（dead field）；需接線 |
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
@@ -43,11 +43,7 @@
 
 ## Next Actions
 
-> **S37（2026-07-07）：✅ SSOT-V407-SWEEP-01 Done — CLAUDE.md 現行 SSOT 指針對齊 v4_0_6→v4_0_7（恰 2 處）· Codex Cross-Review PASS · assembleDebug PASS · AI-3 `.claude/rules/` 零命中 · Layout v2_5_1 零觸碰 · 6a08bed · 執行軌開機契約除雷 → 票移 deliver/（S32~S34 Session Notes 歸檔至 PROGRESS_ARCHIVE.md，PROGRESS.md 壓回 ≤80）**
->
-> **S36（2026-07-07）：✅ SSOT-V407-01 Done — SSOT v4.0.6→v4.0.7 七簇條文入檔（歸檔 #154-160+#163）· Codex Cross-Review ADVISORY→PASS（footer 化石 amend 修正）· AC-5 provenance 判讀 + receipt(5714078)/HEAD(a881096) 綁定經 CSO 批准補證 · 唯二 PROVISIONAL 待回填（見 PROVISIONAL Ledger）→ 票移 deliver/**
->
-> **S35（2026-07-06）：✅ INFRA-REACH-02 Done（9/9 AC）— structural_verify A-G PASS（ADVISORY）；Akira 裁決 AC「第二 state holder 正向命中」選項 (C) 合成 `tmp/` fixture 自測 · 票移 deliver/**
+> **S39（2026-07-08）：✅ GAP-06-RENDER-DOT-01-FIX-A Traycer R2 review-gate PASS，四閘全綠 → CLOSURE-01 完成 PROGRESS 收尾 + D13 KAIROS `/dream` 回顧（見 KAIROS Findings）· DIFF d04fe4a..504d49a 恰 2 .kt · 交接 SESSION_HANDOFF_20260708_2334.md**
 
 1. **🟡 引用修正支線**：使用者要求「`.claude/`、`plans/` 引用新版本路徑 v3.3」，已掃描分類（現行指標多數已於 GOV-03/PROTO-01 同步；`plans/cso_briefing/` 內 v3.2 引用屬 R-T5 化石溯源，Hard Constraint 3 **MUST** 不回改）→ **新 session 待使用者確認範圍或指定具體檔案後執行**
 2. **✅ TRACTION-SSOT-01**（/sv + Codex R2 PASS · fc6ffa8）：SSOT §2.5/§2.5.1/§2.5.2 + Layout §3.3 規格已落地 → **GAP-06 票已 spawn（Rev D · R-T22）**：圓點實作進行中，ALIGNED 呼吸帶雙 SSOT 對撞讓渡 **STATE-CONTRACT-04（placeholder · 掛 UITA D14 回件前置 Gate · 禁預賦 AC）**；targetPosition UPSTREAM-GAP 判 stub-and-report（R-T21 · nullable 永久契約），上游接線登記 **GAP-06-TARGET placeholder（禁預賦 AC · 見 PROVISIONAL Ledger）**；AI-2 Rev D 二度縮編（R-T22）：HALO_UNALIGNED_ALPHA 撤票（消費點被 FORBIDDEN 領土雙點佔據 + 0.8 在 UITA D14 重推導清單），轉圓點域 HALO_DOT_* 常數；環域 0.25→0.8 併入 SC-04 三常數家族
@@ -62,15 +58,20 @@
 - 📝 Candidate Rule 17：有狀態平滑器 Lifecycle Gate（D10 歸入）
 - 📝 INFRA-34（待下輪）：/sv Step 10.5 Session Note 自動歸檔職責
 
-## D10 KAIROS #3 候選議程
+## KAIROS Candidate Registries
 
-**Canonical Registry**：`plans/cso_briefing/project/Pending/KAIROS3_Candidate_Compilation.md`（K3-1~7，共 7 項；本節僅作指標，全量候選表已搬移至該檔）。
+- D10 #3：`plans/cso_briefing/project/Pending/KAIROS3_Candidate_Compilation.md`（K3-1~7）
+- D13 #4：`plans/cso_briefing/project/Pending/KAIROS4_Candidate_Compilation.md`（K4-1~50，暫存區，新候選登記後合併入該檔）
 
-## D13 KAIROS #4 候選議程
+> INFRA-XX（S28）稽核：K4-3/6/8/9 經 grep 核查目標檔案均無對應條文，已改列 🔴 待補寫；KAIROS-BACKFILL-01（S28）已補寫落地。
 
-**Canonical Registry**：`plans/cso_briefing/project/Pending/KAIROS4_Candidate_Compilation.md`（K4-1~50，共 50 項；本節僅作暫存區，新候選登記後即合併入該檔並移除本節條目）。
+## KAIROS Findings — D13 (2026-07-08)
 
-> INFRA-XX（S28）稽核：Compilation 檔內原標「✅ 收錄」的 K4-3/6/8/9 經 grep 核查目標檔案（`cross-review.md` / `kairos-lessons.md` / `camera-constraints.md`）均無對應條文，已改列 🔴 待補寫；`kairos-lessons.md` 確認為必要存在（唯一 path-scoped 自動載入的已落地規則本體，與 Compilation 的候選登記角色不重疊，見下方說明）。KAIROS-BACKFILL-01（S28）已補寫落地，假閉環佇列清空。
+**Error Patterns**：🔴 Family provenance 應於 spawn 當下登記，禁事後靠 M3 稽核補（GAP-06-RENDER-DOT-01 + INFRA-TICKETID-SSOT-V407-01 二度重演，見下方建議條文）· 🟡 reachability 自報行號 off-by-one（K4-ξ 已收錄）· 🟢 capability-present/behavior-absent 假完成風險（K4-ο `TAG_HALO_DOT` probe 範式已建立防護）
+**Decision Audit**：R-T27 spawn PROGRESS-only ✅ · R-T28 verify_cmd 重建 ✅ · K4-δ 行號 295→296 ⚠️ 需微調（R1→R2 才修正，非首發即中）· SSOT-V407 family 收斂 ✅（長效性待觀察）· **SSOT Drift**：無新增，既有 PROVISIONAL（§2.5.4/§9）持續追蹤中見 PROVISIONAL Ledger
+**Skill 壓測**：/qa /sv ✅（本 Sprint tmp/ ≥5 次 sv_report/log 證據）· `m3_family_audit.sh` ✅（本次 self-test+2 refresh+1 stale-check）· `/dream` 本次為 D13 首跑 · `/uc`/`/compact`/`/mdlint` 執行次數缺 telemetry，資訊不足無法判定壓測狀態
+
+**Recommended CLAUDE.md Addition（供人工確認，MUST NOT 自動寫入 CLAUDE.md 本體）**：13. **Family Provenance Spawn-Time 登記規則**：新 Ticket 使用尚未登記於 `ticket_pattern.md` 的 family 時，MUST 在 spawn 當下同步補登 provenance 表，禁止依賴 M3 稽核事後 escalate 才補登。觸發來源：GAP-06-RENDER-DOT-01、INFRA-TICKETID-SSOT-V407-01。
 
 ## Quick Links
 
