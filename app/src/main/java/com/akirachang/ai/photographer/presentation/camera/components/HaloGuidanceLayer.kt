@@ -3,6 +3,7 @@ package com.akirachang.ai.photographer.presentation.camera.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.InfiniteRepeatableSpec
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -17,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -41,6 +43,7 @@ import com.akirachang.ai.photographer.presentation.utils.PixelRect
 import kotlinx.coroutines.delay
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.sin
 
@@ -98,6 +101,24 @@ private val PTF_COLOR_TRANSITION_MS = AmbientConstants.TRANSITION_FAST_MS.toInt(
 private const val PTF_BRIGHT_ARC_OFFSET_DP = 3f
 
 /**
+ * Traction dot breathing (breathe-dot) — SSOT v4.0.7 §2.5 L493. This is the dot's OWN
+ * scale/opacity envelope; the aligned RING breathe ([normalBreathAlpha]) never feeds the
+ * dot alpha path (R-T13 V-3 decoupling).
+ */
+private const val BREATHE_DOT_SCALE_MIN = 0.9f
+private const val BREATHE_DOT_SCALE_MAX = 1.1f
+private const val BREATHE_DOT_OPACITY_MIN = 0.7f
+private const val BREATHE_DOT_OPACITY_MAX = 1.0f
+private const val BREATHE_DOT_CYCLE_MS = 1800
+
+/** Traction dot V-curve dist domain (px): midpoint splits amber↑ / green↓, max clamps offset. SSOT §2.5 L461. */
+private const val HALO_DOT_DIST_MID = 50f
+private const val HALO_DOT_DIST_MAX = 100f
+
+/** Traction dot offset boundary inset (px) — keeps the dot inside the halo ring. SSOT §2.5 L455. */
+private const val HALO_DOT_BOUNDARY_INSET_PX = 2f
+
+/**
  * HaloGuidanceLayer — STATE-CONTRACT-01 six-state guidance Halo overlay.
  *
  * Normal mode rendering is driven exclusively by [guidanceState] (CameraViewModel authority):
@@ -115,6 +136,9 @@ private const val PTF_BRIGHT_ARC_OFFSET_DP = 3f
  * @param faces                Face landmark data from the latest ML Kit detection frame.
  * @param isPtfMode            True when camera is in PassToFriend mode.
  * @param ptfAlignmentResult   PTF rule engine output. Null ignored (defaults to NO_FACE behavior).
+ * @param targetPosition       Traction dot goal in canvas px (GuidanceActive). Null = no producer wired
+ *                             yet (GAP-06-TARGET) → dot homes at dist=0 (SSOT §2.5 L440-441). Permanent
+ *                             nullable contract; a future producer ticket only supplies the value.
  * @param modifier             Should be [fillMaxSize] to cover the full preview.
  */
 @Composable
@@ -123,6 +147,7 @@ fun HaloGuidanceLayer(
     faces: List<FaceLandmarkData>,
     isPtfMode: Boolean = false,
     ptfAlignmentResult: PtfAlignmentResult? = null,
+    targetPosition: Offset? = null,
     modifier: Modifier = Modifier,
 ) {
     // ── All remember/LaunchedEffect/animation state MUST be declared unconditionally
@@ -163,8 +188,30 @@ fun HaloGuidanceLayer(
         label = "normalAlignedBreathAlpha",
     )
 
+    // Traction dot breathe (breathe-dot) — own envelope, decoupled from ring breathe (R-T13 V-3).
+    val dotBreatheTransition = rememberInfiniteTransition(label = "breatheDot")
+    val dotScale by dotBreatheTransition.animateFloat(
+        initialValue = BREATHE_DOT_SCALE_MIN,
+        targetValue = BREATHE_DOT_SCALE_MAX,
+        animationSpec = InfiniteRepeatableSpec(
+            animation = tween(durationMillis = BREATHE_DOT_CYCLE_MS, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "dotScale",
+    )
+    val dotOpacity by dotBreatheTransition.animateFloat(
+        initialValue = BREATHE_DOT_OPACITY_MIN,
+        targetValue = BREATHE_DOT_OPACITY_MAX,
+        animationSpec = InfiniteRepeatableSpec(
+            animation = tween(durationMillis = BREATHE_DOT_CYCLE_MS, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "dotOpacity",
+    )
+
     val density = LocalDensity.current
     val brightArcOffsetPx = with(density) { PTF_BRIGHT_ARC_OFFSET_DP.dp.toPx() }
+    val dotDiameterPx = with(density) { AmbientConstants.HALO_DOT_SIZE_DP.dp.toPx() }
 
     // Propagate snapshot at 10fps cadence (hoisted above all early returns)
     LaunchedEffect(faces, guidanceState, ptfAlignmentResult) {
@@ -298,6 +345,18 @@ fun HaloGuidanceLayer(
                     drawEyeLineGuide(face, transformer, strokePx)
                 }
             }
+            // Single-subject traction dot on the primary (largest bbox) face — drawn in a dedicated
+            // Canvas so the ring path above stays untouched. Multi-face group rendering is §2.5.2
+            // territory (out of scope). SSOT §2.5 L439-479.
+            val primaryFace = activeFaces.maxByOrNull { face ->
+                val box = face.boundingBoxNormalized
+                box.width() * box.height()
+            }
+            if (primaryFace != null) {
+                Canvas(modifier = modifier.fillMaxSize()) {
+                    drawTractionDot(primaryFace, targetPosition, dotDiameterPx, dotScale, dotOpacity)
+                }
+            }
         }
         GuidanceState.Aligned -> {
             val breathAlpha = normalBreathAlpha
@@ -366,5 +425,88 @@ private fun DrawScope.drawEyeLineGuide(
             intervals = floatArrayOf(EYE_LINE_DASH_ON_PX, EYE_LINE_DASH_OFF_PX),
             phase = 0f,
         ),
+    )
+}
+
+/**
+ * Traction dot render spec — pure geometry + V-curve output of [computeTractionDot].
+ * Breathe ([dotScale]/[dotOpacity]) is applied at draw time, NOT here (R-T13 V-3 decoupling).
+ */
+internal data class TractionDotSpec(
+    val centerX: Float,
+    val centerY: Float,
+    val color: Color,
+    val alpha: Float,
+    val homeScale: Float,
+    val dist: Float,
+    val angle: Float,
+)
+
+/**
+ * Computes the traction dot geometry and three-segment V-curve color per SSOT v4.0.7 §2.5 L439-466.
+ *
+ * [targetPosition] null → dx=dy=0 → dist=0 → home: green at peak alpha, [AmbientConstants.HALO_DOT_ALIGNED_SCALE].
+ * Direction = atan2(dy, dx); offset = clamped maxOffset scaled by dist/max, keeping the dot inside the ring.
+ * V-curve: dist>mid → amber rising to peak; dist∈(0,mid] → green rising to peak toward home; dist=0 → green peak.
+ */
+internal fun computeTractionDot(
+    haloCx: Float,
+    haloCy: Float,
+    bboxSizePx: Float,
+    dotDiameterPx: Float,
+    targetPosition: Offset?,
+): TractionDotSpec {
+    val dx = (targetPosition?.x ?: haloCx) - haloCx
+    val dy = (targetPosition?.y ?: haloCy) - haloCy
+    val angle = atan2(dy, dx)
+    val dist = hypot(dx, dy).coerceIn(0f, HALO_DOT_DIST_MAX)
+    val maxOffset = max(0f, (bboxSizePx - dotDiameterPx) / 2f - HALO_DOT_BOUNDARY_INSET_PX)
+    val dotOffset = maxOffset * (dist / HALO_DOT_DIST_MAX)
+    val dotCx = haloCx + cos(angle) * dotOffset
+    val dotCy = haloCy + sin(angle) * dotOffset
+    val span = AmbientConstants.HALO_DOT_ALPHA_PEAK - AmbientConstants.HALO_DOT_ALPHA_VALLEY
+    val (color, alpha, homeScale) = when {
+        dist > HALO_DOT_DIST_MID ->
+            Triple(HaloAmber, AmbientConstants.HALO_DOT_ALPHA_VALLEY + ((dist - HALO_DOT_DIST_MID) / HALO_DOT_DIST_MID) * span, 1f)
+        dist > 0f ->
+            Triple(HaloGreen, AmbientConstants.HALO_DOT_ALPHA_VALLEY + (1f - dist / HALO_DOT_DIST_MID) * span, 1f)
+        else ->
+            Triple(HaloGreen, AmbientConstants.HALO_DOT_ALPHA_PEAK, AmbientConstants.HALO_DOT_ALIGNED_SCALE)
+    }
+    return TractionDotSpec(dotCx, dotCy, color, alpha, homeScale, dist, angle)
+}
+
+/**
+ * Draws the single traction dot inside the primary subject's halo (SSOT v4.0.7 §2.5 L439-479).
+ * Geometry/color come from [computeTractionDot]; [dotScale]/[dotOpacity] are the breathe-dot envelope.
+ * Invalid bbox geometry (out of [0,1] or non-positive size) → no draw, matching [drawGuidanceHalo].
+ */
+private fun DrawScope.drawTractionDot(
+    face: FaceLandmarkData,
+    targetPosition: Offset?,
+    dotDiameterPx: Float,
+    dotScale: Float,
+    dotOpacity: Float,
+) {
+    val box = face.boundingBoxNormalized
+    if (box.left < 0f || box.top < 0f || box.right > 1f || box.bottom > 1f) return
+    val bboxWPx = box.width() * size.width
+    val bboxHPx = box.height() * size.height
+    if (bboxWPx <= 0f || bboxHPx <= 0f) return
+    val haloCx = (box.left + box.right) / 2f * size.width
+    val haloCy = (box.top + box.bottom) / 2f * size.height
+    val spec = computeTractionDot(haloCx, haloCy, max(bboxWPx, bboxHPx), dotDiameterPx, targetPosition)
+    val dotRadius = (dotDiameterPx / 2f) * dotScale * spec.homeScale
+    if (dotRadius <= 0f) return
+    val center = Offset(spec.centerX, spec.centerY)
+    drawCircle(
+        brush = Brush.radialGradient(
+            AmbientConstants.HALO_DOT_GRADIENT_CORE_STOP to spec.color.copy(alpha = spec.alpha * dotOpacity),
+            AmbientConstants.HALO_DOT_GRADIENT_EDGE_STOP to Color.Transparent,
+            center = center,
+            radius = dotRadius,
+        ),
+        radius = dotRadius,
+        center = center,
     )
 }

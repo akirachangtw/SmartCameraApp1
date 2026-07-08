@@ -106,4 +106,24 @@ object AmbientConstants {
 
     /** Failed state max-expansion keyframe (ms) — peak scale before settle. */
     const val FOCUS_FAILED_EXPAND_MS = 500L
+
+    // ── Halo traction dot (GAP-06-RENDER-DOT-01) ──────────────────────────────
+
+    /** NEW — Halo traction dot diameter (dp). Distinct from Pitch dot — never reuse. SSOT v4.0.7 §2.5 L490. */
+    const val HALO_DOT_SIZE_DP = 36f
+
+    /** NEW — Traction dot V-curve alpha valley (dist midpoint). SSOT v4.0.7 §2.5 L494 / 骨架 L461. */
+    const val HALO_DOT_ALPHA_VALLEY = 0.35f
+
+    /** NEW — Traction dot V-curve alpha peak (dist extremes + home). SSOT v4.0.7 §2.5 L494 / 骨架 L461. */
+    const val HALO_DOT_ALPHA_PEAK = 0.85f
+
+    /** NEW — Traction dot scale when homed (dist=0, strong presence). SSOT v4.0.7 §2.5 L494 / 骨架 L461. */
+    const val HALO_DOT_ALIGNED_SCALE = 1.1f
+
+    /** NEW — Traction dot radial-gradient core stop (currentColor). SSOT v4.0.7 §2.5 L490. */
+    const val HALO_DOT_GRADIENT_CORE_STOP = 0.6f
+
+    /** NEW — Traction dot radial-gradient edge stop (transparent). SSOT v4.0.7 §2.5 L490. */
+    const val HALO_DOT_GRADIENT_EDGE_STOP = 0.8f
 }
