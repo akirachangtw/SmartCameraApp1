@@ -5,6 +5,8 @@ import android.graphics.RectF
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -12,9 +14,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.akirachang.ai.photographer.domain.composition.PtfAlignmentResult
 import com.akirachang.ai.photographer.domain.composition.PtfOffset
 import com.akirachang.ai.photographer.domain.composition.PtfRuleName
+import com.akirachang.ai.photographer.domain.config.AmbientConstants
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import com.akirachang.ai.photographer.domain.model.guidance.GuidanceState
 import com.akirachang.ai.photographer.domain.model.guidance.SuppressionReason
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -156,4 +161,40 @@ class HaloGuidanceLayerTest {
             val ar = node.config.getOrNull(PtfHaloRadiusKey) ?: return@SemanticsMatcher false
             abs(ax - cx) < 0.0001f && abs(ay - cy) < 0.0001f && abs(ar - r) < 0.0001f
         }
+
+    // GAP-06-RENDER-DOT-01 AI-3 — computeTractionDot 純幾何 + 三段 V-curve 語意（SSOT v4.0.7 §2.5 L439-479）
+    private val haloAmber = Color(0xFFD4A030)
+    private val haloGreen = Color(0xFF50C864)
+    private fun dot(dist: Float) = computeTractionDot(0f, 0f, 1000f, 36f, Offset(dist, 0f))
+
+    @Test fun test_dot_vCurveAmberSegment() {
+        assertEquals(0.85f, dot(100f).alpha, 1e-4f)   // dist=max → 琥珀峰值
+        assertEquals(0.60f, dot(75f).alpha, 1e-4f)
+        assertEquals(haloAmber, dot(75f).color)
+    }
+
+    @Test fun test_dot_vCurveGreenSegment() {
+        assertEquals(0.35f, dot(50f).alpha, 1e-4f)    // mid 邊界谷底（> 而非 >=）
+        assertEquals(0.60f, dot(25f).alpha, 1e-4f)
+        assertEquals(haloGreen, dot(25f).color)
+    }
+
+    @Test fun test_dot_nullTargetHomesGreenPeakScaled() {
+        val home = computeTractionDot(0f, 0f, 1000f, 36f, null)   // Rev C null→歸心 dist=0
+        assertEquals(0f, home.dist, 1e-4f)
+        assertEquals(haloGreen, home.color)
+        assertEquals(AmbientConstants.HALO_DOT_ALPHA_PEAK, home.alpha, 1e-4f)          // R-T13 V-3：spec.alpha 與 breathe 解耦
+        assertEquals(AmbientConstants.HALO_DOT_ALIGNED_SCALE, home.homeScale, 1e-4f)
+    }
+
+    @Test fun test_dot_injectedOffsetIsDirectional() {   // Rev C 注入合成 Offset（僅 androidTest）
+        assertTrue(dot(100f).centerX > 0f)               // atan2=0 → +x
+        assertTrue(computeTractionDot(0f, 0f, 1000f, 36f, Offset(0f, 80f)).centerY > 0f)   // atan2=π/2 → +y
+    }
+
+    @Test fun test_dot_clampBoundaryDotEqualsBbox() {
+        val s = computeTractionDot(0f, 0f, 36f, 36f, Offset(100f, 0f))   // maxOffset=0 → 圓點不出環
+        assertEquals(0f, s.centerX, 1e-4f)
+        assertEquals(0f, s.centerY, 1e-4f)
+    }
 }
