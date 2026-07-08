@@ -15,6 +15,7 @@ import com.akirachang.ai.photographer.domain.composition.PtfAlignmentResult
 import com.akirachang.ai.photographer.domain.composition.PtfOffset
 import com.akirachang.ai.photographer.domain.composition.PtfRuleName
 import com.akirachang.ai.photographer.domain.config.AmbientConstants
+import com.akirachang.ai.photographer.domain.config.GuidanceStateConstants
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import com.akirachang.ai.photographer.domain.model.guidance.GuidanceState
 import com.akirachang.ai.photographer.domain.model.guidance.SuppressionReason
@@ -196,5 +197,33 @@ class HaloGuidanceLayerTest {
         val s = computeTractionDot(0f, 0f, 36f, 36f, Offset(100f, 0f))   // maxOffset=0 → 圓點不出環
         assertEquals(0f, s.centerX, 1e-4f)
         assertEquals(0f, s.centerY, 1e-4f)
+    }
+
+    // GAP-06-RENDER-DOT-01-FIX-A AI-2 — 四象限補齊 + Aligned dot persistence + dot/ring 解耦回歸
+    @Test fun test_dot_injectedOffsetNegativeQuadrants() {   // T-1/T-2 補 −x/−y → 四象限 4/4
+        assertTrue(dot(-80f).centerX < 0f)                                                   // atan2=π → −x
+        assertTrue(computeTractionDot(0f, 0f, 1000f, 36f, Offset(0f, -80f)).centerY < 0f)    // atan2=−π/2 → −y
+    }
+
+    @Test fun test_aligned_dotPersistsWithFace() {   // T-3 SSOT §2.5「對齊強存在」：dot 節點存在
+        setAndAdvance(GuidanceState.Aligned)
+        composeTestRule.onNodeWithTag(TAG_HALO_DOT).assertExists()
+        composeTestRule.onNodeWithTag(TAG_HALO_GREEN).assertExists()
+    }
+
+    @Test fun test_aligned_noFace_dotAbsent() {   // T-3 負向：無臉 → 不畫點，空環 Canvas 仍在
+        setAndAdvance(GuidanceState.Aligned, emptyList())
+        composeTestRule.onNodeWithTag(TAG_HALO_DOT).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TAG_HALO_GREEN).assertExists()
+    }
+
+    @Test fun test_dot_alphaDecoupledFromRingBreathe() {   // T-4 R-T13 V-3：dot alpha 不受 ring breathe 影響
+        // 環域 aligned 呼吸帶 [MIN, MAX]；dot alpha 族 [valley, peak]。computeTractionDot 簽名不含 ring alpha，
+        // 且 dot 最低 alpha（V 谷底）仍高於環呼吸上限 → 兩族完全不相交，結構解耦。誤接 normalBreathAlpha 即失敗。
+        val ringMax = GuidanceStateConstants.HALO_ALIGNED_ALPHA_MAX
+        val home = computeTractionDot(0f, 0f, 1000f, 36f, null).alpha   // 歸心峰值 0.85
+        val valley = dot(50f).alpha                                     // V 谷底 0.35
+        assertTrue(home > ringMax)     // 0.85 > 0.18
+        assertTrue(valley > ringMax)   // 0.35 > 0.18 → dot 最低仍高於環呼吸帶
     }
 }

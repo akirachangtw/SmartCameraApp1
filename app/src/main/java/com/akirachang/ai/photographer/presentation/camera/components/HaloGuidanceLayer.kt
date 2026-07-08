@@ -54,6 +54,9 @@ internal const val TAG_HALO_AMBER = "HaloGuidanceLayer_Amber"
 internal const val TAG_HALO_GREEN = "HaloGuidanceLayer_Green"
 // Null-result suppression probe — present when compositionResult==null (Constitution §6).
 internal const val TAG_HALO_HIDDEN = "HaloGuidanceLayer_Hidden"
+// Aligned-state traction-dot persistence probe — present when Aligned + a primary face drives the dot
+// (SSOT §2.5 「對齊強存在」). Consumed by HaloGuidanceLayerTest T-3.
+internal const val TAG_HALO_DOT = "HaloGuidanceLayer_Dot"
 // PTF mode test tags
 internal const val TAG_HALO_PTF_UNALIGNED = "HaloGuidanceLayer_PtfUnaligned"
 internal const val TAG_HALO_PTF_ALIGNED = "HaloGuidanceLayer_PtfAligned"
@@ -365,6 +368,19 @@ fun HaloGuidanceLayer(
                     val strokePx = size.minDimension * HALO_STROKE_FRACTION
                     activeFaces.forEach { face ->
                         drawGuidanceHalo(face, strokePx, HaloGreen.copy(alpha = breathAlpha))
+                    }
+                }
+                // Aligned-state traction dot on the primary (largest bbox) face — dedicated Canvas
+                // mirroring GuidanceActive so the green ring path above stays untouched. The dot keeps
+                // its own breathe-dot envelope (dotScale/dotOpacity); the ring breathe never feeds the
+                // dot alpha path (R-T13 V-3). SSOT §2.5 「對齊強存在」列.
+                val primaryFace = activeFaces.maxByOrNull { face ->
+                    val box = face.boundingBoxNormalized
+                    box.width() * box.height()
+                }
+                if (primaryFace != null) {
+                    Canvas(modifier = modifier.fillMaxSize().testTag(TAG_HALO_DOT)) {
+                        drawTractionDot(primaryFace, targetPosition, dotDiameterPx, dotScale, dotOpacity)
                     }
                 }
             } else {
