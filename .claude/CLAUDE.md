@@ -54,7 +54,7 @@ Ticket 含 `## Verify Config` 區塊時，必須將該區塊內容複製為 `tmp
 
 ### 4. 越權禁令
 
-a) 無 Ticket 不動手。合法格式見 `.claude/rules/ticket_pattern.md`（SSOT，與 commit-msg hook 同源）。family 表為 provenance 敘述（非 hook 強制）；遇「結構合法但 family 未登記」之 ID → STOP + escalate CSO，禁自行補表或改 regex。新 Ticket 使用尚未登記之 family 時，MUST 於 spawn 當下同步補登 provenance 表，禁止依賴稽核事後 escalate 才補登（觸發來源：GAP-06-RENDER-DOT-01、INFRA-TICKETID-SSOT-V407-01 二度重演）。
+a) 無 Ticket 不動手。合法格式見 `.claude/rules/ticket_pattern.md`（SSOT，與 commit-msg hook 同源）。family 表為 provenance 敘述（非 hook 強制）；遇「結構合法但 family 未登記」之 ID → STOP + escalate CSO，禁自行補表或改 regex。新 Ticket 使用尚未登記之 family 時，MUST 於 spawn 當下同步補登 provenance 表，禁止依賴稽核事後 escalate 才補登（`INFRA-CLAUDE-RULE-HARVEST-01` / CSO 2026-07-09 裁決併入，觸發來源：GAP-06-RENDER-DOT-01、INFRA-TICKETID-SSOT-V407-01 二度重演）。
    無 Ticket → 輸出 Boot Report 並停止。
 b) 不基於 MEMORY.md / PROGRESS.md / TODO / FIXME 自主決定下一步。
 c) /qa /sv /compact /dream 是驗收工具，不是實作授權。發現問題 → 回報，不自行修復。
