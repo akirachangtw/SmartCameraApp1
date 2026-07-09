@@ -2108,14 +2108,24 @@ class CameraViewModel @Inject constructor(
                     afState = currentState.afState,
                     previewWidth = previewWidth ?: 0,
                     previewHeight = previewHeight ?: 0,
+                    // STATE-CONTRACT-03 (Option D): route the existing internal timeProvider
+                    // seam (L384; consumed at L617/L723) into EyeAfController.process so the
+                    // Guard 6 throttle clock is injectable for AI-2 integration tests. Default
+                    // timeProvider == { System.currentTimeMillis() } → production semantics unchanged.
+                    nowMs = timeProvider(),
                 )
                 if (gazeAfTrigger != null) {
                     val pWidth = previewWidth ?: 0
                     val pHeight = previewHeight ?: 0
                     Log.i(TAG, "[D6-B3] Gaze AF trigger: stableId=${gazeAfTrigger.stableId} " +
                         "point=(${gazeAfTrigger.viewPoint.x}, ${gazeAfTrigger.viewPoint.y})")
+                    // STATE-CONTRACT-03 AI-1: wire afState lifecycle so Guard 7a's Locked
+                    // consumer becomes reachable (GAP-07 producer wiring). Focusing is set
+                    // on the pipeline thread before dispatch; Locked/Failed resolve off the
+                    // focusOnPoint Result. L774 Idle-reset path is unchanged.
+                    _state.update { it.copy(afState = AfState.Focusing) }
                     viewModelScope.launch {
-                        try {
+                        val result = try {
                             cameraRepository.focusOnPoint(
                                 x = gazeAfTrigger.viewPoint.x,
                                 y = gazeAfTrigger.viewPoint.y,
@@ -2124,6 +2134,13 @@ class CameraViewModel @Inject constructor(
                             )
                         } catch (e: Exception) {
                             Log.w(TAG, "[D6-B3] Gaze AF focusOnPoint failed: ${e.message}")
+                            Result.failure(e)
+                        }
+                        _state.update {
+                            it.copy(
+                                afState = if (result.isSuccess) AfState.Locked
+                                else AfState.Failed(FailReason.HAL_FAILED, failCount = 1),
+                            )
                         }
                     }
                 }
