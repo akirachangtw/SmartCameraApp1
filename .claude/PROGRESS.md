@@ -9,7 +9,7 @@
 | SSOT-V407-SWEEP-01 | ✅ Done · CLAUDE.md 現行 SSOT 指針 v4_0_6→v4_0_7（恰 2 處：核心鐵律 1 + `## SSOT` 策略行）· Codex Cross-Review PASS（REACHABILITY NONE）· assembleDebug PASS · AI-3 `.claude/rules/` v4_0_6 零命中 · Layout v2_5_1 零觸碰 · 6a08bed · 執行軌開機契約除雷（GAP-06 渲染票前置）· 已移 deliver/ |
 | SSOT-V407-01 | ✅ Done · SSOT v4.0.6→v4.0.7 七簇條文（§8 Freemium 通道切割+創始買斷 / §9 雙漏斗 / §2.5.4 鎖定態 Halo / §2.6 呼吸韻律 / §11 十六天 / B.15 / B.16 敘事鏈）· Codex Cross-Review ADVISORY→PASS（REACHABILITY NONE · receipt 5714078）· footer 化石 `End of SSOT v4.0.6`→v4.0.7 amend 修正（a881096，+1 行）· AC-5「GUIDANCE_ACTIVE 值在 α0.8、provenance 允留」+ receipt/HEAD 綁定 均 CSO 批准補證 · 唯二 PROVISIONAL（§2.5.4 alpha vaccine / §9 閾值三元組）待回填 · 已移 deliver/ |
 | INFRA-REACH-02 | ✅ Done · 9/9 AC PASS · Codex Cross-Review R2 ADVISORY（`REACHABILITY: NONE` · 46b8e24）+ 補跑正式 /qa→/sv 後 R2 ADVISORY（99a81de，structural_verify A-G PASS）· AC「第二 state holder 正向命中」由 Akira 裁決選項 (C)：合成 `tmp/` 臨時 fixture 自測（不落地 `app/src/main/**`），正向命中 `fakeMode` + `normalMode` 不誤報，見 `reports/REACH02_AI2_SelfTest_SecondHolder_20260706.md`；fixture 已清理 · AI-1~AI-7 七項 Action Item 皆完成 · 已移 deliver/ |
-| STATE-CONTRACT-03 | ✅ Done（碼閉環）· GAP-07 afState producer wiring（CameraViewModel L2117 Focusing + L2137-2143 Locked/Failed 經 focusOnPoint Result · Option D timeProvider seam）· AI-2 整合測試 3/3 綠（真 VM + FakeCameraRepository · Robolectric + runCurrent · 零 afState 注入）· /qa Step0 綠 + assembleDeviceDebug + lint 0 new · Codex **xhigh PASS**（REACHABILITY gazeAfTrigger:CameraViewModel.kt:2117 · Producer A · none blocking · 29334 tok）· 09d825e · Guard 7a 死碼復活（AC-10 假過根因除）· ⚠️ conf 偏離揭露：verify_checklist `token_matches_file` glob bug（含 `/` token 字面比對→ALLOWED/FORBIDDEN glob 皆失效）→ ALLOWED basename + EXCLUDED_PAYLOAD 機械化「精確化-B」（建議另開 infra ticket 修 glob 支援）· 剩 [實機]煙測（Akira）|
+| STATE-CONTRACT-03 | ✅ Done（碼閉環）· GAP-07 afState producer wiring（CameraViewModel L2117 Focusing + L2137-2143 Locked/Failed 經 focusOnPoint Result · Option D timeProvider seam）· AI-2 整合測試 3/3 綠（真 VM + FakeCameraRepository · Robolectric + runCurrent · 零 afState 注入）· /qa Step0 綠 + assembleDeviceDebug + lint 0 new · Codex **xhigh PASS**（REACHABILITY gazeAfTrigger:CameraViewModel.kt:2117 · Producer A · none blocking · 29334 tok）· 09d825e · Guard 7a 死碼復活（AC-10 假過根因除）· ⚠️ conf 偏離揭露：verify_checklist `token_matches_file` glob bug（含 `/` token 字面比對→ALLOWED/FORBIDDEN glob 皆失效）→ ALLOWED basename + EXCLUDED_PAYLOAD 機械化「精確化-B」（建議另開 infra ticket 修 glob 支援）· [實機]煙測 **PASS**（2026-07-10 · Pixel 9a · Guard7a ×8 · 跨度 17.7s · OpCancel 0 · CSO grep 復驗 · 片段歸檔 reports/）· 關票待 Traycer R2 |
 
 **Last Updated**: 2026-07-10
 
@@ -17,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S41** · STATE-CONTRACT-03（GAP-07）✅ Done 碼閉環（AI-1 三態接線 + AI-2 整合測試 3/3 → /qa → /sv → Codex xhigh PASS · 09d825e · 剩 [實機]煙測 Akira）· **S40** · GAP-06-RENDER-DOT-01 ✅ Done（CLOSURE-01 三項全解）· **S39** · FIX-A 🟢 四閘全綠（/qa 21/0/0 → Codex R2 PASS → structural ADVISORY → Traycer R2 PASS）· **S38** · FIX-A spawn（母票 Traycer R1 STOP 修補）· **S37** · SSOT-V407-SWEEP-01 ✅（6a08bed）· **S36** · SSOT-V407-01 ✅（a881096）· GAP-06 母議題剩磁吸 producer wiring（GAP-06-TARGET）+ Normal 渲染路由實機驗 |
+| Schedule | **S41** · STATE-CONTRACT-03（GAP-07）✅ Done 碼閉環（AI-1 三態接線 + AI-2 整合測試 3/3 → /qa → /sv → Codex xhigh PASS · 09d825e · [實機]煙測 PASS · 關票待 Traycer R2）· **S40** · GAP-06-RENDER-DOT-01 ✅ Done（CLOSURE-01 三項全解）· **S39** · FIX-A 🟢 四閘全綠（/qa 21/0/0 → Codex R2 PASS → structural ADVISORY → Traycer R2 PASS）· **S38** · FIX-A spawn（母票 Traycer R1 STOP 修補）· **S37** · SSOT-V407-SWEEP-01 ✅（6a08bed）· **S36** · SSOT-V407-01 ✅（a881096）· GAP-06 母議題剩磁吸 producer wiring（GAP-06-TARGET）+ Normal 渲染路由實機驗 |
 | Compile | ✅ PASS `assembleDebug`（53s · GAP-06 圓點渲染 · 2026-07-08 /qa Step 0 Scope Gate PASS 後補跑） |
 | Tests | ✅ PASS 202 unit（0 fail）+ androidTest compile（20s · GAP-06 AI-3 computeTractionDot V-curve/幾何 5 條） |
 | Lint | ✅ PASS `lint`（0 new warning；1 既存 baseline `ModifierParameter`@HaloGuidanceLayer.kt:151，isPtfMode/ptfAlignmentResult 於 2a5103b 已在 modifier 前，targetPosition 依既有簽名慣例插入，非新品類） |
@@ -27,11 +27,11 @@
 | ID | Issue | Severity | Root Cause |
 | ---- | ------- | ---------- | ------------ |
 | GAP-06 | HaloTraction：GuidanceActive + **Aligned 態圓點渲染已閉環（GAP-06-RENDER-DOT-01 ✅ Done，已移 deliver/）**；母議題後續仍剩 producer wiring + Normal vs Focus Ring 路由實機驗 | 🟡 P1 | Aligned 消費斷鏈已修；剩 producer = GAP-06-TARGET placeholder（磁吸接線）；路由待實機 |
-| GAP-07 | afState 回授斷裂 → Guard 7a 死碼 → 瘋狂 AF（**=AC-10 假過根因**）·**STATE-CONTRACT-03 碼閉環（09d825e · AI-2 3/3 · Codex xhigh PASS）**·剩 [實機]煙測（Akira）轉 ✅ | 🟢 碼已修·待實機 | L2117 result 被拋棄→AI-1 補三態轉移（Focusing→Locked/Failed 經 focusOnPoint Result）|
+| GAP-07 | afState 回授斷裂 → Guard 7a 死碼 → 瘋狂 AF（**=AC-10 假過根因**）·**STATE-CONTRACT-03 碼閉環（09d825e · AI-2 3/3 · Codex xhigh PASS）**·[實機]煙測 **PASS**（2026-07-10）· 關票待 Traycer R2 | 🟢 煙測 PASS·待 R2 關票 | L2117 result 被拋棄→AI-1 補三態轉移（Focusing→Locked/Failed 經 focusOnPoint Result）|
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
 
-> **🟠 治理校正（2026-06-30 → 2026-07-10 更新）**：AC-10（skip-when-focused / Guard 7a）曾由 ✅ 改 **⚠️ PARTIAL**（production input `AfState.Locked` 為 dead field，三道 gate 結構性假過）。實際修復 = GAP-07 → **STATE-CONTRACT-03 碼閉環（09d825e · producer 接線 + AI-2 3/3 · Codex xhigh PASS）**，Guard 7a input 已可達；AC-10 **待 [實機]煙測（Akira）確認後轉 ✅**。流程防護 = INFRA-REACH-01（Pending/）。
+> **🟠 治理校正（2026-06-30 → 2026-07-10 更新）**：AC-10（skip-when-focused / Guard 7a）曾由 ✅ 改 **⚠️ PARTIAL**（production input `AfState.Locked` 為 dead field，三道 gate 結構性假過）。實際修復 = GAP-07 → **STATE-CONTRACT-03 碼閉環（09d825e · producer 接線 + AI-2 3/3 · Codex xhigh PASS）**，Guard 7a input 已可達；AC-10 [實機]煙測 **PASS**（2026-07-10 · Guard7a ×8 · CSO 復驗）——**轉 ✅ 待 Traycer R2 核可**。流程防護 = INFRA-REACH-01（Pending/）。
 
 ## PROVISIONAL Ledger（防孤兒追蹤 · 2026-07-07 CSO 提案 Akira 授權）
 
@@ -47,7 +47,7 @@
 
 1. **🟡 引用修正支線**：使用者要求「`.claude/`、`plans/` 引用新版本路徑 v3.3」，已掃描分類（現行指標多數已於 GOV-03/PROTO-01 同步；`plans/cso_briefing/` 內 v3.2 引用屬 R-T5 化石溯源，Hard Constraint 3 **MUST** 不回改）→ **新 session 待使用者確認範圍或指定具體檔案後執行**
 2. **✅ TRACTION-SSOT-01**（/sv + Codex R2 PASS · fc6ffa8）：SSOT §2.5/§2.5.1/§2.5.2 + Layout §3.3 規格已落地 → **GAP-06 票已 spawn（Rev D · R-T22）**：圓點實作進行中，ALIGNED 呼吸帶雙 SSOT 對撞讓渡 **STATE-CONTRACT-04（placeholder · 掛 UITA D14 回件前置 Gate · 禁預賦 AC）**；targetPosition UPSTREAM-GAP 判 stub-and-report（R-T21 · nullable 永久契約），上游接線登記 **GAP-06-TARGET placeholder（禁預賦 AC · 見 PROVISIONAL Ledger）**；AI-2 Rev D 二度縮編（R-T22）：HALO_UNALIGNED_ALPHA 撤票（消費點被 FORBIDDEN 領土雙點佔據 + 0.8 在 UITA D14 重推導清單），轉圓點域 HALO_DOT_* 常數；環域 0.25→0.8 併入 SC-04 三常數家族
-3. **🟢 STATE-CONTRACT-03（GAP-07）✅ 碼閉環**：AI-1 三態接線 + AI-2 整合測試 3/3（真 VM + FakeCameraRepository + Robolectric）→ /qa 綠 → /sv PASS → Codex xhigh PASS（09d825e）→ **剩 [實機]煙測（Akira）** 轉 AC-10 ✅；⚠️ 附帶發現 verify_checklist glob bug 建議另開 infra ticket（見本票 sv_report）
+3. **🟢 STATE-CONTRACT-03（GAP-07）✅ 碼閉環**：AI-1 三態接線 + AI-2 整合測試 3/3（真 VM + FakeCameraRepository + Robolectric）→ /qa 綠 → /sv PASS → Codex xhigh PASS（09d825e）→ [實機]煙測 **PASS**（2026-07-10）· AC-10 轉 ✅ 與關票待 Traycer R2；⚠️ 附帶發現 verify_checklist glob bug 建議另開 infra ticket（見本票 sv_report）
 4. **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審
 5. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
 6. **🟢 TRACTION-SSOT-04 CSO 閉環**（技術已閉，待 CSO Ticket）：母票 line-91 AC box 打勾 · `move_file` Pending→deliver · Postponed #6（R-T14）→DONE / #5（RENDER-01）→ready · 編號對帳 K4-45（R-T18 stamp 前釐清 R-T17：overruled-void vs consumed）
