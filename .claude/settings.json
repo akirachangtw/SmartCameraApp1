@@ -99,10 +99,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/skills/status/scripts/statusline.sh"
-          },
-          {
-            "type": "command",
             "command": "bash .claude/hooks/stop.sh"
           },
           {
@@ -115,7 +111,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash .claude/skills/status/scripts/statusline.sh"
+    "command": "python .claude/skills/status/scripts/statusline.py"
   },
   "enabledPlugins": {
     "telegram@claude-plugins-official": true
