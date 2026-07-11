@@ -1,0 +1,5 @@
+# EOL lock. Repo blobs are LF; with core.autocrlf=true and no rules here,
+# git rewrites checkouts to CRLF — which breaks bash scripts at runtime
+# ($'\r': command not found), taking the whole /qa + /sv gate chain down.
+*.md text eol=lf
+*.sh text eol=lf
