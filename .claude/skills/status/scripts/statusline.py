@@ -96,17 +96,19 @@ def git_branch(path):
         return None
 
 
-def write_cache(raw, data, project_dir):
-    """Persist the raw payload for the /status skill. Only payloads carrying
-    context_window are cached, so a leaner caller can never blank out rich data."""
+def write_cache(raw_bytes, data, project_dir):
+    """Persist the raw payload for the /status skill. Written byte-for-byte as
+    received: re-encoding a decoded string would corrupt non-ASCII fields.
+    Only payloads carrying context_window are cached, so a leaner caller can
+    never blank out rich data."""
     if not get(data, "context_window"):
         return
     try:
         cache_path = os.path.join(project_dir or os.getcwd(), CACHE_REL_PATH)
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
         tmp_path = cache_path + ".tmp"
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            f.write(raw)
+        with open(tmp_path, "wb") as f:
+            f.write(raw_bytes)
         os.replace(tmp_path, cache_path)  # atomic: /status never reads a partial file
     except OSError:
         pass  # a cache miss degrades /status to estimation; it must not blank the status line
@@ -154,13 +156,17 @@ def render(data):
 
 
 def main():
+    # The payload is UTF-8, but Windows stdio defaults to the ANSI code page
+    # (cp1252 here). Reading via the text layer mangles non-ASCII fields such as
+    # a Chinese session_name into surrogates, which then crash the cache write.
+    # Read bytes and decode explicitly; never let the locale pick the codec.
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    raw = sys.stdin.read()
+    raw_bytes = sys.stdin.buffer.read()
     try:
-        data = json.loads(raw)
-    except ValueError:
+        data = json.loads(raw_bytes.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
         return  # a blank status line beats a traceback in the bar
-    write_cache(raw, data, get(data, "workspace.project_dir"))
+    write_cache(raw_bytes, data, get(data, "workspace.project_dir"))
     print(render(data))
 
 
