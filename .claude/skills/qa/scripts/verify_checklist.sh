@@ -39,11 +39,53 @@ token_matches_file() {
   base=$(basename "$file")
   [[ -n "$token" ]] || return 1
   if [[ "$token" == *"/"* || "$token" == *"\\"* ]]; then
-    [[ "$file" == "$token" ]]
+    # INFRA-VERIFY-GLOB-01: RHS MUST stay unquoted — quoting disables `[[ ]]`
+    # pattern matching, which silently reduced every path token (ALLOWED /
+    # FORBIDDEN / EXCLUDED_PAYLOAD) to a literal string compare. Inside `[[ ]]`
+    # there is no pathname expansion, so `*` also spans `/`: the token
+    # `app/src/main/**/*State.kt` matches nested files as intended.
+    # Wildcard-free path tokens still compare exactly (no metacharacters).
+    [[ "$file" == $token ]]
   else
     [[ "$base" == "$token" ]]
   fi
 }
+
+# ─── Self-test（INFRA-VERIFY-GLOB-01 AI-2）───
+# 用法: bash .claude/skills/qa/scripts/verify_checklist.sh --self-test
+# 純函數級斷言，不觸 git、不落 repo 雜訊。
+self_test() {
+  local passed=0 failed=0
+  _expect() { # _expect <hit|miss> <token> <file> <desc>
+    local want="$1" token="$2" file="$3" desc="$4" got
+    if token_matches_file "$token" "$file"; then got="hit"; else got="miss"; fi
+    if [[ "$got" == "$want" ]]; then
+      passed=$((passed + 1)); echo "  ✅ [$want] $desc"
+    else
+      failed=$((failed + 1)); echo "  ❌ [want=$want got=$got] $desc | token='$token' file='$file'"
+    fi
+  }
+  echo "── token_matches_file() self-test ──"
+  # path-glob 正（修復前必 FAIL：字面比對永不命中）
+  _expect hit  "app/src/main/java/**/CameraViewModel.kt" "app/src/main/java/com/cueshot/presentation/CameraViewModel.kt"  "path-glob 正 · ALLOWED 深層路徑命中"
+  _expect hit  "app/src/main/**/*State.kt"               "app/src/main/java/com/cueshot/domain/model/CameraUiState.kt"    "path-glob 正 · FORBIDDEN 萬用字元攔截"
+  # path-glob 負
+  _expect miss "app/src/main/java/**/CameraViewModel.kt" "app/src/test/java/com/cueshot/CameraViewModelTest.kt"           "path-glob 負 · 不同根目錄不得命中"
+  _expect miss "app/src/main/**/*State.kt"               "app/src/main/java/com/cueshot/domain/model/CameraUiStates.kt"   "path-glob 負 · 後綴不符不得命中"
+  # path 字面（無萬用字元）— 零回歸
+  _expect hit  ".claude/skills/qa/scripts/verify_checklist.sh" ".claude/skills/qa/scripts/verify_checklist.sh"   "path 字面 正 · 無萬用字元 token 精確命中"
+  _expect miss ".claude/skills/qa/scripts/verify_checklist.sh" ".claude/skills/qa/scripts/structural_verify.sh"  "path 字面 負 · 同目錄他檔不得命中"
+  # basename token — 零回歸
+  _expect hit  "CameraViewModel.kt" "app/src/main/java/com/cueshot/presentation/CameraViewModel.kt"         "basename 正 · DEFAULT_FORBIDDEN 品類"
+  _expect miss "CameraViewModel.kt" "app/src/main/java/com/cueshot/presentation/CameraViewModelFactory.kt"  "basename 負 · 前綴相同不得誤命中"
+  echo "── self-test: ${passed} passed, ${failed} failed ──"
+  [[ $failed -eq 0 ]]
+}
+
+if [[ $# -ge 1 && "$1" == "--self-test" ]]; then
+  self_test
+  exit $?
+fi
 
 ALLOWED=""
 FORBIDDEN="$DEFAULT_FORBIDDEN"
