@@ -59,4 +59,4 @@ bash -c 'cat tmp/claude_status_cache.json 2>/dev/null'
 
 **建議行動**：[**依對話輪數**給出一句建議，例如：繼續工作 / 完成當前 Ticket 後執行 /compact / 立即 /compact]
 
-> 💡 statusline 快取由 IDE statusLine 命令刷新（含 context_window / rate_limits / cost），Stop hook payload 因缺少 rich fields 不覆寫快取。腳本：`.claude\skills\status\scripts\statusline.sh`，快取：`tmp/claude_status_cache.json`。
+> 💡 statusline 快取由 IDE statusLine 命令刷新（含 context_window / rate_limits / cost）。腳本：`.claude/skills/status/scripts/statusline.py`（單一渲染器 + 唯一快取寫入者），快取：`tmp/claude_status_cache.json`。該腳本僅掛載於 `statusLine`，不掛 Stop hook（Stop payload 缺 rich fields）。
