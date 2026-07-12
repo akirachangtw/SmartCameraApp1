@@ -79,6 +79,7 @@ object AmbientConstants {
 
     // 鎖定態 Halo Freemium teaser（F-2 / D-30 · NEW: SSOT-V407-01）
     const val HALO_TRIAL_WINDOW_SESSIONS = 3      // NEW: 免費層鎖定態 Halo 試用窗（前 N 個 session 顯示鎖定態環）；與 PTF 每月 3 次分享限額常數分名（RG-1 撞名防護），語義為「session 計數」非「月配額」
+    const val LOCKED_HALO_ALPHA = 0.35f           // F-2 鎖定態 Halo 靜態 alpha（CSO 鎖定 DEC-20260707153625，禁執行端改動；關係式 C1-C4 見 §2.5.4；與 LIMITED/LEGACY 對齊降級 0.35 同值屬巧合，禁合併常數——C3）
 }
 
 // Pitch Traction 指示柱常數（D-2, R2/R17）
@@ -675,7 +676,19 @@ fun smoothGroupHalo(raw: GroupHaloResult): GroupHaloResult {
 | 互動 | **非互動**（無 clickable；明文防實作端自行加 Paywall 入口） |
 | 動畫 | 無（永不 pulse / 呼吸） |
 
-**alpha rationale-vaccine 與關係式**：`PROVISIONAL — 待 UITA 重推導回填`。UITA 原稿以 §4.4.1 L901 之 R-T2 化石（α0.25）為前提推導「鎖定態 α0.35 刻意高於付費琥珀」倒置敘事；然 live 真理為 §2.5 未對齊靜態 `0.8`（L481 R-T2 錨移明載），關係式方向顛倒（0.35 < 0.8）。已退回 UITA 以 live 錨點（未對齊 0.8 / LIMITED 降級 0.35 / 對齊呼吸帶 0.25→0.40）重推導，回填本段。
+**alpha rationale-vaccine 與關係式（v0.2.2，LH-VAC-02 條件 A/B 落版；v0.1 化石前提已作廢）**：live 錨點 = 未對齊靜態 `0.8`（R-T2）／對齊呼吸帶 `0.25→0.40`（R-T13 V-1）／LIMITED-LEGACY 對齊降級靜態 `0.35`。
+
+**常數定義處（條件 A）**：`AmbientConstants.LOCKED_HALO_ALPHA = 0.35f`（§2.0；CSO 鎖定 DEC-20260707153625，禁執行端改動）。
+
+- **階層敘事**：鎖定態 α0.35 為付費未對齊琥珀（0.8）之 44% 顯著度——付費工作態恆定主導，teaser 讀作「休眠的能力」而非競爭信號。
+- **可見度敘事**：0.35 落於對齊呼吸帶中高位，且恰為專案已驗證「最弱硬體上獎勵態可辨」之 LIMITED/LEGACY 降級值——鎖定態以「已證可見底線」全層級同構渲染，支撐 D-31 被看見率 ≥60% 之可達性。
+
+**關係式約束（相對式，右項綁 live 錨，禁裸數字化石化）**：
+
+- C1 階層：`LOCKED_HALO_ALPHA < 付費未對齊靜態 α` — 右項錨定 §2.5 `HaloGuidanceLayer` live 塊字串 `if (isAligned) 0.40f else 0.8f` 之 else 分支（R-T2）；現值代入 0.35 < 0.8 ✓
+- C2 下限：`LOCKED_HALO_ALPHA ≥ 對齊呼吸帶下界` — 右項錨定 §2.5「D-3 對齊呼吸重錨（R-T13 V-1）」條款字串 `` 重錨為 `0.25→0.40` ``（逐字含反引號，復驗以 grep -F 匹配——K4-δ V-d2）之帶下界；現值代入 0.35 ≥ 0.25 ✓（低於帶下界即 CSO 已否決之「過微妙 <30%」區）
+- C3 反耦合：與 LIMITED/LEGACY 對齊降級 `0.35` 同值屬巧合非耦合（琥珀 vs 綠，無辨識退化）；禁止合併為單一常數，任一值經 V-6 調整時另一不連動（原則式，對任意同值巧合成立；已知實例 inventory 見 K4-δ 復驗歸檔，含 `HALO_DOT_ALPHA_VALLEY`）
+- C4 翻盤連動：§2.5「D-3 對齊呼吸重錨」翻盤條件（夜景過亮 → `0.22→0.35`）觸發時，鎖定態 0.35 將觸新帶上界，須同批進 V-6 暗場複核（K4-42：黑底可辨 ≠ 實景可辨）——與 C2 共享錨源，錨失效即雙約束同報
 
 ### 2.6 呼吸韻律 (Breathing Rhythm)
 
@@ -2116,6 +2129,7 @@ Layer 6: Scrim + Top Bar 浮動圖示（最上層）
     - F-3: 呼吸韻律免費層條文（§2.6）
     - F-5: 購買完成頁 3 秒 Halo 教學 + 敘事鏈統攝原則（§11 D14, §B.16）
     - AI-7 sweep: §4.4.1 GUIDANCE_ACTIVE α0.25→0.8 R-T2 漏掃化石修正
+    - LH-VAC-02 (2026-07-11): §2.5.4 vaccine v0.2.2 回填（C1-C4 關係式，條件 A/B 落版）+ §2.0 `LOCKED_HALO_ALPHA` 定義 + §2.5.3 編號保留裁決（2.5.2→2.5.4 跳號非缺漏；禁重編號、禁插入無關新 §2.5.3——§2.5.4 為 F-2/SC-04 多點引用錨）
 - **作廢文件**: v3.0, v3.1, v3.2, v3.3, Delta v3.4, Delta v3.4.1, v4.0, v4.0.1, v4.0.2, v4.0.3, v4.0.4 及所有前版
 - **搭配文件**: `Cueshot_Layout_Spec_v2_5_1.md`（佈局精確定義，獨立維護）
 - **命名規範**: 本文件中不存在 "Edge Warmth" 作為渲染元件名稱。三通道體系統一使用 Pitch Traction / Level Traction / Halo Traction。PitchTractionLayer 禁止包含 null/radialGradient 渲染邏輯（D-14）。
