@@ -7,13 +7,13 @@ package com.akirachang.ai.photographer.domain.config
  */
 object GuidanceStateConstants {
     /** Amber halo alpha for GuidanceActive state. */
-    const val HALO_ACTIVE_ALPHA = 0.25f
+    const val HALO_ACTIVE_ALPHA = 0.8f // R-T2 錨移 0.25→0.8（SSOT §2.5 未對齊靜態，同步 v4.0.7）
 
     /** Green breathing halo alpha floor for Aligned state. */
-    const val HALO_ALIGNED_ALPHA_MIN = 0.10f
+    const val HALO_ALIGNED_ALPHA_MIN = 0.25f // R-T13 V-1 對齊呼吸帶重錨 0.10→0.18 ⇒ 0.25→0.40（SSOT §2.5 D-3）
 
     /** Green breathing halo alpha ceiling for Aligned state. */
-    const val HALO_ALIGNED_ALPHA_MAX = 0.18f
+    const val HALO_ALIGNED_ALPHA_MAX = 0.40f // R-T13 V-1 對齊呼吸帶重錨 0.10→0.18 ⇒ 0.25→0.40（SSOT §2.5 D-3）
 
     /** Halo radius = max(bboxW, bboxH) * this scale. */
     const val HALO_RADIUS_SCALE = 0.6f

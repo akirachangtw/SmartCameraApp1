@@ -38,18 +38,31 @@ class GuidanceStateContractTest {
     // ── AC-8: Constants satisfy contract values ───────────────────────────────
 
     @Test
-    fun `HALO_ACTIVE_ALPHA equals 0_25f`() {
-        assertEquals(0.25f, GuidanceStateConstants.HALO_ACTIVE_ALPHA, 0.001f)
+    fun `C-alpha1 ALIGNED_ALPHA_MIN is strictly less than ALIGNED_ALPHA_MAX`() {
+        // SC-04 C-α1 帶序：0.25 < 0.40
+        assertTrue(
+            "ALIGNED_ALPHA_MIN must be < ALIGNED_ALPHA_MAX",
+            GuidanceStateConstants.HALO_ALIGNED_ALPHA_MIN < GuidanceStateConstants.HALO_ALIGNED_ALPHA_MAX
+        )
     }
 
     @Test
-    fun `HALO_ALIGNED_ALPHA_MIN equals 0_10f`() {
-        assertEquals(0.10f, GuidanceStateConstants.HALO_ALIGNED_ALPHA_MIN, 0.001f)
+    fun `C-alpha2 ALIGNED_ALPHA_MAX is strictly less than HALO_ACTIVE_ALPHA`() {
+        // SC-04 C-α2 階層：0.40 < 0.8（對齊比未對齊安靜一級，D-3）
+        assertTrue(
+            "ALIGNED_ALPHA_MAX must be < HALO_ACTIVE_ALPHA",
+            GuidanceStateConstants.HALO_ALIGNED_ALPHA_MAX < GuidanceStateConstants.HALO_ACTIVE_ALPHA
+        )
     }
 
     @Test
-    fun `HALO_ALIGNED_ALPHA_MAX equals 0_18f`() {
-        assertEquals(0.18f, GuidanceStateConstants.HALO_ALIGNED_ALPHA_MAX, 0.001f)
+    fun `C-alpha3 ALIGNED_ALPHA_MAX equals half of HALO_ACTIVE_ALPHA`() {
+        // SC-04 C-α3 半值律：0.40 = 0.8 之半（SSOT D-3 明載相對式）
+        assertEquals(
+            GuidanceStateConstants.HALO_ACTIVE_ALPHA * 0.5f,
+            GuidanceStateConstants.HALO_ALIGNED_ALPHA_MAX,
+            0.001f
+        )
     }
 
     @Test
@@ -67,8 +80,9 @@ class GuidanceStateContractTest {
 
     @Test
     fun `SubjectStabilizing alpha is half of HALO_ACTIVE_ALPHA`() {
+        // SC-04 重錨後與 C-α3 同式，斷言主體改為常數間關係（禁裸數字快照，K4-54）
         val expected = GuidanceStateConstants.HALO_ACTIVE_ALPHA * 0.5f
-        assertEquals(0.125f, expected, 0.001f)
+        assertEquals(GuidanceStateConstants.HALO_ALIGNED_ALPHA_MAX, expected, 0.001f)
     }
 
     // ── Suppressed equality semantics ─────────────────────────────────────────
