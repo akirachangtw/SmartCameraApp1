@@ -291,3 +291,9 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 > **S33（2026-07-06）：✅ INFRA-SKILLS-UC01 Done（/uc 新增「## 驗證性動作豁免」：執行 .sh MUST 用 canonical 格式，MUST NOT 憑記憶組裝參數）· Codex Cross-Review PASS · 47fe32d**
 > **S34（2026-07-06）：⚠️ INFRA-REACH-02 8/9 AC（Reachability v2 AI-1~7 落地 + CSO M-1 後 Check G 標準化重構 + R-1 迴歸 + Codex R2 ADVISORY 46b8e24）→ 1 AC（第二 state holder 正向命中）待 Akira 裁決，票暫留 Pending/ → K4-50「AC 語義折損律」候選登記**
 > **INFRA-XX（S28）稽核歸檔**：K4-3/6/8/9 經 grep 核查目標檔案均無對應條文，已改列 🔴 待補寫；KAIROS-BACKFILL-01（S28）已補寫落地。
+
+> **S39-S40（2026-07-08~09）：✅ GAP-06-RENDER-DOT-01 Done（FIX-A 四閘全綠 · AI-1 Aligned 分支疊加 dot Canvas + AI-2 androidTest +4 · Codex R2 PASS + Traycer R2 PASS · `d04fe4a..504d49a` · targetPosition = GAP-06-TARGET placeholder · 已移 deliver/，Akira 2026-07-09 授權 CLOSURE）**
+
+> **S41（2026-07-10）：✅ STATE-CONTRACT-03 Closed（GAP-07 afState producer wiring · CameraViewModel L2117 Focusing + L2137-2143 Locked/Failed · AI-2 整合測試 3/3 · Codex xhigh PASS · `09d825e` · [實機]煙測 PASS（Pixel 9a · Guard7a ×8）· AC-10 假過根因除 · Traycer R4 Path A APPROVE · 錨 `7e99f28`）**
+
+> **D15 KAIROS 節點（2026-07-12）**：M3 Family Provenance 稽核 fresh 刷新（0 escalate，214 掃描/187 已登記）→ 三層回顧完成，5 議題收編為候選規則 K4-56~K4-60（`plans/cso_briefing/project/Pending/KAIROS4_Candidate_Compilation.md`）：**K4-56** 共享視覺常數家族 sweep-or-register 律（正式收編 K4-η，SC-04/SC-05 二次同構分流已達收編門檻）· **K4-57** 雙真理源消費者掃描完備性律（正式收編 K4-ζ，SC-01 未掃 legacy `compositionResult.isAllAligned` 消費鏈之根因追溯）· **K4-58** 雙法複證律（正式收編 K4-ε）· **K4-59** 預簽決策樹保底出口律（降低域外裁決重複 Checkpoint 往返成本）· **K4-60** gate-integrity vs adjacent-scope blocker 分類律（SC-04 R1 Blocker 1 正確 spawn SC-05 為範例判例）。Decision Audit：SC-04 K4-η STOP 攔截 ✅ 正確（域外命中未誤修）；SC-01 未掃雙真理源 ⚠️ 需微調（已轉 K4-57 補防護，SC02-5 追蹤遷移）。SSOT Drift：無新增。Skill 壓測：`/dream` 本次為 D15 首跑；`m3_family_audit.sh` self-test + refresh 均 PASS；`/uc`/`/compact`/`/mdlint` 執行次數仍缺 telemetry，資訊不足無法判定。CLAUDE.md 新增建議：暫不直接併入本文（12 條上限已滿），K4-56/57/60 建議下輪隨 path-scoped rules 收編評估。**
