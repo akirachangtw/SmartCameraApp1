@@ -16,7 +16,7 @@ object GuidanceStateConstants {
     const val HALO_ALIGNED_ALPHA_MAX = 0.40f // R-T13 V-1 對齊呼吸帶重錨 0.10→0.18 ⇒ 0.25→0.40（SSOT §2.5 D-3）
 
     /** Halo radius = max(bboxW, bboxH) * this scale. */
-    const val HALO_RADIUS_SCALE = 0.6f
+    const val HALO_RADIUS_SCALE = 0.5f // SSOT §2.5 R-T3：直徑=faceSize；§2.5.4 明禁 0.6（UITA 原稿轉錄筆誤）
 
     /** Weighted composition score threshold to enter Aligned state (0–100 scale). */
     const val ALIGNED_ENTER_SCORE = 75f

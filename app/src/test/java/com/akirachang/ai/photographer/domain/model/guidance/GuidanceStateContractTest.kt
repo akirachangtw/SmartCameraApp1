@@ -66,8 +66,13 @@ class GuidanceStateContractTest {
     }
 
     @Test
-    fun `HALO_RADIUS_SCALE equals 0_6f`() {
-        assertEquals(0.6f, GuidanceStateConstants.HALO_RADIUS_SCALE, 0.001f)
+    fun `C-rho1 diameter equals bboxSize per SSOT section 2_5 R-T3`() {
+        // SC-05 C-ρ1：直徑=bboxSize 不變量（2 * HALO_RADIUS_SCALE == 1.0f），SSOT §2.5 R-T3
+        assertEquals(
+            1.0f,
+            2f * GuidanceStateConstants.HALO_RADIUS_SCALE,
+            0.001f
+        )
     }
 
     @Test
