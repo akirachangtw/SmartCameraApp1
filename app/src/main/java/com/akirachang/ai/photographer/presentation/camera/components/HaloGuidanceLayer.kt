@@ -176,6 +176,7 @@ fun HaloGuidanceLayer(
         targetValue = PTF_BREATH_ALPHA_MAX,
         animationSpec = InfiniteRepeatableSpec(
             animation = tween(durationMillis = PTF_BREATH_DURATION_MS, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
         ),
         label = "ptfBreathAlpha",
     )
@@ -187,6 +188,7 @@ fun HaloGuidanceLayer(
         targetValue = GuidanceStateConstants.HALO_ALIGNED_ALPHA_MAX,
         animationSpec = InfiniteRepeatableSpec(
             animation = tween(durationMillis = PTF_BREATH_DURATION_MS, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
         ),
         label = "normalAlignedBreathAlpha",
     )
