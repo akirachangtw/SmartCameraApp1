@@ -5,21 +5,22 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| STATE-CONTRACT-05 | ✅ Done（碼閉環）· `HALO_RADIUS_SCALE` 0.6f→0.5f（SSOT §2.5.4，Traycer SC-04 R1 Fix 1 承接）· ContractTest C-ρ1 關係式（`2f*HALO_RADIUS_SCALE==1.0f`）取代裸數字快照 · K4-η 首輪 13 命中裁決終態（PTF ×3 `HaloGuidanceLayer.kt:264/276/291` register-out→已定性待 SC-06，Postponed #7）· `cad0ce6`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer R2 |
 | STATE-CONTRACT-04 | ✅ Done（碼閉環）· Halo alpha 三常數家族單次觸碰重錨：`HALO_ACTIVE_ALPHA` 0.25→0.8（R-T2）+ `HALO_ALIGNED_ALPHA_MIN/MAX` 0.10/0.18→0.25/0.40（R-T13 V-1）· ContractTest C-α1/α2/α3 關係式斷言取代裸數字快照（K4-54）· K4-η sweep 攔截清單外命中 ×2（`HaloGuidanceLayer.kt:96-97` PTF_BREATH / `CameraScreen.kt:580-581` 快門環）→ CSO 裁決域外零觸碰（Postponed #7 / #8+SC02-5）· /qa Step0 PASS + `testDeviceDebugUnitTest` 8/8 綠 + `assembleDeviceDebug` PASS · `ce9b232`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer |
 | SSOT-V407-LHVAC-01 | ✅ Done · LH-VAC-02 §2.5.4 alpha vaccine 回填（canonical 檔逐字取回，3 hunks · +15L）· V-1~V-4 + 白空間 + diff 口徑全綠 · `a0f6f13`（僅 `SSOT_v4_0_7.md`）· PROVISIONAL §2.5.4 切片歸零，觸發 SC-04 開工前置解禁 |
 | SSOT-V407-SWEEP-01 | ✅ Done · CLAUDE.md 現行 SSOT 指針 v4_0_6→v4_0_7 · Codex Cross-Review PASS · `6a08bed` · 已移 deliver/ |
 | SSOT-V407-01 | ✅ Done · SSOT v4.0.6→v4.0.7 七簇條文落地 · Codex Cross-Review PASS · `a881096` · 已移 deliver/ |
 | INFRA-EOL-01 + INFRA-VERIFY-GLOB-01 | ✅ Done（治理域雙微票）· `.gitattributes` `*.md`/`*.sh eol=lf`（`f58ad29`）+ `verify_checklist.sh` glob 恢復 + `--self-test` 8/8（`db4106a`）· /qa + Codex R1 PASS · 遺留 L-1/L-2/D-1/D-2/C-1 待 CSO 裁（見 Next Actions） |
 
-**Last Updated**: 2026-07-12
+**Last Updated**: 2026-07-13
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S44** · STATE-CONTRACT-04 ✅ Done（`ce9b232` · K4-η 域外裁決 Postponed #7/#8）· **S43** · SSOT-V407-LHVAC-01 ✅（`a0f6f13` · LH-VAC-02 回填）· **S42** · INFRA-EOL-01 ✅（`f58ad29`）→ INFRA-VERIFY-GLOB-01 ✅（`db4106a`）· 遺留 L-1/L-2/D-1/D-2/C-1 待 CSO 裁 · **S41** · STATE-CONTRACT-03（GAP-07）✅ Closed（Traycer R4 Path A · 錨 `7e99f28`）· **S40** · GAP-06-RENDER-DOT-01 ✅ Done · GAP-06 母議題剩 producer wiring（GAP-06-TARGET，SC-04 閉環後下一收割節點）|
-| Compile | ✅ PASS `assembleDeviceDebug`（14s · STATE-CONTRACT-04 · 2026-07-12） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` GuidanceStateContractTest 8/8（0 fail · STATE-CONTRACT-04） |
+| Schedule | **S45** · STATE-CONTRACT-05 ✅ Done（`cad0ce6` · Halo 半徑重錨 + K4-η 終態 13 命中）· **S44** · STATE-CONTRACT-04 ✅ Done（`ce9b232` · K4-η 域外裁決 Postponed #7/#8）· **S43** · SSOT-V407-LHVAC-01 ✅（`a0f6f13` · LH-VAC-02 回填）· **S42** · INFRA-EOL-01 ✅（`f58ad29`）→ INFRA-VERIFY-GLOB-01 ✅（`db4106a`）· 遺留 L-1/L-2/D-1/D-2/C-1 待 CSO 裁 · **S41** · STATE-CONTRACT-03（GAP-07）✅ Closed（Traycer R4 Path A · 錨 `7e99f28`）|
+| Compile | ✅ PASS `assembleDeviceDebug`（STATE-CONTRACT-05 · 2026-07-13） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` GuidanceStateContractTest 9/9（0 fail · STATE-CONTRACT-05 · C-ρ1 新增） |
 | Lint | ✅ PASS `lint`（0 new warning；1 既存 baseline `ModifierParameter`@HaloGuidanceLayer.kt:151，isPtfMode/ptfAlignmentResult 於 2a5103b 已在 modifier 前，targetPosition 依既有簽名慣例插入，非新品類） |
 
 ## Active Blockers
