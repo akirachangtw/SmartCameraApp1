@@ -18,16 +18,16 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S45** · STATE-CONTRACT-05 ✅ Done（`cad0ce6` · Halo 半徑重錨 + K4-η 終態 13 命中）· **S44** · STATE-CONTRACT-04 ✅ Done（`ce9b232` · K4-η 域外裁決 Postponed #7/#8）· **S43** · SSOT-V407-LHVAC-01 ✅（`a0f6f13` · LH-VAC-02 回填）· **S42** · INFRA-EOL-01 ✅（`f58ad29`）→ INFRA-VERIFY-GLOB-01 ✅（`db4106a`）· 遺留 L-1/L-2/D-1/D-2/C-1 待 CSO 裁 · **S41** · STATE-CONTRACT-03（GAP-07）✅ Closed（Traycer R4 Path A · 錨 `7e99f28`）|
-| Compile | ✅ PASS `assembleDeviceDebug`（STATE-CONTRACT-05 · 2026-07-13） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` GuidanceStateContractTest 9/9（0 fail · STATE-CONTRACT-05 · C-ρ1 新增） |
-| Lint | ✅ PASS `lint`（0 new warning；1 既存 baseline `ModifierParameter`@HaloGuidanceLayer.kt:151，isPtfMode/ptfAlignmentResult 於 2a5103b 已在 modifier 前，targetPosition 依既有簽名慣例插入，非新品類） |
+| Schedule | **S47** · GAP-10-BREATH-RESTART /qa PASS（uc AI-1+AI-2 · `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 補 `repeatMode = RepeatMode.Reverse` · +2L · 待 /sv）· **S46** · D15-16 實測診斷（無票 · Rule 4c 僅回報）→ 報告 `plans/cso_briefing/reports/D15-16/` · Track B 採樣暫停建議 + 6 項待裁決 · **S45** · STATE-CONTRACT-05 ✅ Done（`cad0ce6` · Halo 半徑重錨 + K4-η 終態 13 命中 · ledger `2ba2b83`）· **S44** · STATE-CONTRACT-04 ✅ Done（`ce9b232` · K4-η 域外裁決 Postponed #7/#8）· **S43** · SSOT-V407-LHVAC-01 ✅（`a0f6f13` · LH-VAC-02 回填）|
+| Compile | ✅ PASS `assembleDebug`（GAP-10-BREATH-RESTART · 2026-07-13） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` 205/205（0 fail · GAP-10-BREATH-RESTART，unrelated to breathe animation scope） |
+| Lint | ✅ PASS `lintDeviceDebug`（0 new warning；1 既存 baseline `ModifierParameter`@HaloGuidanceLayer.kt:154） |
 
 ## Active Blockers
 
 | ID | Issue | Severity | Root Cause |
 | ---- | ------- | ---------- | ------------ |
-| GAP-06 | HaloTraction：GuidanceActive + **Aligned 態圓點渲染已閉環（GAP-06-RENDER-DOT-01 ✅ Done，已移 deliver/）**；母議題後續仍剩 producer wiring + Normal vs Focus Ring 路由實機驗 | 🟡 P1 | Aligned 消費斷鏈已修；剩 producer = GAP-06-TARGET placeholder（SC-04 閉環後下一收割節點）；路由待實機 |
+| GAP-06 | HaloTraction：GuidanceActive + **Aligned 態圓點渲染已閉環（GAP-06-RENDER-DOT-01 ✅ Done，已移 deliver/）**；母議題後續仍剩 producer wiring + Normal vs Focus Ring 路由實機驗 | 🔴 P0（D15-16 實測證實：producer 缺席 → 牽引點永釘中央 → 引導迴路死鎖，Track B 硬阻） | Aligned 消費斷鏈已修；剩 producer = GAP-06-TARGET placeholder（SC-04 閉環後下一收割節點）；路由待實機 |
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
 
@@ -49,6 +49,7 @@
 5. **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審
 6. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
 7. **🟢 TRACTION-SSOT-04 CSO 閉環**（技術已閉，待 CSO Ticket）：母票 line-91 AC box 打勾 · `move_file` Pending→deliver · Postponed #6（R-T14）→DONE / #5（RENDER-01）→ready · 編號對帳 K4-45（R-T18 stamp 前釐清 R-T17：overruled-void vs consumed）
+8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART 已開票落地**（/qa PASS，待 /sv → D17 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口）
 
 ## Active Debt（僅列未解決項）
 
