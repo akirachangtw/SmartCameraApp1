@@ -211,6 +211,34 @@ class CameraViewModelTest {
         assertEquals(GuidanceState.GuidanceActive, reduce(score = 60f, prev = GuidanceState.Aligned,
             cnt = CameraViewModel.GuidanceCounters(alignedDwell = GuidanceStateConstants.ALIGNED_DWELL_FRAMES - 1)))
     }
+    // ── GAP-11 AC-2: Portrait EMA behaviour (SSOT §2.5.1) ─────────────────────
+    // Drives the production recurrence CameraViewModel.portraitEmaStep, which smoothGuidanceBboxes()
+    // delegates every bbox edge to. Pure Float, never RectF — a JVM stub cannot fake-pass (K2-Rule 13).
+
+    /** D17 [BHA-01] logcat: ML Kit bbox width quantises across 9 discrete values, ±4.79%. */
+    private val quantisedJitter = listOf(
+        0.2870f, 0.3010f, 0.2900f, 0.3145f, 0.2935f, 0.3080f, 0.2860f, 0.3110f, 0.2990f
+    )
+
+    @Test fun `AC-2 portraitEmaStep obeys SSOT recurrence and converges jitter amplitude`() {
+        var last: Float? = null
+        val smoothed = quantisedJitter.map { raw ->
+            val out = CameraViewModel.portraitEmaStep(last, raw)
+            val expected = last?.let { it * 0.7f + raw * 0.3f } ?: raw
+            assertEquals("EMA step must match SSOT §2.5.1 recurrence", expected, out, 1e-5f)
+            last = out
+            out
+        }
+        // Index 0 is the seed (== raw); including it would measure seeding, not smoothing.
+        val rawSpread = quantisedJitter.maxOrNull()!! - quantisedJitter.minOrNull()!!
+        val tail = smoothed.drop(1)
+        val emaSpread = tail.maxOrNull()!! - tail.minOrNull()!!
+        assertTrue(
+            "EMA must cut jitter amplitude by more than half (raw=$rawSpread ema=$emaSpread)",
+            emaSpread < rawSpread * 0.5f
+        )
+    }
+
     @Test fun `AC-5 all three suppress reasons`() {
         assertEquals(GuidanceState.Suppressed(SuppressionReason.AF_IN_PROGRESS), reduce(af = true))
         assertEquals(GuidanceState.Suppressed(SuppressionReason.PTF_GAZE_AF_DISABLED), reduce(mode = CameraMode.PassToFriend))

@@ -76,6 +76,17 @@ class GuidanceStateContractTest {
     }
 
     @Test
+    fun `C-epsilon1 Portrait EMA weights sum to unity per SSOT section 2_5_1`() {
+        // GAP-11 C-ε1：EMA 權重守恆（history + new == 1.0f），SSOT §2.5.1 (:536-541)
+        // 關係式取代裸數字快照（K4-54）——任一權重漂移即破斷言。
+        assertEquals(
+            1.0f,
+            GuidanceStateConstants.PORTRAIT_EMA_HISTORY + GuidanceStateConstants.PORTRAIT_EMA_NEW,
+            0.001f
+        )
+    }
+
+    @Test
     fun `ALIGNED_ENTER_SCORE is strictly greater than ALIGNED_EXIT_SCORE`() {
         assertTrue(
             "Enter score must be > exit score for valid hysteresis band",

@@ -18,6 +18,12 @@ object GuidanceStateConstants {
     /** Halo radius = max(bboxW, bboxH) * this scale. */
     const val HALO_RADIUS_SCALE = 0.5f // SSOT §2.5 R-T3：直徑=faceSize；§2.5.4 明禁 0.6（UITA 原稿轉錄筆誤）
 
+    /** Portrait bbox EMA history weight — SSOT §2.5.1 (:536-541) `smoothed = last * 0.7 + new * 0.3`. */
+    const val PORTRAIT_EMA_HISTORY = 0.7f
+
+    /** Portrait bbox EMA new-sample weight — SSOT §2.5.1 (:536-541); pairs with [PORTRAIT_EMA_HISTORY]. */
+    const val PORTRAIT_EMA_NEW = 0.3f
+
     /** Weighted composition score threshold to enter Aligned state (0–100 scale). */
     const val ALIGNED_ENTER_SCORE = 75f
 
