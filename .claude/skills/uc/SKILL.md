@@ -1,6 +1,6 @@
 ---
 name: uc
-description: 進入臥底模式：零廢話、零解釋、純代碼修改輸出。省 Token 省配額，密集 Coding 時使用。輸入 /normal 退出。
+description: 進入臥底模式：零廢話、純代碼修改；Ticket 完成後自動執行 QA，QA PASS 再依 QA 契約進入 SV。密集 Coding 時使用，輸入 /normal 退出。
 disable-model-invocation: false
 ---
 
@@ -42,16 +42,19 @@ disable-model-invocation: false
    - `✅ DONE | compile fix: missing import | 1F +1L`
    - `✅ DONE | git commit | 6F committed`
    
-   **MUST** 禁止在這行之外加任何文字。這行是你在終端機裡確認「Claude 做完了」的唯一信號。
-7. **MUST** 多檔修改：按修改順序列出所有 diff，檔案間用空行分隔。最後一行才輸出 `✅ DONE`。
-8. **DONE = 終止信號**：UC 模式只負責代碼修改。
-   輸出 `✅ DONE | D[N]-T[N] ...` 後即停止。不嘗試呼叫其他 Skill。
-   /qa 由使用者在確認 DONE 後手動觸發。
-
-   DONE 行格式（不變）：
-   - `✅ DONE | D[N]-T[N] ...` → Ticket 完成
-   - `✅ DONE | compile fix: ...` → 中間修復
-   - `✅ DONE | git commit ...` → Git 操作
+   **MUST** 禁止在這行之外增加 UC 解說文字。進入 QA/SV 後，改由各 Skill 的回報格式接管。
+7. **MUST** 多檔修改：按修改順序列出所有 diff，檔案間用空行分隔。UC 實作輸出的最後一行才輸出 `✅ DONE`。
+8. **Ticket DONE = QA 交棒信號**：
+   - Ticket 完成前，**MUST** 從 `tmp/verify_cmd.conf` 以 `grep/head/cut` 讀取 `TICKET_ID`，**MUST NOT** `source` 或猜測 Ticket ID。
+   - Ticket 完成格式：`✅ DONE | [TICKET_ID] [摘要] | [影響檔案數]F [影響行數]L`。
+   - 輸出 Ticket DONE 後，**MUST** 立即呼叫 `Skill(qa)`（等價 `/qa`），不得停下等待使用者確認。
+   - `compile fix`、`git commit` 或其他非 Ticket DONE 僅為中間動作，**MUST NOT** 觸發 QA。
+   - `tmp/verify_cmd.conf` 不存在或 `TICKET_ID` 為空時，回報 `⛔ UC Auto-Chain STOPPED: [原因]` 並停止。
+9. **Auto-Chain ownership**：
+   - `/uc` 只呼叫 QA，**MUST NOT** 直接呼叫 SV。
+   - QA 全步驟 PASS 後，由 QA Skill 依既有契約自動進入 SV。
+   - QA FAIL、Auto Commit FAIL 或 `Auto-Chain STOPPED` 時，**MUST** 停止且不得進入 SV。
+   - SV 的 PASS／ADVISORY／REPORT_FIX／BLOCKER／ENV ERROR 依 SV Skill 契約處理，**MUST NOT** 由 UC 自動重跑或改判。
 
 ## 驗證性動作豁免
 
