@@ -5,7 +5,8 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-HOOK-STOP-01 | ✅ Done（碼閉環）· `telegram_stop.sh` 消除 `set -euo pipefail` 靜默 `exit 1`：新增 `extract_ticket_id` 結構式 parser 取代舊 hardcoded family allowlist · 新增 `telegram_stop_test.sh` 4/4 PASS 無網路回歸測試 · 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `70a34ec`（code）+ `52e4b60`（PROGRESS_ARCHIVE.md S48）· **[實機] AC 待下次新 Session 觀察 Stop hook error 是否消失** |
+| INFRA-SKILLS-UC02 | ✅ Done（碼閉環）· `uc/SKILL.md` Ticket DONE 改為 QA 交棒信號（AI-1）+ QA/SV Auto-Chain ownership 鎖定，`/uc` 不得直呼 `/sv`（AI-2）+ 非 DONE 動作停止語義保留（AI-3）· 25L diff（14+/11-）< MAX_LINES 45 · Codex Cross-Review R2 PASS（REACHABILITY: NONE，K5-Rule 29 誠實揭露 AC2-5 未實測）· `6b74eab` · 免 Traycer（純 prompt-layer 治理票，Codex PASS 即閉環）· **AC2-5[可達性/行為性] 待下次真實 `/uc` Ticket DONE 觸發實測後轉 PASS** |
+| INFRA-HOOK-STOP-01 | ✅ Done（碼閉環）· `telegram_stop.sh` 消除 `set -euo pipefail` 靜默 `exit 1`：新增 `extract_ticket_id` 結構式 parser 取代舊 hardcoded family allowlist · 新增 `telegram_stop_test.sh` 4/4 PASS 無網路回歸測試 · 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `70a34ec`（code）+ `52e4b60`（PROGRESS_ARCHIVE.md S48）· **[實機] AC ✅ 已驗證（新 Session 確認 Stop hook error 未再出現，Akira 2026-07-14 回報）** |
 | GAP-10-BREATH-RESTART | ✅ Done（碼閉環）· `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 兩處 `InfiniteRepeatableSpec` 補 `repeatMode = RepeatMode.Reverse`（比照既有 breathe-dot 範本）· 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `0acabd6`（code）+ `3e8d43e`（docs）· **[實機] AC 待 D17 Akira 呼吸真偽終審**（BREATH-KILL 預授權出口）· 關票待 Traycer |
 | STATE-CONTRACT-05 | ✅ Done（碼閉環）· `HALO_RADIUS_SCALE` 0.6f→0.5f（SSOT §2.5.4，Traycer SC-04 R1 Fix 1 承接）· ContractTest C-ρ1 關係式（`2f*HALO_RADIUS_SCALE==1.0f`）取代裸數字快照 · K4-η 首輪 13 命中裁決終態（PTF ×3 `HaloGuidanceLayer.kt:264/276/291` register-out→已定性待 SC-06，Postponed #7）· `cad0ce6`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer R2 |
 | STATE-CONTRACT-04 | ✅ Done（碼閉環）· Halo alpha 三常數家族單次觸碰重錨：`HALO_ACTIVE_ALPHA` 0.25→0.8（R-T2）+ `HALO_ALIGNED_ALPHA_MIN/MAX` 0.10/0.18→0.25/0.40（R-T13 V-1）· ContractTest C-α1/α2/α3 關係式斷言取代裸數字快照（K4-54）· K4-η sweep 攔截清單外命中 ×2（`HaloGuidanceLayer.kt:96-97` PTF_BREATH / `CameraScreen.kt:580-581` 快門環）→ CSO 裁決域外零觸碰（Postponed #7 / #8+SC02-5）· /qa Step0 PASS + `testDeviceDebugUnitTest` 8/8 綠 + `assembleDeviceDebug` PASS · `ce9b232`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer |
@@ -19,7 +20,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S48** · INFRA-HOOK-STOP-01 ✅ Done（`extract_ticket_id` 結構式 parser · telegram_stop.sh 靜默 exit 1 修復 · 回歸測試 4/4 PASS · Codex R1 PASS · `70a34ec`+`52e4b60`）· **S47** · GAP-10-BREATH-RESTART ✅ Done（uc AI-1+AI-2 · `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 補 `repeatMode = RepeatMode.Reverse` · +2L · Codex R1 PASS · `0acabd6`+`3e8d43e` · 待 Traycer）· **S46** · D15-16 實測診斷（無票 · Rule 4c 僅回報）→ 報告 `plans/cso_briefing/reports/D15-16/` · Track B 採樣暫停建議 + 6 項待裁決 · **S45** · STATE-CONTRACT-05 ✅ Done（`cad0ce6` · Halo 半徑重錨 + K4-η 終態 13 命中 · ledger `2ba2b83`）· **S44** · STATE-CONTRACT-04 ✅ Done（`ce9b232` · K4-η 域外裁決 Postponed #7/#8）|
+| Schedule | **S49** · INFRA-SKILLS-UC02 ✅ Done（uc/SKILL.md QA auto-chain wiring · Codex R2 PASS · 免 Traycer · `6b74eab`）· **S48** · INFRA-HOOK-STOP-01 ✅ Done（`extract_ticket_id` 結構式 parser · telegram_stop.sh 靜默 exit 1 修復 · 回歸測試 4/4 PASS · Codex R1 PASS · `70a34ec`+`52e4b60` · [實機]AC✅）· **S47** · GAP-10-BREATH-RESTART ✅ Done（uc AI-1+AI-2 · `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 補 `repeatMode = RepeatMode.Reverse` · +2L · Codex R1 PASS · `0acabd6`+`3e8d43e` · 待 Traycer）· **S46** · D15-16 實測診斷（無票 · Rule 4c 僅回報）→ 報告 `plans/cso_briefing/reports/D15-16/` · Track B 採樣暫停建議 + 6 項待裁決 · **S45** · STATE-CONTRACT-05 ✅ Done（`cad0ce6` · Halo 半徑重錨 + K4-η 終態 13 命中 · ledger `2ba2b83`）|
 | Compile | ✅ PASS `assembleDebug`（INFRA-HOOK-STOP-01 · 2026-07-14，未觸及 app 程式碼） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest` 205/205（0 fail · INFRA-HOOK-STOP-01，unrelated to hook scope）+ `telegram_stop_test.sh` 4/4 PASS |
 | Lint | ✅ PASS `lintDeviceDebug`（0 new warning；1 既存 baseline `ModifierParameter`@HaloGuidanceLayer.kt:154） |
@@ -51,7 +52,6 @@
 6. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
 7. **🟢 TRACTION-SSOT-04 CSO 閉環**（技術已閉，待 CSO Ticket）：母票 line-91 AC box 打勾 · `move_file` Pending→deliver · Postponed #6（R-T14）→DONE / #5（RENDER-01）→ready · 編號對帳 K4-45（R-T18 stamp 前釐清 R-T17：overruled-void vs consumed）
 8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART ✅ Done**（/qa+/sv+Codex Cross-Review 全 PASS，待 D17 Akira 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口；關票待 Traycer）
-9. **🟡 INFRA-HOOK-STOP-01 [實機] AC 待驗**：下次開新 Claude Session 觀察 `Stop hook error` 是否消失 · **⚪ `uc/SKILL.md` dirty 待處理**：UC DONE 後自動串接 QA 之行為調整，本輪依 Akira 指示排除未提交，待另案授權
 
 ## Active Debt（僅列未解決項）
 
