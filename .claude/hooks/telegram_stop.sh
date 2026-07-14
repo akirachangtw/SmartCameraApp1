@@ -5,6 +5,19 @@
 
 set -euo pipefail
 
+# Structural ticket-ID parser (ticket_pattern.md family-agnostic grammar).
+# Optional-match failures MUST NOT propagate as script errors under set -e/pipefail —
+# each internal pipeline is `|| true`-guarded; final fallback is "Session".
+extract_ticket_id() {
+    local text="$1"
+    local id=""
+    id=$(printf '%s' "$text" | grep -oE '\bTicket: [A-Z][A-Z0-9]*(-[A-Z0-9]+)+\b' 2>/dev/null | head -1 | sed 's/^Ticket: //' || true)
+    if [[ -z "$id" ]]; then
+        id=$(printf '%s' "$text" | grep -oE '\b[A-Z][A-Z0-9]*(-[A-Z0-9]+)+\b' 2>/dev/null | head -1 || true)
+    fi
+    printf '%s' "${id:-Session}"
+}
+
 # Read last_assistant_message from stdin (stop hook payload, race-condition-free)
 # then fall back to cache (for sequential hook order or manual invocation)
 _HOOK_INPUT=$(cat 2>/dev/null || true)
@@ -77,8 +90,7 @@ fi
 
 # ── 觸發 1: SV + Cross-Review PASS ────────────────────────────
 if echo "$LAST_MSG" | grep -qE "Cross-Review.*PASS|STRUCTURAL VERIFY PASS.*A/B/C/D/E/F"; then
-    TICKET=$(echo "$LAST_MSG" | grep -oE "Ticket: [A-Z0-9(). _+-]+" | head -1 | sed 's/Ticket: //' | xargs)
-    [[ -z "$TICKET" ]] && TICKET=$(echo "$LAST_MSG" | grep -oE "P08-[A-Z][0-9]+|D[0-9]+-T[0-9]+|INFRA-[0-9]+|HOTFIX-[0-9]+" | head -1)
+    TICKET=$(extract_ticket_id "$LAST_MSG")
     ROUND=$(echo "$LAST_MSG" | grep -oE "R[0-9]+ PASS|PASS R[0-9]+" | head -1 | grep -oE "R[0-9]+" || echo "R1")
     MSG="${TICKET} ✅ SV+Cross-Review ${ROUND} PASS — 準備 Traycer 終審。下一步？"
     [[ -n "$_PREVIEW" ]] && MSG="${MSG}
@@ -99,7 +111,7 @@ fi
 
 # ── 觸發 3: QA PASS（Auto-Chain 停止點）──────────────────────
 if echo "$LAST_MSG" | grep -qE "QA Report|Build: ✅ PASS.*Tests:.*PASS"; then
-    TICKET=$(echo "$LAST_MSG" | grep -oE "P08-[A-Z][0-9]+|D[0-9]+-T[0-9]+|INFRA-[0-9]+|HOTFIX-[0-9]+" | head -1)
+    TICKET=$(extract_ticket_id "$LAST_MSG")
     MSG="${TICKET} 🔨 /qa PASS — 請執行 /sv"
     [[ -n "$_PREVIEW" ]] && MSG="${MSG}
 💬 ${_PREVIEW}"
