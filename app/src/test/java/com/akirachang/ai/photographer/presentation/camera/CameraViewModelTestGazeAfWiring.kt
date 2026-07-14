@@ -248,6 +248,7 @@ class CameraViewModelTestGazeAfWiring {
         imuCompensator = imuCompensator,
         deviceCapabilityTier = DeviceCapabilityTier.FULL,
         ptfRuleAggregator = ptfRuleAggregator,
+        portraitEmaSmoother = com.akirachang.ai.photographer.domain.composition.PortraitEmaSmoother(),
     )
 
     /** Distinct timestamp → StateFlow emits & distinctUntilChanged passes; face reused → stable position. */

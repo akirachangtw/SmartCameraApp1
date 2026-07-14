@@ -55,6 +55,7 @@ import com.akirachang.ai.photographer.presentation.camera.model.LightingState
 import com.akirachang.ai.photographer.BuildConfig
 import com.akirachang.ai.photographer.domain.config.FeatureFlags
 import com.akirachang.ai.photographer.di.PtfEngine
+import com.akirachang.ai.photographer.domain.composition.PortraitEmaSmoother
 import com.akirachang.ai.photographer.domain.composition.PtfAlignmentResult
 import com.akirachang.ai.photographer.domain.composition.PtfRuleAggregator
 import com.akirachang.ai.photographer.domain.config.GuidanceStateConstants
@@ -77,6 +78,7 @@ class CameraViewModel @Inject constructor(
     private val imuCompensator: ImuCompensator,
     val deviceCapabilityTier: DeviceCapabilityTier,
     @PtfEngine private val ptfRuleAggregator: PtfRuleAggregator,
+    private val portraitEmaSmoother: PortraitEmaSmoother,
 ) : ViewModel() {
 
     companion object {
@@ -138,20 +140,6 @@ class CameraViewModel @Inject constructor(
 
         // D8-B1-T3: EMA smoothing factor for PTF face bbox center coordinates.
         internal const val PTF_EMA_ALPHA = 0.3f
-
-        /**
-         * GAP-11: Portrait bbox EMA recurrence — SSOT §2.5.1 (:536-541)
-         * `smoothed = last * 0.7 + new * 0.3`. Sole truth source: [smoothGuidanceBboxes]
-         * delegates every bbox edge here, so no inline copy of the formula exists.
-         *
-         * @param last previously smoothed value, or null on a tracked identity's first sample —
-         *             seeds the EMA with the raw value rather than pulling it toward zero.
-         */
-        @VisibleForTesting
-        internal fun portraitEmaStep(last: Float?, new: Float): Float =
-            if (last == null) new
-            else last * GuidanceStateConstants.PORTRAIT_EMA_HISTORY +
-                new * GuidanceStateConstants.PORTRAIT_EMA_NEW
 
         // [HOTFIX-47] Ghost Face guidance gate — SPIKE-GF Phase C validated:
         // K380 0/91 pass, Pixel 9a real face 328/341 (96%) pass.
@@ -402,10 +390,6 @@ class CameraViewModel @Inject constructor(
     // Sentinel null = no prior frame; first frame accepted as-is.
     private var ptfEmaX: Float? = null
     private var ptfEmaY: Float? = null
-
-    // GAP-11 — Portrait bbox EMA state, keyed by ML Kit trackingId (enableTracking() is on).
-    // A key absent from the current frame is dropped, so a lost or swapped face starts clean.
-    private val portraitEmaBoxes = mutableMapOf<Int, android.graphics.RectF>()
 
     // v2.x.x Phase 7: EMA removed — LK quality avg 0.91 after aspect-ratio + FPS fixes,
     // noise jitter no longer significant.  Direct raw coordinates used for zero-lag tracking.
@@ -2038,7 +2022,7 @@ class CameraViewModel @Inject constructor(
                     guidanceAlignedDwellCounter = 0
                     guidanceStabilizingCounter = 0
                     guidanceHysteresisFrameCounter = 0
-                    portraitEmaBoxes.clear()
+                    portraitEmaSmoother.reset()
                     return@onEach
                 }
                 // BHA-01-FIX: face.boundingBox is in rotated space; swap dims for 90°/270° to match.
@@ -2088,7 +2072,7 @@ class CameraViewModel @Inject constructor(
 
                 // GAP-11: guidance consumes the smoothed bbox; the AF branch below keeps the raw
                 // list (Hard Constraint 1 — EyeAF input stays unsmoothed).
-                val smoothedFaces = smoothGuidanceBboxes(
+                val smoothedFaces = portraitEmaSmoother.smooth(
                     trackingIds = guidanceEligibleFaces.map { it.trackingId },
                     faces = landmarkFaces,
                 )
@@ -2175,41 +2159,6 @@ class CameraViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         Log.i(TAG, "[D2] Composition rule engine pipeline initialized (raw, no debounce)")
-    }
-
-    /**
-     * GAP-11: SSOT §2.5.1 Portrait EMA — `smoothed = last * 0.7 + new * 0.3` on the normalized
-     * bbox edges, killing the ±4.79% ML Kit quantisation jitter that makes the Halo radius pulse.
-     *
-     * This is the pipeline's single guidance smoothing point (Hard Constraint 2). State is keyed
-     * by ML Kit trackingId, so a face that leaves the frame or is replaced by a different subject
-     * drops its history instead of trailing a ghost bbox. A face with no trackingId passes through
-     * unsmoothed — there is no identity to accumulate against.
-     *
-     * @param trackingIds ML Kit trackingId per face, positionally aligned with [faces].
-     */
-    private fun smoothGuidanceBboxes(
-        trackingIds: List<Int?>,
-        faces: List<com.akirachang.ai.photographer.domain.model.FaceLandmarkData>,
-    ): List<com.akirachang.ai.photographer.domain.model.FaceLandmarkData> {
-        val nextState = mutableMapOf<Int, android.graphics.RectF>()
-        val smoothed = faces.mapIndexed { idx, face ->
-            val id = trackingIds.getOrNull(idx) ?: return@mapIndexed face
-            val raw = face.boundingBoxNormalized
-            val last = portraitEmaBoxes[id]
-            val box = android.graphics.RectF(
-                portraitEmaStep(last?.left, raw.left),
-                portraitEmaStep(last?.top, raw.top),
-                portraitEmaStep(last?.right, raw.right),
-                portraitEmaStep(last?.bottom, raw.bottom),
-            )
-            nextState[id] = box
-            Log.d(TAG, "[GAP-11] face[$id] emaBbox w=${box.width()} h=${box.height()} (raw w=${raw.width()} h=${raw.height()})")
-            face.copy(boundingBoxNormalized = box)
-        }
-        portraitEmaBoxes.clear()
-        portraitEmaBoxes.putAll(nextState)
-        return smoothed
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.akirachang.ai.photographer.presentation.camera
 
 import com.akirachang.ai.photographer.domain.camera.CameraMode
+import com.akirachang.ai.photographer.domain.composition.PortraitEmaSmoother
 import com.akirachang.ai.photographer.domain.config.GuidanceStateConstants
 import com.akirachang.ai.photographer.domain.model.guidance.GuidanceState
 import com.akirachang.ai.photographer.domain.model.guidance.SuppressionReason
@@ -212,8 +213,9 @@ class CameraViewModelTest {
             cnt = CameraViewModel.GuidanceCounters(alignedDwell = GuidanceStateConstants.ALIGNED_DWELL_FRAMES - 1)))
     }
     // ── GAP-11 AC-2: Portrait EMA behaviour (SSOT §2.5.1) ─────────────────────
-    // Drives the production recurrence CameraViewModel.portraitEmaStep, which smoothGuidanceBboxes()
-    // delegates every bbox edge to. Pure Float, never RectF — a JVM stub cannot fake-pass (K2-Rule 13).
+    // Drives the production recurrence PortraitEmaSmoother.portraitEmaStep, which the smoother's
+    // smooth() delegates every bbox edge to — the same object CameraViewModel injects (Amendment A2).
+    // Pure Float, never RectF — a JVM stub cannot fake-pass (K2-Rule 13).
 
     /** D17 [BHA-01] logcat: ML Kit bbox width quantises across 9 discrete values, ±4.79%. */
     private val quantisedJitter = listOf(
@@ -223,7 +225,7 @@ class CameraViewModelTest {
     @Test fun `AC-2 portraitEmaStep obeys SSOT recurrence and converges jitter amplitude`() {
         var last: Float? = null
         val smoothed = quantisedJitter.map { raw ->
-            val out = CameraViewModel.portraitEmaStep(last, raw)
+            val out = PortraitEmaSmoother.portraitEmaStep(last, raw)
             val expected = last?.let { it * 0.7f + raw * 0.3f } ?: raw
             assertEquals("EMA step must match SSOT §2.5.1 recurrence", expected, out, 1e-5f)
             last = out
