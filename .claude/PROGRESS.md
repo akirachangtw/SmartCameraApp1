@@ -5,6 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| GAP-10-BREATH-RESTART | ✅ Done（碼閉環）· `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 兩處 `InfiniteRepeatableSpec` 補 `repeatMode = RepeatMode.Reverse`（比照既有 breathe-dot 範本）· 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `0acabd6`（code）+ `3e8d43e`（docs）· **[實機] AC 待 D17 Akira 呼吸真偽終審**（BREATH-KILL 預授權出口）· 關票待 Traycer |
 | STATE-CONTRACT-05 | ✅ Done（碼閉環）· `HALO_RADIUS_SCALE` 0.6f→0.5f（SSOT §2.5.4，Traycer SC-04 R1 Fix 1 承接）· ContractTest C-ρ1 關係式（`2f*HALO_RADIUS_SCALE==1.0f`）取代裸數字快照 · K4-η 首輪 13 命中裁決終態（PTF ×3 `HaloGuidanceLayer.kt:264/276/291` register-out→已定性待 SC-06，Postponed #7）· `cad0ce6`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer R2 |
 | STATE-CONTRACT-04 | ✅ Done（碼閉環）· Halo alpha 三常數家族單次觸碰重錨：`HALO_ACTIVE_ALPHA` 0.25→0.8（R-T2）+ `HALO_ALIGNED_ALPHA_MIN/MAX` 0.10/0.18→0.25/0.40（R-T13 V-1）· ContractTest C-α1/α2/α3 關係式斷言取代裸數字快照（K4-54）· K4-η sweep 攔截清單外命中 ×2（`HaloGuidanceLayer.kt:96-97` PTF_BREATH / `CameraScreen.kt:580-581` 快門環）→ CSO 裁決域外零觸碰（Postponed #7 / #8+SC02-5）· /qa Step0 PASS + `testDeviceDebugUnitTest` 8/8 綠 + `assembleDeviceDebug` PASS · `ce9b232`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer |
 | SSOT-V407-LHVAC-01 | ✅ Done · LH-VAC-02 §2.5.4 alpha vaccine 回填（canonical 檔逐字取回，3 hunks · +15L）· V-1~V-4 + 白空間 + diff 口徑全綠 · `a0f6f13`（僅 `SSOT_v4_0_7.md`）· PROVISIONAL §2.5.4 切片歸零，觸發 SC-04 開工前置解禁 |
@@ -18,7 +19,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S47** · GAP-10-BREATH-RESTART /qa PASS（uc AI-1+AI-2 · `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 補 `repeatMode = RepeatMode.Reverse` · +2L · 待 /sv）· **S46** · D15-16 實測診斷（無票 · Rule 4c 僅回報）→ 報告 `plans/cso_briefing/reports/D15-16/` · Track B 採樣暫停建議 + 6 項待裁決 · **S45** · STATE-CONTRACT-05 ✅ Done（`cad0ce6` · Halo 半徑重錨 + K4-η 終態 13 命中 · ledger `2ba2b83`）· **S44** · STATE-CONTRACT-04 ✅ Done（`ce9b232` · K4-η 域外裁決 Postponed #7/#8）· **S43** · SSOT-V407-LHVAC-01 ✅（`a0f6f13` · LH-VAC-02 回填）|
+| Schedule | **S47** · GAP-10-BREATH-RESTART ✅ Done（uc AI-1+AI-2 · `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 補 `repeatMode = RepeatMode.Reverse` · +2L · Codex R1 PASS · `0acabd6`+`3e8d43e` · 待 Traycer）· **S46** · D15-16 實測診斷（無票 · Rule 4c 僅回報）→ 報告 `plans/cso_briefing/reports/D15-16/` · Track B 採樣暫停建議 + 6 項待裁決 · **S45** · STATE-CONTRACT-05 ✅ Done（`cad0ce6` · Halo 半徑重錨 + K4-η 終態 13 命中 · ledger `2ba2b83`）· **S44** · STATE-CONTRACT-04 ✅ Done（`ce9b232` · K4-η 域外裁決 Postponed #7/#8）· **S43** · SSOT-V407-LHVAC-01 ✅（`a0f6f13` · LH-VAC-02 回填）|
 | Compile | ✅ PASS `assembleDebug`（GAP-10-BREATH-RESTART · 2026-07-13） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest` 205/205（0 fail · GAP-10-BREATH-RESTART，unrelated to breathe animation scope） |
 | Lint | ✅ PASS `lintDeviceDebug`（0 new warning；1 既存 baseline `ModifierParameter`@HaloGuidanceLayer.kt:154） |
@@ -49,7 +50,7 @@
 5. **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審
 6. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
 7. **🟢 TRACTION-SSOT-04 CSO 閉環**（技術已閉，待 CSO Ticket）：母票 line-91 AC box 打勾 · `move_file` Pending→deliver · Postponed #6（R-T14）→DONE / #5（RENDER-01）→ready · 編號對帳 K4-45（R-T18 stamp 前釐清 R-T17：overruled-void vs consumed）
-8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART 已開票落地**（/qa PASS，待 /sv → D17 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口）
+8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART ✅ Done**（/qa+/sv+Codex Cross-Review 全 PASS，待 D17 Akira 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口；關票待 Traycer）
 
 ## Active Debt（僅列未解決項）
 
