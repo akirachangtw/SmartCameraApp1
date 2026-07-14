@@ -2,7 +2,6 @@ package com.akirachang.ai.photographer.domain.composition
 
 import android.graphics.RectF
 import android.util.Log
-import androidx.annotation.VisibleForTesting
 import com.akirachang.ai.photographer.domain.config.GuidanceStateConstants
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import javax.inject.Inject
@@ -58,7 +57,6 @@ class PortraitEmaSmoother @Inject constructor() {
          * @param last previously smoothed value, or null on a tracked identity's first sample —
          *             seeds the EMA with the raw value rather than pulling the bbox toward zero.
          */
-        @VisibleForTesting
         internal fun portraitEmaStep(last: Float?, new: Float): Float =
             if (last == null) new
             else last * GuidanceStateConstants.PORTRAIT_EMA_HISTORY +
