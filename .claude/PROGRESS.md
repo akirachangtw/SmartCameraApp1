@@ -5,14 +5,13 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| GAP-11-PORTRAIT-EMA | ✅ 碼閉環（待 /sv）· SSOT §2.5.1（:536-541）Portrait bbox EMA `last*0.7 + new*0.3` 補實作（已規格未實作，`PORTRAIT_EMA` 原全專案零命中）· AI-1 常數家族 + AI-2 `portraitEmaStep()` 純函數 + `smoothGuidanceBboxes()` 委派（trackingId 為鍵，丟失/切換即棄史）+ AI-3 ContractTest C-ε1 權重守恆 · AC-2 行為測試以 9 值量化序列驅動 production 遞推（純 Float，結構性規避 K2-Rule 13 RectF 假過）· HC1 EyeAF 輸入零平滑（`faces = landmarkFaces` 維持 raw）· +108L < MAX_LINES 110 · 207/207 tests + 0 new lint（LogNotTimber baseline）· `64b13a2` · **兩顆 [實機] AC（靜止 60s 波動 <±1% / 丟失重入無拖影）併入 D19 實測腳本** |
 | INFRA-SKILLS-UC02 | ✅ Done（碼閉環）· `uc/SKILL.md` Ticket DONE 改為 QA 交棒信號（AI-1）+ QA/SV Auto-Chain ownership 鎖定，`/uc` 不得直呼 `/sv`（AI-2）+ 非 DONE 動作停止語義保留（AI-3）· 25L diff（14+/11-）< MAX_LINES 45 · Codex Cross-Review R2 PASS（REACHABILITY: NONE，K5-Rule 29 誠實揭露 AC2-5 未實測）· `6b74eab` · 免 Traycer（純 prompt-layer 治理票，Codex PASS 即閉環）· **AC2-5[可達性/行為性] 待下次真實 `/uc` Ticket DONE 觸發實測後轉 PASS** |
 | INFRA-HOOK-STOP-01 | ✅ Done（碼閉環）· `telegram_stop.sh` 消除 `set -euo pipefail` 靜默 `exit 1`：新增 `extract_ticket_id` 結構式 parser 取代舊 hardcoded family allowlist · 新增 `telegram_stop_test.sh` 4/4 PASS 無網路回歸測試 · 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `70a34ec`（code）+ `52e4b60`（PROGRESS_ARCHIVE.md S48）· **[實機] AC ✅ 已驗證（新 Session 確認 Stop hook error 未再出現，Akira 2026-07-14 回報）** |
 | GAP-10-BREATH-RESTART | ✅ Done（碼閉環）· `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 兩處 `InfiniteRepeatableSpec` 補 `repeatMode = RepeatMode.Reverse`（比照既有 breathe-dot 範本）· 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `0acabd6`（code）+ `3e8d43e`（docs）· **[實機] AC 待 D17 Akira 呼吸真偽終審**（BREATH-KILL 預授權出口）· 關票待 Traycer |
 | STATE-CONTRACT-05 | ✅ Done（碼閉環）· `HALO_RADIUS_SCALE` 0.6f→0.5f（SSOT §2.5.4，Traycer SC-04 R1 Fix 1 承接）· ContractTest C-ρ1 關係式（`2f*HALO_RADIUS_SCALE==1.0f`）取代裸數字快照 · K4-η 首輪 13 命中裁決終態（PTF ×3 `HaloGuidanceLayer.kt:264/276/291` register-out→已定性待 SC-06，Postponed #7）· `cad0ce6`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer R2 |
 | STATE-CONTRACT-04 | ✅ Done（碼閉環）· Halo alpha 三常數家族單次觸碰重錨：`HALO_ACTIVE_ALPHA` 0.25→0.8（R-T2）+ `HALO_ALIGNED_ALPHA_MIN/MAX` 0.10/0.18→0.25/0.40（R-T13 V-1）· ContractTest C-α1/α2/α3 關係式斷言取代裸數字快照（K4-54）· K4-η sweep 攔截清單外命中 ×2（`HaloGuidanceLayer.kt:96-97` PTF_BREATH / `CameraScreen.kt:580-581` 快門環）→ CSO 裁決域外零觸碰（Postponed #7 / #8+SC02-5）· /qa Step0 PASS + `testDeviceDebugUnitTest` 8/8 綠 + `assembleDeviceDebug` PASS · `ce9b232`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer |
 | SSOT-V407-LHVAC-01 | ✅ Done · LH-VAC-02 §2.5.4 alpha vaccine 回填（canonical 檔逐字取回，3 hunks · +15L）· V-1~V-4 + 白空間 + diff 口徑全綠 · `a0f6f13`（僅 `SSOT_v4_0_7.md`）· PROVISIONAL §2.5.4 切片歸零，觸發 SC-04 開工前置解禁 |
-| SSOT-V407-SWEEP-01 | ✅ Done · CLAUDE.md 現行 SSOT 指針 v4_0_6→v4_0_7 · Codex Cross-Review PASS · `6a08bed` · 已移 deliver/ |
-| SSOT-V407-01 | ✅ Done · SSOT v4.0.6→v4.0.7 七簇條文落地 · Codex Cross-Review PASS · `a881096` · 已移 deliver/ |
 
 **Last Updated**: 2026-07-14
 
@@ -20,10 +19,10 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S49** · INFRA-SKILLS-UC02 ✅ Done（uc/SKILL.md QA auto-chain wiring · Codex R2 PASS · 免 Traycer · `6b74eab`）· **S48** · INFRA-HOOK-STOP-01 ✅ Done（`extract_ticket_id` 結構式 parser · telegram_stop.sh 靜默 exit 1 修復 · 回歸測試 4/4 PASS · Codex R1 PASS · `70a34ec`+`52e4b60` · [實機]AC✅）· **S47** · GAP-10-BREATH-RESTART ✅ Done（uc AI-1+AI-2 · `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 補 `repeatMode = RepeatMode.Reverse` · +2L · Codex R1 PASS · `0acabd6`+`3e8d43e` · 待 Traycer）· **S46** · D15-16 實測診斷（無票 · Rule 4c 僅回報）→ 報告 `plans/cso_briefing/reports/D15-16/` · Track B 採樣暫停建議 + 6 項待裁決 · **S45** · STATE-CONTRACT-05 ✅ Done（`cad0ce6` · Halo 半徑重錨 + K4-η 終態 13 命中 · ledger `2ba2b83`）|
-| Compile | ✅ PASS `assembleDebug`（INFRA-HOOK-STOP-01 · 2026-07-14，未觸及 app 程式碼） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` 205/205（0 fail · INFRA-HOOK-STOP-01，unrelated to hook scope）+ `telegram_stop_test.sh` 4/4 PASS |
-| Lint | ✅ PASS `lintDeviceDebug`（0 new warning；1 既存 baseline `ModifierParameter`@HaloGuidanceLayer.kt:154） |
+| Schedule | **S50** · GAP-11-PORTRAIT-EMA ✅ 碼閉環（Portrait bbox EMA 0.7/0.3 補實作 · `portraitEmaStep()` 單一真理源 · +108L · `64b13a2` · 待 /sv；解凍 GAP-06-TARGET-01 Rev A）· **S49** · INFRA-SKILLS-UC02 ✅ Done（uc/SKILL.md QA auto-chain wiring · Codex R2 PASS · 免 Traycer · `6b74eab`）· **S48** · INFRA-HOOK-STOP-01 ✅ Done（`extract_ticket_id` 結構式 parser · telegram_stop.sh 靜默 exit 1 修復 · 回歸測試 4/4 PASS · Codex R1 PASS · `70a34ec`+`52e4b60` · [實機]AC✅）· **S47** · GAP-10-BREATH-RESTART ✅ Done（uc AI-1+AI-2 · `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 補 `repeatMode = RepeatMode.Reverse` · +2L · Codex R1 PASS · `0acabd6`+`3e8d43e` · 待 Traycer）· **S46** · D15-16 實測診斷（無票 · Rule 4c 僅回報）→ 報告 `plans/cso_briefing/reports/D15-16/` · Track B 採樣暫停建議 + 6 項待裁決 · **S45** · STATE-CONTRACT-05 ✅ Done（`cad0ce6` · Halo 半徑重錨 + K4-η 終態 13 命中 · ledger `2ba2b83`）|
+| Compile | ✅ PASS `assembleDebug`（GAP-11-PORTRAIT-EMA · 2026-07-14） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` 207/207（0 fail · GAP-11 新增 C-ε1 權重守恆 + AC-2 EMA 行為測試 2 筆） |
+| Lint | ✅ PASS `lintDeviceDebug`（0 error · 0 new warning class；GAP-11 新增 1 筆 `LogNotTimber`，屬全檔 baseline pattern，Rule 3 匹配既有風格） |
 
 ## Active Blockers
 
