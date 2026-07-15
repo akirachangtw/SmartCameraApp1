@@ -19,10 +19,10 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S51** · INFRA-63 ✅ Done（CLAUDE.md Rule 1 新增 AskUserQuestion 彈出視窗禁令 · `8328171`）· **S50** · GAP-11-PORTRAIT-EMA ✅ Done（`PortraitEmaSmoother` 單一真理源 · A2 Scope Ban 遷移 + A5 domain 白名單收斂 · Cross-Review R3 PASS · `ab59067` · 已移 deliver/；D19 AC 登記+SC-01 血緣 numstat 逐字核實 6/0、11/0 吻合；解凍 GAP-06-TARGET-01 Rev A 待 `DIFF_REF` 校正後啟動）· **S49** · INFRA-SKILLS-UC02 ✅ Done（uc/SKILL.md QA auto-chain wiring · Codex R2 PASS · 免 Traycer · `6b74eab`）· **S48** · INFRA-HOOK-STOP-01 ✅ Done（`extract_ticket_id` 結構式 parser · telegram_stop.sh 靜默 exit 1 修復 · 回歸測試 4/4 PASS · Codex R1 PASS · `70a34ec`+`52e4b60` · [實機]AC✅）· **S47** · GAP-10-BREATH-RESTART ✅ Done（uc AI-1+AI-2 · `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 補 `repeatMode = RepeatMode.Reverse` · +2L · Codex R1 PASS · `0acabd6`+`3e8d43e` · 待 Traycer）|
-| Compile | ✅ PASS `assembleDebug`（GAP-11-PORTRAIT-EMA · 2026-07-14） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` 207/207（0 fail · GAP-11 新增 C-ε1 權重守恆 + AC-2 EMA 行為測試 2 筆） |
-| Lint | ✅ PASS `lintDeviceDebug`（0 error · 0 new warning class；GAP-11 新增 1 筆 `LogNotTimber`，屬全檔 baseline pattern，Rule 3 匹配既有風格） |
+| Schedule | **S52** · INFRA-AGENTS-CR-01 🟡 QA PASS 待 SV（`pre-modification-simulator` 重名 agent 退場 AI-1/AI-2 + `cross-reviewer` R0 預審 subagent 新建 AI-3 + `cross-review.md` R0 路由/三護欄補丁 AI-4 · assembleDebug PASS · 207/207 tests · 0 new lint）· **S51** · INFRA-63 ✅ Done（CLAUDE.md Rule 1 新增 AskUserQuestion 彈出視窗禁令 · `8328171`）· **S50** · GAP-11-PORTRAIT-EMA ✅ Done（`PortraitEmaSmoother` 單一真理源 · A2 Scope Ban 遷移 + A5 domain 白名單收斂 · Cross-Review R3 PASS · `ab59067` · 已移 deliver/；解凍 GAP-06-TARGET-01 Rev A 待 `DIFF_REF` 校正後啟動）· **S49** · INFRA-SKILLS-UC02 ✅ Done（uc/SKILL.md QA auto-chain wiring · Codex R2 PASS · 免 Traycer · `6b74eab`）· **S48** · INFRA-HOOK-STOP-01 ✅ Done（`extract_ticket_id` 結構式 parser · 回歸測試 4/4 PASS · Codex R1 PASS · `70a34ec`+`52e4b60` · [實機]AC✅）|
+| Compile | ✅ PASS `assembleDebug`（INFRA-AGENTS-CR-01 · 2026-07-15） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` 207/207（0 fail · 本票僅動 `.claude/agents`/`.claude/rules`，無 .kt 變更） |
+| Lint | ✅ PASS `lintDeviceDebug`（0 error · 0 new warning；本票不涉 .kt/.xml） |
 
 ## Active Blockers
 
