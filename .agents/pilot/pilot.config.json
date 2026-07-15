@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "prompt_contract_path": "AGENTS.md",
   "skill_source_root": ".agents/skills",
   "runtime_adapters": {
@@ -30,6 +30,16 @@
       "has_fallback_mapping": true,
       "readme_aligned": true
     }
+  },
+  "supervisor": {
+    "enabled": true,
+    "base_url": "http://127.0.0.1:8788",
+    "health_path": "/health",
+    "ingest_path": "/events/ingest",
+    "summary_path": "/summary",
+    "recent_path": "/events/recent",
+    "source_status": "prototype",
+    "promoted": false
   },
   "codegraph": {
     "enabled": false,
