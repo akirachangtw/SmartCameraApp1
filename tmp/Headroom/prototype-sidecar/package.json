@@ -1,0 +1,16 @@
+{
+  "name": "headroom-sidecar-prototype",
+  "version": "1.0.0",
+  "description": "Minimal prototype for Headroom sidecar metrics store and aggregation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "verify": "node scripts/verify-kpi-aggregation.js",
+    "smoke": "node scripts/smoke-summary-endpoints.js",
+    "test": "node scripts/verify-kpi-aggregation.js && node scripts/smoke-summary-endpoints.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}
