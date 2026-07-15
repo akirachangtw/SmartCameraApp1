@@ -1,0 +1,6 @@
+﻿{
+    "scenario":  "post-start-error",
+    "restored":  true,
+    "error":  "Injected post-start failure for restore verification",
+    "at":  "2026-07-15T13:49:31.7656691Z"
+}

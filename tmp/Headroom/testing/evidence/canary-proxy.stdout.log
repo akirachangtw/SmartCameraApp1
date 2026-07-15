@@ -1,0 +1,46 @@
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║                         HEADROOM PROXY                                 ║
+║           The Context Optimization Layer for LLM Applications          ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+Starting proxy server...
+
+  URL:          http://127.0.0.1:10536
+  Mode:         token
+  Optimization: ENABLED
+  Caching:      DISABLED
+  Rate Limit:   DISABLED
+  Memory:       DISABLED
+  License:      OSS (no license key)
+  Code-Aware:   DISABLED (--code-aware or HEADROOM_CODE_AWARE_ENABLED=1 to enable)
+  Context Tool: rtk
+  Extensions:   (none discovered)
+  Telemetry:    DISABLED (opt in: HEADROOM_TELEMETRY=on or headroom proxy --telemetry)
+
+Performance Tuning:
+  Stale read compression:  reads older than 1 turns eligible  (HEADROOM_STALE_READ_COMPRESS_AFTER_TURNS=1)
+
+Routing:
+  /v1/messages                    → https://api.anthropic.com
+  /v1/chat/completions            → https://api.openai.com
+  /v1/responses                   → https://api.openai.com  (HTTP + WebSocket)
+  /v1internal:streamGenerateContent → https://cloudcode-pa.googleapis.com
+  /v1/projects/.../publishers/... → https://us-central1-aiplatform.googleapis.com
+
+Usage:
+  Claude Code:   ANTHROPIC_BASE_URL=http://127.0.0.1:10536 claude
+  Codex / OpenAI: OPENAI_BASE_URL=http://127.0.0.1:10536/v1 your-app
+
+Endpoints:
+  GET  /livez      Process liveness
+  GET  /readyz     Traffic readiness
+  GET  /health     Aggregate health
+  GET  /stats      Detailed statistics
+  GET  /stats-history Durable compression history + display session
+  GET  /metrics    Prometheus metrics
+
+Press Ctrl+C to stop.
+
+
+Update available: Headroom 0.31.0 (you have 0.27.0) - run: headroom update

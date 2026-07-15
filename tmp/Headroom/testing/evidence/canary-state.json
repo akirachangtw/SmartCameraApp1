@@ -1,0 +1,23 @@
+﻿{
+    "schema_version":  1,
+    "active":  false,
+    "restore_registered":  true,
+    "persistent_config_changed":  false,
+    "compression_mode":  "kompress",
+    "port":  10536,
+    "proxy_pid":  22516,
+    "proxy_started_at":  "2026-07-15T14:08:52.4315127Z",
+    "route_scope":  "child-process-only",
+    "original_anthropic_base_url":  null,
+    "request_log":  "D:\\DevSources\\AndroidProj\\SmartCameraApp1\\tmp\\Headroom\\testing\\evidence\\canary-requests.jsonl",
+    "started_at":  "2026-07-15T14:09:04.9077190Z",
+    "service_8787":  {
+                         "pid":  5836,
+                         "version":  "0.27.0",
+                         "config_sha256":  "89D0530461680FA7F45A553BAF0588EF4A254ACC94713149B9657672BF4BBD93",
+                         "requests":  0
+                     },
+    "stopped_at":  "2026-07-15T14:09:22.3182885Z",
+    "stop_reason":  "normal",
+    "restored":  true
+}
