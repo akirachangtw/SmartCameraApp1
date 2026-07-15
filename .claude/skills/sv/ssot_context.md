@@ -10,7 +10,10 @@
 ## 1. 架構層映射 (Clean Architecture Layers)
 
 ```
-domain/   → 純 Kotlin，零 Android 依賴
+domain/   → 純 Kotlin，零 Android 依賴（目標態）
+          ⚠️ 現況豁免白名單（CSO 裁決 2026-07-14 · 債務登記 INFRA-DOMAIN-PURITY-01 · Postponed #11）:
+          恰兩品類 — android.graphics.RectF/PointF（shared face model 強制）+ android.util.Log（16/56 檔既有事實標準）。
+          品類外之任何 android.*/androidx.* import 仍為 BLOCKER（含 androidx.annotation.*）。
   ├── model/          CompositionResult, SceneMode, DeviceTier, EyeAfDecision
   ├── rule/           CompositionRule 介面及所有實作
   ├── engine/         PriorityEngine (SSOT §4.2)
