@@ -1,5 +1,14 @@
 # Headroom Compression Payload Rules
 
+## Current contract override (2026-07-15)
+
+- Active health is only Headroom `8787 /health + /stats`; KPI evidence remains Preview on Supervisor 8788.
+- Every event uses `source_kind=real|fixture`; fixture data never counts toward promotion.
+- **Pure search listing** means paths, symbol names, match counts, and candidate locations without source bodies. It may be compressed.
+- Any Read/Grep or CodeGraph output containing line-numbered source, function bodies, AST detail, code blocks, or surrounding source context must bypass compression.
+- User/system messages, conversation history, complete code, Diff/Patch, fragile exact errors, and uncertain mixed payloads must bypass.
+- Authoritative ratio fields are `token_keep_ratio` and `token_savings_rate`; legacy `compression_ratio` examples below are superseded and must not be emitted.
+
 **文件範圍**: 規範 Pilot 階段 Headroom Proxy 的內容壓縮攔截對象與 Fallback 策略 (F1/F2/F3)。
 
 ## 1. 壓縮對象收斂 (Target Selection)
@@ -8,7 +17,7 @@ Headroom 在 Week 3 的實作中，**僅允許**對以下三類高冗餘的 payl
 
 1. **Logs**: 如編譯錯誤輸出、Server Runtime Stacktrace。
 2. **Tool Outputs**: 各類腳本執行結果、大部頭系統資訊傾印。
-3. **Search Results**: `ripgrep` 或 `codegraph` 回傳的大量搜尋匹配片段。
+3. **Pure Search Listings**: `ripgrep` 或 CodeGraph 只回傳路徑、symbol、match count 與候選位置；一旦包含逐行 source 或 function body 即轉為 bypass。
 
 ### 絕對排除對象 (Forbidden Targets)
 為確保模型的 Code Reasoning 邏輯推理能力不受損，以下內容**嚴禁壓縮**，必須直接透傳 (Bypass)：
@@ -36,7 +45,7 @@ Headroom 在 Week 3 的實作中，**僅允許**對以下三類高冗餘的 payl
 
 ## 3. Proxy 接線原則 (Routing Principles)
 1. VSCode Claude Code / Codex 送出請求。
-2. Prompt Assembly Layer 解析請求，僅抽取符合 Targets (Logs/Tool Outputs/Search Results) 的區塊。
+2. Prompt Assembly Layer 解析請求，僅抽取符合 Targets (Logs/Tool Outputs/Pure Search Listings) 的區塊。
 3. 將該區塊投遞給 Headroom Proxy。
 4. Proxy 傳回壓縮後字串，再組合回 Prompt 送往模型端。
 5. **安全網**: 只要 Proxy 的回應超過 2000ms 或發生 HTTP Error，立即無條件觸發 **F3**。
@@ -63,7 +72,9 @@ Pilot 期間不應自行擴充近義名稱，避免 Week 5 匯總時產生 namin
   "compression_target": "logs",
   "raw_input_tokens_est": 12400,
   "compressed_input_tokens_est": 2800,
-  "compression_ratio": 0.226,
+  "source_kind": "real",
+  "token_keep_ratio": 0.226,
+  "token_savings_rate": 0.774,
   "compression_fallback_level": "none",
   "compression_fallback_reason": "none"
 }
@@ -75,7 +86,9 @@ Pilot 期間不應自行擴充近義名稱，避免 Week 5 匯總時產生 namin
 - `compression_target`
 - `raw_input_tokens_est`
 - `compressed_input_tokens_est`
-- `compression_ratio`
+- `source_kind`
+- `token_keep_ratio`
+- `token_savings_rate`
 - `compression_fallback_level`
 - `compression_fallback_reason`
 
@@ -99,7 +112,9 @@ used_headroom=true
 compression_target=logs
 raw_input_tokens_est=12400
 compressed_input_tokens_est=2800
-compression_ratio=0.226
+source_kind=real
+token_keep_ratio=0.226
+token_savings_rate=0.774
 compression_fallback_level=none
 compression_fallback_reason=none
 note=stack trace successfully compressed

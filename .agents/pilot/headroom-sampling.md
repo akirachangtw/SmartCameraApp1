@@ -1,5 +1,14 @@
 # Headroom Compression Quality Sampling
 
+## Current contract override (2026-07-15)
+
+- Active status remains Headroom `8787 /health + /stats`; Supervisor 8788 evidence remains Preview.
+- Promotion requires at least 20 actual Claude workflow events with `source_kind=real`; fixtures, replay, and injected state never count.
+- Collect logs, tool outputs, pure search listings, and forced bypass with at least five real requests each.
+- Record metadata only. Complete prompts, messages, code, API keys, and tool content are forbidden.
+- Authoritative ratios are `token_keep_ratio` and `token_savings_rate`, not legacy `compression_ratio`.
+- Thresholds: median savings >=30%, quality >=4/5, fallback <5%, p95 overhead <=1000ms, mandatory bypass 100%.
+
 **文件範圍**: 制定 Week 3 到 Week 5 期間，對 Headroom 壓縮成效進行主客觀抽樣評鑑的標準與紀錄格式。
 
 ## 1. 抽樣目標 (Sampling Objectives)
@@ -10,11 +19,11 @@
   - Bug Fix (大量 Stacktrace Log)。
   - Tracing & Refactoring (包含廣泛的 Search Results)。
   - Script Execution (龐大的 Tool Outputs)。
-- **頻率要求**: 每日隨機抽取至少 5 筆上述情境的請求紀錄，在 Week 5 前需至少累積 20 筆有效驗證樣本。
+- **頻率要求**: 每日抽取真實 Claude 工作流請求；promotion evidence 至少 20 筆 `source_kind=real`，四類情境各至少 5 筆。
 
 ## 3. 比較與觀測維度
 每筆樣本需包含以下量化與質化數據：
-1. **Token 節省度估算**: 壓縮前原始 Token (`raw_input_tokens_est`) vs. 壓縮後 Token (`compressed_input_tokens_est`)，計算出 `compression_ratio`。
+1. **Token 節省度估算**: 比較 `input_tokens_estimated` 與 `output_tokens_estimated`，計算 `token_keep_ratio` 及 `token_savings_rate`。
 2. **延遲與互動次數**: 觀察首次回覆的秒數 (Latency)，以及完成該任務所需的額外 Followup 次數。
 3. **Fallback 觸發狀況**: 記錄本次請求是否有觸發 `F1` / `F2` / `F3` 退回機制及其原因。
 4. **主觀品質評分 (1-5)**:
@@ -26,7 +35,7 @@
 
 這些紀錄可使用 JSONL 或 Markdown 表格記錄；在 schema promotion 前，所有欄位都只屬於 pilot draft，不得寫入 active `headroom_only` dashboard schema。
 
-| Task ID | 情境 | Raw Tokens | Comp. Tokens | Ratio | Fallback | 品質評分 | Followups | 備註 |
+| Task ID | 情境 | Raw Tokens | Comp. Tokens | Keep / Savings | Fallback | 品質評分 | Followups | 備註 |
 |---|---|---|---|---|---|---|---|---|
 | `req-001` | Bug Fix (Log) | 12400 | 2800 | 77.4% | None | 5 | 0 | Error stack 壓縮精準，秒抓 Bug。 |
 | `req-002` | Search Tracing | 8000 | 4500 | 43.7% | F2 | 3 | 2 | 誤壓到部分 Source Code，退回 F2 才解決。 |
@@ -45,9 +54,11 @@
 | task_type | bug_fix / debugging / tracing / review |
 | compression_target | logs / tool_outputs / search_results |
 | used_headroom | 是否經 Headroom |
-| raw_input_tokens_est | 原始 Token 粗估 |
-| compressed_input_tokens_est | 壓縮後 Token 粗估 |
-| compression_ratio | 壓縮比例 |
+| source_kind | `real` / `fixture`；僅 real 可 promotion |
+| input_tokens_estimated | 原始 Token 粗估 |
+| output_tokens_estimated | 壓縮後 Token 粗估 |
+| token_keep_ratio | output / input |
+| token_savings_rate | (input - output) / input |
 | first_response_latency_ms | 首次回覆延遲 |
 | followup_count | 二次補料次數 |
 | compression_fallback_level | none / F1 / F2 / F3 |
@@ -78,7 +89,7 @@
 ## 8. JSONL Template
 
 ```json
-{"date":"2026-06-29","request_id":"req_001","task_type":"debugging","compression_target":"logs","used_headroom":true,"raw_input_tokens_est":12400,"compressed_input_tokens_est":2800,"compression_ratio":0.226,"followup_count":0,"compression_fallback_level":"none","compression_fallback_reason":"none","quality_score":5,"notes":"stack trace summary was sufficient"}
+{"date":"2026-07-15","request_id":"req_001","source_kind":"real","task_type":"debugging","compression_target":"logs","used_headroom":true,"input_tokens_estimated":12400,"output_tokens_estimated":2800,"token_keep_ratio":0.226,"token_savings_rate":0.774,"followup_count":0,"compression_fallback_level":"none","compression_fallback_reason":"none","quality_score":5,"notes":"metadata only"}
 ```
 
 ## 9. Daily Review Workflow

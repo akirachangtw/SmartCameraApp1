@@ -1,0 +1,38 @@
+# Headroom Pilot Workspace
+
+This directory contains implementation and evidence artifacts. The tracked wiring SSOT is `.agents/pilot/pilot.config.json`.
+
+## Current decision (2026-07-15)
+
+- Active Headroom status is exclusively `http://127.0.0.1:8787/health` plus `/stats`.
+- Supervisor `http://127.0.0.1:8788` exposes `/events/ingest`, `/summary`, and `/events/recent` as Preview.
+- Preview remains unpromoted until at least 20 real Claude Canary events satisfy the gate. The 21 fixtures validate Schema/aggregation only and contribute zero promotion evidence.
+- If 8788 is offline, KPI panels show Preview/Unavailable while the 8787 active lamp remains unchanged.
+- CodeGraph is optional and disabled; it is not the producer of Supervisor endpoints.
+
+## Artifacts
+
+| Path | Authority |
+|---|---|
+| `pilot-docs/pilot-runbook.md` | Current operator commands and rollback behavior |
+| `pilot-docs/kpi-promotion-gate.md` | Current real-evidence promotion thresholds |
+| `pilot-docs/retrieval-compression-kpi-schema.json` | Preview event Schema v0.2.0 |
+| `prototype-sidecar/` | Observability Supervisor implementation and HTTP smoke tests |
+| `vscode-headroom-dashboard/` | Dashboard source, compiled runtime, and VSIX |
+| `pilot-docs/pilot-integration.md` | Historical design reference; not runtime authority |
+| `pilot-docs/MCP-TS-HEADROOM-IMPLEMENTATION.md` | Historical umbrella and ticket provenance |
+
+`pilot-integration.md` remains present intentionally. Its historical ports and deployment sketches are subordinate to Config v2 and this current contract.
+
+## Verification commands
+
+```powershell
+curl.exe --fail http://127.0.0.1:8787/health
+curl.exe --fail http://127.0.0.1:8787/stats
+npm.cmd --prefix tmp/Headroom/prototype-sidecar test
+npm.cmd --prefix tmp/Headroom/vscode-headroom-dashboard run test:contracts
+npm.cmd --prefix tmp/Headroom/vscode-headroom-dashboard run check
+npm.cmd --prefix tmp/Headroom/vscode-headroom-dashboard run package
+```
+
+When the Supervisor is running, additionally verify `http://127.0.0.1:8788/health`, `/summary`, and `/events/recent`. A failed 8788 request is a Preview failure, not an active Headroom failure.
