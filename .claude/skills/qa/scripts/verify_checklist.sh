@@ -19,7 +19,7 @@
 set -u
 
 # ─── Pipeline Artifact 白名單（永不觸發 SCOPE_VIOLATION） ───
-PIPELINE_ARTIFACT=".claude/PROGRESS.md"
+PIPELINE_ARTIFACT=".claude/PROGRESS.md,.claude/PROGRESS_ARCHIVE.md"
 
 DEFAULT_FORBIDDEN="CameraViewModel.kt"
 
@@ -78,6 +78,9 @@ self_test() {
   # basename token — 零回歸
   _expect hit  "CameraViewModel.kt" "app/src/main/java/com/cueshot/presentation/CameraViewModel.kt"         "basename 正 · DEFAULT_FORBIDDEN 品類"
   _expect miss "CameraViewModel.kt" "app/src/main/java/com/cueshot/presentation/CameraViewModelFactory.kt"  "basename 負 · 前綴相同不得誤命中"
+  # Pipeline Artifact 豁免 · INFRA-VERIFY-EXEMPT-01
+  _expect hit  ".claude/PROGRESS_ARCHIVE.md" ".claude/PROGRESS_ARCHIVE.md"          "pipeline-artifact 正 · PROGRESS_ARCHIVE 豁免命中"
+  _expect miss ".claude/PROGRESS_ARCHIVE.md" ".claude/PROGRESS_ARCHIVE_Sprint2.md"  "pipeline-artifact 負 · 豁免不得外溢至衍生檔名"
   echo "── self-test: ${passed} passed, ${failed} failed ──"
   [[ $failed -eq 0 ]]
 }
@@ -238,7 +241,12 @@ if [[ -n "$ALLOWED" ]]; then
     BASENAME=$(basename "$f")
 
     # Check: Pipeline Artifact (never a violation)
-    if [[ "$f" == "$PIPELINE_ARTIFACT" ]]; then
+    PA_MATCH=0
+    IFS=',' read -ra PAARR <<< "$PIPELINE_ARTIFACT"
+    for pa in "${PAARR[@]}"; do
+      token_matches_file "$pa" "$f" && { PA_MATCH=1; break; }
+    done
+    if [[ $PA_MATCH -eq 1 ]]; then
       echo "  📌 Pipeline Artifact: $f"
       continue
     fi

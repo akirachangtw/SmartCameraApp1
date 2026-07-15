@@ -20,8 +20,8 @@
 | Metric | Status |
 | -------- | -------- |
 | Schedule | **S52** · INFRA-AGENTS-CR-01 ✅ Done（碼閉環，2 項[行為性] AC 待下 session 補測，見上表）· **S51** · INFRA-63 ✅ Done（CLAUDE.md Rule 1 新增 AskUserQuestion 彈出視窗禁令 · `8328171`）· **S50** · GAP-11-PORTRAIT-EMA ✅ Done（`PortraitEmaSmoother` 單一真理源 · A2 Scope Ban 遷移 + A5 domain 白名單收斂 · Cross-Review R3 PASS · `ab59067` · 已移 deliver/；解凍 GAP-06-TARGET-01 Rev A 待 `DIFF_REF` 校正後啟動）· **S49** · INFRA-SKILLS-UC02 ✅ Done（uc/SKILL.md QA auto-chain wiring · Codex R2 PASS · 免 Traycer · `6b74eab`）|
-| Compile | ✅ PASS `assembleDebug`（INFRA-AGENTS-CR-01 · 2026-07-15） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` 207/207（0 fail · 本票僅動 `.claude/agents`/`.claude/rules`，無 .kt 變更） |
+| Compile | ✅ PASS `assembleDebug`（INFRA-VERIFY-EXEMPT-01 · 2026-07-15） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` 207/207（0 fail · 本票僅動 `verify_checklist.sh`，無 .kt 變更） |
 | Lint | ✅ PASS `lintDeviceDebug`（0 error · 0 new warning；本票不涉 .kt/.xml） |
 
 ## Active Blockers
