@@ -11,7 +11,7 @@
 | INFRA-HOOK-STOP-01 | ✅ Done（碼閉環）· `telegram_stop.sh` 消除 `set -euo pipefail` 靜默 `exit 1`：新增 `extract_ticket_id` 結構式 parser 取代舊 hardcoded family allowlist · 新增 `telegram_stop_test.sh` 4/4 PASS 無網路回歸測試 · 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `70a34ec`（code）+ `52e4b60`（PROGRESS_ARCHIVE.md S48）· **[實機] AC ✅ 已驗證（新 Session 確認 Stop hook error 未再出現，Akira 2026-07-14 回報）** |
 | GAP-10-BREATH-RESTART | ✅ Done（碼閉環）· `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 兩處 `InfiniteRepeatableSpec` 補 `repeatMode = RepeatMode.Reverse`（比照既有 breathe-dot 範本）· 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `0acabd6`（code）+ `3e8d43e`（docs）· **[實機] AC 待 D17 Akira 呼吸真偽終審**（BREATH-KILL 預授權出口）· 關票待 Traycer |
 | STATE-CONTRACT-05 | ✅ Done（碼閉環）· `HALO_RADIUS_SCALE` 0.6f→0.5f（SSOT §2.5.4，Traycer SC-04 R1 Fix 1 承接）· ContractTest C-ρ1 關係式（`2f*HALO_RADIUS_SCALE==1.0f`）取代裸數字快照 · K4-η 首輪 13 命中裁決終態（PTF ×3 `HaloGuidanceLayer.kt:264/276/291` register-out→已定性待 SC-06，Postponed #7）· `cad0ce6`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer R2 |
-| INFRA-AGENTS-CR-01 | ✅ Done（碼閉環）· `pre-modification-simulator` 重名 agent 退場（AI-1/AI-2 刪除 `-enhanced`/`-sonnet` 兩檔，消除 registry silent-collision）+ 新建 `cross-reviewer` R0 預審 subagent（AI-3，字面閘 5 職責，HC3 零 PASS 命中）+ `cross-review.md` R0 路由/三護欄補丁（AI-4）· assembleDebug PASS + 207/207 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `dd4c6ec` · **免 Traycer**（純 agent/rule 治理票，無 .kt/.xml，Codex PASS 即閉環，Akira 2026-07-15 裁決，比照 INFRA-SKILLS-UC02 前例）· **兩項[行為性] AC UNVERIFIED（Agent registry session-start 快照限制，非實作缺陷，K5-Rule 29 誠實揭露）：新 session 委派 @cross-reviewer + GAP-11 R3 payload 回放，待下次全新 session 觸發 registry 重載後補測轉 PASS** |
+| INFRA-AGENTS-CR-01 | ✅ Done（碼閉環）· `pre-modification-simulator` 重名 agent 退場（AI-1/AI-2 刪除 `-enhanced`/`-sonnet` 兩檔，消除 registry silent-collision）+ 新建 `cross-reviewer` R0 預審 subagent（AI-3，字面閘 5 職責，HC3 零 PASS 命中）+ `cross-review.md` R0 路由/三護欄補丁（AI-4）· assembleDebug PASS + 207/207 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `dd4c6ec` · **免 Traycer**（純 agent/rule 治理票，無 .kt/.xml，Codex PASS 即閉環，Akira 2026-07-15 裁決，比照 INFRA-SKILLS-UC02 前例）· **兩項[行為性] AC 已補測轉 PASS**（2026-07-15 同票內補測，Akira「授權即刻補測，免新票」裁決）：`Agent(subagent_type: "cross-reviewer")` 委派成功（agentId `a2728ada4acf22760`，registry 已熱重載）；GAP-11 R3 payload 回放（重建自 `bcf08c1`）3/3 domain Android import 命中字面閘（`RectF`/`Log`/`VisibleForTesting`），裁決 FAIL/BLOCKER，符合職責 4(a) 預期行為 → **8/8 AC 全數 PASS，完全關票** |
 
 **Last Updated**: 2026-07-15
 
@@ -19,7 +19,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S53** · INFRA-VERIFY-EXEMPT-01 ✅ Done（`verify_checklist.sh` PIPELINE_ARTIFACT 豁免補 PROGRESS_ARCHIVE.md · Codex R3 PASS · GAP-11 實案回放驗證 · `e75d235`）· **S52** · INFRA-AGENTS-CR-01 ✅ Done（碼閉環，2 項[行為性] AC 待下 session 補測，見 ARCHIVE）· **S51** · INFRA-63 ✅ Done（CLAUDE.md Rule 1 新增 AskUserQuestion 彈出視窗禁令 · `8328171`）· **S50** · GAP-11-PORTRAIT-EMA ✅ Done（`PortraitEmaSmoother` 單一真理源 · A2 Scope Ban 遷移 + A5 domain 白名單收斂 · Cross-Review R3 PASS · `ab59067` · 已移 deliver/；解凍 GAP-06-TARGET-01 Rev A 待 `DIFF_REF` 校正後啟動）· **S49** · INFRA-SKILLS-UC02 ✅ Done（uc/SKILL.md QA auto-chain wiring · Codex R2 PASS · 免 Traycer · `6b74eab`）|
+| Schedule | **S53** · INFRA-VERIFY-EXEMPT-01 ✅ Done（`verify_checklist.sh` PIPELINE_ARTIFACT 豁免補 PROGRESS_ARCHIVE.md · Codex R3 PASS · GAP-11 實案回放驗證 · `e75d235`）· **S52** · INFRA-AGENTS-CR-01 ✅ Done（碼閉環，8/8 AC 全數 PASS，已補測完成，見 ARCHIVE）· **S51** · INFRA-63 ✅ Done（CLAUDE.md Rule 1 新增 AskUserQuestion 彈出視窗禁令 · `8328171`）· **S50** · GAP-11-PORTRAIT-EMA ✅ Done（`PortraitEmaSmoother` 單一真理源 · A2 Scope Ban 遷移 + A5 domain 白名單收斂 · Cross-Review R3 PASS · `ab59067` · 已移 deliver/；解凍 GAP-06-TARGET-01 Rev A 待 `DIFF_REF` 校正後啟動）· **S49** · INFRA-SKILLS-UC02 ✅ Done（uc/SKILL.md QA auto-chain wiring · Codex R2 PASS · 免 Traycer · `6b74eab`）|
 | Compile | ✅ PASS `assembleDebug`（INFRA-VERIFY-EXEMPT-01 · 2026-07-15） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest` 207/207（0 fail · 本票僅動 `verify_checklist.sh`，無 .kt 變更） |
 | Lint | ✅ PASS `lintDeviceDebug`（0 error · 0 new warning；本票不涉 .kt/.xml） |
@@ -28,7 +28,7 @@
 
 | ID | Issue | Severity | Root Cause |
 | ---- | ------- | ---------- | ------------ |
-| GAP-06 | HaloTraction：GuidanceActive + **Aligned 態圓點渲染已閉環（GAP-06-RENDER-DOT-01 ✅ Done，已移 deliver/）**；母議題後續仍剩 producer wiring + Normal vs Focus Ring 路由實機驗。**GAP-11 R3 PASS → Rev A 預授權解凍成立，但 GAP-06-TARGET-01 conf 之 `DIFF_REF=2ba2b83` 已過期**（`0acabd6` 已觸碰其 FORBIDDEN `HaloGuidanceLayer.kt`）**須先校正才可啟動** | 🔴 P0（D15-16 實測證實：producer 缺席 → 牽引點永釘中央 → 引導迴路死鎖，Track B 硬阻） | Aligned 消費斷鏈已修；剩 producer = GAP-06-TARGET placeholder（SC-04 閉環後下一收割節點）；路由待實機 |
+| GAP-06 | HaloTraction：GuidanceActive + **Aligned 態圓點渲染已閉環（GAP-06-RENDER-DOT-01 ✅ Done，已移 deliver/）**；母議題後續仍剩 producer wiring + Normal vs Focus Ring 路由實機驗。**GAP-11 R3 PASS → Rev A 預授權解凍成立，但 GAP-06-TARGET-01 conf 之 `DIFF_REF=2ba2b83` 已過期**（`0acabd6` 已觸碰其 FORBIDDEN `HaloGuidanceLayer.kt`）**須先校正才可啟動**。**Rev A 應變預授權（Akira 2026-07-15 裁決，護欄二啟用）**：Rev A 執行時若 R0（`cross-reviewer`）不可用或誤攔 → **MUST** 記錄事件後直送 Codex，**MUST NOT** 停下等 CSO 裁決——R0 故障不得成為 P0 關鍵路徑新單點；此預授權僅限 Rev A 該次執行 episode | 🔴 P0（D15-16 實測證實：producer 缺席 → 牽引點永釘中央 → 引導迴路死鎖，Track B 硬阻） | Aligned 消費斷鏈已修；剩 producer = GAP-06-TARGET placeholder（SC-04 閉環後下一收割節點）；路由待實機 |
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
 
@@ -51,7 +51,6 @@
 6. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
 7. **🟢 TRACTION-SSOT-04 CSO 閉環**（技術已閉，待 CSO Ticket）：母票 line-91 AC box 打勾 · `move_file` Pending→deliver · Postponed #6（R-T14）→DONE / #5（RENDER-01）→ready · 編號對帳 K4-45（R-T18 stamp 前釐清 R-T17：overruled-void vs consumed）
 8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART ✅ Done**（/qa+/sv+Codex Cross-Review 全 PASS，待 D17 Akira 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口；關票待 Traycer）
-9. **🟡 INFRA-AGENTS-CR-01 補測**：2 項 [行為性] AC 待新 session 觸發 Agent registry 重載後，委派 `@cross-reviewer` 對 GAP-11 R3 payload 回放實測，補登 PASS
 
 ## Active Debt（僅列未解決項）
 
