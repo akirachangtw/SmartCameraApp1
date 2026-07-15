@@ -5,7 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| GAP-11-PORTRAIT-EMA | ✅ 碼閉環（待 /sv）· SSOT §2.5.1（:536-541）Portrait bbox EMA `last*0.7 + new*0.3` 補實作（已規格未實作，`PORTRAIT_EMA` 原全專案零命中）· AI-1 常數家族 + AI-2 `PortraitEmaSmoother`（`smooth()`／`reset()`／companion `portraitEmaStep()` 單一真理源，trackingId 為鍵，丟失/切換即棄史）+ AI-3 ContractTest C-ε1 權重守恆 · **Amendment A2**：Codex R1 判 `CameraViewModel.kt` Scope Ban（禁淨新增函數）BLOCKER → 兩函數遷入 smoother 新檔，VM 端僅留注入欄位 + `smooth()`/`reset()` call site → **淨新增函數 = 0**（**A3**：建構子漣漪 → `CameraViewModelTestGazeAfWiring.kt` 恰一行補參）· AC-2 行為測試以 9 值量化序列驅動 production 遞推（純 Float，結構性規避 K2-Rule 13 RectF 假過）· HC1 EyeAF 輸入零平滑（`faces = landmarkFaces` 維持 raw）· 207/207 tests + 0 new lint（LogNotTimber baseline）· **兩顆 [實機] AC（靜止 60s 波動 <±1% / 丟失重入無拖影）併入 D19 實測腳本** |
+| GAP-11-PORTRAIT-EMA | ✅ **Done**（關票 · 已移 deliver/）· SSOT §2.5.1（:536-541）Portrait bbox EMA `last*0.7 + new*0.3` 補實作 · AI-1 常數家族 + AI-2 `PortraitEmaSmoother`（`smooth()`／`reset()`／companion `portraitEmaStep()` 單一真理源）+ AI-3 ContractTest C-ε1 · **A2**：Scope Ban BLOCKER→遷入 smoother 新檔，VM 淨新增函數=0 · **A5**：R2 domain 純度 BLOCKER→`ssot_context §1` 白名單收斂（RectF/PointF+Log）+ 移除 `@VisibleForTesting`（Postponed #11）· Cross-Review R3（腳本 R4）✅ PASS（REACHABILITY: NONE）· SC-01 血緣：對 `GuidanceStateConstants.kt`/`ContractTest.kt` 純新增（numstat 6/0、11/0，零碰撞）· 207/207 tests · `ab59067` · **兩顆 [實機] AC 併入 D19 實測腳本** |
 | INFRA-SKILLS-UC02 | ✅ Done（碼閉環）· `uc/SKILL.md` Ticket DONE 改為 QA 交棒信號（AI-1）+ QA/SV Auto-Chain ownership 鎖定，`/uc` 不得直呼 `/sv`（AI-2）+ 非 DONE 動作停止語義保留（AI-3）· 25L diff（14+/11-）< MAX_LINES 45 · Codex Cross-Review R2 PASS（REACHABILITY: NONE，K5-Rule 29 誠實揭露 AC2-5 未實測）· `6b74eab` · 免 Traycer（純 prompt-layer 治理票，Codex PASS 即閉環）· **AC2-5[可達性/行為性] 待下次真實 `/uc` Ticket DONE 觸發實測後轉 PASS** |
 | INFRA-HOOK-STOP-01 | ✅ Done（碼閉環）· `telegram_stop.sh` 消除 `set -euo pipefail` 靜默 `exit 1`：新增 `extract_ticket_id` 結構式 parser 取代舊 hardcoded family allowlist · 新增 `telegram_stop_test.sh` 4/4 PASS 無網路回歸測試 · 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `70a34ec`（code）+ `52e4b60`（PROGRESS_ARCHIVE.md S48）· **[實機] AC ✅ 已驗證（新 Session 確認 Stop hook error 未再出現，Akira 2026-07-14 回報）** |
 | GAP-10-BREATH-RESTART | ✅ Done（碼閉環）· `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 兩處 `InfiniteRepeatableSpec` 補 `repeatMode = RepeatMode.Reverse`（比照既有 breathe-dot 範本）· 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `0acabd6`（code）+ `3e8d43e`（docs）· **[實機] AC 待 D17 Akira 呼吸真偽終審**（BREATH-KILL 預授權出口）· 關票待 Traycer |
@@ -13,13 +13,13 @@
 | STATE-CONTRACT-04 | ✅ Done（碼閉環）· Halo alpha 三常數家族單次觸碰重錨：`HALO_ACTIVE_ALPHA` 0.25→0.8（R-T2）+ `HALO_ALIGNED_ALPHA_MIN/MAX` 0.10/0.18→0.25/0.40（R-T13 V-1）· ContractTest C-α1/α2/α3 關係式斷言取代裸數字快照（K4-54）· K4-η sweep 攔截清單外命中 ×2（`HaloGuidanceLayer.kt:96-97` PTF_BREATH / `CameraScreen.kt:580-581` 快門環）→ CSO 裁決域外零觸碰（Postponed #7 / #8+SC02-5）· /qa Step0 PASS + `testDeviceDebugUnitTest` 8/8 綠 + `assembleDeviceDebug` PASS · `ce9b232`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer |
 | SSOT-V407-LHVAC-01 | ✅ Done · LH-VAC-02 §2.5.4 alpha vaccine 回填（canonical 檔逐字取回，3 hunks · +15L）· V-1~V-4 + 白空間 + diff 口徑全綠 · `a0f6f13`（僅 `SSOT_v4_0_7.md`）· PROVISIONAL §2.5.4 切片歸零，觸發 SC-04 開工前置解禁 |
 
-**Last Updated**: 2026-07-14
+**Last Updated**: 2026-07-15
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S50** · GAP-11-PORTRAIT-EMA ✅ 碼閉環（Portrait bbox EMA 0.7/0.3 補實作 · `PortraitEmaSmoother` 單一真理源 · Amendment A2 Scope Ban 遷移（VM 淨新增函數 0）+ A3 建構子漣漪 · 待 /sv；解凍 GAP-06-TARGET-01 Rev A）· **S49** · INFRA-SKILLS-UC02 ✅ Done（uc/SKILL.md QA auto-chain wiring · Codex R2 PASS · 免 Traycer · `6b74eab`）· **S48** · INFRA-HOOK-STOP-01 ✅ Done（`extract_ticket_id` 結構式 parser · telegram_stop.sh 靜默 exit 1 修復 · 回歸測試 4/4 PASS · Codex R1 PASS · `70a34ec`+`52e4b60` · [實機]AC✅）· **S47** · GAP-10-BREATH-RESTART ✅ Done（uc AI-1+AI-2 · `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 補 `repeatMode = RepeatMode.Reverse` · +2L · Codex R1 PASS · `0acabd6`+`3e8d43e` · 待 Traycer）· **S46** · D15-16 實測診斷（無票 · Rule 4c 僅回報）→ 報告 `plans/cso_briefing/reports/D15-16/` · Track B 採樣暫停建議 + 6 項待裁決 · **S45** · STATE-CONTRACT-05 ✅ Done（`cad0ce6` · Halo 半徑重錨 + K4-η 終態 13 命中 · ledger `2ba2b83`）|
+| Schedule | **S51** · INFRA-63 ✅ Done（CLAUDE.md Rule 1 新增 AskUserQuestion 彈出視窗禁令 · `8328171`）· **S50** · GAP-11-PORTRAIT-EMA ✅ Done（`PortraitEmaSmoother` 單一真理源 · A2 Scope Ban 遷移 + A5 domain 白名單收斂 · Cross-Review R3 PASS · `ab59067` · 已移 deliver/；D19 AC 登記+SC-01 血緣 numstat 逐字核實 6/0、11/0 吻合；解凍 GAP-06-TARGET-01 Rev A 待 `DIFF_REF` 校正後啟動）· **S49** · INFRA-SKILLS-UC02 ✅ Done（uc/SKILL.md QA auto-chain wiring · Codex R2 PASS · 免 Traycer · `6b74eab`）· **S48** · INFRA-HOOK-STOP-01 ✅ Done（`extract_ticket_id` 結構式 parser · telegram_stop.sh 靜默 exit 1 修復 · 回歸測試 4/4 PASS · Codex R1 PASS · `70a34ec`+`52e4b60` · [實機]AC✅）· **S47** · GAP-10-BREATH-RESTART ✅ Done（uc AI-1+AI-2 · `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 補 `repeatMode = RepeatMode.Reverse` · +2L · Codex R1 PASS · `0acabd6`+`3e8d43e` · 待 Traycer）|
 | Compile | ✅ PASS `assembleDebug`（GAP-11-PORTRAIT-EMA · 2026-07-14） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest` 207/207（0 fail · GAP-11 新增 C-ε1 權重守恆 + AC-2 EMA 行為測試 2 筆） |
 | Lint | ✅ PASS `lintDeviceDebug`（0 error · 0 new warning class；GAP-11 新增 1 筆 `LogNotTimber`，屬全檔 baseline pattern，Rule 3 匹配既有風格） |
@@ -28,7 +28,7 @@
 
 | ID | Issue | Severity | Root Cause |
 | ---- | ------- | ---------- | ------------ |
-| GAP-06 | HaloTraction：GuidanceActive + **Aligned 態圓點渲染已閉環（GAP-06-RENDER-DOT-01 ✅ Done，已移 deliver/）**；母議題後續仍剩 producer wiring + Normal vs Focus Ring 路由實機驗 | 🔴 P0（D15-16 實測證實：producer 缺席 → 牽引點永釘中央 → 引導迴路死鎖，Track B 硬阻） | Aligned 消費斷鏈已修；剩 producer = GAP-06-TARGET placeholder（SC-04 閉環後下一收割節點）；路由待實機 |
+| GAP-06 | HaloTraction：GuidanceActive + **Aligned 態圓點渲染已閉環（GAP-06-RENDER-DOT-01 ✅ Done，已移 deliver/）**；母議題後續仍剩 producer wiring + Normal vs Focus Ring 路由實機驗。**GAP-11 R3 PASS → Rev A 預授權解凍成立，但 GAP-06-TARGET-01 conf 之 `DIFF_REF=2ba2b83` 已過期**（`0acabd6` 已觸碰其 FORBIDDEN `HaloGuidanceLayer.kt`）**須先校正才可啟動** | 🔴 P0（D15-16 實測證實：producer 缺席 → 牽引點永釘中央 → 引導迴路死鎖，Track B 硬阻） | Aligned 消費斷鏈已修；剩 producer = GAP-06-TARGET placeholder（SC-04 閉環後下一收割節點）；路由待實機 |
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
 
