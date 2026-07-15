@@ -1,5 +1,7 @@
 package com.akirachang.ai.photographer.domain.model
 
+import android.graphics.PointF
+
 /**
  * Per-rule evaluation output, produced by [AnalyzeCompositionUseCase].
  *
@@ -28,9 +30,13 @@ data class RuleScore(
  *                        Independent of [topInstruction] — a frame can be well-composed
  *                        even if one rule still suggests a minor tweak.
  *                        Drives breathing animation and golden-moment shutter hint.
+ * @param targetHint      Normalized [0.0, 1.0] composition target point sourced from
+ *                        [topInstruction]'s originating rule, or null when aligned or
+ *                        that rule has no geometric target. Treat as immutable.
  */
 data class CompositionResult(
     val topInstruction: RuleScore?,
     val ruleScores: Map<String, RuleScore>,
     val isAllAligned: Boolean,
+    val targetHint: PointF? = null,
 )

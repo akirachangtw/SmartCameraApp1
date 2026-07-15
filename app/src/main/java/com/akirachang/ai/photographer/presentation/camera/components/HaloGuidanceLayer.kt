@@ -357,7 +357,7 @@ fun HaloGuidanceLayer(
                 val box = face.boundingBoxNormalized
                 box.width() * box.height()
             }
-            if (primaryFace != null) {
+            if (primaryFace != null && targetPosition != null) {
                 Canvas(modifier = modifier.fillMaxSize()) {
                     drawTractionDot(primaryFace, targetPosition, dotDiameterPx, dotScale, dotOpacity)
                 }

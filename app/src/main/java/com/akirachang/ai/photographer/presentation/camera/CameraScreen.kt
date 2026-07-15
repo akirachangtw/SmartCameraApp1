@@ -291,11 +291,17 @@ fun CameraScreen(
                             }
                         )
 
+                        val targetHintNormalized = state.compositionResult?.targetHint
+                        val targetPositionPx = if (targetHintNormalized != null && previewSize.width > 0 && previewSize.height > 0) {
+                            Offset(targetHintNormalized.x * previewSize.width, targetHintNormalized.y * previewSize.height)
+                        } else null
+
                         HaloGuidanceLayer(
                             guidanceState = state.guidanceState,
                             faces = state.detectedFaces,
                             isPtfMode = isPtfActive,
                             ptfAlignmentResult = state.ptfAlignmentResult,
+                            targetPosition = targetPositionPx,
                             modifier = Modifier.fillMaxSize(),
                         )
 

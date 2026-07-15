@@ -2,6 +2,7 @@ package com.akirachang.ai.photographer.domain.usecase
 
 import com.akirachang.ai.photographer.domain.composition.CompositionRule
 import com.akirachang.ai.photographer.domain.composition.PriorityEngine
+import com.akirachang.ai.photographer.domain.composition.RuleResult
 import com.akirachang.ai.photographer.domain.model.CompositionResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 import com.akirachang.ai.photographer.domain.model.RuleScore
@@ -44,8 +45,11 @@ class AnalyzeCompositionUseCase @Inject constructor(
             )
         }
 
-        val ruleScoresMap: Map<CompositionRule, RuleScore> = rules.associateWith { rule ->
-            val result = rule.evaluate(faces, imuPitch, imuRoll)
+        val ruleResultsMap: Map<CompositionRule, RuleResult> = rules.associateWith { rule ->
+            rule.evaluate(faces, imuPitch, imuRoll)
+        }
+
+        val ruleScoresMap: Map<CompositionRule, RuleScore> = ruleResultsMap.mapValues { (rule, result) ->
             RuleScore(
                 name = rule.name,
                 score = result.score,
@@ -56,11 +60,17 @@ class AnalyzeCompositionUseCase @Inject constructor(
 
         val topInstruction: RuleScore? = priorityEngine.calculateTopInstruction(ruleScoresMap)
         val isAllAligned = computeWeightedAlignment(ruleScoresMap.values)
+        val targetHint = if (isAllAligned || topInstruction == null) {
+            null
+        } else {
+            ruleResultsMap.entries.firstOrNull { it.key.name == topInstruction.name }?.value?.targetHint
+        }
 
         return CompositionResult(
             topInstruction = topInstruction,
             ruleScores = ruleScoresMap.mapKeys { it.key.name },
             isAllAligned = isAllAligned,
+            targetHint = targetHint,
         )
     }
 

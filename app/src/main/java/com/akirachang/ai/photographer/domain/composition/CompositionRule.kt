@@ -1,14 +1,18 @@
 package com.akirachang.ai.photographer.domain.composition
 
+import android.graphics.PointF
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
 
 /**
  * Result of a single composition rule evaluation.
  *
- * @param score     Normalized score [0.0, 100.0]. Higher = better composition.
- * @param isAligned True when the subject satisfies this rule's alignment criterion.
+ * @param score       Normalized score [0.0, 100.0]. Higher = better composition.
+ * @param isAligned   True when the subject satisfies this rule's alignment criterion.
+ * @param targetHint  Normalized [0.0, 1.0] composition target point, or null when this
+ *                    rule has no geometric target (e.g. already aligned, or non-face-driven
+ *                    rule). Treat as immutable — never mutate the returned instance in place.
  */
-data class RuleResult(val score: Float, val isAligned: Boolean)
+data class RuleResult(val score: Float, val isAligned: Boolean, val targetHint: PointF? = null)
 
 /**
  * Contract for all Cueshot composition rules.

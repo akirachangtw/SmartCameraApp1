@@ -1,5 +1,6 @@
 package com.akirachang.ai.photographer.domain.composition.rules
 
+import android.graphics.PointF
 import com.akirachang.ai.photographer.domain.composition.CompositionRule
 import com.akirachang.ai.photographer.domain.composition.RuleResult
 import com.akirachang.ai.photographer.domain.model.FaceLandmarkData
@@ -45,17 +46,22 @@ class ThirdsRule @Inject constructor() : CompositionRule {
         val cx = primary.boundingBoxNormalized.centerX()
         val cy = primary.boundingBoxNormalized.centerY()
 
-        // Closest distance to any fixed thirds intersection point.
-        val minDist = THIRDS_POINTS.minOf { (ix, iy) ->
+        // Closest fixed thirds intersection point (nearest by squared distance).
+        val nearestPoint = THIRDS_POINTS.minByOrNull { (ix, iy) ->
             val dx = cx - ix
             val dy = cy - iy
-            sqrt(dx * dx + dy * dy)
-        }
+            dx * dx + dy * dy
+        } ?: return RuleResult(score = 0f, isAligned = false)
+
+        val nearestDx = cx - nearestPoint.first
+        val nearestDy = cy - nearestPoint.second
+        val minDist = sqrt(nearestDx * nearestDx + nearestDy * nearestDy)
 
         val score = (100f * (1f - minDist / MAX_TOLERANCE)).coerceIn(0f, 100f)
         val isAligned = score >= ALIGNED_THRESHOLD
+        val targetHint = if (isAligned) null else PointF(nearestPoint.first, nearestPoint.second)
 
-        return RuleResult(score = score, isAligned = isAligned)
+        return RuleResult(score = score, isAligned = isAligned, targetHint = targetHint)
     }
 
     companion object {
