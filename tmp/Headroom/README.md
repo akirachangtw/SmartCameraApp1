@@ -2,12 +2,12 @@
 
 This directory contains implementation and evidence artifacts. The tracked wiring SSOT is `.agents/pilot/pilot.config.json`.
 
-## Current decision (2026-07-15)
+## Current decision (2026-07-16)
 
-- Active Headroom status is exclusively `http://127.0.0.1:8787/health` plus `/stats`.
+- Headroom active integration (`http://127.0.0.1:8787/health` plus `/stats`) is decommissioned; binary/config remain in place for rollback.
 - Supervisor `http://127.0.0.1:8788` exposes `/events/ingest`, `/summary`, and `/events/recent` as Preview.
 - Preview remains unpromoted until at least 20 real Claude Canary events satisfy the gate. The 21 fixtures validate Schema/aggregation only and contribute zero promotion evidence.
-- If 8788 is offline, KPI panels show Preview/Unavailable while the 8787 active lamp remains unchanged.
+- If 8788 is offline, KPI panels show Preview/Unavailable; Headroom's decommissioned state does not change this.
 - CodeGraph is optional and disabled; it is not the producer of Supervisor endpoints.
 
 ## Artifacts

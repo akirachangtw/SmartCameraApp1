@@ -9,13 +9,13 @@ This folder is the repo-local wiring SSOT for the Headroom observability pilot. 
 - `headroom-payload-rules.md`: Week 3 Headroom compression targets, bypass rules, and fallback levels.
 - `headroom-sampling.md`: Week 3/4 Headroom quality sampling fields, scoring, and review workflow.
 
-## Current runtime contract (2026-07-15)
+## Current runtime contract (2026-07-16)
 
-- **Active**: Headroom on `http://127.0.0.1:8787`, using only `GET /health` and `GET /stats` for the dashboard health lamp.
+- **Decommissioned**: Headroom active integration (`http://127.0.0.1:8787`, `GET /health` and `GET /stats`) is disabled; binary/config remain in place for rollback and it is no longer the active runtime.
 - **Preview**: Observability Supervisor on `http://127.0.0.1:8788`, using `POST /events/ingest`, `GET /summary`, and `GET /events/recent`.
 - `/summary` and `/events/recent` remain Preview until at least 20 `source_kind=real` canary events pass the gate and both config and runtime report promoted.
 - `source_kind=fixture` is test data and never promotion evidence.
-- An unavailable 8788 Supervisor cannot change a healthy 8787 `/health + /stats` result.
+- Headroom's decommissioned state does not change Supervisor Preview status.
 - CodeGraph remains optional and disabled; it is not the producer of Supervisor endpoints.
 
 ## Boundaries

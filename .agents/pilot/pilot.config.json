@@ -13,7 +13,7 @@
     "cross_review_rule": ".claude/rules/cross-review.md"
   },
   "headroom": {
-    "enabled": true,
+    "enabled": false,
     "proxy_url": "http://127.0.0.1:8787",
     "health_path": "/health",
     "stats_path": "/stats",
@@ -49,8 +49,8 @@
     "future_integration": true
   },
   "pilot_flags": {
-    "enable_headroom_dashboard": true,
-    "enable_headroom_stats_polling": true,
+    "enable_headroom_dashboard": false,
+    "enable_headroom_stats_polling": false,
     "enable_codegraph_health": false,
     "enable_cross_review_guard": true,
     "enable_common_skill_scan": true
