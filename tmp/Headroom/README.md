@@ -26,13 +26,15 @@ This directory contains implementation and evidence artifacts. The tracked wirin
 
 ## Verification commands
 
+Headroom active integration is decommissioned; the commands below read back the retained removal evidence instead of probing 8787.
+
 ```powershell
-curl.exe --fail http://127.0.0.1:8787/health
-curl.exe --fail http://127.0.0.1:8787/stats
+Get-Content tmp/Headroom/pilot-docs/removal-evidence/service-removal-after.txt
+Get-Content tmp/Headroom/pilot-docs/removal-evidence/vscode-extensions-after.txt
 npm.cmd --prefix tmp/Headroom/prototype-sidecar test
 npm.cmd --prefix tmp/Headroom/vscode-headroom-dashboard run test:contracts
 npm.cmd --prefix tmp/Headroom/vscode-headroom-dashboard run check
 npm.cmd --prefix tmp/Headroom/vscode-headroom-dashboard run package
 ```
 
-When the Supervisor is running, additionally verify `http://127.0.0.1:8788/health`, `/summary`, and `/events/recent`. A failed 8788 request is a Preview failure, not an active Headroom failure.
+When the Supervisor is running, additionally verify `http://127.0.0.1:8788/health`, `/summary`, and `/events/recent`. A failed 8788 request is only a Preview gap; it does not reflect Headroom's already-decommissioned state.
