@@ -320,6 +320,8 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 
 > **歸檔（S54 併行）：`GAP-11-PORTRAIT-EMA` ✅ Done（關票 · 已移 deliver/）行表列自 PROGRESS.md 最近 Ticket 表移出——完整內容已存於本檔 S50 節（`PortraitEmaSmoother` 單一真理源、Amendment A2/A3 遷移閉環、Cross-Review R3 PASS、`ab59067`），本行僅記錄移出動作，非新資訊）——依 `ssot-governance.md` Dashboard 紀律保持 PROGRESS.md ≤80 行**
 
+> **歸檔（2026-07-16，Schedule 5-cap 輪替）：`INFRA-63` ✅ Done（CLAUDE.md Rule 1 新增 AskUserQuestion 彈出視窗禁令 · `8328171`）S51 欄位自 PROGRESS.md Sprint Health Schedule 移出——依 `ssot-governance.md` Dashboard 紀律 Schedule 僅列最近 5 筆 Ticket 狀態，本行僅記錄移出動作，非新資訊**
+
 ## Archived 2026-07-16 (INFRA-PROGRESS-COMPRESS-01)
 
 | INFRA-HOOK-STOP-01 | ✅ Done（碼閉環）· `telegram_stop.sh` 消除 `set -euo pipefail` 靜默 `exit 1`：新增 `extract_ticket_id` 結構式 parser 取代舊 hardcoded family allowlist · 新增 `telegram_stop_test.sh` 4/4 PASS 無網路回歸測試 · 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `70a34ec`（code）+ `52e4b60`（PROGRESS_ARCHIVE.md S48）· **[實機] AC ✅ 已驗證（新 Session 確認 Stop hook error 未再出現，Akira 2026-07-14 回報）** |

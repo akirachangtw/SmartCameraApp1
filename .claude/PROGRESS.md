@@ -5,6 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| INFRA-HEADROOM-DOCSYNC-02-FIX-A | ✅ Done（碼閉環）· `tmp/Headroom/README.md` Verification commands 移除兩個 8787 active probe，改為讀取既有 `service-removal-after.txt`/`vscode-extensions-after.txt` decommission readback + 8788 說明句移除「active Headroom failure」措辭（承接 `INFRA-HEADROOM-DOCSYNC-02` commit `b6b199f` execute_review Minor finding）· 8L diff < MAX_LINES 20 · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `a1843e2` · 免 Traycer（Ticket 標註 Traycer Workflow: N/A，純文件治理票） |
 | INFRA-SKILLS-UC02 | ✅ Done（碼閉環）· `uc/SKILL.md` Ticket DONE 改為 QA 交棒信號（AI-1）+ QA/SV Auto-Chain ownership 鎖定，`/uc` 不得直呼 `/sv`（AI-2）+ 非 DONE 動作停止語義保留（AI-3）· 25L diff（14+/11-）< MAX_LINES 45 · Codex Cross-Review R2 PASS（REACHABILITY: NONE，K5-Rule 29 誠實揭露 AC2-5 未實測）· `6b74eab` · 免 Traycer（純 prompt-layer 治理票，Codex PASS 即閉環）· **AC2-5[可達性/行為性] 待下次真實 `/uc` Ticket DONE 觸發實測後轉 PASS** |
 | GAP-10-BREATH-RESTART | ✅ Done（碼閉環）· `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 兩處 `InfiniteRepeatableSpec` 補 `repeatMode = RepeatMode.Reverse`（比照既有 breathe-dot 範本）· 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `0acabd6`（code）+ `3e8d43e`（docs）· **[實機] AC 待 D17 Akira 呼吸真偽終審**（BREATH-KILL 預授權出口）· 關票待 Traycer |
 | STATE-CONTRACT-05 | ✅ Done（碼閉環）· `HALO_RADIUS_SCALE` 0.6f→0.5f（SSOT §2.5.4，Traycer SC-04 R1 Fix 1 承接）· ContractTest C-ρ1 關係式（`2f*HALO_RADIUS_SCALE==1.0f`）取代裸數字快照 · K4-η 首輪 13 命中裁決終態（PTF ×3 `HaloGuidanceLayer.kt:264/276/291` register-out→已定性待 SC-06，Postponed #7）· `cad0ce6`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer R2 |
@@ -16,7 +17,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S55** · GAP-06-TARGET-01-REVA A6 修補 ✅ 碼閉環（unit tests×2 + KDoc comment-only，Codex Cross-Review R1 PASS，待 Traycer T2 回審）· **S54** · GAP-06-TARGET-01-REVA ✅ Done（碼閉環，Codex Cross-Review ADVISORY PASS，待 Traycer T2，見上表）· **S53** · INFRA-VERIFY-EXEMPT-01 ✅ Done（`verify_checklist.sh` PIPELINE_ARTIFACT 豁免補 PROGRESS_ARCHIVE.md · Codex R3 PASS · `e75d235`）· **S52** · INFRA-AGENTS-CR-01 ✅ Done（碼閉環，8/8 AC 全數 PASS，見 ARCHIVE）· **S51** · INFRA-63 ✅ Done（CLAUDE.md Rule 1 新增 AskUserQuestion 彈出視窗禁令 · `8328171`）|
+| Schedule | **S56** · INFRA-HEADROOM-DOCSYNC-02-FIX-A ✅ Done（碼閉環，Verification commands decommission 對齊，Codex Cross-Review R1 PASS，免 Traycer，見上表）· **S55** · GAP-06-TARGET-01-REVA A6 修補 ✅ 碼閉環（unit tests×2 + KDoc comment-only，Codex Cross-Review R1 PASS，待 Traycer T2 回審）· **S54** · GAP-06-TARGET-01-REVA ✅ Done（碼閉環，Codex Cross-Review ADVISORY PASS，待 Traycer T2，見上表）· **S53** · INFRA-VERIFY-EXEMPT-01 ✅ Done（`verify_checklist.sh` PIPELINE_ARTIFACT 豁免補 PROGRESS_ARCHIVE.md · Codex R3 PASS · `e75d235`）· **S52** · INFRA-AGENTS-CR-01 ✅ Done（碼閉環，8/8 AC 全數 PASS，見 ARCHIVE）|
 | Compile | ✅ PASS `assembleDebug`（INFRA-HEADROOM-DOCSYNC-02-FIX-A · 2026-07-16，doc-only diff，1s） |
 | Tests | ✅ PASS `testEmulatorDebugUnitTest`（0 fail；doc-only diff 無新增測試） |
 | Lint | ✅ 0 new warning · static_blind_scan.sh 4 項警示同為 pre-existing 域外檔案（`TapFocusRing.kt`/`HDRWarningOverlay.kt`/`CameraPreview.kt`/`SettingsScreen.kt`），非本票 diff 觸及 |
