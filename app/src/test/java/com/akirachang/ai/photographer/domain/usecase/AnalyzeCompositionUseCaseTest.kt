@@ -14,6 +14,7 @@
  */
 package com.akirachang.ai.photographer.domain.usecase
 
+import android.graphics.PointF
 import android.graphics.RectF
 import com.akirachang.ai.photographer.domain.composition.CompositionRule
 import com.akirachang.ai.photographer.domain.composition.PriorityEngine
@@ -206,5 +207,57 @@ class AnalyzeCompositionUseCaseTest {
 
         assertFalse(result.isAllAligned)
         assertEquals("high_priority", result.topInstruction?.name)
+    }
+
+    // ==================== GAP-06-TARGET-01-REVA A6-1 targetHint Tests ====================
+
+    @Test
+    fun `misaligned top rule — targetHint enters CompositionResult targetHint`() {
+        val misalignedRule = mock(CompositionRule::class.java)
+        `when`(misalignedRule.name).thenReturn("thirds")
+        `when`(misalignedRule.weight).thenReturn(0.20f)
+        `when`(misalignedRule.confidenceFactor).thenReturn(0.80f)
+        `when`(misalignedRule.evaluate(emptyList(), 0f, 0f))
+            .thenReturn(RuleResult(score = 40f, isAligned = false, targetHint = PointF(0.33f, 0.67f)))
+
+        val localUseCase = AnalyzeCompositionUseCase(
+            rules = setOf(misalignedRule),
+            priorityEngine = PriorityEngine(),
+        )
+
+        val result = localUseCase(emptyList(), 0f, 0f)
+
+        assertEquals("thirds", result.topInstruction?.name)
+        assertEquals(PointF(0.33f, 0.67f), result.targetHint)
+    }
+
+    @Test
+    fun `isAllAligned true despite misaligned topInstruction — targetHint cleared`() {
+        // rule1: weight=0.6, score=80, aligned | rule2: weight=0.4, score=55, misaligned w/ targetHint
+        // weightedAvg = (0.6*80 + 0.4*55) / 1.0 = 70.0 → isAllAligned=true, but topInstruction=rule2
+        val rule1 = mock(CompositionRule::class.java)
+        `when`(rule1.name).thenReturn("headroom")
+        `when`(rule1.weight).thenReturn(0.6f)
+        `when`(rule1.confidenceFactor).thenReturn(1.0f)
+        `when`(rule1.evaluate(emptyList(), 0f, 0f))
+            .thenReturn(RuleResult(score = 80f, isAligned = true))
+
+        val rule2 = mock(CompositionRule::class.java)
+        `when`(rule2.name).thenReturn("thirds")
+        `when`(rule2.weight).thenReturn(0.4f)
+        `when`(rule2.confidenceFactor).thenReturn(1.0f)
+        `when`(rule2.evaluate(emptyList(), 0f, 0f))
+            .thenReturn(RuleResult(score = 55f, isAligned = false, targetHint = PointF(0.25f, 0.33f)))
+
+        val localUseCase = AnalyzeCompositionUseCase(
+            rules = setOf(rule1, rule2),
+            priorityEngine = PriorityEngine(),
+        )
+
+        val result = localUseCase(emptyList(), 0f, 0f)
+
+        assertTrue(result.isAllAligned)
+        assertNotNull(result.topInstruction)
+        assertNull(result.targetHint)
     }
 }

@@ -139,9 +139,11 @@ private const val HALO_DOT_BOUNDARY_INSET_PX = 2f
  * @param faces                Face landmark data from the latest ML Kit detection frame.
  * @param isPtfMode            True when camera is in PassToFriend mode.
  * @param ptfAlignmentResult   PTF rule engine output. Null ignored (defaults to NO_FACE behavior).
- * @param targetPosition       Traction dot goal in canvas px (GuidanceActive). Null = no producer wired
- *                             yet (GAP-06-TARGET) → dot homes at dist=0 (SSOT §2.5 L440-441). Permanent
- *                             nullable contract; a future producer ticket only supplies the value.
+ * @param targetPosition       Traction dot goal in canvas px. Null semantics are state-dependent
+ *                             (A2-2, interpretation pending SSOT amendment ticket): GuidanceActive →
+ *                             traction dot suppressed, no draw; Aligned → dot renders at dist=0,
+ *                             centered-home (SSOT §2.5 L440-441). Permanent nullable contract
+ *                             (SSOT L393).
  * @param modifier             Should be [fillMaxSize] to cover the full preview.
  */
 @Composable
