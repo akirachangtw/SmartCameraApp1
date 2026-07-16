@@ -319,3 +319,19 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 > **歸檔（S54 併行）：`INFRA-VERIFY-EXEMPT-01` ✅ Done（碼閉環）· `verify_checklist.sh` `PIPELINE_ARTIFACT` 豁免清單補 `.claude/PROGRESS_ARCHIVE.md`，根治 PROGRESS.md→PROGRESS_ARCHIVE.md 歸檔觸發 FUTURE_CONTAMINATION 誤判（GAP-11 曾二度命中，見 S50 修訂治理發現）· self-test 10/10（含 AI-2 hit/miss 正反案例）+ GAP-11 `f837dd8..9d1528f` 實案回放證實根因消除、且豁免不外溢（域外 `CLAUDE.md` FUTURE_CONTAMINATION 仍正確攔截）· 10L diff（+10/-2）< MAX_LINES 15 · assembleDebug PASS + 207/207 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R3 PASS（REACHABILITY: NONE；R1/R2 REPORT_FIX 為 sv_report.md AC 表措辭釐清，非實作缺陷）· `e75d235`）——依 `ssot-governance.md` Dashboard 紀律自 PROGRESS.md 最近 Ticket 表移出（保持 ≤80 行）**
 
 > **歸檔（S54 併行）：`GAP-11-PORTRAIT-EMA` ✅ Done（關票 · 已移 deliver/）行表列自 PROGRESS.md 最近 Ticket 表移出——完整內容已存於本檔 S50 節（`PortraitEmaSmoother` 單一真理源、Amendment A2/A3 遷移閉環、Cross-Review R3 PASS、`ab59067`），本行僅記錄移出動作，非新資訊）——依 `ssot-governance.md` Dashboard 紀律保持 PROGRESS.md ≤80 行**
+
+## Archived 2026-07-16 (INFRA-PROGRESS-COMPRESS-01)
+
+| INFRA-HOOK-STOP-01 | ✅ Done（碼閉環）· `telegram_stop.sh` 消除 `set -euo pipefail` 靜默 `exit 1`：新增 `extract_ticket_id` 結構式 parser 取代舊 hardcoded family allowlist · 新增 `telegram_stop_test.sh` 4/4 PASS 無網路回歸測試 · 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `70a34ec`（code）+ `52e4b60`（PROGRESS_ARCHIVE.md S48）· **[實機] AC ✅ 已驗證（新 Session 確認 Stop hook error 未再出現，Akira 2026-07-14 回報）** |
+| INFRA-AGENTS-CR-01 | ✅ Done（碼閉環）· `pre-modification-simulator` 重名 agent 退場（AI-1/AI-2 刪除 `-enhanced`/`-sonnet` 兩檔，消除 registry silent-collision）+ 新建 `cross-reviewer` R0 預審 subagent（AI-3，字面閘 5 職責，HC3 零 PASS 命中）+ `cross-review.md` R0 路由/三護欄補丁（AI-4）· assembleDebug PASS + 207/207 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `dd4c6ec` · **免 Traycer**（純 agent/rule 治理票，無 .kt/.xml，Codex PASS 即閉環，Akira 2026-07-15 裁決，比照 INFRA-SKILLS-UC02 前例）· **兩項[行為性] AC 已補測轉 PASS**（2026-07-15 同票內補測，Akira「授權即刻補測，免新票」裁決）：`Agent(subagent_type: "cross-reviewer")` 委派成功（agentId `a2728ada4acf22760`，registry 已熱重載）；GAP-11 R3 payload 回放（重建自 `bcf08c1`）3/3 domain Android import 命中字面閘（`RectF`/`Log`/`VisibleForTesting`），裁決 FAIL/BLOCKER，符合職責 4(a) 預期行為 → **8/8 AC 全數 PASS，完全關票** |
+> **🟢 治理校正結案（2026-07-12）**：GAP-07 / AC-10（skip-when-focused / Guard 7a）**STATE-CONTRACT-03 已 Closed**（Traycer R4 Path A APPROVE · 錨 `7e99f28`）。詳見 `PROGRESS_ARCHIVE.md` S41。
+3. **✅ STATE-CONTRACT-03（GAP-07）已 Closed**（Traycer R4 Path A APPROVE · 錨 `7e99f28`）；AC-10 轉 ✅；附帶發現之 verify_checklist glob bug 已由 INFRA-VERIFY-GLOB-01 修復（`db4106a`）
+## KAIROS Findings — D13 (2026-07-08)
+
+**Error Patterns**：🔴 Family provenance 應於 spawn 當下登記，禁事後靠 M3 稽核補（GAP-06-RENDER-DOT-01 + INFRA-TICKETID-SSOT-V407-01 二度重演，見下方建議條文）· 🟡 reachability 自報行號 off-by-one（K4-ξ 已收錄）· 🟢 capability-present/behavior-absent 假完成風險（K4-ο `TAG_HALO_DOT` probe 範式已建立防護）
+**Decision Audit**：R-T27 spawn PROGRESS-only ✅ · R-T28 verify_cmd 重建 ✅ · K4-δ 行號 295→296 ⚠️ 需微調（R1→R2 才修正，非首發即中）· SSOT-V407 family 收斂 ✅（長效性待觀察）· **SSOT Drift**：無新增，既有 PROVISIONAL（§2.5.4/§9）持續追蹤中見 PROVISIONAL Ledger
+**Skill 壓測**：/qa /sv ✅（本 Sprint tmp/ ≥5 次 sv_report/log 證據）· `m3_family_audit.sh` ✅（本次 self-test+2 refresh+1 stale-check）· `/dream` 本次為 D13 首跑 · `/uc`/`/compact`/`/mdlint` 執行次數缺 telemetry，資訊不足無法判定壓測狀態
+
+**CLAUDE.md Addition — 已核准併入**：Family Provenance Spawn-Time 登記規則已由 `INFRA-CLAUDE-RULE-HARVEST-01`（CSO 2026-07-09 裁決）正式併入 Rule 4a 本文，非新增第 13 條核心規則。觸發來源：GAP-06-RENDER-DOT-01、INFRA-TICKETID-SSOT-V407-01。
+
+**Traycer strict_verification 最終閉環重跑（2026-07-09）**：Path A — APPROVE。GAP-06-RENDER-DOT-01 全 scope（實作 + closure + governance cleanup）確認可關閉，無新增修正項。**Governance Learnings**：①closure 票涉治理憲法層（CLAUDE.md）應即時獨立票化，不與 feature closure 綁定 ②KAIROS candidate 與 landed state 在 PROGRESS.md MUST 單向明確，禁止「待人工確認」與「已落地」雙真理並存 ③`INFRA-CLAUDE-RULE-HARVEST-01` 剝離 governance cleanup 之範式驗證有效，可作後續範本。
