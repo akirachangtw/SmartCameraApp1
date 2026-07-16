@@ -10,13 +10,13 @@
 | STATE-CONTRACT-05 | ✅ Done（碼閉環）· `HALO_RADIUS_SCALE` 0.6f→0.5f（SSOT §2.5.4，Traycer SC-04 R1 Fix 1 承接）· ContractTest C-ρ1 關係式（`2f*HALO_RADIUS_SCALE==1.0f`）取代裸數字快照 · K4-η 首輪 13 命中裁決終態（PTF ×3 `HaloGuidanceLayer.kt:264/276/291` register-out→已定性待 SC-06，Postponed #7）· `cad0ce6`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer R2 |
 | GAP-06-TARGET-01-REVA | ✅ Done（碼閉環）· 牽引點 targetPosition producer 接線：AI-1 `RuleResult.targetHint: PointF?`（CSO Amendment A5 型別裁決）+ AI-2 `ThirdsRule` 最近三分點幾何計算 + AI-3 `CompositionResult.targetHint` 聚合 + AI-4 `CameraViewModel` 零改動（既有 `analyzeCompositionUseCase` 呼叫鏈已足）+ AI-5 `CameraScreen` normalized→px 轉換 + A2-2 `HaloGuidanceLayer` GuidanceActive `targetPosition==null` null-guard（Aligned 分支零觸碰，單行 diff 機械驗證）· assembleDebug 雙 flavor PASS + 207/207 tests + 0 new lint · STALE_DIFF_REF 校正 `873ef99`→`058ca0c`（排除並行 INFRA-HEADROOM-* 提交汙染）· R0 FORWARD → Codex Cross-Review **ADVISORY**（`REACHABILITY: targetPosition:CameraViewModel.kt:2108`；`ThirdsRuleTest.kt`/`HaloGuidanceLayerTest.kt` 測試覆蓋缺口記錄為已知未覆蓋，非 BLOCKER）· `2f4a7c8`+`56982fd` · **A6 修補已完成**（unit tests×2 `AnalyzeCompositionUseCaseTest` PASS + `HaloGuidanceLayer.kt` KDoc comment-only，`git diff` 僅含註解行；`HaloGuidanceLayerTest.kt` 因無自動執行鏈觸發 A6-1 停止條件，未落地，已映射至既有 [實機] AC）· 待 R0/Codex 快審 → Traycer T2 回審（錨修補 commit，A6-4）· **關票前置**：血緣封口未解除（A6-5，`058ca0c..HEAD` 五筆無票 `INFRA-HEADROOM-*` commit 待裁決） |
 
-**Last Updated**: 2026-07-16
+**Last Updated**: 2026-07-17
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S55** · GAP-06-TARGET-01-REVA A6 修補 ✅ 碼閉環（unit tests×2 + KDoc comment-only，待 R0/Codex 快審 → Traycer T2 回審）· **S54** · GAP-06-TARGET-01-REVA ✅ Done（碼閉環，Codex Cross-Review ADVISORY PASS，待 Traycer T2，見上表）· **S53** · INFRA-VERIFY-EXEMPT-01 ✅ Done（`verify_checklist.sh` PIPELINE_ARTIFACT 豁免補 PROGRESS_ARCHIVE.md · Codex R3 PASS · `e75d235`）· **S52** · INFRA-AGENTS-CR-01 ✅ Done（碼閉環，8/8 AC 全數 PASS，見 ARCHIVE）· **S51** · INFRA-63 ✅ Done（CLAUDE.md Rule 1 新增 AskUserQuestion 彈出視窗禁令 · `8328171`）|
+| Schedule | **S56** · INFRA-PROGRESS-COMPRESS-01 票據收尾 ✅ Done（checkbox 全勾＋執行記錄補交＋5 探針彙整全 PASS＋mdlint 修正 2 處＋Pending 出列稽核 PASS；純票據 meta 收尾，非 code diff，`plans/cso_briefing/` gitignored 不入 git）· **S55** · GAP-06-TARGET-01-REVA A6 修補 ✅ 碼閉環（unit tests×2 + KDoc comment-only，待 R0/Codex 快審 → Traycer T2 回審）· **S54** · GAP-06-TARGET-01-REVA ✅ Done（碼閉環，Codex Cross-Review ADVISORY PASS，待 Traycer T2，見上表）· **S53** · INFRA-VERIFY-EXEMPT-01 ✅ Done（`verify_checklist.sh` PIPELINE_ARTIFACT 豁免補 PROGRESS_ARCHIVE.md · Codex R3 PASS · `e75d235`）· **S52** · INFRA-AGENTS-CR-01 ✅ Done（碼閉環，8/8 AC 全數 PASS，見 ARCHIVE）|
 | Compile | ✅ PASS `assembleDebug`（GAP-06-TARGET-01-REVA A6 修補 · 2026-07-16，Device+Emulator 雙 flavor 皆過，8s） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest` + `testEmulatorDebugUnitTest` 209/209（0 fail，雙 flavor；A6-1 新增 2 則 `AnalyzeCompositionUseCaseTest`） |
 | Lint | ✅ `lintDeviceDebug` PASS，0 new warning（`HaloGuidanceLayer.kt`/`AnalyzeCompositionUseCaseTest.kt` 零命中）· static_blind_scan.sh 3 項警示同為 pre-existing 域外檔案（`TapFocusRing.kt`/`HDRWarningOverlay.kt`/`CameraPreview.kt`/`SettingsScreen.kt`），非本票 diff 觸及 |
