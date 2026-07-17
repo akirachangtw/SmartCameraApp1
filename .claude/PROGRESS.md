@@ -17,10 +17,10 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S56** · INFRA-PROGRESS-COMPRESS-01 票據收尾 ✅ Done（checkbox 全勾＋執行記錄補交＋5 探針彙整全 PASS＋mdlint 修正 2 處＋Pending 出列稽核 PASS；純票據 meta 收尾，非 code diff，`plans/cso_briefing/` gitignored 不入 git）· **S55** · GAP-06-TARGET-01-REVA A6 修補 ✅ 碼閉環（unit tests×2 + KDoc comment-only，待 R0/Codex 快審 → Traycer T2 回審）· **S54** · GAP-06-TARGET-01-REVA ✅ Done（碼閉環，Codex Cross-Review ADVISORY PASS，待 Traycer T2，見上表）· **S53** · INFRA-VERIFY-EXEMPT-01 ✅ Done（`verify_checklist.sh` PIPELINE_ARTIFACT 豁免補 PROGRESS_ARCHIVE.md · Codex R3 PASS · `e75d235`）· **S52** · INFRA-AGENTS-CR-01 ✅ Done（碼閉環，8/8 AC 全數 PASS，見 ARCHIVE）|
-| Compile | ✅ PASS `assembleDebug`（GAP-06-TARGET-01-REVA A6 修補 · 2026-07-16，Device+Emulator 雙 flavor 皆過，8s） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` + `testEmulatorDebugUnitTest` 209/209（0 fail，雙 flavor；A6-1 新增 2 則 `AnalyzeCompositionUseCaseTest`） |
-| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（`HaloGuidanceLayer.kt`/`AnalyzeCompositionUseCaseTest.kt` 零命中）· static_blind_scan.sh 3 項警示同為 pre-existing 域外檔案（`TapFocusRing.kt`/`HDRWarningOverlay.kt`/`CameraPreview.kt`/`SettingsScreen.kt`），非本票 diff 觸及 |
+| Schedule | **S58** · INFRA-AGENTS-CR-02 ✅ 碼閉環（`cross-review.md` R0 記錄落盤條款：`.tmp/fail-advisor/` 六欄位格式 + `RETAIN_N=20` housekeeping + `.tmp/` 非版控紀律，1F +4L，待 Cross-Review）· **S57** · INFRA-64 母票終審結案 ✅ Done（`INFRA-HEADROOM-DECOMMISSION-01` 第三次終審 PASS，CSO 外部狀態終審權限 A1-3，7 AC 全勾；純 PROGRESS.md 同步，`daeee26`）· **S56** · INFRA-PROGRESS-COMPRESS-01 票據收尾 ✅ Done（checkbox 全勾＋執行記錄補交＋5 探針彙整全 PASS＋mdlint 修正 2 處＋Pending 出列稽核 PASS；純票據 meta 收尾，非 code diff，`plans/cso_briefing/` gitignored 不入 git）· **S55** · GAP-06-TARGET-01-REVA A6 修補 ✅ 碼閉環（unit tests×2 + KDoc comment-only，待 R0/Codex 快審 → Traycer T2 回審）· **S54** · GAP-06-TARGET-01-REVA ✅ Done（碼閉環，Codex Cross-Review ADVISORY PASS，待 Traycer T2，見上表）|
+| Compile | ✅ PASS `assembleDebug`（INFRA-AGENTS-CR-02 · 2026-07-17，Device+Emulator 雙 flavor 皆過，44s） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` + `testEmulatorDebugUnitTest` 209/209（0 fail，雙 flavor；本票零 .kt 觸碰） |
+| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（`cross-review.md` 為 .md，lint 不掃描）· static_blind_scan.sh 3 項警示同為 pre-existing 域外檔案（`TapFocusRing.kt`/`HDRWarningOverlay.kt`/`CameraPreview.kt`/`SettingsScreen.kt`），非本票 diff 觸及 |
 
 ## Active Blockers
 
