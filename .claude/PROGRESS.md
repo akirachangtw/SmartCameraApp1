@@ -5,11 +5,11 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-AGENTS-CR-02 | ✅ Done（碼閉環）· `cross-review.md` R0 送審記錄落盤條款：`.tmp/fail-advisor/R0_[TICKET]_[YYYYMMDD_HHMMSS].md` 六欄位格式 + `RETAIN_N=20` FIFO housekeeping + `.tmp/` 非版控紀律（AI-1）· 1F +4L < MAX_LINES 120 · 本輪即時 dogfood：R0 委派→FORWARD→落盤記錄→Codex R1 REPORT_FIX（sv_report 措辭修正）→R2 **PASS**（REACHABILITY: NONE）· `d8ecabd` · 免 Traycer（純 .md 治理票，Codex PASS 即閉環）· **AC2/AC3[行為性] MISSING-INTEGRATION-TEST 誠實揭露，待下次真實 R0 委派/21 筆佔位 housekeeping 觸發後轉 PASS** |
-| INFRA-GSTACK-D15-SYNC-01-FIX-A | ✅ Done（治理同步）· Headroom 退場閉環同步（2026-07-16 退場日期）：Batch 1 兩票 execute_review PASS——`INFRA-HEADROOM-EVIDENCE-CLOSURE-01`（R2 PASS，removal-evidence 時間戳/SHA256/git-check-ignore 補齊，零 repo diff）+ `INFRA-HEADROOM-DOCSYNC-02`（R1 PASS，`pilot.config.json` 3 flags disabled + 兩份 README decommissioned 敘述，`b6b199f`）· 後續 `FIX-A` 移除 README 8787 active probe（`a1843e2`）+ `FIX-A-CLEANUP` 回退其 PROGRESS.md 治理外溢（`9a3efc4`）· 人工 readback **[實機] PASS**（Akira 對話回報：VS Code restart 後操作正常無新增錯誤，`local.vscode-headroom-dashboard` 未載入，CodeGraph 正常運作**但無獨立操作介面可查**）· KAIROS D15 回顧見 `KAIROS_D15_Headroom_Decommission_Retrospective.md`（gitignored，規則候選僅記錄未採納）· 母票 `INFRA-HEADROOM-DECOMMISSION-01`（`deliver/`）2026-07-17 由 Akira 依 Amendment A1-3 CSO 外部狀態終審權限完成第三次終審 **PASS**，7 條 AC 全數勾選關閉，母票正式結案 |
+| INFRA-CLOSURE-SOP-01 | ✅ Done（碼閉環）· `ssot-governance.md` 增列「Ticket Closure 紀律」節：勾選/搬移/修補票三條 MUST（AI-1）· +8L < MAX_LINES 40 · Codex Cross-Review R1/R2 REPORT_FIX（sv_report 措辭/token 修正）→R3 **PASS**（REACHABILITY: NONE）· `9032723` · 免 Traycer（純 .md 治理票）· **首次 dogfood**（INFRA-AGENTS-CR-02 收尾）AC 3/3 附證據 PASS，票檔已搬 `deliver/` |
+| INFRA-AGENTS-CR-02 | ✅ Done（碼閉環，AC 5/5 附 read-back 證據）· `cross-review.md` R0 送審記錄落盤條款：`.tmp/fail-advisor/R0_[TICKET]_[YYYYMMDD_HHMMSS].md` 六欄位格式 + `RETAIN_N=20` FIFO housekeeping + `.tmp/` 非版控紀律（AI-1）· `d8ecabd` · Codex R2 PASS · **AC2/AC3[行為性] 已轉 PASS**（R0 委派記錄 + 21 筆佔位 housekeeping 實測，證據見票檔）· 免開修補票（Akira 2026-07-17 裁決 B，無未閉環 AC）· 票檔已搬 `deliver/` |
+| INFRA-GSTACK-D15-SYNC-01-FIX-A | ✅ Done（治理同步，AC 7/7 附證據）· Headroom 退場閉環同步（2026-07-16 退場日期）：Batch 1 兩票 execute_review PASS——`INFRA-HEADROOM-EVIDENCE-CLOSURE-01`（R2 PASS）+ `INFRA-HEADROOM-DOCSYNC-02`（R1 PASS，`b6b199f`）· 後續 `FIX-A`（`a1843e2`）+ `FIX-A-CLEANUP`（`9a3efc4`）· 人工 readback **[實機] PASS** · KAIROS D15 回顧見 `KAIROS_D15_Headroom_Decommission_Retrospective.md`（gitignored）· `484fc11` · 票檔已搬 `deliver/` |
 | INFRA-SKILLS-UC02 | ✅ Done（碼閉環）· `uc/SKILL.md` Ticket DONE 改為 QA 交棒信號（AI-1）+ QA/SV Auto-Chain ownership 鎖定，`/uc` 不得直呼 `/sv`（AI-2）+ 非 DONE 動作停止語義保留（AI-3）· 25L diff（14+/11-）< MAX_LINES 45 · Codex Cross-Review R2 PASS（REACHABILITY: NONE，K5-Rule 29 誠實揭露 AC2-5 未實測）· `6b74eab` · 免 Traycer（純 prompt-layer 治理票，Codex PASS 即閉環）· **AC2-5[可達性/行為性] 待下次真實 `/uc` Ticket DONE 觸發實測後轉 PASS** |
 | GAP-10-BREATH-RESTART | ✅ Done（碼閉環）· `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 兩處 `InfiniteRepeatableSpec` 補 `repeatMode = RepeatMode.Reverse`（比照既有 breathe-dot 範本）· 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `0acabd6`（code）+ `3e8d43e`（docs）· **[實機] AC 待 D17 Akira 呼吸真偽終審**（BREATH-KILL 預授權出口）· 關票待 Traycer |
-| STATE-CONTRACT-05 | ✅ Done（碼閉環）· `HALO_RADIUS_SCALE` 0.6f→0.5f（SSOT §2.5.4，Traycer SC-04 R1 Fix 1 承接）· ContractTest C-ρ1 關係式（`2f*HALO_RADIUS_SCALE==1.0f`）取代裸數字快照 · K4-η 首輪 13 命中裁決終態（PTF ×3 `HaloGuidanceLayer.kt:264/276/291` register-out→已定性待 SC-06，Postponed #7）· `cad0ce6`（僅 `GuidanceStateConstants.kt` + `GuidanceStateContractTest.kt`）· 關票待 Traycer R2 |
 
 **Last Updated**: 2026-07-17
 
@@ -17,10 +17,10 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S58** · INFRA-AGENTS-CR-02 ✅ Done（碼閉環，`cross-review.md` R0 記錄落盤條款：`.tmp/fail-advisor/` 六欄位格式 + `RETAIN_N=20` housekeeping + `.tmp/` 非版控紀律，1F +4L，Codex Cross-Review R2 PASS，免 Traycer）· **S57** · INFRA-64 母票終審結案 ✅ Done（`INFRA-HEADROOM-DECOMMISSION-01` 第三次終審 PASS，CSO 外部狀態終審權限 A1-3，7 AC 全勾；純 PROGRESS.md 同步，`daeee26`）· **S56** · INFRA-PROGRESS-COMPRESS-01 票據收尾 ✅ Done（checkbox 全勾＋執行記錄補交＋5 探針彙整全 PASS＋mdlint 修正 2 處＋Pending 出列稽核 PASS；純票據 meta 收尾，非 code diff，`plans/cso_briefing/` gitignored 不入 git）· **S55** · GAP-06-TARGET-01-REVA A6 修補 ✅ 碼閉環（unit tests×2 + KDoc comment-only，待 R0/Codex 快審 → Traycer T2 回審）· **S54** · GAP-06-TARGET-01-REVA ✅ Done（碼閉環，Codex Cross-Review ADVISORY PASS，待 Traycer T2，見上表）|
-| Compile | ✅ PASS `assembleDebug`（INFRA-AGENTS-CR-02 · 2026-07-17，Device+Emulator 雙 flavor 皆過，44s） |
+| Schedule | **S59** · INFRA-CLOSURE-SOP-01 ✅ Done（碼閉環，`ssot-governance.md` 增列 Ticket Closure 紀律，+8L，Codex R3 PASS，首次 dogfood 收尾 CR-02，免 Traycer）· **S58** · INFRA-AGENTS-CR-02 ✅ Done（AC 5/5 附證據，`cross-review.md` R0 記錄落盤條款，`d8ecabd`，Codex R2 PASS）· **S57** · INFRA-64 母票終審結案 ✅ Done（`INFRA-HEADROOM-DECOMMISSION-01` 第三次終審 PASS，`daeee26`）· **S56** · INFRA-PROGRESS-COMPRESS-01 票據收尾 ✅ Done（checkbox 全勾＋執行記錄補交＋5 探針彙整全 PASS）· **S55** · GAP-06-TARGET-01-REVA A6 修補 ✅ 碼閉環（unit tests×2 + KDoc comment-only，待 R0/Codex 快審 → Traycer T2 回審）|
+| Compile | ✅ PASS `assembleDebug`（INFRA-CLOSURE-SOP-01 · 2026-07-17，`9032723`，13s） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest` + `testEmulatorDebugUnitTest` 209/209（0 fail，雙 flavor；本票零 .kt 觸碰） |
-| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（`cross-review.md` 為 .md，lint 不掃描）· static_blind_scan.sh 3 項警示同為 pre-existing 域外檔案（`TapFocusRing.kt`/`HDRWarningOverlay.kt`/`CameraPreview.kt`/`SettingsScreen.kt`），非本票 diff 觸及 |
+| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（.md 治理票，lint 不掃描）· static_blind_scan.sh 3 項警示同為 pre-existing 域外檔案，非本票 diff 觸及 |
 
 ## Active Blockers
 
