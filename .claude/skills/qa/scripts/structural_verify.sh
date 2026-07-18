@@ -87,6 +87,10 @@ git rev-parse --verify "$_END" >/dev/null 2>&1 || fail_env "End ref not in git h
 git merge-base --is-ancestor "$_REF" "$_END" 2>/dev/null \
   || fail_env "End ref is not a descendant of start ref: $_REF..$_END (scope: $DIFF_SCOPE)"
 
+if ! ACTUAL_FILES="$(git diff --name-only "$DIFF_SCOPE" 2>/dev/null)"; then
+  fail_env "git diff failed for scope: $DIFF_SCOPE"
+fi
+
 # Parse ## Files Changed — strip trailing Pipeline Artifact annotations, strip backticks, take first field
 REPORTED_FILES="$(awk '/^## Files Changed/{found=1;next} found && /^## /{exit} found && /^- /{print substr($0,3)}' "$SV_REPORT" \
   | sed 's/[[:space:]]*←.*$//' \
@@ -101,73 +105,105 @@ EXCLUDED_FILES="$(awk '/^## Excluded Payload/{found=1;next} found && /^## /{exit
   | sed 's/`//g' \
   | awk 'NF{print $1}')"
 
+ZERO_DIFF_MODE=false
 if [[ -z "$REPORTED_FILES" ]]; then
-  echo "❌ STRUCTURAL FAIL — missing or empty '## Files Changed' section in SV Report"
-  echo "   修正方式：補齊 sv_report.md ## Files Changed，使其與 git diff ${DIFF_SCOPE} 精確一致。"
-  escalate_verdict "REPORT_FIX"
-  archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
-  exit 1
+  # 零 diff 宣告制（INFRA-SV-ZERODIFF-01）：三條件缺一即維持 FAIL，零 diff 非默認態
+  FILES_CHANGED_RAW="$(awk '/^## Files Changed/{found=1;next} found && /^## /{exit} found{print}' "$SV_REPORT")"
+  ZERO_DIFF_LINE="$(echo "$FILES_CHANGED_RAW" | grep "ZERO-DIFF-DECLARED" || true)"
+  if [[ -n "$ZERO_DIFF_LINE" ]]; then
+    if [[ -n "$ACTUAL_FILES" ]]; then
+      echo "❌ STRUCTURAL FAIL — ZERO-DIFF-DECLARED 存在但 git diff 非空（反向濫用防線：宣告不得掩蓋實際變更）"
+      echo "   宣告行：${ZERO_DIFF_LINE}"
+      echo "   實際 diff 檔案：$(echo "$ACTUAL_FILES" | tr '\n' ' ')"
+      escalate_verdict "REPORT_FIX"
+      archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
+      exit 1
+    fi
+    if [[ "$_REF" != "$_END" ]]; then
+      echo "❌ STRUCTURAL FAIL — ZERO-DIFF-DECLARED 但機械前提未滿足（DIFF_REF=${_REF} ≠ DIFF_END=${_END}）"
+      escalate_verdict "REPORT_FIX"
+      archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
+      exit 1
+    fi
+    ZERO_DIFF_JUSTIFICATION="$(echo "$ZERO_DIFF_LINE" | sed 's/.*ZERO-DIFF-DECLARED//')"
+    if ! echo "$ZERO_DIFF_JUSTIFICATION" | grep -qE '[^[:space:]:-]'; then
+      echo "❌ STRUCTURAL FAIL — ZERO-DIFF-DECLARED 缺授權依據引用（裸宣告不豁免）"
+      echo "   宣告行：${ZERO_DIFF_LINE}"
+      escalate_verdict "REPORT_FIX"
+      archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
+      exit 1
+    fi
+    ZERO_DIFF_MODE=true
+  else
+    echo "❌ STRUCTURAL FAIL — missing or empty '## Files Changed' section in SV Report"
+    echo "   修正方式：補齊 sv_report.md ## Files Changed，使其與 git diff ${DIFF_SCOPE} 精確一致。"
+    escalate_verdict "REPORT_FIX"
+    archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
+    exit 1
+  fi
 fi
 
-if ! ACTUAL_FILES="$(git diff --name-only "$DIFF_SCOPE" 2>/dev/null)"; then
-  fail_env "git diff failed for scope: $DIFF_SCOPE"
-fi
+if [[ "$ZERO_DIFF_MODE" != "true" ]]; then
+  # Check A: report claims file not in diff (ghost claim)
+  GHOST=""
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    if ! echo "$ACTUAL_FILES" | grep -qxF "$f"; then
+      GHOST="${GHOST}  - ${f}\n"
+    fi
+  done <<< "$REPORTED_FILES"
 
-# Check A: report claims file not in diff (ghost claim)
-GHOST=""
-while IFS= read -r f; do
-  [[ -z "$f" ]] && continue
-  if ! echo "$ACTUAL_FILES" | grep -qxF "$f"; then
-    GHOST="${GHOST}  - ${f}\n"
-  fi
-done <<< "$REPORTED_FILES"
-
-# Check B: diff has file not listed in report (missing disclosure)
-UNDISCLOSED=""
-while IFS= read -r f; do
-  [[ -z "$f" ]] && continue
-  if ! echo "$REPORTED_FILES" | grep -qxF "$f"; then
-    UNDISCLOSED="${UNDISCLOSED}  - ${f}\n"
-  fi
-done <<< "$ACTUAL_FILES"
-
-# Check C: each excluded file must also appear in Files Changed
-EXCLUDED_NOT_DISCLOSED=""
-if [[ -n "$EXCLUDED_FILES" ]]; then
+  # Check B: diff has file not listed in report (missing disclosure)
+  UNDISCLOSED=""
   while IFS= read -r f; do
     [[ -z "$f" ]] && continue
     if ! echo "$REPORTED_FILES" | grep -qxF "$f"; then
-      EXCLUDED_NOT_DISCLOSED="${EXCLUDED_NOT_DISCLOSED}  - ${f}\n"
+      UNDISCLOSED="${UNDISCLOSED}  - ${f}\n"
     fi
-  done <<< "$EXCLUDED_FILES"
+  done <<< "$ACTUAL_FILES"
+
+  # Check C: each excluded file must also appear in Files Changed
+  EXCLUDED_NOT_DISCLOSED=""
+  if [[ -n "$EXCLUDED_FILES" ]]; then
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      if ! echo "$REPORTED_FILES" | grep -qxF "$f"; then
+        EXCLUDED_NOT_DISCLOSED="${EXCLUDED_NOT_DISCLOSED}  - ${f}\n"
+      fi
+    done <<< "$EXCLUDED_FILES"
+  fi
+
+  [[ -n "$GHOST" ]] && {
+    echo "❌ STRUCTURAL FAIL — [A] 幽靈宣稱（Report 有，diff 無）："
+    printf '%b' "$GHOST"
+    escalate_verdict "REPORT_FIX"
+  }
+  [[ -n "$UNDISCLOSED" ]] && {
+    echo "❌ STRUCTURAL FAIL — [B] 漏揭露（diff 有，Report 無）："
+    printf '%b' "$UNDISCLOSED"
+    echo "   提示：.claude/PROGRESS.md 須列並標示 ← Pipeline Artifact"
+    echo "   提示：若列出大量舊 Ticket 檔案，表示 DIFF_REF 過舊 → 執行 verify_checklist.sh 確認 STALE_DIFF_REF，並更新 verify_cmd.conf DIFF_REF 至 Ticket 起點"
+    escalate_verdict "REPORT_FIX"
+  }
+  [[ -n "$EXCLUDED_NOT_DISCLOSED" ]] && {
+    echo "❌ STRUCTURAL FAIL — [C] Excluded Payload 未在 Files Changed 揭露："
+    printf '%b' "$EXCLUDED_NOT_DISCLOSED"
+    echo "   提示：排除的檔案仍須出現在 Files Changed"
+    escalate_verdict "REPORT_FIX"
+  }
+
+  if [[ "$_CURRENT_VERDICT" == "REPORT_FIX" || "$_CURRENT_VERDICT" == "BLOCKER" ]]; then
+    echo "   修正方式：更新 sv_report.md ## Files Changed 使其與 git diff ${DIFF_SCOPE} 精確一致。"
+    archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
+    exit 1
+  fi
 fi
 
-[[ -n "$GHOST" ]] && {
-  echo "❌ STRUCTURAL FAIL — [A] 幽靈宣稱（Report 有，diff 無）："
-  printf '%b' "$GHOST"
-  escalate_verdict "REPORT_FIX"
-}
-[[ -n "$UNDISCLOSED" ]] && {
-  echo "❌ STRUCTURAL FAIL — [B] 漏揭露（diff 有，Report 無）："
-  printf '%b' "$UNDISCLOSED"
-  echo "   提示：.claude/PROGRESS.md 須列並標示 ← Pipeline Artifact"
-  echo "   提示：若列出大量舊 Ticket 檔案，表示 DIFF_REF 過舊 → 執行 verify_checklist.sh 確認 STALE_DIFF_REF，並更新 verify_cmd.conf DIFF_REF 至 Ticket 起點"
-  escalate_verdict "REPORT_FIX"
-}
-[[ -n "$EXCLUDED_NOT_DISCLOSED" ]] && {
-  echo "❌ STRUCTURAL FAIL — [C] Excluded Payload 未在 Files Changed 揭露："
-  printf '%b' "$EXCLUDED_NOT_DISCLOSED"
-  echo "   提示：排除的檔案仍須出現在 Files Changed"
-  escalate_verdict "REPORT_FIX"
-}
-
-if [[ "$_CURRENT_VERDICT" == "REPORT_FIX" || "$_CURRENT_VERDICT" == "BLOCKER" ]]; then
-  echo "   修正方式：更新 sv_report.md ## Files Changed 使其與 git diff ${DIFF_SCOPE} 精確一致。"
-  archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
-  exit 1
+if [[ "$ZERO_DIFF_MODE" == "true" ]]; then
+  echo "✅ STRUCTURAL VERIFY PASS — 零 diff 宣告輪（ZERO-DIFF-DECLARED，DIFF_REF==DIFF_END=${_REF}）"
+else
+  echo "✅ STRUCTURAL VERIFY PASS (A/B/C) — git diff ${DIFF_SCOPE}"
 fi
-
-echo "✅ STRUCTURAL VERIFY PASS (A/B/C) — git diff ${DIFF_SCOPE}"
 
 if [[ "$POST_MODE" != "true" ]]; then
   archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
