@@ -15,16 +15,16 @@
 | INFRA-SKILLS-UC02 | ✅ Done（碼閉環）· `uc/SKILL.md` Ticket DONE 改為 QA 交棒信號（AI-1）+ QA/SV Auto-Chain ownership 鎖定，`/uc` 不得直呼 `/sv`（AI-2）+ 非 DONE 動作停止語義保留（AI-3）· 25L diff（14+/11-）< MAX_LINES 45 · Codex Cross-Review R2 PASS（REACHABILITY: NONE，K5-Rule 29 誠實揭露 AC2-5 未實測）· `6b74eab` · 免 Traycer（純 prompt-layer 治理票，Codex PASS 即閉環）· **AC2-5[可達性/行為性] 待下次真實 `/uc` Ticket DONE 觸發實測後轉 PASS** |
 | GAP-10-BREATH-RESTART | ✅ Done（碼閉環）· `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 兩處 `InfiniteRepeatableSpec` 補 `repeatMode = RepeatMode.Reverse`（比照既有 breathe-dot 範本）· 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `0acabd6`（code）+ `3e8d43e`（docs）· **[實機] AC 待 D17 Akira 呼吸真偽終審**（BREATH-KILL 預授權出口）· 關票待 Traycer |
 
-**Last Updated**: 2026-07-18
+**Last Updated**: 2026-07-19
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S62** · GAP-06-TARGET-01-REVA-FIX-A ✅ Done（AC 5/5 附證據，PROGRESS 終態同步，`6c4a38c`，免 Codex+免 Traycer）· **S61** · DOCS-T2-REPORT-01 ✅ Done（Traycer T2 回審報告歸檔，gitignored 未 commit）· **S60** · INFRA-AGENTS-CR-04 ✅ Done（AC 6/6 附證據，AI-1~3 全數落地，Codex R1 PASS，`94c5791`，免 Traycer）· **S59** · INFRA-CLOSURE-SOP-01 ✅ Done（碼閉環，`ssot-governance.md` 增列 Ticket Closure 紀律，+8L，Codex R3 PASS，首次 dogfood 收尾 CR-02，免 Traycer）· **S58** · INFRA-AGENTS-CR-02 ✅ Done（AC 5/5 附證據，`cross-review.md` R0 記錄落盤條款，`d8ecabd`，Codex R2 PASS）|
-| Compile | ✅ PASS `assembleDebug`（GAP-06-TARGET-01-REVA-FIX-A · 2026-07-18，36s） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` + `testEmulatorDebugUnitTest` 209/209（0 fail，雙 flavor；S61/S62 零 .kt 觸碰，沿用 CR-04 基準） |
-| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（S61/S62 純 .md 治理票，lint 不掃描）· static_blind_scan.sh 3 項警示同為 pre-existing 域外檔案 |
+| Schedule | **S63** · INFRA-QA-PRECEDENCE-01-DOCSYNC-01-FIX-A ✅ Done（AC 6/6 附證據，Path A replay 兩項 [行為性] 轉 PASS，PROGRESS 終態同步，`0fa21b9`，免 Codex+免 Traycer）· **S62** · GAP-06-TARGET-01-REVA-FIX-A ✅ Done（AC 5/5 附證據，PROGRESS 終態同步，`6c4a38c`，免 Codex+免 Traycer）· **S61** · DOCS-T2-REPORT-01 ✅ Done（Traycer T2 回審報告歸檔，gitignored 未 commit）· **S60** · INFRA-AGENTS-CR-04 ✅ Done（AC 6/6 附證據，AI-1~3 全數落地，Codex R1 PASS，`94c5791`，免 Traycer）· **S59** · INFRA-CLOSURE-SOP-01 ✅ Done（碼閉環，`ssot-governance.md` 增列 Ticket Closure 紀律，+8L，Codex R3 PASS，首次 dogfood 收尾 CR-02，免 Traycer）|
+| Compile | ✅ PASS `assembleDebug`（INFRA-QA-PRECEDENCE-01-DOCSYNC-01-FIX-A · 2026-07-19，45s） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` + `testEmulatorDebugUnitTest` 209/209（0 fail，雙 flavor；S61-S63 零 .kt 觸碰，沿用 CR-04 基準） |
+| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（S61-S63 純 .md 治理票，lint 不掃描）· static_blind_scan.sh 3 項警示同為 pre-existing 域外檔案 |
 
 ## Active Blockers
 
@@ -54,6 +54,7 @@
 9. **⚠️ 待 Akira 核驗**：GAP-06-TARGET-01-REVA 曾於 2026-07-16 執行 Codex Cross-Review R1 PASS（`b6b199f..5d8cc36`），該結果與 `.tmp/` 佐證檔現已不存在；**注意**：2026-07-18 另有獨立之 Traycer strict_verification Path A APPROVE（錨 `bc40d17`，見 Active Blockers）發生，二者不互相取代——本項待核驗之舊 R1 PASS 缺失問題仍未解
 10. **✅ INFRA-AGENTS-CR-04 → Done**：AI-1~3 碼閉環 + AC 6/6（Codex R1 PASS `94c5791`，免 Traycer，票檔已搬 `deliver/`）
 11. **✅ DOCS-T2-REPORT-01 + GAP-06-TARGET-01-REVA-FIX-A → Done**：Traycer T2 報告歸檔 + PROGRESS GAP-06 終態同步（`6c4a38c`），詳見上表 S61/S62
+12. **✅ INFRA-QA-PRECEDENCE-01 → Done**：Path A replay（`cross-reviewer` 兩次獨立派工）驗證 AC3（無處置條款回放判 FAIL）+ AC4（模擬票驗證判 SKIP）均 PASS，全 AC 7/7；承接票 `INFRA-QA-PRECEDENCE-01-DOCSYNC-01-FIX-A`（`0fa21b9`）同步收尾，兩票檔已搬 `deliver/`，詳見上表 S63
 
 ## Active Debt（僅列未解決項）
 
