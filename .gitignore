@@ -80,3 +80,6 @@ plans/archive/
 # UA 誤跑於 src/ 子目錄的殘留產物（正確位置為專案根目錄）
 app/src/**/.understand-anything/
 headroom_memory.db
+
+# Local MCP server config (per-machine, not committed)
+.mcp.json
