@@ -11,16 +11,16 @@
 | INFRA-SKILLS-UC02 | ✅ Done（碼閉環）· `uc/SKILL.md` Ticket DONE 改為 QA 交棒信號（AI-1）+ QA/SV Auto-Chain ownership 鎖定，`/uc` 不得直呼 `/sv`（AI-2）+ 非 DONE 動作停止語義保留（AI-3）· 25L diff（14+/11-）< MAX_LINES 45 · Codex Cross-Review R2 PASS（REACHABILITY: NONE，K5-Rule 29 誠實揭露 AC2-5 未實測）· `6b74eab` · 免 Traycer（純 prompt-layer 治理票，Codex PASS 即閉環）· **AC2-5[可達性/行為性] 待下次真實 `/uc` Ticket DONE 觸發實測後轉 PASS** |
 | GAP-10-BREATH-RESTART | ✅ Done（碼閉環）· `HaloGuidanceLayer.kt` ptfBreathAlpha/normalBreathAlpha 兩處 `InfiniteRepeatableSpec` 補 `repeatMode = RepeatMode.Reverse`（比照既有 breathe-dot 範本）· 205/205 tests + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `0acabd6`（code）+ `3e8d43e`（docs）· **[實機] AC 待 D17 Akira 呼吸真偽終審**（BREATH-KILL 預授權出口）· 關票待 Traycer |
 
-**Last Updated**: 2026-07-17
+**Last Updated**: 2026-07-18
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S59** · INFRA-CLOSURE-SOP-01 ✅ Done（碼閉環，`ssot-governance.md` 增列 Ticket Closure 紀律，+8L，Codex R3 PASS，首次 dogfood 收尾 CR-02，免 Traycer）· **S58** · INFRA-AGENTS-CR-02 ✅ Done（AC 5/5 附證據，`cross-review.md` R0 記錄落盤條款，`d8ecabd`，Codex R2 PASS）· **S57** · INFRA-64 母票終審結案 ✅ Done（`INFRA-HEADROOM-DECOMMISSION-01` 第三次終審 PASS，`daeee26`）· **S56** · INFRA-PROGRESS-COMPRESS-01 票據收尾 ✅ Done（checkbox 全勾＋執行記錄補交＋5 探針彙整全 PASS）· **S55** · GAP-06-TARGET-01-REVA A6 修補 ✅ 碼閉環（unit tests×2 + KDoc comment-only，待 R0/Codex 快審 → Traycer T2 回審）|
-| Compile | ✅ PASS `assembleDebug`（INFRA-CLOSURE-SOP-01 · 2026-07-17，`9032723`，13s） |
+| Schedule | **S60** · INFRA-AGENTS-CR-04 ✅ 碼閉環（AI-1~3 全數落地：cross-reviewer.md 職責 1 條件豁免三要件 + FORWARD 附註分支、cross-review.md 增列 `TRUE-POSITIVE-RULE-GAP` 三分類定義 + `CLASSIFICATION` 記錄欄位；+7L < MAX_LINES 120；待 R0/Codex Cross-Review）· **S59** · INFRA-CLOSURE-SOP-01 ✅ Done（碼閉環，`ssot-governance.md` 增列 Ticket Closure 紀律，+8L，Codex R3 PASS，首次 dogfood 收尾 CR-02，免 Traycer）· **S58** · INFRA-AGENTS-CR-02 ✅ Done（AC 5/5 附證據，`cross-review.md` R0 記錄落盤條款，`d8ecabd`，Codex R2 PASS）· **S57** · INFRA-64 母票終審結案 ✅ Done（`INFRA-HEADROOM-DECOMMISSION-01` 第三次終審 PASS，`daeee26`）· **S56** · INFRA-PROGRESS-COMPRESS-01 票據收尾 ✅ Done（checkbox 全勾＋執行記錄補交＋5 探針彙整全 PASS）|
+| Compile | ✅ PASS `assembleDebug`（INFRA-AGENTS-CR-04 · 2026-07-18，54s） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest` + `testEmulatorDebugUnitTest` 209/209（0 fail，雙 flavor；本票零 .kt 觸碰） |
-| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（.md 治理票，lint 不掃描）· static_blind_scan.sh 3 項警示同為 pre-existing 域外檔案，非本票 diff 觸及 |
+| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（純 .md 治理票，lint 不掃描）· static_blind_scan.sh 3 項警示同為 pre-existing 域外檔案，非本票 diff 觸及 |
 
 ## Active Blockers
 
@@ -47,6 +47,8 @@
 6. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
 7. **🟢 TRACTION-SSOT-04 CSO 閉環**（技術已閉，待 CSO Ticket）：母票 line-91 AC box 打勾 · `move_file` Pending→deliver · Postponed #6（R-T14）→DONE / #5（RENDER-01）→ready · 編號對帳 K4-45（R-T18 stamp 前釐清 R-T17：overruled-void vs consumed）
 8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART ✅ Done**（/qa+/sv+Codex Cross-Review 全 PASS，待 D17 Akira 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口；關票待 Traycer）
+9. **⚠️ 待 Akira 核驗**：GAP-06-TARGET-01-REVA 曾於 2026-07-16 執行 Codex Cross-Review R1 PASS（`b6b199f..5d8cc36`），但該結果與 `.tmp/` 佐證檔現已不存在（疑遭 2026-07-17 後續治理票提交覆蓋/housekeeping 清空）；本表暫不回寫該 PASS 狀態，詳見 `SESSION_HANDOFF_20260718_1421.md`
+10. **🟡 INFRA-AGENTS-CR-04**：AI-1~3 碼閉環（`DIFF_REF=a596df5`，`/qa` PASS：assembleDebug + 209/209 tests×2 + lintDeviceDebug 0 new warning），待 R0/Codex Cross-Review → `/sv`
 
 ## Active Debt（僅列未解決項）
 
