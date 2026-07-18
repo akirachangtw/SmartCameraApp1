@@ -5,6 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| INFRA-QA-PRECEDENCE-01 | 🟡 **PARTIAL**（非 Done）· AI-1/AI-2 已完成（qa Skill 票面明文優先序條款 + cross-review.md 觸碰面登記表），Codex Cross-Review R1 PASS `fbdb18c` · AC 5/7 附證據 · **AC3/AC4[行為性]** 未閉環：AC3 待真實 R0 Pre-flight 回放（邏輯位於 `.claude/agents/cross-reviewer.md`，不在本票 ALLOWED）、AC4 待獨立模擬票驗證（本票自身 dogfood 僅初步佐證，非獨立驗證）→ 承接票 `INFRA-QA-PRECEDENCE-01-DOCSYNC-01` |
 | GAP-06-TARGET-01-REVA-FIX-A | ✅ Done（碼閉環，AC 5/5 附證據）· PROGRESS.md GAP-06 兩處狀態同步為「Traycer strict_verification Path A APPROVE（碼域，錨 bc40d17）· 剩 D19 三項 [實機] AC」（AI-1/AI-2）· read-back 命中 + `wc -l`=68≤80 · `assembleDebug` PASS(36s) · `6c4a38c` · 依票面 Hard Constraint 1 不進 R0/cross_review pipeline（免 Codex + 免 Traycer） |
 | DOCS-T2-REPORT-01 | ✅ Done（歸檔票）· Traycer T2 回審報告全文歸檔至 `plans/cso_briefing/reports/`（gitignored，本機歸檔未 commit，比照 CR-04 慣例）· Ticket ID family `DOCS-[XX]` 未登記，Akira 授權選項 A（CSO 直接授權比照前例），provenance 補登暫緩 |
 | INFRA-AGENTS-CR-04 | ✅ Done（碼閉環，AC 6/6 附證據）· `cross-reviewer.md` 職責 1 增條件豁免三要件分支（AI-1）+ `cross-review.md` R0 事件三分類 `TRUE-POSITIVE-RULE-GAP`（AI-2）+ fail-advisor 記錄格式六→七欄位 `CLASSIFICATION` 欄（AI-3）· +7L < MAX_LINES 120 · Codex Cross-Review R1 **PASS**（REACHABILITY: NONE）· `94c5791`（code）+ `65a725a`（PROGRESS.md 同步）· AC3/AC4 **[行為性]** 已轉 PASS（`cross-reviewer` subagent 實測：GAP-06-REVA 實案回放 → FORWARD；PROGRESS.md+.kt 合成反向測試 → 維持 CHECKPOINT-REQUIRED）· 免 Traycer（純 .md 治理票）· 已知製程限制（R0 無 Bash/git，要件 1 需主 session 預驗證，詳 sv_report.md）· 票檔已搬 `deliver/` |
