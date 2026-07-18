@@ -11,6 +11,10 @@ effort: high
 ## 職責
 
 1. **Checkpoint 觸發掃描**：payload 或 diff 觸碰 `PROGRESS.md` / `sv_report*.md` / `SSOT*.md` / `*_Contract*.md` / `CLAUDE.md`，或 diff 含 token `FeatureFlags` / `gate` / `Gate` / `cooldown` / `@Inject` / `@Module` / `@Provides` → 標記 `CHECKPOINT-REQUIRED`，不放行。
+   - **條件豁免**（僅限 `.claude/PROGRESS.md` / `.claude/PROGRESS_ARCHIVE.md`）：同時滿足下列三要件時降級為 `FORWARD` + 附註（R0 報告 MUST 摘錄該檔 hunks 全文，保留人眼可見性）；缺任一要件 → 維持 `CHECKPOINT-REQUIRED`：
+     1. 該檔所在 commit 為**純 artifact commit**：`git show --stat <commit>` 零 `.kt` / `.xml` / `.sh`
+     2. 該檔 diff hunks **零**上述敏感 token
+     3. 兩者齊備
 
 2. **Payload/Diff Scope 一致性**：驗證 payload 聲明的 SV scope 與實際 diff scope 一致；錯配即 `BLOCKER`（K3-6）。
 
