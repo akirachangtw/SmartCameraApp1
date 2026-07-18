@@ -5,6 +5,8 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| GAP-06-TARGET-01-REVA-FIX-A | ✅ Done（碼閉環，AC 5/5 附證據）· PROGRESS.md GAP-06 兩處狀態同步為「Traycer strict_verification Path A APPROVE（碼域，錨 bc40d17）· 剩 D19 三項 [實機] AC」（AI-1/AI-2）· read-back 命中 + `wc -l`=68≤80 · `assembleDebug` PASS(36s) · `6c4a38c` · 依票面 Hard Constraint 1 不進 R0/cross_review pipeline（免 Codex + 免 Traycer） |
+| DOCS-T2-REPORT-01 | ✅ Done（歸檔票）· Traycer T2 回審報告全文歸檔至 `plans/cso_briefing/reports/`（gitignored，本機歸檔未 commit，比照 CR-04 慣例）· Ticket ID family `DOCS-[XX]` 未登記，Akira 授權選項 A（CSO 直接授權比照前例），provenance 補登暫緩 |
 | INFRA-AGENTS-CR-04 | ✅ Done（碼閉環，AC 6/6 附證據）· `cross-reviewer.md` 職責 1 增條件豁免三要件分支（AI-1）+ `cross-review.md` R0 事件三分類 `TRUE-POSITIVE-RULE-GAP`（AI-2）+ fail-advisor 記錄格式六→七欄位 `CLASSIFICATION` 欄（AI-3）· +7L < MAX_LINES 120 · Codex Cross-Review R1 **PASS**（REACHABILITY: NONE）· `94c5791`（code）+ `65a725a`（PROGRESS.md 同步）· AC3/AC4 **[行為性]** 已轉 PASS（`cross-reviewer` subagent 實測：GAP-06-REVA 實案回放 → FORWARD；PROGRESS.md+.kt 合成反向測試 → 維持 CHECKPOINT-REQUIRED）· 免 Traycer（純 .md 治理票）· 已知製程限制（R0 無 Bash/git，要件 1 需主 session 預驗證，詳 sv_report.md）· 票檔已搬 `deliver/` |
 | INFRA-CLOSURE-SOP-01 | ✅ Done（碼閉環）· `ssot-governance.md` 增列「Ticket Closure 紀律」節：勾選/搬移/修補票三條 MUST（AI-1）· +8L < MAX_LINES 40 · Codex Cross-Review R1/R2 REPORT_FIX（sv_report 措辭/token 修正）→R3 **PASS**（REACHABILITY: NONE）· `9032723` · 免 Traycer（純 .md 治理票）· **首次 dogfood**（INFRA-AGENTS-CR-02 收尾）AC 3/3 附證據 PASS，票檔已搬 `deliver/` |
 | INFRA-AGENTS-CR-02 | ✅ Done（碼閉環，AC 5/5 附 read-back 證據）· `cross-review.md` R0 送審記錄落盤條款：`.tmp/fail-advisor/R0_[TICKET]_[YYYYMMDD_HHMMSS].md` 六欄位格式 + `RETAIN_N=20` FIFO housekeeping + `.tmp/` 非版控紀律（AI-1）· `d8ecabd` · Codex R2 PASS · **AC2/AC3[行為性] 已轉 PASS**（R0 委派記錄 + 21 筆佔位 housekeeping 實測，證據見票檔）· 免開修補票（Akira 2026-07-17 裁決 B，無未閉環 AC）· 票檔已搬 `deliver/` |
@@ -18,10 +20,10 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S60** · INFRA-AGENTS-CR-04 ✅ Done（AC 6/6 附證據，AI-1~3 全數落地，Codex R1 PASS，`94c5791`，免 Traycer）· **S59** · INFRA-CLOSURE-SOP-01 ✅ Done（碼閉環，`ssot-governance.md` 增列 Ticket Closure 紀律，+8L，Codex R3 PASS，首次 dogfood 收尾 CR-02，免 Traycer）· **S58** · INFRA-AGENTS-CR-02 ✅ Done（AC 5/5 附證據，`cross-review.md` R0 記錄落盤條款，`d8ecabd`，Codex R2 PASS）· **S57** · INFRA-64 母票終審結案 ✅ Done（`INFRA-HEADROOM-DECOMMISSION-01` 第三次終審 PASS，`daeee26`）· **S56** · INFRA-PROGRESS-COMPRESS-01 票據收尾 ✅ Done（checkbox 全勾＋執行記錄補交＋5 探針彙整全 PASS）|
-| Compile | ✅ PASS `assembleDebug`（INFRA-AGENTS-CR-04 · 2026-07-18，54s） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` + `testEmulatorDebugUnitTest` 209/209（0 fail，雙 flavor；本票零 .kt 觸碰） |
-| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（純 .md 治理票，lint 不掃描）· static_blind_scan.sh 3 項警示同為 pre-existing 域外檔案，非本票 diff 觸及 |
+| Schedule | **S62** · GAP-06-TARGET-01-REVA-FIX-A ✅ Done（AC 5/5 附證據，PROGRESS 終態同步，`6c4a38c`，免 Codex+免 Traycer）· **S61** · DOCS-T2-REPORT-01 ✅ Done（Traycer T2 回審報告歸檔，gitignored 未 commit）· **S60** · INFRA-AGENTS-CR-04 ✅ Done（AC 6/6 附證據，AI-1~3 全數落地，Codex R1 PASS，`94c5791`，免 Traycer）· **S59** · INFRA-CLOSURE-SOP-01 ✅ Done（碼閉環，`ssot-governance.md` 增列 Ticket Closure 紀律，+8L，Codex R3 PASS，首次 dogfood 收尾 CR-02，免 Traycer）· **S58** · INFRA-AGENTS-CR-02 ✅ Done（AC 5/5 附證據，`cross-review.md` R0 記錄落盤條款，`d8ecabd`，Codex R2 PASS）|
+| Compile | ✅ PASS `assembleDebug`（GAP-06-TARGET-01-REVA-FIX-A · 2026-07-18，36s） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` + `testEmulatorDebugUnitTest` 209/209（0 fail，雙 flavor；S61/S62 零 .kt 觸碰，沿用 CR-04 基準） |
+| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（S61/S62 純 .md 治理票，lint 不掃描）· static_blind_scan.sh 3 項警示同為 pre-existing 域外檔案 |
 
 ## Active Blockers
 
@@ -42,14 +44,15 @@
 ## Next Actions
 
 1. **🟡 引用修正支線**：使用者要求「`.claude/`、`plans/` 引用新版本路徑 v3.3」，已掃描分類（現行指標多數已於 GOV-03/PROTO-01 同步；`plans/cso_briefing/` 內 v3.2 引用屬 R-T5 化石溯源，Hard Constraint 3 **MUST** 不回改）→ **新 session 待使用者確認範圍或指定具體檔案後執行**
-2. **✅ TRACTION-SSOT-01 → STATE-CONTRACT-04 ✅ Done**：SSOT §2.5/§2.5.1/§2.5.2 + Layout §3.3 規格已落地；ALIGNED 呼吸帶三常數家族已單次觸碰重錨（`ce9b232`，見上表）；GAP-06-TARGET-01-REVA 碼閉環，待 Traycer T2（見 Active Blockers）
+2. **✅ TRACTION-SSOT-01 → STATE-CONTRACT-04 ✅ Done**：SSOT §2.5/§2.5.1/§2.5.2 + Layout §3.3 規格已落地；ALIGNED 呼吸帶三常數家族已單次觸碰重錨（`ce9b232`，見上表）；GAP-06-TARGET-01-REVA 已獲 strict_verification Path A APPROVE，剩 D19 三項 [實機] AC（見 Active Blockers）
 4. **🔴 待 CSO 裁決（治理驗證器）**：L-1 `[0.3]` 行數 awk 字面比對 → `MAX_LINES` 靜默失效（建議開後續票）· L-2 裸目錄前綴 FORBIDDEN token 語義（加分支 vs 判 malformed）· D-1/D-2/C-1（INFRA-EOL-01 遺留）· 本輪微票是否入 PROGRESS.md
 5. **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審
 6. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
 7. **🟢 TRACTION-SSOT-04 CSO 閉環**（技術已閉，待 CSO Ticket）：母票 line-91 AC box 打勾 · `move_file` Pending→deliver · Postponed #6（R-T14）→DONE / #5（RENDER-01）→ready · 編號對帳 K4-45（R-T18 stamp 前釐清 R-T17：overruled-void vs consumed）
 8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART ✅ Done**（/qa+/sv+Codex Cross-Review 全 PASS，待 D17 Akira 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口；關票待 Traycer）
-9. **⚠️ 待 Akira 核驗**：GAP-06-TARGET-01-REVA 曾於 2026-07-16 執行 Codex Cross-Review R1 PASS（`b6b199f..5d8cc36`），但該結果與 `.tmp/` 佐證檔現已不存在（疑遭 2026-07-17 後續治理票提交覆蓋/housekeeping 清空）；本表暫不回寫該 PASS 狀態，詳見 `SESSION_HANDOFF_20260718_1421.md`
+9. **⚠️ 待 Akira 核驗**：GAP-06-TARGET-01-REVA 曾於 2026-07-16 執行 Codex Cross-Review R1 PASS（`b6b199f..5d8cc36`），該結果與 `.tmp/` 佐證檔現已不存在；**注意**：2026-07-18 另有獨立之 Traycer strict_verification Path A APPROVE（錨 `bc40d17`，見 Active Blockers）發生，二者不互相取代——本項待核驗之舊 R1 PASS 缺失問題仍未解
 10. **✅ INFRA-AGENTS-CR-04 → Done**：AI-1~3 碼閉環 + AC 6/6（Codex R1 PASS `94c5791`，免 Traycer，票檔已搬 `deliver/`）
+11. **✅ DOCS-T2-REPORT-01 + GAP-06-TARGET-01-REVA-FIX-A → Done**：Traycer T2 報告歸檔 + PROGRESS GAP-06 終態同步（`6c4a38c`），詳見上表 S61/S62
 
 ## Active Debt（僅列未解決項）
 
