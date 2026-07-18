@@ -43,6 +43,15 @@ diff 跨三層 or 涉及 CameraViewModel.kt → `xhigh`。
 
 ## R0 預審路由
 
+- **管線標準觸碰面登記表**（新管線步驟觸碰 repo-tracked 檔案時 MUST 同步維護）：
+
+  | 管線步驟 | 標準觸碰面 |
+  |---------|-----------|
+  | /qa Step 4 | `.claude/PROGRESS.md` |
+  | /qa Step 4.5 | `PROGRESS_ARCHIVE.md`（歸檔輪替） |
+  | /handoff | `Handoff/` |
+
+- **Pre-flight FORBIDDEN 比對維度**：票面 FORBIDDEN 清單 × 上表觸碰面——命中時票面 **MUST** 內建處置條款（`DEFERRED-TO-DOCSYNC` 或明示例外授權），留白即 Pre-flight FAIL（開票 lint，衝突消滅於起草時）。
 - **R0 路由**：`cross_review.sh` 產生 payload 後、`codex exec` 之前，**MUST** 先委派 `cross-reviewer` subagent（附 payload 路徑 `.tmp/cross_review_payload.md`）；R0 回報 FAIL / CHECKPOINT-REQUIRED → **MUST NOT** 送 Codex，直接進修正或 Checkpoint 裁決流程。
 - **護欄一（無放行權）**：R0 任何結果（含 FORWARD）**MUST NOT** 計為正式 cross-review PASS；正式審查主體唯 Codex（gstack 跨家族紀律）。
 - **護欄二（否決申訴）**：Akira **MAY** override R0 誤攔直送 Codex；R0 誤攔事件 **MUST** 記錄（校準預過濾器）。

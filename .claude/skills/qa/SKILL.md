@@ -70,6 +70,19 @@ bash .claude/skills/qa/scripts/static_blind_scan.sh
 
 Step 3.5 產出 ⚠️ WARNING 而非硬 FAIL；所有 ⚠️ 項目 **SHOULD** 在 `sv_report.md` 中記錄豁免理由，由 `cross_review.sh` Layer 3 和 Traycer 做最終判斷。
 
+## Step 4 / 4.5 例外：票面明文優先序
+
+Step 4（PROGRESS.md 更新）與 Step 4.5（Auto Commit / Auto-Chain）之通用 MUST，於下列情形自動改判 **SKIP**，不計 FAIL、不觸發 STOP：
+
+- 票面 FORBIDDEN 命中該步驟之目標檔案，或
+- 票面 Hard Constraints 明文例外該步驟之通用流程
+
+命中時 QA 報告標注 `SKIPPED — DEFERRED-TO-DOCSYNC`。
+
+**承接條件（缺一仍 STOP）**：存在承接 DOCSYNC 票，**或** QA 報告「待開票」節登記同步債（含本票 ID 與完成狀態）——防同步債靜默累積。
+
+**適用範圍**：本條款僅適用「Skill 通用流程 vs 票面明文例外（FORBIDDEN 或 Hard Constraints）」此一衝突型；其餘規則衝突維持 Rule 11 停下確認，**不得推廣為任意衝突之自動裁決**。
+
 ## Step 4: 更新 PROGRESS.md Dashboard
 
 讀取 `PROGRESS.md`，更新以下欄位：
