@@ -339,3 +339,9 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 **CLAUDE.md Addition — 已核准併入**：Family Provenance Spawn-Time 登記規則已由 `INFRA-CLAUDE-RULE-HARVEST-01`（CSO 2026-07-09 裁決）正式併入 Rule 4a 本文，非新增第 13 條核心規則。觸發來源：GAP-06-RENDER-DOT-01、INFRA-TICKETID-SSOT-V407-01。
 
 **Traycer strict_verification 最終閉環重跑（2026-07-09）**：Path A — APPROVE。GAP-06-RENDER-DOT-01 全 scope（實作 + closure + governance cleanup）確認可關閉，無新增修正項。**Governance Learnings**：①closure 票涉治理憲法層（CLAUDE.md）應即時獨立票化，不與 feature closure 綁定 ②KAIROS candidate 與 landed state 在 PROGRESS.md MUST 單向明確，禁止「待人工確認」與「已落地」雙真理並存 ③`INFRA-CLAUDE-RULE-HARVEST-01` 剝離 governance cleanup 之範式驗證有效，可作後續範本。
+
+## Archived 2026-07-19 (/compact S67 併行)
+
+> **歸檔（Sprint Health Schedule 5 筆上限移出）：`GAP-06-TARGET-01-REVA-FIX-A`** ✅ Done（AC 5/5 附證據）· PROGRESS.md GAP-06 兩處狀態同步為「Traycer strict_verification Path A APPROVE（碼域，錨 bc40d17）· 剩 D19 三項 [實機] AC」（AI-1/AI-2）· read-back 命中 + `wc -l`=68≤80 · `assembleDebug` PASS(36s) · `6c4a38c` · 依票面 Hard Constraint 1 不進 R0/cross_review pipeline（免 Codex + 免 Traycer）——完整內容仍存於 Header「最近 Ticket」表，本行僅記錄 Schedule 欄移出動作
+
+> **歸檔（Next Actions #10/#11 移出）：`INFRA-AGENTS-CR-04 → Done`**：AI-1~3 碼閉環 + AC 6/6（Codex R1 PASS `94c5791`，免 Traycer，票檔已搬 `deliver/`）；`DOCS-T2-REPORT-01 + GAP-06-TARGET-01-REVA-FIX-A → Done`：Traycer T2 報告歸檔 + PROGRESS GAP-06 終態同步（`6c4a38c`）——完整內容仍存於 Header「最近 Ticket」表，本行僅記錄 Next Actions 欄移出動作

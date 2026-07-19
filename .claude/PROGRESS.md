@@ -5,7 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-QA-COMMIT-EMPTYDIFF-01 | ✅ Done（碼閉環，AC 4/4 附證據）· `/qa` Step 4.5 Auto Commit 新增零 diff 偵測分支（AI-1，真零 diff → SKIPPED + `DIFF_END=DIFF_REF` + `ZERO-DIFF-DECLARED` token，禁用 `git commit --allow-empty`）· `assembleDebug` PASS(16s) + 0 new lint · Codex Cross-Review R2 PASS（REACHABILITY: NONE）· `structural_verify.sh --post` PASS（ADVISORY）· `43e4e5a` · **UC02 強制核收點履行**：AC2/AC3 直接實測轉 PASS，AC4/AC5 文字機械複測轉 PASS（誠實揭露非即時觸發，附重開條件）· 承接票 `INFRA-QA-COMMIT-EMPTYDIFF-01-DOCSYNC-01` 待開（PROGRESS.md 三處同步 + Step 10/10.5 承接）· 待 Traycer 終審 |
+| INFRA-QA-COMMIT-EMPTYDIFF-01 | ✅ Done（碼閉環，AC 4/4 附證據）· `/qa` Step 4.5 Auto Commit 新增零 diff 偵測分支（AI-1，真零 diff → SKIPPED + `DIFF_END=DIFF_REF` + `ZERO-DIFF-DECLARED` token，禁用 `git commit --allow-empty`）· `assembleDebug` PASS(16s) + 0 new lint · Codex Cross-Review R2 PASS（REACHABILITY: NONE）· `structural_verify.sh --post` PASS（ADVISORY）· `43e4e5a` · **UC02 強制核收點履行**：AC2/AC3 直接實測轉 PASS，AC4/AC5 文字機械複測轉 PASS（誠實揭露非即時觸發，附重開條件）· **FIX-A**（T2 Minor 修補）✅ Done：AC 6/6 附證據，Codex R1 PASS（REACHABILITY: NONE），`7324dab`，`structural_verify.sh --post` PASS(ADVISORY)，承接票 DOCSYNC-01 需求已由本次 `/compact` 同步履行 · 母票+FIX-A 均待 Traycer 終審 |
 | INFRA-SV-ZERODIFF-01 | ✅ Done（碼閉環，AC 7/7 附證據）· `structural_verify.sh` Check B 零 diff 三條件宣告制（AI-1，含自主發現 POST_MODE fall-through 修正，8 組行為測試全通過）+ 全管線零diff/docs-only 相容性掃描（AI-2，唯讀，結論表入 `decommission.md`）+ 退場票型清單/宣告制/四要件模板回填（AI-3）· `assembleDebug` PASS(16s) + 209/209 tests + 0 new lint · Codex Cross-Review R3 PASS（REACHABILITY: NONE；R1/R2 REPORT_FIX 為 sv_report.md 內部措辭一致性修正，非實作缺陷）· `35dd94e` · 免 Traycer（純 .sh/.md 治理票）· 承接票 `INFRA-QA-COMMIT-EMPTYDIFF-01` 已開（AI-2 掃描發現之 `/qa` Step 4.5 Auto Commit 真零diff缺口，待實作）· 票檔已搬 `deliver/` |
 | INFRA-QA-PRECEDENCE-01 | ✅ Done（碼閉環）· QA-PRECEDENCE-01 落地（`SKILL.md` L73/L80 含衝突型雙覆蓋＋圍欄，原裁決字串稱 L78/L84，經 FIX-A 核校正名）· 全 AC 7/7 PASS（含 FIX-A replay 行為驗證：AC3 對 `INFRA-HEADROOM-DECOMMISSION-01` 真實 R0 回放判 FAIL、AC4 獨立模擬票驗證判 SKIP，均如條款設計運作）· Codex R1 PASS `fbdb18c` · 承接票 `INFRA-QA-PRECEDENCE-01-DOCSYNC-01-FIX-A` 已閉環 |
 | GAP-06-TARGET-01-REVA-FIX-A | ✅ Done（碼閉環，AC 5/5 附證據）· PROGRESS.md GAP-06 兩處狀態同步為「Traycer strict_verification Path A APPROVE（碼域，錨 bc40d17）· 剩 D19 三項 [實機] AC」（AI-1/AI-2）· read-back 命中 + `wc -l`=68≤80 · `assembleDebug` PASS(36s) · `6c4a38c` · 依票面 Hard Constraint 1 不進 R0/cross_review pipeline（免 Codex + 免 Traycer） |
@@ -23,7 +23,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S66** · INFRA-COMPACT-AUTOCOMMIT-01 ✅ Done（AC 4/4 附證據，Codex R2 PASS，`62311fc`，免 Traycer，AC1-3 合成驗證附重開條件）· **S65** · INFRA-QA-COMMIT-EMPTYDIFF-01 ✅ Done（AC 4/4 附證據，Codex R2 PASS，`43e4e5a`，待 Traycer，UC02 核收點履行）· **S64** · INFRA-SV-ZERODIFF-01 ✅ Done（AC 7/7 附證據，Codex R3 PASS，`35dd94e`，免 Traycer）· **S63** · INFRA-QA-PRECEDENCE-01-DOCSYNC-01-FIX-A ✅ Done（AC 6/6 附證據，Path A replay 兩項 [行為性] 轉 PASS，PROGRESS 終態同步，`0fa21b9`，免 Codex+免 Traycer）· **S62** · GAP-06-TARGET-01-REVA-FIX-A ✅ Done（AC 5/5 附證據，PROGRESS 終態同步，`6c4a38c`，免 Codex+免 Traycer）|
+| Schedule | **S67** · INFRA-QA-COMMIT-EMPTYDIFF-01-FIX-A ✅ Done（AC 6/6 附證據，Codex R1 PASS，`7324dab`，待母票合併 Traycer 終審）· **S66** · INFRA-COMPACT-AUTOCOMMIT-01 ✅ Done（AC 4/4 附證據，Codex R2 PASS，`62311fc`，免 Traycer，AC1-3 合成驗證附重開條件）· **S65** · INFRA-QA-COMMIT-EMPTYDIFF-01 ✅ Done（AC 4/4 附證據，Codex R2 PASS，`43e4e5a`，待 Traycer，UC02 核收點履行）· **S64** · INFRA-SV-ZERODIFF-01 ✅ Done（AC 7/7 附證據，Codex R3 PASS，`35dd94e`，免 Traycer）· **S63** · INFRA-QA-PRECEDENCE-01-DOCSYNC-01-FIX-A ✅ Done（AC 6/6 附證據，Path A replay 兩項 [行為性] 轉 PASS，PROGRESS 終態同步，`0fa21b9`，免 Codex+免 Traycer）|
 | Compile | ✅ PASS `assembleDebug`（INFRA-COMPACT-AUTOCOMMIT-01 · 2026-07-19，1s，UP-TO-DATE） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest` 209/209（0 fail；INFRA-COMPACT-AUTOCOMMIT-01 純 .md 治理票，零 .kt 觸碰，沿用既有基準） |
 | Lint | ✅ `lintDeviceDebug` PASS，0 new warning（INFRA-COMPACT-AUTOCOMMIT-01 純 .md 治理票，lint 不掃描）· static_blind_scan.sh 7 項警示同為 pre-existing 域外檔案 |
@@ -54,12 +54,10 @@
 7. **🟢 TRACTION-SSOT-04 CSO 閉環**（技術已閉，待 CSO Ticket）：母票 line-91 AC box 打勾 · `move_file` Pending→deliver · Postponed #6（R-T14）→DONE / #5（RENDER-01）→ready · 編號對帳 K4-45（R-T18 stamp 前釐清 R-T17：overruled-void vs consumed）
 8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART ✅ Done**（/qa+/sv+Codex Cross-Review 全 PASS，待 D17 Akira 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口；關票待 Traycer）
 9. **⚠️ 待 Akira 核驗**：GAP-06-TARGET-01-REVA 曾於 2026-07-16 執行 Codex Cross-Review R1 PASS（`b6b199f..5d8cc36`），該結果與 `.tmp/` 佐證檔現已不存在；**注意**：2026-07-18 另有獨立之 Traycer strict_verification Path A APPROVE（錨 `bc40d17`，見 Active Blockers）發生，二者不互相取代——本項待核驗之舊 R1 PASS 缺失問題仍未解
-10. **✅ INFRA-AGENTS-CR-04 → Done**：AI-1~3 碼閉環 + AC 6/6（Codex R1 PASS `94c5791`，免 Traycer，票檔已搬 `deliver/`）
-11. **✅ DOCS-T2-REPORT-01 + GAP-06-TARGET-01-REVA-FIX-A → Done**：Traycer T2 報告歸檔 + PROGRESS GAP-06 終態同步（`6c4a38c`），詳見上表 S61/S62
-12. **✅ INFRA-QA-PRECEDENCE-01 → Done**：Path A replay（`cross-reviewer` 兩次獨立派工）驗證 AC3（無處置條款回放判 FAIL）+ AC4（模擬票驗證判 SKIP）均 PASS，全 AC 7/7；承接票 `INFRA-QA-PRECEDENCE-01-DOCSYNC-01-FIX-A`（`0fa21b9`）同步收尾，兩票檔已搬 `deliver/`，詳見上表 S63
 13. **✅ INFRA-SV-ZERODIFF-01 → Done**：AI-1~3 碼閉環 + AC 7/7（Codex R3 PASS `35dd94e`，免 Traycer，票檔已搬 `deliver/`）；承接票 `INFRA-QA-COMMIT-EMPTYDIFF-01` 已開（`/qa` Step 4.5 Auto Commit 真零diff缺口，待實作），詳見上表 S64
-14. **✅ INFRA-QA-COMMIT-EMPTYDIFF-01 → Done（本地）**：AI-1 碼閉環 + AC 4/4（Codex R2 PASS `43e4e5a`，UC02 AC2-5 強制核收點履行），詳見上表 S65；待開 `INFRA-QA-COMMIT-EMPTYDIFF-01-DOCSYNC-01` 承接本表三處同步 + Step 10/10.5 Done 標記；待 Traycer 終審（Akira 手動餵入）
+14. **✅ INFRA-QA-COMMIT-EMPTYDIFF-01 → Done（本地）**：AI-1 碼閉環 + AC 4/4（Codex R2 PASS `43e4e5a`，UC02 AC2-5 強制核收點履行），詳見上表 S65；母票+FIX-A 均待 Traycer 終審（Akira 手動餵入）
 15. **✅ INFRA-COMPACT-AUTOCOMMIT-01 → Done**：AI-1 碼閉環 + AC 4/4（Codex R1 REPORT_FIX→R2 PASS `62311fc`，`structural_verify.sh --post` ADVISORY，免 Traycer，Akira Checkpoint 裁決 A），詳見上表 S66；R0 Checkpoint 記錄 `.tmp/fail-advisor/R0_INFRA-COMPACT-AUTOCOMMIT-01_20260719_172257.md`（含代驗形態不作先例附帶條款）；**誠實揭露**：AC1-3[行為性] 為合成邊界案例驗證，非真實 `/compact` 端到端觸發，附重開條件
+16. **✅ INFRA-QA-COMMIT-EMPTYDIFF-01-FIX-A → Done**：T2 Minor 兩項修補（模板雙形態同步 + malformed ALLOWED 防禦條文化）碼閉環 + AC 6/6（Codex R1 PASS `7324dab`，`structural_verify.sh --post` PASS(ADVISORY)），詳見上表 S67；DOCSYNC-01 承接需求（本表三處同步）已由本次 `/compact` 履行
 
 ## Active Debt（僅列未解決項）
 
