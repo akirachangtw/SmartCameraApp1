@@ -345,3 +345,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 > **歸檔（Sprint Health Schedule 5 筆上限移出）：`GAP-06-TARGET-01-REVA-FIX-A`** ✅ Done（AC 5/5 附證據）· PROGRESS.md GAP-06 兩處狀態同步為「Traycer strict_verification Path A APPROVE（碼域，錨 bc40d17）· 剩 D19 三項 [實機] AC」（AI-1/AI-2）· read-back 命中 + `wc -l`=68≤80 · `assembleDebug` PASS(36s) · `6c4a38c` · 依票面 Hard Constraint 1 不進 R0/cross_review pipeline（免 Codex + 免 Traycer）——完整內容仍存於 Header「最近 Ticket」表，本行僅記錄 Schedule 欄移出動作
 
 > **歸檔（Next Actions #10/#11 移出）：`INFRA-AGENTS-CR-04 → Done`**：AI-1~3 碼閉環 + AC 6/6（Codex R1 PASS `94c5791`，免 Traycer，票檔已搬 `deliver/`）；`DOCS-T2-REPORT-01 + GAP-06-TARGET-01-REVA-FIX-A → Done`：Traycer T2 報告歸檔 + PROGRESS GAP-06 終態同步（`6c4a38c`）——完整內容仍存於 Header「最近 Ticket」表，本行僅記錄 Next Actions 欄移出動作
+
+## Archived 2026-07-19 (INFRA-QA-COMMIT-EMPTYDIFF-01 全案終結)
+
+> **歸檔（Next Actions #16 移出）：`INFRA-QA-COMMIT-EMPTYDIFF-01-FIX-A → Done`**：T2 Minor 兩項修補（模板雙形態同步 + malformed ALLOWED 防禦條文化）碼閉環 + AC 6/6（Codex R1 PASS `7324dab`，`structural_verify.sh --post` PASS(ADVISORY)）；DOCSYNC-01 承接需求（PROGRESS.md 三處同步）已由 2026-07-19 `/compact` 履行；Traycer 終審 ✅ APPROVE（Akira 2026-07-19 確認）；母票 + FIX-A 票檔均已依 `ssot-governance.md` 勾選紀律逐項打勾並搬移至 `plans/cso_briefing/project/deliver/`——完整內容仍存於 Header「最近 Ticket」表 row，本行僅記錄 Next Actions 欄移出動作
