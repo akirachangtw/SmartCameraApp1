@@ -105,17 +105,26 @@ Step 4（PROGRESS.md 更新）與 Step 4.5（Auto Commit / Auto-Chain）之通�
    - 執行 `git status --short`，確認無非 ALLOWED 且非 `.claude/PROGRESS.md` 的 dirty 檔案
    - 若有 → **MUST** 停止並回報 `⛔ Scope 汙染: [檔案名]`，**不執行 commit**
 
-3. **Staging（精確 stage，**MUST** 禁止 `git add .`）**：
+3. **零 diff 判定**：
+   - 執行 `git status --short -- <ALLOWED 逐檔清單>`
+   - 輸出為空 → 真零 diff（untracked `??` 新增檔視為有變更，**不算**輸出為空）：
+     - 跳過下列「4. Staging」「5. Commit」子步驟
+     - `tmp/verify_cmd.conf` 的 `DIFF_END` 寫回與 `DIFF_REF` 相同值（沿用第 7 項寫入邏輯，來源值改為 `grep "^DIFF_REF=" tmp/verify_cmd.conf | cut -d'=' -f2-`）
+     - QA Report 對應行輸出 `✅ Auto Commit: SKIPPED（ZERO-DIFF-DECLARED，DIFF_END=DIFF_REF）`
+     - 直接進入「Step 4.5 完成後：Auto-Chain 銜接點」
+   - 輸出非空 → 非零 diff，繼續下列步驟（行為零變更）
+
+4. **Staging（精確 stage，**MUST** 禁止 `git add .`）**：
    - 只 stage `ALLOWED` 中每個檔案路徑 + `.claude/PROGRESS.md`
 
-4. **Commit**：
+5. **Commit**：
    - Message 格式：`[TICKET_ID] <變更摘要>`
    - **SHOULD** 加 `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>` trailer
    - Commit 失敗 → `⛔ Auto Commit FAILED`，**不進入 /sv**
 
-5. **成功確認**：輸出 commit hash，在 QA Report 附加 `✅ Auto Commit: [hash] [TICKET_ID]`
+6. **成功確認**：輸出 commit hash，在 QA Report 附加 `✅ Auto Commit: [hash] [TICKET_ID]`
 
-6. **DIFF_END 更新**：Commit 成功後，將 commit hash 寫入 `tmp/verify_cmd.conf` 的 `DIFF_END`：
+7. **DIFF_END 更新**：Commit 成功後，將 commit hash 寫入 `tmp/verify_cmd.conf` 的 `DIFF_END`：
    ```bash
    _LAST_COMMIT=$(git rev-parse --short HEAD)
    if grep -q "^DIFF_END=" tmp/verify_cmd.conf 2>/dev/null; then
