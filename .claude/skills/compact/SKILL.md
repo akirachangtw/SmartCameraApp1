@@ -94,7 +94,7 @@ Get-ChildItem -Path $root -File -Filter 'SESSION_HANDOFF_*.md' |
 3. **動態編號**：
    ```bash
    _LAST_N=$(git log --oneline --all 2>/dev/null | grep -oE "INFRA-COMPACT-SYNC-[0-9]+" | grep -oE "[0-9]+" | sort -n | tail -1)
-   _NEXT_N=$(( ${_LAST_N:-0} + 1 ))
+   _NEXT_N=$(printf '%02d' $(( 10#${_LAST_N:-0} + 1 )))
    ```
 4. **Commit**：`git add .claude/PROGRESS.md` → `git commit -m "[INFRA-COMPACT-SYNC-${_NEXT_N}] PROGRESS.md Dashboard 同步：/compact 交接"`（**SHOULD** 加 `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` trailer）。Commit 失敗 → **MUST** 回報 `⛔ Auto Commit FAILED`，不得靜默吞錯。
 
