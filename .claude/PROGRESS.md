@@ -24,9 +24,9 @@
 | Metric | Status |
 | -------- | -------- |
 | Schedule | **S67** · INFRA-QA-COMMIT-EMPTYDIFF-01-FIX-A ✅ Done（AC 6/6 附證據，Codex R1 PASS，`7324dab`，Traycer APPROVE，票檔已搬 `deliver/`）· **S66** · INFRA-COMPACT-AUTOCOMMIT-01 ✅ Done（AC 4/4 附證據，Codex R2 PASS，`62311fc`，免 Traycer，AC1-3 合成驗證附重開條件）· **S65** · INFRA-QA-COMMIT-EMPTYDIFF-01 ✅ Done（AC 4/4 附證據，Codex R2 PASS，`43e4e5a`，Traycer APPROVE，票檔已搬 `deliver/`）· **S64** · INFRA-SV-ZERODIFF-01 ✅ Done（AC 7/7 附證據，Codex R3 PASS，`35dd94e`，免 Traycer）· **S63** · INFRA-QA-PRECEDENCE-01-DOCSYNC-01-FIX-A ✅ Done（AC 6/6 附證據，Path A replay 兩項 [行為性] 轉 PASS，PROGRESS 終態同步，`0fa21b9`，免 Codex+免 Traycer）|
-| Compile | ✅ PASS `assembleDebug`（INFRA-COMPACT-AUTOCOMMIT-01 · 2026-07-19，1s，UP-TO-DATE） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` 209/209（0 fail；INFRA-COMPACT-AUTOCOMMIT-01 純 .md 治理票，零 .kt 觸碰，沿用既有基準） |
-| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（INFRA-COMPACT-AUTOCOMMIT-01 純 .md 治理票，lint 不掃描）· static_blind_scan.sh 7 項警示同為 pre-existing 域外檔案 |
+| Compile | ✅ PASS `assembleDebug`（INFRA-INDEXVERIFY-SCOPE-01 · 2026-07-19，16s） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` 209/209（0 fail；純 .sh/.md 治理票，零 .kt 觸碰，沿用既有基準） |
+| Lint | ✅ `lintDeviceDebug` PASS，0 new warning（純 .sh/.md 治理票，lint 不掃描）· static_blind_scan.sh 7 項警示同為 pre-existing 域外檔案 |
 
 ## Active Blockers
 

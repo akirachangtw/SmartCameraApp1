@@ -18,11 +18,13 @@ bash .claude/skills/index-verify/scripts/index_path_verify.sh
 
 ## 驗證範圍
 
-| 角色 | 角色目錄 | 校對文件 |
-|------|----------|----------|
-| CSO | `plans/cso_briefing/` | `plans/cso_briefing/CSO_INDEX.md` + `plans/cso_briefing/CSO_Session_Startup_SOP.md` |
-| UITA | `plans/uita_project/` | `plans/uita_project/UITA_INDEX.md` + `plans/uita_project/UITA_Session_Startup_SOP.md` |
-| Architecture | `plans/architecture/` | 由所有 CSO/UITA INDEX + SOP 共同引用 |
+「角色目錄」供 ⓪ 缺檔清理 + ① 引用驗證/跨角色邊界（全樹）；「檔案異動管理夾（②）」供目錄覆蓋率 + 智慧路由（僅此三夾會被掃描新增至 INDEX）。
+
+| 角色 | 角色目錄（⓪/① 邊界） | 檔案異動管理夾（② 覆蓋率+路由） | 校對文件 |
+|------|----------|----------|----------|
+| CSO | `plans/cso_briefing/` | `plans/cso_briefing/project/file/` | `plans/cso_briefing/CSO_INDEX.md` + `plans/cso_briefing/CSO_Session_Startup_SOP.md` |
+| UITA | `plans/uita_project/` | `plans/uita_project/file/` | `plans/uita_project/UITA_INDEX.md` + `plans/uita_project/UITA_Session_Startup_SOP.md` |
+| Architecture | `plans/architecture/` | `plans/architecture/` | 由所有 CSO/UITA INDEX + SOP 共同引用 |
 
 ## 智慧路由規則
 
@@ -38,6 +40,8 @@ bash .claude/skills/index-verify/scripts/index_path_verify.sh
 
 **MUST** 路由至 Section 的新行使用 `| short_name | filename | path | timing |` 四欄格式。
 **SHOULD** 路由後手動補正 ID 欄位（script 以 short_name 暫代）。
+
+> ⚠️ 現行 ② 掃描範圍已收斂至 `project/file/`（CSO）/ `file/`（UITA）。`reports/*` 路由規則**永久定案為引用登記制**：路由 pattern 表項保留僅供人工引用登記格式參考，**MUST** 永久禁止 `scan_dir` 擴張涵蓋 `reports/`；`reports/*` 檔案登記 **MUST** 僅透過人工於 INDEX 手動新增引用行，**MUST NOT** 恢復資料夾掃描（Akira 2026-07-19 對話裁決最終定案）。（INFRA-INDEXVERIFY-SCOPE-01）
 
 ## 版本偵測模式
 
@@ -58,10 +62,10 @@ bash .claude/skills/index-verify/scripts/index_path_verify.sh
 
 ## 執行順序
 
-1. **MUST** 列出 `plans/cso_briefing/`、`plans/uita_project/`、`plans/architecture/` 所有檔案清單
-2. **MUST** ⓪ 缺檔引用清理（INDEX + SOP，SOP 附語意告警）
-3. **MUST** ① INDEX/SOP 引用驗證（存在性 + 角色邊界）
-4. **MUST** ② 目錄覆蓋率 + 智慧路由（file/→核心文件、reports/→審查報告、其餘→fallback）
+1. **MUST** 列出檔案異動管理夾清單：`plans/cso_briefing/project/file/`、`plans/uita_project/file/`、`plans/architecture/`
+2. **MUST** ⓪ 缺檔引用清理（INDEX + SOP 全 ref，SOP 附語意告警）
+3. **MUST** ① INDEX/SOP 引用驗證（存在性 + 角色邊界，全 ref）
+4. **MUST** ② 目錄覆蓋率 + 智慧路由（僅掃三個管理夾：`.../file/`→核心文件、`plans/architecture/`→跨角色 fallback）
 5. **MUST** ③ 空白行清理
 6. **MUST** 動態過期版本引用掃描
 7. **MUST** 大小寫重複偵測

@@ -288,8 +288,9 @@ insert_generated_block() {
 smart_auto_index() {
   local role_name="$1"
   local role_dir="${2%/}"
-  local target_doc="$3"
-  shift 3
+  local scan_dir="${3%/}"
+  local target_doc="$4"
+  shift 4
   local docs=("$@")
 
   # 選擇路由規則
@@ -312,9 +313,9 @@ smart_auto_index() {
   # Strip 舊 Auto-Index block
   strip_generated_block "$target_doc" "${role_name} Role Files"
 
-  # 重新掃描覆蓋率（block 刪除後）
+  # 重新掃描覆蓋率（block 刪除後）— 掃描範圍限縮至 scan_dir，路由分類仍用 role_dir
   collect_refs "${docs[@]}"
-  collect_files "$role_dir"
+  collect_files "$scan_dir"
 
   while IFS= read -r file; do
     [[ -z "$file" ]] && continue
@@ -471,7 +472,8 @@ check_stale_versions() {
 check_role() {
   local role_name="$1"
   local role_dir="${2%/}"
-  shift 2
+  local scan_dir="${3%/}"
+  shift 3
   local docs=("$@")
 
   local doc_names=""
@@ -510,10 +512,10 @@ check_role() {
 
   # ── ② 磁碟 → 引用（覆蓋率 + 🆕 智慧路由）────────────
   echo "│"
-  echo "│  ── ② 目錄覆蓋率 + 智慧路由: ${role_dir}/ ──"
+  echo "│  ── ② 目錄覆蓋率 + 智慧路由: ${scan_dir}/ ──"
 
-  collect_files "$role_dir"
-  smart_auto_index "$role_name" "$role_dir" "${docs[0]}" "${docs[@]}"
+  collect_files "$scan_dir"
+  smart_auto_index "$role_name" "$role_dir" "$scan_dir" "${docs[0]}" "${docs[@]}"
 
   local unlisted=0
   while IFS= read -r file; do
@@ -625,12 +627,12 @@ ALL_DOCS=("${CSO_DOCS[@]}" "${UITA_DOCS[@]}")
 
 echo ""
 echo "[ Scope File Inventory ]"
-list_files "CSO 角色目錄" "plans/cso_briefing"
-list_files "UITA 角色目錄" "plans/uita_project"
+list_files "CSO 管理目錄" "plans/cso_briefing/project/file"
+list_files "UITA 管理目錄" "plans/uita_project/file"
 list_files "Architecture 共用目錄" "plans/architecture"
 
-check_role "CSO"  "plans/cso_briefing" "${CSO_DOCS[@]}"
-check_role "UITA" "plans/uita_project" "${UITA_DOCS[@]}"
+check_role "CSO"  "plans/cso_briefing" "plans/cso_briefing/project/file" "${CSO_DOCS[@]}"
+check_role "UITA" "plans/uita_project" "plans/uita_project/file"          "${UITA_DOCS[@]}"
 check_architecture "${ALL_DOCS[@]}"
 
 # ── 🆕 動態過期引用掃描 ──────────────────────────────────────────────────────
