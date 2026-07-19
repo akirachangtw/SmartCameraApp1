@@ -349,3 +349,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 ## Archived 2026-07-19 (INFRA-QA-COMMIT-EMPTYDIFF-01 全案終結)
 
 > **歸檔（Next Actions #16 移出）：`INFRA-QA-COMMIT-EMPTYDIFF-01-FIX-A → Done`**：T2 Minor 兩項修補（模板雙形態同步 + malformed ALLOWED 防禦條文化）碼閉環 + AC 6/6（Codex R1 PASS `7324dab`，`structural_verify.sh --post` PASS(ADVISORY)）；DOCSYNC-01 承接需求（PROGRESS.md 三處同步）已由 2026-07-19 `/compact` 履行；Traycer 終審 ✅ APPROVE（Akira 2026-07-19 確認）；母票 + FIX-A 票檔均已依 `ssot-governance.md` 勾選紀律逐項打勾並搬移至 `plans/cso_briefing/project/deliver/`——完整內容仍存於 Header「最近 Ticket」表 row，本行僅記錄 Next Actions 欄移出動作
+
+## Archived 2026-07-19 (INFRA-CONCURRENCY-01 收尾)
+
+> **歸檔（Sprint Health Schedule 5 筆上限移出）：`INFRA-SV-ZERODIFF-01`** ✅ Done（AC 7/7 附證據，Codex R3 PASS `35dd94e`，免 Traycer）——完整內容仍存於 Header「最近 Ticket」表，本行僅記錄 Schedule 欄移出動作（S69 `INFRA-CONCURRENCY-01` 進榜頂替）
