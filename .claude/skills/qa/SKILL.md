@@ -106,6 +106,7 @@ Step 4（PROGRESS.md 更新）與 Step 4.5（Auto Commit / Auto-Chain）之通�
    - 若有 → **MUST** 停止並回報 `⛔ Scope 汙染: [檔案名]`，**不執行 commit**
 
 3. **零 diff 判定**：
+   - **Malformed ALLOWED 防禦**：執行前述 `git status --short` 前，若 `ALLOWED` 任一條目含 wildcard／glob／pathspec 異常字元或格式無法安全解析 → **STOP**，回報 **MUST** 逐字引述 `tmp/verify_cmd.conf` 實際內容（禁猜測、禁憑記憶轉述、禁自行修正後續行）
    - 執行 `git status --short -- <ALLOWED 逐檔清單>`
    - 輸出為空 → 真零 diff（untracked `??` 新增檔視為有變更，**不算**輸出為空）：
      - 跳過下列「4. Staging」「5. Commit」子步驟
@@ -185,7 +186,8 @@ Verdict 順序（嚴重度升序）：`PASS < ADVISORY < REPORT_FIX < BLOCKER`
 🧪 Tests: ✅ 42 passed, 0 failed
 🔍 Lint: ✅ 0 new warnings (3 existing baseline)
 📋 Progress: ✅ PROGRESS.md updated
-✅ Auto Commit: [hash] [TICKET_ID]
+✅ Auto Commit: [hash] [TICKET_ID]（非零 diff）
+✅ Auto Commit: SKIPPED（ZERO-DIFF-DECLARED，DIFF_END=DIFF_REF）（真零 diff）
 
 Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error)
 🏗️ Step 5: ✅ STRUCTURAL VERIFY PASS (A/B/C/D/E/F)
@@ -194,6 +196,8 @@ Turns: [N] | Code: ~[M] lines
 Suggestion: [建議]
 Token 估算基準
 ```
+
+`✅ Auto Commit` 行實際輸出**兩種互斥形態擇一**：形態由 Step 4.5 分支判定結果直取，**MUST** 禁止自由措辭。
 
 ## Session 健康度
 
