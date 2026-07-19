@@ -50,7 +50,7 @@
 1. R0 Pre-flight 佔用宣告讀取器（§4 token 格式之機械讀取實作）
 2. Scratch 全域 glob FORBIDDEN 之 lint/hook 化（§1 措辭之強制執行）
 3. `Pending/` → `deliver/` 生命週期自動搬遷（§3 單向流之機械化）
-4. §5 TOCTOU 缺口修補：現行「append 前 `wc -l` 直取現值」為 check-then-use，讀值與實際寫入間無原子鎖，並行寫入者仍可能於間隙交錯；需設計鎖機制或等效序列化手段（如檔案鎖、單寫入者佇列）方能真正杜絕競態，「宣告單一寫入者」目前僅為程序約定，非機械強制
+4. §5 TOCTOU 缺口修補：現行「append 前 `wc -l` 直取現值」為 check-then-use，讀值與實際寫入間無原子鎖，並行寫入者仍可能於間隙交錯；需設計鎖機制或等效序列化手段（如檔案鎖、單寫入者佇列）方能真正杜絕競態，「宣告單一寫入者」目前僅為程序約定，非機械強制。本項由 `INFRA-CR-R0-PRECLEAR-01` 涵蓋（A+ snapshot-then-verify 方案採納，Akira 2026-07-20 對話裁決），**不另立票**——後續 session 見本條目 **MUST** 不得重複開票，如需實作請直接承接 `INFRA-CR-R0-PRECLEAR-01`
 
 ## 九例對照表
 
