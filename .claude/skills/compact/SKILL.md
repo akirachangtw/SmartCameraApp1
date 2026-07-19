@@ -85,5 +85,19 @@ Get-ChildItem -Path $root -File -Filter 'SESSION_HANDOFF_*.md' |
   }
 ```
 
-**SHOULD** 完成後輸出以下確認訊息（必須包含實際檔案路徑）：
+## Auto Commit: PROGRESS.md
+
+**MUST** 在 Housekeeping 完成、確認訊息輸出**之前**執行：
+
+1. **Scope 汙染確認**：`git status --short`，除 `.claude/PROGRESS.md` 外若有其他 **tracked** dirty 檔案 → **MUST** 停止，回報 `⛔ Auto Commit BLOCKED: Scope 汙染 [檔案清單]`，**不執行 commit**。
+2. **零 diff 判定**：`git status --short -- .claude/PROGRESS.md` 輸出為空 → 判定 SKIPPED，回報 `⚪ Auto Commit SKIPPED（PROGRESS.md 無異動）`，**不執行 commit**，**MUST NOT** 使用 `git commit --allow-empty`。
+3. **動態編號**：
+   ```bash
+   _LAST_N=$(git log --oneline --all 2>/dev/null | grep -oE "INFRA-COMPACT-SYNC-[0-9]+" | grep -oE "[0-9]+" | sort -n | tail -1)
+   _NEXT_N=$(( ${_LAST_N:-0} + 1 ))
+   ```
+4. **Commit**：`git add .claude/PROGRESS.md` → `git commit -m "[INFRA-COMPACT-SYNC-${_NEXT_N}] PROGRESS.md Dashboard 同步：/compact 交接"`（**SHOULD** 加 `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` trailer）。Commit 失敗 → **MUST** 回報 `⛔ Auto Commit FAILED`，不得靜默吞錯。
+
+**SHOULD** 完成後輸出以下確認訊息（必須包含實際檔案路徑），並於末尾附加 Auto Commit 狀態行：
 「交接文件已儲存至 docs/session_handoff/SESSION_HANDOFF_<實際時間戳>.md，PROGRESS.md 已同步更新。Housekeeping 已完成：docs/session_handoff/ 僅保留當天 handoff，過期檔已移至 docs/session_handoff/Archive/。建議：開新對話 → 貼入 Dashboard 段 → 按需展開細節。」
+`📌 Auto Commit: [hash] [INFRA-COMPACT-SYNC-${_NEXT_N}]` / `📌 Auto Commit: SKIPPED（PROGRESS.md 無異動）` / `⛔ Auto Commit BLOCKED/FAILED`（依上述判定擇一）
