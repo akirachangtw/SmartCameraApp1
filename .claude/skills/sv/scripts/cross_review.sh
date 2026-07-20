@@ -421,6 +421,9 @@ REACHABILITY="$(printf '%s\n' "$RESULT" | tr -d '\r' | grep -E "^REACHABILITY:" 
 # Save fail budget state
 printf 'TICKET=%s\nROUND=%s\nLAST=%s\n' "$TICKET_ID" "$CURRENT_ROUND" "${VERDICT:-UNKNOWN}" > "$STATE_FILE"
 
+# MEO-T2 AI-5: Codex 駁回累加(mechanical signal only, decision-tree.yaml 消費)
+[[ "$VERDICT" == "BLOCKER" ]] && { _meo_sf="${MEO_STATE_FILE:-STATE.md}"; _meo_c="$(grep -m1 '^MEO_VERIFIER_REJECT_COUNT=' "$_meo_sf" 2>/dev/null | cut -d= -f2)"; grep -q '^MEO_VERIFIER_REJECT_COUNT=' "$_meo_sf" 2>/dev/null && sed -i "s|^MEO_VERIFIER_REJECT_COUNT=.*|MEO_VERIFIER_REJECT_COUNT=$(( ${_meo_c:-0} + 1 ))|" "$_meo_sf"; }
+
 # Fail budget enforcement
 if [[ "$VERDICT" == "BLOCKER" ]]; then
   if [[ $CURRENT_ROUND -ge $MAX_BLOCKER_BUDGET ]]; then

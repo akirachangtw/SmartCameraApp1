@@ -92,6 +92,40 @@
             "async": true
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["D:/DevSources/AndroidProj/SmartCameraApp1/.claude/skills/model-effort-orchestrator/hooks/meo_pretooluse_gate.sh"]
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["D:/DevSources/AndroidProj/SmartCameraApp1/.claude/skills/model-effort-orchestrator/hooks/meo_signal_update.sh"]
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Write|Edit|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["D:/DevSources/AndroidProj/SmartCameraApp1/.claude/skills/model-effort-orchestrator/hooks/meo_signal_update.sh"]
+          }
+        ]
       }
     ],
     "Stop": [
@@ -104,6 +138,22 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/telegram_stop.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["D:/DevSources/AndroidProj/SmartCameraApp1/stop_orchestrator.sh"]
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["D:/DevSources/AndroidProj/SmartCameraApp1/.claude/skills/model-effort-orchestrator/hooks/meo_session_reset.sh"]
           }
         ]
       }
