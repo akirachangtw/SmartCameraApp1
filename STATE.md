@@ -1,11 +1,11 @@
 ## MEO (model-effort-orchestrator)
-MEO_LAST_DIAGNOSIS_TS=diag-20260721-MEO-T2-progress-archive
-MEO_LAST_TASK_TYPE=qa-step4-progress-update
-MEO_LAST_FAILURE_MODE=expected-file-not-found（PROGRESS_ARCHIVE.md 尚未建立，非 bug，安全續行）
+MEO_LAST_DIAGNOSIS_TS=diag-20260721-MEO-T2-cross-review-dispatch
+MEO_LAST_TASK_TYPE=sv-stage-d-cross-review-routing
+MEO_LAST_FAILURE_MODE=none（SessionStart 重置後例行診斷寫入，非錯誤）
 MEO_RETRY_COUNT=0
-MEO_SAME_ERROR_CLASS_STREAK=1
+MEO_SAME_ERROR_CLASS_STREAK=2
 MEO_VERIFIER_REJECT_COUNT=0
 MEO_LAST_ERROR_CLASS=Exit
 MEO_QUOTA_STATE=abundant
-MEO_ESCALATION_PENDING=false
+MEO_ESCALATION_PENDING=true
 MEO_FASTPATH=false
