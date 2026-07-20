@@ -59,6 +59,7 @@
 13. **✅ INFRA-SV-ZERODIFF-01 → Done**：AI-1~3 碼閉環 + AC 7/7（Codex R3 PASS `35dd94e`，免 Traycer，票檔已搬 `deliver/`）；承接票 `INFRA-QA-COMMIT-EMPTYDIFF-01` 已開（`/qa` Step 4.5 Auto Commit 真零diff缺口，待實作），詳見上表 S64
 14. **✅ INFRA-QA-COMMIT-EMPTYDIFF-01 + FIX-A → 全案終結**：兩票碼閉環 + AC 4/4、6/6 附證據，Codex R2/R1 PASS（`43e4e5a`／`7324dab`），Traycer 終審 ✅ APPROVE（Akira 2026-07-19 確認），票檔均已搬 `deliver/`，詳見上表 S65/S67
 15. **✅ INFRA-COMPACT-AUTOCOMMIT-01 → Done**：AI-1 碼閉環 + AC 4/4（Codex R1 REPORT_FIX→R2 PASS `62311fc`，`structural_verify.sh --post` ADVISORY，免 Traycer，Akira Checkpoint 裁決 A），詳見上表 S66；R0 Checkpoint 記錄 `.tmp/fail-advisor/R0_INFRA-COMPACT-AUTOCOMMIT-01_20260719_172257.md`（含代驗形態不作先例附帶條款）；**誠實揭露**：AC1-3[行為性] 為合成邊界案例驗證，非真實 `/compact` 端到端觸發，附重開條件
+16. **🟡 INFRA-CR-R0-PRECLEAR-01（E0/E1 已完成，I 階段未開工）**：E0 合票評估完成（P1-P4 全數合票，無拆票，報告 `plans/cso_briefing/reports/INFRA-CR-R0-PRECLEAR-01_E0_Evaluation_20260720.md`，gitignored）· E1 裁決 1-5 全數完成（PRECLEARED 採方向A+三附款／P2 吸收§4待開票項／CLAUDE.md Checkpoint 排程確認／AC-I4 CLI 錨點硬性化／AC-I8 三層閉環重構，報告 `..._E1_Ruling_20260720.md`）· **I 階段前置條件**（3 項，尚未執行）：①Checkpoint 批次（concurrency.md §4+§5 註記 + CLAUDE.md Boot Sequence AC-I5，需 Akira 裁決）②`sv/SKILL.md` 提醒插入（一般票流）③AC-I3 落地須含 PROGRESS.md 重疊測試案例（AC-I8 機械層歸屬前提）
 
 ## Active Debt（僅列未解決項）
 
