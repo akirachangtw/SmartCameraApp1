@@ -28,7 +28,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S72** · MEO-T2-FIX-A ✅ Done（AC 4/4 附證據，`stop_orchestrator.sh` systemMessage 補齊，免 Traycer）· **S71** · MEO-T2 ✅ Done（AC 7/9 附證據，2 項 PARTIAL 誠實揭露追蹤併入 MEO-T3，Cross-Review 機械 R6 ADVISORY 收案，R16 CSO 裁定，`94465d9`，票檔已搬 `deliver/`）· **S70** · MEO-T1 ✅ Done（AC 6/6 附證據，Codex R1 PASS，`68974bd`，票檔已搬 `deliver/`，待 Traycer）· **S69** · INFRA-CONCURRENCY-01 ✅ Done（AC 5/5 附證據，Codex R1 PASS，`1651b02`，Traycer ✅ Well Implemented）· **S68** · INFRA-INDEXVERIFY-SCOPE-01 ✅ Done（AC 6/6 附證據，Codex R2 PASS，`9a84b81`，免 Traycer）|
+| Schedule | **S73** · MEO-T2-DOCSYNC-01 Scope Cleanup ✅ Done（MEO-T2-FIX-A 列還原至 pre-bundling 原文，移除 same-file commit 夾帶內容，`7bff24b`，免 Traycer）· **S72** · MEO-T2-FIX-A ✅ Done（AC 4/4 附證據，`stop_orchestrator.sh` systemMessage 補齊，免 Traycer）· **S71** · MEO-T2 ✅ Done（AC 7/9 附證據，2 項 PARTIAL 誠實揭露追蹤併入 MEO-T3，Cross-Review 機械 R6 ADVISORY 收案，R16 CSO 裁定，`94465d9`，票檔已搬 `deliver/`）· **S70** · MEO-T1 ✅ Done（AC 6/6 附證據，Codex R1 PASS，`68974bd`，票檔已搬 `deliver/`，待 Traycer）· **S69** · INFRA-CONCURRENCY-01 ✅ Done（AC 5/5 附證據，Codex R1 PASS，`1651b02`，Traycer ✅ Well Implemented）|
 | Compile | ✅ PASS `assembleDebug`（MEO-T2-FIX-A · 2026-07-21） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest` 418/418（0 fail；純 .sh 觸碰，零 .kt 觸碰，沿用既有基準） |
 | Lint | ✅ `lintDeviceDebug` PASS，0 new warning · static_blind_scan.sh 7 項警示同為 pre-existing 域外檔案（非本票觸碰範圍） |
@@ -60,7 +60,7 @@
 8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART ✅ Done**（/qa+/sv+Codex Cross-Review 全 PASS，待 D17 Akira 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口；關票待 Traycer）
 9. **⚠️ 待 Akira 核驗**：GAP-06-TARGET-01-REVA 曾於 2026-07-16 執行 Codex Cross-Review R1 PASS（`b6b199f..5d8cc36`），該結果與 `.tmp/` 佐證檔現已不存在；**注意**：2026-07-18 另有獨立之 Traycer strict_verification Path A APPROVE（錨 `bc40d17`，見 Active Blockers）發生，二者不互相取代——本項待核驗之舊 R1 PASS 缺失問題仍未解
 16. **🟡 INFRA-CR-R0-PRECLEAR-01（E0/E1 已完成，I 階段未開工）**：E0 合票評估完成（P1-P4 全數合票，無拆票，報告 `plans/cso_briefing/reports/INFRA-CR-R0-PRECLEAR-01_E0_Evaluation_20260720.md`，gitignored）· E1 裁決 1-5 全數完成（PRECLEARED 採方向A+三附款／P2 吸收§4待開票項／CLAUDE.md Checkpoint 排程確認／AC-I4 CLI 錨點硬性化／AC-I8 三層閉環重構，報告 `..._E1_Ruling_20260720.md`）· **I 階段前置條件**（3 項，尚未執行）：①Checkpoint 批次（concurrency.md §4+§5 註記 + CLAUDE.md Boot Sequence AC-I5，需 Akira 裁決）②`sv/SKILL.md` 提醒插入（一般票流）③AC-I3 落地須含 PROGRESS.md 重疊測試案例（AC-I8 機械層歸屬前提）
-17. **🔴 MEO-T3 為下一張 MEO 票開工前置票**（Akira R16-d 裁定，2026-07-21）：訊號源過濾 + PENDING 解除機制 + escalation_history_schema 消費三項合併；T3 落地前不開新 MEO 功能票。承接 MEO-T2 兩項 PARTIAL AC（可達性 producer=(C)／V5-V6 #27886）+ cross_review.sh 輪次帳本二元制（機械 ROUND ≠ CSO 邏輯輪次，本次 R15-b/R16 兩次裁決示例）併入待記 SV 治理票規格化
+17. **🔴 MEO-T3 為下一張 MEO 票開工前置票**（Akira R16-d 裁定，2026-07-21）：訊號源過濾 + PENDING 解除機制 + escalation_history_schema 消費三項合併；T3 落地前不開新 MEO 功能票。承接 MEO-T2 兩項 PARTIAL AC（可達性 producer=(C)／V5-V6 #27886）+ cross_review.sh 輪次帳本二元制（機械 ROUND ≠ CSO 邏輯輪次，本次 R15-b/R16 兩次裁決示例）併入待記 SV 治理票規格化 + STATE.md untracking 機械化（CSO 裁決「記憶入庫 vault/Handoff tracked，訊號落地 STATE.md untracked，一次 T3 治理，永久免票」，2026-07-21）
 
 ## Active Debt（僅列未解決項）
 
