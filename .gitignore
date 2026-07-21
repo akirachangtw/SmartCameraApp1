@@ -72,6 +72,9 @@ plans/cso_briefing/
 plans/uita_project/
 plans/archive/
 
+# MEO (model-effort-orchestrator) runtime signal file — mechanical values only, not committed (MEO-T3 AI-7)
+STATE.md
+
 # Understand-Anything (UA) — 中間產物不入 git
 .understand-anything/intermediate/
 .understand-anything/diff-overlay.json

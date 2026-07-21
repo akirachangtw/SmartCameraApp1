@@ -17,6 +17,12 @@ case "$TOOL_NAME" in
   *) exit 0 ;;
 esac
 
+# MEO-T3 AI-5:SV/QA 驗證管線執行期間之被動觀測訊號,不計入任務 STREAK/RETRY(94465d9 型汙染防制)
+CMD="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty')"
+case "$CMD" in
+  *.claude/skills/qa/scripts/*|*.claude/skills/sv/scripts/*) exit 0 ;;
+esac
+
 kv_get() { grep -m1 "^$1=" "$STATE_FILE" 2>/dev/null | cut -d= -f2-; }
 kv_set() {
   if grep -q "^$1=" "$STATE_FILE" 2>/dev/null; then

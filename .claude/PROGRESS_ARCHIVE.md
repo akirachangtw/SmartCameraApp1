@@ -357,3 +357,13 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 ## Archived 2026-07-21 (/compact S73 併行)
 
 > **歸檔（Sprint Health Schedule 5 筆上限移出）：`INFRA-INDEXVERIFY-SCOPE-01`** ✅ Done（AC 6/6 附證據，Codex R2 PASS `9a84b81`，免 Traycer）——完整內容仍存於 Header「最近 Ticket」表，本行僅記錄 Schedule 欄移出動作（S73 `MEO-T2-DOCSYNC-01 Scope Cleanup` 進榜頂替）
+
+## Archived 2026-07-21 (MEO-T3 QA Step 4 · PROGRESS.md 80 行上限трим)
+
+> **歸檔（最近 Ticket 表 80 行上限移出，MEO-T3 新增列騰空間）**：三張早期已閉環治理票自 Header「最近 Ticket」表移出，完整內容備份如下（皆已搬 `deliver/`，非新資訊）：
+>
+> - `INFRA-QA-COMMIT-EMPTYDIFF-01` ✅ Done（碼閉環，AC 4/4 附證據）· `/qa` Step 4.5 Auto Commit 新增零 diff 偵測分支（AI-1，真零 diff → SKIPPED + `DIFF_END=DIFF_REF` + `ZERO-DIFF-DECLARED` token，禁用 `git commit --allow-empty`）· `assembleDebug` PASS(16s) + 0 new lint · Codex Cross-Review R2 PASS（REACHABILITY: NONE）· `structural_verify.sh --post` PASS（ADVISORY）· `43e4e5a` · **UC02 強制核收點履行**：AC2/AC3 直接實測轉 PASS，AC4/AC5 文字機械複測轉 PASS（誠實揭露非即時觸發，附重開條件）· **FIX-A**（T2 Minor 修補）✅ Done：AC 6/6 附證據，Codex R1 PASS（REACHABILITY: NONE），`7324dab`，`structural_verify.sh --post` PASS(ADVISORY)，承接票 DOCSYNC-01 需求已由本次 `/compact` 同步履行 · Traycer 終審 ✅ APPROVE（Akira 2026-07-19 確認）· 兩票票檔已搬 `deliver/`
+> - `INFRA-SV-ZERODIFF-01` ✅ Done（碼閉環，AC 7/7 附證據）· `structural_verify.sh` Check B 零 diff 三條件宣告制（AI-1，含自主發現 POST_MODE fall-through 修正，8 組行為測試全通過）+ 全管線零diff/docs-only 相容性掃描（AI-2，唯讀，結論表入 `decommission.md`）+ 退場票型清單/宣告制/四要件模板回填（AI-3）· `assembleDebug` PASS(16s) + 209/209 tests + 0 new lint · Codex Cross-Review R3 PASS（REACHABILITY: NONE；R1/R2 REPORT_FIX 為 sv_report.md 內部措辭一致性修正，非實作缺陷）· `35dd94e` · 免 Traycer（純 .sh/.md 治理票）· 承接票 `INFRA-QA-COMMIT-EMPTYDIFF-01` 已開（AI-2 掃描發現之 `/qa` Step 4.5 Auto Commit 真零diff缺口，待實作）· 票檔已搬 `deliver/`
+> - `INFRA-QA-PRECEDENCE-01` ✅ Done（碼閉環）· QA-PRECEDENCE-01 落地（`SKILL.md` L73/L80 含衝突型雙覆蓋＋圍欄，原裁決字串稱 L78/L84，經 FIX-A 核校正名）· 全 AC 7/7 PASS（含 FIX-A replay 行為驗證：AC3 對 `INFRA-HEADROOM-DECOMMISSION-01` 真實 R0 回放判 FAIL、AC4 獨立模擬票驗證判 SKIP，均如條款設計運作）· Codex R1 PASS `fbdb18c` · 承接票 `INFRA-QA-PRECEDENCE-01-DOCSYNC-01-FIX-A` 已閉環
+
+> **歸檔（Sprint Health Schedule 5 筆上限移出）：`INFRA-CONCURRENCY-01`** ✅ Done（AC 5/5 附證據，Codex R1 PASS `1651b02`，Traycer ✅ Well Implemented）——完整內容仍存於 Header「最近 Ticket」表，本行僅記錄 Schedule 欄移出動作（S74 `MEO-T3` 進榜頂替）
