@@ -19,6 +19,7 @@
 | INFRA-INDEXVERIFY-SCOPE-01 | ✅ Done（碼閉環，AC 6/6 附證據）· `index_path_verify.sh` 引入 `scan_dir` 參數與 `role_dir` 分離（AI-1/AI-2，② 目錄覆蓋率+智慧路由收斂至 `project/file/`／`file/` 兩管理夾，⓪/① 缺檔清理+引用驗證維持全樹）· `SKILL.md` 三處說明同步，`reports/*` 路由規則改為永久定案語言：MUST 永久禁止 `scan_dir` 擴張涵蓋 `reports/`，登記僅得人工於 INDEX 手動新增引用行（AI-3，Akira 2026-07-19 對話裁決最終定案）· `assembleDebug` PASS(16s) + 209/209 tests + 0 new lint + `bash -n` PASS · 手動實跑驗證 37 通過/0 失敗/1 既存警告（`CSO_INDEX.md` 舊版 SSOT 引用，票面 FORBIDDEN 排除）· Codex Cross-Review R2 **PASS**（REACHABILITY: NONE；R1 REPORT_FIX 為 sv_report.md Compile 秒數與 diff 不符之報告瑕疵）· `9a84b81` · 免 Traycer（純 .sh/.md 治理票）· 票檔已搬 `deliver/` |
 | MEO-T1 | ✅ Done（碼閉環，AC 6/6 附證據）· `skills/model-effort-orchestrator/` 骨架部署（SKILL.md/decision-tree.yaml/prompt-template.md 原樣複製，A3 STATE.md §MEO 區段依 CSO 裁決「STATE.md 從未建立→改為新建」補建，僅含 §MEO 10 行 KV）· `assembleDebug` PASS(47s) + 209/209 tests + 0 new lint · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `68974bd` · `structural_verify.sh --post` PASS（ADVISORY）· 母票 AI 1-5 + AC 6/6 checkbox 已勾 · 票檔已搬 `deliver/` · 待 Traycer 終審 |
 | INFRA-CONCURRENCY-01 | ✅ Done（碼閉環，AC 5/5 附證據）· 新建 `.claude/rules/concurrency.md`（69 行，並行 Session 治理規約 SSOT，§1–§6 六章 + 九例對照表，事件支撐依據 Obsidian CSO 兩份決策 SSOT，經 Akira 本 session 逐字核校，裁定⑦與⑥為獨立事件、①GAP-11 L1 止於標籤層級引用）· `assembleDebug` PASS + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 **PASS**（REACHABILITY: NONE）· `structural_verify.sh --post` PASS（ADVISORY）· `1651b02` · **DIFF_REF Anchor Drift 揭露**：執行期間偵測並行 session 提交 `cd171ee`（與本票 ALLOWED 零重疊），依 KAIROS_D15 裁決B 前例重錨，非本票自行仲裁 · 待開票清單 4 項（R0 佔用宣告讀取器／scratch glob lint 化／Pending→deliver 自動搬遷／§5 TOCTOU 缺口——已標註由 `INFRA-CR-R0-PRECLEAR-01` 涵蓋不另立票，Akira 2026-07-20 對話裁決）已登記於 concurrency.md 文末 · Traycer 終審 ✅ Well Implemented（Akira 2026-07-19 確認，T2）· DOCSYNC-03/04 追加（`32e780e`/`bcc7326`）· 票檔已搬 `deliver/` |
+| MEO-T2 | ✅ Done（碼閉環，AC 7/9 附證據，2 項 PARTIAL 誠實揭露）· PreToolUse gate v1.2 + PostToolUse/PostToolUseFailure 雙事件信號累加 + orchestrator MEO Stop gate 部署（AI-1~6 全數完成）· `assembleDebug` PASS + 209/209 tests + 0 new lint · Cross-Review 機械 R6（R15-b 授權「真 R5」重跑框架下之延續）**ADVISORY 收案**（R16 CSO 裁定，2026-07-21；R6 REPORT_FIX 為 sv_report.md「反向提問」段與 Guard Reachability 段自相矛盾之報告文字修正，非實作缺陷；輪次帳本二元制〔機械≠邏輯〕併入待記 SV 治理票）· `94465d9` · 免 Traycer（純 .sh/.json/.ini/STATE.md 治理票）· **[可達性]／V5-V6 二項 PARTIAL 誠實揭露不勾，追蹤併入 MEO-T3**（已由 Akira 裁定升為下一張 MEO 票開工前置票，T3 落地前不開新 MEO 功能票）· 票檔已搬 `deliver/` |
 
 **Last Updated**: 2026-07-21
 
@@ -26,7 +27,7 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S71** · MEO-T2 🔄 QA 進行中（AI-1~6 碼閉環，V1-V4/V7/V8 live 驗證 PASS，V5+V6失敗半因 #27886 無法確認，ALLOWED scope 缺口見 Active Blockers）· **S70** · MEO-T1 ✅ Done（AC 6/6 附證據，Codex R1 PASS，`68974bd`，票檔已搬 `deliver/`，待 Traycer）· **S69** · INFRA-CONCURRENCY-01 ✅ Done（AC 5/5 附證據，Codex R1 PASS，`1651b02`，Traycer ✅ Well Implemented）· **S68** · INFRA-INDEXVERIFY-SCOPE-01 ✅ Done（AC 6/6 附證據，Codex R2 PASS，`9a84b81`，免 Traycer）· **S67** · INFRA-QA-COMMIT-EMPTYDIFF-01-FIX-A ✅ Done（AC 6/6 附證據，Codex R1 PASS，`7324dab`，Traycer APPROVE，票檔已搬 `deliver/`）|
+| Schedule | **S71** · MEO-T2 ✅ Done（AC 7/9 附證據，2 項 PARTIAL 誠實揭露追蹤併入 MEO-T3，Cross-Review 機械 R6 ADVISORY 收案，R16 CSO 裁定，`94465d9`，票檔已搬 `deliver/`）· **S70** · MEO-T1 ✅ Done（AC 6/6 附證據，Codex R1 PASS，`68974bd`，票檔已搬 `deliver/`，待 Traycer）· **S69** · INFRA-CONCURRENCY-01 ✅ Done（AC 5/5 附證據，Codex R1 PASS，`1651b02`，Traycer ✅ Well Implemented）· **S68** · INFRA-INDEXVERIFY-SCOPE-01 ✅ Done（AC 6/6 附證據，Codex R2 PASS，`9a84b81`，免 Traycer）· **S67** · INFRA-QA-COMMIT-EMPTYDIFF-01-FIX-A ✅ Done（AC 6/6 附證據，Codex R1 PASS，`7324dab`，Traycer APPROVE，票檔已搬 `deliver/`）|
 | Compile | ✅ PASS `assembleDebug`（MEO-T2 · 2026-07-21） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest` 209/209（0 fail；純 hook/.sh/.json/.ini 觸碰，零 .kt 觸碰，沿用既有基準） |
 | Lint | ✅ `lintDeviceDebug` PASS，0 new warning · static_blind_scan.sh 7 項警示同為 pre-existing 域外檔案 |
@@ -38,7 +39,6 @@
 | GAP-06 | HaloTraction：GuidanceActive + Aligned 態圓點渲染已閉環（GAP-06-RENDER-DOT-01 ✅ Done）。**GAP-06-TARGET-01-REVA**：Traycer strict_verification Path A APPROVE（碼域，錨 bc40d17）· 剩 D19 三項 [實機] AC（A7-1 映射表承接）+ Next Action #9 Akira 證據核驗。Normal vs Focus Ring 路由實機驗仍留 | 🟡 P1（碼域終審 PASS；GuidanceActive null-guard 已消除假對齊風險） | Aligned/GuidanceActive 消費斷鏈已修；A6 測試缺口已補（`HaloGuidanceLayerTest.kt` 三場景映射至 A7-1）；剩：D19 實機 AC（人臉偏離截圖 x2、假對齊風險驗證、topInstruction=HeadroomRule 無 targetHint 場景）+ Next Action #9 佐證核驗 |
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
-| MEO-T2-SCOPE | `stop_orchestrator.sh`（AI-4 新檔）+ `cross_review.sh`（AI-5 既有檔）未列票面 `ALLOWED`，Auto Commit 前待裁決 | 🟡 P1 | 票面起草時漏列此二觸碰面 |
 
 ## PROVISIONAL Ledger（防孤兒追蹤 · 2026-07-07 CSO 提案 Akira 授權）
 
@@ -59,7 +59,7 @@
 8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART ✅ Done**（/qa+/sv+Codex Cross-Review 全 PASS，待 D17 Akira 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口；關票待 Traycer）
 9. **⚠️ 待 Akira 核驗**：GAP-06-TARGET-01-REVA 曾於 2026-07-16 執行 Codex Cross-Review R1 PASS（`b6b199f..5d8cc36`），該結果與 `.tmp/` 佐證檔現已不存在；**注意**：2026-07-18 另有獨立之 Traycer strict_verification Path A APPROVE（錨 `bc40d17`，見 Active Blockers）發生，二者不互相取代——本項待核驗之舊 R1 PASS 缺失問題仍未解
 16. **🟡 INFRA-CR-R0-PRECLEAR-01（E0/E1 已完成，I 階段未開工）**：E0 合票評估完成（P1-P4 全數合票，無拆票，報告 `plans/cso_briefing/reports/INFRA-CR-R0-PRECLEAR-01_E0_Evaluation_20260720.md`，gitignored）· E1 裁決 1-5 全數完成（PRECLEARED 採方向A+三附款／P2 吸收§4待開票項／CLAUDE.md Checkpoint 排程確認／AC-I4 CLI 錨點硬性化／AC-I8 三層閉環重構，報告 `..._E1_Ruling_20260720.md`）· **I 階段前置條件**（3 項，尚未執行）：①Checkpoint 批次（concurrency.md §4+§5 註記 + CLAUDE.md Boot Sequence AC-I5，需 Akira 裁決）②`sv/SKILL.md` 提醒插入（一般票流）③AC-I3 落地須含 PROGRESS.md 重疊測試案例（AC-I8 機械層歸屬前提）
-17. **🟡 MEO-T2 ALLOWED scope 缺口待裁決**：`stop_orchestrator.sh`（新檔，AI-4）與 `cross_review.sh`（既有檔，AI-5）未列票面 `ALLOWED`；Auto Commit 前待 Akira 放行或補登 ALLOWED（見 Active Blockers MEO-T2-SCOPE）
+17. **🔴 MEO-T3 為下一張 MEO 票開工前置票**（Akira R16-d 裁定，2026-07-21）：訊號源過濾 + PENDING 解除機制 + escalation_history_schema 消費三項合併；T3 落地前不開新 MEO 功能票。承接 MEO-T2 兩項 PARTIAL AC（可達性 producer=(C)／V5-V6 #27886）+ cross_review.sh 輪次帳本二元制（機械 ROUND ≠ CSO 邏輯輪次，本次 R15-b/R16 兩次裁決示例）併入待記 SV 治理票規格化
 
 ## Active Debt（僅列未解決項）
 
