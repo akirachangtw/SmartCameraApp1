@@ -19,7 +19,7 @@ PENDING="$(grep -m1 '^MEO_ESCALATION_PENDING=' "$STATE_FILE" 2>/dev/null | cut -
 QUOTA="$(grep -m1 '^MEO_QUOTA_STATE=' "$STATE_FILE" 2>/dev/null | cut -d= -f2-)"
 
 if [[ "$QUOTA" == "exhausted" ]]; then
-  printf '{"decision":"block","reason":"MEO: defer_and_checkpoint (quota exhausted)"}'
+  printf '{"decision":"block","reason":"MEO: defer_and_checkpoint (quota exhausted)","systemMessage":"MEO quota exhausted — deferring escalation to next quota window; no action required now"}'
 else
   printf '{"decision":"block","reason":"MEO: escalation review required","systemMessage":"MEO escalation pending — choose: approve_upgrade / deny_retry_with_high_effort / defer_and_checkpoint"}'
 fi

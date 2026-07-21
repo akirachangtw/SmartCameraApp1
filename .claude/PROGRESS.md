@@ -20,6 +20,7 @@
 | MEO-T1 | ✅ Done（碼閉環，AC 6/6 附證據）· `skills/model-effort-orchestrator/` 骨架部署（SKILL.md/decision-tree.yaml/prompt-template.md 原樣複製，A3 STATE.md §MEO 區段依 CSO 裁決「STATE.md 從未建立→改為新建」補建，僅含 §MEO 10 行 KV）· `assembleDebug` PASS(47s) + 209/209 tests + 0 new lint · Codex Cross-Review R1 PASS（REACHABILITY: NONE）· `68974bd` · `structural_verify.sh --post` PASS（ADVISORY）· 母票 AI 1-5 + AC 6/6 checkbox 已勾 · 票檔已搬 `deliver/` · 待 Traycer 終審 |
 | INFRA-CONCURRENCY-01 | ✅ Done（碼閉環，AC 5/5 附證據）· 新建 `.claude/rules/concurrency.md`（69 行，並行 Session 治理規約 SSOT，§1–§6 六章 + 九例對照表，事件支撐依據 Obsidian CSO 兩份決策 SSOT，經 Akira 本 session 逐字核校，裁定⑦與⑥為獨立事件、①GAP-11 L1 止於標籤層級引用）· `assembleDebug` PASS + 0 new lint + ELF ALIGNED · Codex Cross-Review R1 **PASS**（REACHABILITY: NONE）· `structural_verify.sh --post` PASS（ADVISORY）· `1651b02` · **DIFF_REF Anchor Drift 揭露**：執行期間偵測並行 session 提交 `cd171ee`（與本票 ALLOWED 零重疊），依 KAIROS_D15 裁決B 前例重錨，非本票自行仲裁 · 待開票清單 4 項（R0 佔用宣告讀取器／scratch glob lint 化／Pending→deliver 自動搬遷／§5 TOCTOU 缺口——已標註由 `INFRA-CR-R0-PRECLEAR-01` 涵蓋不另立票，Akira 2026-07-20 對話裁決）已登記於 concurrency.md 文末 · Traycer 終審 ✅ Well Implemented（Akira 2026-07-19 確認，T2）· DOCSYNC-03/04 追加（`32e780e`/`bcc7326`）· 票檔已搬 `deliver/` |
 | MEO-T2 | ✅ Done（碼閉環，AC 7/9 附證據，2 項 PARTIAL 誠實揭露）· PreToolUse gate v1.2 + PostToolUse/PostToolUseFailure 雙事件信號累加 + orchestrator MEO Stop gate 部署（AI-1~6 全數完成）· `assembleDebug` PASS + 209/209 tests + 0 new lint · Cross-Review 機械 R6（R15-b 授權「真 R5」重跑框架下之延續）**ADVISORY 收案**（R16 CSO 裁定，2026-07-21；R6 REPORT_FIX 為 sv_report.md「反向提問」段與 Guard Reachability 段自相矛盾之報告文字修正，非實作缺陷；輪次帳本二元制〔機械≠邏輯〕併入待記 SV 治理票）· `94465d9` · 免 Traycer（純 .sh/.json/.ini/STATE.md 治理票）· **[可達性]／V5-V6 二項 PARTIAL 誠實揭露不勾，追蹤併入 MEO-T3**（已由 Akira 裁定升為下一張 MEO 票開工前置票，T3 落地前不開新 MEO 功能票）· 票檔已搬 `deliver/` |
+| MEO-T2-FIX-A | ✅ Done（碼閉環，AC 4/4 附證據）· `stop_orchestrator.sh` quota-exhausted 分支補上 `systemMessage` 鍵，與 escalation 分支同構三鍵輸出（Traycer execute_review 裁決轉修補票，補齊 Hard Constraint 2「Stop 類僅三鍵」）· +1L < MAX_LINES 20 · `assembleDebug` PASS(48s) + 418/418 tests(device+emulator) + 0 new lint · 手動行為測試（`MEO_QUOTA_STATE=exhausted`+`MEO_ESCALATION_PENDING=true`）確認合法 JSON 三鍵輸出 · `git diff --stat` 僅 `stop_orchestrator.sh` 1F+1L 在 ALLOWED 範圍內 · 免 Traycer（單檔 bugfix 修補票） |
 
 **Last Updated**: 2026-07-21
 
@@ -27,10 +28,10 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S71** · MEO-T2 ✅ Done（AC 7/9 附證據，2 項 PARTIAL 誠實揭露追蹤併入 MEO-T3，Cross-Review 機械 R6 ADVISORY 收案，R16 CSO 裁定，`94465d9`，票檔已搬 `deliver/`）· **S70** · MEO-T1 ✅ Done（AC 6/6 附證據，Codex R1 PASS，`68974bd`，票檔已搬 `deliver/`，待 Traycer）· **S69** · INFRA-CONCURRENCY-01 ✅ Done（AC 5/5 附證據，Codex R1 PASS，`1651b02`，Traycer ✅ Well Implemented）· **S68** · INFRA-INDEXVERIFY-SCOPE-01 ✅ Done（AC 6/6 附證據，Codex R2 PASS，`9a84b81`，免 Traycer）· **S67** · INFRA-QA-COMMIT-EMPTYDIFF-01-FIX-A ✅ Done（AC 6/6 附證據，Codex R1 PASS，`7324dab`，Traycer APPROVE，票檔已搬 `deliver/`）|
-| Compile | ✅ PASS `assembleDebug`（MEO-T2 · 2026-07-21） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` 209/209（0 fail；純 hook/.sh/.json/.ini 觸碰，零 .kt 觸碰，沿用既有基準） |
-| Lint | ✅ `lintDeviceDebug` PASS，0 new warning · static_blind_scan.sh 7 項警示同為 pre-existing 域外檔案 |
+| Schedule | **S72** · MEO-T2-FIX-A ✅ Done（AC 4/4 附證據，`stop_orchestrator.sh` systemMessage 補齊，免 Traycer）· **S71** · MEO-T2 ✅ Done（AC 7/9 附證據，2 項 PARTIAL 誠實揭露追蹤併入 MEO-T3，Cross-Review 機械 R6 ADVISORY 收案，R16 CSO 裁定，`94465d9`，票檔已搬 `deliver/`）· **S70** · MEO-T1 ✅ Done（AC 6/6 附證據，Codex R1 PASS，`68974bd`，票檔已搬 `deliver/`，待 Traycer）· **S69** · INFRA-CONCURRENCY-01 ✅ Done（AC 5/5 附證據，Codex R1 PASS，`1651b02`，Traycer ✅ Well Implemented）· **S68** · INFRA-INDEXVERIFY-SCOPE-01 ✅ Done（AC 6/6 附證據，Codex R2 PASS，`9a84b81`，免 Traycer）|
+| Compile | ✅ PASS `assembleDebug`（MEO-T2-FIX-A · 2026-07-21） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` 418/418（0 fail；純 .sh 觸碰，零 .kt 觸碰，沿用既有基準） |
+| Lint | ✅ `lintDeviceDebug` PASS，0 new warning · static_blind_scan.sh 7 項警示同為 pre-existing 域外檔案（非本票觸碰範圍） |
 
 ## Active Blockers
 
