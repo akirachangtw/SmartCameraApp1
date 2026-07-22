@@ -357,3 +357,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 ## Archived 2026-07-21 (/compact S73 併行)
 
 > **歸檔（Sprint Health Schedule 5 筆上限移出）：`INFRA-INDEXVERIFY-SCOPE-01`** ✅ Done（AC 6/6 附證據，Codex R2 PASS `9a84b81`，免 Traycer）——完整內容仍存於 Header「最近 Ticket」表，本行僅記錄 Schedule 欄移出動作（S73 `MEO-T2-DOCSYNC-01 Scope Cleanup` 進榜頂替）
+
+## Archived 2026-07-22 (/compact S79 併行)
+
+> **歸檔（Sprint Health Schedule 5 筆上限移出）：`MEO-T2-FIX-A`** ✅ Done（AC 4/4 附證據，`stop_orchestrator.sh` systemMessage 補齊，免 Traycer）——完整內容仍存於 Header「最近 Ticket」表，本行僅記錄 Schedule 欄移出動作（S79 `MEO-T3-DOCSYNC-01` 收尾進榜頂替）
