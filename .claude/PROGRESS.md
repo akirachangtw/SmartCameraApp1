@@ -22,13 +22,13 @@
 | MEO-T2 | ✅ Done（碼閉環，AC 7/9 附證據，2 項 PARTIAL 誠實揭露）· PreToolUse gate v1.2 + PostToolUse/PostToolUseFailure 雙事件信號累加 + orchestrator MEO Stop gate 部署（AI-1~6 全數完成）· `assembleDebug` PASS + 209/209 tests + 0 new lint · Cross-Review 機械 R6（R15-b 授權「真 R5」重跑框架下之延續）**ADVISORY 收案**（R16 CSO 裁定，2026-07-21；R6 REPORT_FIX 為 sv_report.md「反向提問」段與 Guard Reachability 段自相矛盾之報告文字修正，非實作缺陷；輪次帳本二元制〔機械≠邏輯〕併入待記 SV 治理票）· `94465d9` · 免 Traycer（純 .sh/.json/.ini/STATE.md 治理票）· **[可達性]／V5-V6 二項 PARTIAL 誠實揭露不勾，追蹤併入 MEO-T3**（已由 Akira 裁定升為下一張 MEO 票開工前置票，T3 落地前不開新 MEO 功能票）· 票檔已搬 `deliver/` · PROGRESS.md 本次同步已由 `MEO-T2-DOCSYNC-01` 追溯覆蓋（Scope Creep 修補） |
 | MEO-T2-FIX-A | ✅ Done（碼閉環，AC 4/4 附證據）· `stop_orchestrator.sh` quota-exhausted 分支補上 `systemMessage` 鍵，與 escalation 分支同構三鍵輸出（Traycer execute_review 裁決轉修補票，補齊 Hard Constraint 2「Stop 類僅三鍵」）· +1L < MAX_LINES 20 · `assembleDebug` PASS(48s) + 418/418 tests(device+emulator) + 0 new lint · 手動行為測試（`MEO_QUOTA_STATE=exhausted`+`MEO_ESCALATION_PENDING=true`）確認合法 JSON 三鍵輸出 · `git diff --stat` 僅 `stop_orchestrator.sh` 1F+1L 在 ALLOWED 範圍內 · 免 Traycer（單檔 bugfix 修補票） |
 
-**Last Updated**: 2026-07-21
+**Last Updated**: 2026-07-22
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S76** · MEO-T3-FIX-A AI-1~3 ✅ Done（碼閉環，cleanup commit `25b77f3` 抵銷 `89f41af`/`06cacb9` 越界 PROGRESS payload，`b79538a..HEAD` 兩檔 diff exit=0）· **S73** · MEO-T2-DOCSYNC-01 Scope Cleanup ✅ Done（`7bff24b`，免 Traycer）· **S72** · MEO-T2-FIX-A ✅ Done（AC 4/4 附證據，`stop_orchestrator.sh` systemMessage 補齊，免 Traycer）· **S71** · MEO-T2 ✅ Done（AC 7/9 附證據，2 項 PARTIAL 誠實揭露追蹤併入 MEO-T3，Cross-Review 機械 R6 ADVISORY 收案，R16 CSO 裁定，`94465d9`，票檔已搬 `deliver/`）· **S70** · MEO-T1 ✅ Done（AC 6/6 附證據，Codex R1 PASS，`68974bd`，票檔已搬 `deliver/`，待 Traycer）|
+| Schedule | **S77** · MEO-T3-FIX-A 根因追蹤：Pipeline Artifact scope-bundling 三項根因分析完成（機械層 `verify_checklist.sh` 無界豁免／doc 層 `ssot-governance.md` 邊界缺口／`qa/SKILL.md` 雙閘不一致），Opus 4.8 起草治理票 `INFRA-VERIFY-PA-BOUND-01` 存 `Pending/`，未派工（gitignored，無 commit）· **S76** · MEO-T3-FIX-A AI-1~3 ✅ Done（碼閉環，cleanup commit `25b77f3` 抵銷 `89f41af`/`06cacb9` 越界 PROGRESS payload，`b79538a..HEAD` 兩檔 diff exit=0）· **S73** · MEO-T2-DOCSYNC-01 Scope Cleanup ✅ Done（`7bff24b`，免 Traycer）· **S72** · MEO-T2-FIX-A ✅ Done（AC 4/4 附證據，`stop_orchestrator.sh` systemMessage 補齊，免 Traycer）· **S71** · MEO-T2 ✅ Done（AC 7/9 附證據，2 項 PARTIAL 誠實揭露追蹤併入 MEO-T3，Cross-Review 機械 R6 ADVISORY 收案，R16 CSO 裁定，`94465d9`，票檔已搬 `deliver/`）|
 | Compile | ✅ PASS `assembleDebug`（MEO-T3-FIX-A · 2026-07-22，48s） |
 | Tests | ✅ PASS `testDeviceDebugUnitTest` 209/209（0 fail；MEO-T3-FIX-A scope 僅 .md，零 .kt 觸碰） |
 | Lint | static_blind_scan.sh 7 項警示同前，皆 pre-existing 域外 `.kt`（非本票觸碰範圍） |
@@ -61,6 +61,7 @@
 9. **⚠️ 待 Akira 核驗**：GAP-06-TARGET-01-REVA 曾於 2026-07-16 執行 Codex Cross-Review R1 PASS（`b6b199f..5d8cc36`），該結果與 `.tmp/` 佐證檔現已不存在；**注意**：2026-07-18 另有獨立之 Traycer strict_verification Path A APPROVE（錨 `bc40d17`，見 Active Blockers）發生，二者不互相取代——本項待核驗之舊 R1 PASS 缺失問題仍未解
 16. **🟡 INFRA-CR-R0-PRECLEAR-01（E0/E1 已完成，I 階段未開工）**：E0 合票評估完成（P1-P4 全數合票，無拆票，報告 `plans/cso_briefing/reports/INFRA-CR-R0-PRECLEAR-01_E0_Evaluation_20260720.md`，gitignored）· E1 裁決 1-5 全數完成（PRECLEARED 採方向A+三附款／P2 吸收§4待開票項／CLAUDE.md Checkpoint 排程確認／AC-I4 CLI 錨點硬性化／AC-I8 三層閉環重構，報告 `..._E1_Ruling_20260720.md`）· **I 階段前置條件**（3 項，尚未執行）：①Checkpoint 批次（concurrency.md §4+§5 註記 + CLAUDE.md Boot Sequence AC-I5，需 Akira 裁決）②`sv/SKILL.md` 提醒插入（一般票流）③AC-I3 落地須含 PROGRESS.md 重疊測試案例（AC-I8 機械層歸屬前提）
 17. **🔴 MEO-T3 為下一張 MEO 票開工前置票**（Akira R16-d 裁定，2026-07-21）：訊號源過濾 + PENDING 解除機制 + escalation_history_schema 消費三項合併；T3 落地前不開新 MEO 功能票。承接 MEO-T2 兩項 PARTIAL AC（可達性 producer=(C)／V5-V6 #27886）+ cross_review.sh 輪次帳本二元制（機械 ROUND ≠ CSO 邏輯輪次，本次 R15-b/R16 兩次裁決示例）併入待記 SV 治理票規格化 + STATE.md untracking 機械化（CSO 裁決「記憶入庫 vault/Handoff tracked，訊號落地 STATE.md untracked，一次 T3 治理，永久免票」，2026-07-21）
+18. **⚪ INFRA-VERIFY-PA-BOUND-01 待 Akira 派工裁決**：MEO-T3-FIX-A scope-bundling 根因票，Opus 4.8 起草存 `Pending/`（gitignored，未 commit）。三項發現：①`verify_checklist.sh` `PIPELINE_ARTIFACT` 無界豁免（AI-1 行數界線+self-test，defense-in-depth）②`ssot-governance.md` 缺豁免合法邊界（AI-2，size-agnostic 條款，實際捕捉 `89f41af` 品類）③`verify_checklist.sh`/`qa/SKILL.md` 雙閘豁免範圍不一致（AI-3 統一）。誠實揭露：AI-1 行數界線不會攔到 MEO-T3 實際小 delta 向量，殘餘由 AI-2 治理層覆蓋（K3-Rule 25）
 
 ## Active Debt（僅列未解決項）
 
