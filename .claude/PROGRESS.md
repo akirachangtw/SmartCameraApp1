@@ -28,10 +28,10 @@
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S73** · MEO-T2-DOCSYNC-01 Scope Cleanup ✅ Done（MEO-T2-FIX-A 列還原至 pre-bundling 原文，移除 same-file commit 夾帶內容，`7bff24b`，免 Traycer）· **S72** · MEO-T2-FIX-A ✅ Done（AC 4/4 附證據，`stop_orchestrator.sh` systemMessage 補齊，免 Traycer）· **S71** · MEO-T2 ✅ Done（AC 7/9 附證據，2 項 PARTIAL 誠實揭露追蹤併入 MEO-T3，Cross-Review 機械 R6 ADVISORY 收案，R16 CSO 裁定，`94465d9`，票檔已搬 `deliver/`）· **S70** · MEO-T1 ✅ Done（AC 6/6 附證據，Codex R1 PASS，`68974bd`，票檔已搬 `deliver/`，待 Traycer）· **S69** · INFRA-CONCURRENCY-01 ✅ Done（AC 5/5 附證據，Codex R1 PASS，`1651b02`，Traycer ✅ Well Implemented）|
-| Compile | ✅ PASS `assembleDebug`（MEO-T2-FIX-A · 2026-07-21） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` 418/418（0 fail；純 .sh 觸碰，零 .kt 觸碰，沿用既有基準） |
-| Lint | ✅ `lintDeviceDebug` PASS，0 new warning · static_blind_scan.sh 7 項警示同為 pre-existing 域外檔案（非本票觸碰範圍） |
+| Schedule | **S76** · MEO-T3-FIX-A AI-1~3 ✅ Done（碼閉環，cleanup commit `25b77f3` 抵銷 `89f41af`/`06cacb9` 越界 PROGRESS payload，`b79538a..HEAD` 兩檔 diff exit=0）· **S73** · MEO-T2-DOCSYNC-01 Scope Cleanup ✅ Done（`7bff24b`，免 Traycer）· **S72** · MEO-T2-FIX-A ✅ Done（AC 4/4 附證據，`stop_orchestrator.sh` systemMessage 補齊，免 Traycer）· **S71** · MEO-T2 ✅ Done（AC 7/9 附證據，2 項 PARTIAL 誠實揭露追蹤併入 MEO-T3，Cross-Review 機械 R6 ADVISORY 收案，R16 CSO 裁定，`94465d9`，票檔已搬 `deliver/`）· **S70** · MEO-T1 ✅ Done（AC 6/6 附證據，Codex R1 PASS，`68974bd`，票檔已搬 `deliver/`，待 Traycer）|
+| Compile | ✅ PASS `assembleDebug`（MEO-T3-FIX-A · 2026-07-22，48s） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` 209/209（0 fail；MEO-T3-FIX-A scope 僅 .md，零 .kt 觸碰） |
+| Lint | static_blind_scan.sh 7 項警示同前，皆 pre-existing 域外 `.kt`（非本票觸碰範圍） |
 
 ## Active Blockers
 
