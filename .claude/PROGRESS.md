@@ -22,16 +22,16 @@
 | MEO-T2 | ✅ Done（碼閉環，AC 7/9 附證據，2 項 PARTIAL 誠實揭露）· PreToolUse gate v1.2 + PostToolUse/PostToolUseFailure 雙事件信號累加 + orchestrator MEO Stop gate 部署（AI-1~6 全數完成）· `assembleDebug` PASS + 209/209 tests + 0 new lint · Cross-Review 機械 R6（R15-b 授權「真 R5」重跑框架下之延續）**ADVISORY 收案**（R16 CSO 裁定，2026-07-21；R6 REPORT_FIX 為 sv_report.md「反向提問」段與 Guard Reachability 段自相矛盾之報告文字修正，非實作缺陷；輪次帳本二元制〔機械≠邏輯〕併入待記 SV 治理票）· `94465d9` · 免 Traycer（純 .sh/.json/.ini/STATE.md 治理票）· **[可達性]／V5-V6 二項 PARTIAL 誠實揭露不勾，追蹤併入 MEO-T3**（已由 Akira 裁定升為下一張 MEO 票開工前置票，T3 落地前不開新 MEO 功能票）· 票檔已搬 `deliver/` · PROGRESS.md 本次同步已由 `MEO-T2-DOCSYNC-01` 追溯覆蓋（Scope Creep 修補） |
 | MEO-T2-FIX-A | ✅ Done（碼閉環，AC 4/4 附證據）· `stop_orchestrator.sh` quota-exhausted 分支補上 `systemMessage` 鍵，與 escalation 分支同構三鍵輸出（Traycer execute_review 裁決轉修補票，補齊 Hard Constraint 2「Stop 類僅三鍵」）· +1L < MAX_LINES 20 · `assembleDebug` PASS(48s) + 418/418 tests(device+emulator) + 0 new lint · 手動行為測試（`MEO_QUOTA_STATE=exhausted`+`MEO_ESCALATION_PENDING=true`）確認合法 JSON 三鍵輸出 · `git diff --stat` 僅 `stop_orchestrator.sh` 1F+1L 在 ALLOWED 範圍內 · 免 Traycer（單檔 bugfix 修補票） |
 
-**Last Updated**: 2026-07-22
+**Last Updated**: 2026-07-23
 
 ## Sprint Health
 
 | Metric | Status |
 | -------- | -------- |
-| Schedule | **S79** · MEO-T3-DOCSYNC-01 收尾：Codex Cross-Review PASS（REACHABILITY: NONE）+ `structural_verify.sh --post` PASS/ADVISORY，`14cbb21`；Traycer execute_review 依票面 Header `N/A` + Akira 2026-07-22 對話授權豁免；AI 1-4/AC 1-6 全勾，票檔已搬 `deliver/`；**母票 MEO-T3 本身不受影響**，`strict_verification` 維持 blocked 待重審 · **S78** · MEO-T3-DOCSYNC-01 truthful-resync 完成：PROGRESS Dashboard 單一真相恢復（HEAD 重錨 `8f597df`，CSO 裁決A授權）· **S77** · MEO-T3-FIX-A 根因追蹤：Pipeline Artifact scope-bundling 三項根因分析完成，Opus 4.8 起草治理票 `INFRA-VERIFY-PA-BOUND-01` 存 `Pending/`，未派工（gitignored，無 commit）· **S76** · MEO-T3-FIX-A AI-1~3 機械 cleanup 完成，第三次 execute_review 判定 `Approach Drift`，未取得治理審查 PASS · **S73** · MEO-T2-DOCSYNC-01 Scope Cleanup ✅ Done（`7bff24b`，免 Traycer）|
-| Compile | ✅ PASS `assembleDebug`（MEO-T3-DOCSYNC-01 · 2026-07-22，47s） |
-| Tests | ✅ PASS `testDeviceDebugUnitTest` 209/209（0 fail；MEO-T3-DOCSYNC-01 scope 僅 .md，零 .kt 觸碰） |
-| Lint | static_blind_scan.sh 9 項警示同前，皆 pre-existing 域外 `.kt`（非本票觸碰範圍） |
+| Schedule | **S80** · INFRA-VERIFY-PA-BOUND-01 執行中：AI-1~3 碼閉環（`verify_checklist.sh` PA 邊界收斂 + `ssot-governance.md` 條款 + `qa/SKILL.md` 單一真相引用），AC1-4 行為性測試附證據 PASS，`/qa` Step 1-3 進行中 · **S79** · MEO-T3-DOCSYNC-01 收尾：Codex Cross-Review PASS（REACHABILITY: NONE）+ `structural_verify.sh --post` PASS/ADVISORY，`14cbb21`；Traycer execute_review 依票面 Header `N/A` + Akira 2026-07-22 對話授權豁免；AI 1-4/AC 1-6 全勾，票檔已搬 `deliver/`；**母票 MEO-T3 本身不受影響**，`strict_verification` 維持 blocked 待重審 · **S78** · MEO-T3-DOCSYNC-01 truthful-resync 完成：PROGRESS Dashboard 單一真相恢復（HEAD 重錨 `8f597df`，CSO 裁決A授權）· **S77** · MEO-T3-FIX-A 根因追蹤：Pipeline Artifact scope-bundling 三項根因分析完成，Opus 4.8 起草治理票 `INFRA-VERIFY-PA-BOUND-01` 存 `Pending/`，未派工（gitignored，無 commit）· **S76** · MEO-T3-FIX-A AI-1~3 機械 cleanup 完成，第三次 execute_review 判定 `Approach Drift`，未取得治理審查 PASS |
+| Compile | ✅ PASS `assembleDebug`（INFRA-VERIFY-PA-BOUND-01 · 2026-07-23，69s） |
+| Tests | ✅ PASS `testDeviceDebugUnitTest` 209/209（0 fail；本票 scope 僅 .sh/.md，零 .kt 觸碰） |
+| Lint | 0 new warnings（584 existing baseline，本票未觸碰 .kt）· static_blind_scan.sh 同前 9 項警示，皆 pre-existing 域外 `.kt`（非本票觸碰範圍） |
 
 ## Active Blockers
 
@@ -61,7 +61,7 @@
 9. **⚠️ 待 Akira 核驗**：GAP-06-TARGET-01-REVA 曾於 2026-07-16 執行 Codex Cross-Review R1 PASS（`b6b199f..5d8cc36`），該結果與 `.tmp/` 佐證檔現已不存在；**注意**：2026-07-18 另有獨立之 Traycer strict_verification Path A APPROVE（錨 `bc40d17`，見 Active Blockers）發生，二者不互相取代——本項待核驗之舊 R1 PASS 缺失問題仍未解
 16. **🟡 INFRA-CR-R0-PRECLEAR-01（E0/E1 已完成，I 階段未開工）**：E0 合票評估完成（P1-P4 全數合票，無拆票，報告 `plans/cso_briefing/reports/INFRA-CR-R0-PRECLEAR-01_E0_Evaluation_20260720.md`，gitignored）· E1 裁決 1-5 全數完成（PRECLEARED 採方向A+三附款／P2 吸收§4待開票項／CLAUDE.md Checkpoint 排程確認／AC-I4 CLI 錨點硬性化／AC-I8 三層閉環重構，報告 `..._E1_Ruling_20260720.md`）· **I 階段前置條件**（3 項，尚未執行）：①Checkpoint 批次（concurrency.md §4+§5 註記 + CLAUDE.md Boot Sequence AC-I5，需 Akira 裁決）②`sv/SKILL.md` 提醒插入（一般票流）③AC-I3 落地須含 PROGRESS.md 重疊測試案例（AC-I8 機械層歸屬前提）
 17. **🔴 MEO-T3 核心實作與 scope cleanup 已機械完成，治理審查未通過**：訊號源過濾 + PENDING 解除機制 + escalation_history_schema 消費三項合併已落地（`25b77f3`/`2c883cf`），但第三次 execute_review 判定 `Approach Drift`。DOCSYNC-01 已收尾（`14cbb21`，票檔搬 `deliver/`），但**母票 MEO-T3 尚未重送 execute_review**；PASS 前禁止開新 MEO 功能票、禁止 strict verification
-18. **⚪ INFRA-VERIFY-PA-BOUND-01 待 Akira 派工裁決**：詳見 S77（Pending/，gitignored，未 commit，三項根因發現已於 S77 完整保留）
+18. **🟡 INFRA-VERIFY-PA-BOUND-01 碼閉環，`/qa` 進行中**：AI-1~3 已落地，AC1-4 行為性測試附證據 PASS，待 `/qa` Step 4.5 Auto Commit + `/sv` Codex Cross-Review
 
 ## Active Debt（僅列未解決項）
 

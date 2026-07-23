@@ -18,8 +18,10 @@
 
 set -u
 
-# ─── Pipeline Artifact 白名單（永不觸發 SCOPE_VIOLATION） ───
+# ─── Pipeline Artifact 白名單（有界豁免；超界 fall-through 至一般 ALLOWED 檢查） ───
 PIPELINE_ARTIFACT=".claude/PROGRESS.md,.claude/PROGRESS_ARCHIVE.md"
+# INFRA-VERIFY-PA-BOUND-01: 最大合法 Step-4 同步 delta 實測 4–16 行，40 為約 2.5x headroom。
+PIPELINE_ARTIFACT_MAX_LINES=40
 
 DEFAULT_FORBIDDEN="CameraViewModel.kt"
 
@@ -49,6 +51,22 @@ token_matches_file() {
   else
     [[ "$base" == "$token" ]]
   fi
+}
+
+# ─── Pipeline Artifact 豁免界線（INFRA-VERIFY-PA-BOUND-01 AI-1）───
+pa_exemption_applies() { # pa_exemption_applies <delta_lines> → 0=豁免成立 1=豁免失效
+  local delta="$1"
+  [[ "$delta" -le "$PIPELINE_ARTIFACT_MAX_LINES" ]]
+}
+
+pa_file_lines_changed() { # pa_file_lines_changed <file> → added+deleted（numstat $1+$2）
+  local file="$1" lines
+  if [[ $CONF_MODE -eq 1 ]]; then
+    lines=$(git diff "${DIFF_REF}..${DIFF_END_RESOLVED}" --numstat -- "$file" 2>/dev/null | awk '{s+=$1+$2} END {print s+0}')
+  else
+    lines=$(git diff "$DIFF_REF" --numstat -- "$file" 2>/dev/null | awk '{s+=$1+$2} END {print s+0}')
+  fi
+  echo "${lines:-0}"
 }
 
 # ─── Self-test（INFRA-VERIFY-GLOB-01 AI-2）───
@@ -81,6 +99,20 @@ self_test() {
   # Pipeline Artifact 豁免 · INFRA-VERIFY-EXEMPT-01
   _expect hit  ".claude/PROGRESS_ARCHIVE.md" ".claude/PROGRESS_ARCHIVE.md"          "pipeline-artifact 正 · PROGRESS_ARCHIVE 豁免命中"
   _expect miss ".claude/PROGRESS_ARCHIVE.md" ".claude/PROGRESS_ARCHIVE_Sprint2.md"  "pipeline-artifact 負 · 豁免不得外溢至衍生檔名"
+  # Pipeline Artifact 豁免有界化 · INFRA-VERIFY-PA-BOUND-01
+  _expect_num() { # _expect_num <want 0|1> <delta> <desc>
+    local want="$1" delta="$2" desc="$3" got
+    if pa_exemption_applies "$delta"; then got=0; else got=1; fi
+    if [[ "$got" == "$want" ]]; then
+      passed=$((passed + 1)); echo "  ✅ [$want] $desc"
+    else
+      failed=$((failed + 1)); echo "  ❌ [want=$want got=$got] $desc | delta=$delta"
+    fi
+  }
+  _expect_num 0 12  "pa_exemption_applies 正 · 小規模同步 delta=12 → 豁免成立"
+  _expect_num 1 200 "pa_exemption_applies 負 · 大規模覆寫 delta=200 → 豁免失效"
+  _expect_num 0 40  "pa_exemption_applies 邊界 · delta=40（=MAX_LINES）→ 豁免成立"
+  _expect_num 1 41  "pa_exemption_applies 邊界 · delta=41（=MAX_LINES+1）→ 豁免失效"
   echo "── self-test: ${passed} passed, ${failed} failed ──"
   [[ $failed -eq 0 ]]
 }
@@ -247,8 +279,13 @@ if [[ -n "$ALLOWED" ]]; then
       token_matches_file "$pa" "$f" && { PA_MATCH=1; break; }
     done
     if [[ $PA_MATCH -eq 1 ]]; then
-      echo "  📌 Pipeline Artifact: $f"
-      continue
+      _PA_DELTA=$(pa_file_lines_changed "$f")
+      if pa_exemption_applies "$_PA_DELTA"; then
+        echo "  📌 Pipeline Artifact: $f (Δ${_PA_DELTA} ≤ ${PIPELINE_ARTIFACT_MAX_LINES})"
+        continue
+      else
+        echo "  ⚠️ Pipeline Artifact 豁免失效（Δ${_PA_DELTA} > ${PIPELINE_ARTIFACT_MAX_LINES}）: $f — fall through 至 ALLOWED 檢查"
+      fi
     fi
 
     # Check: ALLOWED

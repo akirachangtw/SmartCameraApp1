@@ -102,7 +102,7 @@ Step 4（PROGRESS.md 更新）與 Step 4.5（Auto Commit / Auto-Chain）之通�
    - `ALLOWED` **MUST** 不得為空；否則 → `⛔ Auto Commit BLOCKED: ALLOWED 為空`
 
 2. **Scope 汙染確認**：
-   - 執行 `git status --short`，確認無非 ALLOWED 且非 `.claude/PROGRESS.md` 的 dirty 檔案
+   - 執行 `git status --short`，確認無非 ALLOWED 且非 Pipeline Artifact 豁免（`.claude/PROGRESS.md` + `.claude/PROGRESS_ARCHIVE.md`，範圍與行數界線以 `verify_checklist.sh` 的 `PIPELINE_ARTIFACT` / `PIPELINE_ARTIFACT_MAX_LINES` 為單一真相來源，本行僅描述性引用）的 dirty 檔案
    - 若有 → **MUST** 停止並回報 `⛔ Scope 汙染: [檔案名]`，**不執行 commit**
 
 3. **零 diff 判定**：
