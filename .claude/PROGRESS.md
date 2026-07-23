@@ -61,7 +61,6 @@
 9. **⚠️ 待 Akira 核驗**：GAP-06-TARGET-01-REVA 曾於 2026-07-16 執行 Codex Cross-Review R1 PASS（`b6b199f..5d8cc36`），該結果與 `.tmp/` 佐證檔現已不存在；**注意**：2026-07-18 另有獨立之 Traycer strict_verification Path A APPROVE（錨 `bc40d17`，見 Active Blockers）發生，二者不互相取代——本項待核驗之舊 R1 PASS 缺失問題仍未解
 16. **🟡 INFRA-CR-R0-PRECLEAR-01（E0/E1 已完成，I 階段未開工）**：E0 合票評估完成（P1-P4 全數合票，無拆票，報告 `plans/cso_briefing/reports/INFRA-CR-R0-PRECLEAR-01_E0_Evaluation_20260720.md`，gitignored）· E1 裁決 1-5 全數完成（PRECLEARED 採方向A+三附款／P2 吸收§4待開票項／CLAUDE.md Checkpoint 排程確認／AC-I4 CLI 錨點硬性化／AC-I8 三層閉環重構，報告 `..._E1_Ruling_20260720.md`）· **I 階段前置條件**（3 項，尚未執行）：①Checkpoint 批次（concurrency.md §4+§5 註記 + CLAUDE.md Boot Sequence AC-I5，需 Akira 裁決）②`sv/SKILL.md` 提醒插入（一般票流）③AC-I3 落地須含 PROGRESS.md 重疊測試案例（AC-I8 機械層歸屬前提）
 17. **🔴 MEO-T3 核心實作與 scope cleanup 已機械完成，治理審查未通過**：訊號源過濾 + PENDING 解除機制 + escalation_history_schema 消費三項合併已落地（`25b77f3`/`2c883cf`），但第三次 execute_review 判定 `Approach Drift`。DOCSYNC-01 已收尾（`14cbb21`，票檔搬 `deliver/`），但**母票 MEO-T3 尚未重送 execute_review**；PASS 前禁止開新 MEO 功能票、禁止 strict verification
-18. **✅ INFRA-VERIFY-PA-BOUND-01 Done**：AI-1~3 碼閉環，AC 9/9 附證據 PASS，Codex Cross-Review R1 PASS（`92653c1`），`structural_verify.sh --post` PASS（ADVISORY），免 Traycer（純 .sh/.md 治理票），票檔待搬 `deliver/`
 
 ## Active Debt（僅列未解決項）
 
