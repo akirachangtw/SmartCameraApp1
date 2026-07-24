@@ -361,3 +361,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 ## Archived 2026-07-22 (/compact S79 併行)
 
 > **歸檔（Sprint Health Schedule 5 筆上限移出）：`MEO-T2-FIX-A`** ✅ Done（AC 4/4 附證據，`stop_orchestrator.sh` systemMessage 補齊，免 Traycer）——完整內容仍存於 Header「最近 Ticket」表，本行僅記錄 Schedule 欄移出動作（S79 `MEO-T3-DOCSYNC-01` 收尾進榜頂替）
+
+## Archived 2026-07-25 (CUE-SNAP-01-FIX-A /qa Step 4 併行)
+
+> **歸檔（Sprint Health Schedule 5 筆上限移出）：`S76` MEO-T3-FIX-A AI-1~3**：機械 cleanup 完成，第三次 execute_review 判定 `Approach Drift`，未取得治理審查 PASS——完整內容仍存於 Next Actions #17，本行僅記錄 Schedule 欄移出動作（S81 `CUE-SNAP-01-FIX-A` + MEO Escalation 過渡治理 α 首次釋放進榜頂替）
