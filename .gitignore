@@ -86,3 +86,6 @@ headroom_memory.db
 
 # Local MCP server config (per-machine, not committed)
 .mcp.json
+
+# Memory MCP 圖譜資料（Cueshot-memory 專案工作上下文，機器本地、不入 git）
+.mcp-memory/

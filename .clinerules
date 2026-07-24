@@ -769,3 +769,24 @@ testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 - [ ] 儲存對話記錄（如使用 Claude）
 - [ ] 編寫 Commit 訊息
 - [ ] Code Review（如團隊開發）
+
+
+---
+
+## Cueshot-memory 寫入紀律（D-F 宣告式串行）
+
+SSOT: `Cueshot_Memory_Concurrent_Write_Model`（ObsidianVault 決策區）
+
+- Cueshot-memory（`.mcp-memory/memory.jsonl`）由 Claude Desktop / Claude Code / VSCode 三端共用，官方實作無鎖、last-write-wins，衝突粒度為**檔案級**：他端於本端載入後寫入的實體，會在本端整檔寫回時被整批無聲抹除。
+- **規則 1｜寫入端宣告**：session 開場宣告唯一寫入端；未取得宣告之兩端該時段內僅可 `search_nodes` / `open_nodes`。切換寫入端須明確交接，**不得隱式接管**。
+- **規則 2｜寫入前時戳快照**：本端為宣告寫入端時，**首次 mutation 前** MUST 執行：
+
+```bash
+cp "D:/DevSources/AndroidProj/SmartCameraApp1/.mcp-memory/memory.jsonl" \
+   "D:/DevSources/AndroidProj/SmartCameraApp1/.mcp-memory/memory.jsonl.$(date +%Y%m%d_%H%M%S).bak"
+```
+
+保留最近 5 份；milestone 清理時一併重置。偵測方式：行數對比。
+- **禁語義化推定（D-F.2）**：不得以「只是加一則 observation，應該不衝突」略過宣告或快照——衝突粒度為檔案級，寫入大小與衝突機率無關。
+- **禁直接編輯（D-H）**：`memory.jsonl` 僅能經圖譜工具 API 寫入，禁以檔案工具 patch／overwrite（server 記憶體舊快照會在下次 mutation 覆蓋手動編輯）。
+- **型別限制（D-B）**：Cueshot 僅允許 `component` / `repo` / `workflow`；`decision` / `policy` 禁入。受決策約束者以 observation 存 `ruling: <topic>` 單向指標（D-C），禁建決策影子實體。
