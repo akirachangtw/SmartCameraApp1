@@ -27,19 +27,42 @@ kv_get() { grep -m1 "^$1=" "$STATE_FILE" 2>/dev/null | cut -d= -f2-; }
 kv_set() {
   if grep -q "^$1=" "$STATE_FILE" 2>/dev/null; then
     sed -i "s|^$1=.*|$1=$2|" "$STATE_FILE"
+  else
+    printf '%s=%s\n' "$1" "$2" >> "$STATE_FILE"
   fi
 }
+
+[ "$EVENT" = "PostToolUse" ] || [ "$EVENT" = "PostToolUseFailure" ] || exit 0
+
+# Rev F/AI-2 §A.1-2: mkdir-atomic lock covers ID increment AND every kv_set
+# read-modify-write below (not just the ID) — retry <=5x@0.1s, then fail-open
+# with zero writes attempted (lock not yet held, nothing written).
+LOCK_DIR="$STATE_FILE.lock"
+LOCKED=false
+for _ in 1 2 3 4 5; do
+  if mkdir "$LOCK_DIR" 2>/dev/null; then LOCKED=true; break; fi
+  sleep 0.1
+done
+[ "$LOCKED" = true ] || exit 0
+trap 'rmdir "$LOCK_DIR" 2>/dev/null' EXIT
 
 if [ "$EVENT" = "PostToolUse" ]; then
   # 成功路徑:僅重置 RETRY_COUNT。
   # CSO R4:STREAK 不重置——交錯型硬磨(成功/同類失敗交替)為必抓模式。
   kv_set MEO_RETRY_COUNT 0
+  # §B watermark 衰減(成功路徑已歸零 RETRY → 衰減 WM_RETRY)
+  WM_RETRY="$(kv_get MEO_WM_RETRY)"; WM_RETRY="${WM_RETRY:-0}"
+  [ "$WM_RETRY" -gt 0 ] && kv_set MEO_WM_RETRY 0
   exit 0
 fi
 
-[ "$EVENT" = "PostToolUseFailure" ] || exit 0
-
 # --- 失敗路徑 ---
+# §A 律三 corrupt-ID guard 最先執行(先於任何 kv_set),確保「非數字→零寫入」為字面事實。
+ID_RAW="$(kv_get MEO_ESCALATION_ID)"
+if [ -n "$ID_RAW" ] && ! [[ "$ID_RAW" =~ ^[0-9]+$ ]]; then
+  exit 0
+fi
+
 RETRY="$(kv_get MEO_RETRY_COUNT)"; RETRY="${RETRY:-0}"
 kv_set MEO_RETRY_COUNT "$((RETRY + 1))"
 
@@ -56,12 +79,37 @@ if [ "$ERR_CLASS" = "$LAST_CLASS" ]; then
 else
   kv_set MEO_SAME_ERROR_CLASS_STREAK 1
   kv_set MEO_LAST_ERROR_CLASS "$ERR_CLASS"
+  # §B watermark 衰減(class 已切換,STREAK 被重置為 1 → WM_STREAK 隨之衰減)
+  kv_set MEO_WM_STREAK 0
+  kv_set MEO_WM_ERROR_CLASS "$ERR_CLASS"
 fi
 
-# D1:閾值=2,數值直取
-NEW_RETRY="$(kv_get MEO_RETRY_COUNT)"
-NEW_STREAK="$(kv_get MEO_SAME_ERROR_CLASS_STREAK)"
-if [ "${NEW_RETRY:-0}" -ge 2 ] || [ "${NEW_STREAK:-0}" -ge 2 ]; then
+# §B watermark 衰減(REJECT 由他處遞增,本腳本僅記錄衰減,MUST NOT 作為觸發條件)
+REJECT="$(kv_get MEO_VERIFIER_REJECT_COUNT)"; REJECT="${REJECT:-0}"
+WM_REJECT="$(kv_get MEO_WM_REJECT)"; WM_REJECT="${WM_REJECT:-0}"
+[ "$REJECT" -lt "$WM_REJECT" ] && kv_set MEO_WM_REJECT "$REJECT"
+
+NEW_RETRY="$(kv_get MEO_RETRY_COUNT)"; NEW_RETRY="${NEW_RETRY:-0}"
+NEW_STREAK="$(kv_get MEO_SAME_ERROR_CLASS_STREAK)"; NEW_STREAK="${NEW_STREAK:-0}"
+
+# §A 律二:PENDING=true 期間只累積原始訊號(已完成),不遞增 ID、不建立新 episode。
+PENDING="$(kv_get MEO_ESCALATION_PENDING)"
+[ "$PENDING" = "true" ] && exit 0
+
+# §A 律三:ID 缺失/空值 → 以 0 初始化後續行。
+ID="${ID_RAW:-0}"
+[ -z "$ID_RAW" ] && kv_set MEO_ESCALATION_ID 0
+
+# D1:閾值=2,數值直取,現改為相對 watermark 之增量比較(§B,缺值視為 0)。
+WM_RETRY="$(kv_get MEO_WM_RETRY)"; WM_RETRY="${WM_RETRY:-0}"
+WM_STREAK="$(kv_get MEO_WM_STREAK)"; WM_STREAK="${WM_STREAK:-0}"
+DELTA_HIT=false
+[ "$((NEW_RETRY - WM_RETRY))" -ge 2 ] && DELTA_HIT=true
+[ "$((NEW_STREAK - WM_STREAK))" -ge 2 ] && DELTA_HIT=true
+
+# §A 律一:僅 PENDING=false 且 delta 達標,才遞增 MEO_ESCALATION_ID 並掛起。
+if [ "$DELTA_HIT" = true ]; then
+  kv_set MEO_ESCALATION_ID "$((ID + 1))"
   kv_set MEO_ESCALATION_PENDING true
 fi
 exit 0

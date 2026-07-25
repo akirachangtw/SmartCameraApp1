@@ -61,7 +61,7 @@ policies:
   context_first: true
   prefer_default_effort: true
   fast_path_simple_tasks: true
-  escalation_authority: orchestrator
+  escalation_authority: external (Akira/CSO checkpoint via meo/adjudications/ record + audit sidecar, produced outside agent session)
   quota_aware_escalation: true
   optimize_total_cost_not_unit_price: true
 ```
@@ -114,7 +114,7 @@ MEO_ESCALATION_PENDING=false
 | 信號 | 來源 | 閾值(D1 已批) |
 |------|------|---------|
 | `MEO_RETRY_COUNT` | execution trace(PostToolUse hook 累加) | ≥2 → 強制 escalation review |
-| `MEO_VERIFIER_REJECT_COUNT` | `/sv` Codex stage 駁回 | ≥2 → 強制 escalation review |
+| `MEO_VERIFIER_REJECT_COUNT` | `/sv` Codex stage 駁回 | reserved:僅 watermark 記錄,非觸發器(SSOT-hook 對齊,Rev F AI-5.6) |
 | `MEO_SAME_ERROR_CLASS_STREAK` | test runner / error class 比對 | ≥2 → capability_gap 確認 |
 
 **閾值遵守「監控閾值不得語義化」原則**:數值直取,禁以「議題複雜度」「內容密度」等語義理由提前或延後觸發。
@@ -214,6 +214,13 @@ MEO_LAST_ERROR_CLASS=none
 MEO_QUOTA_STATE=abundant
 MEO_ESCALATION_PENDING=false
 MEO_FASTPATH=false
+# Rev F 新增(episode identity + watermark + record-before-clear 消費點):
+MEO_ESCALATION_ID=0
+MEO_WM_RETRY=0
+MEO_WM_STREAK=0
+MEO_WM_ERROR_CLASS=none
+MEO_WM_REJECT=0
+MEO_LAST_ESCALATION_DECISION=
 ```
 
 ### 11.4 MCP / Long Task Guardrails

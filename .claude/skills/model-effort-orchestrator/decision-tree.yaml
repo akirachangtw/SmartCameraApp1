@@ -40,9 +40,14 @@ inputs:
     risk_level: [low, medium, high]
   mechanical: # read from STATE.md; ACTION-GATING
     MEO_RETRY_COUNT: int
-    MEO_VERIFIER_REJECT_COUNT: int      # source: /sv Codex stage rejections
+    MEO_VERIFIER_REJECT_COUNT: int      # reserved: watermark-tracked only, never an escalation trigger (SSOT-hook alignment, Rev F AI-5.6, Fugu SSOT-1)
     MEO_SAME_ERROR_CLASS_STREAK: int    # source: test runner error-class diff
     MEO_QUOTA_STATE: [abundant, constrained, exhausted]
+    MEO_ESCALATION_ID: int              # episode identity; producer: meo_signal_update.sh mkdir-lock (Rev F §A)
+    MEO_WM_RETRY: int                   # watermark snapshot; written by release_pending() (Rev F §C.5 step 3)
+    MEO_WM_STREAK: int                  # watermark snapshot; written by release_pending() (Rev F §C.5 step 3)
+    MEO_WM_ERROR_CLASS: string          # watermark snapshot; written by release_pending() (Rev F §C.5 step 3)
+    MEO_WM_REJECT: int                  # watermark snapshot; never a trigger (see MEO_VERIFIER_REJECT_COUNT above)
 
 # Thresholds — D1 RATIFIED (=2). Numeric-only enforcement:
 # semantic reinterpretation of thresholds is PROHIBITED (2026-07-14 lesson).
@@ -56,18 +61,21 @@ actions:
   run:                   {}
   run_and_verify:        {}
   request_escalation:
-    authority: orchestrator
+    authority: external  # Akira/CSO checkpoint via meo/adjudications/ record + audit sidecar, produced outside agent session (Rev F AI-5.7, Fugu SSOT-2)
     writes: {MEO_ESCALATION_PENDING: true}
     orchestrator_outcomes: [approve_upgrade, deny_retry_with_high_effort, defer_and_checkpoint]
   defer_and_checkpoint:
     requires: [execution_trace_saved, artifact_checkpoint]
     resume: next_quota_window
-    pending_release:  # MEO_ESCALATION_PENDING true->false gate. R13 four elements, ratified MEO-T3 AI-4.
+    pending_release:  # MEO_ESCALATION_PENDING true->false gate. R13 four elements, ratified MEO-T3 AI-4; Rev F rewires release to release_pending() (§C.5).
+      mutation_owner: "release_pending() in meo_pretooluse_gate.sh — sole authorized mutator of MEO_ESCALATION_PENDING/MEO_LAST_ESCALATION_DECISION/MEO_WM_* (Rev F §C.5a)"
+      decision_source: "dual-artifact adjudication channel — meo/adjudications/<id>.md (decision record) + meo/adjudications/<id>.audit.md (audit sidecar), both produced by Akira/CSO outside the agent session via mode=\"create\" (Rev F §C.2)"
       requires:
         - structural_non_self_resolving: "agent/orchestrator MUST NOT flip MEO_ESCALATION_PENDING to false unilaterally; release requires an external decision record (Akira/CSO Checkpoint ruling or Codex Cross-Review terminal verdict)"
         - record_before_clear: "narrative/decision context MUST be archived (vault/memory/PROGRESS.md) BEFORE the corresponding STATE.md kv is cleared or overwritten"
-        - signal_preservation: "the resolving decision MUST be written to MEO_LAST_ESCALATION_DECISION (escalation_history_schema.decision enum) before MEO_ESCALATION_PENDING is cleared"
+        - signal_preservation: "release_pending() MUST write the resolving decision to MEO_LAST_ESCALATION_DECISION (escalation_history_schema.decision enum) BEFORE MEO_ESCALATION_PENDING is cleared to false — literal consumption point for the record-before-clear contract (Rev F/R1)"
         - decision_authority_not_usurped: "the recorded decision MUST reflect the actual external ruling, never a self-selected default"
+        - atomic_all_or_nothing: "release_pending() applies its 5-step transition to a lock-scoped temp copy of STATE.md and performs a single atomic replace only after terminal validation; any step failure MUST leave the original STATE.md untouched (Rev F §C.5, Codex A1)"
 
 rules:
 
@@ -100,8 +108,10 @@ rules:
     when:
       any_of:
         - MEO_RETRY_COUNT: {gte: $thresholds.retry_count_trip}
-        - MEO_VERIFIER_REJECT_COUNT: {gte: $thresholds.verifier_reject_trip}
         - MEO_SAME_ERROR_CLASS_STREAK: {gte: $thresholds.same_error_class_trip}
+        # MEO_VERIFIER_REJECT_COUNT removed as trigger — watermark-tracked only,
+        # never used as a trigger by meo_signal_update.sh (SSOT-hook alignment,
+        # Rev F AI-5.6, Fugu SSOT-1; not a threshold change, see HC-3)
       MEO_QUOTA_STATE: {not: exhausted}
     then:
       action: request_escalation
@@ -115,8 +125,9 @@ rules:
     when:
       any_of:
         - MEO_RETRY_COUNT: {gte: $thresholds.retry_count_trip}
-        - MEO_VERIFIER_REJECT_COUNT: {gte: $thresholds.verifier_reject_trip}
         - MEO_SAME_ERROR_CLASS_STREAK: {gte: $thresholds.same_error_class_trip}
+        # MEO_VERIFIER_REJECT_COUNT removed as trigger — see R3_mechanical_escalation
+        # comment above (Rev F AI-5.6, Fugu SSOT-1)
       MEO_QUOTA_STATE: exhausted
     then:
       action: defer_and_checkpoint
