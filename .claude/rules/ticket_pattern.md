@@ -48,3 +48,17 @@ commit-hook=^\[[A-Z][A-Z0-9]*(-[A-Z0-9]+)+\]
 | INFRA-M3-AUDIT-01 | （無新格式） | 建立 family provenance 偵測控制 `.claude/scripts/m3_family_audit.sh`（唯讀 + escalate，對帳本表 derive 的 family 白名單）；消除第 6 行死指令（結構文法變更 vs 新增 family 分流）；掛 `/dream` stale-gate |
 | GAP-06-RENDER-DOT-01 | `GAP-[NN][...]` | GAP 缺口修復 family 補登 provenance（結構文法既已涵蓋，不改 regex）；CSO（Akira）2026-07-08 授權補登，解 Rule 4a「family 未登記」escalate |
 | INFRA-TICKETID-SSOT-V407-01 | `SSOT-V407-[...]` | SSOT v4.0.7 版本升級 family 補登（`SSOT-V407-01` + `SSOT-V407-SWEEP-01` 收斂為單一 family，非兩個單票特例）；CSO（Akira）2026-07-08 裁決授權，解 M3 Family Provenance 稽核（`M3_Family_Audit_20260708.md`）2 筆 escalate |
+
+> family provenance STOP／自動補登分流規則之 SSOT＝`CLAUDE.md` Rule 4a（two-branch，`INFRA-GOV-DEESC-01` Rev A）；本檔僅承載補登資料表，不複寫規則本文。
+
+## Family Provenance 補登紀錄
+
+| family | 首票 TICKET_ID | 代表票 | 來源路徑 | 補登日期 | 追認依據 |
+|--------|----------------|--------|----------|----------|----------|
+| `MEO-` | `MEO-T2` | `MEO-FIX-A` | `plans/cso_briefing/project/Pending/MEO-FIX-A_Escalation_Gate_Relocation.md` | 2026-07-25 | CSO 簽發並直接指示執行 |
+
+## 票據模板規範
+
+> 新建 SSOT 落點（`INFRA-GOV-DEESC-01` Rev A AI-2a）；非修改既有段落。
+
+票據 `## Verify Config` 區塊之 `DIFF_REF` **MUST** 為字面佔位 `<開工時 git rev-parse --short HEAD 回填>`；起草時 **MUST NOT** 硬編具體雜湊。回填時機與三原子動作見 `.claude/skills/qa/SKILL.md` Step 0（Scope Gate）。

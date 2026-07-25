@@ -28,6 +28,17 @@ bash .claude/skills/qa/scripts/verify_checklist.sh tmp/verify_cmd.conf
 
 **重要**：Step 0 是確定性腳本（零 AI 配額），不需解讀輸出，只看退出碼。
 
+### DIFF_REF 回填三原子動作（開工時執行，`INFRA-GOV-DEESC-01` Rev A AI-2b）
+
+票務開工時（非 session Boot），**MUST** 依序執行三原子動作，缺一即停：
+1. `git rev-parse --short HEAD` 回填票面 `DIFF_REF`。
+2. 同步再生 `tmp/verify_cmd.conf`（含回填後 `DIFF_REF`）。
+3. 回填值與 conf 摘要記入證據欄。
+
+### Anchor Drift STOP（首次成文，`INFRA-GOV-DEESC-01` Rev A AI-2c）
+
+回填制下，Anchor Drift STOP 僅保留一種觸發：回填後之 `DIFF_REF..HEAD` 之間出現**觸及本票 ALLOWED 檔**之 commit（票面現值描述失真風險，需人裁決）；其餘 HEAD 前進一律不觸發。**本判定目前尚無 hook 機械強制點**，屬 /sv、/qa 執行者行為準則；未來若機械化須另立票。
+
 ## Step 1: 編譯 (Build)
 
 執行 `./gradlew assembleDebug 2>&1 | tail -50`
