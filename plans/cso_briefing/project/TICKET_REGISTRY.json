@@ -1,0 +1,422 @@
+{
+  "registry_version": "1.1",
+  "project": "SmartCameraApp1",
+  "label": "Cueshot APP",
+  "generated": "2026-07-25",
+  "revised": "2026-07-26 主題重排(Akira 裁定五主題;各主題內序後續由原主題對話複審)",
+  "generated_by": "TKR-01 initial census (CSO)",
+  "schema_notes": {
+    "checkpoint": "v1.1 新增選填欄位(缺席或 null = 無待決)。每票至多一個,keep-latest:新事件覆寫舊事件。結構:{state: OPEN|RESOLVED, type: RULING|OPTION_SELECT|ERROR_HANDLING, summary: ≤200字, options: [僅 OPTION_SELECT], resolution: 勾選結果, detail_ref: reports/checkpoints/<TICKET_ID>.md, raised_by, raised_at, resolved_at}。機械規則 R1: state=OPEN 禁轉 CLOSED;R2: 轉 CLOSED 時本欄置 null 並刪 detail 檔。完整內容 SSOT 在票面 Rev/reports/vault,本欄僅存信號與指標,禁大片段內文。"
+  },
+  "topics": {
+    "KAIROS": {
+      "order": 1,
+      "note": "教訓收割材料(非執行票,TKR-04 退役盤點對象)"
+    },
+    "MEO": {
+      "order": 2,
+      "note": "Escalation gate 修復鏈+SV 治理;T3 為 T4 硬性前置"
+    },
+    "Advisor": {
+      "order": 3,
+      "note": "Advisor 側治理鏈(原 INFRA-CR / INFRA-AGENTS 併組,2026-07-26 重排)"
+    },
+    "Cueshot": {
+      "order": 4,
+      "note": "實機功能修復鏈(原 GAP / STATE-CONTRACT / TRACTION 併組,2026-07-26 重排)"
+    },
+    "Memory": {
+      "order": 5,
+      "note": "Cueshot-memory 快照 hook"
+    }
+  },
+  "tickets": [
+    {
+      "id": "KAIROS3-CANDIDATES",
+      "title": "KAIROS #3 教訓候選彙整(K3-1~K3-7)",
+      "topic": "KAIROS",
+      "file": "Pending/KAIROS3_Candidate_Compilation.md",
+      "seq": 1,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "N_A",
+        "sv": "N_A",
+        "codex": "N_A",
+        "traycer": "N_A"
+      },
+      "note": "候選登記簿(Canonical Registry),非執行票;TKR-04 退役盤點對象——承載候選內容故不可逕退,追蹤職能移交本 registry",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "KAIROS4-CANDIDATES",
+      "title": "KAIROS #4 教訓候選彙整(K4-1~K4-55)",
+      "topic": "KAIROS",
+      "file": "Pending/KAIROS4_Candidate_Compilation.md",
+      "seq": 2,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "N_A",
+        "sv": "N_A",
+        "codex": "N_A",
+        "traycer": "N_A"
+      },
+      "note": "候選登記簿(Canonical Registry),非執行票;TKR-04 退役盤點對象",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "MEO-FIX-A-EVIDENCE-REQ",
+      "title": "α 過渡授權 CSO 補證要求(Executor Evidence Request)",
+      "topic": "MEO",
+      "file": "Pending/MEO-FIX-A_Alpha_Evidence_Request_20260725.md",
+      "seq": 1,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "N_A",
+        "sv": "N_A",
+        "codex": "N_A",
+        "traycer": "N_A"
+      },
+      "note": "MEO-FIX-A 附屬取證動作(07-25),對象 Claude Code 執行者;α 第 3 次額度已凍結。Rev J 重入(07-26)後本件是否仍在效,待裁",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "MEO-FIX-A",
+      "title": "Escalation gate 執法點遷移(Stop→PreToolUse)+ episode identity + 機械可讀裁決管道",
+      "topic": "MEO",
+      "file": "Pending/MEO-FIX-A_Escalation_Gate_Relocation.md",
+      "seq": 2,
+      "depends_on": [],
+      "lifecycle": "IN_PROGRESS",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PASS",
+        "traycer": "PENDING"
+      },
+      "note": "票面現為 Rev J。Codex Rev J delta 復審 PASS(07-26):REPORT_FIX=CLEARED、執行者重入授權 YES(依 RevJ Briefing 檔面)",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "MEO-FIX-A-REVF-BRIEF",
+      "title": "Rev F 執行者派工 Briefing(2026-07-25)",
+      "topic": "MEO",
+      "file": "Pending/MEO-FIX-A_RevF_Executor_Briefing.md",
+      "seq": 3,
+      "depends_on": [],
+      "lifecycle": "CLOSED",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "N_A",
+        "sv": "N_A",
+        "codex": "N_A",
+        "traycer": "N_A"
+      },
+      "note": "歷史派工文件(配套 Rev F 票面);Rev J(07-26)已接續派工週期。冊面判定 CLOSED,如誤判請改",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "MEO-FIX-A-REVJ-BRIEF",
+      "title": "Rev J 執行者重入派工 Briefing(2026-07-26)",
+      "topic": "MEO",
+      "file": "Pending/MEO-FIX-A_RevJ_Executor_Briefing.md",
+      "seq": 4,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "N_A",
+        "sv": "N_A",
+        "codex": "N_A",
+        "traycer": "N_A"
+      },
+      "note": "現行執行依據(配套 Rev J 票面 SHA D823D165...):Codex delta PASS / REPORT_FIX CLEARED / REENTRY_AUTHORIZED YES;非獨立票",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "INFRA-SV-GOV-01",
+      "title": "SV 治理修正(EXCLUDE_ARGS rename/pathspec + Check A/C 互斥 + 輪次計數語意)",
+      "topic": "MEO",
+      "file": "Pending/INFRA-SV-GOV-01_SV_Governance_Fix.md",
+      "seq": 5,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PENDING",
+        "traycer": "PENDING"
+      },
+      "note": "R17 收案後起草,待 Akira 核定;與 MEO-T3 並行(ALLOWED 檔案集不相交)。2026-07-26 依 Akira 裁定歸入 MEO 主題",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "MEO-T3",
+      "title": "H1/H2 驗證 — 歷史失敗案例 corpus 建置與 retrospective classification(T4 前置 gate)",
+      "topic": "MEO",
+      "file": "Pending/MEO-T3_H1_H2_Validation.md",
+      "seq": 6,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PENDING",
+        "traycer": "N_A"
+      },
+      "note": "票面前置 MEO-T1(不在 Pending,推定已結);可與 INFRA-SV-GOV-01 並行",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "MEO-T4",
+      "title": "Effort adapter 落地(Claude Code + Codex 兩欄具體化)與 escalation_history 建檔",
+      "topic": "MEO",
+      "file": "Pending/MEO-T4_Effort_Adapter.md",
+      "seq": 7,
+      "depends_on": [
+        "MEO-T3"
+      ],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PENDING",
+        "traycer": "N_A"
+      },
+      "note": "硬性 gate:MEO-T3 H1 ≥ 80% 通過方可開工;票面另列前置 MEO-T2(不在 Pending,推定已結)",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "INFRA-CR-R0-PRECLEAR-01",
+      "title": "R0 Pre-Clearance Lint 合票評估票",
+      "topic": "Advisor",
+      "file": "Pending/INFRA-CR-R0-PRECLEAR-01.md",
+      "seq": 1,
+      "depends_on": [],
+      "lifecycle": "IN_PROGRESS",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PENDING",
+        "traycer": "PENDING"
+      },
+      "note": "⚠️ 票面載 APPROVED/E0 待排程,子票 I1/I2 載母票 E0/E1 結案——票面疑滯後,待校對後改狀態",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "INFRA-CR-R0-PRECLEAR-01-I1",
+      "title": "治理 Checkpoint 三合一批次票",
+      "topic": "Advisor",
+      "file": "Pending/INFRA-CR-R0-PRECLEAR-01-I1_Governance_Checkpoint_Batch.md",
+      "seq": 2,
+      "depends_on": [
+        "INFRA-CR-R0-PRECLEAR-01"
+      ],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PENDING",
+        "traycer": "PENDING"
+      },
+      "note": "Checkpoint-gated,三件事一次送審;依 E1 Ruling 裁決 2/3/5",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "INFRA-CR-R0-PRECLEAR-01-I2",
+      "title": "sv/SKILL.md 行為層提醒插入票",
+      "topic": "Advisor",
+      "file": "Pending/INFRA-CR-R0-PRECLEAR-01-I2_SvSkill_Reminder_Insertion.md",
+      "seq": 3,
+      "depends_on": [
+        "INFRA-CR-R0-PRECLEAR-01"
+      ],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PENDING",
+        "traycer": "PENDING"
+      },
+      "note": "一般票流,不進 Checkpoint(E1 裁決 5 明文)",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "INFRA-AGENTS-CR-03",
+      "title": "Hooks 全自動閘門(R0 送審順序機械強制)",
+      "topic": "Advisor",
+      "file": "Pending/INFRA-AGENTS-CR-03.md",
+      "seq": 4,
+      "depends_on": [],
+      "lifecycle": "BLOCKED",
+      "blocked_by": "§0 Gate 證據回填 + CSO 簽核轉 ACTIVE",
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PENDING",
+        "traycer": "PENDING"
+      },
+      "note": "⛔ DRAFT 狀態,Gate 未過前禁止執行;前置 CR-01 v1.1 已部署、CR-02 記錄運行中",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "GAP-06-TARGET-01-REVA-FIX-A",
+      "title": "PROGRESS 終態同步(strict_verification Path A 關票前置修正)",
+      "topic": "Cueshot",
+      "file": "Pending/GAP-06-TARGET-01-REVA-FIX-A_Progress_Terminal_Sync.md",
+      "seq": 1,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "N_A",
+        "traycer": "N_A"
+      },
+      "note": "X2 純治理同步票,Effort Low;GAP-06 主票關票前置",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "GAP-09-EYEAF-BACKOFF",
+      "title": "EyeAF 對焦穩定性 — Failed backoff 接線 + 鎖定保持雙層驗收",
+      "topic": "Cueshot",
+      "file": "Pending/GAP-09-EYEAF-BACKOFF_Focus_Stability.md",
+      "seq": 2,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PENDING",
+        "traycer": "PENDING"
+      },
+      "note": "票面前置 GAP-10-BREATH-RESTART(序列執行,不在 Pending,狀態待查);Effort High",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "STATE-CONTRACT-02",
+      "title": "Legacy _compositionState 殭屍通道清理(Stub)",
+      "topic": "Cueshot",
+      "file": "Pending/STATE-CONTRACT-02_Legacy_Cleanup.md",
+      "seq": 3,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PENDING",
+        "traycer": "PENDING"
+      },
+      "note": "前置 STATE-CONTRACT-01 PASS + 真機 AC PASS(票面載已達成)",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "STATE-CONTRACT-06",
+      "title": "PTF 半徑筆誤增殖清除 + DOC-REF 註解修正",
+      "topic": "Cueshot",
+      "file": "Pending/STATE-CONTRACT-06_PTF_Radius_Sweep_DocRef.md",
+      "seq": 4,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "N_A",
+        "traycer": "N_A"
+      },
+      "note": "X1 類免送審,/qa + /sv 本地閘即可;前置 SC-04/05 已關票;時窗 D16+ 或實測後均可",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "TRACTION-PROTO-02",
+      "title": "Prototype v3.3 對齊態常數同步(QA 真值身分完整性修復)",
+      "topic": "Cueshot",
+      "file": "Pending/TRACTION-PROTO-02_v3_3_Aligned_Constants_Sync.md",
+      "seq": 5,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "N_A",
+        "traycer": "N_A"
+      },
+      "note": "機械式常數改值,AC 錨定驗證;前置 TRACTION-SSOT-04 PASS(票面載已達成)",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "CUE-SNAP-01-FIX-A",
+      "title": "Cueshot-memory 快照 hook 重掛載至 SmartCameraApp1 並補真實觸發驗收",
+      "topic": "Memory",
+      "file": "Pending/CUE-SNAP-01-FIX-A_Snapshot_Hook_Remount.md",
+      "seq": 1,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PENDING",
+        "traycer": "PENDING"
+      },
+      "note": "原票 CUE-SNAP-01 已全數退回,本票承接全部 HC/AI/AC 為唯一 SSOT",
+      "updated_at": "2026-07-26",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "TKR-05",
+      "title": "Registry 服務層補強:rename/delete 原語 + depends_on 參照完整性驗證",
+      "topic": "TKR",
+      "file": null,
+      "seq": 9,
+      "depends_on": [],
+      "lifecycle": "DRAFT_NEEDED",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "N_A",
+        "sv": "N_A",
+        "codex": "N_A",
+        "traycer": "N_A"
+      },
+      "note": "起源:TKR-02-CONFIGALIGN-BRIEF 冊面 id 與審查證據鏈 id(TKR-02-CONFIGALIGN-01)不一致,查明 upsert_ticket 查找鍵=寫入鍵同一欄位,無 rename 語意;registry 服務層與四個 MCP 工具(registry_list/registry_upsert_ticket/registry_set_status/registry_set_checkpoint)皆無刪除/移除票據條目原語。Akira 07-28 對話裁決:駁回「新增+手刪」(中間態雙寫危險)與「就地手改 id」(零價值先例代價),改開本票補正規原語。範圍三項:①registry_rename_ticket(old_id, new_id)——MUST 同步更新同冊所有票據之 depends_on 引用,新 id 碰撞即拒;②移除路徑(delete 或 void)——被其他票 depends_on 引用中即拒,需顯式 confirm 參數 + audit 理由欄,git 版控為復原安全網;③depends_on 參照完整性驗證(現況零執法:引用票被改名或移除時不會有任何機制報錯,即靜默懸空風險,如 TKR-03.depends_on=[\"TKR-02\"])。",
+      "updated_at": "2026-07-28",
+      "updated_by": "CSO",
+      "checkpoint": null
+    }
+  ]
+}

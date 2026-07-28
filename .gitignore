@@ -68,7 +68,13 @@ normal_dump.xml
 docs/session_handoff/
 
 # CSO / UITA project knowledge (local AI agent context, not committed)
-plans/cso_briefing/
+# Exception: TICKET_REGISTRY.json is a Governance Artifact (project-scoped status
+# dashboard, tracked by CSO ruling 2026-07-28) — Manifest (cross-project) stays
+# untracked; Registry (this repo's own state) is version-controlled.
+plans/cso_briefing/*
+!plans/cso_briefing/project/
+plans/cso_briefing/project/*
+!plans/cso_briefing/project/TICKET_REGISTRY.json
 plans/uita_project/
 plans/archive/
 
