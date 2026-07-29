@@ -399,24 +399,42 @@
       "updated_by": "CSO"
     },
     {
-      "id": "TKR-05",
-      "title": "Registry 服務層補強:rename/delete 原語 + depends_on 參照完整性驗證",
-      "topic": "TKR",
-      "file": null,
-      "seq": 9,
+      "id": "MEO-FIX-B",
+      "title": "PreToolUse gate 分支序缺陷修復（pending gate 架空診斷自舉豁免）",
+      "topic": "MEO",
+      "file": "Pending/MEO-FIX-B_PreToolUse_Branch_Order_Fix.md",
+      "seq": 8,
       "depends_on": [],
-      "lifecycle": "DRAFT_NEEDED",
+      "lifecycle": "PENDING",
       "blocked_by": null,
       "reviews": {
-        "qa": "N_A",
-        "sv": "N_A",
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "codex": "PENDING",
+        "traycer": "PENDING"
+      },
+      "note": "FIX-A Rev J 收案後殘留 TRUE-POSITIVE-RULE-GAP。證據：episode 1/2/3 三案 + MEO-ADJUDICATION-01_Release_Evidence（reports/，disk-only）。AI-4 為自激迴路閘門側修復；信號側屬 MEO-T3 AI-5。與 T3 並行（閘門域 vs 信號域，ALLOWED 不相交）",
+      "updated_at": "2026-07-28",
+      "updated_by": "CSO"
+    },
+    {
+      "id": "INFRA-AGENTS-CR-05",
+      "title": "cross-reviewer R0 model pin 翻新（Opus 4.8→Opus 5）",
+      "topic": "Advisor",
+      "file": "Pending/INFRA-AGENTS-CR-05_R0_Model_Pin_Renewal.md",
+      "seq": 5,
+      "depends_on": [],
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "PENDING",
+        "sv": "PENDING",
         "codex": "N_A",
         "traycer": "N_A"
       },
-      "note": "起源:TKR-02-CONFIGALIGN-BRIEF 冊面 id 與審查證據鏈 id(TKR-02-CONFIGALIGN-01)不一致,查明 upsert_ticket 查找鍵=寫入鍵同一欄位,無 rename 語意;registry 服務層與四個 MCP 工具(registry_list/registry_upsert_ticket/registry_set_status/registry_set_checkpoint)皆無刪除/移除票據條目原語。Akira 07-28 對話裁決:駁回「新增+手刪」(中間態雙寫危險)與「就地手改 id」(零價值先例代價),改開本票補正規原語。範圍三項:①registry_rename_ticket(old_id, new_id)——MUST 同步更新同冊所有票據之 depends_on 引用,新 id 碰撞即拒;②移除路徑(delete 或 void)——被其他票 depends_on 引用中即拒,需顯式 confirm 參數 + audit 理由欄,git 版控為復原安全網;③depends_on 參照完整性驗證(現況零執法:引用票被改名或移除時不會有任何機制報錯,即靜默懸空風險,如 TKR-03.depends_on=[\"TKR-02\"])。",
+      "note": "CR-01 v1.1 AI-3 之 pin 因模型分流協議 v2 成殭屍條款。ID 取證：CR-01/02/04 均在 archive、CR-03 在 Pending（2026-07-28 雙目錄普查），故編 CR-05；另 archive 之 CR-02/CR-04 未入冊，registry 普查缺口待 TKR 家族補盤",
       "updated_at": "2026-07-28",
-      "updated_by": "CSO",
-      "checkpoint": null
+      "updated_by": "CSO"
     }
   ]
 }
