@@ -25,7 +25,7 @@ Governance Ref: vault `wiki\decisions\CSO\2026-07-20_MEO_Skill_Governance_Ratifi
 |---|-----------|----------|
 | 1 | 裁判悖論:agent 自評 capability_gap 不可信 | 語義診斷降為 hypothesis;**機械信號**才觸發 action(§5.2) |
 | 2 | 無 quota 意識 | 新增 `quota_state` 輸入與 `defer_and_checkpoint` 分支(§6) |
-| 3 | 軟約束可被 agent 繞過 | PreToolUse hook 機械檢查 + escalation 裁決權收歸 orchestrator(§11) |
+| 3 | 軟約束可被 agent 繞過 | PreToolUse hook 機械判準攔截 + 裁決收斂為 gate pending/`release_pending()` 機制(§11) |
 | 4 | 三份邏輯表述漂移 | `decision-tree.yaml` 為唯一 SSOT |
 | 5 | simple task 診斷 overhead 自相矛盾 | fast-path 分層診斷(§5.3) |
 | 6 | 無可證偽驗證設計 | H1/H2 假設與閾值(§15,D2/D3 已批) |
@@ -96,7 +96,7 @@ verification_depth: none | basic | standard | strict
 quota_state: abundant | constrained | exhausted
 ```
 
-> ⚠️ **語義診斷僅為 hypothesis**。`failure_mode_guess=capability_gap` 本身**不觸發**任何升級動作;升級唯一入口為 §5.2 機械信號 + orchestrator 裁決。此設計消解「診斷者=被診斷者」悖論。
+> ⚠️ **語義診斷僅為 hypothesis**。`failure_mode_guess=capability_gap` 本身**不觸發**任何升級動作;升級唯一入口為 §5.2 機械信號 + PreToolUse gate 機械判準(pending gate + `release_pending()` ID 匹配消費)。此設計消解「診斷者=被診斷者」悖論。
 
 ### 5.2 機械信號(action 層,SSOT 定義於 decision-tree.yaml)
 
@@ -133,7 +133,7 @@ MEO_ESCALATION_PENDING=false
 
 1. `context_completeness != sufficient` → **ask**(不動 effort、不動 model)
 2. fast-path 條件成立 → **run**(default model / default effort)
-3. 機械信號任一達閾值 且 `quota_state != exhausted` → **request_escalation**(送 orchestrator 裁決)
+3. 機械信號任一達閾值 且 `quota_state != exhausted` → **request_escalation**(寫 `MEO_ESCALATION_PENDING=true`,待外部裁決經 `release_pending()` ID 匹配消費)
 4. 機械信號任一達閾值 且 `quota_state == exhausted` → **defer_and_checkpoint**(存 trace,排入下一 quota window)
 5. `failure_mode_guess == execution_gap`(有漏讀/漏測/漏驗證證據) → **run_and_verify** + raise effort
 6. `task_type in [multi_step, high_risk]` → **run_and_verify** + require_plan
@@ -150,8 +150,8 @@ MEO_ESCALATION_PENDING=false
 對策:提升 effort;強制 plan + verification checklist;高風險寫檔加 read-back 與 artifact checkpoint。
 
 ### 7.3 Capability Gap(v0.2 修訂)
-**確認條件從語義自評改為機械信號**:`MEO_SAME_ERROR_CLASS_STREAK >= 2` 或(`MEO_RETRY_COUNT >= 2` 且 orchestrator review 判定 non-execution 因素)。
-對策:agent 輸出 `escalation_request`(含 diagnostics + execution trace);**orchestrator 裁決**是否升 tier;`quota_state=exhausted` → `defer_and_checkpoint`,禁止硬升。
+**確認條件從語義自評改為機械信號**:`MEO_SAME_ERROR_CLASS_STREAK >= 2` 或(`MEO_RETRY_COUNT >= 2` 且 PreToolUse gate 機械信號複判 non-execution 因素)。
+對策:agent 輸出 `escalation_request`(含 diagnostics + execution trace);**外部裁決**(`meo/adjudications/` 經 `release_pending()` 消費)是否升 tier;`quota_state=exhausted` → `defer_and_checkpoint`,禁止硬升。
 
 ## 8. Execution Policy
 
@@ -192,13 +192,13 @@ tier 對應由 model registry 管理,skill 內不硬編碼。**escalation_histor
 
 ### 11.1 Enforcement:PreToolUse Hook
 
-`hooks/meo_pretooluse_gate.sh`(完整腳本見部署票 payload `MEO_Deployment_Tickets_v1.0.md`),契約:stdout 僅 `{decision, reason}`、exit 0、exec form 註冊、jq 缺失 fail-open。
+`hooks/meo_pretooluse_gate.sh`(完整腳本見部署票 payload `MEO_Deployment_Tickets_v1.0.md`),契約:`hookSpecificOutput.{hookEventName,permissionDecision,permissionDecisionReason}`、exit 0、exec form 註冊、jq 缺失 fail-open。
 
 ### 11.2 Escalation 裁決權
 
 - Agent → 輸出 `escalation_request`(寫 STATE.md `MEO_ESCALATION_PENDING=true` + trace 附件)
-- **stop_orchestrator.sh 讀取 gate.conf `[meo]` 條目**(D5 已批:不新增第四個 Stop hook,遵守 G2)
-- 裁決三態:`approve_upgrade | deny_retry_with_high_effort | defer_and_checkpoint`
+- **執法點在 `meo_pretooluse_gate.sh` PreToolUse pending gate**(D5 已批:`stop_orchestrator.sh` 僅為 Stop 事件 review gate pass/fail 承載體,不 block、不裁決,遵守 G2)
+- 裁決三態(`approve_upgrade | deny_retry_with_high_effort | defer_and_checkpoint`)由外部 `meo/adjudications/` 雙檔經 `release_pending()` ID 匹配消費
 
 ### 11.3 STATE.md 欄位
 
