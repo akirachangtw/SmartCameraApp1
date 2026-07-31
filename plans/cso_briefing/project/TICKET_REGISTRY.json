@@ -455,20 +455,39 @@
     },
     {
       "depends_on": [],
-      "file": "Pending/INFRA-GITIGNORE-WL-01_ProjectFile_Whitelist_Rootfix.md",
+      "file": "deliver/INFRA-GITIGNORE-WL-01_ProjectFile_Whitelist_Rootfix.md",
       "id": "INFRA-GITIGNORE-WL-01",
-      "lifecycle": "PENDING",
-      "note": "Akira 2026-07-31 裁決 2-c 承接票（見 2026-07-31_Ticket_Template_v32_Batch_Rulings KD4）：.gitignore L74-77 四行反選集下，L76 plans/cso_briefing/project/* 覆蓋致 project/file/ 目錄被排除，同目錄新增檔靜默維持 untracked（git status 不報、git add 不收）；06a377f 僅單檔例外強制追蹤未消目錄盲區。修法：於 L77 後插入註解 + !plans/cso_briefing/project/file/ 單行根治，與 L75 反選 project/ 既有機理同構（dir/* 不跨 /，反選目錄後內容無規則匹配）。｜派工前錨點預檢已執行（KD2）：L74-77 四行現值取自 2026-07-31 17:07 live grep，ANCHOR_PROBED=2026-07-31 17:07；票面 AI-0 令執行端四行連續區塊整體復驗恰 1 次。｜PRESET=docs（純文本治理配置，assembleDebug 依 TPL v3.2 條款 N/A 劃記；Akira 得於派工前改劃 hotfix 不影響 AI 內容）、DIFF_REF=06a377f、MAX_LINES=10（推導註記在票）。｜HC：禁動 L74-77 既有四行任一字元（反選集次序即語義）；禁擴大白名單範圍（Pending/、archive/ 排除屬既有設計，禁語義擴張）；禁以 git add -f 替代修法。｜AC 含二條行為性：①probe 檔 touch 後 git status --short MUST 列出（驗畢刪 probe，禁單以 git check-ignore 替代）；②負向迴歸：Pending/ 路徑仍被忽略（既有排除語義不受影響），失敗則回退 AI-1 禁帶病提交。｜收尾：commit 前綴 [INFRA-GITIGNORE-WL-01]；本票落地後 INFRA-TPL-V32-01 HC-1「禁新增檔案」依據前提消滅（但依簽發時法仍拘束該票自身，不追溯放寬），後續新票免同款 HC，狀態變化待 ⑩ KAIROS 或下次相關開票時字面記載。｜與 INFRA-TPL-V32-01 無檔案交集可並行，惟 commit 序列化以免 DIFF_REF 交錯。",
+      "lifecycle": "CLOSED",
+      "note": "Akira 2026-07-31 裁決 2-c 承接票（見 2026-07-31_Ticket_Template_v32_Batch_Rulings KD4）：.gitignore L74-77 四行反選集下，L76 plans/cso_briefing/project/* 覆蓋致 project/file/ 目錄被排除，同目錄新增檔靜默維持 untracked（git status 不報、git add 不收）；06a377f 僅單檔例外強制追蹤未消目錄盲區。修法：於 L77 後插入註解 + !plans/cso_briefing/project/file/ 單行根治，與 L75 反選 project/ 既有機理同構（dir/* 不跨 /，反選目錄後內容無規則匹配）。｜派工前錨點預檢已執行（KD2）：L74-77 四行現值取自 2026-07-31 17:07 live grep，ANCHOR_PROBED=2026-07-31 17:07；票面 AI-0 令執行端四行連續區塊整體復驗恰 1 次。｜PRESET=docs（純文本治理配置，assembleDebug 依 TPL v3.2 條款 N/A 劃記；Akira 得於派工前改劃 hotfix 不影響 AI 內容）、DIFF_REF=06a377f、MAX_LINES=10（推導註記在票）。｜HC：禁動 L74-77 既有四行任一字元（反選集次序即語義）；禁擴大白名單範圍（Pending/、archive/ 排除屬既有設計，禁語義擴張）；禁以 git add -f 替代修法。｜AC 含二條行為性：①probe 檔 touch 後 git status --short MUST 列出（驗畢刪 probe，禁單以 git check-ignore 替代）；②負向迴歸：Pending/ 路徑仍被忽略（既有排除語義不受影響），失敗則回退 AI-1 禁帶病提交。｜收尾：commit 前綴 [INFRA-GITIGNORE-WL-01]；本票落地後 INFRA-TPL-V32-01 HC-1「禁新增檔案」依據前提消滅（但依簽發時法仍拘束該票自身，不追溯放寬），後續新票免同款 HC，狀態變化待 ⑩ KAIROS 或下次相關開票時字面記載。｜與 INFRA-TPL-V32-01 無檔案交集可並行，惟 commit 序列化以免 DIFF_REF 交錯。｜【收尾實錄 + F.2 裁決（2026-07-31）】實作 commit f0c9c20（[INFRA-GITIGNORE-WL-01] 前綴，.gitignore +2 行與票面目標值逐字一致，CSO git_show 獨立複驗）；DIFF_REF 回填三原子動作 06a377f→6a8f508（Akira 選項 A）；AC 6/6（行為性探測 filename 由票面 .wl_probe.tmp 修正為 .md——票面原名命中全域 *.tmp 排除規則將致偽陰性，此屬 CSO 開票端 AC 探測物設計缺陷，執行端修正正確並已揭露；KAIROS 候選：AC 探測物設計 MUST 檢核與既有 ignore/全域規則之交互作用）；Codex R1 PASS（REACHABILITY: NONE）；免 Traycer（依 INFRA-TPL-V32-01/INFRA-SV-ZERODIFF-01/INFRA-CLOSURE-SOP-01 同型先例，Akira 追認）；sv REPORTFIX：sv_report.md 補英中雙標頭後 Check D/E/G 轉綠（腳本要求字面 ## Stage A/B/C 與 SV prompt 範本中文「## 階段」雙軌不一致，KAIROS 候選待 ⑩）。structural_verify Check F.2（PROGRESS.md 86>80）＝既有債務：開工錨 6a8f508 時已 85 行，本票 Dashboard 列邊際 +1 至 86，上限突破非本票新造。Akira 裁決採選項 1：本票以 Cross-Review PASS 為權威終局視為閉環，F.2 債務由專用 docsync 票 INFRA-PROGRESS-COMPRESS-02 承接（法源 ssot-governance.md L38：大規模精簡/歸檔 MUST 走專用 docsync 票、MUST NOT 在無關票內就地輪替，前例 MEO-T3-DOCSYNC-01；選項 2 違 L38 就地輪替禁令 + FIX-F 同型 scope 劃界失準；選項 3 使 F.2 紅燈污染後續每票 sv 閘門、債務無承接載體，同 ⑦ 三度豁免無票之反模式）。副作用備忘：白名單生效後 project/file/ 下 12 個既存檔案轉為可見 untracked（未 git add，逐檔追蹤/忽略裁量待後續，非本票範圍）。",
       "project": "SmartCameraApp1",
       "reviews": {
-        "codex": "N_A",
-        "qa": "PENDING",
-        "sv": "PENDING",
+        "codex": "PASS",
+        "qa": "PASS",
+        "sv": "PASS",
         "traycer": "N_A"
       },
       "title": ".gitignore 增 !plans/cso_briefing/project/file/ 白名單（同目錄新檔靜默 untracked 盲區根治）",
       "topic": "INFRA",
-      "updated_by": "CSO"
+      "updated_by": "CSO",
+      "checkpoint": null
+    },
+    {
+      "depends_on": [],
+      "file": "deliver/INFRA-PROGRESS-COMPRESS-02_Dashboard_Rotation_F2_Debt.md",
+      "id": "INFRA-PROGRESS-COMPRESS-02",
+      "lifecycle": "CLOSED",
+      "note": "Akira 2026-07-31 F.2 裁決（選項 1）承接票：structural_verify Check F.2 判 .claude/PROGRESS.md 86 行 > 80 上限（ssot-governance.md L27）。歸因（記錄先於清償）：上限突破非 INFRA-GITIGNORE-WL-01 新造——其開工錨 6a8f508 時已 85 行，該票 Dashboard 列邊際 +1 至 86。法源 L38：大規模精簡/歸檔 MUST 走專用 docsync 票、MUST NOT 在無關票內就地輪替（前例 MEO-T3-DOCSYNC-01）；L60 免開票紀律射程為四項例行收尾動作，不涵行數債務輪替，不適用本票。｜機制：判準式列選取（非定點）——MUST 保留全部非 ✅ 列 + 表末 2 列最新 ✅；自表頂最舊 ✅ 列依序逐字搬至 PROGRESS_ARCHIVE.md 尾部（L31 追加序），達 ≤75（80-5 安全餘裕）即停，禁過度歸檔。｜逐字搬移律：位元組級不變，禁摘要/改寫/合併；列數守恆 AC 零資訊滅失。｜commit 前綴 MUST [COMPACT-SYNC]（兩檔均 GA 檔類，L19-20 專屬前綴，禁票號前綴），body 引註票號。｜ANCHOR_PROBED=2026-07-31 19:54（live read total_chars=20701）、DIFF_REF=f0c9c20、MAX_LINES=40（推導註記在票）、PRESET=docs（assembleDebug N/A 劃記）。｜AC 含行為性：structural_verify.sh --post Check F.2 PASS（真實腳本驅動，禁以 wc 單獨替代）；另含 ≥70 過度歸檔防護與 🟡 列守恆。｜FORBIDDEN 含 PROGRESS_ARCHIVE_Sprint*.md（Sprint 級重命名輪替 L42 不在範圍，禁順手執行）。｜【收尾實錄（2026-07-31，CSO 抽樣複驗）】commit ccb678c（[COMPACT-SYNC] 前綴正確、body 引註票號；git_changed_files f0c9c20→ccb678c 僅 2 個 ALLOWED 檔，零越權）。86→75 行、11 列（INFRA-GOV-DEESC-01～GAP-10-BREATH-RESTART）逐字搬 ARCHIVE 尾部批次區塊（L369 標頭 + L371 起，CSO grep 抽樣命中且 PROGRESS.md 側 0 命中）。AC 7/7 PASS；票檔已搬 deliver/（CSO get_file_info 驗在）。sv 閘門裁定：Check F.2 ADVISORY 通過；同輪 BLOCKER 係 Cross-Review receipt 缺席觸發——本票 codex=N_A 屬設計（docs 輪替票，依 GAP-06-TARGET-01-REVA-FIX-A 免 Codex 先例），該 BLOCKER 判定 inapplicable-by-design，CSO 追認並自陳票面未字面預載「免 Codex」宣告致 sv 誤鳴，屬開票端揭露缺口（KAIROS 候選：免審查票 MUST 於票面字面宣告審查豁免與依據，供 sv 閘門對齊）。F.2 債務清償終態：WL-01 邊際 +1 歸因鏈結完整（85→86→75），真正肇因為歷史 Done 列證據鏈敘述長期膨脹，非單一票務。",
+      "project": "SmartCameraApp1",
+      "reviews": {
+        "codex": "N_A",
+        "qa": "PASS",
+        "sv": "PASS",
+        "traycer": "N_A"
+      },
+      "title": "PROGRESS.md 86→≤75 行精簡（✅ Done 列歸檔輪替，Check F.2 債務清償）",
+      "topic": "INFRA",
+      "updated_by": "CSO",
+      "checkpoint": null
     }
   ]
 }
