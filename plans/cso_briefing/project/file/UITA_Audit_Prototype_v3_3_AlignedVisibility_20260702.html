@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UITA 審查 — Prototype v3.3 對齊態可見性與設計歧義</title>
+<style>
+  :root{--amber:#D4A030;--green:#50C864;--bg:#0D0D0D;--panel:#161616;--panel2:#1d1d1d;
+    --line:#2c2c2c;--txt:#e8e8e8;--muted:#9a9a9a;--red:#E5484D;--orange:#E0922F;
+    --yellow:#E0C53A;--greenok:#3FB950;--blue:#4d8df0;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang TC","Microsoft JhengHei",sans-serif;
+    line-height:1.6;font-size:14px;padding:0 0 80px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  header{border-bottom:1px solid var(--line);padding:30px 0 22px;background:linear-gradient(180deg,rgba(212,160,48,.07),transparent)}
+  h1{font-size:21px;margin:0 0 6px;letter-spacing:-.3px}h1 .em{color:var(--amber)}
+  .sub{color:var(--muted);font-size:13px}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px;font-size:12px;color:var(--muted)}
+  .meta b{color:var(--txt);font-weight:600}
+  h2{font-size:16px;margin:34px 0 4px;padding-top:10px;border-top:1px dashed var(--line)}
+  h2 .tag{font-size:11px;vertical-align:middle;margin-left:8px}
+  h3{font-size:14px;margin:20px 0 8px;color:#cfcfcf}
+  p{margin:8px 0}.lead{color:#cdcdcd}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;line-height:1.5;white-space:nowrap}
+  .p-red{background:rgba(229,72,77,.16);color:#ff8086;border:1px solid rgba(229,72,77,.4)}
+  .p-org{background:rgba(224,146,47,.16);color:#f0ad57;border:1px solid rgba(224,146,47,.4)}
+  .p-ylw{background:rgba(224,197,58,.14);color:#e6d05a;border:1px solid rgba(224,197,58,.35)}
+  .p-grn{background:rgba(63,185,80,.15);color:#5fd16f;border:1px solid rgba(63,185,80,.4)}
+  .p-blu{background:rgba(77,141,240,.15);color:#7aa9f5;border:1px solid rgba(77,141,240,.4)}
+  .dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0 6px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px;text-align:center}
+  .card .num{font-size:23px;font-weight:800;line-height:1.1}.card .lbl{font-size:12px;color:var(--muted);margin-top:4px}
+  .card.red{border-left:3px solid var(--red)}.card.red .num{color:#ff8086}
+  .card.org{border-left:3px solid var(--orange)}.card.org .num{color:#f0ad57}
+  .card.ylw{border-left:3px solid var(--yellow)}.card.ylw .num{color:#e6d05a}
+  .card.grn{border-left:3px solid var(--greenok)}.card.grn .num{color:#5fd16f}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--panel2);font-weight:700;font-size:12px;color:#cfcfcf}
+  tr:last-child td{border-bottom:none}
+  code{background:#000;color:var(--amber);padding:1px 5px;border-radius:4px;font-family:"SF Mono",Consolas,monospace;font-size:12px}
+  .ok{color:#5fd16f;font-weight:700}.warn{color:#e6d05a;font-weight:700}.bad{color:#ff8086;font-weight:700}
+  .note{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:8px;padding:12px 16px;margin:14px 0;font-size:13px}
+  .note.amber{border-left-color:var(--amber)}.note.red{border-left-color:var(--red)}.note.green{border-left-color:var(--greenok)}
+  .note .h{font-weight:700;margin-bottom:4px;color:#dcdcdc}
+  .diff{background:#0a0a0a;border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-family:"SF Mono",Consolas,monospace;font-size:12px;margin:8px 0;overflow-x:auto}
+  .diff .del{color:#ff8086;display:block}.diff .add{color:#5fd16f;display:block}.diff .ctx{color:#777;display:block}
+  .alphabar{display:flex;align-items:center;gap:10px;margin:6px 0;font-size:12px}
+  .alphabar .lab{width:270px;color:var(--muted);flex-shrink:0}
+  .alphabar .bar{height:14px;border-radius:4px;background:var(--green)}
+  .alphabar .val{color:#cfcfcf;font-family:monospace}
+  .checks{list-style:none;padding:0;margin:10px 0}
+  .checks li{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 14px;margin-bottom:8px;display:flex;gap:11px;align-items:flex-start;cursor:pointer}
+  .checks li:hover{background:var(--panel2)}.checks li.done{opacity:.5}.checks li.done .ck-txt{text-decoration:line-through}
+  .box{width:18px;height:18px;border:1.5px solid var(--muted);border-radius:5px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent}
+  .checks li.done .box{background:var(--green);border-color:var(--green);color:#0D0D0D}
+  .ck-txt{flex:1}.ck-id{font-weight:700;color:var(--amber);margin-right:6px}.ck-meta{font-size:11px;color:var(--muted);margin-top:4px}
+  footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>UITA 審查 — <span class="em">Prototype v3.3</span> 對齊態可見性與設計歧義</h1>
+  <div class="sub">UI 設計歧義與不合理項審查 + 修正建議 · 角色:UITA(技術可行性審查官)· 視覺物理學重點場</div>
+  <div class="meta">
+    <span><b>受審</b> Cueshot_State_1-6_Prototype_v3_3.html(1122 行,R-T7 可執行 QA 真值)</span>
+    <span><b>方法</b> grep/sed 全量 alpha 取樣 + 狀態機 JS 追蹤</span>
+    <span><b>日期</b> 2026-07-02</span>
+  </div>
+</div></header>
+<div class="wrap">
+
+<p class="lead">審查焦點:Akira 質疑「對齊呼吸 0.10→0.18 在真實環境幾乎肉眼看不到」。審查結果:<b>質疑成立,且實況更糟</b> —— Pitch 通道存在雙重衰減,對齊後有效透明度僅 0.04–0.11。共 2 🔴 + 3 🟠 + 2 🟡,另有 4 項正面確認。</p>
+
+<div class="dash">
+  <div class="card red"><div class="num">2</div><div class="lbl">🔴 不合理(可見性)</div></div>
+  <div class="card org"><div class="num">3</div><div class="lbl">🟠 設計歧義</div></div>
+  <div class="card ylw"><div class="num">2</div><div class="lbl">🟡 次要</div></div>
+  <div class="card grn"><div class="num">4</div><div class="lbl">🟢 正面確認</div></div>
+</div>
+
+<div class="note"><div class="h">定位校正(精準性)</div>
+「0.10→0.18」不是對焦成功透明度 —— Focus Ring focused 是 <code>rgba(80,200,100,0.6)</code>、locked 是 amber 1.0,均無此問題。0.10→0.18 是 <b>Traction 對齊呼吸帶</b>(<code>breathe-halo-aligned</code> L281 / <code>breathe-ambient</code> L299),D-3 鎖定、R-T4 於 0630 剛確認。故本審查的修正建議<b>構成 D-3/R-T4 翻案</b>,須 CSO 裁決,附翻盤條件。</div>
+
+<!-- U-1 -->
+<h2>🔴 U-1|對齊呼吸 0.10→0.18 低於實景可辨識閾值 <span class="pill p-red tag">核心 · D-3 翻案</span></h2>
+<p><b>視覺物理學論證</b>:原型在黑底 demo 檢視(對比極高,0.10 也可辨);實機取景器是<b>動態中亮度背景</b>(實景平均 40–60% 亮度、持續運動),疊加層偵測閾值比靜態暗背景高 2–3×。綠 #50C864 在 alpha 0.10–0.18 下對實景 Weber 對比僅約 5–12%,戶外強環境光(面板有效對比被壓縮)下落在辨識閾值之下。</p>
+<div class="note red"><div class="h">殺手證據:專案自己的實機閉環</div>
+R-T2 把未對齊 alpha 從 0.25 拉到 0.8 的理由,就是 0.25 在實機「淡到看不見/壞掉」(GAP-06 因果鏈)。<b>對齊呼吸峰值 0.18 比那個已被判死的 0.25 還低 28%</b>。同一塊螢幕、同一顆眼球,不可能 0.25 隱形而 0.18 可見。0.10→0.18 必然重演同型失效,只是換到對齊態。</div>
+<p><b>辯證平衡</b>:Ambient 哲學的「對齊後退場」意圖正確,且全域確認由快門呼吸(0.6→1.0 + 綠影)承擔 —— 但「安靜」≠「不可見」。使用者在對齊瞬間需要通道級的低調確認,否則會誤以為引導失效而繼續調整(IFTR 直接受損)。</p>
+<div class="diff">
+<span class="ctx">/* 建議修正(FULL 裝置)— 保留呼吸韻律與 scale,抬升 alpha 包絡 */</span>
+<span class="del">- @keyframes breathe-halo-aligned { 0% { opacity: 0.10; ... scale(0.98); } 100% { opacity: 0.18; ... scale(1.02); } }</span>
+<span class="add">+ @keyframes breathe-halo-aligned { 0% { opacity: 0.25; ... scale(0.98); } 100% { opacity: 0.40; ... scale(1.02); } }</span>
+<span class="del">- @keyframes breathe-ambient { 0%, 100% { opacity: 0.10; } 50% { opacity: 0.18; } }</span>
+<span class="add">+ @keyframes breathe-ambient { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.40; } }</span>
+</div>
+<p style="font-size:12px;color:var(--muted)">0.25 谷值 = R-T2 判死線的下緣(呼吸態可短暫觸底,不可常駐);0.40 峰值 ≈ 未對齊 0.8 的一半,維持「對齊比未對齊安靜一級」的層級語彙。<b>翻盤條件</b>:夜景/室內暗場 A/B 若 0.40 過亮干擾,降至 0.22→0.35;scene-adaptive alpha 屬 Phase 1.5,MVP 不做(TTV:改值數小時 vs 自適應 3–5 天)。</p>
+
+<!-- U-2 -->
+<h2>🔴 U-2|Pitch 對齊態雙重衰減 — 有效 alpha 僅 0.04–0.11 <span class="pill p-red tag">比 Halo 低 2.5×</span></h2>
+<p>Pitch 的對齊色<b>自帶 rgba alpha</b>,又被 <code>breathe-ambient</code> 的 element opacity(0.10–0.18)再打折:</p>
+<div class="alphabar"><span class="lab">Halo 對齊環(border 全 alpha × 呼吸)</span><div class="bar" style="width:180px;opacity:.9"></div><span class="val">有效 0.10–0.18</span></div>
+<div class="alphabar"><span class="lab">Pitch 對齊 ring(rgba 0.6 × 呼吸)</span><div class="bar" style="width:108px;opacity:.55"></div><span class="val">有效 0.06–0.108</span></div>
+<div class="alphabar"><span class="lab">Pitch 對齊 line(rgba 0.4 × 呼吸)</span><div class="bar" style="width:72px;opacity:.4"></div><span class="val">有效 0.04–0.072</span></div>
+<div class="alphabar"><span class="lab">Pitch 對齊 dot(rgba 0.4 × 呼吸)</span><div class="bar" style="width:72px;opacity:.4"></div><span class="val">有效 0.04–0.072</span></div>
+<div class="diff">
+<span class="ctx">/* 修正原則:對齊色一律全 alpha,alpha 包絡由呼吸 keyframe 單獨承載 */</span>
+<span class="del">- .pitch-traction.aligned .pitch-traction-line { background-color: rgba(80, 200, 100, 0.4); animation: breathe-ambient ...; }</span>
+<span class="add">+ .pitch-traction.aligned .pitch-traction-line { background-color: var(--align-green); animation: breathe-ambient ...; }</span>
+<span class="ctx">  （ring 的 0.6、dot 的 0.4 同理改 var(--align-green)）</span>
+</div>
+
+<!-- A-1 -->
+<h2>🟠 A-1|alpha 組合語義無主 — 歧義根源 <span class="pill p-org tag">SSOT 缺條款</span></h2>
+<p>SSOT D-3 寫「0.10→0.18」時從未定義:這是<b>總感知 alpha</b>(色彩 alpha × 元素 opacity 的乘積上限)還是<b>元素 opacity</b>(可再被色彩 alpha 打折)?Halo 選了前者的實作形態(border 全 alpha)、Pitch 選了後者(rgba 疊乘)——U-2 的雙重衰減正是這條歧義孵出來的。另 <code>breathe-ambient</code> 與 <code>breathe-halo-aligned</code> 兩組 keyframe 值相同僅差 scale,屬可合併的重複來源。<b>修正:SSOT §2.0 增列一句裁定 ——「所有呼吸/漸變 alpha 均指總感知值;承載動畫的元素,其色彩一律全 alpha」。</b></p>
+
+<!-- A-2 -->
+<h2>🟠 A-2|對齊態圓點語義分裂 <span class="pill p-org tag">違反 R-T6 圓點統一基元</span></h2>
+<table>
+<tr><th>通道</th><th>對齊態圓點表現</th><th>有效 alpha</th></tr>
+<tr><td>Halo</td><td class="ok">歸心 + 0.85 強存在(JS L941)+ breathe-dot</td><td>~0.6–0.85</td></tr>
+<tr><td>Pitch</td><td class="bad">歸位但 rgba 0.4 × 呼吸 0.10–0.18 → 近隱形</td><td>~0.04–0.07</td></tr>
+</table>
+<p>R-T6 剛裁定「圓點是三通道統一視覺基元」,對齊態卻兩套語彙:Halo 的圓點以強存在確認「已歸心」,Pitch 的圓點直接消失。使用者學到的隱喻(「圓點歸位=成功」)在 Pitch 上失效。<b>修正:統一採 Halo 式 —— 圓點對齊後保持可見歸心(0.85 級),退場呼吸只作用於環/線。</b>此與 U-2 修正天然合併。</p>
+
+<!-- U-3 -->
+<h2>🟠 U-3|V 曲線谷底 0.1 過深 — 「圓點失蹤帶」<span class="pill p-org tag">決策邊界回饋消失</span></h2>
+<p>三條 V 曲線都在 dist=50(琥珀↔綠交越點)把圓點 opacity 壓到 0.1。交越淡出的意圖正確(避免色彩硬跳),但代價是 <b>dist 37–63 區間 opacity &lt;0.3</b> —— 引導在使用者修正到一半、最需要回饋的瞬間近乎消失。實景上這是一段圓點失蹤帶。</p>
+<div class="diff">
+<span class="del">- opacity = 0.1 + (漸變項) × 增益      /* 谷底 0.1 */</span>
+<span class="add">+ opacity = 0.35 + (漸變項) × 增益     /* 谷底 0.35:交越淡出感保留,失蹤帶消除 */</span>
+</div>
+<p style="font-size:12px;color:var(--muted)">翻盤條件:若實機色彩切換顯突兀,谷底最低容許回調至 0.25(不回 0.1)。</p>
+
+<!-- minor -->
+<h2>🟡 次要:A-3 增益三套並存 / A-4 QA 真值身分互斥</h2>
+<table>
+<tr><th>#</th><th>發現</th><th>證據</th><th>建議</th></tr>
+<tr><td><b>A-3</b></td><td>V 曲線增益三套並存,無文件裁定</td><td>Halo dot 0.75/0.75(JS L947-948)、Pitch amber 0.7 / green 0.9(JS L1016-1017)</td><td>統一 0.75(隨 U-3 谷底調整同步重算:0.35 + x × 0.5,峰 0.85)</td></tr>
+<tr><td><b>A-4</b></td><td>未對齊 Halo 0.85 註記「刻意保留、勿同步」SSOT 的 0.8(R-T2)—— 但 R-T7 同時封本檔為<b>可執行 QA 真值</b></td><td>CSS L244-245 註解</td><td>「設計原值保留」與「QA 真值」身分互斥:QA 拿實作(0.8)對原型(0.85)必產生假不匹配。擇一:原型改 0.8(建議),或 QA 協議明文 ±0.05 容差</td></tr>
+</table>
+
+<!-- positive -->
+<h2>🟢 正面確認(4 項)</h2>
+<p>① Level roll-only 已落地且附化石清除註記(JS 註解引 R-T5/DEC-20260526224524),D-10 N=10° 淡入正確;② D-9 Food 關 Level、State 6 僅 Pitch+FoodHalo 正確;③ PTF 固定綠(§4.5.1)正確接線;④ 快門呼吸(0.6→1.0 + 綠影)作為全域對齊確認,gate 條件 <code>hasActiveTraction && allConditionsMet</code> 語義正確 —— 這也是 U-1 修正後「通道級低調 + 全域醒目」雙層確認架構成立的前提。</p>
+
+<!-- feasibility table -->
+<h2>逐元素技術可行性表 <span class="pill p-blu tag">UITA 標準格式</span></h2>
+<table>
+<tr><th>設計元素</th><th>技術可行性</th><th>風險等級</th><th>降級方案</th><th>備註</th></tr>
+<tr><td>對齊呼吸 0.25→0.40(U-1 修正後)</td><td>✅ 可行</td><td>低</td><td>LIMITED: 靜態 0.35 無呼吸;LEGACY: 靜態 0.35</td><td>InfiniteTransition alpha,零額外 draw call;夜景 A/B 掛翻盤</td></tr>
+<tr><td>Pitch 對齊全 alpha 化(U-2)</td><td>✅ 可行</td><td>低</td><td>同上</td><td>純色值改,Canvas 呼叫數不變(3/幀)</td></tr>
+<tr><td>圓點對齊強存在 0.85(A-2)</td><td>✅ 可行</td><td>低</td><td>LEGACY: 靜態圓點無 breathe-dot</td><td>radialGradient brush 須快取(前輪 T-7 未爆彈仍開)</td></tr>
+<tr><td>V 曲線谷底 0.35(U-3)</td><td>✅ 可行</td><td>低</td><td>—</td><td>JS/Kotlin 常數改,無渲染成本</td></tr>
+<tr><td>維持 0.10→0.18(Do-Nothing 基準)</td><td>⚠️ 實景失效</td><td class="bad">高</td><td>—</td><td>黑底 demo 可辨、實機重演 GAP-06 同型失效;快門呼吸只補全域、不補通道級確認,估殘留 ~50% 確認功能</td></tr>
+</table>
+
+<div class="note amber"><div class="h">整體評估(UITA 標準尾註)</div>
+預估 E2E 延遲:不變(~60–80ms,sensor→VM→recomposition 鏈,本次修正全為常數/色值層)· FULL Canvas 呼叫數:不變(Pitch 3 + Halo 2–3 + Level 快取後 1–2,<10/幀 gate 內;radialGradient brush 快取仍為前提)· 電池影響:低(呼吸動畫數量不變)· OpenGL shader:否,純 Compose Canvas 足夠。</div>
+
+<!-- checklist -->
+<h2>待裁與行動清單 <span class="pill p-blu tag">全數 Checkpoint 禁區 · 待 CSO sign-off</span></h2>
+<ul class="checks" id="cklist">
+  <li><div class="box">✓</div><div class="ck-txt"><span class="ck-id">V-1</span>D-3/R-T4 翻案裁決:對齊呼吸 0.10→0.18 改 <b>0.25→0.40</b>(FULL),LIMITED/LEGACY 靜態 0.35;翻盤條件=夜景 A/B 過亮則降 0.22→0.35。<div class="ck-meta">對應 U-1 · 🔴 · SSOT D-3 + 原型 + Kotlin 三層同步 · Checkpoint 禁區</div></div></li>
+  <li><div class="box">✓</div><div class="ck-txt"><span class="ck-id">V-2</span>SSOT §2.0 增列 alpha 組合語義條款:「呼吸/漸變 alpha 均指總感知值;承載動畫元素之色彩一律全 alpha」;Pitch 對齊三元素改 var(--align-green) 全 alpha。<div class="ck-meta">對應 U-2 + A-1 · 🔴/🟠 · 根治歧義來源 · Checkpoint 禁區</div></div></li>
+  <li><div class="box">✓</div><div class="ck-txt"><span class="ck-id">V-3</span>對齊圓點語義統一(Halo 式):圓點歸心後保持 0.85 強存在,退場呼吸僅作用環/線;寫入 SSOT §2.3/§2.5 對齊態條款。<div class="ck-meta">對應 A-2 · 🟠 · R-T6 圓點統一基元的對齊態延伸 · Checkpoint 禁區</div></div></li>
+  <li><div class="box">✓</div><div class="ck-txt"><span class="ck-id">V-4</span>V 曲線統一:谷底 0.1→0.35、增益統一 0.75(公式 0.35 + x×0.5,峰 0.85);翻盤條件=色彩切換突兀最低回調 0.25。<div class="ck-meta">對應 U-3 + A-3 · 🟠/🟡 · 三通道同步 · Checkpoint 禁區</div></div></li>
+  <li><div class="box">✓</div><div class="ck-txt"><span class="ck-id">V-5</span>A-4 身分互斥裁決:原型未對齊 0.85 改 0.8 同步 R-T2(建議),或 QA 協議明文 ±0.05 容差;二擇一,不可懸置。<div class="ck-meta">對應 A-4 · 🟡 · R-T7 QA 真值完整性</div></div></li>
+  <li><div class="box">✓</div><div class="ck-txt"><span class="ck-id">V-6</span>夜景/室內暗場 A/B 驗證(0.25→0.40 vs 0.22→0.35)納入 VERIFY 系列,與前輪 alpha 0.8 OLED/LCD A/B、radialGradient brush 快取 profiling 併單。<div class="ck-meta">對應 U-1 翻盤條件 + 前輪未爆彈 · 實機前置</div></div></li>
+</ul>
+
+<footer>
+  <p><b>總評</b>:v3.3 的通道邏輯(roll-only/D-9/PTF/快門 gate)全部健康,但<b>對齊態存在系統性隱形化</b>:D-3 的 0.10→0.18 在黑底 demo 成立、在實景取景器低於辨識閾值(R-T2 實機閉環的直接外推),且 Pitch 因 alpha 組合語義無主而雙重衰減至 0.04–0.11。修正路徑 V-1~V-4 全為常數/色值層,零渲染成本、零新 draw call,TTV 以小時計 —— 但每一項都觸 D-3/SSOT,屬 Checkpoint 禁區,待 CSO 裁決後開票。</p>
+  <p><b>歸檔狀態</b>:唯讀審查,未修改任何檔案。V-1~V-6 待 Akira sign-off;經指示「確認/歸檔」後依協議原子化寫入 Obsidian。</p>
+  <p style="color:#666">UITA Visual-Physics Audit · grep-verified v3.3 · 不取代 Codex 終審與真機驗收 · 2026-07-02</p>
+</footer>
+</div>
+<script>document.querySelectorAll('#cklist li').forEach(function(li){li.addEventListener('click',function(){li.classList.toggle('done');});});</script>
+</body>
+</html>
