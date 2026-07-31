@@ -435,6 +435,40 @@
       "note": "CR-01 v1.1 AI-3 之 pin 因模型分流協議 v2 成殭屍條款。ID 取證：CR-01/02/04 均在 archive、CR-03 在 Pending（2026-07-28 雙目錄普查），故編 CR-05；另 archive 之 CR-02/CR-04 未入冊，registry 普查缺口待 TKR 家族補盤",
       "updated_at": "2026-07-28",
       "updated_by": "CSO"
+    },
+    {
+      "depends_on": [],
+      "file": "Pending/INFRA-TPL-V32-01_Ticket_Template_v32_Anchor_Precheck_Docs_Preset.md",
+      "id": "INFRA-TPL-V32-01",
+      "lifecycle": "PENDING",
+      "note": "TKR02_Family_Ticketing_Audit_20260730.md 桶 C 第 ⑨ 項；Akira 2026-07-31 核可批次 ⑦→⑨→⑧→TKR-05→⑤⑥ 之第二張票。目的：將家族踩出之治理律由單票先例層提升至模板常設層（學習曲線斷代風險）。｜缺陷映射：①錨點/基線時效失準（3 起：FIX-D/FIX-G/CLOSEOUT-01）+ ④前提誤判開票（FIX-H）→ AI-2；②MAX_LINES 估值失準（2 起：FIX-B/FIX-F）→ AI-3；⑦ deferred 之 PRESET 缺 docs 型 → AI-4（Akira 2026-07-31 裁決 (a) 承接 ⑨ 正式入票面）。③Scope 劃界失準（FIX-F）不承接，依 T2 KD4 + Akira 裁決 2-a 留 KAIROS 池待 ⑩ 收割輪，禁繞道直增。｜版控前置（非本票範圍，已完成）：06a377f（2026-07-31 14:31:26，[INFRA-TICKET-TPL-01]）以例外強制追蹤將模板納入版控（new file mode 100644、@@ -0,0 +1,200 @@、.gitignore 未變動），CSO 已以 git_show + git_status 獨立複驗；此前置解除了 DIFF_REF 與 git diff --stat AC 之前置資源缺口。｜SSOT 形態（裁決 1-c′）：模板存兩份，明定 app-repo 份為唯一 SSOT（受版控、可 diff/revert）；Smarter-Project 份降為衍生副本——該 root 非 git repo（git_status 回 POLICY_DENIED）故無法以 ALLOWED 表達，副本同步改列「收尾義務」專節並附同體性 grep AC；此為對「新增條款 scope 一致性檢查」之顯式聲明例外，已於票面明文揭露（豁免停點不豁免可見性）。｜派工前錨點預檢已執行（KD2）：全部現值字串經 grep_files 直查確認命中數（L1/L3/L5/L27/L30/L31/L35/L70/L105/L127/L200 均唯一；## Action Items 命中 2 次為模板+範例，已以 HC-6 防錯置），ANCHOR_PROBED=2026-07-31 14:41。｜加值發現（審查檔未載）：①L200 End 行記 v3.0 而 L3 記 v3.1，屬 v3.1 修訂時漏改；②範例 Ticket 五條 AC 全無 AC 類型學標記（v3.1 增列類型學未同步範例）——二項均依修訂波及面全檔掃描律於 AI-1/AI-5 一併清償。｜PRESET=docs（本票即該 preset 首個 dogfood 案例）、DIFF_REF=06a377f、MAX_LINES=60（推導註記在票；截斷序：超額停止回報，禁省略 AI-5）。｜HC-1（裁決 2-a）：禁新增任何檔案——.gitignore:76 plans/cso_briefing/project/* 仍覆蓋本目錄，06a377f 係例外強制追蹤單檔，同目錄新檔將靜默維持 untracked（與 hook 置錯 repo 靜默 exit 0 同型失效）。｜deferred 三項明列於票：①.gitignore 同目錄盲區根治（裁決 2-c，另開 INFRA 票）；②.gitignore 行號錯記勘誤——SMTR 常駐記載「:71 排除整個 plans/cso_briefing/」實測為 L74-77 四行反選集且 TICKET_REGISTRY.json 有白名單，06a377f commit message 已正確記 :76 惟 SMTR 常駐文本待同步，**本項無承接載體，MUST 於 ⑩ KAIROS 收割輪或 SMTR_INDEX 修訂時清償**（基礎設施異動即檔律）；③scope 劃界條款留 KAIROS 池。｜commit 前綴 MUST 為 [INFRA-TPL-V32-01]。｜【Addendum-A（2026-07-31，Akira L2 核可）】執行端 AI-1～AI-5 逐字落地完成後，於 AC 驗收階段停止回報二項 AC 與票面自身矛盾（處置正確）。CSO 獨立 grep 複驗後確認二項主張均屬實，並補行取證再發現第三項：①AC「grep -c 'v3.1' = 1」實測 = 2（L5 舊 Revision + L84「AC 類型學（v3.1，INFRA-REACH-02 AI-1）」標題；後者為合法沿革歸屬記載，MUST NOT 改為 v3.2 否則偽造沿革）；②AC「ANCHOR_PROBED = 2」實測 = 4 行/5 次（另含 L6 新 Revision 行與 L39 AI-0 doctrine 段各自逐字目標值文本所帶之詞面）；③AC-8「L155-175 區間」因 AI-2(b) 插入 +9 行位移致範例 AC 區下移至 L174-176，原區間必漏第三條——此項執行端尚未回報，由 CSO 勘誤時發現，併改為行號無關判準且類型標記由 [行為性] 正為 [存在性]。缺陷全屬 CSO 開票端（AC 算術編碼以「套用前檔案」為基數，未投影 AI 增刪，且未計票面目標值文本之詞面自指），非執行偏差。裁決採 (a) 修正 AC 數值、否決 (b) 改檔遷就 AC（改 L84 即偽造沿革；改 doctrine 措辭即內容降級）。落地形態：票檔新增「Addendum-A：AC 勘誤」專節，原判準以刪除線保留、勘誤值並列，禁靜默替換（豁免停點不豁免可見性）；並於節首載明本節屬 erratum 非 AC 放寬——「票依簽發時法結案」禁令射程為事後放寬驗收要求，本案 AI 層規格已逐字落地且 AI-0 預檢全數相符，僅 AC 算術與票面自身 AI 文本不自洽。KAIROS 候選「AC 投影計數律」已入 2026-07-31_Ticket_Template_v32_Batch_Rulings 教訓收割表 #3。執行端據此續行 QA → Codex → commit → 收尾義務（Smarter-Project 衍生副本同步 + 同體性 grep 驗收）。",
+      "project": "SmartCameraApp1",
+      "reviews": {
+        "codex": "PENDING",
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "traycer": "N_A"
+      },
+      "title": "TICKET_TPL v3.2 — 錨點預檢律常設化 + MAX_LINES 推導註記強制欄 + PRESET 增 docs 型",
+      "topic": "INFRA",
+      "updated_by": "CSO"
+    },
+    {
+      "depends_on": [],
+      "file": "Pending/INFRA-GITIGNORE-WL-01_ProjectFile_Whitelist_Rootfix.md",
+      "id": "INFRA-GITIGNORE-WL-01",
+      "lifecycle": "PENDING",
+      "note": "Akira 2026-07-31 裁決 2-c 承接票（見 2026-07-31_Ticket_Template_v32_Batch_Rulings KD4）：.gitignore L74-77 四行反選集下，L76 plans/cso_briefing/project/* 覆蓋致 project/file/ 目錄被排除，同目錄新增檔靜默維持 untracked（git status 不報、git add 不收）；06a377f 僅單檔例外強制追蹤未消目錄盲區。修法：於 L77 後插入註解 + !plans/cso_briefing/project/file/ 單行根治，與 L75 反選 project/ 既有機理同構（dir/* 不跨 /，反選目錄後內容無規則匹配）。｜派工前錨點預檢已執行（KD2）：L74-77 四行現值取自 2026-07-31 17:07 live grep，ANCHOR_PROBED=2026-07-31 17:07；票面 AI-0 令執行端四行連續區塊整體復驗恰 1 次。｜PRESET=docs（純文本治理配置，assembleDebug 依 TPL v3.2 條款 N/A 劃記；Akira 得於派工前改劃 hotfix 不影響 AI 內容）、DIFF_REF=06a377f、MAX_LINES=10（推導註記在票）。｜HC：禁動 L74-77 既有四行任一字元（反選集次序即語義）；禁擴大白名單範圍（Pending/、archive/ 排除屬既有設計，禁語義擴張）；禁以 git add -f 替代修法。｜AC 含二條行為性：①probe 檔 touch 後 git status --short MUST 列出（驗畢刪 probe，禁單以 git check-ignore 替代）；②負向迴歸：Pending/ 路徑仍被忽略（既有排除語義不受影響），失敗則回退 AI-1 禁帶病提交。｜收尾：commit 前綴 [INFRA-GITIGNORE-WL-01]；本票落地後 INFRA-TPL-V32-01 HC-1「禁新增檔案」依據前提消滅（但依簽發時法仍拘束該票自身，不追溯放寬），後續新票免同款 HC，狀態變化待 ⑩ KAIROS 或下次相關開票時字面記載。｜與 INFRA-TPL-V32-01 無檔案交集可並行，惟 commit 序列化以免 DIFF_REF 交錯。",
+      "project": "SmartCameraApp1",
+      "reviews": {
+        "codex": "N_A",
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "traycer": "N_A"
+      },
+      "title": ".gitignore 增 !plans/cso_briefing/project/file/ 白名單（同目錄新檔靜默 untracked 盲區根治）",
+      "topic": "INFRA",
+      "updated_by": "CSO"
     }
   ]
 }
