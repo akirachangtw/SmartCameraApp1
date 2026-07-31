@@ -1,0 +1,191 @@
+# =============================================================================
+# decision-tree.yaml — model-effort-orchestrator SSOT
+# =============================================================================
+# Version: 0.2
+# Date: 2026-07-18
+# Owner: Akira Chang
+# Governance: D1-D5 ratified per vault
+#   wiki\decisions\CSO\2026-07-20_MEO_Skill_Governance_Ratification.md
+# Deploy: D:\DevSources\AndroidProj\SmartCameraApp1\.claude\skills\model-effort-orchestrator\
+#
+# GOVERNANCE:
+#   This file is the SINGLE SOURCE OF TRUTH for all routing / escalation logic.
+#   SKILL.md sections 6/12/13 and prompt-template.md are DERIVED representations.
+#   Any logic change MUST be made here first, then propagated to derivatives.
+#   Parallel maintenance is prohibited.
+#
+# EVALUATION SEMANTICS:
+#   Rules are evaluated in listed order. First match wins (short-circuit).
+#   `when` conditions within a rule are AND-ed; `any_of` blocks are OR-ed.
+#   Mechanical signals are read from STATE.md (flat KV, grep/jq compatible);
+#   they are the ONLY triggers for escalation actions. Semantic fields
+#   (failure_mode_guess) are hypotheses and never gate escalation alone.
+# =============================================================================
+
+meta:
+  version: "0.2"
+  ssot: true
+  derived_artifacts:
+    - SKILL.md#6
+    - SKILL.md#12
+    - prompt-template.md
+  state_file: "D:/DevSources/AndroidProj/SmartCameraApp1/STATE.md"
+  orchestrator_gate: "gate.conf#meo"   # per G2: single stop_orchestrator, no 4th hook
+
+inputs:
+  semantic:   # produced by agent; HYPOTHESIS ONLY
+    task_type: [simple, multi_step, ambiguous, high_risk]
+    context_completeness: [sufficient, partial, insufficient]
+    failure_mode_guess: [context_gap, execution_gap, capability_gap, unknown]
+    risk_level: [low, medium, high]
+  mechanical: # read from STATE.md; ACTION-GATING
+    MEO_RETRY_COUNT: int
+    MEO_VERIFIER_REJECT_COUNT: int      # source: /sv Codex stage rejections
+    MEO_SAME_ERROR_CLASS_STREAK: int    # source: test runner error-class diff
+    MEO_QUOTA_STATE: [abundant, constrained, exhausted]
+
+# Thresholds — D1 RATIFIED (=2). Numeric-only enforcement:
+# semantic reinterpretation of thresholds is PROHIBITED (2026-07-14 lesson).
+thresholds:
+  retry_count_trip: 2
+  verifier_reject_trip: 2
+  same_error_class_trip: 2
+
+actions:
+  ask:                   {}
+  run:                   {}
+  run_and_verify:        {}
+  request_escalation:
+    authority: orchestrator
+    writes: {MEO_ESCALATION_PENDING: true}
+    orchestrator_outcomes: [approve_upgrade, deny_retry_with_high_effort, defer_and_checkpoint]
+  defer_and_checkpoint:
+    requires: [execution_trace_saved, artifact_checkpoint]
+    resume: next_quota_window
+
+rules:
+
+  - id: R1_context_first
+    when:
+      context_completeness: {not: sufficient}
+    then:
+      action: ask
+      reason: context_gap
+      effort: default
+      model_tier: current
+      verification_depth: none
+      forbid: [raise_effort, request_escalation]
+
+  - id: R2_fast_path
+    when:
+      task_type: simple
+      risk_level: low
+      context_completeness: sufficient
+    then:
+      action: run
+      reason: fast_path
+      effort: default
+      model_tier: default
+      verification_depth: basic
+      writes: {MEO_FASTPATH: true}
+      marker: "[MEO:fast-path|simple|low]"
+
+  - id: R3_mechanical_escalation
+    when:
+      any_of:
+        - MEO_RETRY_COUNT: {gte: $thresholds.retry_count_trip}
+        - MEO_VERIFIER_REJECT_COUNT: {gte: $thresholds.verifier_reject_trip}
+        - MEO_SAME_ERROR_CLASS_STREAK: {gte: $thresholds.same_error_class_trip}
+      MEO_QUOTA_STATE: {not: exhausted}
+    then:
+      action: request_escalation
+      reason: mechanical_signal_tripped
+      effort: default
+      model_tier: current           # tier change ONLY via orchestrator outcome
+      verification_depth: standard
+      attach: [diagnostics, execution_trace]
+
+  - id: R4_quota_exhausted_defer
+    when:
+      any_of:
+        - MEO_RETRY_COUNT: {gte: $thresholds.retry_count_trip}
+        - MEO_VERIFIER_REJECT_COUNT: {gte: $thresholds.verifier_reject_trip}
+        - MEO_SAME_ERROR_CLASS_STREAK: {gte: $thresholds.same_error_class_trip}
+      MEO_QUOTA_STATE: exhausted
+    then:
+      action: defer_and_checkpoint
+      reason: quota_exhausted
+      effort: none
+      model_tier: current
+      verification_depth: none
+      forbid: [request_escalation, upgrade_model]
+
+  - id: R5_execution_gap
+    when:
+      failure_mode_guess: execution_gap
+      # evidence required: skipped reading / skipped testing / skipped validation
+    then:
+      action: run_and_verify
+      reason: insufficient_execution_depth
+      effort: high
+      model_tier: current           # execution gap NEVER touches model tier
+      verification_depth: standard
+      require: [plan, verification_checklist]
+
+  - id: R6_complexity
+    when:
+      task_type: {in: [multi_step, high_risk]}
+    then:
+      action: run_and_verify
+      reason: complexity
+      effort: high
+      model_tier: current
+      verification_depth: "{{ 'strict' if risk_level == 'high' else 'standard' }}"
+      require: [plan, touched_files_list, verification_checklist, stop_condition]
+      gate: sv_codex_stage          # high_risk must pass /sv
+
+  - id: R7_default_safe_fallback   # covers `unknown` and all residuals
+    when: {}                        # catch-all
+    then:
+      action: run_and_verify
+      reason: default_safe_path
+      effort: "{{ 'high' if risk_level == 'high' else 'default' }}"
+      model_tier: current
+      verification_depth: "{{ 'strict' if risk_level == 'high' else 'basic' }}"
+
+verification_checklist:
+  - requirements_restate
+  - touched_files_list
+  - blast_radius_scan          # mandatory for architecture changes
+  - test_plan
+  - read_back_or_diff_check    # use diff_hash.sh (sha256 normalized)
+  - result_vs_acceptance_criteria
+  - escalation_trigger_review
+
+stop_conditions:
+  - same_error_class_repeated_gte: 2
+  - missing_context_unresolved: true
+  - test_env_unavailable_and_success_depends_on_tests: true
+  - capability_ceiling_signal_tripped: true
+  - high_risk_change_without_blast_radius_scan: true
+  - quota_exhausted_and_pending_action_is_escalation: true
+
+# D4 RATIFIED: TTL 30 days + model_version invalidation
+escalation_history_schema:
+  ts: datetime
+  task_ref: string
+  trigger_signal: [retry_count, verifier_reject, same_error_class]
+  decision: [approve_upgrade, deny_retry_with_high_effort, defer_and_checkpoint]
+  model_version_at_decision: string
+  invalidation: "expires on model registry tier update or model_version change"
+  ttl_days: 30
+
+external_ssot:
+  timeout_and_readback: "search_decisions: MCP_Search_Pipeline_Timeout_Hardening (2026-07-17)"
+  stop_gate_architecture: "Decisions J5-J8, G2-G4 (unified stop_orchestrator.sh)"
+  hook_contract: "Stop hook stdout schema {decision, reason, systemMessage}; exit 0; exec form"
+  governance: "wiki/decisions/CSO/2026-07-20_MEO_Skill_Governance_Ratification.md"
+
+# =============================================================================
+# End of decision-tree.yaml v0.2
+# =============================================================================
