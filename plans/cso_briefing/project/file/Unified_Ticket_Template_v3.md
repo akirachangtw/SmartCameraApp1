@@ -1,8 +1,9 @@
-# 統一 Ticket 模板 v3.1（CSO + Pipeline v1.6 合併版）
+# 統一 Ticket 模板 v3.2（CSO + Pipeline v1.6 合併版）
 
-**版本**: v3.1
+**版本**: v3.2
 **產出日期**: 2026-05-29
 **Revision**: v3.1（2026-07-06，INFRA-REACH-02 AI-1）— Acceptance Criteria 增列 AC 類型學（`[存在性]`/`[可達性]`/`[行為性]`/`[實機]`），對治 K4-50「AC 語義折損律」
+**Revision**: v3.2（2026-07-31，INFRA-TPL-V32-01）— ①錨點預檢律常設化（`ANCHOR_PROBED` 欄 + AI-0 標準文塊）；②MAX_LINES 推導註記強制欄；③PRESET 增 `docs` 型並明定固定 AC 適用性；④範例 Ticket 同步 AC 類型學。依據 `Dispatch_Anchor_Precheck_Doctrine`（KD2）與 TKR-02 家族審查
 **來源**: CSO 裁決官 Ticket 格式 + TRA Ticket v2 合併，消除冗餘
 **設計目標**: 每張 Ticket ~350-450 tokens，單一來源零重複
 
@@ -24,13 +25,24 @@
 ## Verify Config
 TICKET_ID=[ID]
 CREATED=[YYYY-MM-DD]
-PRESET=[feature|bugfix|refactor|hotfix]
+PRESET=[feature|bugfix|refactor|hotfix|docs]
 ALLOWED=[會修改的檔案，逗號分隔]
 FORBIDDEN=[禁止觸碰的檔案，逗號分隔]
 MAX_LINES=[數字]
 DIFF_REF=[起始 commit hash]
+ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
+
+**MAX_LINES 推導註記**（額度制截斷序律，**強制欄；無此註記之票視同格式不合格**）：[逐 AI 行數分項] → [緩衝倍率] → [進位結果]。**截斷序**：[實作超額時之停止規則]。
 
 ## Action Items
+
+> **AI-0 為強制首項**（派工前錨點預檢律，`Dispatch_Anchor_Precheck_Doctrine` KD2）。開票方 MUST 於草擬同刻以 live `read_file_safe`／`grep_files` 直查取樣全部「現值」錨點並填寫 `ANCHOR_PROBED` 時戳；**禁以記憶、前次 session 輸出或執行者回報充當錨點**。派工時若目標檔已有新 commit 越過 `ANCHOR_PROBED` 時刻，MUST 重跑預檢方可派工。
+
+### AI-0: 錨點復驗（派工後、修改前）
+- **檔案**: `path/to/File.kt`
+- **動作**: 逐字確認各 AI 之「現值」字串於檔內命中數與票面所載相符（標示「唯一」者恰 1 次）。
+- **任一項不符 → 停止回報，禁自行推定等價位置。**
+- [ ] 完成
 
 ### AI-1: [動作描述]
 - **檔案**: `path/to/File.kt`
@@ -103,6 +115,9 @@ DIFF_REF=[起始 commit hash]
 | bugfix | 完整 AI-N | 省略 | 100 | 修錯：GazeAF Ghost Face |
 | refactor | 精簡 AI-N | 寬鬆 | 300 | 重構：PitchTraction 清理 |
 | hotfix | 1-2 AI-N | 省略 | 50 | 緊急：crash 修復 |
+| docs | 完整 AI-N（行級替換，現值/目標值逐字） | **嚴格列舉** | 30-80 | 契約增補、治理檔同步、歸檔建檔、模板修訂 |
+
+**固定 AC 之 preset 適用性**：`assembleDebug PASS` 對 `docs` 型 **N/A**（純文檔票無編譯產物，強制保留即製造不可能滿足之 AC——FIX-F traycer=FAIL 永久留帳之制度性來源）；`git diff --stat 僅涉及 ALLOWED 檔案` 對**所有** preset **保留強制**。`docs` 型票 MUST 於 AC 區以 `~~assembleDebug PASS~~ (N/A: docs preset)` 顯式劃記，禁靜默刪除（豁免停點不豁免可見性）。
 
 ---
 
@@ -125,6 +140,7 @@ ALLOWED=EyeAfController.kt,LiveCameraSource.kt
 FORBIDDEN=CameraViewModel.kt,CameraRepository.kt,TapFocusController.kt
 MAX_LINES=100
 DIFF_REF=fccd5cf
+ANCHOR_PROBED=2026-05-29 10:00
 
 ## Action Items
 
@@ -155,9 +171,9 @@ DIFF_REF=fccd5cf
 - normalizedBbox 欄位名稱與代碼不符 → 停止回報
 
 ## Acceptance Criteria
-- [ ] Logcat 不再出現 `IllegalArgumentException: None of the specified AF/AE/AWB MeteringPoints`
-- [ ] gazeScore=0.0 的 trigger 被攔截（Logcat 確認）
-- [ ] bbox.left < 0 的 face 被過濾（Logcat 確認）
+- [ ] **[實機]** Logcat 不再出現 `IllegalArgumentException: None of the specified AF/AE/AWB MeteringPoints`
+- [ ] **[行為性]** gazeScore=0.0 的 trigger 被攔截（Logcat 確認）
+- [ ] **[行為性]** bbox.left < 0 的 face 被過濾（Logcat 確認）
 - [ ] `assembleDebug` PASS
 - [ ] `git diff --stat` 僅涉及 ALLOWED 檔案
 ```
@@ -197,4 +213,4 @@ Effort 決定 Claude Code 的思考深度（`--effort` 參數等效）。
 
 **混合型票的 Effort 取最高**：如果一張票同時包含「新增 data class（Low）」+ 「多模組整合（High）」，Effort = **High**。
 
-**End of 統一 Ticket 模板 v3.0**
+**End of 統一 Ticket 模板 v3.2**
