@@ -94,46 +94,12 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash",
-            "args": ["D:/DevSources/AndroidProj/SmartCameraApp1/.claude/skills/model-effort-orchestrator/hooks/meo_pretooluse_gate.sh"]
-          }
-        ]
-      },
-      {
         "matcher": "mcp__cueshot-memory__(create_entities|create_relations|add_observations|delete_entities|delete_relations|delete_observations)",
         "hooks": [
           {
             "type": "command",
             "command": "python .claude/hooks/snapshot_cueshot_memory.py",
             "async": true
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash",
-            "args": ["D:/DevSources/AndroidProj/SmartCameraApp1/.claude/skills/model-effort-orchestrator/hooks/meo_signal_update.sh"]
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "Write|Edit|MultiEdit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash",
-            "args": ["D:/DevSources/AndroidProj/SmartCameraApp1/.claude/skills/model-effort-orchestrator/hooks/meo_signal_update.sh"]
           }
         ]
       }
@@ -148,22 +114,6 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/telegram_stop.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash",
-            "args": ["D:/DevSources/AndroidProj/SmartCameraApp1/stop_orchestrator.sh"]
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash",
-            "args": ["D:/DevSources/AndroidProj/SmartCameraApp1/.claude/skills/model-effort-orchestrator/hooks/meo_session_reset.sh"]
           }
         ]
       }
