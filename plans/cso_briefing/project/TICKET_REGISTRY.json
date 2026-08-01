@@ -521,10 +521,11 @@
       "id": "INFRA-GOV-STOPLOSS-01",
       "title": "結構歧義停損律寫入執行者面治理載體",
       "file": "Pending/INFRA-GOV-STOPLOSS-01_StopLoss_Law_Governance_Deploy.md",
-      "lifecycle": "PENDING",
+      "lifecycle": "CLOSED",
       "preset": "docs",
       "created": "2026-08-01",
-      "note": "確認決議部署票:停損律機械摘錄追加至 .claude/rules/ssot-governance.md 檔尾。SSOT=vault 2026-08-01_Structural_Ambiguity_Stop_Loss_Law.md;觸發來源=MEO v1 退役決策。DIFF_REF=d5fe887,ANCHOR_PROBED=2026-08-01 15:10"
+      "note": "確認決議部署票:停損律機械摘錄追加至 .claude/rules/ssot-governance.md 檔尾。SSOT=vault 2026-08-01_Structural_Ambiguity_Stop_Loss_Law.md;觸發來源=MEO v1 退役決策。DIFF_REF=d5fe887,ANCHOR_PROBED=2026-08-01 15:10",
+      "checkpoint": null
     }
   ]
 }
