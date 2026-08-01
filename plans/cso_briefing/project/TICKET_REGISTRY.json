@@ -73,10 +73,10 @@
       "id": "MEO-FIX-A-EVIDENCE-REQ",
       "title": "α 過渡授權 CSO 補證要求(Executor Evidence Request)",
       "topic": "MEO",
-      "file": "Pending/MEO-FIX-A_Alpha_Evidence_Request_20260725.md",
+      "file": "deliver/MEO-FIX-A_Alpha_Evidence_Request_20260725.md",
       "seq": 1,
       "depends_on": [],
-      "lifecycle": "PENDING",
+      "lifecycle": "CLOSED",
       "blocked_by": null,
       "reviews": {
         "qa": "N_A",
@@ -86,7 +86,11 @@
       },
       "note": "MEO-FIX-A 附屬取證動作(07-25),對象 Claude Code 執行者;α 第 3 次額度已凍結。Rev J 重入(07-26)後本件是否仍在效,待裁",
       "updated_at": "2026-07-26",
-      "updated_by": "CSO"
+      "updated_by": "CSO",
+      "checkpoint": {
+        "resolution": "STOPPED/superseded — MEO v1 執法層前提消滅型退役(殘留待裁收束,2026-08-01)。附屬取證動作隨 α 機制消滅而失效;兩項補證要求(比對域字面出處/第1次動用存證指針)至失效日未獲答覆——據實記載「未答即失效」,非已解決。α 第3次額度隨 v1 退役永久失效。裁決鏈=vault 2026-08-01_MEO_V1_Enforcement_Layer_Decommission.md",
+        "state": "RESOLVED"
+      }
     },
     {
       "id": "MEO-FIX-A",
@@ -134,10 +138,10 @@
       "id": "MEO-FIX-A-REVJ-BRIEF",
       "title": "Rev J 執行者重入派工 Briefing(2026-07-26)",
       "topic": "MEO",
-      "file": "Pending/MEO-FIX-A_RevJ_Executor_Briefing.md",
+      "file": "deliver/MEO-FIX-A_RevJ_Executor_Briefing.md",
       "seq": 4,
       "depends_on": [],
-      "lifecycle": "PENDING",
+      "lifecycle": "CLOSED",
       "blocked_by": null,
       "reviews": {
         "qa": "N_A",
@@ -147,7 +151,11 @@
       },
       "note": "現行執行依據(配套 Rev J 票面 SHA D823D165...):Codex delta PASS / REPORT_FIX CLEARED / REENTRY_AUTHORIZED YES;非獨立票",
       "updated_at": "2026-07-26",
-      "updated_by": "CSO"
+      "updated_by": "CSO",
+      "checkpoint": {
+        "resolution": "STOPPED/superseded — MEO v1 執法層前提消滅型退役(殘留待裁收束,2026-08-01)。標的 MEO-FIX-A 已 STOPPED,Rev J 驗收重入不再發生;非獨立票,隨母票收束。註記:note 欄「現行執行依據」為簽發時措辭,自本收束日起失效。裁決鏈=vault 2026-08-01_MEO_V1_Enforcement_Layer_Decommission.md",
+        "state": "RESOLVED"
+      }
     },
     {
       "id": "INFRA-SV-GOV-01",
@@ -520,12 +528,28 @@
     {
       "id": "INFRA-GOV-STOPLOSS-01",
       "title": "結構歧義停損律寫入執行者面治理載體",
-      "file": "Pending/INFRA-GOV-STOPLOSS-01_StopLoss_Law_Governance_Deploy.md",
+      "file": "deliver/INFRA-GOV-STOPLOSS-01_StopLoss_Law_Governance_Deploy.md",
       "lifecycle": "CLOSED",
       "preset": "docs",
       "created": "2026-08-01",
       "note": "確認決議部署票:停損律機械摘錄追加至 .claude/rules/ssot-governance.md 檔尾。SSOT=vault 2026-08-01_Structural_Ambiguity_Stop_Loss_Law.md;觸發來源=MEO v1 退役決策。DIFF_REF=d5fe887,ANCHOR_PROBED=2026-08-01 15:10",
       "checkpoint": null
+    },
+    {
+      "id": "MEO-DECOMM-01",
+      "title": "MEO v1 執法層前提消滅型退役(存證→解武→復通→歸檔→冊面)",
+      "topic": "MEO",
+      "file": "deliver/MEO-DECOMM-01_MEO_V1_Enforcement_Decommission.md",
+      "depends_on": [],
+      "lifecycle": "CLOSED",
+      "blocked_by": null,
+      "reviews": {
+        "qa": "N_A",
+        "sv": "N_A",
+        "codex": "N_A",
+        "traycer": "N_A"
+      },
+      "note": "Addendum-5e 遞延 intake 補登(2026-08-01,殘留待裁收束)。票已全序執行完畢:Step A 存證14檔→B 解武(0b321c2)→C 復通正向反例→D 歸檔(efb3c3f,16檔→archive/meo-v1/)→E 冊面(FIX-A/B CLOSED+STOPPED checkpoint)。AI-0~AI-7 全勾,Addendum-1~5 偏差裁決在案。SSOT=vault 2026-08-01_MEO_Decommission_Execution_Closure.md;存證=Smarter-Project/deliver/MEO-DECOMM-01_evidence/"
     }
   ]
 }
