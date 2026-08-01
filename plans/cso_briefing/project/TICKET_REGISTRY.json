@@ -95,17 +95,21 @@
       "file": "Pending/MEO-FIX-A_Escalation_Gate_Relocation.md",
       "seq": 2,
       "depends_on": [],
-      "lifecycle": "IN_PROGRESS",
+      "lifecycle": "CLOSED",
       "blocked_by": null,
       "reviews": {
-        "qa": "PENDING",
-        "sv": "PENDING",
+        "qa": "N_A",
+        "sv": "N_A",
         "codex": "PASS",
-        "traycer": "PENDING"
+        "traycer": "N_A"
       },
       "note": "票面現為 Rev J(SHA 錨仍有效)。Codex delta 復審 PASS(07-26)。Codex 實作 cross-review 🔴(07-30,三 findings):必修1 駁回(甲案,fail-open 維持=FIX-B HC4)、必修2 收案入 Rev K 回修、必修3 改 documented deviation。回修 Briefing=Pending/MEO-FIX-A_RevK_Executor_Briefing.md。連動:FIX-B 派工暫緩令(同檔序列化)",
       "updated_at": "2026-07-30",
-      "updated_by": "CSO"
+      "updated_by": "CSO",
+      "checkpoint": {
+        "resolution": "STOPPED/superseded — MEO v1 執法層前提消滅型退役(MEO-DECOMM-01 Step E,2026-08-01)。依簽發時法收束:非驗收完成,係修復對象消滅。裁決鏈=vault 2026-08-01_MEO_V1_Enforcement_Layer_Decommission.md;存證=Smarter-Project/deliver/MEO-DECOMM-01_evidence/",
+        "state": "RESOLVED"
+      }
     },
     {
       "id": "MEO-FIX-A-REVF-BRIEF",
@@ -405,17 +409,21 @@
       "file": "Pending/MEO-FIX-B_PreToolUse_Branch_Order_Fix.md",
       "seq": 8,
       "depends_on": [],
-      "lifecycle": "PENDING",
+      "lifecycle": "CLOSED",
       "blocked_by": null,
       "reviews": {
-        "qa": "PENDING",
-        "sv": "PENDING",
-        "codex": "PENDING",
-        "traycer": "PENDING"
+        "qa": "N_A",
+        "sv": "N_A",
+        "codex": "N_A",
+        "traycer": "N_A"
       },
       "note": "FIX-A Rev J 收案後殘留 TRUE-POSITIVE-RULE-GAP。證據：episode 1/2/3 三案 + MEO-ADJUDICATION-01_Release_Evidence（reports/，disk-only）。AI-4 為自激迴路閘門側修復；信號側屬 MEO-T3 AI-5。與 T3 並行（閘門域 vs 信號域，ALLOWED 不相交）",
       "updated_at": "2026-07-28",
-      "updated_by": "CSO"
+      "updated_by": "CSO",
+      "checkpoint": {
+        "resolution": "STOPPED/superseded — MEO v1 執法層前提消滅型退役(MEO-DECOMM-01 Step E,2026-08-01)。未派工即收束(原序列化待 FIX-A Rev K,嗣退役令生效,修復對象消滅)。裁決鏈=vault 2026-08-01_MEO_V1_Enforcement_Layer_Decommission.md;存證=Smarter-Project/deliver/MEO-DECOMM-01_evidence/",
+        "state": "RESOLVED"
+      }
     },
     {
       "id": "INFRA-AGENTS-CR-05",
