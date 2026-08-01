@@ -554,34 +554,42 @@
     {
       "blocked_by": null,
       "depends_on": [],
-      "file": "Pending/INFRA-TPL-V33-01_Ticket_Template_v33_SeqLaw_GitignorePrecheck.md",
+      "file": "deliver/INFRA-TPL-V33-01_Ticket_Template_v33_SeqLaw_GitignorePrecheck.md",
       "id": "INFRA-TPL-V33-01",
-      "lifecycle": "PENDING",
+      "lifecycle": "CLOSED",
       "note": "KAIROS C 案收割輪部署票甲。TPL v3.3:律 A 序號機械取號律(K4-45+49 合併)+#20 gitignore 死結預檢入 Error Handling 標配。SSOT=vault 2026-08-01_KAIROS_CaseC_Harvest_Round_Merged_Laws.md。⭐ 目標檔在 Smarter-Project(非 git repo,git_status 實測 POLICY_DENIED)→DIFF_REF=N/A、git diff AC 揭露式劃記。ANCHOR_PROBED=2026-08-01 18:05;AI-3 採多行複合錨點(TPL 雙份結構致單行錨點非唯一)",
       "reviews": {
-        "codex": "PENDING",
+        "codex": "N_A",
         "qa": "N_A",
         "sv": "N_A",
         "traycer": "N_A"
       },
       "title": "TICKET_TPL v3.3 — 序號機械取號律 + gitignore 死結預檢標配",
-      "topic": "INFRA"
+      "topic": "INFRA",
+      "checkpoint": {
+        "resolution": "CLOSED — 全 AI/AC 收束(2026-08-01)。AC-4 偏差裁決:實測增量 4 行 < 下界 5,判定=票面推導誤差(高估向,無 scope 風險),實質驗收經 CSO 獨立取證(grep 四式命中+v3.2 行保留)全數成立,視同 PASS。git diff AC 揭露式劃記(目標檔非 repo)。reviews 全 N_A(docs 純追加票,CSO 獨立取證替代)。Akira 裁決:TPL 版控改雙載體制,app-repo 份為唯一 SSOT、Smarter-Project 份降衍生副本,實施另案。偏差收割候選 #25 入 SSOT Addendum-B",
+        "state": "RESOLVED"
+      }
     },
     {
       "blocked_by": null,
       "depends_on": [],
-      "file": "Pending/INFRA-RULES-CARRIER-01_Executor_Rules_Carrier_Deploy.md",
+      "file": "deliver/INFRA-RULES-CARRIER-01_Executor_Rules_Carrier_Deploy.md",
       "id": "INFRA-RULES-CARRIER-01",
-      "lifecycle": "PENDING",
+      "lifecycle": "CLOSED",
       "note": "KAIROS C 案收割輪部署票乙。三檔:concurrency.md §1 擴充(律 B,pipeline 全域槽位納入隔離義務)、decommission.md 退役旁路律(#19)、kairos-lessons.md SessionStart 認知條款(#18)。SSOT=vault 2026-08-01_KAIROS_CaseC_Harvest_Round_Merged_Laws.md。⭐ 開票前預檢發現 §1 已有 tmp/<TICKET_ID>/ 條文但僅及票自建 scratch→律 B 改寫為§1 擴充而非新章節(需回寫決策檔 KD-4/KD-5)。DIFF_REF=a518319;ANCHOR_PROBED=2026-08-01 18:05",
       "reviews": {
-        "codex": "PENDING",
+        "codex": "N_A",
         "qa": "N_A",
         "sv": "N_A",
         "traycer": "N_A"
       },
       "title": "執行者面規則載體部署 — §1 全域槽位擴充 + 退役旁路律 + SessionStart 認知條款",
-      "topic": "INFRA"
+      "topic": "INFRA",
+      "checkpoint": {
+        "resolution": "CLOSED — 全 AI/AC 收束(2026-08-01)。AC-2 偏差裁決:AC 字串漏粗體記號致字面不中,git_diff 證實條文逐字比中票面 AI-2 目標值,視同 PASS。AC-4 偏差裁決:AI-1 目標值本身未含 SSOT 引註(票面 AI/AC 撰寫不同步),2/3 檔具引註;concurrency.md 可追溯性由「律 B」標記+決策檔 Addendum-A 反向指標達成,視同 PASS,引註缺失登記輕債(未來觸 §1 之票順手補,不單獨開票)。二偏差均票面起草缺陷、非執行缺陷,依簽發時法不追溯改 AC。CSO 獨立取證:git_diff 16 insertions/0 deletions 僅 ALLOWED。同輪三實證收割候選 #25(AC/AI 同源律)",
+        "state": "RESOLVED"
+      }
     }
   ]
 }
