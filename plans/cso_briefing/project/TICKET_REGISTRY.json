@@ -508,6 +508,15 @@
       },
       "updated_by": "CSO",
       "note": "TKR02_Family_Ticketing_Audit_20260730.md 桶 B 第 ⑧ 項「冊面轉態 gate（Ticket Closure SOP 機械化）」；Akira 核可批次優先序 ⑦→⑨→⑧→TKR-05→⑤⑥ 之第三張票（⑦ INFRA-QA-STEP0-GA-EXEMPT-01、⑨ INFRA-TPL-V32-01 均已 CLOSED，序位正確）。｜缺口正向取證（2026-08-01 CSO live grep）：現行 Ticket Closure 紀律（.claude/rules/ssot-governance.md L53-60，INFRA-CLOSURE-SOP-01 於 2026-07-17 落地 commit 9032723）三條 MUST 全屬票檔層（勾選/搬移 deliver/ /修補票）；全檔 grep 'registry|REGISTRY|lifecycle|checkpoint|冊面' 僅命中 L21（Governance Artifact commit 前綴表），Closure 節內零冊面層條文。｜事件支撐（活體案例）：INFRA-TPL-V32-01 票檔層三步全數合規而冊面四要件全漏（lifecycle 滯留 PENDING、reviews 四欄 PENDING、file 指標仍指已 NOT_FOUND 之 Pending/、無收尾 checkpoint），錯誤終態隨 0fd8a51 固化入版控，翌日由 CSO 取證發現並以 042f4f7 補寫——制度性盲區而非人為疏失，執行者完全遵循現行三條 MUST 仍必然漏冊面。同型債：審查檔載 file 欄失步 ×4、冊面收尾非機械化為家族兩度遲延與污染 Traycer T2 放行依據之 split-brain 根因。｜交付：AI-1 增列冊面轉態紀律三條 bullet（四要件=lifecycle 終態 + reviews 四欄實測值（無可考記錄填 N_A 並於 checkpoint 揭露豁免，禁推定補 PASS）+ file 指標改指實際落點 + checkpoint.resolution 收尾實錄）、原子性（同回合完成、禁分批跨 session、缺一即未收尾、冊面走獨立 GOVERNANCE-SYNC commit 並 scoped git_diff 驗零意外）、矛盾停止（票檔層與冊面層不一致即停止回報禁單方推定）；AI-2 強制層級誠實聲明。｜強制層級定性（誠實降級，禁 gate 偽裝關閉）：本票交付為紀律層非機械閘。冊面轉態發生於 Desktop 治理 session，verify_checklist.sh/structural_verify.sh 執行於 Claude Code 端，閘門位置與動作發生位置不重合，腳本層對本失效型無攔截力（V32-01 事故全程未經 Claude Code）。真機械閘須 mcp-ticket-platform server 端提供（lifecycle 轉終態強制 checkpoint 非空、file 指標存在性校驗），屬 TKR-05 桶 A，依前置資源恆存律禁本票預支——已列 deferred ③。｜PRESET=docs（固定 AC assembleDebug 依 TPL v3.2 適用性條款標 N/A 並顯式劃記）、DIFF_REF=042f4f7、ANCHOR_PROBED=2026-08-01 11:41（二錨點 '## Ticket Closure 紀律' L53 與 '母票 AC 佐證不明…' L58 經 grep_files 實測均恰 1 次命中）、MAX_LINES=30（推導註記在票：AI-0=0 + AI-1≈7 + AI-2≈3 = 10 → 1.5× = 15 → 進位對齊 docs preset 下界 30；截斷序：超額停止回報，禁省略 AI-2 換取行數）。｜HC-3 純增列：禁修改既有 L53-60 任何一行，AC 以 git diff 零 '-' 行驗證。｜AC 類型學適用性揭露：無 [可達性] AC——條款消費者為 Desktop 治理 session 之人/agent 遵循層，結構上不存在 app/src/main production producer，屬型別不適用非規避；落地語義由 [行為性] dogfood AC 承載（本票自身收尾即首次適用案例，須以 registry_list 回讀四要件齊備並附證據於完成回報，禁以「已執行」宣告代替回讀）。｜deferred 四項明列於票：①.gitignore 同目錄盲區根治（裁決 2-c）；②混型 commit 治理（⑥ INFRA-QA-COMMIT-MIXEDTYPE-01）；③平台端機械閘歸 TKR-05；④.gitignore 行號錯記勘誤（承接自 V32-01 deferred ②，仍無承接載體，MUST 於 ⑩ KAIROS 收割輪或 SMTR_INDEX 修訂時清償）。｜commit 前綴 MUST 為 [INFRA-CLOSURE-REGISTRY-GATE-01]。"
+    },
+    {
+      "id": "INFRA-GOV-STOPLOSS-01",
+      "title": "結構歧義停損律寫入執行者面治理載體",
+      "file": "Pending/INFRA-GOV-STOPLOSS-01_StopLoss_Law_Governance_Deploy.md",
+      "lifecycle": "PENDING",
+      "preset": "docs",
+      "created": "2026-08-01",
+      "note": "確認決議部署票:停損律機械摘錄追加至 .claude/rules/ssot-governance.md 檔尾。SSOT=vault 2026-08-01_Structural_Ambiguity_Stop_Loss_Law.md;觸發來源=MEO v1 退役決策。DIFF_REF=d5fe887,ANCHOR_PROBED=2026-08-01 15:10"
     }
   ]
 }
