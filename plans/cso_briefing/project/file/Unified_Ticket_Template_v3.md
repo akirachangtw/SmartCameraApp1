@@ -4,6 +4,7 @@
 **產出日期**: 2026-05-29
 **Revision**: v3.1（2026-07-06，INFRA-REACH-02 AI-1）— Acceptance Criteria 增列 AC 類型學（`[存在性]`/`[可達性]`/`[行為性]`/`[實機]`），對治 K4-50「AC 語義折損律」
 **Revision**: v3.2（2026-07-31，INFRA-TPL-V32-01）— ①錨點預檢律常設化（`ANCHOR_PROBED` 欄 + AI-0 標準文塊）；②MAX_LINES 推導註記強制欄；③PRESET 增 `docs` 型並明定固定 AC 適用性；④範例 Ticket 同步 AC 類型學。依據 `Dispatch_Anchor_Precheck_Doctrine`（KD2）與 TKR-02 家族審查
+**Revision**: v3.3（2026-08-01，INFRA-TPL-V33-01）— ①序號機械取號律（開票前置檢核）；②gitignore 死結預檢納入 Error Handling 標配。依據 `KAIROS_CaseC_Harvest_Round_Merged_Laws`（KD-2/KD-3）
 **來源**: CSO 裁決官 Ticket 格式 + TRA Ticket v2 合併，消除冗餘
 **設計目標**: 每張 Ticket ~350-450 tokens，單一來源零重複
 **雙載體版控**: 雙份就近可讀,明定 app-repo 份為唯一 SSOT(受版控者); Smarter-Project 份降為衍生副本。
@@ -39,6 +40,8 @@ ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 
 > **AI-0 為強制首項**（派工前錨點預檢律，`Dispatch_Anchor_Precheck_Doctrine` KD2）。開票方 MUST 於草擬同刻以 live `read_file_safe`／`grep_files` 直查取樣全部「現值」錨點並填寫 `ANCHOR_PROBED` 時戳；**禁以記憶、前次 session 輸出或執行者回報充當錨點**。派工時若目標檔已有新 commit 越過 `ANCHOR_PROBED` 時刻，MUST 重跑預檢方可派工。
 
+> **序號機械取號律**（律 A，`KAIROS_CaseC_Harvest_Round_Merged_Laws` KD-2/KD-3）。指派任何票號／候選序號前，開票方 MUST 以**全冊機械取號**決定新號：對 registry 全檔（per-project `TICKET_REGISTRY.json`）與 `deliver/`、`reports/` 執行 ID 樣式 grep 取 max-ID，`max+1` 為新號。**禁只掃 `Pending/`**（已通過票離開 Pending/，只掃必碰撞）；**禁以 `tail`／局部讀取驗證「目前最大號」**（局部讀取必然漏看他處已登記條目）。二次實證：PROTO-01 票號碰撞、K4-46 雙登。
+
 ### AI-0: 錨點復驗（派工後、修改前）
 - **檔案**: `path/to/File.kt`
 - **動作**: 逐字確認各 AI 之「現值」字串於檔內命中數與票面所載相符（標示「唯一」者恰 1 次）。
@@ -61,6 +64,7 @@ ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 ## Error Handling
 - [條件] → 停止回報
 - [條件] → 停止回報
+- **[標配]** 令含 commit／版控標的時，`git check-ignore -v <標的路徑>` 命中（標的被 .gitignore 排除）→ 停止回報（gitignore 死結律，候選 #20）
 
 ## Acceptance Criteria
 - [ ] **[類型]** [可驗證條件]（類型見下方「AC 類型學」：存在性/可達性/行為性/實機）
