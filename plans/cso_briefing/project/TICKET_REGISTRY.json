@@ -550,6 +550,38 @@
         "traycer": "N_A"
       },
       "note": "Addendum-5e 遞延 intake 補登(2026-08-01,殘留待裁收束)。票已全序執行完畢:Step A 存證14檔→B 解武(0b321c2)→C 復通正向反例→D 歸檔(efb3c3f,16檔→archive/meo-v1/)→E 冊面(FIX-A/B CLOSED+STOPPED checkpoint)。AI-0~AI-7 全勾,Addendum-1~5 偏差裁決在案。SSOT=vault 2026-08-01_MEO_Decommission_Execution_Closure.md;存證=Smarter-Project/deliver/MEO-DECOMM-01_evidence/"
+    },
+    {
+      "blocked_by": null,
+      "depends_on": [],
+      "file": "Pending/INFRA-TPL-V33-01_Ticket_Template_v33_SeqLaw_GitignorePrecheck.md",
+      "id": "INFRA-TPL-V33-01",
+      "lifecycle": "PENDING",
+      "note": "KAIROS C 案收割輪部署票甲。TPL v3.3:律 A 序號機械取號律(K4-45+49 合併)+#20 gitignore 死結預檢入 Error Handling 標配。SSOT=vault 2026-08-01_KAIROS_CaseC_Harvest_Round_Merged_Laws.md。⭐ 目標檔在 Smarter-Project(非 git repo,git_status 實測 POLICY_DENIED)→DIFF_REF=N/A、git diff AC 揭露式劃記。ANCHOR_PROBED=2026-08-01 18:05;AI-3 採多行複合錨點(TPL 雙份結構致單行錨點非唯一)",
+      "reviews": {
+        "codex": "PENDING",
+        "qa": "N_A",
+        "sv": "N_A",
+        "traycer": "N_A"
+      },
+      "title": "TICKET_TPL v3.3 — 序號機械取號律 + gitignore 死結預檢標配",
+      "topic": "INFRA"
+    },
+    {
+      "blocked_by": null,
+      "depends_on": [],
+      "file": "Pending/INFRA-RULES-CARRIER-01_Executor_Rules_Carrier_Deploy.md",
+      "id": "INFRA-RULES-CARRIER-01",
+      "lifecycle": "PENDING",
+      "note": "KAIROS C 案收割輪部署票乙。三檔:concurrency.md §1 擴充(律 B,pipeline 全域槽位納入隔離義務)、decommission.md 退役旁路律(#19)、kairos-lessons.md SessionStart 認知條款(#18)。SSOT=vault 2026-08-01_KAIROS_CaseC_Harvest_Round_Merged_Laws.md。⭐ 開票前預檢發現 §1 已有 tmp/<TICKET_ID>/ 條文但僅及票自建 scratch→律 B 改寫為§1 擴充而非新章節(需回寫決策檔 KD-4/KD-5)。DIFF_REF=a518319;ANCHOR_PROBED=2026-08-01 18:05",
+      "reviews": {
+        "codex": "PENDING",
+        "qa": "N_A",
+        "sv": "N_A",
+        "traycer": "N_A"
+      },
+      "title": "執行者面規則載體部署 — §1 全域槽位擴充 + 退役旁路律 + SessionStart 認知條款",
+      "topic": "INFRA"
     }
   ]
 }
