@@ -77,3 +77,10 @@ doc-only wiring（只更新 SKILL.md/CROSS_REVIEW.md 說明文字，但未在 `c
 **How to apply**：Prompt-layer 治理 Ticket /sv 時，Cross-Review 輸出中 **MUST** 出現被注入問句的對應回答行；缺失 → REPORT_FIX，要求補充 prompt wiring 後重跑。
 
 觸發來源：D12 INFRA-REACH-01-FIX-AI3 Traycer Rule Harvest。
+
+## 認知條款 — SessionStart 重入（候選 #18，`KAIROS_CaseC_Harvest_Round_Merged_Laws` KD-6）
+
+- SessionStart hook 於 `--resume` 重入時再次觸發，係官方**設計行為**，非平台 bug。
+- 故跨 session 狀態 **MUST NOT** 依賴 hook 重置語意作為真理來源；需跨 session 存續之狀態 **MUST** 外部化至獨立事件載體（append-only event log 類），由 reducer 導出當前態。
+- 事件支撐：MEO v1 phantom-reset（STATE.md 10+ 處註記），為可預期生命週期後果；v2-lite 事件層即本條款之承載設計。
+- 性質：認知約束（無機械驗收面）。翻盤條件：v2-lite 事件層若證實仍受 session 邊界污染，升格為行為規則並附機械檢核。

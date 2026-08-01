@@ -13,6 +13,9 @@
 - Auto-cleanup **MUST** 排除 `sv_report_<TICKET_ID>.md` 型自訂命名 artifacts。
 - 事件支撐：⑤
 
+- **【擴充，律 B】** 本節隔離義務**同及 pipeline 自身產生之全域單槽位載體**（如 `tmp/verify_cmd.conf`、`sv_report.md`）——此類載體非票自建，跨票共用時覆寫與保留制輪替出局為**結構必然**，非執行者疏失。隔離機械化落地前，過渡義務為：讀取一律 **live 直取**（禁憑前次 session 快照），寫入前 **MUST** 備份前置；收口三件套（verdict／DIFF_SCOPE／receipt）之 receipt **MUST** 於收口當刻複製進耐久載體，禁僅留路徑引用。
+- 事件支撐（擴充）：`tmp/verify_cmd.conf` 同日兩次覆寫 + 一次執行者 STOP（MEO-T2 系）；`sv_report.md` 跨票覆寫致 Codex PASS receipt 本體滅失、僅剩 testimony（K4-cand-20260719-01）
+
 ## §2 Worktree／分支串行令
 
 - 同 worktree 同分支：同家族票 **MUST** 串行執行，禁止同時開工。

@@ -50,3 +50,9 @@ description: 四層退場與 SSOT 遷移規則
 2. **結構性失效**：說明退場對象為何在現行架構下已無法正常運作或已被取代。
 3. **職能覆蓋**：說明退場對象原本承擔之職能已由何者接手（或確認職能本身已不存在）。
 4. **git 可回復**：確認退場動作透過 git 歷史可回溯還原，非破壞性刪除。
+
+## 退役旁路律（候選 #19，`KAIROS_CaseC_Harvest_Round_Merged_Laws` KD-7）
+
+- 退役／拆卸類票 **MUST** 於票面預先確立**不經被拆卸層**之合法執行旁路；令之執行路徑 **MUST NOT** 穿越自身標的（否則待拆之 gate 將擋下拆卸動作本身＝退役悖論）。
+- 旁路 **MUST** 於開票時具名指明（工具鏈／通道），禁執行中臨時推定。
+- 正向取證先例：MEO v1 執法層退役以 Desktop `mcp-ticket-platform` 寫入為旁路（該通道不經 Claude Code PreToolUse hooks，全 session 實證），Step A–E 全序執行完畢。
