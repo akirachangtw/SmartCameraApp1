@@ -594,6 +594,48 @@
         "resolution": "CLOSED — 全 AI/AC 收束(2026-08-01)。AC-2 偏差裁決:AC 字串漏粗體記號致字面不中,git_diff 證實條文逐字比中票面 AI-2 目標值,視同 PASS。AC-4 偏差裁決:AI-1 目標值本身未含 SSOT 引註(票面 AI/AC 撰寫不同步),2/3 檔具引註;concurrency.md 可追溯性由「律 B」標記+決策檔 Addendum-A 反向指標達成,視同 PASS,引註缺失登記輕債(未來觸 §1 之票順手補,不單獨開票)。二偏差均票面起草缺陷、非執行缺陷,依簽發時法不追溯改 AC。CSO 獨立取證:git_diff 16 insertions/0 deletions 僅 ALLOWED。同輪三實證收割候選 #25(AC/AI 同源律)",
         "state": "RESOLVED"
       }
+    },
+    {
+      "id": "INFRA-TPL-V33-02",
+      "topic": "INFRA",
+      "title": "TICKET_TPL 版本標記三處同步至 v3.3(標頭／版本欄／檔尾)",
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "depends_on": [],
+      "file": "Pending/INFRA-TPL-V33-02_Template_Version_Label_Sync.md",
+      "note": "缺陷來源:INFRA-TPL-V33-01(已 CLOSED)僅於 Revision 區增列 v3.3 條目,未同批同步標頭 L1、版本欄 L3 與檔尾 L221,形成版本標記帳實分離——與 Rev C.1 同型之「修訂波及面全檔掃描律」違反。TPL 為每張新票之強制載入物,標頭 v3.2 字樣對每個後續開票 session 均構成誤導源。｜取證:2026-08-02 17:00 grep v3\\.2 於 SSOT 與衍生副本各命中 4 處(L1/L3/L6/L221),兩檔 size 均 11523 bytes;其中 L6 為 INFRA-TPL-V32-01 之歷史 Revision 條目,MUST 原樣保留。｜Akira 2026-08-02 裁決 5-a:不併入 TKR-05-A(TPL 屬 app repo,違新增條款 scope 一致性檢查)、不掛 KAIROS(等於容忍持續性誤導至下一輪收割)。｜雙載體:SSOT=app repo plans/cso_briefing/project/file/(受版控);Smarter-Project/file/ 份為衍生副本(非 git repo,同步為收束附帶義務,不計入 git diff --stat AC)。｜assembleDebug AC 以 N/A 顯式劃記(docs preset)。｜⚠ seq 本票未填:app 冊 INFRA 群組自始未編號,若此時自填將與 TKR-05-A A-2 回填之 max+1 同源演算衝突;本票已列入 A-2 回填清單(app 冊第 9 筆,雙冊總數 11→12),由平台分配邏輯機械回填。",
+      "reviews": {
+        "codex": "PENDING",
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "traycer": "N_A"
+      },
+      "checkpoint": null,
+      "updated_at": "2026-08-02",
+      "updated_by": "CSO",
+      "project": "SmartCameraApp1"
+    },
+    {
+      "id": "INFRA-GITIGNORE-WL-02",
+      "topic": "INFRA",
+      "title": ".gitignore 建立 Pending/ 與 deliver/ 目錄級白名單",
+      "lifecycle": "PENDING",
+      "blocked_by": null,
+      "depends_on": [
+        "INFRA-GITIGNORE-WL-01"
+      ],
+      "file": "Pending/INFRA-GITIGNORE-WL-02_Ticket_Lifecycle_Directory_Whitelist.md",
+      "note": "P1 優先治理票。Akira 2026-08-02 直接裁決：以獨立 INFRA 票修改 .gitignore，建立 Pending/、deliver/ 目錄級白名單。範圍僅解除 ignore，使票面 Git-visible；既有內容不在本票 git add／baseline，內容分類、敏感資料掃描與正式納入 index 由後續 migration ticket 承接。開票 live 證據：Pending 29 檔、deliver 27 檔，ANCHOR_PROBED=2026-08-02 20:04；全冊取號僅見 WL-01，故取 WL-02。PRESET=docs、ALLOWED=.gitignore、MAX_LINES=30、Traycer=N_A。",
+      "reviews": {
+        "codex": "PENDING",
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "traycer": "N_A"
+      },
+      "checkpoint": null,
+      "updated_at": "2026-08-02",
+      "updated_by": "GPT (Codex)",
+      "project": "SmartCameraApp1"
     }
   ]
 }
