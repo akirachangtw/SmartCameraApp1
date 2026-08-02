@@ -471,7 +471,8 @@
       "checkpoint": {
         "resolution": "【冊面補寫實錄（2026-07-31，CSO 取證後補辦）】本票檔案層閉環於前 session 完成（AC 全 [x] 含 Addendum-A 勘誤三項、收尾義務全 [x]、commit d6a75f8+6a8f508、票檔已搬 deliver/），惟冊面終態轉態遺漏，錯誤終態（PENDING+file 陳舊指標）隨 0fd8a51 固化入版控。本次補寫：lifecycle→CLOSED、file 指標 Pending/→deliver/、reviews 四欄 N_A。reviews 定性（Akira L2 裁決 (b)，2026-07-31）：codex=N_A 屬 docs 型免 Codex 先例（GAP-06-TARGET-01-REVA-FIX-A/COMPRESS-02 同型）；qa/sv=N_A 屬「無可考記錄之 L2 追認豁免」——票檔 L193 僅載前瞻語「續行 QA→Codex」，全票檔 grep 零終局實錄，依撤警正向取證律禁補 PASS，依誠實降級標 N_A 並於此揭露（豁免停點不豁免可見性）。seq 缺失【2026-08-02 更正——原載「屬 registry_upsert_ticket 已知平台缺陷，不手補」為誤診】：live 取證（grep 'seq' 於 core/services/registry_service.py、apps/mcp_server/main.py、docs/deliver/registry_schema_v1_1_contract.md 三處全數零命中）證實平台從未實作 seq 分配，該欄為呼叫方 ticket_data 之 passthrough，缺值係開票者未填而非平台缺陷；INFRA topic 群組自始未建立編號（全 7 筆皆缺，非偶發漏填）。正解（Akira 2026-08-02 裁決）：Q2/2-a 平台改為自動分配（依 topic 群組 max+1）、Q3/3-a 既有 8 筆缺漏由 TKR-05-A 回填 AI 機械補正而不手補（避免手補規則與平台實作規則不一致造成二次帳實分離）。詳見 Smarter-Project/file/TKR-05_tool_optimization_spec.md CSO Review Addendum-2 §6 T-3（推翻依據）與 §8（8 筆缺漏清單 + INFRA-GOV-STOPLOSS-01 缺 topic 欄）。本案為冊面轉態遺漏活體案例，已列 ⑧ 冊面轉態 gate 票之事件支撐：轉態四要件（lifecycle+reviews+file 指標+收尾實錄）MUST 原子完成。",
         "state": "RESOLVED"
-      }
+      },
+      "seq": 1
     },
     {
       "depends_on": [],
@@ -489,7 +490,8 @@
       "title": ".gitignore 增 !plans/cso_briefing/project/file/ 白名單（同目錄新檔靜默 untracked 盲區根治）",
       "topic": "INFRA",
       "updated_by": "CSO",
-      "checkpoint": null
+      "checkpoint": null,
+      "seq": 2
     },
     {
       "depends_on": [],
@@ -507,7 +509,8 @@
       "title": "PROGRESS.md 86→≤75 行精簡（✅ Done 列歸檔輪替，Check F.2 債務清償）",
       "topic": "INFRA",
       "updated_by": "CSO",
-      "checkpoint": null
+      "checkpoint": null,
+      "seq": 3
     },
     {
       "id": "INFRA-CLOSURE-REGISTRY-GATE-01",
@@ -527,7 +530,8 @@
       "checkpoint": {
         "state": "RESOLVED",
         "resolution": "冊面收尾實錄：碼閉環 commit d3fd12a（[INFRA-CLOSURE-REGISTRY-GATE-01] 增列冊面轉態紀律四要件 + 誠實層級聲明，ssot-governance.md +4L 純增列）。QA Build/Test/Lint PASS，SV structural_verify ADVISORY (A/B/C/D/E/F/G)，Codex Cross-Review PASS（Layer 1/2/3 全 PASS，REACHABILITY: NONE，scope 2fad13d..d3fd12a）。Traycer 依票面 N/A（純 .md 治理票，Codex PASS 即閉環）。票檔已由 Pending/ 搬移至 deliver/（untracked，.gitignore 同目錄盲區既有現況，deferred①待根治）。本次為新條款首次 dogfood 適用案例。｜【CSO 驗收追補（2026-08-01，Akira 核可）】(1) reviews.sv 語義對齊揭露：sv 實測輸出為 structural_verify ADVISORY (A-G)，七項全數 advisory 級、零 blocking 項，依既有慣例登錄為 PASS；冊面全庫 grep 'ADVISORY' 無「視同 PASS」字面先例，故於此顯式揭露轉譯依據，避免後人誤讀為原始實測值（本票新立「四欄各填實測值」條款之首次適用邊界案例）。(2) CSO 獨立驗收取證：git_show d3fd12a 確認 4 個 + 行、零 - 行（HC-3 純增列成立）；四條款逐字比對票面目標值完全一致無漂移；deliver/ 實在（10,509 bytes）且 Pending/ 零殘留；票檔 AI-0/1/2 + AC 六條全勾含 assembleDebug 顯式劃記；冊面 note 逐字比對 intake 原文零腐蝕。(3) 執行偏差記錄（不退回、供後續收割）：收尾使用 registry_upsert_ticket 編輯既有記錄，違反該工具「禁用於編輯既有記錄欄位」之現行禁令（全記錄替換為腐蝕通道，五次字元腐蝕前例）；本次經驗證零損害，屬僥倖非合規；正解為 registry_set_status + write_file_safe mode=patch + registry_set_checkpoint 三段式，工具對應表補述待承接。(4) MAX_LINES 推導偏差：票面推導 10 行、上限 30，實測 +4 行；與 INFRA-TPL-V33-01（實測 4 < 下界 5）同型第二例，均高估向、無 scope 風險，已入 KAIROS 池與候選 #25 併案評估(第四實證,SSOT=vault 2026-08-01_KAIROS_CaseC_Harvest_Round_Merged_Laws.md Addendum-B)。(5) 偏差(3)之承接裁決(Akira 2026-08-01 核可):`registry_upsert_ticket` 誤用之防護補述(冊面收尾四要件工具對應表)**defer 至 TKR-05**,作為該票收束附帶義務——理由:對應表內容直接依賴 TKR-05 將產出之 `append_note`/`rename`/`delete` 原語,先寫必於 TKR-05 落地後返工(可預見返工不預支)。即時防護以本 checkpoint (3) 所載正解三段式(`registry_set_status` 先 → `write_file_safe mode=patch` → `registry_set_checkpoint` 最後)承載,具耐久載體不待表而失傳;開立 TKR-05 時 MUST 於票面載明本項承接。"
-      }
+      },
+      "seq": 4
     },
     {
       "id": "INFRA-GOV-STOPLOSS-01",
@@ -537,7 +541,9 @@
       "preset": "docs",
       "created": "2026-08-01",
       "note": "確認決議部署票:停損律機械摘錄追加至 .claude/rules/ssot-governance.md 檔尾。SSOT=vault 2026-08-01_Structural_Ambiguity_Stop_Loss_Law.md;觸發來源=MEO v1 退役決策。DIFF_REF=d5fe887,ANCHOR_PROBED=2026-08-01 15:10",
-      "checkpoint": null
+      "checkpoint": null,
+      "topic": "INFRA",
+      "seq": 5
     },
     {
       "id": "MEO-DECOMM-01",
@@ -553,7 +559,8 @@
         "codex": "N_A",
         "traycer": "N_A"
       },
-      "note": "Addendum-5e 遞延 intake 補登(2026-08-01,殘留待裁收束)。票已全序執行完畢:Step A 存證14檔→B 解武(0b321c2)→C 復通正向反例→D 歸檔(efb3c3f,16檔→archive/meo-v1/)→E 冊面(FIX-A/B CLOSED+STOPPED checkpoint)。AI-0~AI-7 全勾,Addendum-1~5 偏差裁決在案。SSOT=vault 2026-08-01_MEO_Decommission_Execution_Closure.md;存證=Smarter-Project/deliver/MEO-DECOMM-01_evidence/"
+      "note": "Addendum-5e 遞延 intake 補登(2026-08-01,殘留待裁收束)。票已全序執行完畢:Step A 存證14檔→B 解武(0b321c2)→C 復通正向反例→D 歸檔(efb3c3f,16檔→archive/meo-v1/)→E 冊面(FIX-A/B CLOSED+STOPPED checkpoint)。AI-0~AI-7 全勾,Addendum-1~5 偏差裁決在案。SSOT=vault 2026-08-01_MEO_Decommission_Execution_Closure.md;存證=Smarter-Project/deliver/MEO-DECOMM-01_evidence/",
+      "seq": 9
     },
     {
       "blocked_by": null,
@@ -573,7 +580,8 @@
       "checkpoint": {
         "resolution": "CLOSED — 全 AI/AC 收束(2026-08-01)。AC-4 偏差裁決:實測增量 4 行 < 下界 5,判定=票面推導誤差(高估向,無 scope 風險),實質驗收經 CSO 獨立取證(grep 四式命中+v3.2 行保留)全數成立,視同 PASS。git diff AC 揭露式劃記(目標檔非 repo)。reviews 全 N_A(docs 純追加票,CSO 獨立取證替代)。Akira 裁決:TPL 版控改雙載體制,app-repo 份為唯一 SSOT、Smarter-Project 份降衍生副本,實施另案。偏差收割候選 #25 入 SSOT Addendum-B",
         "state": "RESOLVED"
-      }
+      },
+      "seq": 6
     },
     {
       "blocked_by": null,
@@ -593,7 +601,8 @@
       "checkpoint": {
         "resolution": "CLOSED — 全 AI/AC 收束(2026-08-01)。AC-2 偏差裁決:AC 字串漏粗體記號致字面不中,git_diff 證實條文逐字比中票面 AI-2 目標值,視同 PASS。AC-4 偏差裁決:AI-1 目標值本身未含 SSOT 引註(票面 AI/AC 撰寫不同步),2/3 檔具引註;concurrency.md 可追溯性由「律 B」標記+決策檔 Addendum-A 反向指標達成,視同 PASS,引註缺失登記輕債(未來觸 §1 之票順手補,不單獨開票)。二偏差均票面起草缺陷、非執行缺陷,依簽發時法不追溯改 AC。CSO 獨立取證:git_diff 16 insertions/0 deletions 僅 ALLOWED。同輪三實證收割候選 #25(AC/AI 同源律)",
         "state": "RESOLVED"
-      }
+      },
+      "seq": 7
     },
     {
       "id": "INFRA-TPL-V33-02",
@@ -613,7 +622,8 @@
       "checkpoint": null,
       "updated_at": "2026-08-02",
       "updated_by": "CSO",
-      "project": "SmartCameraApp1"
+      "project": "SmartCameraApp1",
+      "seq": 8
     },
     {
       "id": "INFRA-GITIGNORE-WL-02",
@@ -635,7 +645,8 @@
       "checkpoint": null,
       "updated_at": "2026-08-02",
       "updated_by": "CSO",
-      "project": "SmartCameraApp1"
+      "project": "SmartCameraApp1",
+      "seq": 9
     }
   ]
 }
