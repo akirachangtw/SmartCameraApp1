@@ -1,4 +1,4 @@
-# 統一 Ticket 模板 v3.2（CSO + Pipeline v1.6 合併版）
+# 統一 Ticket 模板（CSO + Pipeline v1.6 合併版）
 
 **版本**: v3.3
 **產出日期**: 2026-05-29
@@ -220,4 +220,4 @@ Effort 決定 Claude Code 的思考深度（`--effort` 參數等效）。
 
 **混合型票的 Effort 取最高**：如果一張票同時包含「新增 data class（Low）」+ 「多模組整合（High）」，Effort = **High**。
 
-**End of 統一 Ticket 模板 v3.2**
+**End of 統一 Ticket 模板**
