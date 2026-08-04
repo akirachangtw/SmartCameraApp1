@@ -134,6 +134,7 @@ ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 
 **簽發日期**: 2026-06-14
 **簽發者**: Claude
+**來源議題**: Cueshot
 **Mode**: uc  ||  **Effort**: Medium
 **Traycer Workflow**: execute_review
 **前置依賴**: 無
