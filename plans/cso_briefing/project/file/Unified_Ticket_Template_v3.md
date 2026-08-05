@@ -1,10 +1,11 @@
 # 統一 Ticket 模板（CSO + Pipeline v1.6 合併版）
 
-**版本**: v3.3
+**版本**: v3.4
 **產出日期**: 2026-05-29
 **Revision**: v3.1（2026-07-06，INFRA-REACH-02 AI-1）— Acceptance Criteria 增列 AC 類型學（`[存在性]`/`[可達性]`/`[行為性]`/`[實機]`），對治 K4-50「AC 語義折損律」
 **Revision**: v3.2（2026-07-31，INFRA-TPL-V32-01）— ①錨點預檢律常設化（`ANCHOR_PROBED` 欄 + AI-0 標準文塊）；②MAX_LINES 推導註記強制欄；③PRESET 增 `docs` 型並明定固定 AC 適用性；④範例 Ticket 同步 AC 類型學。依據 `Dispatch_Anchor_Precheck_Doctrine`（KD2）與 TKR-02 家族審查
 **Revision**: v3.3（2026-08-01，INFRA-TPL-V33-01）— ①序號機械取號律（開票前置檢核）；②gitignore 死結預檢納入 Error Handling 標配。依據 `KAIROS_CaseC_Harvest_Round_Merged_Laws`（KD-2/KD-3）; 增加 "來源議題": 識別票據發起出於來源議題
+**Revision**: v3.4（2026-08-05，Akira 直接置換）— 「前置依賴」單欄廢除，改為 execution_dependency / evidence_dependency / coordination_dependency 三分欄。事件支撐：TKR-06 Round 1 之 m-1 與 TKR-07 Round 1 之 M-1 為同一缺陷連續兩票復發（票面宣稱「前置依賴：無」，實則存在證據依賴），證明修正停在單票措辭層無效
 **來源**: CSO 裁決官 Ticket 格式 + TRA Ticket v2 合併，消除冗餘
 **設計目標**: 每張 Ticket ~350-450 tokens，單一來源零重複
 **雙載體版控**: 雙份就近可讀,明定 app-repo 份為唯一 SSOT(受版控者); Smarter-Project 份降為衍生副本。
@@ -23,7 +24,10 @@
 **來源議題**: Cueshot | MEO | Advisor | TKR | RGR | ... |
 **Mode**: normal | uc  ||  **Effort**: Low | Medium | High
 **Traycer Workflow**: N/A | architectural_review |　execute_review |　strict_verification　
-**前置依賴**: 無 / [TICKET-ID]
+**前置依賴（依賴三分）**：三欄 MUST 全部填寫，禁留白、禁併為單欄
+- `execution_dependency`: 無 / [TICKET-ID] —— 本票開工前必須先完成之票
+- `evidence_dependency`: 無 / [TICKET-ID] —— 本票之判準、錨點、HC 或 AC 所引用之既有裁決／產物來源票
+- `coordination_dependency`: 無 / [TICKET-ID] —— 需與本票同批收束或同步差分之票
 
 ## Verify Config
 TICKET_ID=[ID]
@@ -137,7 +141,10 @@ ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 **來源議題**: Cueshot
 **Mode**: uc  ||  **Effort**: Medium
 **Traycer Workflow**: execute_review
-**前置依賴**: 無
+**前置依賴（依賴三分）**：
+- `execution_dependency`: 無
+- `evidence_dependency`: 無
+- `coordination_dependency`: 無
 
 ## Verify Config
 TICKET_ID=P05-R1
