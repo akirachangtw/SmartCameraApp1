@@ -1,11 +1,12 @@
 # 統一 Ticket 模板（CSO + Pipeline v1.6 合併版）
 
-**版本**: v3.4
+**版本**: v3.5
 **產出日期**: 2026-05-29
 **Revision**: v3.1（2026-07-06，INFRA-REACH-02 AI-1）— Acceptance Criteria 增列 AC 類型學（`[存在性]`/`[可達性]`/`[行為性]`/`[實機]`），對治 K4-50「AC 語義折損律」
 **Revision**: v3.2（2026-07-31，INFRA-TPL-V32-01）— ①錨點預檢律常設化（`ANCHOR_PROBED` 欄 + AI-0 標準文塊）；②MAX_LINES 推導註記強制欄；③PRESET 增 `docs` 型並明定固定 AC 適用性；④範例 Ticket 同步 AC 類型學。依據 `Dispatch_Anchor_Precheck_Doctrine`（KD2）與 TKR-02 家族審查
 **Revision**: v3.3（2026-08-01，INFRA-TPL-V33-01）— ①序號機械取號律（開票前置檢核）；②gitignore 死結預檢納入 Error Handling 標配。依據 `KAIROS_CaseC_Harvest_Round_Merged_Laws`（KD-2/KD-3）; 增加 "來源議題": 識別票據發起出於來源議題
 **Revision**: v3.4（2026-08-05，Akira 直接置換）— 「前置依賴」單欄廢除，改為 execution_dependency / evidence_dependency / coordination_dependency 三分欄。事件支撐：TKR-06 Round 1 之 m-1 與 TKR-07 Round 1 之 M-1 為同一缺陷連續兩票復發（票面宣稱「前置依賴：無」，實則存在證據依賴），證明修正停在單票措辭層無效
+**Revision**: v3.5（2026-08-13，MAX_LINES 量尺退役案）— ①量尺唯一化：量尺 ＝ `git diff --stat` insertions＋deletions，計量範圍限 production 檔案 diff；②MAX_LINES **完全退出 execution gate**（QA／SV／Cross-Review／approval／merge／archive），降為 production-only diff 實測值之估算校準遙測；③安全不變量類票標 `N/A`；④每次量測 MUST 形成與 ticket／worktree／commit SHA／DIFF_REF 綁定之 evidence record。連帶：v3.2 所立「MAX_LINES 推導註記強制欄」失去格式合格判準地位（降為估算參考），`N/A` 票免附。依據 `Ticket_MaxLines_Metric_Retirement`（R1–R3）＋先例 `MAXLINES_Measurement_Scope_Ruling`（2026-07-09，度量對象錯置／production-diff-only）
 **來源**: CSO 裁決官 Ticket 格式 + TRA Ticket v2 合併，消除冗餘
 **設計目標**: 每張 Ticket ~350-450 tokens，單一來源零重複
 **雙載體版控**: 雙份就近可讀,明定 app-repo 份為唯一 SSOT(受版控者); Smarter-Project 份降為衍生副本。
@@ -35,11 +36,20 @@ CREATED=[YYYY-MM-DD]
 PRESET=[feature|bugfix|refactor|hotfix|docs]
 ALLOWED=[會修改的檔案，逗號分隔]
 FORBIDDEN=[禁止觸碰的檔案，逗號分隔]
-MAX_LINES=[數字]
+MAX_LINES=[數字 | N/A]
 DIFF_REF=[起始 commit hash]
 ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 
-**MAX_LINES 推導註記**（額度制截斷序律，**強制欄；無此註記之票視同格式不合格**）：[逐 AI 行數分項] → [緩衝倍率] → [進位結果]。**截斷序**：[實作超額時之停止規則]。
+**MAX_LINES 量尺定義與性質**（v3.5，`Ticket_MaxLines_Metric_Retirement` R1–R3 ＋ 2026-08-13 終局裁決）：
+
+- **量尺唯一化（R1）**：量尺 ＝ `git diff --stat` 對 `DIFF_REF` 基線之 **insertions ＋ deletions 總和**；**MUST NOT** 以整檔行數計，**MUST NOT** 整檔與增量混用（量尺雙義為 MCP-PID-OWNERSHIP-GUARD-01 四 Rev 連環超額之根因層一：依 AC 自身量尺實測僅 ~168 行，未超額）。
+- **計量範圍（R1，併載 `MAXLINES_Measurement_Scope_Ruling` 2026-07-09 先例）**：限 **production 檔案 diff only**；test／fake scaffolding 行數 **MUST** 排除於計量之外，由審查品質閘治理。「量尺＝diff」與「範圍＝production」兩者同時成立。
+- **完全退出 execution gate（終局裁決，2026-08-13）**：MAX_LINES **MUST NOT** 作為 QA／SV／Cross-Review／approval／merge／archive 任一環節之 execution gate。**合法超額、`N/A`、空值、非法格式四類值一律 MUST NOT** 設定 failure flag、**MUST NOT** 觸發停止回報、**MUST NOT** 導致非零 exit code。理由：Git worktree 多工作目錄並列執行 ＋ QA／SV／Cross-Review Evidence-First 並行流程下，最終 production diff 受審查發現、補救修正、證據補齊、重新驗證與整合需求影響，開票期行數預估**不具備作為執行期停止判準之穩定性**（MAX_LINES 四次觸發零真陽性）。
+- **保留用途**：僅為 production-only diff 實測值之**估算校準遙測**；其資料品質問題（缺值／非法格式）由 **ticket lint 層**處理，**MUST NOT** 上升為執行期阻斷。
+- **交付阻斷權歸屬（唯五類）**：①scope／授權違規；②evidence 缺失或綁定不一致；③未處置之高嚴重度 finding；④必要品質驗證失敗；⑤未完成之審批或 required checkpoint。MAX_LINES 不在其列。
+- **量測取證綁定（終局裁決，2026-08-13）**：每次量測 **MUST** 形成與 **ticket ID ＋ worktree ＋ commit SHA ＋ `DIFF_REF`** 綁定之 evidence record，以支援跨 session 並行、Cross-Review 重放與事後審計；**MUST NOT** 以共享工作樹、共享可變設定檔（如 `tmp/verify_cmd.conf`）或即時 `git diff` 作為**唯一**取證來源（與 `.claude/rules/concurrency.md` §1 律 B「receipt MUST 於收口當刻複製進耐久載體」同源）。
+- **安全票 N/A（R3）**：AI 含 fail-closed／守門／授權判定類安全不變量者，MAX_LINES **MUST** 標 `N/A`，並附註「失敗形狀枚舉為審查發現式，不可先驗估算」；`N/A` 為顯式跳過語義，**MUST NOT** 被實作為算術比較（否則 fail-open 假 PASS）。
+- **推導註記**（v3.2 立，v3.5 降級）：非 `N/A` 票 **SHOULD** 附〔逐 AI 行數分項〕→〔緩衝倍率〕→〔進位結果〕作估算參考；**已非格式合格判準**（v3.2「無此註記之票視同格式不合格」條款於此廢止），`N/A` 票免附。原「截斷序」（超額停止規則）隨 R2 失效，**MUST NOT** 再作停止依據。
 
 ## Action Items
 
@@ -104,6 +114,8 @@ ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 
 **強制規則**：AC 涉 Guard / gate / early-return / 外生 runtime state → **MUST** 至少各含一條 `[可達性]` + `[行為性]` AC。`[存在性]` AC 不得單獨承載「落地」語義（K4-50「AC 語義折損律」：AC 自然語言語義在機械驗收拆解時必然折損為存在性檢查，除非開票時以 AC 類型顯式編碼＋producer 證據欄）。
 
+**MAX_LINES 退出 AC 類型學**（v3.5，R2 ＋ 2026-08-13 終局裁決）：MAX_LINES **MUST NOT** 標記為四型中任一型（尤其 `[行為性]`），**MUST NOT** 列入 Acceptance Criteria 區，亦 **MUST NOT** 作為任何 execution gate——其性質為估算校準遙測，判準地位已全面退場，詳見上文「MAX_LINES 量尺定義與性質」。
+
 ### 冗餘消除規則
 
 ```
@@ -119,13 +131,15 @@ ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 
 ### Preset 快查
 
-| Preset | AI-N 密度 | ALLOWED | MAX_LINES | 典型場景 |
+| Preset | AI-N 密度 | ALLOWED | MAX_LINES（估算，非判準） | 典型場景 |
 |--------|----------|---------|-----------|---------|
 | feature | 完整 AI-N | 嚴格列舉 | 80-150 | 新功能：TapFocusRing 實作 |
 | bugfix | 完整 AI-N | 省略 | 100 | 修錯：GazeAF Ghost Face |
 | refactor | 精簡 AI-N | 寬鬆 | 300 | 重構：PitchTraction 清理 |
 | hotfix | 1-2 AI-N | 省略 | 50 | 緊急：crash 修復 |
 | docs | 完整 AI-N（行級替換，現值/目標值逐字） | **嚴格列舉** | 30-80 | 契約增補、治理檔同步、歸檔建檔、模板修訂 |
+
+**MAX_LINES 欄之性質**（v3.5）：上表數值為 preset 慣性**估算區間**，非退件門檻、非 execution gate；安全不變量類票不套用區間，一律標 `N/A`（R3）。
 
 **固定 AC 之 preset 適用性**：`assembleDebug PASS` 對 `docs` 型 **N/A**（純文檔票無編譯產物，強制保留即製造不可能滿足之 AC——FIX-F traycer=FAIL 永久留帳之制度性來源）；`git diff --stat 僅涉及 ALLOWED 檔案` 對**所有** preset **保留強制**。`docs` 型票 MUST 於 AC 區以 `~~assembleDebug PASS~~ (N/A: docs preset)` 顯式劃記，禁靜默刪除（豁免停點不豁免可見性）。
 
