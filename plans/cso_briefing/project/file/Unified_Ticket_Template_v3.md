@@ -1,12 +1,13 @@
 # 統一 Ticket 模板（CSO + Pipeline v1.6 合併版）
 
-**版本**: v3.5
+**版本**: v3.6
 **產出日期**: 2026-05-29
 **Revision**: v3.1（2026-07-06，INFRA-REACH-02 AI-1）— Acceptance Criteria 增列 AC 類型學（`[存在性]`/`[可達性]`/`[行為性]`/`[實機]`），對治 K4-50「AC 語義折損律」
 **Revision**: v3.2（2026-07-31，INFRA-TPL-V32-01）— ①錨點預檢律常設化（`ANCHOR_PROBED` 欄 + AI-0 標準文塊）；②MAX_LINES 推導註記強制欄；③PRESET 增 `docs` 型並明定固定 AC 適用性；④範例 Ticket 同步 AC 類型學。依據 `Dispatch_Anchor_Precheck_Doctrine`（KD2）與 TKR-02 家族審查
 **Revision**: v3.3（2026-08-01，INFRA-TPL-V33-01）— ①序號機械取號律（開票前置檢核）；②gitignore 死結預檢納入 Error Handling 標配。依據 `KAIROS_CaseC_Harvest_Round_Merged_Laws`（KD-2/KD-3）; 增加 "來源議題": 識別票據發起出於來源議題
 **Revision**: v3.4（2026-08-05，Akira 直接置換）— 「前置依賴」單欄廢除，改為 execution_dependency / evidence_dependency / coordination_dependency 三分欄。事件支撐：TKR-06 Round 1 之 m-1 與 TKR-07 Round 1 之 M-1 為同一缺陷連續兩票復發（票面宣稱「前置依賴：無」，實則存在證據依賴），證明修正停在單票措辭層無效
 **Revision**: v3.5（2026-08-13，MAX_LINES 量尺退役案）— ①量尺唯一化：量尺 ＝ `git diff --stat` insertions＋deletions，計量範圍限 production 檔案 diff；②MAX_LINES **完全退出 execution gate**（QA／SV／Cross-Review／approval／merge／archive），降為 production-only diff 實測值之估算校準遙測；③安全不變量類票標 `N/A`；④每次量測 MUST 形成與 ticket／worktree／commit SHA／DIFF_REF 綁定之 evidence record。連帶：v3.2 所立「MAX_LINES 推導註記強制欄」失去格式合格判準地位（降為估算參考），`N/A` 票免附。依據 `Ticket_MaxLines_Metric_Retirement`（R1–R3）＋先例 `MAXLINES_Measurement_Scope_Ruling`（2026-07-09，度量對象錯置／production-diff-only）
+**Revision**: v3.6（2026-08-13，Akira 直接裁決）— 立「票號議題前綴律」：票號第一段 MUST 為來源議題之登記 token 或登記縮寫，並與票面 `**來源議題**` 欄同源；歸檔歸屬以票號第一段為唯一判準，新票冊面 `topic` 欄 MUST 與前綴同源。既有票號**不追溯改號**（已固化於 commit message／commit-msg hook 稽核面／冊面互指／票檔檔名）。併立「發現來源 ≠ 歸屬」二階判定：歸屬以**關聯性**（標的／需求源／產物落在該議題領域）與**相依性**（該議題之票對本問題存在依賴三分關係，或修復落點傳導至該議題交付面）二維任一成立為準——有則歸該議題；二維皆不成立則歸 `INFRA`（獨立歸屬線，不隸屬任何產品議題）。禁以發現地或話題沾附為歸屬依據。立法目的：消除冊面歸檔時「此票該歸哪條線」之爭議
 **來源**: CSO 裁決官 Ticket 格式 + TRA Ticket v2 合併，消除冗餘
 **設計目標**: 每張 Ticket ~350-450 tokens，單一來源零重複
 **雙載體版控**: 雙份就近可讀,明定 app-repo 份為唯一 SSOT(受版控者); Smarter-Project 份降為衍生副本。
@@ -22,7 +23,7 @@
 
 **簽發日期**: 2026-06-14
 **簽發者**: Claude / GPT / Perplexity
-**來源議題**: Cueshot | MEO | Advisor | TKR | RGR | ... |
+**來源議題**: Cueshot | MEO | Advisor | TKR | RGR | INFRA | ... |  ← **MUST** 與票號第一段同源（見「票號議題前綴律」）
 **Mode**: normal | uc  ||  **Effort**: Low | Medium | High
 **Traycer Workflow**: N/A | architectural_review |　execute_review |　strict_verification　
 **前置依賴（依賴三分）**：三欄 MUST 全部填寫，禁留白、禁併為單欄
@@ -56,6 +57,31 @@ ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 > **AI-0 為強制首項**（派工前錨點預檢律，`Dispatch_Anchor_Precheck_Doctrine` KD2）。開票方 MUST 於草擬同刻以 live `read_file_safe`／`grep_files` 直查取樣全部「現值」錨點並填寫 `ANCHOR_PROBED` 時戳；**禁以記憶、前次 session 輸出或執行者回報充當錨點**。派工時若目標檔已有新 commit 越過 `ANCHOR_PROBED` 時刻，MUST 重跑預檢方可派工。
 
 > **序號機械取號律**（律 A，`KAIROS_CaseC_Harvest_Round_Merged_Laws` KD-2/KD-3）。指派任何票號／候選序號前，開票方 MUST 以**全冊機械取號**決定新號：對 registry 全檔（per-project `TICKET_REGISTRY.json`）與 `deliver/`、`reports/` 執行 ID 樣式 grep 取 max-ID，`max+1` 為新號。**禁只掃 `Pending/`**（已通過票離開 Pending/，只掃必碰撞）；**禁以 `tail`／局部讀取驗證「目前最大號」**（局部讀取必然漏看他處已登記條目）。二次實證：PROTO-01 票號碰撞、K4-46 雙登。
+
+> **票號議題前綴律**（v3.6，Akira 2026-08-13 直接裁決；與律 A 配對執行）。票號**第一段** MUST 為「來源議題」之登記 token 或其登記縮寫，且 MUST 與票面 `**來源議題**` 欄同源——二者不一致即開票 lint FAIL（自我校驗欄）。**歸檔歸屬以票號第一段為唯一判準**；新票之冊面 `topic` 欄 MUST 與前綴同源，**禁二者分歧**（立法目的：消除歸檔時「此票該歸哪條線」之爭議）。
+>
+> | 來源議題 | ID 前綴 | provenance 狀態 |
+> |---------|---------|----------------|
+> | Cueshot | `CUE` | 既有（`CUE-SNAP-01-FIX-A`） |
+> | MEO | `MEO` | 既有 family（`ticket_pattern.md` 已登記） |
+> | TKR | `TKR` | 既有 family |
+> | INFRA（基礎設施／工作流設計線） | `INFRA` | 既有最大前綴（冊面實測 17 筆）；**獨立歸屬線，不隸屬任何產品議題** |
+> | KAIROS（回顧收割線） | `KAIROS` | 既有 family |
+> | Advisor | `ADV` | **新增**——首次使用當刻 MUST 補登 provenance |
+> | RGR | `RGR` | **新增**——同上 |
+>
+> **發現來源 ≠ 歸屬**（Akira 2026-08-13 裁決）：歸屬 MUST 以**關聯性**與**相依性**二維為準，**MUST NOT** 以「哪個 session／議題發現它」為準。二階判定：
+>
+> 1. **先問關聯性／相依性**——二維**任一**成立即為實質歸屬，**有 → 歸該議題**（不因它由他議題 session 發現而改歸）：
+>    - **關聯性**：問題之標的、需求源或產物落在該議題領域內（該議題之專屬管線／模組／規格）。
+>    - **相依性**：該議題之票對本問題存在 `execution`／`evidence`／`coordination` 依賴（見「前置依賴（依賴三分）」），或本問題之修復落點在該議題標的內、改動會傳導至該議題之交付面。
+> 2. **二維皆不成立 → 歸 `INFRA`**：問題實質為工作流本身之設計邏輯問題者，`MUST` 歸 `INFRA`。`INFRA` 為**獨立歸屬線**，不隸屬任何產品議題，亦為無關聯亦無相依時之歸屬線。
+>
+> **排除項**：「發現地」不成立歸屬；「話題上沾到」不成立歸屬——沾附而無關聯亦無相依者，MUST NOT 據以主張歸屬（否則歸屬爭議僅換形式復現）。正向取證先例：`INFRA-MAXLINES-GATE-01`／`-EVIDENCE-01` 於他議題 session 中發現，經二維檢驗均不成立（缺陷在既有工作流 MAX_LINES 閘之設計邏輯、修復落點在 `verify_checklist.sh`，非任何產品議題之專屬管線，亦無議題票對其存在依賴三分關係），故歸 `INFRA`。
+>
+> **縮寫規則**：MUST 為 2–6 個大寫英文字母；MUST NOT 與既有前綴碰撞（開票前以律 A 之全冊 grep 一併驗證**前綴唯一性**，非僅序號唯一性）。新議題之縮寫 MUST 於 spawn 當刻同步補登 `ticket_pattern.md` Family Provenance 表，**禁依賴事後稽核 escalate 才補登**（`CLAUDE.md` Rule 4a）。
+>
+> **不追溯（既有票號一律沿用）**：`INFRA-*`／`GAP-*`／`STATE-*`／`TRACTION-*`／`KAIROS*-*` 等既有票號 **MUST NOT** 追溯改號——票號已固化於 commit message、`.git/hooks/commit-msg` 稽核面、冊面互指（`depends_on`／`blocked_by`）與票檔檔名四處；改號即製造帳實分離。本律僅拘束生效日（2026-08-13）後新開之票。
 
 ### AI-0: 錨點復驗（派工後、修改前）
 - **檔案**: `path/to/File.kt`
