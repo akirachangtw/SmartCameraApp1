@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MEO Event",
+  "type": "object",
+  "required": [
+    "event_id",
+    "ticket_id",
+    "session_id",
+    "timestamp",
+    "actor",
+    "event_type",
+    "payload",
+    "schema_version"
+  ],
+  "properties": {
+    "event_id": { "type": "string" },
+    "ticket_id": { "type": "string" },
+    "session_id": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "actor": {
+      "type": "object",
+      "required": ["type", "id"],
+      "properties": {
+        "type": { "type": "string" },
+        "id": { "type": "string" }
+      }
+    },
+    "event_type": { "type": "string" },
+    "payload": { "type": "object" },
+    "causation_id": { "type": "string" },
+    "correlation_id": { "type": "string" },
+    "schema_version": { "type": "string" }
+  },
+  "additionalProperties": true
+}
