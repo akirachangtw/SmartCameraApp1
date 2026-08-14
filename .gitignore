@@ -77,6 +77,9 @@ plans/cso_briefing/project/*
 !plans/cso_briefing/project/TICKET_REGISTRY.json
 # INFRA-GITIGNORE-WL-01: 治理文檔目錄白名單（消除同目錄新檔靜默 untracked 盲區）
 !plans/cso_briefing/project/file/
+# INFRA-GITIGNORE-WL-02: 票務生命週期目錄白名單（僅解除忽略；內容 baseline 另票）
+!plans/cso_briefing/project/Pending/
+!plans/cso_briefing/project/deliver/
 plans/uita_project/
 plans/archive/
 
