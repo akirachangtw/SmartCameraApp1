@@ -1,6 +1,6 @@
 # 統一 Ticket 模板（CSO + Pipeline v1.6 合併版）
 
-**版本**: v3.6
+**版本**: v3.7
 **產出日期**: 2026-05-29
 **Revision**: v3.1（2026-07-06，INFRA-REACH-02 AI-1）— Acceptance Criteria 增列 AC 類型學（`[存在性]`/`[可達性]`/`[行為性]`/`[實機]`），對治 K4-50「AC 語義折損律」
 **Revision**: v3.2（2026-07-31，INFRA-TPL-V32-01）— ①錨點預檢律常設化（`ANCHOR_PROBED` 欄 + AI-0 標準文塊）；②MAX_LINES 推導註記強制欄；③PRESET 增 `docs` 型並明定固定 AC 適用性；④範例 Ticket 同步 AC 類型學。依據 `Dispatch_Anchor_Precheck_Doctrine`（KD2）與 TKR-02 家族審查
