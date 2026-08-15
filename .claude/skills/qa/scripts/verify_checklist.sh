@@ -69,6 +69,20 @@ pa_file_lines_changed() { # pa_file_lines_changed <file> → added+deleted（num
   echo "${lines:-0}"
 }
 
+# ─── MAX_LINES execution gate 退役（INFRA-MAXLINES-GATE-01 AI-2/AI-3）───
+maxlines_verdict() { # maxlines_verdict <max_lines> <added> → NA|MALFORMED|OVER|OK
+  local max_lines="$1" added="$2"
+  if [[ "$max_lines" == "N/A" ]]; then
+    echo "NA"
+  elif [[ ! "$max_lines" =~ ^[0-9]+$ ]]; then
+    echo "MALFORMED"
+  elif [[ "$added" -gt "$max_lines" ]]; then
+    echo "OVER"
+  else
+    echo "OK"
+  fi
+}
+
 # ─── Self-test（INFRA-VERIFY-GLOB-01 AI-2）───
 # 用法: bash .claude/skills/qa/scripts/verify_checklist.sh --self-test
 # 純函數級斷言，不觸 git、不落 repo 雜訊。
@@ -113,6 +127,20 @@ self_test() {
   _expect_num 1 200 "pa_exemption_applies 負 · 大規模覆寫 delta=200 → 豁免失效"
   _expect_num 0 40  "pa_exemption_applies 邊界 · delta=40（=MAX_LINES）→ 豁免成立"
   _expect_num 1 41  "pa_exemption_applies 邊界 · delta=41（=MAX_LINES+1）→ 豁免失效"
+  # MAX_LINES execution gate 退役 · INFRA-MAXLINES-GATE-01
+  _expect_verdict() { # _expect_verdict <want> <max_lines> <added> <desc>
+    local want="$1" max_lines="$2" added="$3" desc="$4" got
+    got=$(maxlines_verdict "$max_lines" "$added")
+    if [[ "$got" == "$want" ]]; then
+      passed=$((passed + 1)); echo "  ✅ [$want] $desc"
+    else
+      failed=$((failed + 1)); echo "  ❌ [want=$want got=$got] $desc | max_lines=$max_lines added=$added"
+    fi
+  }
+  _expect_verdict NA        "N/A" 653 "maxlines_verdict · MAX_LINES=N/A → NA（安全票，行數閘不適用）"
+  _expect_verdict MALFORMED "10O" 653 "maxlines_verdict · 非法格式 '10O' → MALFORMED"
+  _expect_verdict OVER      100   653 "maxlines_verdict · 實測 653 > 估算 100 → OVER（非退件）"
+  _expect_verdict OK        800   653 "maxlines_verdict · 實測 653 ≤ 估算 800 → OK"
   echo "── self-test: ${passed} passed, ${failed} failed ──"
   [[ $failed -eq 0 ]]
 }
@@ -403,27 +431,27 @@ if [[ -n "$ALLOWED" ]]; then
     _token=$(trim_token "$a")
     if [[ $CONF_MODE -eq 1 ]]; then
       _lines=$(git diff "${DIFF_REF}..${DIFF_END_RESOLVED}" --numstat 2>/dev/null | \
-        awk -v n="$_token" 'index(n, "/") || index(n, "\\") {if ($3 == n) s+=$1; next} {split($3,p,"/"); if (p[length(p)] == n) s+=$1} END {print s+0}')
+        awk -v n="$_token" 'index(n, "/") || index(n, "\\") {if ($3 == n) s+=$1+$2; next} {split($3,p,"/"); if (p[length(p)] == n) s+=$1+$2} END {print s+0}')
     else
       _lines=$(git diff "$DIFF_REF" --numstat 2>/dev/null | \
-        awk -v n="$_token" 'index(n, "/") || index(n, "\\") {if ($3 == n) s+=$1; next} {split($3,p,"/"); if (p[length(p)] == n) s+=$1} END {print s+0}')
+        awk -v n="$_token" 'index(n, "/") || index(n, "\\") {if ($3 == n) s+=$1+$2; next} {split($3,p,"/"); if (p[length(p)] == n) s+=$1+$2} END {print s+0}')
     fi
     ADDED=$((ADDED + ${_lines:-0}))
   done
   echo "  (ALLOWED files only)"
 else
   if [[ $CONF_MODE -eq 1 ]]; then
-    ADDED=$(git diff "${DIFF_REF}..${DIFF_END_RESOLVED}" --numstat 2>/dev/null | awk '{s+=$1} END {print s+0}')
+    ADDED=$(git diff "${DIFF_REF}..${DIFF_END_RESOLVED}" --numstat 2>/dev/null | awk '{s+=$1+$2} END {print s+0}')
   else
-    ADDED=$(git diff "$DIFF_REF" --numstat 2>/dev/null | awk '{s+=$1} END {print s+0}')
+    ADDED=$(git diff "$DIFF_REF" --numstat 2>/dev/null | awk '{s+=$1+$2} END {print s+0}')
   fi
 fi
-if [[ "$ADDED" -gt "$MAX_LINES" ]]; then
-  echo "  ⛔ BLOAT: +${ADDED} 行（上限: ${MAX_LINES}）"
-  FAIL=1
-else
-  echo "  ✅ +${ADDED} 行（上限: ${MAX_LINES}）"
-fi
+case "$(maxlines_verdict "$MAX_LINES" "$ADDED")" in
+  NA)        echo "  ⚪ MAX_LINES=N/A（安全票，行數閘不適用）— 實測 ${ADDED} 行（估算校準用）" ;;
+  MALFORMED) echo "  ⚠️ MAX_LINES 值非法（'${MAX_LINES}'）— 遙測跳過，票面格式待 ticket lint 修；實測 ${ADDED} 行" ;;
+  OVER)      echo "  ⚠️ 實測 ${ADDED} 行 > 估算 ${MAX_LINES}（超出 $((ADDED - MAX_LINES)) 行）— 非退件，供估算校準" ;;
+  OK)        echo "  ✅ 實測 ${ADDED} 行（估算 ${MAX_LINES}）" ;;
+esac
 
 # ─── [0.4] 自創常數掃描（ticket 起點以後） ───
 echo
