@@ -636,20 +636,23 @@
       "id": "INFRA-GITIGNORE-WL-02",
       "topic": "INFRA",
       "title": ".gitignore 建立 Pending/ 與 deliver/ 目錄級白名單",
-      "lifecycle": "PENDING",
+      "lifecycle": "CLOSED",
       "blocked_by": null,
       "depends_on": [
         "INFRA-GITIGNORE-WL-01"
       ],
-      "file": "Pending/INFRA-GITIGNORE-WL-02_Ticket_Lifecycle_Directory_Whitelist.md",
+      "file": "deliver/INFRA-GITIGNORE-WL-02_Ticket_Lifecycle_Directory_Whitelist.md",
       "note": "P1 優先治理票。Akira 2026-08-02 直接裁決：以獨立 INFRA 票修改 .gitignore，建立 Pending/、deliver/ 目錄級白名單。範圍僅解除 ignore，使票面 Git-visible；既有內容不在本票 git add／baseline，內容分類、敏感資料掃描與正式納入 index 由後續 migration ticket 承接。開票 live 證據：Pending 29 檔、deliver 27 檔，ANCHOR_PROBED=2026-08-02 20:04；全冊取號僅見 WL-01，故取 WL-02。PRESET=docs、ALLOWED=.gitignore、MAX_LINES=30、Traycer=N_A。｜觸發來源補記:2026-08-02 TKR-05-A 開票時取證發現 app 冊 Pending/ 票檔於 git status --untracked-files=all 零回報(platform 同類檔正常顯示 ??),證實 plans/cso_briefing/ 排除仍生效,WL-01 白名單未涵蓋票務生命週期目錄。｜【SMTR 審查 2026-08-02】live 取證吻合項:AI-0 錨點連續區塊於 .gitignore L74-L79 逐字命中且順序一致;deliver/ 27 檔完全吻合;.claude/rules/ssot-governance.md L56 搬移紀律存在;序號取號律證據獨立復驗屬實(全冊僅 WL-01,無 02 碰撞);project/Handoff/ 存在。｜⛔ 派工前必補(1 項):DIFF_REF 為未填佔位符,應補 1479f58;並 MUST 加註「ANCHOR_PROBED 20:04 早於 1479f58(20:13),惟該 commit 僅異動 TICKET_REGISTRY.json、未觸 .gitignore(git_log --paths 已復驗),錨點仍有效無須重跑預檢」,否則執行者依「HEAD 越過 ANCHOR_PROBED 即重跑」規則會停工。｜⚠ 建議修正(4 項,非阻斷):①Hard Constraint 1 「L70-L79」行號未取證,實為 L74-L79,建議改行號或剔除改用 AI-0 字面塊;②AC-4 「plans/cso_briefing/archive/ 仍命中 ignore」——.gitignore 無該路徑專行,係經 L74 plans/cso_briefing/* 概括排除達成(另 L81 plans/archive/ 係不同路徑,防混淆),須註明;③Pending/ 29 檔盤點口徑未宣告(復驗=直屬 24 + meo-v2-lite/ 5,未計 meo-v2-lite/examples/ 次層);④AC 無 [可達性] 型未說明不適用,建議比照 assembleDebug 作法顯式劃記 N/A。｜📌 殘留盲區(登記至後續 migration 票):archive/ 與 reports/ 維持 ignored(本票 HC4 明禁解除,屬有意識裁量),惟 ssot-governance.md L59③ 允許冊面 file 欄指向 archive/,故收束後票檔仍可能落於永久不可見路徑。｜⚠ seq 本票未填:依回填期開票序號凍結律(教訓 L-4,Addendum-4 §20),app 冊 INFRA 群組正處於 TKR-05-A A-2 機械回填待執行狀態,新票禁自填序號;本票已列入 A-2 回填清單(app 冊第 10 筆,雙冊總數 12→13)。｜⚠【冊面事故紀錄 2026-08-02】SMTR 未先查冊即呼叫 registry_upsert_ticket,誤走既有票更新分支,覆寫本條 title/note/updated_by 三欄(lifecycle/reviews/file/depends_on/checkpoint 未受損)。已以 write_file_safe mode=patch 復原 title 與 Codex 原始 note 全文,SMTR 審查改附加於後。updated_by 保留 CSO(最後寫入者屬實);開票簽發者為 GPT (Codex)。收割候選:查冊前置律——registry_upsert_ticket 呼叫前 MUST 以 registry_list 或 grep 確認 id 不存在,「補登」措辭不構成未登記之證據。｜【2026-08-03 補正完成】上列「⛔ 派工前必補」已消解:DIFF_REF=1479f58 已回填票面 Verify Config,並附時序註記(ANCHOR_PROBED 20:04 早於 1479f58 20:13,惟該 commit 僅異動 TICKET_REGISTRY.json 未觸 .gitignore;CSO 獨立復驗 git_show 1479f58 + git_log --paths .gitignore 顯示目標檔最後異動為 f0c9c20/2026-07-31,自預檢起至今零異動,錨點有效)。4 項建議修正全數落票面:①HC1 行號改以 AI-0 字面塊為準並揭示 L74-L79 實測值;②AC archive/ ignore 達成機制註記(經 L74 概括排除,無專行;L81 plans/archive/ 為不同路徑);③邊界聲明補盤點口徑(直屬 24 + meo-v2-lite/ 5,未計 examples/ 次層);④增列 [可達性] N/A 顯式劃記。另加派工時 DIFF_REF 順延預告(機械基線調整定性,比照 FIX-G/TKR-05-A 先例)。本票現為可派工狀態。",
       "reviews": {
-        "codex": "PENDING",
-        "qa": "PENDING",
-        "sv": "PENDING",
+        "codex": "PASS",
+        "qa": "PASS",
+        "sv": "PASS",
         "traycer": "N_A"
       },
-      "checkpoint": null,
+      "checkpoint": {
+        "resolution": "CLOSED — 全 AC 6/6 可驗收項 PASS（含 2 項 N/A 顯式劃記），逐項附 live git 指令實測證據（2026-08-15，Akira 直接指示「確認執行狀態並勾選歸檔」，本次為獨立確認回合，未沿用先前回報，全數以現行 git 狀態重新實測）。｜實作 commit `9d6b102`（`[INFRA-GITIGNORE-WL-02]`，`.gitignore` +3/-0，僅 ALLOWED 單檔，HC5 遵守）。AI-0~AI-3 逐項復驗：AI-0 HEAD 已越過 ANCHOR_PROBED（1479f58→順延 7a9e842）已重跑預檢，錨點恰 1 次；AI-1 目標值逐字落地；AI-2 三 probe（Pending 根／Pending 巢狀／deliver 根）皆 `??`，收尾以獨立命名二次復驗結果一致，零殘留；AI-3 Handoff/、archive/ 仍 ignore，registry 仍 tracked，file/ 未回歸，`9d6b102` 零票檔混入。｜AC 逐項：①存在性白名單命中各 1、WL-01 兩行不變 PASS；②行為性三 probe `??` 驗畢零殘留 PASS；③行為性既有票檔 CUE-SNAP-01-FIX-A（Pending）與 INFRA-CLOSURE-REGISTRY-GATE-01（deliver）於本票實作 commit 當下確認 `??` 且未被 stage PASS；④行為性 Handoff/archive 仍 ignore、registry 仍 tracked、file/ 不回歸 PASS；⑤存在性 `git diff --check` exit 0、numstat 3/0 PASS；⑥`git diff --stat` 僅 ALLOWED PASS；assembleDebug 與可達性依票面條款 N/A 顯式劃記。｜`/qa`／`/sv` 實跑證據（同日先前回合，本次獨立復驗未推翻）：`assembleDebug` BUILD SUCCESSFUL(131s)、`testDeviceDebugUnitTest` 全通過、`lint` 0 new warning、ELF ALIGNED；Codex Cross-Review R1 **PASS**（`REACHABILITY: NONE`，scope `7a9e842..7fb3eee`）。免 Traycer（純 .gitignore docs preset 治理票）。｜「後續承接」migration ticket 現況揭露：既有 Pending/deliver 內容已由 Akira 另案指示（本票 scope 外）以 37 筆 family 原子化 commit（`[<FAMILY>-PENDING]`／`[<FAMILY>-DELIVER]`）逐一納入版控，`git status` 全域淨空；此舉滿足「後續承接」精神但形式為分散多筆 commit 而非單一 migration ticket，HC3「本票終值只能宣告 Git-visible」不受影響（baseline 工作非本票所為，時序可稽核：本票實作 commit `9d6b102` 早於全數 baseline commit，`git merge-base --is-ancestor` 已驗證）。｜票號無 seq 缺漏、無需律 A 補登。冊面轉態四要件：①lifecycle→CLOSED；②reviews 四欄 PASS/PASS/PASS/N_A（QA/SV/Codex 實跑證據，Traycer 依票面豁免）；③file 指標 Pending/→deliver/（票檔實搬 `f7393d3`，Pending/ 零殘留）；④本 resolution 即收尾實錄。｜執行偏差記錄：搬移+勾選之首次 commit（`ac384f6`）因提交時序異常遺漏本次編輯內容（similarity index 100%，git mv 未攜帶當時磁碟最新編輯），經 `git diff` 比對發現後以 `git commit --amend`（`f7393d3`）修正，amend 前已確認未推送任何遠端，修正後內容已驗證與磁碟一致。",
+        "state": "RESOLVED"
+      },
       "updated_at": "2026-08-02",
       "updated_by": "CSO",
       "project": "SmartCameraApp1",
