@@ -66,3 +66,12 @@ ANCHOR_PROBED=2026-08-13 22:38（本 session read_file_safe 全文 13,069 chars 
 - [x] ~~assembleDebug PASS~~ (N/A: docs preset)
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案（Smarter-Project 份非 git，以檔案清單比對替代）
       — 實測：實作 commit `4b1e99b` 僅 `Unified_Ticket_Template_v3.md`（3 insertions）；本次附帶更正（L13 單一載體聲明）落於同檔 ALLOWED 範圍內
+
+## 事後補丁（免票收斂，2026-08-15）
+
+沿用本票號（v3.6「既有票號不追溯改號」原則），非另立修補票：
+
+1. **`b198738`** — 修正缺陷 F1（T2）：AI-1 落地時僅新增 v3.7 Revision 行、未同步更新 L3 版本號欄，形成版本標記帳實分離（L3 `**版本**: v3.6` 未升 `v3.7`）。Akira 直接指示修正，+1/-1。
+2. **`a889908`** — 檔頭精簡：Revision v3.1–v3.6 六行逐字（byte 級不變）搬移至新增「Revision 歷史」章節（檔尾，`End of 統一 Ticket 模板` 之前），檔頭僅留現行 v3.7 Revision + 指標行。Akira 直接指示，改善開票 session 首讀檔頭之易讀性。
+
+冊面 `checkpoint.resolution` 已同步補記（`1f66209`）。
