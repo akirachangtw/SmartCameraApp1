@@ -8,6 +8,7 @@
 **Revision**: v3.4（2026-08-05，Akira 直接置換）— 「前置依賴」單欄廢除，改為 execution_dependency / evidence_dependency / coordination_dependency 三分欄。事件支撐：TKR-06 Round 1 之 m-1 與 TKR-07 Round 1 之 M-1 為同一缺陷連續兩票復發（票面宣稱「前置依賴：無」，實則存在證據依賴），證明修正停在單票措辭層無效
 **Revision**: v3.5（2026-08-13，MAX_LINES 量尺退役案）— ①量尺唯一化：量尺 ＝ `git diff --stat` insertions＋deletions，計量範圍限 production 檔案 diff；②MAX_LINES **完全退出 execution gate**（QA／SV／Cross-Review／approval／merge／archive），降為 production-only diff 實測值之估算校準遙測；③安全不變量類票標 `N/A`；④每次量測 MUST 形成與 ticket／worktree／commit SHA／DIFF_REF 綁定之 evidence record。連帶：v3.2 所立「MAX_LINES 推導註記強制欄」失去格式合格判準地位（降為估算參考），`N/A` 票免附。依據 `Ticket_MaxLines_Metric_Retirement`（R1–R3）＋先例 `MAXLINES_Measurement_Scope_Ruling`（2026-07-09，度量對象錯置／production-diff-only）
 **Revision**: v3.6（2026-08-13，Akira 直接裁決）— 立「票號議題前綴律」：票號第一段 MUST 為來源議題之登記 token 或登記縮寫，並與票面 `**來源議題**` 欄同源；歸檔歸屬以票號第一段為唯一判準，新票冊面 `topic` 欄 MUST 與前綴同源。既有票號**不追溯改號**（已固化於 commit message／commit-msg hook 稽核面／冊面互指／票檔檔名）。併立「發現來源 ≠ 歸屬」二階判定：歸屬以**關聯性**（標的／需求源／產物落在該議題領域）與**相依性**（該議題之票對本問題存在依賴三分關係，或修復落點傳導至該議題交付面）二維任一成立為準——有則歸該議題；二維皆不成立則歸 `INFRA`（獨立歸屬線，不隸屬任何產品議題）。禁以發現地或話題沾附為歸屬依據。立法目的：消除冊面歸檔時「此票該歸哪條線」之爭議
+**Revision**: v3.7（2026-08-14，INFRA-TPL-V37-01）— 立「票檔落點律」：票檔 MUST 落於實作專案之票務目錄並登記於 TKR 平台對應 project 冊面；設計/協調型專案 MUST NOT 設 Pending/ 或存放票檔。與 v3.6「發現來源 ≠ 歸屬」分工：彼律管議題線歸屬，本律管物理落點。事件支撐：ADV-WTREE-01（2026-08-14 作廢重開 WKTR-01 於 mcp-ticket-platform）
 **來源**: CSO 裁決官 Ticket 格式 + TRA Ticket v2 合併，消除冗餘
 **設計目標**: 每張 Ticket ~350-450 tokens，單一來源零重複
 **雙載體版控**: 雙份就近可讀,明定 app-repo 份為唯一 SSOT(受版控者); Smarter-Project 份降為衍生副本。
@@ -82,6 +83,8 @@ ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 > **縮寫規則**：MUST 為 2–6 個大寫英文字母；MUST NOT 與既有前綴碰撞（開票前以律 A 之全冊 grep 一併驗證**前綴唯一性**，非僅序號唯一性）。新議題之縮寫 MUST 於 spawn 當刻同步補登 `ticket_pattern.md` Family Provenance 表，**禁依賴事後稽核 escalate 才補登**（`CLAUDE.md` Rule 4a）。
 >
 > **不追溯（既有票號一律沿用）**：`INFRA-*`／`GAP-*`／`STATE-*`／`TRACTION-*`／`KAIROS*-*` 等既有票號 **MUST NOT** 追溯改號——票號已固化於 commit message、`.git/hooks/commit-msg` 稽核面、冊面互指（`depends_on`／`blocked_by`）與票檔檔名四處；改號即製造帳實分離。本律僅拘束生效日（2026-08-13）後新開之票。
+
+> **票檔落點律**（v3.7，Akira 2026-08-14 裁決；與「發現來源 ≠ 歸屬」二階判定配對執行）。票檔 MUST 落於**實作專案**之票務目錄（如 SmartCameraApp1 `plans/cso_briefing/project/Pending/`、mcp-ticket-platform `docs/pending/`），並登記於 TKR 平台**對應 project** 之冊面。設計／協調型專案（Skill-Advisor、Smarter-Project 等）僅承載審查、裁決、交付物與交接載體，**MUST NOT** 設 Pending/ 目錄或存放票檔。二律分工：議題線歸屬依「發現來源 ≠ 歸屬」二維判定（關聯性／相依性）；物理落點依本律取實作專案——議題線與落點專案**可以不同**（如 WKTR 線落 mcp-ticket-platform）。事件支撐：ADV-WTREE-01 開於 Skill-Advisor/Pending/（非 git、非實作場，DIFF_REF 恆 N/A、AC 無法承載實作驗收），2026-08-14 作廢重開為 WKTR-01。
 
 ### AI-0: 錨點復驗（派工後、修改前）
 - **檔案**: `path/to/File.kt`
