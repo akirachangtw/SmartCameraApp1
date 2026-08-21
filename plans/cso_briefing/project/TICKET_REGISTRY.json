@@ -747,26 +747,38 @@
     },
     {
       "created": "2026-08-21",
-      "file": "Pending/INFRA-STATUS-SYNC-01_Status_Skill_OneWay_Deploy.md",
+      "file": "deliver/INFRA-STATUS-SYNC-01_Status_Skill_OneWay_Deploy.md",
       "id": "INFRA-STATUS-SYNC-01",
-      "lifecycle": "PENDING",
+      "lifecycle": "REVIEW",
       "preset": "docs",
       "title": "status skill 單向同步（PLT→APP 位元組級部署，含 TELEMETRY-01 [relayed] 正向補證）",
       "topic": "INFRA",
       "notes": "ENV_DIFF_MATRIX §4 K-1 承接票；源端釘死 mcp-ticket-platform aa3e749（SKILL.md）/b787bd2（statusline.py），位元組級覆寫禁在地改編；矩陣 §8 對照全數不受影響（S-3 逐指令已核）；行為性 AC 同時消解 mcp-ticket-platform 冊 TELEMETRY-01 之 [relayed] 保留（收束時 MUST 回 append_note 補登）；依賴三分：execution=無／evidence=CONTRACT-01+TELEMETRY-01+矩陣／coordination=INFRA-ENVSYNC-AUDIT-01（ALLOWED 不相交可並行）；律 A 全冊機械取號：INFRA-STATUS-* 於 app 冊+Pending/+deliver/ 零碰撞",
-      "seq": 14
+      "seq": 14,
+      "reviews": {
+        "qa": "PASS",
+        "sv": "PASS",
+        "codex": "PASS",
+        "traycer": "N_A"
+      }
     },
     {
       "created": "2026-08-21",
-      "file": "Pending/INFRA-ENVSYNC-AUDIT-01_Claude_Dir_Hash_Inventory.md",
+      "file": "deliver/INFRA-ENVSYNC-AUDIT-01_Claude_Dir_Hash_Inventory.md",
       "id": "INFRA-ENVSYNC-AUDIT-01",
-      "lifecycle": "PENDING",
+      "lifecycle": "REVIEW",
       "preset": "docs",
       "title": ".claude/ 兩端全清單 hash 盤點（單向 PLT→APP 同步之取證前置）",
       "topic": "INFRA",
       "notes": "矩陣 §7 G-1/G-2/G-3 消解令；唯讀盤點+報告（file/ 白名單路徑），零 .claude/ 觸碰；分類五枚舉受控字典（IDENTICAL/DIVERGED/PLT_ONLY/APP_ONLY/SYNC01_承接中），機械分類規則外一律待裁；報告末節強制列待裁清單含 RAPID_MODE 引入 APP 之憲章級分岔（C-1）；依賴三分：execution=無／evidence=ENV_DIFF_MATRIX v1.0／coordination=INFRA-STATUS-SYNC-01；律 A 取號：INFRA-ENVSYNC-* 零碰撞",
-      "seq": 15
+      "seq": 15,
+      "reviews": {
+        "qa": "PASS",
+        "sv": "PASS",
+        "codex": "PASS",
+        "traycer": "N_A"
+      }
     }
   ],
-  "revision": 2
+  "revision": 4
 }
