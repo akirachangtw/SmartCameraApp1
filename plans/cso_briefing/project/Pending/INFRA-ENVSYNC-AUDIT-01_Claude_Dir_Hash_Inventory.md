@@ -28,15 +28,15 @@ ANCHOR_PROBED=2026-08-21（矩陣 §1–§6 全項本 session live 直讀；兩�
 
 ### AI-0: 錨點復驗（派工後、盤點前）
 - **動作**: 兩端 `.claude/` 頂層 `ls` 與矩陣 §1 對照——PLT 12 項（含 worktrees/）、APP 12 項（含 settings.json.pre-decomm.bak）。清單漂移 → 不停止，於報告「基線漂移」節記載實測差異後續行（本票即盤點票，漂移本身是產出）。
-- [ ] 完成
+- [x] 完成
 
 ### AI-1: 全清單 hash 盤點
 - **動作**: 對兩端 `.claude/` 遞迴清單（排除 `__pycache__/`、`worktrees/`、`*.bak`、`PROGRESS*.md`——進度檔屬各端活體，恆不同步），逐檔 `git hash-object`，產出四欄表：`相對路徑 | PLT hash（前 8 碼）| APP hash（前 8 碼）| 判定`。判定枚舉（受控字典，禁增）：`IDENTICAL`／`DIVERGED`／`PLT_ONLY`／`APP_ONLY`／`SYNC01_承接中`（status 二檔專用）。
-- [ ] 完成
+- [x] 完成
 
 ### AI-2: DIVERGED 檔分叉定年
 - **動作**: 每一 `DIVERGED` 檔於兩端各取 `git log -1 --format='%h %ci' -- <path>`，併入表格第五欄；另附 `git diff --stat`（跨 repo 以 `git diff --no-index --stat` 實作）之單行摘要。**MUST NOT** 輸出全文 diff（報告膨脹防護）。
-- [ ] 完成
+- [x] 完成
 
 ### AI-3: 同步分類（機械規則，禁語義裁量）
 - **動作**: 依矩陣既有裁定自動分類：
@@ -44,11 +44,11 @@ ANCHOR_PROBED=2026-08-21（矩陣 §1–§6 全項本 session live 直讀；兩�
   - `候選同步`：其餘 `DIVERGED` 與 `PLT_ONLY` 項
   - `待裁`：`APP_ONLY` 非上列者
   凡分類規則未涵蓋之情形 → 列 `待裁`，禁現場定奪。
-- [ ] 完成
+- [x] 完成
 
 ### AI-4: G-3 消解與報告收束
 - **動作**: `test -f` APP repo 根之 `PROGRESS.md`（G-3：APP CLAUDE.md Boot 無 `.claude/` 前綴之指涉歧義），結果入報告。報告末節 MUST 列「待 Akira 裁決清單」：①`候選同步` 全表；②CLAUDE.md／settings.json 之段落級合併是否另立票（禁整檔覆寫，C-2/C-3/S-2/S-3 端專屬內容在內）；③RAPID_MODE 是否引入 APP（C-1，涉 §0 凌駕條款，屬治理憲章級變更）；④`待裁` 項逐一。
-- [ ] 完成
+- [x] 完成
 
 ## Hard Constraints
 1. 本票 **MUST NOT** 寫入或改動 `.claude/` 下任何檔案（FORBIDDEN 已表達，此處重申語義：含「順手同步一兩個小檔」）。
@@ -60,11 +60,11 @@ ANCHOR_PROBED=2026-08-21（矩陣 §1–§6 全項本 session live 直讀；兩�
 - **[標配]** `git check-ignore -v plans/cso_briefing/project/file/ENVSYNC_AUDIT_20260821.md` 命中 → 停止回報（gitignore 死結律，候選 #20；INFRA-GITIGNORE-WL-01 已白名單化 file/，預期不命中，仍 MUST 實跑）
 
 ## Acceptance Criteria
-- [ ] **[存在性]** 報告檔在盤，四欄表列數＝兩端檔案聯集數（報告自載聯集數與表列數之相等宣告）；判定欄僅含五種受控枚舉值
-- [ ] **[存在性]** 每一 `DIVERGED` 列均有定年欄與 diff --stat 摘要；全檔零全文 diff 區塊
-- [ ] **[行為性]** 抽樣複驗：報告任取 3 檔（含至少 1 個 IDENTICAL 與 1 個 DIVERGED）重跑 `git hash-object`，與表載值一致（production 路徑重放，禁引用首跑輸出充當複驗）
-- [ ] **[可達性]** N/A 顯式劃記：本票無 Guard/gate/runtime state，型別不適用（比照 INFRA-CLOSURE-REGISTRY-GATE-01 揭露式劃記先例）
-- [ ] ~~`assembleDebug` PASS~~（N/A 顯式劃記：docs preset 唯讀盤點）
-- [ ] `git diff --stat` 僅涉及 ALLOWED 檔案
+- [x] **[存在性]** 報告檔在盤，四欄表列數＝兩端檔案聯集數（報告自載聯集數與表列數之相等宣告）；判定欄僅含五種受控枚舉值
+- [x] **[存在性]** 每一 `DIVERGED` 列均有定年欄與 diff --stat 摘要；全檔零全文 diff 區塊
+- [x] **[行為性]** 抽樣複驗：報告任取 3 檔（含至少 1 個 IDENTICAL 與 1 個 DIVERGED）重跑 `git hash-object`，與表載值一致（production 路徑重放，禁引用首跑輸出充當複驗）
+- [x] **[可達性]** N/A 顯式劃記：本票無 Guard/gate/runtime state，型別不適用（比照 INFRA-CLOSURE-REGISTRY-GATE-01 揭露式劃記先例）
+- [x] ~~`assembleDebug` PASS~~（N/A 顯式劃記：docs preset 唯讀盤點）
+- [x] `git diff --stat` 僅涉及 ALLOWED 檔案
 
 **End of INFRA-ENVSYNC-AUDIT-01**
