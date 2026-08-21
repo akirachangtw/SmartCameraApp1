@@ -744,6 +744,29 @@
         "resolution": "CLOSED — 冊面轉態四要件補完（2026-08-15，執行 session 收尾）。本票原由外部 SKAD session 簽發登記（seq 13，PENDING），實際執行落地由本 session 於 2026-08-14~15 完成：AI-0~AI-2 逐字落地（`4b1e99b`：v3.7 Revision 行 + 票檔落點律 blockquote）；AI-1 附帶執行 L13「雙載體版控」→「單一載體」聲明更正（`c4fbeae`，Akira 2026-08-15 裁決：唯一載體，衍生副本項目直接廢除跳過）；AI-3／AC-2（Smarter-Project 衍生副本同步）依裁決廢除——標的 `D:/DevSources/Smarter-Project/file/Unified_Ticket_Template_v3.md` 不存在（已於 v3.6 前依既有裁決刪除，記憶 `ticket-tpl-single-carrier` 明禁重建），屬 SSOT 前提消滅型不可執行，非執行缺陷。AC 逐項：①存在性「票檔落點律」命中恰 2 處 PASS；②副本驗收廢除；③assembleDebug N/A；④`git diff --stat` 僅 ALLOWED PASS。`/qa`／`/sv` 實跑：`assembleDebug` BUILD SUCCESSFUL(19s／48s 兩輪)、`testDeviceDebugUnitTest` 全通過、`lint` 0 new warning、ELF ALIGNED；Codex Cross-Review R1 REPORT_FIX（sv_report AC 措辭與自身 Files Changed 事實不符）→ R2 **PASS**（`REACHABILITY: NONE`，scope `f93ceef..1431eda`）。免 Traycer（純 .md 治理票）。｜實作 commit：`4b1e99b`（AI-1/AI-2 初次落地）、`c4fbeae`（L13 更正＋PROGRESS.md 同步）、`1431eda`（票檔自身 AI/AC 勾選）、`52c9b66`（PROGRESS.md Done 標記）、`1789ef0`（票檔 Pending→deliver 搬移）。｜票號帳實核對：冊面本條目簽發者 `Claude (SKAD)`／`updated_by: SKAD` 與執行者不同源，票號、標題、內容一致，屬同一張票跨 session 簽發／執行分工，非重複票號。｜冊面轉態四要件：①lifecycle→CLOSED；②reviews 四欄 PASS/PASS/PASS/N_A；③file 指標 Pending/→deliver/；④本 resolution 即收尾實錄。｜【事後補丁二筆，免票收斂，2026-08-15】(1) `b198738`：修正缺陷 F1（T2）—— AI-1 落地時僅新增 v3.7 Revision 行、未同步更新 L3 版本號欄，形成版本標記帳實分離（Akira 直接指示修正）；(2) `a889908`：檔頭精簡——Revision v3.1–v3.6 六行逐字搬移至新增「Revision 歷史」章節（檔尾），檔頭僅留現行 v3.7 + 指標行，改善開票首讀易讀性（Akira 直接指示，內容位元組級不變）。二筆均沿用本票號（v3.6「既有票號不追溯改號」原則），非另立修補票。",
         "state": "RESOLVED"
       }
+    },
+    {
+      "created": "2026-08-21",
+      "file": "Pending/INFRA-STATUS-SYNC-01_Status_Skill_OneWay_Deploy.md",
+      "id": "INFRA-STATUS-SYNC-01",
+      "lifecycle": "PENDING",
+      "preset": "docs",
+      "title": "status skill 單向同步（PLT→APP 位元組級部署，含 TELEMETRY-01 [relayed] 正向補證）",
+      "topic": "INFRA",
+      "notes": "ENV_DIFF_MATRIX §4 K-1 承接票；源端釘死 mcp-ticket-platform aa3e749（SKILL.md）/b787bd2（statusline.py），位元組級覆寫禁在地改編；矩陣 §8 對照全數不受影響（S-3 逐指令已核）；行為性 AC 同時消解 mcp-ticket-platform 冊 TELEMETRY-01 之 [relayed] 保留（收束時 MUST 回 append_note 補登）；依賴三分：execution=無／evidence=CONTRACT-01+TELEMETRY-01+矩陣／coordination=INFRA-ENVSYNC-AUDIT-01（ALLOWED 不相交可並行）；律 A 全冊機械取號：INFRA-STATUS-* 於 app 冊+Pending/+deliver/ 零碰撞",
+      "seq": 14
+    },
+    {
+      "created": "2026-08-21",
+      "file": "Pending/INFRA-ENVSYNC-AUDIT-01_Claude_Dir_Hash_Inventory.md",
+      "id": "INFRA-ENVSYNC-AUDIT-01",
+      "lifecycle": "PENDING",
+      "preset": "docs",
+      "title": ".claude/ 兩端全清單 hash 盤點（單向 PLT→APP 同步之取證前置）",
+      "topic": "INFRA",
+      "notes": "矩陣 §7 G-1/G-2/G-3 消解令；唯讀盤點+報告（file/ 白名單路徑），零 .claude/ 觸碰；分類五枚舉受控字典（IDENTICAL/DIVERGED/PLT_ONLY/APP_ONLY/SYNC01_承接中），機械分類規則外一律待裁；報告末節強制列待裁清單含 RAPID_MODE 引入 APP 之憲章級分岔（C-1）；依賴三分：execution=無／evidence=ENV_DIFF_MATRIX v1.0／coordination=INFRA-STATUS-SYNC-01；律 A 取號：INFRA-ENVSYNC-* 零碰撞",
+      "seq": 15
     }
-  ]
+  ],
+  "revision": 2
 }
