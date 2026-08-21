@@ -1,4 +1,0 @@
-interface:
-  display_name: "execute"
-  short_description: "Prepare scoped execution handoffs"
-  default_prompt: "Use $execute to batch scoped tickets and draft Claude Code handoff prompts with target files, ban lists, acceptance criteria, and defensive warnings."

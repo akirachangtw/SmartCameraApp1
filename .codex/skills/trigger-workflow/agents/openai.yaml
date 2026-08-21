@@ -1,4 +1,0 @@
-interface:
-  display_name: "trigger_workflow"
-  short_description: "Validate intake authority and scope"
-  default_prompt: "Use $trigger-workflow to validate SSOT authority, lock Scope IN/OUT, and produce a Gate Entry Summary or L1 Context before $architecture-review."

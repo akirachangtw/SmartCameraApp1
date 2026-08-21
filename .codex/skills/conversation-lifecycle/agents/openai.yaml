@@ -1,4 +1,0 @@
-interface:
-  display_name: "Conversation Lifecycle"
-  short_description: "Reset chats before context quality decays"
-  default_prompt: "Use $conversation-lifecycle to quickly inspect chat lifecycle state, decide whether to reset, and produce a concise handoff package when needed."
