@@ -11,9 +11,10 @@ Two responsibilities are deliberately merged here (INFRA-SKILLS-STATUSLINE-01):
      scripts silently degrades /status to estimation mode.
 
 Context is reported as an ABSOLUTE token count, never as a percentage or bar:
-context_window_size is not a trustworthy denominator (Opus 4.8 reports 1M while
-the practical wall is 200K), so a percentage would read green while at the wall.
-This matches the /status skill's "absolute only" contract.
+context_window_size is not a trustworthy denominator: upstream bug #63447 reports
+it as 200K for 1M-context models, so any API-derived percentage saturates early.
+The /status skill computes its own display percentage from a fixed 1,000,000
+constant instead (INFRA-STATUS-1M-DENOM-01); this renderer stays absolute-only.
 
 Rate limits come from the API, not the context window, so their percentages are
 trustworthy and ARE colored. They are shown as REMAINING budget (100 - used),
