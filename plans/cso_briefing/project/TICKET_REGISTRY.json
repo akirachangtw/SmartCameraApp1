@@ -749,36 +749,109 @@
       "created": "2026-08-21",
       "file": "deliver/INFRA-STATUS-SYNC-01_Status_Skill_OneWay_Deploy.md",
       "id": "INFRA-STATUS-SYNC-01",
-      "lifecycle": "REVIEW",
+      "lifecycle": "CLOSED",
       "preset": "docs",
       "title": "status skill 單向同步（PLT→APP 位元組級部署，含 TELEMETRY-01 [relayed] 正向補證）",
       "topic": "INFRA",
       "notes": "ENV_DIFF_MATRIX §4 K-1 承接票；源端釘死 mcp-ticket-platform aa3e749（SKILL.md）/b787bd2（statusline.py），位元組級覆寫禁在地改編；矩陣 §8 對照全數不受影響（S-3 逐指令已核）；行為性 AC 同時消解 mcp-ticket-platform 冊 TELEMETRY-01 之 [relayed] 保留（收束時 MUST 回 append_note 補登）；依賴三分：execution=無／evidence=CONTRACT-01+TELEMETRY-01+矩陣／coordination=INFRA-ENVSYNC-AUDIT-01（ALLOWED 不相交可並行）；律 A 全冊機械取號：INFRA-STATUS-* 於 app 冊+Pending/+deliver/ 零碰撞",
       "seq": 14,
       "reviews": {
-        "qa": "PASS",
-        "sv": "PASS",
+        "qa": "N_A",
+        "sv": "N_A",
         "codex": "PASS",
         "traycer": "N_A"
+      },
+      "checkpoint": {
+        "resolution": "CLOSED — 審查方收束實錄（2026-08-21，Akira 授權）。第一手復證：實作二 commit c4fd64a(.py)/3fad102(.md) 分檔如令；靶端活體 grep 正負向全數 PASS（Step 0／快取齡／checkpoint jsonl／json.dumps／基線重設在盤；「Opus 4.8 reports 1M」＝0、四判定詞＝0）；hash 同一性由 AUDIT-01 報告獨立路徑交叉佐證（SKILL.md 9420248d／statusline.py b3e26bf9 兩端同值）。行為性 AC：APP tmp/claude_status_checkpoint.jsonl 審查方直讀 3 entry、恰五欄、session_id UUID 在盤、Windows 反斜線經 json.dumps 正確跳脫為合法 JSON——TELEMETRY-01 之 [relayed] 保留正式消解，已回 mcp-ticket-platform 冊該票 append_note 補登正向補證。reviews：codex=PASS（依矩陣 §8-2 走 APP 全程序）；qa/sv=N_A（.claude/ 文本部署票，無 build 面實跑記錄，依撤警正向取證律禁補 PASS，誠實降級並於此揭露）。冊面轉態四要件：①lifecycle→CLOSED ②reviews 實測值 ③file 指標執行端已自行同步 deliver/（帳實一致，較 CONTRACT-01 收束品質提升）④本 resolution 即收尾實錄。附註：APP 冊為 isolated project，append_note 遭 REGISTRY_CROSS_PROJECT_REF 拒收，審查結論依冊面轉態四要件慣例改由本 checkpoint 承載（正解通道）。",
+        "state": "RESOLVED"
       }
     },
     {
       "created": "2026-08-21",
       "file": "deliver/INFRA-ENVSYNC-AUDIT-01_Claude_Dir_Hash_Inventory.md",
       "id": "INFRA-ENVSYNC-AUDIT-01",
-      "lifecycle": "REVIEW",
+      "lifecycle": "CLOSED",
       "preset": "docs",
       "title": ".claude/ 兩端全清單 hash 盤點（單向 PLT→APP 同步之取證前置）",
       "topic": "INFRA",
       "notes": "矩陣 §7 G-1/G-2/G-3 消解令；唯讀盤點+報告（file/ 白名單路徑），零 .claude/ 觸碰；分類五枚舉受控字典（IDENTICAL/DIVERGED/PLT_ONLY/APP_ONLY/SYNC01_承接中），機械分類規則外一律待裁；報告末節強制列待裁清單含 RAPID_MODE 引入 APP 之憲章級分岔（C-1）；依賴三分：execution=無／evidence=ENV_DIFF_MATRIX v1.0／coordination=INFRA-STATUS-SYNC-01；律 A 取號：INFRA-ENVSYNC-* 零碰撞",
       "seq": 15,
       "reviews": {
-        "qa": "PASS",
-        "sv": "PASS",
-        "codex": "PASS",
+        "qa": "N_A",
+        "sv": "N_A",
+        "codex": "N_A",
         "traycer": "N_A"
+      },
+      "checkpoint": {
+        "resolution": "CLOSED — 審查方收束實錄（2026-08-21，Akira 授權）。報告品質判定：本管線至今最高。內部數字全數自洽（15+22+19+9+2=67=58+48−39；PLT_ONLY 19 組成逐檔核對相符）；五枚舉受控字典零溢出；待裁 0 項（APP_ONLY 全命中禁搬清單）；G-3 消解（repo 根無同名檔）；抽樣複驗 3 檔回填一致。執行中一次 scope violation（誤觸 PROGRESS.md）自行發現、還原、獨立 commit 9cbcbfc 存證——處置正確。三項高價值攔截：①verify_checklist.sh APP 端（08-15 MAXLINES-GATE-01 成果）新於 PLT（07-31），盲同步將銷毀既有工作；②cross_review.sh APP 端有已立案缺陷（INFRA-CROSSREVIEW-GOVPATH-EXCL-01 已入 Pending），PLT 端狀態未核；③settings.local.json PLT 端零 commit 歷史。審查方裁定三項處置：①改反向票承接（INFRA-MAXLINES-BACKPORT-01，PLT 冊）；②凍結待缺陷票收束；③重分類「禁搬」（本機層設定檔設計上即端專屬——此為開票方 AI-3 分類規則缺漏，非執行缺陷）。審查方增補發現：rules/kairos-lessons.md APP 端（08-01，INFRA-RULES-CARRIER-01 部署 #18 SessionStart 認知條款）亦新於 PLT 端（07-27），執行者未標註——與 ①同型，證實「定年新舊」不構成 superset 證明，候選同步 17 檔批次票（INFRA-ENVSYNC-BATCH-01）MUST 逐檔做 fast-forward 判定，APP 獨有實質內容檔一律凍結升裁。結構級裁定：「全域單向同步」前提被反例證偽，降級為「逐檔定向同步、PLT→APP 僅為預設值」。reviews 四欄 N_A（唯讀盤點票，依票面 Traycer/Codex 免審條款；qa/sv 無實跑記錄誠實降級）。冊面轉態四要件齊備；審查結論依 isolated project 慣例由本 checkpoint 承載。",
+        "state": "RESOLVED"
       }
+    },
+    {
+      "created": "2026-08-21",
+      "file": "Pending/INFRA-ENVSYNC-BATCH-01_Claude_Dir_Directed_Sync.md",
+      "id": "INFRA-ENVSYNC-BATCH-01",
+      "lifecycle": "PENDING",
+      "notes": "AUDIT-01 候選 20 扣三例外（verify_checklist→反向票／cross_review→凍結待 GOVPATH-EXCL-01／settings.local.json→重分類禁搬）＝17 檔；每檔 fast-forward 閘（APP 獨有實質行＞0 即凍結升裁，禁手工合併），終態二擇一禁第三態；已知高凍結嫌疑：kairos-lessons/concurrency/decommission（APP 08-01 RULES-CARRIER 部署所及）；凍結清單回流 ENVSYNC_AUDIT 報告新節；RAPID 適用性依派工時 APP 端是否已落地",
+      "preset": "docs",
+      "title": ".claude/ 17 檔逐檔定向同步（PLT→APP 預設向＋fast-forward 凍結閘）",
+      "topic": "INFRA",
+      "seq": 16
+    },
+    {
+      "created": "2026-08-21",
+      "file": "void/INFRA-CLAUDE-MERGE-01_Claude_Settings_Merge_Rapid_Trial.md",
+      "id": "INFRA-CLAUDE-MERGE-01",
+      "lifecycle": "VOID",
+      "notes": "Akira 2026-08-21 裁決暫時引入 RAPID_MODE（範圍限定版）：僅適用 PRESET=docs＋ALLOWED 全數於 .claude/**、docs/**、plans/cso_briefing/**＋INFRA 線票；產品碼票一律不適用，適用性判定 fail-closed；試行狀態，常設化/撤除另行裁決。另承接 S-4 deny 補強二則與兩檔段落級合併（端專屬段落 C-2/C-3/S-2/S-3 全數保留禁動，CLAUDE.md ≤150 行硬約束）；依賴三分：execution=無／evidence=矩陣 C-1~S-4＋AUDIT-01 checkpoint／coordination=BATCH-01",
+      "preset": "docs",
+      "title": "CLAUDE.md／settings.json 段落級合併＋RAPID_MODE 試行引入（範圍限定版）",
+      "topic": "INFRA",
+      "seq": 17,
+      "reviews": {
+        "codex": "N_A",
+        "qa": "N_A",
+        "sv": "N_A",
+        "traycer": "N_A"
+      },
+      "checkpoint": {
+        "resolution": "VOID — 前提消滅型退役（2026-08-22，Akira 裁決「即修建議降為 INFRA-SETTINGS-MERGE-01」）。本票 AI-1~AI-4 之全部依據為 Akira 2026-08-21「暫時引入 RAPID_MODE（範圍限定版）」裁決；該裁決已由 Akira 2026-08-22「RAPID 裁決＝不引入（維持 APP 全程序現狀）」翻盤，前提消滅，四項 AI 一併退役。存續範圍（原 AI-5 settings.json deny 補強 S-4）已改由後繼票 INFRA-SETTINGS-MERGE-01（seq=20）承接，並新增 AI-2（CLAUDE.md 補「本 repo 全程序執行，無 RAPID」語境句——使不引入裁決落到行為契約層，防日後以「兩端應同步」為由再度引入）與 HC-1（禁建立 RAPID_MODE.md 或任何等效豁免載體，含改檔名／改目錄者）＋負向 AC（git ls-files RAPID_MODE 命中＝0）。票檔已搬 void/，冊面 file 欄同步；seq=17 preserved 未重配。本票 MUST NOT 另行派工或收束。後繼票另補強原票未涵蓋之風險點：settings.json 編輯後 JSON 合法性驗證（尾逗號致命錯）、deny pattern `git -C * reset --hard` 之 `*` 匹配語義以實跑攔截驗證（禁以規則字面在盤替代）。",
+        "state": "RESOLVED"
+      }
+    },
+    {
+      "created": "2026-08-15",
+      "file": "Pending/INFRA-CROSSREVIEW-GOVPATH-EXCL-01_Basename_Allowed_Governance_Path_Exclusion_Fix.md",
+      "id": "INFRA-CROSSREVIEW-GOVPATH-EXCL-01",
+      "lifecycle": "PENDING",
+      "notes": "【冊面補登 2026-08-21】票檔於 b057e13（2026-08-21 16:31）入庫但冊面零登記，屬帳實分離，本次由審查方補完。缺陷：cross_review.sh L347-348 以 grep -qF 字面子串判定 ALLOWED 是否涵蓋治理目錄，basename token（合法格式）必 miss 致 .claude/ 整段排除，payload Git Diff 空白——實測案例 INFRA-MAXLINES-GATE-01 R1 誤判 REPORT_FIX。【SMTR 派工前審查 Rev A（2026-08-21）】六項修補：F1 自指阻塞防護入 HC-5（cross-review MUST 於 AI-1 commit 後執行以自愈，payload 空即停止，禁 EXTRA_EXCLUDE 繞道）；F2 ALLOWED/FORBIDDEN 由 basename 改完整路徑（票面自身即缺陷觸發形狀，fail-safe 立即防護）；F3 MAX_LINES 20→N/A（TPL v3.5 退役 gate＋R3 安全票自我適用）；F4 AI-1「歧義 MUST 保守涵蓋」與 Error Handling「歧義即停止」自撞，廢止後者並增 stdout 警示行可稽核性要求（零命中同視涵蓋）；F5 增存在性 AC（git ls-files 命中、1 舊式比對命中 0）＋負向迴歸行為性 AC（非治理票仍全排除三目錄，防止修正弱化為恆不排除）＋可達性 N/A 顯式劃記；F6 AI-0 增 73cd4ff/0bb6b4c 基線 SHA 存在性復驗。原判準以刪除線並列禁靜默替換。另 HC-6：RAPID_MODE 於 APP 不適用（Akira 2026-08-21 裁決不引入），全程序執行。錮點 L342/344/346/347/348/354 經 SMTR live grep 復驗未漂移，可派工。coordination_dependency=INFRA-MAXLINES-GATE-01（待本票修復後重跑 Cross-Review）",
+      "preset": "hotfix",
+      "title": "cross_review.sh 治理路徑排除誤判 basename-only ALLOWED 修正",
+      "topic": "INFRA",
+      "seq": 18
+    },
+    {
+      "created": "2026-08-22",
+      "file": "Pending/INFRA-TRACKSCOPE-01_Ticket_Dir_Git_Tracking_Convergence.md",
+      "id": "INFRA-TRACKSCOPE-01",
+      "lifecycle": "PENDING",
+      "notes": "TKR-20/TKR-21 APP 移植（Akira 2026-08-22 裁決：僅追蹤 project/{deliver,void}）。目標態：deliver/ void/ file/ tracked；Pending/ Handoff/ TICKET_REGISTRY.json Postponed.md 退役。⭐ file/ 保守保留為唯一偏離裁決字面處，需 Akira 確認：退役即消滅 TPL v3 單載體版控 SSOT、契約/架構文本版本歷史，且致 INFRA-ENVSYNC-BATCH-01 之 ENVSYNC_AUDIT 寫入標的 diff AC 空洞满足＋check-ignore 命中死結——屬未宣告翻盤，依保守默認不由執行端逕行（HC-6）。差異風險：PLT 端 untrack 後有 TKR-19 revision 作防線，APP 冊等效機制未取證→AI-0 增備份實存驗證（前置資源恆存律）。協調：ALLOWED 刻意與 BATCH-01 零相交（禁觸 .claude/rules/ssot-governance.md，其 L100 stale 路徑修正轉交 BATCH-01 後另案）；AI-0 強制先落版在途 INFRA-CROSSREVIEW-GOVPATH-EXCL-01 Rev A 免中間修訂史遭 untrack 遯蔽。AC 含因果鏈前後對照探針（承TKR-20）＋保留側反向證明（TPL 仍顯 M）。RAPID 不適用，全程序執行。",
+      "preset": "docs",
+      "title": "票務目錄 Git 追蹤集收旛（TKR-20/21 APP 移植，執行期產物退役）",
+      "topic": "INFRA",
+      "seq": 19
+    },
+    {
+      "created": "2026-08-21",
+      "file": "Pending/INFRA-SETTINGS-MERGE-01_Settings_Deny_Hardening_And_Claude_Md_Merge.md",
+      "id": "INFRA-SETTINGS-MERGE-01",
+      "lifecycle": "PENDING",
+      "notes": "承接 INFRA-CLAUDE-MERGE-01（seq=17, VOID 前提消滅型）之存續範圍；Akira 2026-08-22 改號裁決。RAPID 引入案全數撤回（原 AI-1~AI-4 退役清單保留票面可考，禁靜默刪除）。存續：AI-1 settings.json deny 補強 S-4 二則（git -C * reset --hard / push --force——APP 既有 deny 不涵蓋 -C <path> 形式）；AI-2 CLAUDE.md 補「本 repo 全程序執行，無 RAPID」語境句（使不引入裁決落到行為契約層，防日後以「兩端應同步」為由再度引入）。HC-1 禁建 RAPID_MODE.md 或任何等效豁免載體（含改檔名/改目錄），負向 AC：git ls-files RAPID_MODE 命中＝0。風險點補強：settings.json 編輯後 JSON 合法性驗證（尾逗號致命錯）；deny pattern 之 * 匹配語義 MUST 實跑攜截驗證，禁以規則字面在盤替代。ALLOWED 與 BATCH-01、TRACKSCOPE-01 兩兩零相交可並行；錮點於改號後未再實測，AI-0 MUST 全數重跑。RAPID 不適用，全程序執行。",
+      "preset": "docs",
+      "title": "settings.json deny 補強＋CLAUDE.md 段落級合併（RAPID 引入案已撤回）",
+      "topic": "INFRA",
+      "seq": 20
     }
   ],
-  "revision": 4
+  "revision": 16
 }
