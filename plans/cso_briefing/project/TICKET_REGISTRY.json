@@ -686,19 +686,22 @@
       "id": "INFRA-MAXLINES-EVIDENCE-01",
       "topic": "INFRA",
       "title": "量測 evidence record 綁定層（ticket + worktree + commit SHA + DIFF_REF）",
-      "lifecycle": "PENDING",
-      "blocked_by": "INFRA-MAXLINES-GATE-01",
+      "lifecycle": "REVIEW",
+      "blocked_by": null,
       "depends_on": [
         "INFRA-MAXLINES-GATE-01"
       ],
-      "file": "Pending/INFRA-MAXLINES-EVIDENCE-01_Measurement_Evidence_Record_Binding.md",
+      "file": "deliver/INFRA-MAXLINES-EVIDENCE-01_Measurement_Evidence_Record_Binding.md",
       "reviews": {
         "codex": "PENDING",
-        "qa": "PENDING",
+        "qa": "PASS",
         "sv": "PENDING",
         "traycer": "N_A"
       },
-      "checkpoint": null,
+      "checkpoint": {
+        "resolution": "REVIEW — 碼閉環（2026-08-24，commit fbcb612）：verify_checklist.sh Step 0 收尾新增 evidence record（六欄位 append-only，落 tmp/<TICKET_ID>/evidence/step0_<sha>.txt）+ SKILL.md Step 0 契約段落。/qa 全 PASS（assembleDebug 47s、209/209 tests、0 new lint、5 個原子提交）。/sv 階段 A-C 全 PASS（Compile 19s、Lint 0 new warnings、Scope 邊界正確、16KB ELF ALIGNED、語意審查 CLEAN）。AI/AC 全 8+4 項附實測證據勾選（含二次不同 commit_sha 實跑 fbcb612/8b67da3 驗證 append-only 無覆寫）。execution_dependency（INFRA-MAXLINES-GATE-01）已於同日 CLOSED，本票 blocked_by 隨之解除。**sv/codex 標 PENDING 而非 PASS**：/sv 階段 D（Codex Cross-Review）因 cross_review.sh L347-349 basename-only ALLOWED 缺陷於本票重現（模擬確認 payload 會被 :!.claude/ 清空），未呼叫 Codex；Akira 2026-08-24 對話裁決選項 B 暫緩，待 INFRA-CROSSREVIEW-GOVPATH-EXCL-01 落地後補跑。lifecycle=REVIEW、票檔搬 deliver/ 均依 Akira 2026-08-24 對話直接指示執行（豁免票面「完成後動作」兩項 MUST NOT，豁免依據已同步記入票檔內收尾揭露段落）。",
+        "state": "OPEN"
+      },
       "updated_at": "2026-08-13",
       "updated_by": "CSO",
       "project": "SmartCameraApp1",
@@ -867,5 +870,5 @@
       "seq": 21
     }
   ],
-  "revision": 20
+  "revision": 21
 }
