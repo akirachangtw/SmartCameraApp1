@@ -42,13 +42,13 @@ ANCHOR_PROBED=2026-08-22（SMTR live 取證：`project/` 七項清單＝deliver�
 - **枚舉基線**：`git ls-files plans/cso_briefing/project/` 全量輸出，逐目錄分類記錄（AI-2 作用面基線，MUST 存收尾）
 - **在途票有序處置**：`git status --short plans/cso_briefing/project/Pending/` 若有 tracked-modified 項（已知：`INFRA-CROSSREVIEW-GOVPATH-EXCL-01` Rev A），**MUST 先以獨立 commit 落版**再進 AI-1；禁令其中間修訂史因 untrack 而永久遺失
 - **備份實存驗證（前置資源恆存律）**：確認 APP `TICKET_REGISTRY.json` 之備份機制實際存在且近期有產出（備份檔 mtime ≤ 24h）；**不存在或停擺 → 停止回報升裁**（untrack 後備份為僅存防線）
-- **`.gitignore` 現況**：`plans/cso_briefing` 字面**零命中**（已有＝他票先行 → 停止回報）
+- **`.gitignore` 現況（Rev A 更正，2026-08-23）**：GATE-01 冊面歷史揭示 `.gitignore` **既有** `plans/cso_briefing/project/*` 規則（08-13 起，白名單 TICKET_REGISTRY.json＋file/；WL-02 於 08-14 增 Pending/＋deliver/）——原「零命中即續行」錨點與史實相反，必然假停。改為：枚舉 `.gitignore` 內含 `plans/cso_briefing` 之**全部既有規則行**，原樣存收尾；**零命中反而 → 停止回報**（與冊面歷史矛盾，取證環境可疑）
 - 任一不符 → 停止回報
 - [ ] 完成
 
-### AI-1: gitignore 白名單新增
+### AI-1: gitignore 白名單改寫（Rev A：由「新增」改「取代」）
 - **檔案**: `.gitignore`
-- 追加下列區塊（**禁**與既有規則重複列）：
+- 以下列區塊**取代** AI-0 枚舉之全部既有 `plans/cso_briefing` 相關規則行（**禁新舊並存**——並存即產生矛盾規則，先者生效致白名單靜默失效；取代前後行集差分 MUST 存收尾）：
 ```
 # plans/cso_briefing/project/ 追蹤集：僅凍結交付與版控文本入版控
 # （Akira 2026-08-22 裁決；移植 TKR-20/TKR-21。file/ 保守保留，見票面說明）
