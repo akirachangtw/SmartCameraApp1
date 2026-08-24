@@ -453,6 +453,32 @@ case "$(maxlines_verdict "$MAX_LINES" "$ADDED")" in
   OK)        echo "  ✅ 實測 ${ADDED} 行（估算 ${MAX_LINES}）" ;;
 esac
 
+# ─── Evidence Record（INFRA-MAXLINES-EVIDENCE-01 AI-1/AI-2）───
+# Hard Constraint 1: evidence 缺失/寫入失敗 MUST NOT 影響 Step 0 exit code（不觸碰 $FAIL）。
+if [[ -n "$TICKET_ID" ]]; then
+  WORKTREE=$(git rev-parse --show-toplevel 2>/dev/null)
+  COMMIT_SHA=$(git rev-parse HEAD 2>/dev/null)
+  if [[ -n "$WORKTREE" && -n "$COMMIT_SHA" ]]; then
+    EVIDENCE_DIR="${WORKTREE}/tmp/${TICKET_ID}/evidence"
+    EVIDENCE_FILE="${EVIDENCE_DIR}/step0_${COMMIT_SHA}.txt"
+    if mkdir -p "$EVIDENCE_DIR" 2>/dev/null; then
+      EVIDENCE_CONTENT=$(printf 'TICKET_ID=%s\nWORKTREE=%s\nCOMMIT_SHA=%s\nDIFF_REF=%s\nDIFF_END_RESOLVED=%s\nMEASURED_LINES=%s\n' \
+        "$TICKET_ID" "$WORKTREE" "$COMMIT_SHA" "$DIFF_REF" "$DIFF_END_RESOLVED" "$ADDED")
+      if [[ -f "$EVIDENCE_FILE" ]]; then
+        if [[ "$(cat "$EVIDENCE_FILE" 2>/dev/null)" != "$EVIDENCE_CONTENT" ]]; then
+          echo "  ⚠️ evidence record 衝突（既有內容不一致，禁覆寫，並行競態徵兆）: $EVIDENCE_FILE" >&2
+        fi
+      else
+        printf '%s' "$EVIDENCE_CONTENT" > "$EVIDENCE_FILE" 2>/dev/null \
+          && echo "  📌 evidence record: $EVIDENCE_FILE" \
+          || echo "  ⚠️ evidence record 寫入失敗（不影響 Step 0 判定）: $EVIDENCE_FILE" >&2
+      fi
+    else
+      echo "  ⚠️ evidence 目錄建立失敗（不影響 Step 0 判定）: $EVIDENCE_DIR" >&2
+    fi
+  fi
+fi
+
 # ─── [0.4] 自創常數掃描（ticket 起點以後） ───
 echo
 echo "=== [0.4] 自創常數掃描 ==="

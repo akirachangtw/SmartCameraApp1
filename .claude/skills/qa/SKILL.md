@@ -28,6 +28,16 @@ bash .claude/skills/qa/scripts/verify_checklist.sh tmp/verify_cmd.conf
 
 **重要**：Step 0 是確定性腳本（零 AI 配額），不需解讀輸出，只看退出碼。
 
+### Evidence Record（`INFRA-MAXLINES-EVIDENCE-01`）
+
+conf 模式下，Step 0 收尾 **MUST** 落一筆 append-only evidence record 至
+`<worktree>/tmp/<TICKET_ID>/evidence/step0_<commit_sha>.txt`（scratch 隔離制 §1：每票專屬子目錄，
+禁共享單槽位），含六欄位：`TICKET_ID` / `WORKTREE`（`git rev-parse --show-toplevel`）/
+`COMMIT_SHA`（`git rev-parse HEAD` 全長）/ `DIFF_REF` / `DIFF_END_RESOLVED` / `MEASURED_LINES`。
+檔名含 `commit_sha` 使同票不同端點各自留痕；record 寫入失敗或缺失 **MUST NOT** 影響 Step 0
+exit code（交付阻斷權屬五類第②項，非本層）。收口三件套之 receipt **MUST** 於收口當刻複製進
+耐久載體，禁僅留路徑引用（`.claude/rules/concurrency.md` §1 律 B）。
+
 ### DIFF_REF 回填三原子動作（開工時執行，`INFRA-GOV-DEESC-01` Rev A AI-2b）
 
 票務開工時（非 session Boot），**MUST** 依序執行三原子動作，缺一即停：
