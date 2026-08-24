@@ -662,17 +662,20 @@
       "id": "INFRA-MAXLINES-GATE-01",
       "topic": "INFRA",
       "title": "verify_checklist.sh MAX_LINES execution gate 退役（量尺校正 + 四類值一律不阻斷）",
-      "lifecycle": "PENDING",
+      "lifecycle": "CLOSED",
       "blocked_by": null,
       "depends_on": [],
-      "file": "Pending/INFRA-MAXLINES-GATE-01_MaxLines_Execution_Gate_Retirement.md",
+      "file": "deliver/INFRA-MAXLINES-GATE-01_MaxLines_Execution_Gate_Retirement.md",
       "reviews": {
-        "codex": "PENDING",
-        "qa": "PENDING",
-        "sv": "PENDING",
+        "codex": "N_A",
+        "qa": "N_A",
+        "sv": "N_A",
         "traycer": "N_A"
       },
-      "checkpoint": null,
+      "checkpoint": {
+        "resolution": "CLOSED — 已執行未收束型收束（2026-08-23，SMTR 審查；Akira 提交 AI-0 STOP 報告後裁決）。判定：執行端 2026-08-23 依票面 AI-0「不符即停止」正確停止——惟停止原因非錨點誤寫、亦非他票搶跑，而是**本票自身已於 2026-08-15 完成實作並落版**（commit 0bb6b4c，前綴 [INFRA-MAXLINES-GATE-01] 自證歸因），僅收束流程未跑（冊面停 PENDING、checkbox 未勾），該 session 後續無收尾紀錄。SMTR 第一手復證現況＝票面目標態：maxlines_verdict() L73、四分支遙測 L449、self-test _expect_verdict 四例 L140-143（NA/MALFORMED/OVER/OK 負向覆蓋齊備）、s+=$1+$2 四處（L434×2/L444/L446）＋pa_delta 對照組 L65/L67、舊式 FAIL=1 BLOAT 分支字面零命中——AI-1/AI-2/AI-3 全數在盤。歸因判準：base..HEAD 間觸及標的之 commit 唯一且攜本票前綴＝自歸因，非 CANDIDATE_SUPERSEDED、非 ZERO-DIFF-DECLARED（後者係「無需施作」，本案係「已施作」）。reviews 四欄 N_A 誠實揭露：08-15 實作 session 無 QA/SV/Codex 紀錄可考；殘餘驗證由 INFRA-MAXLINES-BACKPORT-01（PLT 冊 seq=15）之行為性 AC 承接（self-test 全跑＋MAX_LINES=N/A 情境 exit 0），該票 evidence_dependency 已指向本票。tmp/verify_cmd.conf 殘留 AUDIT-01 值＝單槽位載體污染既知模式，因 AI-0 STOP 未覆寫，無害；根治方案見 QA-Session-Aware-Verification 草案 Step 2（per-ticket config＋active.json）。本案為該草案「V2 satisfied ＋ self-attributable」新增態 ALREADY_EXECUTED_PENDING_CLOSURE 之原型案例。",
+        "state": "RESOLVED"
+      },
       "updated_at": "2026-08-13",
       "updated_by": "CSO",
       "project": "SmartCameraApp1",
@@ -851,7 +854,18 @@
       "title": "settings.json deny 補強＋CLAUDE.md 段落級合併（RAPID 引入案已撤回）",
       "topic": "INFRA",
       "seq": 20
+    },
+    {
+      "created": "2026-08-23",
+      "file": "Pending/INFRA-TPL-V38-01_Session_Aware_Verification_Template_Amendment.md",
+      "id": "INFRA-TPL-V38-01",
+      "lifecycle": "PENDING",
+      "notes": "QA-Session-Aware-Verification Rev B（R1-R5 採納，Akira 2026-08-23 裁決）之 P0＋P1 落地票：TPL v3.7→v3.8。増訂四項：①Verify Config 增 BASE_COMMIT/TARGET_BLOB（V1 baseline 機械化；docs 小票得 N/A 降級）；②AI-0 基線漂移三分流（範圍不相交自動通過/ALREADY_EXECUTED_PENDING_CLOSURE/CANDIDATE_SUPERSEDED/BLOCKED_UNATTRIBUTED，取代單一 STOP 無分類）；③[行為性] AC given/expect 語義契約化、禁 YAML 雙軌；④P0 凍結唯一字面雙責任票面。forward-only：在途五票祖父條款不追溯（R4）。原型案例：INFRA-MAXLINES-GATE-01 假停（自身 commit 0bb6b4c 已完成未收束）。P2/P3（activation 腳本、per-ticket config）待本票 CLOSED 後另票；evidence=草案 Rev B＋GATE-01 checkpoint＋TRACKSCOPE-01 Rev A。標的為 file/ 版控 SSOT（TRACKSCOPE 保留側），RAPID 不適用全程序。",
+      "preset": "docs",
+      "title": "TPL v3.7→v3.8：Session-Aware 驗證條款（P0＋P1，QA 草案 Rev B 採納落地）",
+      "topic": "INFRA",
+      "seq": 21
     }
   ],
-  "revision": 16
+  "revision": 20
 }
