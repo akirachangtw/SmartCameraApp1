@@ -1,6 +1,6 @@
 # 統一 Ticket 模板（CSO + Pipeline v1.6 合併版）
 
-**版本**: v3.7
+**版本**: v3.8
 **產出日期**: 2026-05-29
 **Revision**: v3.7（2026-08-14，INFRA-TPL-V37-01）— 立「票檔落點律」：票檔 MUST 落於實作專案之票務目錄並登記於 TKR 平台對應 project 冊面；設計/協調型專案 MUST NOT 設 Pending/ 或存放票檔。與 v3.6「發現來源 ≠ 歸屬」分工：彼律管議題線歸屬，本律管物理落點。事件支撐：ADV-WTREE-01（2026-08-14 作廢重開 WKTR-01 於 mcp-ticket-platform）
 **完整 Revision 歷史（v3.1–v3.6）**：見文末「Revision 歷史」章節
@@ -36,6 +36,10 @@ FORBIDDEN=[禁止觸碰的檔案，逗號分隔]
 MAX_LINES=[數字 | N/A]
 DIFF_REF=[起始 commit hash]
 ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
+BASE_COMMIT=[開票時 HEAD，票面前提所依之不可變基線 commit]
+TARGET_BLOB=[逐標的 git hash-object，格式 path:sha8，多筆分號分隔]
+
+**BASE_COMMIT／TARGET_BLOB 欄位說明**（v3.8，`INFRA-TPL-V38-01`）：二欄為 V1 baseline 判定之機械輸入；`docs` preset 且單檔小改之票得標 `N/A`（比例原則），標 `N/A` 者 V1 降級為 AI-0 錨點制。
 
 **MAX_LINES 量尺定義與性質**（v3.5，`Ticket_MaxLines_Metric_Retirement` R1–R3 ＋ 2026-08-13 終局裁決）：
 
@@ -51,6 +55,11 @@ ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 ## Action Items
 
 > **AI-0 為強制首項**（派工前錨點預檢律，`Dispatch_Anchor_Precheck_Doctrine` KD2）。開票方 MUST 於草擬同刻以 live `read_file_safe`／`grep_files` 直查取樣全部「現值」錨點並填寫 `ANCHOR_PROBED` 時戳；**禁以記憶、前次 session 輸出或執行者回報充當錨點**。派工時若目標檔已有新 commit 越過 `ANCHOR_PROBED` 時刻，MUST 重跑預檢方可派工。
+
+> **基線漂移三分流**（v3.8，`INFRA-TPL-V38-01`，依據 QA-Session-Aware-Verification Rev B R1＋R2）。AI-0 錨點不符時，MUST 依序執行：
+> 1. **範圍不相交自動通過（R1）**：先跑 `git diff --name-only <BASE_COMMIT>..HEAD -- <ALLOWED 各標的>`；輸出為**空** → 漂移未及本票標的，錨點失配屬票面撰寫層問題，停止並回報「ANCHOR_STALE_SCOPE_INTACT」；輸出**非空** → 進入歸因判定。
+> 2. **歸因機械判準（R2）**：清點 `BASE_COMMIT..HEAD` 間觸及標的之 commit 前綴——含**本票 ID** → 回報 `ALREADY_EXECUTED_PENDING_CLOSURE`（直送 SMTR 收束審查，禁重複施作、禁自行勾選）；含**他票 ID** → 回報 `CANDIDATE_SUPERSEDED`（附該票 ID，禁自判等價）；**無前綴 commit** 觸及標的 → 回報 `BLOCKED_UNATTRIBUTED_STATE`（唯讀取證後升裁）。
+> 3. 三態均為**停止＋分類回報**，禁「推定等價位置」續作——本條取代舊制單一「不符即 STOP 無分類」，使停止報告自帶處置路由。
 
 > **序號機械取號律**（律 A，`KAIROS_CaseC_Harvest_Round_Merged_Laws` KD-2/KD-3）。指派任何票號／候選序號前，開票方 MUST 以**全冊機械取號**決定新號：對 registry 全檔（per-project `TICKET_REGISTRY.json`）與 `deliver/`、`reports/` 執行 ID 樣式 grep 取 max-ID，`max+1` 為新號。**禁只掃 `Pending/`**（已通過票離開 Pending/，只掃必碰撞）；**禁以 `tail`／局部讀取驗證「目前最大號」**（局部讀取必然漏看他處已登記條目）。二次實證：PROTO-01 票號碰撞、K4-46 雙登。
 
@@ -137,6 +146,8 @@ ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 | `[實機]` | 真機驗證閘 | 實機 Logcat / 截圖證據 |
 
 **強制規則**：AC 涉 Guard / gate / early-return / 外生 runtime state → **MUST** 至少各含一條 `[可達性]` + `[行為性]` AC。`[存在性]` AC 不得單獨承載「落地」語義（K4-50「AC 語義折損律」：AC 自然語言語義在機械驗收拆解時必然折損為存在性檢查，除非開票時以 AC 類型顯式編碼＋producer 證據欄）。
+
+**語義契約條款**（v3.8，`INFRA-TPL-V38-01`）：涉行為變更之票，`[行為性]` AC SHOULD 以 given/expect 形式書寫（即 semantic contract 之 TPL 原生載體），使其可承受重構、改名與行號位移；**MUST NOT** 另立 YAML/JSON 平行契約區塊（禁雙軌）。字面錨點（AI 現值/目標值）保留定位用途，**MUST NOT** 作為完成判定之唯一依據（P0 凍結：v3.8 起新票禁以「唯一字面命中」承載前提驗證＋完成判定雙責任）。
 
 **MAX_LINES 退出 AC 類型學**（v3.5，R2 ＋ 2026-08-13 終局裁決）：MAX_LINES **MUST NOT** 標記為四型中任一型（尤其 `[行為性]`），**MUST NOT** 列入 Acceptance Criteria 區，亦 **MUST NOT** 作為任何 execution gate——其性質為估算校準遙測，判準地位已全面退場，詳見上文「MAX_LINES 量尺定義與性質」。
 
@@ -282,5 +293,7 @@ Effort 決定 Claude Code 的思考深度（`--effort` 參數等效）。
 **Revision**: v3.5（2026-08-13，MAX_LINES 量尺退役案）— ①量尺唯一化：量尺 ＝ `git diff --stat` insertions＋deletions，計量範圍限 production 檔案 diff；②MAX_LINES **完全退出 execution gate**（QA／SV／Cross-Review／approval／merge／archive），降為 production-only diff 實測值之估算校準遙測；③安全不變量類票標 `N/A`；④每次量測 MUST 形成與 ticket／worktree／commit SHA／DIFF_REF 綁定之 evidence record。連帶：v3.2 所立「MAX_LINES 推導註記強制欄」失去格式合格判準地位（降為估算參考），`N/A` 票免附。依據 `Ticket_MaxLines_Metric_Retirement`（R1–R3）＋先例 `MAXLINES_Measurement_Scope_Ruling`（2026-07-09，度量對象錯置／production-diff-only）
 
 **Revision**: v3.6（2026-08-13，Akira 直接裁決）— 立「票號議題前綴律」：票號第一段 MUST 為來源議題之登記 token 或登記縮寫，並與票面 `**來源議題**` 欄同源；歸檔歸屬以票號第一段為唯一判準，新票冊面 `topic` 欄 MUST 與前綴同源。既有票號**不追溯改號**（已固化於 commit message／commit-msg hook 稽核面／冊面互指／票檔檔名）。併立「發現來源 ≠ 歸屬」二階判定：歸屬以**關聯性**（標的／需求源／產物落在該議題領域）與**相依性**（該議題之票對本問題存在依賴三分關係，或修復落點傳導至該議題交付面）二維任一成立為準——有則歸該議題；二維皆不成立則歸 `INFRA`（獨立歸屬線，不隸屬任何產品議題）。禁以發現地或話題沾附為歸屬依據。立法目的：消除冊面歸檔時「此票該歸哪條線」之爭議
+
+**Revision**: v3.8（2026-08-23，INFRA-TPL-V38-01）— ①Verify Config 增 BASE_COMMIT／TARGET_BLOB 欄（V1 baseline 機械化）；②AI-0 基線漂移三分流（範圍不相交自動通過／ALREADY_EXECUTED_PENDING_CLOSURE／CANDIDATE_SUPERSEDED／BLOCKED_UNATTRIBUTED_STATE）；③[行為性] AC given/expect 語義契約化，禁 YAML 雙軌；④P0 凍結唯一字面雙責任票面。**forward-only**：既有在途票之 AI-0 依原條款執行（祖父條款），不追溯。依據 QA-Session-Aware-Verification Rev B（R1–R5）＋ INFRA-MAXLINES-GATE-01 假停原型案例。
 
 **End of 統一 Ticket 模板**
