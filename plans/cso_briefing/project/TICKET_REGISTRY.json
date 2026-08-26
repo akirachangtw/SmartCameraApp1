@@ -795,14 +795,26 @@
     },
     {
       "created": "2026-08-21",
-      "file": "Pending/INFRA-ENVSYNC-BATCH-01_Claude_Dir_Directed_Sync.md",
+      "file": "plans/cso_briefing/project/deliver/INFRA-ENVSYNC-BATCH-01_Claude_Dir_Directed_Sync.md",
       "id": "INFRA-ENVSYNC-BATCH-01",
-      "lifecycle": "PENDING",
+      "lifecycle": "REVIEW",
       "notes": "AUDIT-01 候選 20 扣三例外（verify_checklist→反向票／cross_review→凍結待 GOVPATH-EXCL-01／settings.local.json→重分類禁搬）＝17 檔；每檔 fast-forward 閘（APP 獨有實質行＞0 即凍結升裁，禁手工合併），終態二擇一禁第三態；已知高凍結嫌疑：kairos-lessons/concurrency/decommission（APP 08-01 RULES-CARRIER 部署所及）；凍結清單回流 ENVSYNC_AUDIT 報告新節；RAPID 適用性依派工時 APP 端是否已落地",
       "preset": "docs",
       "title": ".claude/ 17 檔逐檔定向同步（PLT→APP 預設向＋fast-forward 凍結閘）",
       "topic": "INFRA",
-      "seq": 16
+      "seq": 16,
+      "updated_at": "2026-08-26",
+      "updated_by": "Claude",
+      "reviews": {
+        "qa": "PASS",
+        "sv": "PASS",
+        "codex": "PASS",
+        "traycer": "N_A"
+      },
+      "checkpoint": {
+        "state": "OPEN",
+        "resolution": "REVIEW — 碼閉環（2026-08-26）。AI-0 錨點復驗於原 20260821 報告發現基線漂移（`rules/ssot-governance.md` PLT 側、`skills/qa/scripts/verify_checklist.sh` APP 側），Akira 對話直接授權重跑 AUDIT-01 產出新錨點 `ENVSYNC_AUDIT_20260826.md`（17 檔選檔集合未變，僅 hash 值更新）。AI-1 逐檔 fast-forward 閘執行：17 檔中僅 2 檔（`rules/concurrency.md`、`skills/uc/SKILL.md`）APP 獨有非空行數=0 成立同步，`cp` PLT→APP 後 hash 兩端相等；其餘 15 檔依機械規則（禁語義裁量）判定凍結，原樣列入 `ENVSYNC_AUDIT_20260821.md` 凍結清單待 Akira 逐檔合併裁決。AI-2 凍結清單回流完成（已同步/凍結兩子表，2+15=17）。AI-3 分批 commit：rules 批 `b0636f3`、skills 批 `bb727f8`、報告回流 `73a164d`（agents/hooks 批 0 檔無需 commit）。`/qa` Step 0 PASS（docs preset，無 .kt/.xml 變更）；`/sv` 階段 A-C N/A（非 app 代碼）；Codex Cross-Review R1 PASS（REACHABILITY: NONE）。AC 逐項：[存在性]凍結清單節在盤 2+15=17、kairos-lessons.md 處置明文記載（凍結）均 PASS；[行為性]已同步檔 hash 重驗（實際僅 2 檔，非票面預期抽樣基數 3，已如實揭露 N=2<3 原因）PASS；[可達性]N/A 顯式劃記；docs preset 無編譯；`git diff --stat` 僅涉及 ALLOWED。governance 票免 Traycer（純治理文本同步票，Codex PASS 即閉環）。"
+      }
     },
     {
       "created": "2026-08-21",
@@ -911,5 +923,5 @@
       "seq": 22
     }
   ],
-  "revision": 27
+  "revision": 28
 }
