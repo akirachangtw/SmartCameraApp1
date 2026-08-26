@@ -50,6 +50,7 @@ disable-model-invocation: false
    - 輸出 Ticket DONE 後，**MUST** 立即呼叫 `Skill(qa)`（等價 `/qa`），不得停下等待使用者確認。
    - `compile fix`、`git commit` 或其他非 Ticket DONE 僅為中間動作，**MUST NOT** 觸發 QA。
    - `tmp/verify_cmd.conf` 不存在或 `TICKET_ID` 為空時，回報 `⛔ UC Auto-Chain STOPPED: [原因]` 並停止。
+   - **收尾 SOP 觸發**：Ticket DONE 後 **MUST** 呼叫收尾 SOP（AC/AI checkbox 勾選＋registry lifecycle sync＋`registry_append_note`），觸發時機二分：RAPID MODE ON（QA/SV 已豁免）→ Ticket DONE 輸出當下即為終點，**MUST** 立即觸發；RAPID MODE OFF → 沿用既有契約，於 SV PASS（Cross Review 通過）後觸發。收尾動作律則字面唯一 SSOT 為 `.claude/rules/ssot-governance.md` Ticket Closure 紀律／五段流程，本檔不重複判準。lifecycle 落點：**MUST** 一律轉入 `REVIEW`（併搬 `deliver/`＋`file` 欄更新）；票面聲明需 Traycer T2 審查且尚未執行時，`reviews.traycer` 維持 `PENDING` 標記人工複審未完成，**MUST NOT** 因此使 lifecycle 停於 `EXECUTED`；終態（`CLOSED`/`VOID`）**MUST NOT** 由 Auto-Chain 自行轉入，限審查方裁決。
 9. **Auto-Chain ownership**：
    - `/uc` 只呼叫 QA，**MUST NOT** 直接呼叫 SV。
    - QA 全步驟 PASS 後，由 QA Skill 依既有契約自動進入 SV。
@@ -70,6 +71,15 @@ disable-model-invocation: false
 - 🚫 需修改 CLAUDE.md 禁區內的檔案 → 回報 `🚫 [檔案名] 需架構審查`
 - ⚠️ 發現 SSOT 規格衝突 → 回報 `⚠️ SSOT 衝突: [描述]`
 - 🔴 連續 2 次修復仍編譯失敗 → 回報 `🔴 需要人工介入: [錯誤]`
+- 📝 票面事實層錯誤且落於 `ticket-rigor-gate` 之 Post-Signature Erratum Lane 射程內 → 回報 `📝 Erratum queued: [TICKET_ID] | [欄位] | [舊值→新值] | [出處 file:行號]`
+- ⚠️ 收尾 SOP 執行遇「AC 佐證不明」或「lifecycle 落點判準衝突」→ 回報 `⚠️ SSOT 衝突` 或等效揭露待決，**MUST NOT** 靜默推定勾選或轉態（沿用 `ssot-governance.md` 既有「母票 AC 佐證不明」條款）
+
+**Erratum 一行例外之邊界**（**MUST** 逐條成立，任一不成立即改走既有 `⚠️` / `🔴` 例外）：
+1. **MUST NOT** 中斷 Auto-Chain：本行僅為排隊信號，輸出後續跑，不等待確認。
+2. 落盤位置限票檔 **Addendum 追加**，**MUST NOT** 就地改寫簽發原文；同時追加 Repair Ledger 一行標記 `erratum`。
+3. 新值 **MUST** 於當下以 live `read_file_safe`／`grep_files`／registry 直讀取得並附出處；**MUST NOT** 取自記憶、前次 session 輸出或執行者回報。
+4. 判準之字面定義以 `ticket-rigor-gate` REPAIR_ROUTING.md 之 Post-Signature Erratum Lane 為唯一 SSOT（`RGR-RESTRUCT-01` 三層拆分後之新落點，條目數未變仍為四項）；本檔不複製四項判準，**MUST** 現地讀取該節後方得動用本例外（防雙載體漂移）。
+5. 追認為事後批次；未追認之 erratum **MUST** 於 handoff 列示，**MUST NOT** 以沉默推定通過。
 
 ## 進入確認
 
