@@ -686,21 +686,21 @@
       "id": "INFRA-MAXLINES-EVIDENCE-01",
       "topic": "INFRA",
       "title": "量測 evidence record 綁定層（ticket + worktree + commit SHA + DIFF_REF）",
-      "lifecycle": "REVIEW",
+      "lifecycle": "CLOSED",
       "blocked_by": null,
       "depends_on": [
         "INFRA-MAXLINES-GATE-01"
       ],
       "file": "deliver/INFRA-MAXLINES-EVIDENCE-01_Measurement_Evidence_Record_Binding.md",
       "reviews": {
-        "codex": "PENDING",
+        "codex": "PASS",
         "qa": "PASS",
-        "sv": "PENDING",
+        "sv": "PASS",
         "traycer": "N_A"
       },
       "checkpoint": {
-        "resolution": "REVIEW — 碼閉環（2026-08-24，commit fbcb612）：verify_checklist.sh Step 0 收尾新增 evidence record（六欄位 append-only，落 tmp/<TICKET_ID>/evidence/step0_<sha>.txt）+ SKILL.md Step 0 契約段落。/qa 全 PASS（assembleDebug 47s、209/209 tests、0 new lint、5 個原子提交）。/sv 階段 A-C 全 PASS（Compile 19s、Lint 0 new warnings、Scope 邊界正確、16KB ELF ALIGNED、語意審查 CLEAN）。AI/AC 全 8+4 項附實測證據勾選（含二次不同 commit_sha 實跑 fbcb612/8b67da3 驗證 append-only 無覆寫）。execution_dependency（INFRA-MAXLINES-GATE-01）已於同日 CLOSED，本票 blocked_by 隨之解除。**sv/codex 標 PENDING 而非 PASS**：/sv 階段 D（Codex Cross-Review）因 cross_review.sh L347-349 basename-only ALLOWED 缺陷於本票重現（模擬確認 payload 會被 :!.claude/ 清空），未呼叫 Codex；Akira 2026-08-24 對話裁決選項 B 暫緩，待 INFRA-CROSSREVIEW-GOVPATH-EXCL-01 落地後補跑。lifecycle=REVIEW、票檔搬 deliver/ 均依 Akira 2026-08-24 對話直接指示執行（豁免票面「完成後動作」兩項 MUST NOT，豁免依據已同步記入票檔內收尾揭露段落）。",
-        "state": "OPEN"
+        "resolution": "CLOSED 收尾實錄（2026-08-26 審查方，Akira 授權）。碼閉環 fbcb612（2026-08-24，前綴自證，觸及恰二 ALLOWED 檔）。第一手復證：verify_checklist.sh L457-477 evidence record 實作在盤——六欄位 printf（TICKET_ID/WORKTREE/COMMIT_SHA/DIFF_REF/DIFF_END_RESOLVED/MEASURED_LINES）、落點 tmp/<TICKET_ID>/evidence/step0_<sha>.txt、L469 同名不一致即警示禁覆寫（並行競態偵測，票面 Error Handling 兌現）、mkdir/write 失敗路徑僅 echo >&2 不觸碰 $FAIL（HC-1 逐字兌現）。/qa 全 PASS（assembleDebug 47s、209/209、0 new lint）；/sv 階段 A-C PASS；階段 D 於 2026-08-26 補跑 Codex R2 PASS（3b25600 票檔 Addendum），暫緩事由消滅，reviews 四欄轉 PASS/PASS/PASS/N_A。二次不同 commit_sha 實跑（fbcb612/8b67da3）驗證 append-only 無覆寫。收束序：本票 08-24 一度以 sv=PASS 誤登（階段 A-C 過≠/sv 整體完成），審查方 08-26 自糾為 PENDING 後待補跑，補跑完成方轉 PASS——階段性通過不得登記為整體通過，此為本票留下之判準。豁免揭露：08-24 之票檔搬移與冊面轉態依 Akira 對話直接指示執行，覆蓋票面「完成後動作」兩項 MUST NOT，事由已記入票檔收尾揭露段。",
+        "state": "RESOLVED"
       },
       "updated_at": "2026-08-13",
       "updated_by": "CSO",
@@ -797,7 +797,7 @@
       "created": "2026-08-21",
       "file": "plans/cso_briefing/project/deliver/INFRA-ENVSYNC-BATCH-01_Claude_Dir_Directed_Sync.md",
       "id": "INFRA-ENVSYNC-BATCH-01",
-      "lifecycle": "REVIEW",
+      "lifecycle": "CLOSED",
       "notes": "AUDIT-01 候選 20 扣三例外（verify_checklist→反向票／cross_review→凍結待 GOVPATH-EXCL-01／settings.local.json→重分類禁搬）＝17 檔；每檔 fast-forward 閘（APP 獨有實質行＞0 即凍結升裁，禁手工合併），終態二擇一禁第三態；已知高凍結嫌疑：kairos-lessons/concurrency/decommission（APP 08-01 RULES-CARRIER 部署所及）；凍結清單回流 ENVSYNC_AUDIT 報告新節；RAPID 適用性依派工時 APP 端是否已落地",
       "preset": "docs",
       "title": ".claude/ 17 檔逐檔定向同步（PLT→APP 預設向＋fast-forward 凍結閘）",
@@ -812,8 +812,8 @@
         "traycer": "N_A"
       },
       "checkpoint": {
-        "state": "OPEN",
-        "resolution": "REVIEW — 碼閉環（2026-08-26）。AI-0 錨點復驗於原 20260821 報告發現基線漂移（`rules/ssot-governance.md` PLT 側、`skills/qa/scripts/verify_checklist.sh` APP 側），Akira 對話直接授權重跑 AUDIT-01 產出新錨點 `ENVSYNC_AUDIT_20260826.md`（17 檔選檔集合未變，僅 hash 值更新）。AI-1 逐檔 fast-forward 閘執行：17 檔中僅 2 檔（`rules/concurrency.md`、`skills/uc/SKILL.md`）APP 獨有非空行數=0 成立同步，`cp` PLT→APP 後 hash 兩端相等；其餘 15 檔依機械規則（禁語義裁量）判定凍結，原樣列入 `ENVSYNC_AUDIT_20260821.md` 凍結清單待 Akira 逐檔合併裁決。AI-2 凍結清單回流完成（已同步/凍結兩子表，2+15=17）。AI-3 分批 commit：rules 批 `b0636f3`、skills 批 `bb727f8`、報告回流 `73a164d`（agents/hooks 批 0 檔無需 commit）。`/qa` Step 0 PASS（docs preset，無 .kt/.xml 變更）；`/sv` 階段 A-C N/A（非 app 代碼）；Codex Cross-Review R1 PASS（REACHABILITY: NONE）。AC 逐項：[存在性]凍結清單節在盤 2+15=17、kairos-lessons.md 處置明文記載（凍結）均 PASS；[行為性]已同步檔 hash 重驗（實際僅 2 檔，非票面預期抽樣基數 3，已如實揭露 N=2<3 原因）PASS；[可達性]N/A 顯式劃記；docs preset 無編譯；`git diff --stat` 僅涉及 ALLOWED。governance 票免 Traycer（純治理文本同步票，Codex PASS 即閉環）。"
+        "resolution": "CLOSED 收尾實錄（2026-08-26 審查方，Akira 授權）。執行：AI-0 發現 20260821 錨點已漂移（rules/ssot-governance.md PLT 側、qa/verify_checklist.sh APP 側），依 Akira 對話授權重跑盤點產出 ENVSYNC_AUDIT_20260826.md 為新錨點（f6d68c4）——此處置正確且為 TPL v3.8 三分流精神之提前實踐。17 檔逐檔 fast-forward 閘判定：**已同步 2**（rules/concurrency.md → 21e0f97；skills/uc/SKILL.md → decdca1d，APP 獨有非空行數＝0）／**凍結 15**（APP 獨有非空行＞0，一律待裁，附行號＋摘錄）。HC-1 終態二擇一禁第三態：實測零違反，無部分改寫檔。凍結清單已回流報告新節（73a164d），含禁語義裁量聲明。reviews 四欄 PASS/PASS/PASS/N_A（Codex 閉環 063aa05）。⚠️ 結構級發現（審查方判讀）：凍結率 15/17＝88%，遠超預期。此非執行缺陷，而是「PLT→APP 為預設向」假設之進一步弱化證據——APP 端多數治理檔已各自演進（RULES-CARRIER 部署、scope 表列、Evidence Record 段、SV BLOCKED 訊息段等），兩端實為**共同祖先分叉**而非主從關係。建議 Akira 逐檔裁決時採「三選一」框架：①APP→PLT 反向 ②雙向段落合併（另票，人工）③維持分叉（宣告兩端刻意不同）。⚠️ 遺留待辦：凍結 15 檔待逐檔合併裁決；skills/compact/SKILL.md 在凍結清單內（L9/L18-20 APP 獨有 Auto Commit 段），此直接影響 INFRA-COMPACT-REVB-01（PLT 冊 seq=17）之派工序約束——原設「BATCH-01 收束後方可派工」條件已滿足，惟 compact 檔未同步且 APP 端有獨有內容，Rev B POV 於 PLT 落地後之 APP 部署將再遇同一分叉，須於部署票內處置。",
+        "state": "RESOLVED"
       }
     },
     {
@@ -841,7 +841,7 @@
       "created": "2026-08-15",
       "file": "plans/cso_briefing/project/deliver/INFRA-CROSSREVIEW-GOVPATH-EXCL-01_Basename_Allowed_Governance_Path_Exclusion_Fix.md",
       "id": "INFRA-CROSSREVIEW-GOVPATH-EXCL-01",
-      "lifecycle": "REVIEW",
+      "lifecycle": "CLOSED",
       "notes": "【冊面補登 2026-08-21】票檔於 b057e13（2026-08-21 16:31）入庫但冊面零登記，屬帳實分離，本次由審查方補完。缺陷：cross_review.sh L347-348 以 grep -qF 字面子串判定 ALLOWED 是否涵蓋治理目錄，basename token（合法格式）必 miss 致 .claude/ 整段排除，payload Git Diff 空白——實測案例 INFRA-MAXLINES-GATE-01 R1 誤判 REPORT_FIX。【SMTR 派工前審查 Rev A（2026-08-21）】六項修補：F1 自指阻塞防護入 HC-5（cross-review MUST 於 AI-1 commit 後執行以自愈，payload 空即停止，禁 EXTRA_EXCLUDE 繞道）；F2 ALLOWED/FORBIDDEN 由 basename 改完整路徑（票面自身即缺陷觸發形狀，fail-safe 立即防護）；F3 MAX_LINES 20→N/A（TPL v3.5 退役 gate＋R3 安全票自我適用）；F4 AI-1「歧義 MUST 保守涵蓋」與 Error Handling「歧義即停止」自撞，廢止後者並增 stdout 警示行可稽核性要求（零命中同視涵蓋）；F5 增存在性 AC（git ls-files 命中、1 舊式比對命中 0）＋負向迴歸行為性 AC（非治理票仍全排除三目錄，防止修正弱化為恆不排除）＋可達性 N/A 顯式劃記；F6 AI-0 增 73cd4ff/0bb6b4c 基線 SHA 存在性復驗。原判準以刪除線並列禁靜默替換。另 HC-6：RAPID_MODE 於 APP 不適用（Akira 2026-08-21 裁決不引入），全程序執行。錮點 L342/344/346/347/348/354 經 SMTR live grep 復驗未漂移，可派工。coordination_dependency=INFRA-MAXLINES-GATE-01（待本票修復後重跑 Cross-Review）",
       "preset": "hotfix",
       "title": "cross_review.sh 治理路徑排除誤判 basename-only ALLOWED 修正",
@@ -861,8 +861,8 @@
         "traycer": "N_A"
       },
       "checkpoint": {
-        "state": "OPEN",
-        "resolution": "REVIEW — 碼閉環（2026-08-26）。AI-0 錨點復驗全數相符（L347/L348 唯一命中、73cd4ff/0bb6b4c 兩端存在）；AI-1 將 cross_review.sh 治理路徑排除判定由 `echo \"$CONF_ALLOWED\" | grep -qF \"$_gpath\"` 字面子字串比對，改為逐 token `git ls-files`（含 basename fallback）解析 tracked 路徑後比對前綴，歧義／零命中一律保守判定為涵蓋並輸出可稽核警示行。commit 390f50d。`/qa` Step 0 PASS（無 .kt/.xml 變更，N/A）；`/sv` 階段 A-C N/A（非 app 代碼）；Codex Cross-Review R1 PASS（REACHABILITY: NONE）。AC 逐項以**實機重放**驗證（非邏輯推演）：AC2 重放 INFRA-MAXLINES-GATE-01 basename token 案例（73cd4ff..0bb6b4c diff 84 行非空）、AC3 plans/ 完整路徑不回歸、AC4 純 app/ token 負向迴歸三治理目錄仍全排除，並附帶驗證零命中 token 之保守涵蓋分支。governance 票免 Traycer（純 .sh，Codex PASS 即閉環）。"
+        "resolution": "CLOSED 收尾實錄（2026-08-26 審查方，Akira 授權）。第一手復證：commit 390f50d（前綴自證）唯一觸及 ALLOWED；活體 grep——L351 `git ls-files -- \"$_tok\"` 主解析＋L352 basename fallback（`awk -F/ '$NF==t'`，較票面 AI-1 目標值更完備，涵蓋 pathspec 零命中之純 basename token）、L360 `保守判定為涵蓋` 警示行（Rev A F4 可稽核性兌現）；舊式 `grep -qF \"$_gpath\"` 命中 0。Rev A 六項修補全兌現，其中 F1 自指阻塞防護獲正向取證：本票 cross-review 於 AI-1 commit 後執行、payload 非空、Codex PASS，即自愈路徑成立。reviews 三 PASS（Codex 閉環 cd1c7b0）。⚠️ 遺留待辦（轉交 Akira）：PLT 端 cross_review.sh 仍為 2026-07-21 (8044a0d) 版本，本修正未回流，屬 APP→PLT 反向同步候選（與 verify_checklist.sh backport 同型），待裁是否併入 INFRA-MAXLINES-BACKPORT-01 或另票。⚠️ 平台行為取證：registry_set_status(CLOSED) 會將 checkpoint 清為 null（本票實測），且 checkpoint state=OPEN 時 CLOSED 遭 CHECKPOINT_OPEN_BLOCKED 拒收——正確序為 set_checkpoint(resolution) → set_status(CLOSED) → set_checkpoint(收尾實錄)，三步缺一即失實錄。",
+        "state": "RESOLVED"
       }
     },
     {
@@ -891,7 +891,7 @@
       "created": "2026-08-23",
       "file": "plans/cso_briefing/project/deliver/INFRA-TPL-V38-01_Session_Aware_Verification_Template_Amendment.md",
       "id": "INFRA-TPL-V38-01",
-      "lifecycle": "REVIEW",
+      "lifecycle": "CLOSED",
       "notes": "QA-Session-Aware-Verification Rev B（R1-R5 採納，Akira 2026-08-23 裁決）之 P0＋P1 落地票：TPL v3.7→v3.8。増訂四項：①Verify Config 增 BASE_COMMIT/TARGET_BLOB（V1 baseline 機械化；docs 小票得 N/A 降級）；②AI-0 基線漂移三分流（範圍不相交自動通過/ALREADY_EXECUTED_PENDING_CLOSURE/CANDIDATE_SUPERSEDED/BLOCKED_UNATTRIBUTED，取代單一 STOP 無分類）；③[行為性] AC given/expect 語義契約化、禁 YAML 雙軌；④P0 凍結唯一字面雙責任票面。forward-only：在途五票祖父條款不追溯（R4）。原型案例：INFRA-MAXLINES-GATE-01 假停（自身 commit 0bb6b4c 已完成未收束）。P2/P3（activation 腳本、per-ticket config）待本票 CLOSED 後另票；evidence=草案 Rev B＋GATE-01 checkpoint＋TRACKSCOPE-01 Rev A。標的為 file/ 版控 SSOT（TRACKSCOPE 保留側），RAPID 不適用全程序。",
       "preset": "docs",
       "title": "TPL v3.7→v3.8：Session-Aware 驗證條款（P0＋P1，QA 草案 Rev B 採納落地）",
@@ -906,8 +906,8 @@
         "traycer": "N_A"
       },
       "checkpoint": {
-        "state": "OPEN",
-        "resolution": "REVIEW — 碼閉環（2026-08-26）。AI-0 錨點復驗 5 項唯一命中=1、4 項全檔零命中=0 均相符。AI-1~AI-5 全部落地：版本行 v3.7→v3.8；Verify Config 增 BASE_COMMIT/TARGET_BLOB 欄（V1 baseline 機械化）；AI-0 基線漂移三分流（範圍不相交自動通過/ALREADY_EXECUTED_PENDING_CLOSURE/CANDIDATE_SUPERSEDED/BLOCKED_UNATTRIBUTED_STATE）；AC 類型學段增 given/expect 語義契約條款（禁 YAML 雙軌）；Revision 歷史增 v3.8 條目。`2fe64dc`。`/qa` Step 0 PASS（docs preset，無 .kt/.xml 變更）；Step 4 SKIPPED—DEFERRED-TO-DOCSYNC（FORBIDDEN=.claude/** 命中 PROGRESS.md）；`/sv` 階段 A-C N/A（非 app 代碼）；Codex Cross-Review R1 PASS（REACHABILITY: NONE）。AC 逐項：[存在性]兩項均 PASS（grep 命中數實測）；[行為性]以本票自身為測例重放三分流，ANCHOR 全符→直進 PASS；[可達性]N/A 顯式劃記；docs preset 無編譯；`git diff --stat` 僅涉 ALLOWED。HC 全數守（v3.1-v3.7 未刪改、無 YAML、未觸及在途五票、單載體 SSOT未破）。governance 票免 Traycer（純 TPL 文本修訂票，比照 V32-01~V37-01 家族先例，Codex PASS 即閉環）。"
+        "resolution": "CLOSED 收尾實錄（2026-08-26 審查方，Akira 授權）。碼閉環 2fe64dc（前綴自證，觸及 ALLOWED 單檔）。第一手 grep 復驗五項 AI 全數逐字落地：L3 版本 v3.8；L39-40 BASE_COMMIT／TARGET_BLOB 二欄＋L42 欄位說明（docs 小票 N/A 降級之比例原則在盤）；L59-61 基線漂移三分流（R1 範圍不相交自動通過→ANCHOR_STALE_SCOPE_INTACT；R2 歸因判準三態 ALREADY_EXECUTED_PENDING_CLOSURE／CANDIDATE_SUPERSEDED／BLOCKED_UNATTRIBUTED_STATE，逐字與票面目標值相符）；L150 語義契約條款（given/expect＋禁 YAML 雙軌＋P0 凍結唯一字面雙責任）；L297 Revision v3.8 條目含 forward-only 祖父條款。負向取證：`semantic_contract:`（YAML 鍵形式）命中 0，HC-2 禁雙軌兌現。HC-1 純增訂：Revision 歷史 v3.1–v3.7 條目原樣在盤。reviews 四欄 PASS/PASS/PASS/N_A（Codex 閉環 78e1a5b）。⚠️ 落地即生效之連帶效應（審查方註記）：本票條文自 CLOSED 起對**新開票**生效，在途票依 R4 祖父條款不追溯；本 session 稍早開立之 INFRA-COMPACT-REVB-01（PLT 冊 seq=17，2026-08-26 簽發）簽發時點早於本票 CLOSED，其採 pre-image hash 制而非 BASE_COMMIT/TARGET_BLOB 欄——語義等價（整檔重構之 baseline 綁定）但欄位形式未對齊 v3.8，屬邊界案例，建議派工時順帶補欄，不另立修訂票。P2（activation protocol 腳本）／P3（per-ticket config＋R5 輪替）之前置條件自此滿足，可開票。",
+        "state": "RESOLVED"
       }
     },
     {
@@ -933,7 +933,34 @@
       "updated_at": "2026-08-25",
       "updated_by": "SMTR",
       "seq": 22
+    },
+    {
+      "created": "2026-08-26",
+      "depends_on": [],
+      "file": "Pending/INFRA-QA-PERTICKET-CONF-01_PerTicket_Config_And_Active_Json.md",
+      "id": "INFRA-QA-PERTICKET-CONF-01",
+      "lifecycle": "PENDING",
+      "notes": "QA 草案 Rev B P3 落地票（Akira 2026-08-23 開票授權）。根治 tmp/verify_cmd.conf 全域單槽位污染（實證二筆：ENVSYNC-AUDIT-01 值殘留至 MAXLINES-GATE-01；concurrency.md §1 律 B 同日兩次覆寫）。AI：①config 遷 tmp/verify/<TICKET_ID>.<rev>.conf（舊檔保留為 fallback＋棄用警示，退役另票）；②active.json 六欄位原子寫入器（temp+atomic rename＋read-back 四欄驗證，mismatch 不破壞既有 config）；③R5 輪替保留最新 10 份（active.json 永不輪替）；④SKILL.md 契約段。HC：禁刪舊檔、禁觸 tmp/<TICKET_ID>/evidence/（EVIDENCE-01 成果，設定層 vs 取證層職責邊界）、寫入失敗不阻斷 Step 0、禁實作 V0/V1/V2（屬 P2）。AC 採 v3.8 given/expect 語義契約形式。⭐ coordination：本票 MUST 先於 INFRA-QA-ACTIVATION-01（P2）收束。",
+      "preset": "refactor",
+      "title": "per-ticket config 遷移與 active.json 原子指標（P3，單槽位污染根治）",
+      "topic": "INFRA",
+      "seq": 23
+    },
+    {
+      "blocked_by": "INFRA-QA-PERTICKET-CONF-01",
+      "created": "2026-08-26",
+      "depends_on": [
+        "INFRA-QA-PERTICKET-CONF-01"
+      ],
+      "file": "Pending/INFRA-QA-ACTIVATION-01_Ticket_Activation_Protocol_Preflight.md",
+      "id": "INFRA-QA-ACTIVATION-01",
+      "lifecycle": "PENDING",
+      "notes": "QA 草案 Rev B P2 落地票（Akira 2026-08-23 開票授權）。TPL v3.8 已立票面規範層，本票補執行端：新建 preflight_activation.sh，於新 session/resume/切票/post-compact 輸出機械化四層狀態。AI：①V0 環境驗證（repo root/branch/HEAD/status/scope/identity，不符即 BLOCKED_ENV_MISMATCH 且明示 No writes/No AC claim）；②V1 baseline 四態＋**R1 範圍不相交規則 MUST 實作**（diff --name-only 為空即視同 MATCHED 直進 V2）＋R2 歸因三態路由；③V2 唯讀語義探針輸出 JSON（semantic_contract 逐 id PASS/FAIL）；④PROGRESS.md 新增 Active Ticket Activation 十一欄＋Write Authority 三條件判定；⑤SKILL.md 契約段（/resume ≠ 可立即續 edit）。HC：V2 零寫入；禁自動 DONE/ZERO-DIFF；禁自改票面 BASE_COMMIT/TARGET_BLOB；禁以現行行號為舊錮點等價；禁將來源不明修改歸屬本票（草案 Rebase Protocol 四禁）；禁改 verify_checklist.sh；active.json 寫入 MUST 複用 P3 寫入器；枚舉字面 MUST 沿用 v3.8 禁雙軌。⭐ execution_dependency=INFRA-QA-PERTICKET-CONF-01（P3）未 CLOSED 前禁派工。",
+      "preset": "refactor",
+      "title": "Ticket Activation Protocol preflight（P2，V0/V1/V2 四層驗證接線）",
+      "topic": "INFRA",
+      "seq": 24
     }
   ],
-  "revision": 29
+  "revision": 43
 }
