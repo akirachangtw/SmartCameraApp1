@@ -29,23 +29,23 @@ ANCHOR_PROBED=2026-08-21（AUDIT-01 報告 hash 表即錨；表載值經審查�
 ### AI-0: 錨點復驗（派工後、修改前）
 - **動作 A**：自 AUDIT-01 報告表任抽 3 檔重跑 `git hash-object` 兩端比對，與表載值一致；不一致 → 停止回報（基線已漂移，報告失效）。
 - **動作 B**：兩端 status 二檔仍 hash 相等（SYNC-01 成果未被擾動）。
-- [ ] 完成
+- [x] 完成
 
 ### AI-1: 逐檔 fast-forward 閘＋定向同步（17 檔逐一）
 - **判定（機械）**：以 APP 檔為左、PLT 檔為右執行 `git diff --no-index <APP> <PLT>`；diff 中 `-` 行（APP 獨有內容）剔除純空白行後——
   - **＝0** → fast-forward 成立：`cp` PLT→APP，`git hash-object` 兩端相等後打勾；
   - **＞0** → 該檔**凍結**：禁覆寫、禁手工合併、禁「僅搬 PLT 新增段」，原樣列入凍結清單（附 APP 獨有行之行號範圍與首行摘錄）。
 - **禁語義裁量**：APP 獨有行「看起來不重要／只是措辭」不構成覆寫理由。
-- [ ] 完成
+- [x] 完成
 
 ### AI-2: 凍結清單回流
 - **檔案**: `plans/cso_briefing/project/file/ENVSYNC_AUDIT_20260821.md`
 - **動作**: 檔尾 append 新節 `## 凍結清單（BATCH-01 回流，待 Akira 合併裁決）`：三欄表（檔案｜APP 獨有行摘要｜建議處置=一律「待裁」）。同步成功檔亦列於同節之「已同步」子表（檔名＋終態 hash）。
-- [ ] 完成
+- [x] 完成
 
 ### AI-3: commit 落版
 - **動作**: 同步成功檔依類別分批 commit（rules 一批、skills 一批、agents/hooks 一批），前綴 `[INFRA-ENVSYNC-BATCH-01]`；報告回流走 `[INFRA-ENVSYNC-BATCH-01]` 同前綴獨立 commit。
-- [ ] 完成
+- [x] 完成（rules 批 `b0636f3`、skills 批 `bb727f8`、agents/hooks 批 0 檔無需 commit、報告回流 `73a164d`）
 
 ## Hard Constraints
 1. 每檔終態 **MUST** 二擇一：hash 兩端相等（已同步）或列名凍結清單——**禁第三態**（部分改寫、混合版）。
@@ -59,11 +59,11 @@ ANCHOR_PROBED=2026-08-21（AUDIT-01 報告 hash 表即錨；表載值經審查�
 - **[標配]** `git check-ignore -v` 對 ALLOWED 全清單 → 命中即停止回報（gitignore 死結律 #20）
 
 ## Acceptance Criteria
-- [ ] **[存在性]** 凍結清單節在盤，且「已同步」＋「凍結」列數合計＝17（禁缺漏）
-- [ ] **[存在性]** kairos-lessons.md 之處置有明文記載（審查預測：凍結；若實測 fast-forward 成立，MUST 附 #18 條款兩端比對說明）
-- [ ] **[行為性]** 已同步檔任抽 3 檔重跑 `git hash-object` 兩端相等（production 路徑重放）
-- [ ] **[可達性]** N/A 顯式劃記（無 Guard/gate/runtime state）
-- [ ] ~~`assembleDebug` PASS~~（N/A：docs preset）
-- [ ] `git diff --stat` 僅涉及 ALLOWED 檔案
+- [x] **[存在性]** 凍結清單節在盤，且「已同步」＋「凍結」列數合計＝17（禁缺漏）——2 已同步 + 15 凍結 = 17 ✓
+- [x] **[存在性]** kairos-lessons.md 之處置有明文記載——審查預測命中：凍結（APP 獨有非空行 17 行，L9-10 scope 定義＋L21 K1-Rule 11 條款等），已列入凍結表
+- [x] **[行為性]** 已同步檔重跑 `git hash-object` 兩端相等（production 路徑重放）——實際已同步檔僅 2 檔（非票面預期抽樣基數 3；如實揭露：`rules/concurrency.md`、`skills/uc/SKILL.md` 全數複驗，非抽樣 3/N，因 N=2 < 3），兩檔 hash 皆相等
+- [x] **[可達性]** N/A 顯式劃記（無 Guard/gate/runtime state）
+- [x] ~~`assembleDebug` PASS~~（N/A：docs preset）
+- [x] `git diff --stat` 僅涉及 ALLOWED 檔案
 
 **End of INFRA-ENVSYNC-BATCH-01**
