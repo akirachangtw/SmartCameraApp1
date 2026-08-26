@@ -17,9 +17,10 @@
 | MEO-DECOMM-01 | ✅ Done（Step A-E 全收束，Addendum-1~5 偏差裁決在案）· Step A 存證14檔→B 解武（`0b321c2`）→C 復通正向反例→D 歸檔（`efb3c3f`，16檔→`archive/meo-v1/`）→E 冊面（FIX-A/B CLOSED+STOPPED checkpoint，`c67ea6e`）· STATE.md 封存註記 Commit #2 豁免（gitignore 慣例，Addendum-5(a)）· 票檔已搬 `deliver/` |
 | INFRA-GOV-STOPLOSS-01 | ✅ Done（碼閉環）· 派工令解凍後 AI-0 內容錨點核驗（`git log d5fe887..HEAD` 目標檔零異動）→ AI-1 執行：「結構歧義停損律」條款附加至 `.claude/rules/ssot-governance.md`（`f4a9c8e`）· registry CLOSED 收束（`abcd97c`）· 免 Traycer（純 .md 治理票）· 票檔已搬 `deliver/` |
 | INFRA-CLOSURE-REGISTRY-GATE-01 | ✅ Done（碼閉環，AC 全數附證據）· `.claude/rules/ssot-governance.md` 增列「冊面轉態紀律」四要件（lifecycle/reviews/file/checkpoint）+ 原子性 + 矛盾停止 + 誠實層級聲明（純增列 +4L）· `assembleDeviceDebug` PASS + 209 tests PASS + 0 new lint · Codex Cross-Review PASS（REACHABILITY: NONE）· `structural_verify.sh --post` ADVISORY · `d3fd12a` · 免 Traycer（純 .md 治理票）· **dogfood 首次適用**：本票自身冊面收尾以新規則四要件經 `mcp-ticket-platform` 工具完成（`registry_list` 回讀證據已附票檔）· 票檔已搬 `deliver/` |
+| INFRA-CROSSREVIEW-GOVPATH-EXCL-01 · INFRA-ENVSYNC-AUDIT-01(重跑) · INFRA-ENVSYNC-BATCH-01 | ✅ Done（碼閉環）· `cross_review.sh` ALLOWED token 排除判定由字面子字串比對改 `git ls-files` 解析（basename 誤排除 `.claude/` 修復），Codex PASS，lifecycle→REVIEW（`390f50d`）· AUDIT-01 重跑取代 20260821 報告（BATCH-01 AI-0 發現基線漂移，Akira 授權，`ENVSYNC_AUDIT_20260826.md`）· BATCH-01 17 檔定向同步：2 檔 fast-forward 成立（`concurrency.md`／`uc/SKILL.md`），15 檔凍結待 Akira 合併裁決（`b0636f3`/`bb727f8`/`73a164d`）· 皆免 Traycer（純治理票） |
 | INFRA-TPL-V33-01/02 · RULES-CARRIER-01 · TPL-V36-01 | ✅ Done · TICKET_TPL v3.3→**v3.6** 連續四版：v3.4 前置依賴三分欄（`94a2108`）· v3.5 MAX_LINES 量尺退役案（`f51344d`，R1-R3＋2026-08-13 終局裁決：量尺=insertions＋deletions／範圍=production-only／**完全退出 execution gate**，四類值〔合法超額·`N/A`·空值·非法格式〕一律不得設 failure flag 或致非零 exit／交付阻斷權唯五類／量測 evidence record MUST 綁 ticket＋worktree＋SHA＋DIFF_REF）· v3.6 票號議題前綴律 + **發現來源≠歸屬二階判定**（`dc74418`，一階問關聯性／相依性任一成立→歸該議題，二階皆不成立→歸 `INFRA` 獨立歸屬線；既有票號不追溯改號）· rules 三檔部署 `882ec5b`（concurrency §1 律 B／退役旁路律／SessionStart 認知條款）· 冊面：MAXLINES 兩票 intake（seq 10/11）＋V33-02 四要件轉態 CLOSED 歸檔（4/6 AC 保留未勾，Addendum-B 揭露情勢變更偏差）＋V36-01 正名票（seq 12，`file=null` 禁偽造派工記錄）· **⚠️ 宣告層已生效、機械層未生效**：`verify_checklist.sh:421` 仍硬 FAIL，承接票見 Next Actions #21 |
 
-**Last Updated**: 2026-08-24（S91）
+**Last Updated**: 2026-08-26（S92）
 
 ## Sprint Health
 
