@@ -889,14 +889,26 @@
     },
     {
       "created": "2026-08-23",
-      "file": "Pending/INFRA-TPL-V38-01_Session_Aware_Verification_Template_Amendment.md",
+      "file": "plans/cso_briefing/project/deliver/INFRA-TPL-V38-01_Session_Aware_Verification_Template_Amendment.md",
       "id": "INFRA-TPL-V38-01",
-      "lifecycle": "PENDING",
+      "lifecycle": "REVIEW",
       "notes": "QA-Session-Aware-Verification Rev B（R1-R5 採納，Akira 2026-08-23 裁決）之 P0＋P1 落地票：TPL v3.7→v3.8。増訂四項：①Verify Config 增 BASE_COMMIT/TARGET_BLOB（V1 baseline 機械化；docs 小票得 N/A 降級）；②AI-0 基線漂移三分流（範圍不相交自動通過/ALREADY_EXECUTED_PENDING_CLOSURE/CANDIDATE_SUPERSEDED/BLOCKED_UNATTRIBUTED，取代單一 STOP 無分類）；③[行為性] AC given/expect 語義契約化、禁 YAML 雙軌；④P0 凍結唯一字面雙責任票面。forward-only：在途五票祖父條款不追溯（R4）。原型案例：INFRA-MAXLINES-GATE-01 假停（自身 commit 0bb6b4c 已完成未收束）。P2/P3（activation 腳本、per-ticket config）待本票 CLOSED 後另票；evidence=草案 Rev B＋GATE-01 checkpoint＋TRACKSCOPE-01 Rev A。標的為 file/ 版控 SSOT（TRACKSCOPE 保留側），RAPID 不適用全程序。",
       "preset": "docs",
       "title": "TPL v3.7→v3.8：Session-Aware 驗證條款（P0＋P1，QA 草案 Rev B 採納落地）",
       "topic": "INFRA",
-      "seq": 21
+      "seq": 21,
+      "updated_at": "2026-08-26",
+      "updated_by": "Claude",
+      "reviews": {
+        "qa": "PASS",
+        "sv": "PASS",
+        "codex": "PASS",
+        "traycer": "N_A"
+      },
+      "checkpoint": {
+        "state": "OPEN",
+        "resolution": "REVIEW — 碼閉環（2026-08-26）。AI-0 錨點復驗 5 項唯一命中=1、4 項全檔零命中=0 均相符。AI-1~AI-5 全部落地：版本行 v3.7→v3.8；Verify Config 增 BASE_COMMIT/TARGET_BLOB 欄（V1 baseline 機械化）；AI-0 基線漂移三分流（範圍不相交自動通過/ALREADY_EXECUTED_PENDING_CLOSURE/CANDIDATE_SUPERSEDED/BLOCKED_UNATTRIBUTED_STATE）；AC 類型學段增 given/expect 語義契約條款（禁 YAML 雙軌）；Revision 歷史增 v3.8 條目。`2fe64dc`。`/qa` Step 0 PASS（docs preset，無 .kt/.xml 變更）；Step 4 SKIPPED—DEFERRED-TO-DOCSYNC（FORBIDDEN=.claude/** 命中 PROGRESS.md）；`/sv` 階段 A-C N/A（非 app 代碼）；Codex Cross-Review R1 PASS（REACHABILITY: NONE）。AC 逐項：[存在性]兩項均 PASS（grep 命中數實測）；[行為性]以本票自身為測例重放三分流，ANCHOR 全符→直進 PASS；[可達性]N/A 顯式劃記；docs preset 無編譯；`git diff --stat` 僅涉 ALLOWED。HC 全數守（v3.1-v3.7 未刪改、無 YAML、未觸及在途五票、單載體 SSOT未破）。governance 票免 Traycer（純 TPL 文本修訂票，比照 V32-01~V37-01 家族先例，Codex PASS 即閉環）。"
+      }
     },
     {
       "created_at": "2026-08-25",
@@ -923,5 +935,5 @@
       "seq": 22
     }
   ],
-  "revision": 28
+  "revision": 29
 }
