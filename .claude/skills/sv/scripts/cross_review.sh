@@ -343,9 +343,28 @@ PROMPT_HEADER
     if [[ -f "tmp/verify_cmd.conf" ]]; then
       CONF_ALLOWED=$(grep "^ALLOWED=" "tmp/verify_cmd.conf" | head -1 | cut -d'=' -f2-)
     fi
+    IFS=',' read -ra _ALLOWED_TOKENS <<< "$CONF_ALLOWED"
+    _COVERED_GPATHS=()
+    for _tok in "${_ALLOWED_TOKENS[@]}"; do
+      _tok="$(echo "$_tok" | xargs)"
+      [[ -z "$_tok" ]] && continue
+      _matches=$(git ls-files -- "$_tok" 2>/dev/null)
+      [[ -z "$_matches" ]] && _matches=$(git ls-files | awk -v t="$_tok" -F/ '{if ($NF==t) print}')
+      _mcount=$(echo "$_matches" | grep -c . || true)
+      if [[ "$_mcount" -eq 1 ]]; then
+        for _gpath in .claude/ docs/ plans/; do
+          [[ "$_matches" == "${_gpath}"* ]] && _COVERED_GPATHS+=( "$_gpath" )
+        done
+      else
+        for _gpath in .claude/ docs/ plans/; do
+          echo "⚠️ ALLOWED token '${_tok}' 解析出 ${_mcount} 個候選路徑，保守判定為涵蓋 ${_gpath}"
+          _COVERED_GPATHS+=( "$_gpath" )
+        done
+      fi
+    done
     EXCLUDE_ARGS=(':!sv_report.md')
     for _gpath in .claude/ docs/ plans/; do
-      echo "$CONF_ALLOWED" | grep -qF "$_gpath" || EXCLUDE_ARGS+=( ":!${_gpath}" )
+      printf '%s\n' "${_COVERED_GPATHS[@]}" | grep -qxF "$_gpath" || EXCLUDE_ARGS+=( ":!${_gpath}" )
     done
     if [[ -n "$EXTRA_EXCLUDE" ]]; then
       IFS=',' read -ra EXTRA_PATHS <<< "$EXTRA_EXCLUDE"
