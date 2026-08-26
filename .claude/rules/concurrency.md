@@ -13,13 +13,11 @@
 - Auto-cleanup **MUST** 排除 `sv_report_<TICKET_ID>.md` 型自訂命名 artifacts。
 - 事件支撐：⑤
 
-- **【擴充，律 B】** 本節隔離義務**同及 pipeline 自身產生之全域單槽位載體**（如 `tmp/verify_cmd.conf`、`sv_report.md`）——此類載體非票自建，跨票共用時覆寫與保留制輪替出局為**結構必然**，非執行者疏失。隔離機械化落地前，過渡義務為：讀取一律 **live 直取**（禁憑前次 session 快照），寫入前 **MUST** 備份前置；收口三件套（verdict／DIFF_SCOPE／receipt）之 receipt **MUST** 於收口當刻複製進耐久載體，禁僅留路徑引用。
-- 事件支撐（擴充）：`tmp/verify_cmd.conf` 同日兩次覆寫 + 一次執行者 STOP（MEO-T2 系）；`sv_report.md` 跨票覆寫致 Codex PASS receipt 本體滅失、僅剩 testimony（K4-cand-20260719-01）
-
 ## §2 Worktree／分支串行令
 
 - 同 worktree 同分支：同家族票 **MUST** 串行執行，禁止同時開工。
 - 跨家族票需並行時 **MUST** 改用 `git worktree` 隔離（既有工具鏈能力，零新依賴）。
+- 收尾階段之機械閘已由 `wktree-close`／`wktree-compact` 兩支 Skill 承接（`.claude/skills/wktree-close/scripts/wktree-close.sh` 六道閘：主 checkout 限定／目標分支鎖定／雙邊 clean check／handoff 存在性／ahead≥1／可選 VERIFY_CMD）；開工階段之並行佔用宣告仍屬本檔待開票清單第 1 項未實作範圍，**MUST NOT** 誤讀為已有機械防線。
 - 事件支撐：④⑤⑥⑦
 
 ## §3 票務生命週期單向流
@@ -54,6 +52,7 @@
 2. Scratch 全域 glob FORBIDDEN 之 lint/hook 化（§1 措辭之強制執行）
 3. `Pending/` → `deliver/` 生命週期自動搬遷（§3 單向流之機械化）
 4. §5 TOCTOU 缺口修補：現行「append 前 `wc -l` 直取現值」為 check-then-use，讀值與實際寫入間無原子鎖，並行寫入者仍可能於間隙交錯；需設計鎖機制或等效序列化手段（如檔案鎖、單寫入者佇列）方能真正杜絕競態，「宣告單一寫入者」目前僅為程序約定，非機械強制。本項由 `INFRA-CR-R0-PRECLEAR-01` 涵蓋（A+ snapshot-then-verify 方案採納，Akira 2026-07-20 對話裁決），**不另立票**——後續 session 見本條目 **MUST** 不得重複開票，如需實作請直接承接 `INFRA-CR-R0-PRECLEAR-01`
+5. `verify_checklist.sh` FUTURE_CONTAMINATION 判定範圍 vs `qa/SKILL.md` Anchor Drift STOP 文義落差：`verify_checklist.sh`（`990d924`）以 `TICKET_BASE_COMMIT`（首個 ALLOWED-touching commit）為錨點，`DIFF_REF..DIFF_END` 範圍內任何觸及**非 ALLOWED 檔**的 descendant 提交即判 FUTURE_CONTAMINATION；`qa/SKILL.md` 文件定義的 Anchor Drift STOP 文義則僅於觸及 **ALLOWED 檔** 時才觸發。兩者範圍不一致（腳本較嚴），已在 TKR-02 R3 實例中以 `EXCLUDED_PAYLOAD=` 逐檔轉錄授權解套（不阻塞本票），本項為腳本行為 vs 文件文義之校準債，供後續治理票承接統一定義。Akira Option B 授權登記（2026-07-27 對話裁決）。
 
 ## 九例對照表
 
