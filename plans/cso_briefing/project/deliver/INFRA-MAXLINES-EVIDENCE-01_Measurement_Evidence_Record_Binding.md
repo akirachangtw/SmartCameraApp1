@@ -95,3 +95,10 @@ ANCHOR_PROBED=2026-08-13 17:17
 - **本節「完成後動作」兩項 MUST NOT 之例外**：Akira 於 2026-08-24 對話中直接指示「請協助逐一勾選執行項目及 AC 測試，並於完成後進行檔案搬移歸檔及更改冊面狀態」，構成本票文本自身以外之即時 CSO 授權，覆蓋上方兩項預設 MUST NOT（非機械閘門，紀律層豁免，如實記錄於此）。
 - AI/AC checkbox 依撤警正向取證律，僅勾有 QA/SV 實跑或設計驗證佐證之項；本次全數 8 項 AC 均有具體證據附註於各行。
 
+## Addendum（2026-08-26，`/sv` 階段 D 補跑）
+
+- 前置阻塞已解：`INFRA-CROSSREVIEW-GOVPATH-EXCL-01`（basename-only `ALLOWED` 誤排除 `.claude/` 缺陷修復）已落地並 Done（`390f50d`）。
+- 本票重跑 `/sv` 階段 A-D（`3df34a6..fbcb612`）：Compile ✅ PASS（47s）、Lint ✅ PASS（51s，0 new）、Scope ✅ PASS、16KB ELF ✅ ALIGNED、Codex Cross-Review R2 **✅ PASS**（`REACHABILITY: NONE`，無 BLOCKER/REPORT_FIX，判定依據見 `.tmp/cross_review_result_20260826_162843.md`）。
+- 前次「暫緩」揭露（見上節）已由本次補跑消解；`/sv` 四階段全數 PASS。
+- `TICKET_REGISTRY.json` `reviews.codex` 欄同步、Traycer N/A 落記仍屬 Desktop 治理 session 單一寫入者範圍（`concurrency.md` §5），本次未觸碰。
+
