@@ -130,3 +130,36 @@
 | `hooks/telegram_ask.sh`（IDENTICAL） | PLT `b38e4a70` / APP `b38e4a70` | PLT `b38e4a70` / APP `b38e4a70` | ✅ |
 | `rules/ssot-governance.md`（DIVERGED，最大分叉） | PLT `8960acb1` / APP `0262ac77` | PLT `8960acb1` / APP `0262ac77` | ✅ |
 | `skills/qa/scripts/verify_checklist.sh`（DIVERGED，本 session 觸碰） | PLT `a03b2957` / APP `defce99e` | PLT `a03b2957` / APP `defce99e` | ✅ |
+
+## 凍結清單（BATCH-01 回流，待 Akira 合併裁決）
+
+**⚠️ 基線已於本報告產出後漂移**（`rules/ssot-governance.md` PLT 側、`skills/qa/scripts/verify_checklist.sh` APP 側），`INFRA-ENVSYNC-BATCH-01` AI-0 已於 2026-08-26 依 Akira 授權重跑產出 `ENVSYNC_AUDIT_20260826.md` 取代本表為新錨點；本節之「已同步」／「凍結」判定依新錨點執行，hash 值以 20260826 報告為準，此處僅回填執行結果。
+
+### 已同步（2 檔，fast-forward 成立：APP 獨有非空行數＝0）
+
+| 檔案 | 終態 hash（兩端相等） |
+|---|---|
+| `rules/concurrency.md` | `21e0f9740718c9532e3ab9a21e4cc7c7a6172974` |
+| `skills/uc/SKILL.md` | `decdca1d7c6fd624a7637a0c6f8248fb36969066` |
+
+### 凍結（15 檔，APP 獨有非空行數 > 0，一律「待裁」）
+
+| 檔案 | APP 獨有內容摘錄（首 1-3 行行號＋摘要） | 建議處置 |
+|---|---|---|
+| `agents/cross-reviewer.md` | L9 `-model: claude-opus-4-8`；L18 Checkpoint 觸發掃描條款；L23 純 artifact commit 判定 | 待裁 |
+| `hooks/stop.sh` | L9 `':!tmp/' ':!docs/' ':!plans/'` exclude args；L18 diff_content 組裝 | 待裁 |
+| `rules/cross-review.md` | L9 `"app/src/**/*.kt"`；L19 FAIL 次數限制條款；L28 xhigh 路由規則 | 待裁 |
+| `rules/decommission.md` | L10 退役旁路律（候選 #19，KD-7） | 待裁 |
+| `rules/kairos-lessons.md` | L9-10 `"app/src/main/**/*.kt"` 等 scope；L21 K1-Rule 11 骨架 Ticket 條款 | 待裁 |
+| `rules/phase0-lessons.md` | L9 scope；L14 RFC 2119 Keywords 標頭；L22 K3-4 追加條款 | 待裁 |
+| `rules/ssot-governance.md` | L16 Governance Artifact 清單表頭；L19 `/compact` Auto Commit 步驟條款；L22 表格標頭 | 待裁（本表為本次分叉幅度最大檔） |
+| `rules/ticket_pattern.md` | L9 `ADV-` family provenance 記錄；L10 `WKTR-` family provenance 記錄 | 待裁 |
+| `skills/compact/SKILL.md` | L9 `# Cueshot Handoff — [日期]`；L18-20 Auto Commit Governance Artifacts 段 | 待裁 |
+| `skills/mdlint/SKILL.md` | L9 越權禁止條款（僅修復格式） | 待裁 |
+| `skills/qa/SKILL.md` | L9-12 Evidence Record（INFRA-MAXLINES-EVIDENCE-01）段 | 待裁 |
+| `skills/qa/scripts/static_blind_scan.sh` | L7-8 標頭註解；L15 echo 標頭 | 待裁 |
+| `skills/sv/CROSS_REVIEW.md` | L9 (B) diff 外但 production 可達判準行 | 待裁 |
+| `skills/sv/SKILL.md` | L24-26 SV BLOCKED: Ticket not committed 錯誤訊息段 | 待裁 |
+| `skills/sv/ssot_context.md` | L9-11 CameraViewModel/EyeAfController/FocusIndicatorOverlay Scope Ban 表列 | 待裁 |
+
+**禁語義裁量聲明**：以上 15 檔凍結判定純依機械規則（`git diff --no-index` APP 獨有非空行數 > 0），未對內容重要性做任何裁量；「待裁」處置一律等待 Akira 逐檔合併裁決，執行方不自行判斷去留。
