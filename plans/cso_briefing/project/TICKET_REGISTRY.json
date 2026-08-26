@@ -875,7 +875,7 @@
       "depends_on": [],
       "file": "plans/cso_briefing/project/deliver/INFRA-TRUNK-SYNC-01_Main_FastForward_And_Remote_Sync_For_Worktree_Adoption.md",
       "id": "INFRA-TRUNK-SYNC-01",
-      "lifecycle": "REVIEW",
+      "lifecycle": "CLOSED",
       "note": "main 分支 fast-forward 追平 feature/cueshot-mvp（852 commits）並同步遠端 origin/main，作為 Claude Worktree 平行開發模式穩定基線。ref-only 操作零檔案異動（ALLOWED=N/A，ZERO-DIFF-DECLARED 協議）；--ff-only 語意（Akira 裁決）；以 git fetch . feature/cueshot-mvp:main 達成 ref 前移不切 checkout；禁 force／禁改寫歷史／EH 全 fail-safe 停止回報升裁。 | Rev A（2026-08-25，SMTR 審查修訂，Akira 裁決甲案）：SMTR 第一手 live git 覆核票面承重主張全數屬實（main=9e26631 為 feature 純祖先、feature..main 空、main..origin/main 空、tip=dcfd863、working tree 乾淨）。三處補訂：①AI-0 增第 4 條 fetch origin 後驗 origin/main 祖先關係（F1：remote-tracking ref 新鮮度止於上次 fetch，發現點自執行期提前至復驗期）；②AI-0 增第 5 條前置確認無 linked worktree 檢出 main 並留存快照（F2：本票動機即 Worktree adoption，若 main 被檢出 fetch 將遭拒；原 AI-3 第 4 條「未產生非預期新 worktree」為空檢查，改寫為與前置快照逐字比對）；③EH 增 worktree-checkout 拒絕分支（停止回報禁繞過，升報 CSO）。F3 觀察不改：AC 前二條 [存在性] 標籤較貼近 [行為性]，票內已有行為性 AC 非偽裝關閉，不阻斷。修訂波及面全檔掃描：舊字面「三條指令」「未產生任何非預期新 worktree」零殘留（grep 取證 aud_20260825_5fb2d9f13d）。登冊備註：本票簽發時未入冊，Rev A 同批補登（ticket面修訂即冊註律）。",
       "reviews": {
         "codex": "PASS",
@@ -890,9 +890,9 @@
       "title": "main 分支 fast-forward 追平 feature/cueshot-mvp 並同步遠端（Worktree 基線切換點）",
       "topic": "INFRA",
       "updated_at": "2026-08-25",
-      "updated_by": "Claude",
+      "updated_by": "SMTR",
       "seq": 22
     }
   ],
-  "revision": 23
+  "revision": 26
 }

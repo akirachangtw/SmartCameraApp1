@@ -86,3 +86,10 @@ ANCHOR_PROBED=2026-08-25 13:35
 - `/sv` 階段 D Codex Cross-Review：**ADVISORY**（exit 0，REACHABILITY: NONE）——指出 AC「`git status --short` 回報空」未達成，但依 BLOCKER 白名單不構成 BLOCKER／REPORT_FIX，僅記錄觀察，流程繼續。
 - `reviews.codex` 記為 `PASS`（沿用既有先例：ADVISORY 為非阻斷終局判定，如 `CUE-SNAP-01-FIX-A` 同型記法），非 `N_A`——Codex 確實已執行審查並產出判定，非未審查。
 - `lifecycle=REVIEW`、票檔搬 `deliver/`、`TICKET_REGISTRY.json` 轉態均依 Akira 2026-08-25 對話直接指示執行，非 Desktop 治理 session 常態寫入。
+
+
+---
+
+## 收束覆核（SMTR，2026-08-25，REVIEW→CLOSED）
+
+獨立 live git 驗證（不採信執行者回報）：`main..origin/main` 與 `origin/main..main` 雙向 range 皆空（本地與遠端已對齊 `dcfd863`）；`feature..main` 空（main 仍為純祖先）；`main..feature` 僅 1 筆 `44be7db`（執行後之 [GOVERNANCE-SYNC] REVIEW 轉態 commit，預期時序——AC「main == feature tip」於執行完成當刻成立）。checkpoint 所載「`git status --short` 非空」偏差覆核成立：該異動（TICKET_REGISTRY.json、票檔自身）為開工前既有之外部異動，與 fetch/push ref 操作零因果，ZERO-DIFF 精神未破，Codex 已核驗非 BLOCKER。lifecycle 轉 CLOSED 依 Akira 2026-08-25 對話明示確認。冊面收束註記因平台 isolated project 隔離（`REGISTRY_CROSS_PROJECT_REF` 拒收 append_note）改載於本檔，upsert 通道已同步 lifecycle=CLOSED 與 deliver 路徑。
