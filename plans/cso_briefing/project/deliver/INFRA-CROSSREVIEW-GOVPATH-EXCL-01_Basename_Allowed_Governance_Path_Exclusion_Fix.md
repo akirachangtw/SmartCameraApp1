@@ -49,14 +49,14 @@ done
   - `echo "$CONF_ALLOWED" | grep -qF "$_gpath" || EXCLUDE_ARGS+=( ":!${_gpath}" )` —— 唯一（1 次）
 - **Rev A 增列（F6，AC-1 前提取證）**: `git cat-file -e 73cd4ff^{commit}` 與 `git cat-file -e 0bb6b4c^{commit}` 均須成功（AC-1 重放所依之基線區間仍在盤）；任一不存在 → 停止回報（禁改用其他區間自行替代，該案例為缺陷原始實證，替換即失去重放意義）。
 - **任一項不符 → 停止回報，禁自行推定等價位置。**
-- [ ] 完成
+- [x] 完成
 
 ### AI-1: 排除判定改以 ALLOWED 逐 token 之實際 git-tracked 路徑解析比對
 - **檔案**: `.claude/skills/sv/scripts/cross_review.sh`
 - **現值**: `echo "$CONF_ALLOWED" | grep -qF "$_gpath"` — 對 `CONF_ALLOWED` 原始字面（可能為 basename）與治理目錄前綴做字面子字串比對
 - **目標值**: 對 `CONF_ALLOWED` 逐 token 呼叫 `git ls-files` 或等效方式解析出其實際 tracked 路徑（若唯一命中），以**解析後路徑**是否落於 `$_gpath` 之下判定涵蓋，取代純字面子字串比對；basename token 對應多個候選路徑（歧義）時，**MUST** 保守判定為「涵蓋」（不排除該治理目錄），避免同一缺陷以歧義形式復發
 - **Rev A 補充（F4，歧義處置唯一化）**：歧義**不構成停止事由**——保守判定為「涵蓋」即為既定處置，並 **MUST** 於 stdout 輸出一行 `⚠️ ALLOWED token '<token>' 解析出 N 個候選路徑，保守判定為涵蓋 <gpath>`（可稽核性要求）。token 於 `git ls-files` **零命中**（未 tracked／拼字錯誤）時，同樣保守判定為「涵蓋」並輸出對應警示行，**MUST NOT** 因零命中而排除該治理目錄。
-- [ ] 完成
+- [x] 完成
 
 ## Hard Constraints
 1. **MUST NOT** 觸碰 `verify_checklist.sh`／`structural_verify.sh`——同名不同物，非本票標的。
@@ -73,13 +73,13 @@ done
 - **[標配]** 令含 commit／版控標的時，`git check-ignore -v <標的路徑>` 命中 → 停止回報
 
 ## Acceptance Criteria
-- [ ] **[存在性]**（Rev A 增列，F5）修正後 `cross_review.sh`：`git ls-files` 字面命中 ≥1；舊式比對 `echo "$CONF_ALLOWED" | grep -qF "$_gpath"` 命中 **0**；`保守判定為涵蓋` 警示字串命中 ≥1（歧義／零命中路徑之可稽核性落地）
-- [ ] **[行為性]** 重放 `INFRA-MAXLINES-GATE-01` 案例（`ALLOWED=verify_checklist.sh` conf，DIFF_REF=73cd4ff，DIFF_END=0bb6b4c）：修正後 `cross_review.sh` 產出之 payload `## Git Diff` 區段含實際 diff（非空白）
-- [ ] **[行為性]** 既有 `plans/`-scoped SSOT 票（ALLOWED 含完整路徑前綴如 `plans/architecture/SSOT_v4_0_7.md`）之既有排除行為不回歸（該類票之 payload 仍正確涵蓋 `plans/`）
-- [ ] **[行為性]**（Rev A 增列）負向迴歸：ALLOWED **不含**任何治理路徑之票（如純 `app/src/...` 標的），三治理目錄 **仍全數被排除**（`EXCLUDE_ARGS` 含 `:!.claude/`／`:!docs/`／`:!plans/` 三項）——證明修正未把排除機制整體弱化為恆不排除
-- [ ] **[可達性]** N/A 顯式劃記：本票標的為 CI／審查工具鏈腳本，消費者為 Codex payload 生成路徑，`app/src/main/` 無 production producer，型別不適用（非規避）
-- [ ] ~~`assembleDebug` PASS~~ (N/A: 無 .kt/.xml 變更)
-- [ ] `git diff --stat` 僅涉及 ALLOWED 檔案
+- [x] **[存在性]**（Rev A 增列，F5）修正後 `cross_review.sh`：`git ls-files` 字面命中 ≥1；舊式比對 `echo "$CONF_ALLOWED" | grep -qF "$_gpath"` 命中 **0**；`保守判定為涵蓋` 警示字串命中 ≥1（歧義／零命中路徑之可稽核性落地）
+- [x] **[行為性]** 重放 `INFRA-MAXLINES-GATE-01` 案例（`ALLOWED=verify_checklist.sh` conf，DIFF_REF=73cd4ff，DIFF_END=0bb6b4c）：修正後 `cross_review.sh` 產出之 payload `## Git Diff` 區段含實際 diff（非空白）
+- [x] **[行為性]** 既有 `plans/`-scoped SSOT 票（ALLOWED 含完整路徑前綴如 `plans/architecture/SSOT_v4_0_7.md`）之既有排除行為不回歸（該類票之 payload 仍正確涵蓋 `plans/`）
+- [x] **[行為性]**（Rev A 增列）負向迴歸：ALLOWED **不含**任何治理路徑之票（如純 `app/src/...` 標的），三治理目錄 **仍全數被排除**（`EXCLUDE_ARGS` 含 `:!.claude/`／`:!docs/`／`:!plans/` 三項）——證明修正未把排除機制整體弱化為恆不排除
+- [x] **[可達性]** N/A 顯式劃記：本票標的為 CI／審查工具鏈腳本，消費者為 Codex payload 生成路徑，`app/src/main/` 無 production producer，型別不適用（非規避）
+- [x] ~~`assembleDebug` PASS~~ (N/A: 無 .kt/.xml 變更)
+- [x] `git diff --stat` 僅涉及 ALLOWED 檔案
 
 ## 完成後動作
 - **MUST NOT** 自行搬移票檔（Pending→deliver 由 CSO 收束時執行）

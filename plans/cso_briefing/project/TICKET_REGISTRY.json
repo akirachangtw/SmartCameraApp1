@@ -827,14 +827,31 @@
     },
     {
       "created": "2026-08-15",
-      "file": "Pending/INFRA-CROSSREVIEW-GOVPATH-EXCL-01_Basename_Allowed_Governance_Path_Exclusion_Fix.md",
+      "file": "plans/cso_briefing/project/deliver/INFRA-CROSSREVIEW-GOVPATH-EXCL-01_Basename_Allowed_Governance_Path_Exclusion_Fix.md",
       "id": "INFRA-CROSSREVIEW-GOVPATH-EXCL-01",
-      "lifecycle": "PENDING",
+      "lifecycle": "REVIEW",
       "notes": "【冊面補登 2026-08-21】票檔於 b057e13（2026-08-21 16:31）入庫但冊面零登記，屬帳實分離，本次由審查方補完。缺陷：cross_review.sh L347-348 以 grep -qF 字面子串判定 ALLOWED 是否涵蓋治理目錄，basename token（合法格式）必 miss 致 .claude/ 整段排除，payload Git Diff 空白——實測案例 INFRA-MAXLINES-GATE-01 R1 誤判 REPORT_FIX。【SMTR 派工前審查 Rev A（2026-08-21）】六項修補：F1 自指阻塞防護入 HC-5（cross-review MUST 於 AI-1 commit 後執行以自愈，payload 空即停止，禁 EXTRA_EXCLUDE 繞道）；F2 ALLOWED/FORBIDDEN 由 basename 改完整路徑（票面自身即缺陷觸發形狀，fail-safe 立即防護）；F3 MAX_LINES 20→N/A（TPL v3.5 退役 gate＋R3 安全票自我適用）；F4 AI-1「歧義 MUST 保守涵蓋」與 Error Handling「歧義即停止」自撞，廢止後者並增 stdout 警示行可稽核性要求（零命中同視涵蓋）；F5 增存在性 AC（git ls-files 命中、1 舊式比對命中 0）＋負向迴歸行為性 AC（非治理票仍全排除三目錄，防止修正弱化為恆不排除）＋可達性 N/A 顯式劃記；F6 AI-0 增 73cd4ff/0bb6b4c 基線 SHA 存在性復驗。原判準以刪除線並列禁靜默替換。另 HC-6：RAPID_MODE 於 APP 不適用（Akira 2026-08-21 裁決不引入），全程序執行。錮點 L342/344/346/347/348/354 經 SMTR live grep 復驗未漂移，可派工。coordination_dependency=INFRA-MAXLINES-GATE-01（待本票修復後重跑 Cross-Review）",
       "preset": "hotfix",
       "title": "cross_review.sh 治理路徑排除誤判 basename-only ALLOWED 修正",
       "topic": "INFRA",
-      "seq": 18
+      "seq": 18,
+      "created_at": "2026-08-15",
+      "updated_at": "2026-08-26",
+      "updated_by": "Claude",
+      "blocked_by": null,
+      "depends_on": [
+        "INFRA-MAXLINES-GATE-01"
+      ],
+      "reviews": {
+        "qa": "PASS",
+        "sv": "PASS",
+        "codex": "PASS",
+        "traycer": "N_A"
+      },
+      "checkpoint": {
+        "state": "OPEN",
+        "resolution": "REVIEW — 碼閉環（2026-08-26）。AI-0 錨點復驗全數相符（L347/L348 唯一命中、73cd4ff/0bb6b4c 兩端存在）；AI-1 將 cross_review.sh 治理路徑排除判定由 `echo \"$CONF_ALLOWED\" | grep -qF \"$_gpath\"` 字面子字串比對，改為逐 token `git ls-files`（含 basename fallback）解析 tracked 路徑後比對前綴，歧義／零命中一律保守判定為涵蓋並輸出可稽核警示行。commit 390f50d。`/qa` Step 0 PASS（無 .kt/.xml 變更，N/A）；`/sv` 階段 A-C N/A（非 app 代碼）；Codex Cross-Review R1 PASS（REACHABILITY: NONE）。AC 逐項以**實機重放**驗證（非邏輯推演）：AC2 重放 INFRA-MAXLINES-GATE-01 basename token 案例（73cd4ff..0bb6b4c diff 84 行非空）、AC3 plans/ 完整路徑不回歸、AC4 純 app/ token 負向迴歸三治理目錄仍全排除，並附帶驗證零命中 token 之保守涵蓋分支。governance 票免 Traycer（純 .sh，Codex PASS 即閉環）。"
+      }
     },
     {
       "created": "2026-08-22",
@@ -894,5 +911,5 @@
       "seq": 22
     }
   ],
-  "revision": 26
+  "revision": 27
 }
