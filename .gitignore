@@ -25,6 +25,10 @@ opencv/.cxx/
 # Claude Code local settings
 .claude/settings.local.json
 
+# WKTR-APPDEPLOY-01: worktree 治理之執行期資料（skill 書面契約明載非版控）
+.claude/worktrees/
+.claude/wktrdata/
+
 # Kotlin compiler
 .kotlin/
 
