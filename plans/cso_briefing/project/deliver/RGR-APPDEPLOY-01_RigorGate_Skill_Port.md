@@ -48,46 +48,46 @@ TARGET_BLOB=N/A
 - `.claude/skills/ticket-rigor-gate/` 於 APP 端**不存在**。
 - `ticket_pattern.md` 錨點：`| \`WKTR-\` | \`WKTR-01\`` 行恰 1 次命中（provenance 表末列，AI-6 插入點）；全檔 `RGR-` 命中 0。
 - 基線漂移三分流（TPL v3.8）：不符時 ①`git diff --name-only 9dce488a..HEAD -- .claude/skills/ticket-rigor-gate .claude/rules/ticket_pattern.md` 空 → `ANCHOR_STALE_SCOPE_INTACT`；②非空依 commit 前綴：本票 ID → `ALREADY_EXECUTED_PENDING_CLOSURE`／他票 ID → `CANDIDATE_SUPERSEDED`／無前綴 → `BLOCKED_UNATTUTED_STATE`（唯讀取證後升裁）。三態均停止＋分類回報。
-- [ ] 完成
+- [x] 完成
 
 ### AI-0(B): 源端基線建立（唯讀）
 - 對源端 `/d/DevSources/workflow/mcp-ticket-platform/.claude/skills/ticket-rigor-gate/` 全 11 檔逐檔 `wc -c`，MUST 與票面基準表相符；**7 個純複製檔**另逐檔 `git hash-object` 記錄 SHA 於完成回報。任一位元組數不符 → 停止回報（源端漂移，禁自行採新值）。
-- [ ] 完成
+- [x] 完成
 
 ### AI-1: 純複製 7 檔（位元組級）
 - **檔案**: `EXAMPLE.md`、`OPS_CALIBRATION.md`、`REPAIR_ROUTING.md`、`runner/profiles/model-profiles.v1.json`、`runner/prompts/ticket-repair-prompt.v1.txt`、`runner/schemas/ticket-repair-payload.v1.json`、`runner/schemas/ticket-repair-response.v1.json`
 - **目標值**: 源端逐位元組複本（禁改編、禁行尾轉換）
-- [ ] 完成
+- [x] 完成
 
 ### AI-2: `SKILL.md` 三處 PLT 綁定改寫（其餘內容位元組級沿源端）
 - **L369 現值**: `docs/rigor-gate/RGR_<ticket-id>_<YYYYMMDD>.md` → **目標值**: `.tmp/rigor-gate/RGR_<ticket-id>_<YYYYMMDD>.md`
 - **L568 現值**: `in the \`mcp-ticket-platform\` repository` → **目標值**: `in the \`SmartCameraApp1\` repository`
 - **L578 現值**: `\`docs/deliver/TKR-02_Fix_Family_Ticket_Review_20260802.md\` — … inside this repository` → **目標值**: 改註為 PLT 端歷史參照 `\`mcp-ticket-platform/docs/deliver/TKR-02_...\`（PLT 端歷史檔，非本 repo 路徑）`，其餘語句不動
 - 改寫後全檔 grep `docs/rigor-gate`＝0、`mcp-ticket-platform`＝恰 1（僅 L578 歷史參照）
-- [ ] 完成
+- [x] 完成
 
 ### AI-3: `runner/repair_runner.sh` 遙測落點改寫
 - **L32 現值**: `TELEMETRY_ROOT="$REPO_ROOT/docs/rigor-gate/ticket-repair"`
 - **目標值**: `TELEMETRY_ROOT="$REPO_ROOT/.tmp/rigor-gate/ticket-repair"`
 - 其餘內容（含 L224 守門、CB-1~4、`REPO_ROOT` 推導）**一字不動**
-- [ ] 完成
+- [x] 完成
 
 ### AI-4: `runner/README.md` 落點記載同步
 - **L58 現值**: `docs/rigor-gate/ticket-repair/<ticket_id>/<source_run_id>/` → **目標值**: `.tmp/rigor-gate/ticket-repair/<ticket_id>/<source_run_id>/`
-- [ ] 完成
+- [x] 完成
 
 ### AI-5: `runner/housekeeping.sh` 保留額度 5→10（波及面三處全改）
 - **L2 現值**: `（P1 額度制，N=5）` → `（P1 額度制，N=10）`
 - **L6 現值**: `保留最近 5 個 run` → `保留最近 10 個 run`
 - **L13 現值**: `KEEP_N=5` → `KEEP_N=10`
 - 改後全檔 `=5`／`N=5` 命中 0（修訂波及面全檔掃描律）
-- [ ] 完成
+- [x] 完成
 
 ### AI-6: `ticket_pattern.md` Family Provenance 補登 RGR（純增一列）
 - **插入點**: `WKTR-` 列之後
 - **目標值**: `| \`RGR-\` | \`RGR-APPDEPLOY-01\` | \`RGR-APPDEPLOY-01\` | \`plans/cso_briefing/project/Pending/RGR-APPDEPLOY-01_RigorGate_Skill_Port.md\` | 2026-08-27 | TPL v3.6 前綴表預授權（RGR）；APP 端首用當刻補登（Rule 4a）；PLT 端 family 既存（RGR-INSTALL-01 起） |`
 - 禁動既有各列與 Regex 區塊任何字元
-- [ ] 完成
+- [x] 完成
 
 ## Hard Constraints
 1. 純複製 7 檔位元組級同一；修正 4 檔僅限 AI-2~AI-5 列明行，其餘內容位元組級沿源端。
@@ -103,14 +103,14 @@ TARGET_BLOB=N/A
 - **[標配]** `git check-ignore -v` 對 `.claude/skills/ticket-rigor-gate/SKILL.md`、`.claude/rules/ticket_pattern.md` 任一命中 → 停止回報（KAIROS #20）。
 
 ## Acceptance Criteria
-- [ ] **[存在性]** 11 檔於 APP 端存在；7 純複製檔逐檔 `git hash-object` 兩端相等（SHA 逐筆列於完成回報）
-- [ ] **[存在性]** 5 處改寫目標值逐字命中；APP 端全樹 grep `docs/rigor-gate` 命中 0
-- [ ] **[存在性]** `housekeeping.sh` 之 `KEEP_N=10` 恰 1、`5` 相關舊字面三處全清；`ticket_pattern.md` RGR 列恰 1 且既有列零異動（`git diff` 該檔零 `-` 行）
-- [ ] **[行為性]** given APP repo 根執行 `command -v jq sha256sum diff codex.cmd`，expect 四項全數命中（缺項即本票不可收束）
-- [ ] **[行為性]** given `.tmp/rigor-gate/ticket-repair/PROBE-T/` 下以不同 mtime 建立 11 個假 run 目錄後執行 `bash .claude/skills/ticket-rigor-gate/runner/housekeeping.sh .tmp/rigor-gate/ticket-repair`，expect 恰保留最新 10 個、刪除最舊 1 個；驗畢刪除 `PROBE-T/` 全部並確認零殘留
-- [ ] **[可達性]** N/A 顯式劃記（`.claude/` 治理載體，無 `app/src/main/` producer，型別不適用）
-- [ ] ~~`assembleDebug` PASS~~ (N/A: docs preset)
-- [ ] `git diff --stat` 僅涉及 ALLOWED 檔案
+- [x] **[存在性]** 11 檔於 APP 端存在；7 純複製檔逐檔 `git hash-object` 兩端相等（SHA 逐筆列於完成回報）
+- [x] **[存在性]** 5 處改寫目標值逐字命中；APP 端全樹 grep `docs/rigor-gate` 命中 0
+- [x] **[存在性]** `housekeeping.sh` 之 `KEEP_N=10` 恰 1、`5` 相關舊字面三處全清；`ticket_pattern.md` RGR 列恰 1 且既有列零異動（`git diff` 該檔零 `-` 行）
+- [x] **[行為性]** given APP repo 根執行 `command -v jq sha256sum diff codex.cmd`，expect 四項全數命中（缺項即本票不可收束）
+- [x] **[行為性]** given `.tmp/rigor-gate/ticket-repair/PROBE-T/` 下以不同 mtime 建立 11 個假 run 目錄後執行 `bash .claude/skills/ticket-rigor-gate/runner/housekeeping.sh .tmp/rigor-gate/ticket-repair`，expect 恰保留最新 10 個、刪除最舊 1 個；驗畢刪除 `PROBE-T/` 全部並確認零殘留
+- [x] **[可達性]** N/A 顯式劃記（`.claude/` 治理載體，無 `app/src/main/` producer，型別不適用）
+- [x] ~~`assembleDebug` PASS~~ (N/A: docs preset)
+- [x] `git diff --stat` 僅涉及 ALLOWED 檔案
 
 ## 完成後動作（收尾義務）
 1. 票檔勾選後搬 `deliver/`；冊面轉態四要件原子完成；冊面走**僅含 registry 單檔**之獨立 `[GOVERNANCE-SYNC]` commit（`WKTR-APPDEPLOY-01` F2 教訓）。
