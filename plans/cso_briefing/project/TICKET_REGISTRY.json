@@ -1000,13 +1000,13 @@
       "depends_on": [],
       "file": "deliver/RGR-APPDEPLOY-01_RigorGate_Skill_Port.md",
       "id": "RGR-APPDEPLOY-01",
-      "lifecycle": "REVIEW",
+      "lifecycle": "CLOSED",
       "note": "PLT→APP 移轉三票之第二張（APP-2）：ticket-rigor-gate 全目錄 11 檔（7 純複製＋4 修正）。｜⭐ L2 設計裁決（Akira 2026-08-27）：中間產物不永久保存——RGR quality report 與執行遙測同屬執行期產物，統一落 .tmp/rigor-gate/ 輪替（KEEP_N 5→10，波及面三處全改）；耐久結論唯一載體＝票面收尾實錄，回溯品質依票面註記完整度；禁任何 AC 引 .tmp/ 下 RGR 產物為長期證據。已知權衡（L2 明示接受）：CB-1/2/4 凍結記憶域縮短為 report 存續期；翻盤條件＝同一票遭重複自動修補造成實害。runner L224 守門不改，report 以 ticket-repair/ 之外平行位置滿足其字面。｜落點：TELEMETRY_ROOT→.tmp/rigor-gate/ticket-repair/（repair_runner.sh:32）；report→.tmp/rigor-gate/RGR_<id>_<date>.md（SKILL.md:369）。.tmp/ 已在 .gitignore 排除，本票不動 .gitignore，與 APP-3 零檔案交集。既有佔用者 cross_review.sh 清理為檔名限定 cross_review_*.md、禁遞迴禁 rm -rf（L131/L139/L208，aud_20260827_3f5dc4e4e2），共存安全。｜開票期 live 取證（2026-08-27 14:26）：PLT 綁定全樹 5 處（盤點檔載 3 處，本次補 repair_runner.sh:32＋README.md:58，aud_20260827_3f394ca040/785b155077）；REPO_ROOT 四層上溯為 repo-agnostic 不列改寫（aud_20260827_0ae13c1d7d）；外部命令 fail-closed 四項 jq/sha256sum/diff/codex.cmd 入行為性 AC；源端 11 檔位元組數全數入票面基準表（aud_20260827_d25368c135）。｜律 A 取號：APP 側 RGR-* 票檔零命中；PLT 端 RGR 家族均語義子家族制（visited_files=536，aud_20260827_8559df1bb0），RGR-APPDEPLOY-01 零碰撞，沿 WKTR-APPDEPLOY-01 命名先例。｜歸屬（TPL v3.6 二階）：標的為 RGR 議題專屬模組，關聯性成立→歸 RGR。⚠️ RGR family 於 APP 端未登記（ticket_pattern.md 僅 MEO/ADV/WKTR 三列，aud_20260827_dd55e14b47），依 TPL v3.6＋Rule 4a 首用當刻補登＝AI-6（僅增一列，不改 regex），故 ALLOWED 含 .claude/rules/ticket_pattern.md。｜Verify Config：PRESET=docs、DIFF_REF=BASE_COMMIT=9dce488a、ANCHOR_PROBED=2026-08-27 14:26、MAX_LINES=80（遙測）、TARGET_BLOB=N/A（同 WKTR-APPDEPLOY-01 先例，AI-0 錨點制）。｜HC：禁引入五段生命週期、禁動 ssot-governance/mcp-service-safety/.gitignore（APP-3 範圍，本票只落工具不加關卡）；禁改 L224 守門與 CB 邏輯；RAPID 不適用走全程序。｜AC：含兩條行為性（四命令齊備；housekeeping 以 11 假 run 實跑驗 KEEP_N=10 保 10 刪 1，驗畢清除）。｜收尾：冊面僅 registry 單檔獨立 GOVERNANCE-SYNC commit（F2 教訓）；實錄禁引 sv_report.md 與 .tmp/ 產物（F3/KAIROS #28）。",
       "preset": "docs",
       "reviews": {
         "codex": "PASS",
-        "qa": "PASS",
-        "sv": "PASS",
+        "qa": "N_A",
+        "sv": "N_A",
         "traycer": "N_A"
       },
       "title": "ticket-rigor-gate Skill（含 runner）PLT→APP 移植；產物統一 .tmp/rigor-gate/ 輪替（KEEP_N=10）",
@@ -1015,10 +1015,10 @@
       "updated_by": "SKAD",
       "seq": 1,
       "checkpoint": {
-        "resolution": "碼閉環：11 檔 PLT→APP 位元組級移轉（7 純複製 hash-object 兩端相等 + 4 修正 PLT 綁定路徑/KEEP_N 5→10）+ ticket_pattern.md RGR family provenance 補登。DIFF_REF 於 /sv 階段由票面 9dce488a 重錨至 4bae379（AI-0(A) ANCHOR_STALE_SCOPE_INTACT，R0 CHECKPOINT 觸發後修正，記錄於 .tmp/fail-advisor/R0_RGR-APPDEPLOY-01_20260827_144937.md）。Codex Cross-Review R1 BLOCKER（README.md:63 保留數量 5/10 split-brain）→ 修復 commit 451e85b → R2/R3 REPORT_FIX（sv_report.md 措辭）→ R4 PASS（REACHABILITY: NONE）。structural_verify.sh --post PASS（ADVISORY，PROGRESS.md 80行既有警示）。commit f884101（主體）+ 451e85b（README 修復）。免 Traycer（純 .claude/ 治理票，票面 Header N/A）。行為性 AC 實跑：housekeeping.sh 對 11 個假 run（不同 mtime）恰保留 10 刪 1，驗畢清空探測目錄。",
-        "state": "RESOLVED"
+        "state": "RESOLVED",
+        "resolution": "CLOSED 收尾實錄（2026-08-27，SMTR 審查方）。｜碼閉環：f884101（主實作，11 skill 檔＋ticket_pattern.md RGR 列）＋451e85b（README.md L63 保留數量文字補漏 5→10）。｜SMTR 第一手獨立復證：①5 處落點改寫逐字命中——repair_runner.sh:32 TELEMETRY_ROOT=.tmp/rigor-gate/ticket-repair、SKILL.md L369/.tmp 路徑、L568 SmartCameraApp1、L578 PLT 歷史參照、README L58（aud_20260827_ea167ae5ed）；②KEEP_N 波及面四處全改（housekeeping.sh L2/L6/L13＋README L63），KEEP_N=10 恰 1、舊字面零殘留；③docs/rigor-gate 於 skill 五承載檔命中 0；mcp-ticket-platform 僅 SKILL.md:578 歷史參照恰 1；④ticket_pattern.md L61 RGR 列恰 1、L60 WKTR 列未動；⑤位元組數——頂層三純複製檔 16,841/2,682/10,259 與源端精確相符（aud_20260827_44015e31bc），修正檔尺寸差與編輯內容逐項可解釋（repair_runner 30,814 等長改寫；housekeeping +3B=三處 5→10；README +1B；SKILL +26B），aud_20260827_a951b59d58；⑥git status 全域淨空（aud_20260827_100060884b）；⑦票檔已在 deliver/、AC 八項全勾、未勾框零命中（aud_20260827_b075ca009a）。｜審查發現三項（揭露級，無退回級）：G1 混型 commit 第二例——1d4fc03 message 僅稱 TICKET_REGISTRY.json，實際併入票檔 Pending/→deliver/ 搬移（aud_20260827_d246291c3c），同 WKTR-APPDEPLOY-01 F2 形狀，債務票 INFRA-QA-COMMIT-MIXEDTYPE-01 計數 +1；正向面：票檔勾選（6ca2e15）與實作（f884101）各自獨立 commit，F2 教訓部分吸收。G2 主實作 commit 含 .claude/PROGRESS.md（dashboard 慣例同步），不在 ALLOWED 亦不在 FORBIDDEN，AC「僅涉及 ALLOWED」字面未滿——dashboard 例外慣例 vs AC 字面之衝突建議由 APP-3 或 TPL 註記一次性定調。G3 開票端波及面漏項——AI-4 僅列 README L58，L63 保留數量文字漏列（違修訂波及面全檔掃描律，開票方責任），執行端 451e85b 主動補漏符合該律，正向記名。｜[relayed] 未復驗項：7 純複製檔之逐檔 git hash-object SHA（完成回報載，審查方無 hash 通道；獨立旁證＝位元組數精確相符＋改寫檔零 docs/rigor-gate 殘留）；兩條行為性 AC 實跑（四命令齊備、housekeeping 保 10 刪 1 探針）——.tmp/ 產物依 L2 裁決不留存，無事後可稽核載體，此為裁決明示接受之取證邊界，非缺失。｜reviews：qa/sv 依 WKTR-APPDEPLOY-01 先例誠實降級 N_A（.claude/ 治理載體票、docs preset、無 build 面實跑記錄；階段性通過不得登記為整體通過）；codex=PASS（1d4fc03 訊息載 Codex PASS 收束，取證載體 [relayed]）；traycer=N_A。｜冊面轉態四要件齊備。｜遺留掛鉤：APP-3 開立時 MUST 回填本票與 WKTR-APPDEPLOY-01 之 coordination_dependency 欄並援引本實錄 G2 定調項。"
       }
     }
   ],
-  "revision": 49
+  "revision": 52
 }
