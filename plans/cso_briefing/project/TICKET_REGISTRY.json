@@ -998,22 +998,26 @@
       "blocked_by": null,
       "created": "2026-08-27",
       "depends_on": [],
-      "file": "Pending/RGR-APPDEPLOY-01_RigorGate_Skill_Port.md",
+      "file": "deliver/RGR-APPDEPLOY-01_RigorGate_Skill_Port.md",
       "id": "RGR-APPDEPLOY-01",
-      "lifecycle": "PENDING",
+      "lifecycle": "REVIEW",
       "note": "PLT→APP 移轉三票之第二張（APP-2）：ticket-rigor-gate 全目錄 11 檔（7 純複製＋4 修正）。｜⭐ L2 設計裁決（Akira 2026-08-27）：中間產物不永久保存——RGR quality report 與執行遙測同屬執行期產物，統一落 .tmp/rigor-gate/ 輪替（KEEP_N 5→10，波及面三處全改）；耐久結論唯一載體＝票面收尾實錄，回溯品質依票面註記完整度；禁任何 AC 引 .tmp/ 下 RGR 產物為長期證據。已知權衡（L2 明示接受）：CB-1/2/4 凍結記憶域縮短為 report 存續期；翻盤條件＝同一票遭重複自動修補造成實害。runner L224 守門不改，report 以 ticket-repair/ 之外平行位置滿足其字面。｜落點：TELEMETRY_ROOT→.tmp/rigor-gate/ticket-repair/（repair_runner.sh:32）；report→.tmp/rigor-gate/RGR_<id>_<date>.md（SKILL.md:369）。.tmp/ 已在 .gitignore 排除，本票不動 .gitignore，與 APP-3 零檔案交集。既有佔用者 cross_review.sh 清理為檔名限定 cross_review_*.md、禁遞迴禁 rm -rf（L131/L139/L208，aud_20260827_3f5dc4e4e2），共存安全。｜開票期 live 取證（2026-08-27 14:26）：PLT 綁定全樹 5 處（盤點檔載 3 處，本次補 repair_runner.sh:32＋README.md:58，aud_20260827_3f394ca040/785b155077）；REPO_ROOT 四層上溯為 repo-agnostic 不列改寫（aud_20260827_0ae13c1d7d）；外部命令 fail-closed 四項 jq/sha256sum/diff/codex.cmd 入行為性 AC；源端 11 檔位元組數全數入票面基準表（aud_20260827_d25368c135）。｜律 A 取號：APP 側 RGR-* 票檔零命中；PLT 端 RGR 家族均語義子家族制（visited_files=536，aud_20260827_8559df1bb0），RGR-APPDEPLOY-01 零碰撞，沿 WKTR-APPDEPLOY-01 命名先例。｜歸屬（TPL v3.6 二階）：標的為 RGR 議題專屬模組，關聯性成立→歸 RGR。⚠️ RGR family 於 APP 端未登記（ticket_pattern.md 僅 MEO/ADV/WKTR 三列，aud_20260827_dd55e14b47），依 TPL v3.6＋Rule 4a 首用當刻補登＝AI-6（僅增一列，不改 regex），故 ALLOWED 含 .claude/rules/ticket_pattern.md。｜Verify Config：PRESET=docs、DIFF_REF=BASE_COMMIT=9dce488a、ANCHOR_PROBED=2026-08-27 14:26、MAX_LINES=80（遙測）、TARGET_BLOB=N/A（同 WKTR-APPDEPLOY-01 先例，AI-0 錨點制）。｜HC：禁引入五段生命週期、禁動 ssot-governance/mcp-service-safety/.gitignore（APP-3 範圍，本票只落工具不加關卡）；禁改 L224 守門與 CB 邏輯；RAPID 不適用走全程序。｜AC：含兩條行為性（四命令齊備；housekeeping 以 11 假 run 實跑驗 KEEP_N=10 保 10 刪 1，驗畢清除）。｜收尾：冊面僅 registry 單檔獨立 GOVERNANCE-SYNC commit（F2 教訓）；實錄禁引 sv_report.md 與 .tmp/ 產物（F3/KAIROS #28）。",
       "preset": "docs",
       "reviews": {
-        "codex": "PENDING",
-        "qa": "PENDING",
-        "sv": "PENDING",
+        "codex": "PASS",
+        "qa": "PASS",
+        "sv": "PASS",
         "traycer": "N_A"
       },
       "title": "ticket-rigor-gate Skill（含 runner）PLT→APP 移植；產物統一 .tmp/rigor-gate/ 輪替（KEEP_N=10）",
       "topic": "RGR",
       "updated_at": "2026-08-27",
       "updated_by": "SKAD",
-      "seq": 1
+      "seq": 1,
+      "checkpoint": {
+        "resolution": "碼閉環：11 檔 PLT→APP 位元組級移轉（7 純複製 hash-object 兩端相等 + 4 修正 PLT 綁定路徑/KEEP_N 5→10）+ ticket_pattern.md RGR family provenance 補登。DIFF_REF 於 /sv 階段由票面 9dce488a 重錨至 4bae379（AI-0(A) ANCHOR_STALE_SCOPE_INTACT，R0 CHECKPOINT 觸發後修正，記錄於 .tmp/fail-advisor/R0_RGR-APPDEPLOY-01_20260827_144937.md）。Codex Cross-Review R1 BLOCKER（README.md:63 保留數量 5/10 split-brain）→ 修復 commit 451e85b → R2/R3 REPORT_FIX（sv_report.md 措辭）→ R4 PASS（REACHABILITY: NONE）。structural_verify.sh --post PASS（ADVISORY，PROGRESS.md 80行既有警示）。commit f884101（主體）+ 451e85b（README 修復）。免 Traycer（純 .claude/ 治理票，票面 Header N/A）。行為性 AC 實跑：housekeeping.sh 對 11 個假 run（不同 mtime）恰保留 10 刪 1，驗畢清空探測目錄。",
+        "state": "RESOLVED"
+      }
     }
   ],
   "revision": 49
