@@ -60,7 +60,7 @@ bash repair_runner.sh [sol|terra] --payload <payload.json>
 raw response、JSONL 事件流（`--json`）、validated response、patch before/after、report append 結果、
 stderr（失敗時）。
 
-每個 `ticket_id` 保留最近 5 個 run，逾額由 `housekeeping.sh` 於 runner 主流程自然終點自動清掃
+每個 `ticket_id` 保留最近 10 個 run，逾額由 `housekeeping.sh` 於 runner 主流程自然終點自動清掃
 （mtime 最舊先刪；刪除候選 realpath 逸出 `TELEMETRY_ROOT` 即整體中止、零刪除、非零退出）。
 janitor 以子 shell 隔離呼叫，其失敗不汙染 runner 既定 exit code。
 
