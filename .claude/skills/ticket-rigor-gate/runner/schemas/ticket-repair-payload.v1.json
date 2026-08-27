@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "ticket-repair-payload/v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "ticket_id",
+    "finding_ids",
+    "target",
+    "findings",
+    "evidence",
+    "constraints",
+    "quality_report"
+  ],
+  "properties": {
+    "schema_version": { "const": "ticket-repair-payload/v1" },
+    "ticket_id": { "type": "string", "minLength": 1 },
+    "finding_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "source_run_id": { "type": "string" },
+    "target": {
+      "type": "object",
+      "required": ["file_path", "write_mode"],
+      "properties": {
+        "file_path": { "type": "string", "minLength": 1 },
+        "write_mode": { "type": "string", "minLength": 1 },
+        "section_id": { "type": "string" },
+        "expected_old_text_hash": { "type": "string" }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["finding_id", "severity", "decisionness", "repair_eligibility"],
+        "properties": {
+          "finding_id": { "type": "string", "minLength": 1 },
+          "class": { "type": "string" },
+          "severity": { "type": "string" },
+          "decisionness": { "type": "string" },
+          "summary": { "type": "string" },
+          "repair_eligibility": { "type": "string" },
+          "repair_reason": { "type": "string" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "evidence_id": { "type": "string" },
+          "path": { "type": "string", "minLength": 1 },
+          "lines": { "type": "string" },
+          "excerpt": { "type": "string" },
+          "claim": { "type": "string" }
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "required": ["max_changed_lines"],
+      "properties": {
+        "max_changed_lines": { "type": "integer", "minimum": 0 },
+        "frozen_terms": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "allow_normative_edit_only_if_cited_finding": { "type": "boolean" },
+        "allow_scope_expansion": { "type": "boolean" },
+        "allow_decision_making": { "type": "boolean" },
+        "require_json_output": { "type": "boolean" }
+      }
+    },
+    "quality_report": {
+      "type": "object",
+      "required": ["report_path"],
+      "properties": {
+        "report_path": { "type": "string", "minLength": 1 },
+        "append_mode": { "type": "boolean" }
+      }
+    }
+  }
+}

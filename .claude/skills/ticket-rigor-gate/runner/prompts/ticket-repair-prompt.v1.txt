@@ -1,0 +1,49 @@
+TEMPLATE_VERSION: ticket-repair-prompt/v1
+
+SYSTEM CONTRACT
+You are generating a bounded repair proposal for a ticket quality workflow. You may repair only medium-or-lower fact-layer findings explicitly listed below. You must not make policy choices, expand scope, or rewrite outside the allowed target.
+
+TASK
+Return only JSON matching schema ticket-repair-response/v1.
+
+TICKET
+- ticket_id: {{ticket_id}}
+- target_file: {{target.file_path}}
+- write_mode: {{target.write_mode}}
+
+ALLOWED REPAIR SCOPE
+- target.section_id: {{target.section_id}}
+- expected_old_text_hash: {{target.expected_old_text_hash}}
+
+FINDINGS
+{{#findings}}
+- finding_id: {{finding_id}}
+  class: {{class}}
+  severity: {{severity}}
+  decisionness: {{decisionness}}
+  repair_eligibility: {{repair_eligibility}}
+  summary: {{summary}}
+{{/findings}}
+
+EVIDENCE
+{{#evidence}}
+- evidence_id: {{evidence_id}}
+  path: {{path}}
+  lines: {{lines}}
+  excerpt: {{excerpt}}
+  claim: {{claim}}
+{{/evidence}}
+
+CONSTRAINTS
+- max_changed_lines: {{constraints.max_changed_lines}}
+- frozen_terms: {{constraints.frozen_terms}}
+- allow_normative_edit_only_if_cited_finding: {{constraints.allow_normative_edit_only_if_cited_finding}}
+- allow_scope_expansion: {{constraints.allow_scope_expansion}}
+- allow_decision_making: {{constraints.allow_decision_making}}
+- if ambiguous or decision-like: return escalate_to_human
+
+REFUSAL INSTRUCTION
+If a finding is out of range, lacks sufficient evidence, or requires a decision-layer judgment call, you MUST return the corresponding disposition (`out_of_range`, `insufficient_evidence`, or `escalate_to_human`) instead of `propose_repair`. Do not invent policy, do not broaden scope, do not touch frozen normative sentences unless the sentence itself is the cited finding target.
+
+OUTPUT CONTRACT
+Return JSON only. No markdown. No prose outside JSON. The JSON MUST validate against schema ticket-repair-response/v1.

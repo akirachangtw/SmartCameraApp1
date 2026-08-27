@@ -58,6 +58,7 @@ commit-hook=^\[[A-Z][A-Z0-9]*(-[A-Z0-9]+)+\]
 | `MEO-` | `MEO-T2` | `MEO-FIX-A` | `plans/cso_briefing/project/Pending/MEO-FIX-A_Escalation_Gate_Relocation.md` | 2026-07-25 | CSO 簽發並直接指示執行 |
 | `ADV-` | `ADV-WTREE-01`（VOID，票檔已刪） | `ADV-WTREE-01`（VOID，票檔已刪） | 原 `D:/DevSources/Skill-Advisor/Pending/`（2026-08-14 依通道紀律連同目錄刪除；設計專案不放票） | 2026-08-13 | Ticket TPL v3.6 前綴表預授權（Advisor→ADV）；首票 2026-08-14 作廢改歸 WKTR 線（family 保留，序號 01 不重用）。內容與作廢理由之耐久載體＝vault `2026-08-14_Native_Worktree_Migration_And_WKTR_Line_Establishment.md` 與 WKTR-01 冊面 note，票檔本身無獨有資訊 |
 | `WKTR-` | `WKTR-01` | `WKTR-01` | `D:/DevSources/workflow/mcp-ticket-platform/docs/pending/WKTR-01_Native_Worktree_Finish_Progress_Handoff.md` | 2026-08-14 | Akira 2026-08-14 裁決立 WKTR 議題線（worktree 工作流，實作專案 mcp-ticket-platform）；SKAD 首用當刻補登；取代 ADV-WTREE-01 |
+| `RGR-` | `RGR-APPDEPLOY-01` | `RGR-APPDEPLOY-01` | `plans/cso_briefing/project/Pending/RGR-APPDEPLOY-01_RigorGate_Skill_Port.md` | 2026-08-27 | TPL v3.6 前綴表預授權（RGR）；APP 端首用當刻補登（Rule 4a）；PLT 端 family 既存（RGR-INSTALL-01 起） |
 
 ## 票據模板規範
 
