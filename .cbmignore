@@ -1,0 +1,63 @@
+# ============================================================
+# Codebase Memory MCP: SmartCameraApp1
+# Keep: app source, Android/Gradle configuration, specifications,
+#       ADR-like documents, plans, and engineering instructions.
+# ============================================================
+
+# Android / Gradle generated artifacts
+/.gradle/
+**/build/
+**/.cxx/
+**/externalNativeBuild/
+**/generated/
+**/outputs/
+**/reports/
+**/captures/
+
+# IDE / editor workspace state
+/.idea/
+/.vscode/
+*.iml
+*.ipr
+*.iws
+/local.properties
+
+# Existing AI-tool graph caches / generated state
+/.codegraph/
+/.understand-anything/
+/.claude/cache/
+/.gemini/cache/
+
+# Local runtime / temporary files
+/tmp/
+*.tmp
+*.log
+*.hprof
+
+# Visual reference assets: preserve textual design specifications,
+# but exclude expensive binary media from the code graph.
+/design_references/**/*.png
+/design_references/**/*.jpg
+/design_references/**/*.jpeg
+/design_references/**/*.webp
+/design_references/**/*.gif
+/screenshots/
+/app/**/*.png
+/app/**/*.jpg
+/app/**/*.jpeg
+/app/**/*.webp
+
+# Historic snapshots / backup material, not active architecture
+/archive/
+/others/
+/.clinerules.bak
+/CHAT_LOGS_BACKUP_MANIFEST.md
+/RESTORE_CHAT_LOGS.md
+
+# Test and quality-generated reports
+**/coverage/
+**/jacoco/
+**/kover/
+**/test-results/
+**/test-report/
+**/lint-results*
