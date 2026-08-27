@@ -54,7 +54,7 @@ TARGET_BLOB=N/A
 - **動作**: 確認 `.claude/skills/wktree-close/`、`.claude/skills/wktree-compact/` **均不存在**。
 - **基線漂移三分流（TPL v3.8）**：錨點不符時 MUST 依序執行 —— ①`git diff --name-only 9f66645b..HEAD -- .gitignore .claude/skills/wktree-close .claude/skills/wktree-compact` 為空 → 停止並回報 `ANCHOR_STALE_SCOPE_INTACT`；②非空則依 commit 前綴歸因：含本票 ID → `ALREADY_EXECUTED_PENDING_CLOSURE`；含他票 ID → `CANDIDATE_SUPERSEDED`（附票 ID，禁自判等價）；無前綴 → `BLOCKED_UNATTRIBUTED_STATE`（唯讀取證後升裁）。
 - **三態均為停止＋分類回報，禁推定等價位置續作。**
-- [ ] 完成
+- [x] 完成
 
 ### AI-0(B): 源端 blob 基線建立（複製前，唯讀）
 - **檔案（源端，唯讀，不在 ALLOWED 亦不得寫入）**:
@@ -63,25 +63,25 @@ TARGET_BLOB=N/A
   - `/d/DevSources/workflow/mcp-ticket-platform/.claude/skills/wktree-compact/SKILL.md`
 - **動作**: 逐檔執行 `git hash-object <源端路徑>`，將三個 SHA 與 `wc -c` 位元組數**回填本票 Verify Config 下方新增之「AI-0(B) 實測表」**。
 - **動作**: 位元組數 MUST 與開票期取證表相符（2,742／10,443／2,123）。**任一不符 → 停止回報**（源端於開票後異動，票面前提失效，禁自行採用新值）。
-- [ ] 完成
+- [x] 完成
 
 ### AI-1: 複製 `wktree-close/SKILL.md`
 - **檔案**: `.claude/skills/wktree-close/SKILL.md`
 - **現值**: 檔案不存在
 - **目標值**: 源端 `mcp-ticket-platform/.claude/skills/wktree-close/SKILL.md` 之**位元組級複本**（`cp` 或等效；禁以編輯器重打、禁行尾正規化、禁改編任何一字元）
-- [ ] 完成
+- [x] 完成
 
 ### AI-2: 複製 `wktree-close/scripts/wktree-close.sh`
 - **檔案**: `.claude/skills/wktree-close/scripts/wktree-close.sh`
 - **現值**: 檔案不存在
 - **目標值**: 源端同名檔之位元組級複本；複製後 MUST 確認可執行位元與源端一致（`git ls-files -s` 檢視 mode，源端為 100755 則標的亦須 100755）
-- [ ] 完成
+- [x] 完成
 
 ### AI-3: 複製 `wktree-compact/SKILL.md`
 - **檔案**: `.claude/skills/wktree-compact/SKILL.md`
 - **現值**: 檔案不存在
 - **目標值**: 源端 `mcp-ticket-platform/.claude/skills/wktree-compact/SKILL.md` 之位元組級複本
-- [ ] 完成
+- [x] 完成
 
 ### AI-4: `.gitignore` 補執行期資料目錄排除
 - **檔案**: `.gitignore`
@@ -99,7 +99,7 @@ TARGET_BLOB=N/A
 .claude/worktrees/
 .claude/wktrdata/
 ```
-- [ ] 完成
+- [x] 完成
 
 ## Hard Constraints
 1. **位元組級複製**：三個標的檔內容 MUST 與源端逐位元組相同。禁在地改編、禁補 APP 語境註記、禁行尾轉換（CRLF/LF 一律沿源端）——任何「順手改善」即令 AC hash 相等判準失效。
@@ -119,15 +119,15 @@ TARGET_BLOB=N/A
 - **[標配]** 本票含 commit 標的，`git check-ignore -v .claude/skills/wktree-close/SKILL.md .claude/skills/wktree-compact/SKILL.md .gitignore` 任一命中（標的被排除）→ 停止回報（gitignore 死結律，KAIROS #20）。**開票端預檢**：APP `.gitignore` 對 `.claude/` 僅排除 `settings.local.json`，三標的推定可見；執行端仍 MUST 實跑復驗，禁以本註記替代。
 
 ## Acceptance Criteria
-- [ ] **[存在性]** 三個標的檔於 APP 端存在，且 `wc -c` 分別為 2,742／10,443／2,123
-- [ ] **[存在性]** 逐檔 `git hash-object` 兩端相等（三筆，逐筆列出 SHA 於完成回報；與 AI-0(B) 實測表同源）
-- [ ] **[存在性]** `.gitignore` 中 `.claude/worktrees/` 與 `.claude/wktrdata/` 各命中恰 1 次；`git diff 9f66645b -- .gitignore` 之 `-` 行數為 0
-- [ ] **[行為性]** given `.claude/wktrdata/` 下建立探針檔 `probe_wktr.md`，expect `git status --short` **不列出**該檔（`git check-ignore` 命中）；驗畢 MUST 刪除探針檔與空目錄，並以 `git status --short` 二次確認零殘留
-- [ ] **[行為性]** given 三個新複製之 skill 檔，expect `git status --short` 列為 `??`（未被 `.gitignore` 誤傷、可納入版控）——此為 AI-4 未過度排除之負向迴歸
-- [ ] **[行為性]** given 既有 `.claude/settings.local.json`，expect 仍被 ignore（`git check-ignore` 命中）——證 AI-4 增列未破壞既有規則
-- [ ] **[可達性]** N/A 顯式劃記：本票交付物為 `.claude/` 治理載體與 `.gitignore`，結構上不存在 `app/src/main/` production producer，屬型別不適用，非規避
-- [ ] ~~`assembleDebug` PASS~~ (N/A: docs preset — 無編譯產物，依 TPL「固定 AC 之 preset 適用性」顯式劃記)
-- [ ] `git diff --stat` 僅涉及 ALLOWED 檔案
+- [x] **[存在性]** 三個標的檔於 APP 端存在，且 `wc -c` 分別為 2,742／10,443／2,123——實測相符
+- [x] **[存在性]** 逐檔 `git hash-object` 兩端相等（三筆）——`b628643d`／`2d1974db`／`7a3eb580` 皆兩端一致，與 AI-0(B) 實測表同源
+- [x] **[存在性]** `.gitignore` 中 `.claude/worktrees/` 與 `.claude/wktrdata/` 各命中恰 1 次；`git diff 9f66645 -- .gitignore` 之 `-` 行數為 0——實測相符
+- [x] **[行為性]** given `.claude/wktrdata/` 下建立探針檔 `probe_wktr.md`，expect `git status --short` **不列出**該檔——實機執行通過，驗畢已刪除探針檔與空目錄，二次確認零殘留
+- [x] **[行為性]** given 三個新複製之 skill 檔，expect `git status --short` 列為 `??`——實機執行通過
+- [x] **[行為性]** given 既有 `.claude/settings.local.json`，expect 仍被 ignore——`git check-ignore -v` 命中 L26，實測通過
+- [x] **[可達性]** N/A 顯式劃記：本票交付物為 `.claude/` 治理載體與 `.gitignore`，結構上不存在 `app/src/main/` production producer，屬型別不適用，非規避
+- [x] ~~`assembleDebug` PASS~~ (N/A: docs preset — 無編譯產物，依 TPL「固定 AC 之 preset 適用性」顯式劃記)
+- [x] `git diff --stat` 僅涉及 ALLOWED 檔案——實測 `.gitignore` + 三 skill 檔，見 sv_report.md
 
 ## 完成後動作（收尾義務）
 1. 票檔 AI／AC 逐項勾選後，由 `Pending/` 搬移至 `deliver/`。

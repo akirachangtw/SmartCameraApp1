@@ -969,23 +969,27 @@
       "id": "WKTR-APPDEPLOY-01",
       "topic": "WKTR",
       "title": "wktree-close／wktree-compact 兩 Skill 由 PLT 位元組級複製至 APP，並補齊 .claude/wktrdata|worktrees 版控排除",
-      "lifecycle": "PENDING",
-      "file": "Pending/WKTR-APPDEPLOY-01_Wktree_Skills_Pure_Copy_Migration.md",
+      "lifecycle": "REVIEW",
+      "file": "plans/cso_briefing/project/deliver/WKTR-APPDEPLOY-01_Wktree_Skills_Pure_Copy_Migration.md",
       "preset": "docs",
       "created": "2026-08-27",
       "depends_on": [],
       "blocked_by": null,
       "reviews": {
-        "qa": "PENDING",
-        "sv": "PENDING",
-        "codex": "PENDING",
+        "qa": "PASS",
+        "sv": "PASS",
+        "codex": "PASS",
         "traycer": "N_A"
       },
       "updated_at": "2026-08-27",
-      "updated_by": "SKAD",
+      "updated_by": "Claude",
       "note": "PLT→APP 移轉三票之第一張（APP-1）。SSOT=Skill-Advisor/deliver/PLT_TO_APP_MIGRATION_INVENTORY_AND_DIRECTION_20260826.md §1 D-3（方向反轉裁決）＋§3 第 6/7 項（判定可純複製）。｜開票期 live 取證（2026-08-27 12:50，SKAD 第一手）：源端三檔 2,742／10,443／2,123 B（aud_20260827_0fe17b72b8／025adac3a2／4a16a10778）；PLT 綁定 grep 含 .sh 零命中 visited_files=3（aud_20260827_0c658cc4cf）——複製型成立；APP 端 .claude/skills/ 現 12 個 skill，wktree-* 不存在（aud_20260827_dc1e74afa4）。｜律 A 全冊機械取號：APP 冊 34 筆 id＋Pending/＋deliver/ 全樹 WKTR-* 零命中 visited_files=92（aud_20260827_3c0e342548）；WKTR 家族現存號全在 PLT 端（WKTR-01＋FIX-A/B/C/D、WKTR-GOV-01，visited_files=536，aud_20260827_00aa956f2d），本票採語義子家族 APPDEPLOY 避免跨冊數字序碰撞（沿 WKTR-GOV-01 命名先例）。｜歸屬（TPL v3.6 二階，Akira 2026-08-27 裁決甲案）：標的 .claude/skills/wktree-* 為 WKTR 議題專屬模組，關聯性成立→歸 WKTR；移轉 session 僅為發現地，依排除項不構成歸屬。冊面 topic 與票號第一段同源。本票為 APP 冊 WKTR topic 首筆，upsert 以 allow_new_topic=true 建立。｜⭐ scope 擴充依據（Akira 2026-08-27 裁決甲案）：純複製前提不成立。wktree-close.sh:9 定義 WKTR_DATA_DIR=$MAIN_ROOT/.claude/wktrdata，兩份 SKILL.md 逐字宣告該目錄與 worktrees/ 非版控；PLT .gitignore L34-35 有二行排除，APP 對 .claude/ 僅 L26 一行 settings.local.json，二者均缺（aud_20260827_998b9773e8）。純複製將產生 skill 書面契約與版控實況矛盾之死引用，屬 Gate Self-Bootstrap Invariant 同型，故 .gitignore 納入 ALLOWED（AI-4 純增列 3 行）。｜Verify Config：PRESET=docs、DIFF_REF=BASE_COMMIT=9f66645b（APP HEAD 2026-08-26 17:06）、ANCHOR_PROBED=2026-08-27 12:50、MAX_LINES=450（估算遙測非判準）、TARGET_BLOB=N/A 並附理由——標的於 APP 端尚不存在（pre-image 空集），源端 blob SHA 正是本票 AC 之量測對象，票面預填即違 KAIROS #25 AC/AI 同源律且開票端無 git hash-object 通道；依 TPL v3.8 降級為 AI-0 錨點制，兩端 hash 由 AI-0(B) live 計算回填。｜AC 六條可驗收＋二條 N/A 顯式劃記（[可達性] 型別不適用；assembleDebug docs preset），含三條行為性：wktrdata 探針 git status 不列（驗畢刪）／三 skill 檔為 ?? 之未過度排除負向迴歸／settings.local.json 仍 ignore 之既有規則不破壞。｜HC：位元組級複製禁在地改編禁行尾轉換、源端唯讀、.gitignore 純增列（git diff 零 - 行）、禁動其餘 12 skill、RAPID 於 APP 不適用走全程序、commit 前綴 [WKTR-APPDEPLOY-01]。｜依賴三分：execution=無；evidence=移轉盤點檔＋INFRA-ENVSYNC-AUDIT-01（.claude/ hash 同一性驗收方法先例）；coordination=待開之 APP-3 治理規則同步票（依裁決 A 亦動 .gitignore，票號未定，開立時 MUST 回填票面該欄並序列化 commit）。｜⚠️ 承接注意：APP 走全程序（QA/SV/Cross-Review、無 RAPID），MUST NOT 將 PLT/RAPID 寬鬆判準帶入本票 AC 判讀。",
-      "seq": 1
+      "seq": 1,
+      "checkpoint": {
+        "state": "OPEN",
+        "resolution": "REVIEW — 碼閉環（2026-08-27）。AI-0(A) 錨點復驗全數相符（L25 唯一命中、wktrdata/worktrees 零命中、標的不存在）。AI-0(B) 源端 blob 基線建立，位元組數與開票期取證表相符（2,742／10,443／2,123），SHA：b628643d／2d1974db／7a3eb580。AI-1~AI-3 位元組級複製完成，兩端 hash 相等（mode 修正為 100644 與源端一致）。AI-4 `.gitignore` 純增列 3 行（`.claude/worktrees/`、`.claude/wktrdata/`），`-` 行數 0。commit `cdd7b83`。`/qa` Step 0 PASS（docs preset，無 .kt/.xml 變更）；Step 4 SKIPPED—DEFERRED-TO-DOCSYNC（FORBIDDEN=.claude/PROGRESS.md 命中）；`/sv` 階段 A-C N/A（非 app 代碼）；Codex Cross-Review R1 PASS（REACHABILITY: NONE）。AC 9 項全 PASS，包含 3 條實機執行之行為性 AC（探針檔被 ignore、三 skill 檔未過度排除、settings.local.json 仍被 ignore）。HC 全數守（位元組級複製、源端唯讀、.gitignore 純增列、探針檔驗畢即刪、未觸其餘 12 skill、RAPID 不適用、commit 前綴正確）。governance 票免 Traycer（純治理/腳本移轉票，Codex PASS 即閉環）。⏮️ coordination_dependency：待開之 APP-3 治理規則同步票亦動 .gitignore，開立時 MUST 回填本欄並序列化 commit。"
+      }
     }
   ],
-  "revision": 44
+  "revision": 45
 }
