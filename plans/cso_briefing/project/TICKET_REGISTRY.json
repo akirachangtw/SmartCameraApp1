@@ -36,6 +36,10 @@
     "WKTR": {
       "order": 7,
       "note": "(auto-registered 2026-08-27, 語義待補)"
+    },
+    "RGR": {
+      "order": 8,
+      "note": "(auto-registered 2026-08-27, 語義待補)"
     }
   },
   "tickets": [
@@ -989,7 +993,28 @@
         "state": "RESOLVED",
         "resolution": "CLOSED 收尾實錄（2026-08-27，SMTR 審查方，Akira 裁決甲案）。｜碼閉環 cdd7b83（前綴自證）。SMTR 第一手獨立復證（禁信執行者回報，全部經 live git／disk 直取）：①scope——cdd7b83 觸及恰 4 個 ALLOWED 檔，341 insertions／0 deletions（aud_20260827_74daa30459）；②HC-3 純增列——.gitignore diff 僅 +4 行插於 L26 後，既有兩行零異動，全檔無任何 - 行（aud_20260827_83dbec898a），AC-3 後半成立；③位元組數——三檔 live 實測 2,742／10,443／2,123，與開票期源端取證精確相符（aud_20260827_0b2796117e／d98b687fff／af9a10cf2c）；④內容同一性交叉驗證——8 個錨點於 PLT 與 APP 兩端行號與字面完全一致（.sh L9；wktree-close L13/16/24/26；wktree-compact L8/40/41），零在地改編（PLT aud_20260827_f29cf6131c vs APP aud_20260827_9f07d04bfe）；⑤blob SHA 抽樣復驗——wktree-compact/SKILL.md 於 APP 端 blob=7a3eb58，與執行端回報值 7a3eb580 相符，且 new file mode 100644（aud_20260827_1578829d59）；⑥工作樹——git status 全域淨空（aud_20260827_861187b923）；⑦票檔在 deliver/、Pending/ 零殘留、冊面 file 指標已同步（aud_20260827_791c1c916d）。票檔 AI-0(A)/0(B)/1~4 與 AC 九項全勾並附實測值，完整 diff 逐行核畢（aud_20260827_88befca4f9）。｜reviews 誠實降級（本次審查主要處置，Akira 裁決甲案）：qa／sv 由執行端所登 PASS 改為 N_A。依據——checkpoint 自陳「/sv 階段 A-C N/A（非 app 代碼）」「/qa Step 0 PASS、Step 4 SKIPPED-DEFERRED-TO-DOCSYNC」，全階段 N/A 或跳過卻登整體 PASS，違 INFRA-MAXLINES-EVIDENCE-01 所立判準（階段性通過不得登記為整體通過）與撤警正向取證律（禁推定補 PASS）。同型先例 INFRA-STATUS-SYNC-01：.claude/ 文本部署票無 build 面實跑記錄，qa/sv 誠實降級 N_A 並揭露——本票形狀完全同型（.claude/ 文本＋腳本部署、docs preset、無 app 代碼）。codex 維持 PASS（R1 PASS／REACHABILITY: NONE），惟取證載體僅存 checkpoint 記載，屬 [relayed]——cross-review payload 依設計不留檔，無獨立復驗通道，於此揭露。traycer=N_A（純治理／腳本移轉票先例）。｜審查發現五項（全屬揭露級，無退回級，票面依簽發時法不追溯改 AC）：F1 AI-0(B) 實測表從未建立——票面明令回填 Verify Config 下方新增之「AI-0(B) 實測表」，實測 diff hunk 自 L54 起始，Verify Config 區塊（L33-42）零異動，AC-2「與 AI-0(B) 實測表同源」為引用不存在載體之自指空引用；緩解=三筆 SHA 確已落入前一 checkpoint（耐久載體），資訊未滅失，屬載體落點偏差非證據缺失。F2 混型 commit——66f874d 之 message 宣稱僅 TICKET_REGISTRY.json，實際併入票檔 Pending/→deliver/ rename 與 30 行勾選異動（aud_20260827_600480b74b），違收尾義務 #3 與 INFRA-CLOSURE-REGISTRY-GATE-01「冊面走獨立 GOVERNANCE-SYNC commit」原子性條款；後果=日後以 commit message 檢索票檔搬移將漏；同型債已登記於 ⑥ INFRA-QA-COMMIT-MIXEDTYPE-01，不重複開票。F3 AC-9 以已滅失載體為證據——尾註「見 sv_report.md」，該檔依 .gitignore 為 cross_review.sh trap EXIT 自動刪除且 never commit，現已不可稽核；正解為引 commit cdd7b83 之 git diff --stat，SMTR 已第一手復驗成立，本實錄取代該引用。F4 AC 判準字面靜默替換——AC-3 之 git diff 9f66645b 遭就地改為 9f66645，無實質影響，惟依「票依簽發時法」原判準應保留、實測值並列，禁靜默改寫。F5 見上 reviews 降級段。｜[relayed] 未復驗項（誠實揭露，不阻斷）：AI-2 之 .sh 檔案 mode 一致性與 PLT 端三檔 blob SHA，審查方無程式化復驗通道（無 git hash-object 呼叫能力）；非承重理由=兩份 SKILL.md L13/L24 均以 bash <script> 形式呼叫腳本，exec bit 不參與執行路徑。｜冊面轉態四要件：①lifecycle→CLOSED；②reviews 四欄實測值 N_A／N_A／PASS／N_A（豁免依據見上）；③file 指標已指 deliver/（執行端自行同步，帳實一致）；④本 resolution 即收尾實錄。｜⏮️ 遺留掛鉤（下一票 MUST 清償）：coordination_dependency 現為「待開之 APP-3 治理規則同步票（票號未定）」；APP-3 依裁決 A 亦動 .gitignore，開立當刻 MUST 回填該欄並序列化 commit，否則兩票同檔異動互相污染 git diff --stat AC。｜KAIROS 候選增補：#28「AC 引用載體恆存律」——AC 之證據引用 MUST 指向耐久載體，禁引 trap EXIT 自刪／never commit 類設計上必滅失之檔（事件支撐=本票 AC-9 引 sv_report.md）。"
       }
+    },
+    {
+      "blocked_by": null,
+      "created": "2026-08-27",
+      "depends_on": [],
+      "file": "Pending/RGR-APPDEPLOY-01_RigorGate_Skill_Port.md",
+      "id": "RGR-APPDEPLOY-01",
+      "lifecycle": "PENDING",
+      "note": "PLT→APP 移轉三票之第二張（APP-2）：ticket-rigor-gate 全目錄 11 檔（7 純複製＋4 修正）。｜⭐ L2 設計裁決（Akira 2026-08-27）：中間產物不永久保存——RGR quality report 與執行遙測同屬執行期產物，統一落 .tmp/rigor-gate/ 輪替（KEEP_N 5→10，波及面三處全改）；耐久結論唯一載體＝票面收尾實錄，回溯品質依票面註記完整度；禁任何 AC 引 .tmp/ 下 RGR 產物為長期證據。已知權衡（L2 明示接受）：CB-1/2/4 凍結記憶域縮短為 report 存續期；翻盤條件＝同一票遭重複自動修補造成實害。runner L224 守門不改，report 以 ticket-repair/ 之外平行位置滿足其字面。｜落點：TELEMETRY_ROOT→.tmp/rigor-gate/ticket-repair/（repair_runner.sh:32）；report→.tmp/rigor-gate/RGR_<id>_<date>.md（SKILL.md:369）。.tmp/ 已在 .gitignore 排除，本票不動 .gitignore，與 APP-3 零檔案交集。既有佔用者 cross_review.sh 清理為檔名限定 cross_review_*.md、禁遞迴禁 rm -rf（L131/L139/L208，aud_20260827_3f5dc4e4e2），共存安全。｜開票期 live 取證（2026-08-27 14:26）：PLT 綁定全樹 5 處（盤點檔載 3 處，本次補 repair_runner.sh:32＋README.md:58，aud_20260827_3f394ca040/785b155077）；REPO_ROOT 四層上溯為 repo-agnostic 不列改寫（aud_20260827_0ae13c1d7d）；外部命令 fail-closed 四項 jq/sha256sum/diff/codex.cmd 入行為性 AC；源端 11 檔位元組數全數入票面基準表（aud_20260827_d25368c135）。｜律 A 取號：APP 側 RGR-* 票檔零命中；PLT 端 RGR 家族均語義子家族制（visited_files=536，aud_20260827_8559df1bb0），RGR-APPDEPLOY-01 零碰撞，沿 WKTR-APPDEPLOY-01 命名先例。｜歸屬（TPL v3.6 二階）：標的為 RGR 議題專屬模組，關聯性成立→歸 RGR。⚠️ RGR family 於 APP 端未登記（ticket_pattern.md 僅 MEO/ADV/WKTR 三列，aud_20260827_dd55e14b47），依 TPL v3.6＋Rule 4a 首用當刻補登＝AI-6（僅增一列，不改 regex），故 ALLOWED 含 .claude/rules/ticket_pattern.md。｜Verify Config：PRESET=docs、DIFF_REF=BASE_COMMIT=9dce488a、ANCHOR_PROBED=2026-08-27 14:26、MAX_LINES=80（遙測）、TARGET_BLOB=N/A（同 WKTR-APPDEPLOY-01 先例，AI-0 錨點制）。｜HC：禁引入五段生命週期、禁動 ssot-governance/mcp-service-safety/.gitignore（APP-3 範圍，本票只落工具不加關卡）；禁改 L224 守門與 CB 邏輯；RAPID 不適用走全程序。｜AC：含兩條行為性（四命令齊備；housekeeping 以 11 假 run 實跑驗 KEEP_N=10 保 10 刪 1，驗畢清除）。｜收尾：冊面僅 registry 單檔獨立 GOVERNANCE-SYNC commit（F2 教訓）；實錄禁引 sv_report.md 與 .tmp/ 產物（F3/KAIROS #28）。",
+      "preset": "docs",
+      "reviews": {
+        "codex": "PENDING",
+        "qa": "PENDING",
+        "sv": "PENDING",
+        "traycer": "N_A"
+      },
+      "title": "ticket-rigor-gate Skill（含 runner）PLT→APP 移植；產物統一 .tmp/rigor-gate/ 輪替（KEEP_N=10）",
+      "topic": "RGR",
+      "updated_at": "2026-08-27",
+      "updated_by": "SKAD",
+      "seq": 1
     }
   ],
-  "revision": 48
+  "revision": 49
 }
