@@ -27,7 +27,9 @@ def resolve_memory_dir():
     # priority; otherwise derive repo root from this script's own location.
     env_dir = os.environ.get('CUESHOT_MEMORY_DIR')
     if env_dir:
-        return env_dir
+        if os.path.isabs(env_dir) and (os.name != 'nt' or os.path.splitdrive(env_dir)[0]):
+            return env_dir
+        print(f"Warning: CUESHOT_MEMORY_DIR must be an OS-native absolute path (drive/UNC-rooted on Windows); ignoring override: {env_dir}", file=sys.stderr)
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     return os.path.join(repo_root, '.mcp-memory')
 
