@@ -88,7 +88,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/telegram_ask.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/telegram_ask.sh\"",
             "async": true
           }
         ]
@@ -98,7 +98,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/snapshot_cueshot_memory.py",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/snapshot_cueshot_memory.py\"",
             "async": true
           }
         ]
@@ -109,11 +109,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/stop.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop.sh\""
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/telegram_stop.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/telegram_stop.sh\""
           }
         ]
       }
