@@ -383,7 +383,7 @@ If the gate result is `FAIL` or `PARTIAL`, the generated report becomes an `evid
 
 ## Required Output
 
-The final output must be a structured report with all sections below.
+**Output language**: the final report MUST be written in Traditional Chinese (繁體中文) with English technical terms kept as-is (class/function/file names, status codes, severity labels). This mirrors CLAUDE.md Rule 6 (語言鎖定) and applies to this skill's own deliverable, not only to code comments. (免票授權：CSO 2026-08-28 對話裁決)
 
 ### 1. Verdict
 
