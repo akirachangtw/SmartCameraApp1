@@ -1,6 +1,6 @@
 # 統一 Ticket 模板（CSO + Pipeline v1.6 合併版）
 
-**版本**: v3.8
+**版本**: v3.9
 **產出日期**: 2026-05-29
 **Revision**: v3.7（2026-08-14，INFRA-TPL-V37-01）— 立「票檔落點律」：票檔 MUST 落於實作專案之票務目錄並登記於 TKR 平台對應 project 冊面；設計/協調型專案 MUST NOT 設 Pending/ 或存放票檔。與 v3.6「發現來源 ≠ 歸屬」分工：彼律管議題線歸屬，本律管物理落點。事件支撐：ADV-WTREE-01（2026-08-14 作廢重開 WKTR-01 於 mcp-ticket-platform）
 **完整 Revision 歷史（v3.1–v3.6）**：見文末「Revision 歷史」章節
@@ -89,6 +89,16 @@ TARGET_BLOB=[逐標的 git hash-object，格式 path:sha8，多筆分號分隔]
 > **不追溯（既有票號一律沿用）**：`INFRA-*`／`GAP-*`／`STATE-*`／`TRACTION-*`／`KAIROS*-*` 等既有票號 **MUST NOT** 追溯改號——票號已固化於 commit message、`.git/hooks/commit-msg` 稽核面、冊面互指（`depends_on`／`blocked_by`）與票檔檔名四處；改號即製造帳實分離。本律僅拘束生效日（2026-08-13）後新開之票。
 
 > **票檔落點律**（v3.7，Akira 2026-08-14 裁決；與「發現來源 ≠ 歸屬」二階判定配對執行）。票檔 MUST 落於**實作專案**之票務目錄（如 SmartCameraApp1 `plans/cso_briefing/project/Pending/`、mcp-ticket-platform `docs/pending/`），並登記於 TKR 平台**對應 project** 之冊面。設計／協調型專案（Skill-Advisor、Smarter-Project 等）僅承載審查、裁決、交付物與交接載體，**MUST NOT** 設 Pending/ 目錄或存放票檔。二律分工：議題線歸屬依「發現來源 ≠ 歸屬」二維判定（關聯性／相依性）；物理落點依本律取實作專案——議題線與落點專案**可以不同**（如 WKTR 線落 mcp-ticket-platform）。事件支撐：ADV-WTREE-01 開於 Skill-Advisor/Pending/（非 git、非實作場，DIFF_REF 恆 N/A、AC 無法承載實作驗收），2026-08-14 作廢重開為 WKTR-01。
+
+> **短檔名律**（forward-only，v3.9，Akira 2026-09-02 免票直接授權）。生效日後新建或明確重開之 Ticket 檔 MUST 命名為 `<TICKET_ID>_<slug>.md`。
+>
+> 1. `TICKET_ID` MUST 與票面 Verify Config 的 `TICKET_ID` 完全一致；MUST NOT 截斷、改寫或以 slug 取代。
+> 2. `slug` 僅供人類於目錄中快速辨識，MUST 使用小寫 ASCII kebab-case，MUST 為 1–3 個核心詞，且長度 MUST NOT 超過 12 個字元。
+> 3. 完整 basename（含 `.md`）長度 MUST NOT 超過 40 個 ASCII 字元。
+> 4. slug SHOULD 優先只保留一個核心名詞；只有該名詞無法與相鄰 Ticket 區分時，方可增加一個狀態或動作詞。
+> 5. slug MUST NOT 重複來源議題、Ticket ID、上層目錄已表達的分類語義；MUST NOT 將完整標題、工作描述或實作細節複製到檔名。
+> 6. `housekeeping`、`update`、`changes`、`misc`、`fix`、`task` 等泛化詞 MUST NOT 單獨作為 slug。
+> 7. 既有 Ticket 檔名 MUST NOT 追溯改名；此律僅約束新建或重開 Ticket。
 
 ### AI-0: 錨點復驗（派工後、修改前）
 - **檔案**: `path/to/File.kt`
@@ -183,7 +193,7 @@ TARGET_BLOB=[逐標的 git hash-object，格式 path:sha8，多筆分號分隔]
 ## 範例 Ticket
 
 ```markdown
-# P05-R1: GazeAF Ghost Face 琥珀圓環消除（bbox 過濾 + gazeScore 門檻 + 越界夾值）
+# P05-R1: GazeAF Ghost Face
 
 **簽發日期**: 2026-06-14
 **簽發者**: Claude
@@ -295,5 +305,7 @@ Effort 決定 Claude Code 的思考深度（`--effort` 參數等效）。
 **Revision**: v3.6（2026-08-13，Akira 直接裁決）— 立「票號議題前綴律」：票號第一段 MUST 為來源議題之登記 token 或登記縮寫，並與票面 `**來源議題**` 欄同源；歸檔歸屬以票號第一段為唯一判準，新票冊面 `topic` 欄 MUST 與前綴同源。既有票號**不追溯改號**（已固化於 commit message／commit-msg hook 稽核面／冊面互指／票檔檔名）。併立「發現來源 ≠ 歸屬」二階判定：歸屬以**關聯性**（標的／需求源／產物落在該議題領域）與**相依性**（該議題之票對本問題存在依賴三分關係，或修復落點傳導至該議題交付面）二維任一成立為準——有則歸該議題；二維皆不成立則歸 `INFRA`（獨立歸屬線，不隸屬任何產品議題）。禁以發現地或話題沾附為歸屬依據。立法目的：消除冊面歸檔時「此票該歸哪條線」之爭議
 
 **Revision**: v3.8（2026-08-23，INFRA-TPL-V38-01）— ①Verify Config 增 BASE_COMMIT／TARGET_BLOB 欄（V1 baseline 機械化）；②AI-0 基線漂移三分流（範圍不相交自動通過／ALREADY_EXECUTED_PENDING_CLOSURE／CANDIDATE_SUPERSEDED／BLOCKED_UNATTRIBUTED_STATE）；③[行為性] AC given/expect 語義契約化，禁 YAML 雙軌；④P0 凍結唯一字面雙責任票面。**forward-only**：既有在途票之 AI-0 依原條款執行（祖父條款），不追溯。依據 QA-Session-Aware-Verification Rev B（R1–R5）＋ INFRA-MAXLINES-GATE-01 假停原型案例。
+
+**Revision**: v3.9（2026-09-02，Akira 免票直接授權）— 立「短檔名律」（forward-only）：生效日後新建或明確重開之 Ticket 檔 MUST 命名為 `<TICKET_ID>_<slug>.md`；slug 小寫 kebab-case、1–3 核心詞、長度 MUST NOT 超過 12 字元，完整 basename MUST NOT 超過 40 字元；禁重複議題／票號／目錄分類語義，禁泛化詞單獨作 slug。既有票名不追溯改名。
 
 **End of 統一 Ticket 模板**
