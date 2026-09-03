@@ -17,7 +17,7 @@
 | MEO-DECOMM-01 | ✅ Done（Step A-E 全收束，Addendum-1~5 偏差裁決在案）· Step A 存證14檔→B 解武（`0b321c2`）→C 復通正向反例→D 歸檔（`efb3c3f`，16檔→`archive/meo-v1/`）→E 冊面（FIX-A/B CLOSED+STOPPED checkpoint，`c67ea6e`）· STATE.md 封存註記 Commit #2 豁免（gitignore 慣例，Addendum-5(a)）· 票檔已搬 `deliver/` |
 | INFRA-GOV-STOPLOSS-01 | ✅ Done（碼閉環）· 派工令解凍後 AI-0 內容錨點核驗（`git log d5fe887..HEAD` 目標檔零異動）→ AI-1 執行：「結構歧義停損律」條款附加至 `.claude/rules/ssot-governance.md`（`f4a9c8e`）· registry CLOSED 收束（`abcd97c`）· 免 Traycer（純 .md 治理票）· 票檔已搬 `deliver/` |
 
-**Last Updated**: 2026-09-02（S95，含外部 Desktop/CSO session 交錯提交）
+**Last Updated**: 2026-09-03（S96，手機 Remote Control 派工 `INFRA-SV-GOV-01`／`MEO-T3` 開工）
 
 ## Sprint Health
 
@@ -35,6 +35,7 @@
 | GAP-06 | HaloTraction：GuidanceActive + Aligned 態圓點渲染已閉環（GAP-06-RENDER-DOT-01 ✅ Done）。**GAP-06-TARGET-01-REVA**：Traycer strict_verification Path A APPROVE（碼域，錨 bc40d17）· 剩 D19 三項 [實機] AC（A7-1 映射表承接）+ Next Action #9 Akira 證據核驗。Normal vs Focus Ring 路由實機驗仍留 | 🟡 P1（碼域終審 PASS；GuidanceActive null-guard 已消除假對齊風險） | Aligned/GuidanceActive 消費斷鏈已修；A6 測試缺口已補（`HaloGuidanceLayerTest.kt` 三場景映射至 A7-1）；剩：D19 實機 AC（人臉偏離截圖 x2、假對齊風險驗證、topInstruction=HeadroomRule 無 targetHint 場景）+ Next Action #9 佐證核驗 |
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
+| INFRA-SV-GOV-01 | UC session 回報 AI-3/AI-4 已寫入 `sv/SKILL.md` 但 `/compact` 前復核 `git diff` 為空，編輯未實際落地 | 🔴 完整性缺口 | 需重做並以 `git diff` 二次確認落地；AI-1/AI-2（rename repro）另因 Bash 權限遭拒待 CSO 三擇一裁決 |
 
 ## PROVISIONAL Ledger（防孤兒追蹤 · 2026-07-07 CSO 提案 Akira 授權）
 
@@ -60,6 +61,7 @@
 21. **🟡 TPL v3.5/v3.6 機械層承接**：①`INFRA-MAXLINES-GATE-01` 目標碼態已存在於現行 `verify_checklist.sh`（四分支遙測 + `maxlines_verdict()` + self-test≥4例），但**票面本身本 session AI-0 STOP 未收尾**，待 CSO 核驗來源後補冊面轉態 → ②`INFRA-MAXLINES-EVIDENCE-01` ✅ 碼閉環（`fbcb612`），2026-08-24 Akira 直接授權 AC 全勾 + 票檔已搬 `deliver/`；`/sv` 階段 D 原因 `INFRA-CROSSREVIEW-GOVPATH-EXCL-01` basename-only 缺陷同型重現而 DEFERRED，該票已 Done（`390f50d`）後 2026-08-26 補跑，Codex R2 **PASS**（REACHABILITY: NONE，DIFF_SCOPE=`3df34a6..fbcb612`）；`TICKET_REGISTRY.json` `reviews.codex` 欄仍待 Desktop 治理 session 依單一寫入者規約（`concurrency.md` §5）補同步
 22. **🔴 `INFRA-ENVSYNC-BATCH-01` 歸檔 SOP 未執行**：/sv+Codex PASS 已達成，但票檔仍在 `Pending/`（未搬 `deliver/`）、`TICKET_REGISTRY.json` 未同步 → 下次 session 依 `governance-ticket-closure-sop-target-state` 三動作序列（`reviews.codex=PASS` + 搬 `deliver/` + `lifecycle→REVIEW`）補完
 23. **🟡 `ENVSYNC_AUDIT_20260821.md` 凍結清單 15 檔待 Akira 逐檔合併裁決**：`rules/ssot-governance.md`（本次分叉幅度最大）優先審閱；凍結判定純機械（APP 獨有非空行>0），無語義裁量
+24. **🔴 `MEO-T3` 已開工（lifecycle IN_PROGRESS）尚未實作**：AI-1 corpus 收集（`search_decisions` 撈 timeout/retry/escalation/review reject/FAIL，10–15 例）待下輪執行
 
 ## Active Debt（僅列未解決項）
 
