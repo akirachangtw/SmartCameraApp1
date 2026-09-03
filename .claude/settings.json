@@ -76,6 +76,8 @@
       "Bash(del /s /q *)",
       "Bash(git reset --hard *)",
       "Bash(git push --force *)",
+      "Bash(git -C * reset --hard *)",
+      "Bash(git -C * push --force *)",
       "Bash(format *)",
       "Bash(taskkill /f /im explorer*)"
     ]

@@ -117,6 +117,8 @@ Status code 已能回答的問題，code 回答。
 
 ## SOP
 
+> 本 repo 全程序執行，無 RAPID／快速通道；任何票（含 .claude/ 與 plans/ 治理文本票）均不得跳過 3./qa、4./sv、4.5.cross_review（Akira 2026-08-22 裁決）。
+
 ```text
 0.Resume → 1.Plan(Gemini) → 2.Code(/uc) → 3./qa → 4./sv
 → 4.5.cross_review(Codex) → 5.Traycer → 6.Git → 7.KAIROS(節點時)
