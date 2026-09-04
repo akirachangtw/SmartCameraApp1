@@ -48,7 +48,7 @@
 7. **10.2 read-back**：重讀 conf，`TICKET_ID=MOBCD-06` 與選中票號相符。
 8. **10.3 交棒選單**：五項選單正確輸出，使用者選 `1`（開始執行，進入 uc 模式），已依 `.claude/skills/uc/SKILL.md` 進入該模式。
 
-**觸發來源之誠實揭露**：本次觸發之互動模式（使用者每輪僅回覆單一數字 `8`／`1`／`1`／`1`）與 skill「互動總則」所定義之手機端限制完全吻合；惟本 Claude Code session 本身未曝露「連線裝置別」之機械可讀欄位，故手機端來源為**行為模式吻合之合理推定**，非工具層直接證實的欄位值。若需機械級來源證明，需由 Remote Control 平台另行提供 session-origin metadata（現行 skill 與 registry 皆未承載此欄位）。
+**觸發來源之誠實揭露**：本次觸發之互動模式（使用者每輪僅回覆單一數字 `8`／`1`／`1`／`1`）與 skill「互動總則」所定義之手機端限制完全吻合；本 Claude Code session 本身未曝露「連線裝置別」之機械可讀欄位，故原判定為**行為模式吻合之合理推定**，非工具層直接證實的欄位值。**2026-09-04 補充**：Akira 於本對話中直接確認「上述都是手機操作」，構成一級來源（使用者本人即時確認）之實測證據，非 Claude 自行推定；解除 session-origin 待證狀態，`[實機]` 項轉 PASS。若未來需機械級來源證明（不再依賴人工口頭確認），仍需 Remote Control 平台另行提供 session-origin metadata（現行 skill 與 registry 皆未承載此欄位）。
 
 ## AC 對應（最終）
 
@@ -59,6 +59,6 @@
 - [x] **[行為性]** 第一層分組含 `KAIROS3`／`KAIROS4`／`TRACTION` 可選 — 見上方 AI-4 第 2 項
 - [x] **[行為性]** 選中票步驟 5 摘要五欄位齊全 — 見上方 AI-4 第 4 項
 - [x] **[行為性]** conf 寫入 APP `tmp/verify_cmd.conf` 而非 PLT/ObsidianVault — 見上方 AI-4 第 6 項
-- [~] **[實機]** 手機端完整流程證據 — 已附完整流程紀錄（上方 AI-4 全節），惟觸發來源為行為模式推定非機械欄位證實，標記 `[~]`（裁決性通過，非未達）並揭露翻盤條件於上方誠實揭露段
+- [x] **[實機]** 手機端完整流程證據 — 已附完整流程紀錄（上方 AI-4 全節）；Akira 2026-09-04 對話直接確認觸發來源為手機端操作（一級來源確認），解除 session-origin 待證狀態，轉 PASS
 - [x] ~~`assembleDebug` PASS~~（N/A：docs preset，不觸及 app/）
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案（`git diff --name-only d525f64..6bc5db6` 精確等於 ALLOWED 三檔，`.claude/skills/ticket-run/` 兩檔已 tracked 並包含於本票 commit 範圍內，非 untracked／非 vacuous——原「untracked/vacuous」敘述為套用 PLT `MOBCD-05` AC-151 先例時之過期措辭，已依 Codex Cross-Review R4 發現修正為實際 commit-range 證據）
