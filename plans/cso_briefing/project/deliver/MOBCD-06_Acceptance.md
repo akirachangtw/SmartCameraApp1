@@ -61,4 +61,4 @@
 - [x] **[行為性]** conf 寫入 APP `tmp/verify_cmd.conf` 而非 PLT/ObsidianVault — 見上方 AI-4 第 6 項
 - [~] **[實機]** 手機端完整流程證據 — 已附完整流程紀錄（上方 AI-4 全節），惟觸發來源為行為模式推定非機械欄位證實，標記 `[~]`（裁決性通過，非未達）並揭露翻盤條件於上方誠實揭露段
 - [x] ~~`assembleDebug` PASS~~（N/A：docs preset，不觸及 app/）
-- [x] `git diff --stat` 僅涉及 ALLOWED 檔案（`.claude/skills/ticket-run/` 為 untracked，比照 PLT `MOBCD-05` AC-151 先例，本條 vacuous，改以 `git status` 核對範圍相符——僅本票三檔異動）
+- [x] `git diff --stat` 僅涉及 ALLOWED 檔案（`git diff --name-only d525f64..6bc5db6` 精確等於 ALLOWED 三檔，`.claude/skills/ticket-run/` 兩檔已 tracked 並包含於本票 commit 範圍內，非 untracked／非 vacuous——原「untracked/vacuous」敘述為套用 PLT `MOBCD-05` AC-151 先例時之過期措辭，已依 Codex Cross-Review R4 發現修正為實際 commit-range 證據）
