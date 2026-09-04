@@ -49,6 +49,16 @@ exit code（交付阻斷權屬五類第②項，非本層）。收口三件套�
 
 回填制下，Anchor Drift STOP 僅保留一種觸發：回填後之 `DIFF_REF..HEAD` 之間出現**觸及本票 ALLOWED 檔**之 commit（票面現值描述失真風險，需人裁決）；其餘 HEAD 前進一律不觸發。**本判定目前尚無 hook 機械強制點**，屬 /sv、/qa 執行者行為準則；未來若機械化須另立票。
 
+### Per-ticket config 落點（`INFRA-QA-PERTICKET-CONF-01`，根治 `tmp/verify_cmd.conf` 全域單槽位污染）
+
+`verify_checklist.sh` 於 conf 模式下，讀取優先序：`tmp/verify/<TICKET_ID>.<REVISION>.conf`（`REVISION` 缺省時以 `rev-0` 佔位）若已存在即為來源；否則以傳入之 `tmp/verify_cmd.conf`（legacy，**MUST** 保留、**MUST NOT** 刪除或改寫）為 fallback 讀入，並立即快照一份至前述 per-ticket 路徑，同時於 stdout 輸出一行棄用警示。不同 `TICKET_ID` 各自持有獨立快照，互不覆寫；同票同 revision 之後續呼叫直接讀快照，不受 legacy 檔於期間被其他票覆寫影響。
+
+`tmp/verify/active.json` 六欄位（`ticket_id`／`ticket_revision`／`repo_root`／`branch`／`head_sha`／`activated_at` UTC ISO-8601／`activation_source` 枚舉 `resume|new-session|ticket-switch`）由 conf-mode 每次呼叫**原子寫入**（temp file + atomic rename），寫入後 read-back 驗四欄（`ticket_id`／`ticket_revision`／`repo_root`／`head_sha`）；不一致僅警示，**不破壞**既有 per-ticket `.conf`。本檔案僅建立寫入器，**不接線**至任何 Write Authority 閘（該接線屬 `INFRA-QA-ACTIVATION-01` P2）。
+
+`tmp/verify/*.conf` 依 mtime 保留最新 **10** 份，超額者刪除；`active.json` **永不輪替**；輪替/寫入失敗僅 `echo >&2`，**MUST NOT** 影響 Step 0 exit code。
+
+**與 `tmp/<TICKET_ID>/evidence/` 之職責邊界**：`tmp/verify/` 為**設定層**（啟用態、per-ticket config 快照），`tmp/<TICKET_ID>/evidence/`（見上節）為**取證層**（Step 0 結果留痕）；兩路徑不相交，**MUST NOT** 合併或互相覆寫（`INFRA-MAXLINES-EVIDENCE-01` 既有成果）。
+
 ## Step 1: 編譯 (Build)
 
 執行 `./gradlew assembleDebug 2>&1 | tail -50`

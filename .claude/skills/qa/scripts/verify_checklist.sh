@@ -34,6 +34,73 @@ trim_token() {
   echo "$1" | xargs
 }
 
+# ─── Per-ticket config 遷移（INFRA-QA-PERTICKET-CONF-01 AI-1/AI-2/AI-3） ───
+PERTICKET_DIR="tmp/verify"
+
+write_conf_snapshot() { # write_conf_snapshot <dest_path>
+  local dest="$1"
+  {
+    echo "TICKET_ID=${TICKET_ID}"
+    echo "CREATED=${CREATED}"
+    echo "ALLOWED=${ALLOWED}"
+    echo "FORBIDDEN=${FORBIDDEN}"
+    echo "EXCLUDED_PAYLOAD=${EXCLUDED_PAYLOAD}"
+    echo "MAX_LINES=${MAX_LINES}"
+    echo "DIFF_REF=${DIFF_REF}"
+    echo "DIFF_END=${DIFF_END}"
+    echo "REVISION=${REVISION}"
+  } > "$dest" 2>/dev/null
+}
+
+write_active_json() { # write_active_json → 0=ok 1=mismatch/failure（不影響 Step 0 exit code）
+  local dest="${PERTICKET_DIR}/active.json" tmp_dest
+  tmp_dest="${dest}.tmp.$$"
+  local repo_root branch head_sha activated_at src
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  head_sha=$(git rev-parse HEAD 2>/dev/null)
+  activated_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  src=$(get_conf "ACTIVATION_SOURCE" "$CONF_FILE")
+  case "$src" in
+    resume|new-session|ticket-switch) ;;
+    *) src="new-session" ;;
+  esac
+  mkdir -p "$PERTICKET_DIR" 2>/dev/null
+  printf '{\n  "ticket_id": "%s",\n  "ticket_revision": "%s",\n  "repo_root": "%s",\n  "branch": "%s",\n  "head_sha": "%s",\n  "activated_at": "%s",\n  "activation_source": "%s"\n}\n' \
+    "$TICKET_ID" "$REVISION" "$repo_root" "$branch" "$head_sha" "$activated_at" "$src" > "$tmp_dest" 2>/dev/null
+  if [[ ! -s "$tmp_dest" ]]; then
+    rm -f "$tmp_dest" 2>/dev/null
+    echo "⚠️ active.json 寫入失敗（不影響 Step 0 判定，既有 config 未被觸碰）" >&2
+    return 1
+  fi
+  mv -f "$tmp_dest" "$dest" 2>/dev/null || { echo "⚠️ active.json 原子替換失敗（不影響 Step 0 判定）" >&2; return 1; }
+  local rb_ticket_id rb_revision rb_repo_root rb_head_sha
+  rb_ticket_id=$(grep '"ticket_id"' "$dest" 2>/dev/null | sed -E 's/.*"ticket_id":[[:space:]]*"([^"]*)".*/\1/')
+  rb_revision=$(grep '"ticket_revision"' "$dest" 2>/dev/null | sed -E 's/.*"ticket_revision":[[:space:]]*"([^"]*)".*/\1/')
+  rb_repo_root=$(grep '"repo_root"' "$dest" 2>/dev/null | sed -E 's/.*"repo_root":[[:space:]]*"([^"]*)".*/\1/')
+  rb_head_sha=$(grep '"head_sha"' "$dest" 2>/dev/null | sed -E 's/.*"head_sha":[[:space:]]*"([^"]*)".*/\1/')
+  if [[ "$rb_ticket_id" != "$TICKET_ID" || "$rb_revision" != "$REVISION" || "$rb_repo_root" != "$repo_root" || "$rb_head_sha" != "$head_sha" ]]; then
+    echo "⚠️ active.json read-back mismatch（既有 per-ticket config 未被破壞）: $dest" >&2
+    return 1
+  fi
+  echo "  📌 active.json: $dest"
+  return 0
+}
+
+rotate_perticket_confs() { # 保留最新 10 份 tmp/verify/*.conf；active.json 永不輪替；失敗僅 stderr
+  local dir="$PERTICKET_DIR" keep=10 files count
+  [[ -d "$dir" ]] || return 0
+  files=$(ls -1t "$dir"/*.conf 2>/dev/null)
+  [[ -z "$files" ]] && return 0
+  count=$(echo "$files" | wc -l | tr -d ' ')
+  if [[ "$count" -gt "$keep" ]]; then
+    echo "$files" | tail -n +"$((keep + 1))" | while IFS= read -r _f; do
+      [[ -z "$_f" ]] && continue
+      rm -f "$_f" 2>/dev/null || echo "⚠️ rotation 刪除失敗（不影響 Step 0 判定）: $_f" >&2
+    done
+  fi
+}
+
 token_matches_file() {
   local token file base
   token="$(trim_token "$1")"
@@ -178,6 +245,34 @@ if [[ $# -ge 1 && "$1" == *.conf ]]; then
   [[ -n "$DIFF_REF_CONF" ]] && DIFF_REF="$DIFF_REF_CONF"
   DIFF_END_CONF=$(get_conf "DIFF_END" "$CONF_FILE")
   [[ -n "$DIFF_END_CONF" ]] && DIFF_END="$DIFF_END_CONF"
+
+  # ─── Per-ticket config 讀寫優先序（INFRA-QA-PERTICKET-CONF-01 AI-1） ───
+  REVISION=$(get_conf "REVISION" "$CONF_FILE")
+  [[ -z "$REVISION" ]] && REVISION="rev-0"
+  if [[ -n "$TICKET_ID" ]]; then
+    PERTICKET_CONF="${PERTICKET_DIR}/${TICKET_ID}.${REVISION}.conf"
+    if [[ -f "$PERTICKET_CONF" ]]; then
+      TICKET_ID=$(get_conf "TICKET_ID" "$PERTICKET_CONF")
+      CREATED=$(get_conf "CREATED" "$PERTICKET_CONF")
+      ALLOWED=$(get_conf "ALLOWED" "$PERTICKET_CONF")
+      FORBIDDEN_CONF=$(get_conf "FORBIDDEN" "$PERTICKET_CONF")
+      [[ -n "$FORBIDDEN_CONF" ]] && FORBIDDEN="$FORBIDDEN_CONF"
+      EXCLUDED_PAYLOAD_CONF=$(get_conf "EXCLUDED_PAYLOAD" "$PERTICKET_CONF")
+      [[ -n "$EXCLUDED_PAYLOAD_CONF" ]] && EXCLUDED_PAYLOAD="$EXCLUDED_PAYLOAD_CONF"
+      MAX_LINES_CONF=$(get_conf "MAX_LINES" "$PERTICKET_CONF")
+      [[ -n "$MAX_LINES_CONF" ]] && MAX_LINES="$MAX_LINES_CONF"
+      DIFF_REF_CONF=$(get_conf "DIFF_REF" "$PERTICKET_CONF")
+      [[ -n "$DIFF_REF_CONF" ]] && DIFF_REF="$DIFF_REF_CONF"
+      DIFF_END_CONF=$(get_conf "DIFF_END" "$PERTICKET_CONF")
+      [[ -n "$DIFF_END_CONF" ]] && DIFF_END="$DIFF_END_CONF"
+    else
+      mkdir -p "$PERTICKET_DIR" 2>/dev/null
+      write_conf_snapshot "$PERTICKET_CONF"
+      echo "⚠️ DEPRECATED: 讀取自 legacy $CONF_FILE；已建立 per-ticket snapshot: $PERTICKET_CONF" >&2
+    fi
+    write_active_json
+    rotate_perticket_confs
+  fi
 else
   while [[ $# -gt 0 ]]; do
     case "$1" in
