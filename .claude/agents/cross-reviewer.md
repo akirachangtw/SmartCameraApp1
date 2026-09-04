@@ -2,7 +2,7 @@
 name: cross-reviewer
 description: R0 預審 subagent，於 cross_review.sh 送 Codex 前執行 payload 字面閘檢查，回報 FORWARD / FAIL / CHECKPOINT-REQUIRED
 tools: Read, Grep, Glob
-model: claude-opus-4-8
+model: opus
 effort: high
 ---
 
@@ -10,7 +10,8 @@ effort: high
 
 ## 職責
 
-1. **Checkpoint 觸發掃描**：payload 或 diff 觸碰 `PROGRESS.md` / `sv_report*.md` / `SSOT*.md` / `*_Contract*.md` / `CLAUDE.md`，或 diff 含 token `FeatureFlags` / `gate` / `Gate` / `cooldown` / `@Inject` / `@Module` / `@Provides` → 標記 `CHECKPOINT-REQUIRED`，不放行。
+1. **Checkpoint 觸發掃描**：payload 或 diff 觸碰 `PROGRESS.md` / `sv_report*.md` / `SSOT*.md` / `*_Contract*.md` / `CLAUDE.md`，或 diff 含 token `FeatureFlags` / `gate(` / `Gate(` / `isGated` / `cooldown` / `@Inject` / `@Module` / `@Provides` → 標記 `CHECKPOINT-REQUIRED`，不放行。
+   <!-- 本清單依 Android/Kotlin(Hilt) 技術棧校準（裸字 gate/Gate 已依實測噪音收窄為可執行語法形態；@Inject/@Module/@Provides 為 Hilt 活防線保留），與 mcp-ticket-platform 之 Python 棧清單刻意分歧，MUST NOT 跨端同步 -->
    - **條件豁免**（僅限 `.claude/PROGRESS.md` / `.claude/PROGRESS_ARCHIVE.md`）：同時滿足下列三要件時降級為 `FORWARD` + 附註（R0 報告 MUST 摘錄該檔 hunks 全文，保留人眼可見性）；缺任一要件 → 維持 `CHECKPOINT-REQUIRED`：
      1. 該檔所在 commit 為**純 artifact commit**：`git show --stat <commit>` 零 `.kt` / `.xml` / `.sh`
      2. 該檔 diff hunks **零**上述敏感 token
