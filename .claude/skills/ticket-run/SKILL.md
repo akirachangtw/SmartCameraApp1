@@ -53,10 +53,18 @@ description: 列出目前 PENDING 票並依序號選取派工開工，取代直�
    - **3.3 第二層輸出**：依所選分組（或「全部」）之票，依 `PENDING` → `TICKET_RIGOR` → `IN_PROGRESS` 之序、單一連續編號、每票一行：`<n>. <id> [<lifecycle>] — <title 截斷至 40 字>`；編號自 1 連續遞增，**跨狀態不重編**。
      - `[<lifecycle>]` 標記 MUST 顯示，使用者需據此區辨「新開工」與「續跑」。
      - **顯示上限 12**：逾 12 張時顯示前 12 張，尾行輸出「…另有 N 張未顯示；請縮小分組或於桌面端整理後再派工」。MUST NOT 做 pagination。
+     - **末行 MUST 附返回項**（第一層曾顯示時，即不重複 prefix 數 ≥2）：
+       ```
+       0 = 返回議題選單
+       ```
+       第一層因「跳過空層」未顯示時（不重複 prefix 數為 1），MUST NOT 附此項——無上層可返，顯示之即為死選項。
      - 選中 `IN_PROGRESS` 票時，步驟 7 之 `set_status` 為冪等操作（狀態不變），CAS 仍照常執行；步驟 9 之 note 語義為**本次執行之發起溯源**，故續跑時再記一筆屬正確行為，非重複。
      - 選中 `TICKET_RIGOR` 票時，步驟 7 將其轉為 `IN_PROGRESS`，為已審→開工之正確轉換。
    - **不新增外部狀態**：第一層所選分組存於對話歷史，與序號選票同理。
-4. 等待使用者回覆單一數字（第二層之選票序號）。
+4. 等待使用者回覆單一數字（第二層之選票序號，或 `0` 返回）。
+   - **回 `0`** → 重新輸出**步驟 3.2 第一層**（分組選單），等待重選分組。MUST NOT 重跑步驟 1 之三次 `registry_list`——分組資料存於對話歷史，重查徒增往返與 payload。
+   - **`0` 僅於第一層曾顯示時有效**；第一層未顯示時（單一 prefix），`0` 視為超出範圍，重列第二層。
+   - 回超出範圍之數字 → 重列第二層，MUST NOT 寫冊面。
 5. 呼叫 `grep_files(paths=[<PROFILE.TICKET_FILE_BASE> + "/" + <選中票之 file 欄>], query="^(# |ALLOWED=|MAX_LINES=|\*\*Mode\*\*|\*\*前置依賴|- `(execution|evidence|coordination)_dependency`)", regex=True, max_matches=10)`，自回傳 snippet 組成 **5–9 行**摘要。
    - **強制顯示欄位（MUST 全數呈現，缺一即為本步失敗）**：
      1. 票名（標題行）
@@ -68,12 +76,15 @@ description: 列出目前 PENDING 票並依序號選取派工開工，取代直�
    - 某欄位於票面不存在時，該行輸出 `<欄位名>：（票面未載）`，MUST NOT 靜默略過——靜默略過會使「票面缺欄」與「摘要漏抓」不可區辨。
    - 冊面 `file` 欄為相對 **repo root** 之路徑（如 `docs/pending/…`），`grep_files` 之 `paths` 不接受相對路徑，故 base 常數為必要而非冗餘。
    - **MUST NOT 改回 `read_file_safe` 窗口讀取，MUST NOT 以調大 `max_chars` 為修法**：票面 `ALLOWED=` 之字元位移隨票長變動（實測 `TKR-ARCH-04` 落於第 6,951 字元、`TKR-ARCH-03-FIX-B` 落於第 3,143 字元），任何固定窗口均會對長票**靜默失效**——摘要看似成功，實則缺 ALLOWED。`grep_files` 依模式定位，不受位移影響，且僅回命中行，輸出量恆定，適合手機端。
-6. 輸出兩行選項並等待使用者回覆單一數字：
+6. 輸出三行選項並等待使用者回覆單一數字：
    ```
    1 = 確認開工
    2 = 取消
+   0 = 返回議題選單
    ```
-   `1` → 進步驟 7。`2` → 取消，流程結束，不寫冊面。**其他輸入 → 重顯相同摘要與 1／2 選項**，MUST NOT 寫冊面、MUST NOT 視為取消、MUST NOT 改變選中 ticket（手機誤觸不應等同取消）。
+   - **回 `0`** → 放棄本次選票，重新輸出**步驟 3.2 第一層**（分組選單）。同步驟 4 之返回：MUST NOT 重跑步驟 1，MUST NOT 寫冊面，MUST NOT 視為取消（取消為終止流程，返回為續留流程）。
+   - **`0` 僅於第一層曾顯示時有效**；第一層未顯示時，回 `0` 改重新輸出**第二層**（票清單），使用者仍得改選他票。
+   `1` → 進步驟 7。`2` → 取消，流程結束，不寫冊面。`0` → 返回（見上）。**其他輸入 → 重顯相同摘要與 1／2／0 選項**，MUST NOT 寫冊面、MUST NOT 視為取消、MUST NOT 改變選中 ticket（手機誤觸不應等同取消）。
 7. **窄重驗**：呼叫 `registry_list(project=<PROFILE.PROJECT>, lifecycle=<選中票之 lifecycle>, fields=["id","lifecycle","revision"], limit=50)`：
    - 僅取 `id == selected_id` 之 record；**找不到，或其 lifecycle 已非選取時之狀態 → 停止並要求重新列票**，MUST NOT 沿用列票時之舊 lifecycle。
    - `expected_revision` 取回傳之 `revision`。**`revision` 為全冊級單一計數器**，各 record 回同值，不存在「selected record 專屬 revision」；窄重驗之目的為①確認 selected id 仍在預期 lifecycle、②縮小 payload，**非**取得專屬 revision。CAS 因此為**全冊級樂觀鎖**——他票之任何寫入亦觸發 MISMATCH（2026-09-03 實測自然發生一次），為 Akira 明示保留之已知代價。
@@ -120,7 +131,8 @@ description: 列出目前 PENDING 票並依序號選取派工開工，取代直�
 - 回傳 `PROJECT_AMBIGUOUS` → 表示 `PROFILE.PROJECT` 未正確引用，屬本 SKILL 實作缺陷，停止回報。
 - 使用者於第一層回非數字或超出範圍 → 重列第一層，MUST NOT 進第二層。
 - 使用者於第二層回非數字或超出清單範圍 → 重列第二層，MUST NOT 寫入冊面。
-- 使用者於步驟 6 回非 `1`／`2` 之其他輸入 → 重顯步驟 5 摘要與 1／2 選項，MUST NOT 寫入冊面、MUST NOT 視為取消。
+- 使用者於步驟 6 回非 `1`／`2`／`0` 之其他輸入 → 重顯步驟 5 摘要與 1／2／0 選項，MUST NOT 寫入冊面、MUST NOT 視為取消。
+- 使用者於步驟 4 或步驟 6 回 `0` 而第一層未曾顯示（單一 prefix）→ 依各該步驟之規則重列第二層，MUST NOT 輸出空白第一層。
 - 步驟 7 窄重驗找不到 selected id，或其 lifecycle 已變更 → 停止並要求重新列票。
 - `git rev-parse` 不可用或回空 → conf 之 `DIFF_REF` MUST NOT 留佔位字面，停止回報。
 - 步驟 10.2 read-back 之 `TICKET_ID` 不符 → 停止並告知，不出選單。
