@@ -50,7 +50,10 @@ disable-model-invocation: false
    - 輸出 Ticket DONE 後，**MUST** 立即呼叫 `Skill(qa)`（等價 `/qa`），不得停下等待使用者確認。
    - `compile fix`、`git commit` 或其他非 Ticket DONE 僅為中間動作，**MUST NOT** 觸發 QA。
    - `tmp/verify_cmd.conf` 不存在或 `TICKET_ID` 為空時，回報 `⛔ UC Auto-Chain STOPPED: [原因]` 並停止。
-   - **收尾 SOP 觸發**：Ticket DONE 後 **MUST** 呼叫收尾 SOP（AC/AI checkbox 勾選＋registry lifecycle sync＋`registry_append_note`），觸發時機二分：RAPID MODE ON（QA/SV 已豁免）→ Ticket DONE 輸出當下即為終點，**MUST** 立即觸發；RAPID MODE OFF → 沿用既有契約，於 SV PASS（Cross Review 通過）後觸發。收尾動作律則字面唯一 SSOT 為 `.claude/rules/ssot-governance.md` Ticket Closure 紀律／五段流程，本檔不重複判準。lifecycle 落點：**MUST** 一律轉入 `REVIEW`（併搬 `deliver/`＋`file` 欄更新）；票面聲明需 Traycer T2 審查且尚未執行時，`reviews.traycer` 維持 `PENDING` 標記人工複審未完成，**MUST NOT** 因此使 lifecycle 停於 `EXECUTED`；終態（`CLOSED`/`VOID`）**MUST NOT** 由 Auto-Chain 自行轉入，限審查方裁決。
+   - **收尾 SOP 觸發**：Ticket DONE 後 **MUST** 依序完成下列三項獨立子項，觸發時機二分：RAPID MODE ON（QA/SV 已豁免）→ Ticket DONE 輸出當下即為終點，**MUST** 立即觸發；RAPID MODE OFF → 沿用既有契約，於 SV PASS（Cross Review 通過）後觸發。收尾動作律則字面唯一 SSOT 為 `.claude/rules/ssot-governance.md` Ticket Closure 紀律／五段流程，本檔不重複判準。
+     1. **AC/AI checkbox 勾選**：逐項核對票面 Acceptance Criteria 與 Action Items，僅勾「有 SV／QA／commit 佐證」之項。
+     2. **registry lifecycle sync**：**MUST** 先呼叫 `registry_list`（或等效 read，如 `get_ticket`）取得該票冊面現值 → 與待寫入值比對 → 確認無衝突後才可呼叫 `registry_set_status`／`registry_upsert_ticket` 宣告收尾完成；**MUST NOT** 憑記憶或前次回報直接寫入而略過現值核對。lifecycle 落點：**MUST** 一律轉入 `REVIEW`（併搬 `deliver/`＋`file` 欄更新）；票面聲明需 Traycer T2 審查且尚未執行時，`reviews.traycer` 維持 `PENDING` 標記人工複審未完成，**MUST NOT** 因此使 lifecycle 停於 `EXECUTED`；終態（`CLOSED`/`VOID`）**MUST NOT** 由 Auto-Chain 自行轉入，限審查方裁決。
+     3. **`registry_append_note`**：附上本輪收尾證據摘要（AC/測試/commit 引用）。
 9. **Auto-Chain ownership**：
    - `/uc` 只呼叫 QA，**MUST NOT** 直接呼叫 SV。
    - QA 全步驟 PASS 後，由 QA Skill 依既有契約自動進入 SV。
