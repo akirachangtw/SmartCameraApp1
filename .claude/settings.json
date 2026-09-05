@@ -118,6 +118,14 @@
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/telegram_stop.sh\""
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/registry_review_stop_guard.py\""
+          }
+        ]
       }
     ]
   },
