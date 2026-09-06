@@ -59,6 +59,18 @@ exit code（交付阻斷權屬五類第②項，非本層）。收口三件套�
 
 **與 `tmp/<TICKET_ID>/evidence/` 之職責邊界**：`tmp/verify/` 為**設定層**（啟用態、per-ticket config 快照），`tmp/<TICKET_ID>/evidence/`（見上節）為**取證層**（Step 0 結果留痕）；兩路徑不相交，**MUST NOT** 合併或互相覆寫（`INFRA-MAXLINES-EVIDENCE-01` 既有成果）。
 
+## Ticket Activation Preflight（`INFRA-QA-ACTIVATION-01`）
+
+`.claude/skills/qa/scripts/preflight_activation.sh` 於下列四時機 **MUST** 執行一次：新 session 開工／`/resume`／切票／`post-compact`。**`/resume` ≠ 可立即續 edit**——preflight 未跑或未 PASS 前，**MUST NOT** 逕行修改 ALLOWED 檔案。
+
+**四層語義**：
+- **V0（環境）**：repo root／branch／HEAD／`git status --short`／active ticket identity；不符 → `STATUS=BLOCKED_ENV_MISMATCH`，`ACTION=No writes, no test execution with ticket authority, no AC claim`。
+- **V1（baseline）**：現行 HEAD／target blob 對票面 `BASE_COMMIT`／`TARGET_BLOB`；四態輸出沿用 TPL v3.8 字面：`BASELINE_MATCHED`／`ALREADY_EXECUTED_PENDING_CLOSURE`／`CANDIDATE_SUPERSEDED`／`BLOCKED_UNATTRIBUTED_STATE`（R1 範圍不相交規則：`BASE_COMMIT..HEAD` 對 targets 之 diff 為空 → 視同 `BASELINE_MATCHED` 直進 V2）。
+- **V2（語義探針）**：唯讀（**MUST NOT** 寫入任何檔案），輸出 `overall`（`MISSING`／`SATISFIED`／`PARTIAL`）與 `provenance`；`overall=SATISFIED` 且 `provenance=UNKNOWN` → 狀態改判 `CANDIDATE_SUPERSEDED`，**MUST NOT** 自動判 `DONE`／`ZERO-DIFF-DECLARED`。
+- **Write Authority**：僅當 V0=PASS 且（V1=`BASELINE_MATCHED` 或已 owner REAUTHORIZED）且（V2=`MISSING` 或 `PARTIAL` 且已有實作授權）時方得為 `YES`；否則 `NO`，即使 preflight 本身執行成功。
+
+輸出快照寫入 `.claude/PROGRESS.md` `## Active Ticket Activation` 區塊（十一欄）；此為**最近一次實跑快照**，非即時輪詢，下次四時機任一觸發時 **MUST** 重跑更新。
+
 ## Step 1: 編譯 (Build)
 
 執行 `./gradlew assembleDebug 2>&1 | tail -50`
