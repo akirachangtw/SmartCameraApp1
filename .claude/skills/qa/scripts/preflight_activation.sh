@@ -57,6 +57,7 @@ v0_check() { # v0_check <ticket_id> → 全域變數 V0_STATUS／V0_REPO_ROOT／
   V0_STATUS_SHORT="$(git status --short 2>/dev/null)"
   local active_ticket_id=""
   [[ -f "$ACTIVE_JSON" ]] && active_ticket_id="$(json_field ticket_id "$ACTIVE_JSON")"
+  V0_ACTIVE_IDENTITY="$active_ticket_id"
 
   if [[ -z "$V0_REPO_ROOT" || -z "$V0_HEAD" ]]; then
     V0_STATUS="BLOCKED_ENV_MISMATCH"
@@ -68,10 +69,27 @@ v0_check() { # v0_check <ticket_id> → 全域變數 V0_STATUS／V0_REPO_ROOT／
     V0_REASON="no ticket_id supplied and active.json missing/empty"
     return 1
   fi
-  # target path scope check: ticket 之票檔本身 MUST 落於 TICKET_FILE_BASE 之下
-  local ticket_file
-  ticket_file="$(json_field id "$TICKET_REGISTRY")" # placeholder，實際查找見 lookup_ticket_file
-  V0_ACTIVE_IDENTITY="$active_ticket_id"
+  # active ticket identity mismatch: active.json 已記錄非本次探測 ticket_id 時視為環境不符
+  if [[ -n "$active_ticket_id" && "$active_ticket_id" != "$ticket_id" ]]; then
+    V0_STATUS="BLOCKED_ENV_MISMATCH"
+    V0_REASON="active.json ticket_id (${active_ticket_id}) 與探測 ticket_id (${ticket_id}) 不一致"
+    return 1
+  fi
+  # target path scope check: ticket 票檔 MUST 可於 TICKET_REGISTRY.json 解析且實際存在於 disk
+  local ticket_file_field ticket_path
+  ticket_file_field="$(lookup_ticket_file "$ticket_id")"
+  if [[ -z "$ticket_file_field" ]]; then
+    V0_STATUS="BLOCKED_ENV_MISMATCH"
+    V0_REASON="TICKET_REGISTRY.json 查無 ${ticket_id} 之 file 欄位（target path 不落於 ticket scope）"
+    return 1
+  fi
+  ticket_path="$(normalize_ticket_path "$ticket_file_field")"
+  if [[ ! -f "$ticket_path" ]]; then
+    V0_STATUS="BLOCKED_ENV_MISMATCH"
+    V0_REASON="票檔 ${ticket_path} 不存在（file 欄位指向失效路徑）"
+    return 1
+  fi
+  V0_TICKET_PATH="$ticket_path"
   V0_STATUS="PASS"
   return 0
 }
@@ -225,6 +243,21 @@ route_v2_state() {
   fi
 }
 
+# ─── Write Authority 判定（票面 AI-3 逐字公式）：
+#     V0=PASS 且（V1=BASELINE_MATCHED 或已 owner REAUTHORIZED）且
+#     （V2=MISSING 或 PARTIAL 且已有實作授權）時方得為 YES。
+#     腳本無法機械判讀「owner REAUTHORIZED」／「已有實作授權」之人工裁決 token，
+#     採保守預設：僅 V1=BASELINE_MATCHED 且 V2=MISSING 時判 YES，其餘一律 NO
+#     （非誤判寬鬆，寧可保守擋下待人工複核）。
+write_authority() { # write_authority <v0_status> <v1_status> <v2_overall> → stdout YES|NO
+  local v0="$1" v1="$2" v2="$3"
+  if [[ "$v0" == "PASS" && "$v1" == "BASELINE_MATCHED" && "$v2" == "MISSING" ]]; then
+    echo "YES"
+  else
+    echo "NO"
+  fi
+}
+
 main() {
   local ticket_id="${1:-}"
   if [[ -z "$ticket_id" && -f "$ACTIVE_JSON" ]]; then
@@ -247,18 +280,7 @@ main() {
 
   activate_via_p3_writer "$ticket_id" >&2
 
-  local ticket_file_field ticket_path
-  ticket_file_field="$(lookup_ticket_file "$ticket_id")"
-  if [[ -z "$ticket_file_field" ]]; then
-    echo "V1_STATUS=BLOCKED_UNATTRIBUTED_STATE"
-    if ! command -v jq >/dev/null 2>&1; then
-      echo "REASON=jq 不可用，無法解析 TICKET_REGISTRY.json（V0 唯讀取證不受影響）"
-    else
-      echo "REASON=TICKET_REGISTRY.json 查無 ${ticket_id} 之 file 欄位"
-    fi
-    exit 0
-  fi
-  ticket_path="$(normalize_ticket_path "$ticket_file_field")"
+  local ticket_path="$V0_TICKET_PATH"
   echo "TICKET_FILE=${ticket_path}"
 
   local allowed_targets
@@ -273,6 +295,7 @@ main() {
   v2_state="$(route_v2_state)"
   echo "V2_STATE=${v2_state}"
   echo "V2_JSON={\"ticket_id\":\"${ticket_id}\",\"semantic_contract\":${V2_RESULTS},\"overall\":\"${V2_OVERALL}\",\"provenance\":\"${V2_PROVENANCE}\"}"
+  echo "WRITE_AUTHORITY=$(write_authority "$V0_STATUS" "$V1_STATUS" "$V2_OVERALL")"
 
   exit 0
 }
@@ -288,6 +311,11 @@ if [[ $# -ge 1 && "$1" == "--self-test" ]]; then
   _expect_eq "route_v2_state: SATISFIED+UNKNOWN→CANDIDATE_SUPERSEDED" "CANDIDATE_SUPERSEDED" "$(V2_OVERALL=SATISFIED; V2_PROVENANCE=UNKNOWN; route_v2_state)"
   _expect_eq "route_v2_state: MISSING 直通" "MISSING" "$(V2_OVERALL=MISSING; V2_PROVENANCE=UNKNOWN; route_v2_state)"
   _expect_eq "route_v2_state: PARTIAL 直通" "PARTIAL" "$(V2_OVERALL=PARTIAL; V2_PROVENANCE=UNKNOWN; route_v2_state)"
+  _expect_eq "write_authority: PASS+MATCHED+MISSING→YES" "YES" "$(write_authority PASS BASELINE_MATCHED MISSING)"
+  _expect_eq "write_authority: V0 非 PASS→NO" "NO" "$(write_authority BLOCKED_ENV_MISMATCH BASELINE_MATCHED MISSING)"
+  _expect_eq "write_authority: V1 非 MATCHED→NO" "NO" "$(write_authority PASS CANDIDATE_SUPERSEDED MISSING)"
+  _expect_eq "write_authority: V2 非 MISSING(SATISFIED)→NO" "NO" "$(write_authority PASS BASELINE_MATCHED SATISFIED)"
+  _expect_eq "write_authority: V2=PARTIAL 無可驗證授權→NO" "NO" "$(write_authority PASS BASELINE_MATCHED PARTIAL)"
   echo "── self-test: ${passed} passed, ${failed} failed ──"
   [[ $failed -eq 0 ]] && exit 0 || exit 1
 fi
