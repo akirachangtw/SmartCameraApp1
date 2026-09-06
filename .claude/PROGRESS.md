@@ -5,18 +5,18 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-PENDING-HYGIENE-APP-01 | ✅ Done（碼閉環，Rev B，AC 9/9 PASS）· `.claude/rules/ssot-governance.md` 新增票檔目錄三分（Pending/deliver/void）+ VOID 歸位紀律四要件（`registry_set_checkpoint` 為敘事唯一通道）+ `Pending/` 淨空原則（終態補集定義，不枚舉活態值）+ 目錄↔冊面一一對應 + `file` 欄正規化前置 · Rev A 之「活態＝PENDING單值」枚舉法經現場 `registry_list` 全量掃描證偽（`IN_PROGRESS`/`BLOCKED` 實際在用），Akira 丁案裁決改終態補集法 · AI-4 落差清單：孤兒票檔 2 筆、非票檔文件 4 筆，HC-6 正向聲明零筆被處置 · `293b7af`/`f21b504` · 依 HC-7 完成後 STOP，reviews 如實填 N_A（未經自動化鏈，非推定 PASS）· 免 Traycer（純立法文本） |
-| MOBCD-03 | ✅ Done（歸檔，Akira 對話裁決結案）· APP 側 `ticket-run` skill 移植首票，AI-0~AI-3、AC 9 項全勾 · 原保留未勾之手機端 producer 證據以「後續 MOBCD-04~07 世代已多次真實驗證同一互動骨幹」差分等價論證補齊 · `3df5173`/`5693a77` · 本票產出（三處差異版 SKILL.md）已隨 MOBCD-04 起逐次覆寫取代，貢獻為建立移植先例 |
 | INFRA-REGISTRY-LIFECYCLE-GATE-APP-01 | ✅ Done（碼閉環，AC 6/11 PASS + 3 項 PARTIAL 誠實揭露 + 1 項未勾 [實機]）· 新建 `registry_review_stop_guard.py`（Stop hook 第三支，唯讀 `TICKET_REGISTRY.json`，收尾跡象成立〔票檔在 `deliver/` 或 AC 全勾〕但 lifecycle 未達終態時 `decision=block` 攔一次，session+ticket 雙鍵至多阻擋一次）+ 18 案例 bash 自測全 PASS · 開工閘（`IN_PROGRESS` 轉態）依票面明示排除未實作 · AI-0 六項前置取證含 registry_set_status 實測（rev195→196）+ 真實 Stop payload 探測（`session_id` 確認存在）· Codex Cross-Review R1 REPORT_FIX（快取時間措辭/HC3 冊面唯讀措辭/producer file:line 補證三項）→ R2 **ADVISORY**（A→B→A 跨 session marker 淘汰為票面既有設計限制，非新增缺陷，REACHABILITY: NONE）· R0 CHECKPOINT-REQUIRED 一次（PROGRESS.md 與 `.sh` 同 commit 違 Rule 3），Akira 裁決 A 拆分 commit（`95f3594` 純實作 + `3a8e6a2` 純 PROGRESS.md）解決 · `95f3594`/`3a8e6a2` · 免 Traycer（純 `.claude/hooks/` 治理工具票） |
+| INFRA-QA-ACTIVATION-01 | 🔀 lifecycle→`BLOCKED`（blocked_by `INFRA-PREFLIGHT-CORE-01`）· R1/R2 REPORT_FIX 修復（`12ad019`/`9895b3f`：V0 target-scope+identity gate、TARGET_BLOB 比對、WRITE_AUTHORITY 三態輸出、切票顯式/隱式分流）後 R3 再 FAIL（`v1_check()` git hash-object 失敗未判 mismatch），依 Rev B.1 裁決一「R3 FAIL 禁 R4 局部修補，立即轉票」→ 轉 `INFRA-PREFLIGHT-CORE-01`（seq 37） |
+| INFRA-SESSION-HOOK-01 | ⏸️ lifecycle→`EXECUTED`（碼已 commit `855df0a`：`settings.json` SessionStart 兩 matcher 群 + 新建 `session_start.sh` reset/inject 雙模式，全部行為性 AC 含四種真實損毀樣本測後還原）· `/qa` PASS，`/sv` Cross-Review R1-R4 皆 `REPORT_FIX`（純 sv_report.md 措辭準確度問題，非程式碼缺陷）· 停在 R4 CHECKPOINT，待 Akira ack 續跑 R5 · 2 項 [實機] AC（`/clear`/`/compact`/fork 終端實測）因執行環境為 VSCode 擴充，依票面 Error Handling 明文停止，留待 terminal 現場實測 |
 
-**Last Updated**: 2026-09-06（S102，`INFRA-REGISTRY-LIFECYCLE-GATE-APP-01` 碼閉環，Codex R2 ADVISORY）
+**Last Updated**: 2026-09-07（S103，`INFRA-QA-ACTIVATION-01` R3 FAIL 轉票 seq37；`INFRA-SESSION-HOOK-01` EXECUTED 待 Cross-Review R5 ack）
 
 ## Active Ticket Activation
 
 <!-- preflight_activation.sh（INFRA-QA-ACTIVATION-01）最近一次實跑快照，非即時輪詢 -->
 | Ticket ID | Ticket Rev | Activation Src | Repo Root | Branch | HEAD | Baseline(V1) | Semantic(V2) | Config State | Write Authority | Last Verified |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `INFRA-QA-ACTIVATION-01` | preflight | new-session | `SmartCameraApp1` | main | `570c5fd6` | `BLOCKED_UNATTRIBUTED_STATE` | `MISSING` | MISSING（無 per-ticket `.conf`） | NO | 2026-09-06T05:47:15Z |
+| `INFRA-QA-ACTIVATION-01` | preflight | ticket-switch | `SmartCameraApp1` | main | `9895b3f1` | `BLOCKED_UNATTRIBUTED_STATE` | `MISSING` | MISSING（無 per-ticket `.conf`） | NO | 2026-09-06T06:24:43Z |
 
 ## Sprint Health
 
