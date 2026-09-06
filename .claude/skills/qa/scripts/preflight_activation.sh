@@ -4,7 +4,9 @@
 #
 # 用法:
 #   bash .claude/skills/qa/scripts/preflight_activation.sh [<ticket_id>]
-#   省略 <ticket_id> 時，讀取 tmp/verify/active.json 之 ticket_id。
+#   顯式傳入 <ticket_id> = activation intent（切票），覆寫 active.json，
+#     activation_source="ticket-switch"，identity 不比對（Rev B，修 R2 第 4 項）。
+#   省略 <ticket_id> 時，讀取 tmp/verify/active.json 之 ticket_id（mismatch 結構上不可能）。
 #
 # 輸出（stdout）: 逐行 KEY=VALUE 狀態，末尾一行 V2 JSON。
 # 退出碼: 0 = V0 PASS（不代表 V1/V2 亦 PASS，逐層狀態各自輸出）
@@ -37,20 +39,32 @@ json_field() { # json_field <key> <file> — 單行 "key": "value" 擷取
 # ─── P3 active.json 寫入器複用（HC-4：MUST 複用，禁重複實作）───
 # 動態擷取 verify_checklist.sh 之 get_conf／write_active_json 函式定義並 source，
 # 不 source 整個腳本（該腳本無 sourcing guard，整檔 source 會連帶執行其 Step 0 主流程）。
-activate_via_p3_writer() { # activate_via_p3_writer <ticket_id> → 呼叫複用之 write_active_json
-  local ticket_id="$1"
+activate_via_p3_writer() { # activate_via_p3_writer <ticket_id> [<activation_source>]
+  # → 呼叫複用之 write_active_json；activation_source 缺省時沿用該函式既定預設（new-session）
+  local ticket_id="$1" activation_source="${2:-}"
   local fn_src
   fn_src="$(sed -n '/^get_conf()/,/^}/p;/^write_active_json()/,/^}/p' "$VERIFY_CHECKLIST" 2>/dev/null)"
   [[ -z "$fn_src" ]] && { echo "⚠️ 無法自 ${VERIFY_CHECKLIST} 擷取 write_active_json（複用失敗，不影響 V0 唯讀取證）" >&2; return 1; }
   eval "$fn_src"
-  TICKET_ID="$ticket_id" REVISION="preflight" CONF_FILE="/dev/null" write_active_json
+  local conf_file="/dev/null" conf_tmp=""
+  if [[ -n "$activation_source" ]]; then
+    mkdir -p "$PERTICKET_DIR" 2>/dev/null
+    conf_tmp="${PERTICKET_DIR}/.activation_source.$$.conf"
+    echo "ACTIVATION_SOURCE=${activation_source}" > "$conf_tmp" 2>/dev/null
+    conf_file="$conf_tmp"
+  fi
+  TICKET_ID="$ticket_id" REVISION="preflight" CONF_FILE="$conf_file" write_active_json
+  local rc=$?
+  [[ -n "$conf_tmp" ]] && rm -f "$conf_tmp" 2>/dev/null
+  return $rc
 }
 
 # ─── V0: 環境驗證 ───
 # 任一不符 → STATUS=BLOCKED_ENV_MISMATCH，明示 ACTION=No writes, no test execution
 # with ticket authority, no AC claim。V0 PASS 後方得呼叫 P3 之 active.json 寫入器。
-v0_check() { # v0_check <ticket_id> → 全域變數 V0_STATUS／V0_REPO_ROOT／V0_BRANCH／V0_HEAD／V0_STATUS_SHORT
-  local ticket_id="$1"
+v0_check() { # v0_check <ticket_id> <is_explicit 0|1> → 全域變數 V0_STATUS／V0_REPO_ROOT／
+  # V0_BRANCH／V0_HEAD／V0_STATUS_SHORT／V0_ACTIVATION_SOURCE
+  local ticket_id="$1" is_explicit="${2:-0}"
   V0_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
   V0_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
   V0_HEAD="$(git rev-parse HEAD 2>/dev/null)"
@@ -58,10 +72,20 @@ v0_check() { # v0_check <ticket_id> → 全域變數 V0_STATUS／V0_REPO_ROOT／
   local active_ticket_id=""
   [[ -f "$ACTIVE_JSON" ]] && active_ticket_id="$(json_field ticket_id "$ACTIVE_JSON")"
   V0_ACTIVE_IDENTITY="$active_ticket_id"
+  # 顯式傳入 ticket_id = activation intent（切票）→ activation_source=ticket-switch；
+  # 未傳入（取自 active.json）→ 沿用 activate_via_p3_writer 既定預設，本函式不覆寫。
+  # branch／worktree 僅照實輸出（V0_BRANCH 已上方賦值），MUST NOT 比對任何白名單——
+  # 本專案無 allowed-branch 機制，`main` 即現行開發分支，發明白名單屬過度治理。
+  [[ "$is_explicit" -eq 1 ]] && V0_ACTIVATION_SOURCE="ticket-switch"
 
   if [[ -z "$V0_REPO_ROOT" || -z "$V0_HEAD" ]]; then
     V0_STATUS="BLOCKED_ENV_MISMATCH"
     V0_REASON="git repo root or HEAD unresolvable"
+    return 1
+  fi
+  if [[ "$V0_BRANCH" == "HEAD" ]]; then
+    V0_STATUS="BLOCKED_ENV_MISMATCH"
+    V0_REASON="detached HEAD：BASE_COMMIT 比對與 Rebase Protocol 語義不成立"
     return 1
   fi
   if [[ -z "$ticket_id" ]]; then
@@ -69,12 +93,8 @@ v0_check() { # v0_check <ticket_id> → 全域變數 V0_STATUS／V0_REPO_ROOT／
     V0_REASON="no ticket_id supplied and active.json missing/empty"
     return 1
   fi
-  # active ticket identity mismatch: active.json 已記錄非本次探測 ticket_id 時視為環境不符
-  if [[ -n "$active_ticket_id" && "$active_ticket_id" != "$ticket_id" ]]; then
-    V0_STATUS="BLOCKED_ENV_MISMATCH"
-    V0_REASON="active.json ticket_id (${active_ticket_id}) 與探測 ticket_id (${ticket_id}) 不一致"
-    return 1
-  fi
+  # active ticket identity：顯式傳入視為切票意圖不設 gate；未顯式傳入時 ticket_id 本即
+  # 取自 active.json（見 main()），mismatch 結構上不可能發生，故本分支無需額外判定。
   # target path scope check: ticket 票檔 MUST 可於 TICKET_REGISTRY.json 解析且實際存在於 disk
   local ticket_file_field ticket_path
   ticket_file_field="$(lookup_ticket_file "$ticket_id")"
@@ -131,6 +151,28 @@ v1_check() { # v1_check <ticket_id> <ticket_path> <targets_csv>
     V1_STATUS="BLOCKED_UNATTRIBUTED_STATE"
     V1_REASON="BASE_COMMIT ${base_commit} 不在 git 歷史內"
     return 0
+  fi
+
+  # ─── TARGET_BLOB 比對（Rev B，修 R2 第 2 項）：格式 path:sha8，多標的以分號分隔；
+  #     整欄字面 NEW（新建檔無 pre-image）或 N/A（票面已顯式降級為 AI-0 錨點制）→ 跳過整組比對。───
+  if [[ -n "$target_blob" && "$target_blob" != "NEW" && "$target_blob" != "N/A" ]]; then
+    local blob_entry blob_path blob_sha actual_sha
+    local IFS=';'
+    for blob_entry in $target_blob; do
+      blob_entry="$(echo "$blob_entry" | xargs)"
+      [[ -z "$blob_entry" ]] && continue
+      blob_path="${blob_entry%%:*}"
+      blob_sha="${blob_entry##*:}"
+      [[ "$blob_path" == "$blob_sha" ]] && continue # 格式不含冒號，無法比對，跳過該項
+      actual_sha="$(git hash-object "$blob_path" 2>/dev/null | cut -c1-8)"
+      if [[ -n "$actual_sha" && "$actual_sha" != "$blob_sha" ]]; then
+        V1_STATUS="BLOCKED_SCOPE_OR_TARGET_MISMATCH"
+        V1_REASON="TARGET_BLOB 比對失敗：${blob_path} 現行 hash ${actual_sha} 與票面 ${blob_sha} 不符"
+        unset IFS
+        return 0
+      fi
+    done
+    unset IFS
   fi
 
   # 正規化 targets（逗號分隔）為 git pathspec 陣列
@@ -243,28 +285,39 @@ route_v2_state() {
   fi
 }
 
-# ─── Write Authority 判定（票面 AI-3 逐字公式）：
-#     V0=PASS 且（V1=BASELINE_MATCHED 或已 owner REAUTHORIZED）且
-#     （V2=MISSING 或 PARTIAL 且已有實作授權）時方得為 YES。
-#     腳本無法機械判讀「owner REAUTHORIZED」／「已有實作授權」之人工裁決 token，
-#     採保守預設：僅 V1=BASELINE_MATCHED 且 V2=MISSING 時判 YES，其餘一律 NO
-#     （非誤判寬鬆，寧可保守擋下待人工複核）。
-write_authority() { # write_authority <v0_status> <v1_status> <v2_overall> → stdout YES|NO
+# ─── Write Authority 判定（票面 AI-3〔Rev B〕）：V0=PASS 且（V1=BASELINE_MATCHED 或
+#     已 owner REAUTHORIZED）且（V2=MISSING 或 PARTIAL 且已有實作授權）時方得為 YES。
+#     `已 owner REAUTHORIZED`／`已有實作授權` 為人工裁決 token，無機械判讀通道，
+#     MUST NOT 宣稱本函式為該公式之逐字實作——腳本採保守縮減版：
+#       V0=PASS 且 V1=BASELINE_MATCHED 且 V2=MISSING → YES
+#       V0=PASS 且 V1=BASELINE_MATCHED 但 V2≠MISSING → NO，且標示「conservative」——
+#         此分支若存在可機械判讀之人工授權，公式本應可能為 YES，區別於下方之硬性不成立
+#       其餘（V0≠PASS 或 V1≠BASELINE_MATCHED）→ 純 NO（條件確實不成立，非縮減所致）
+write_authority() { # write_authority <v0_status> <v1_status> <v2_overall> → stdout
+  # YES | NO | "NO (conservative: manual reauthorization not machine-readable)"
   local v0="$1" v1="$2" v2="$3"
-  if [[ "$v0" == "PASS" && "$v1" == "BASELINE_MATCHED" && "$v2" == "MISSING" ]]; then
-    echo "YES"
+  if [[ "$v0" == "PASS" && "$v1" == "BASELINE_MATCHED" ]]; then
+    if [[ "$v2" == "MISSING" ]]; then
+      echo "YES"
+    else
+      echo "NO (conservative: manual reauthorization not machine-readable)"
+    fi
   else
     echo "NO"
   fi
 }
 
 main() {
-  local ticket_id="${1:-}"
-  if [[ -z "$ticket_id" && -f "$ACTIVE_JSON" ]]; then
+  local explicit_ticket_id="${1:-}"
+  local ticket_id="$explicit_ticket_id"
+  local is_explicit=0
+  if [[ -n "$explicit_ticket_id" ]]; then
+    is_explicit=1
+  elif [[ -f "$ACTIVE_JSON" ]]; then
     ticket_id="$(json_field ticket_id "$ACTIVE_JSON")"
   fi
 
-  v0_check "$ticket_id"
+  v0_check "$ticket_id" "$is_explicit"
   echo "V0_STATUS=${V0_STATUS}"
   echo "REPO_ROOT=${V0_REPO_ROOT:-}"
   echo "BRANCH=${V0_BRANCH:-}"
@@ -278,7 +331,7 @@ main() {
     exit 1
   fi
 
-  activate_via_p3_writer "$ticket_id" >&2
+  activate_via_p3_writer "$ticket_id" "${V0_ACTIVATION_SOURCE:-}" >&2
 
   local ticket_path="$V0_TICKET_PATH"
   echo "TICKET_FILE=${ticket_path}"
@@ -312,10 +365,10 @@ if [[ $# -ge 1 && "$1" == "--self-test" ]]; then
   _expect_eq "route_v2_state: MISSING 直通" "MISSING" "$(V2_OVERALL=MISSING; V2_PROVENANCE=UNKNOWN; route_v2_state)"
   _expect_eq "route_v2_state: PARTIAL 直通" "PARTIAL" "$(V2_OVERALL=PARTIAL; V2_PROVENANCE=UNKNOWN; route_v2_state)"
   _expect_eq "write_authority: PASS+MATCHED+MISSING→YES" "YES" "$(write_authority PASS BASELINE_MATCHED MISSING)"
-  _expect_eq "write_authority: V0 非 PASS→NO" "NO" "$(write_authority BLOCKED_ENV_MISMATCH BASELINE_MATCHED MISSING)"
-  _expect_eq "write_authority: V1 非 MATCHED→NO" "NO" "$(write_authority PASS CANDIDATE_SUPERSEDED MISSING)"
-  _expect_eq "write_authority: V2 非 MISSING(SATISFIED)→NO" "NO" "$(write_authority PASS BASELINE_MATCHED SATISFIED)"
-  _expect_eq "write_authority: V2=PARTIAL 無可驗證授權→NO" "NO" "$(write_authority PASS BASELINE_MATCHED PARTIAL)"
+  _expect_eq "write_authority: V0 非 PASS→純 NO" "NO" "$(write_authority BLOCKED_ENV_MISMATCH BASELINE_MATCHED MISSING)"
+  _expect_eq "write_authority: V1 非 MATCHED→純 NO" "NO" "$(write_authority PASS CANDIDATE_SUPERSEDED MISSING)"
+  _expect_eq "write_authority: V2=SATISFIED→conservative NO" "NO (conservative: manual reauthorization not machine-readable)" "$(write_authority PASS BASELINE_MATCHED SATISFIED)"
+  _expect_eq "write_authority: V2=PARTIAL→conservative NO" "NO (conservative: manual reauthorization not machine-readable)" "$(write_authority PASS BASELINE_MATCHED PARTIAL)"
   echo "── self-test: ${passed} passed, ${failed} failed ──"
   [[ $failed -eq 0 ]] && exit 0 || exit 1
 fi
