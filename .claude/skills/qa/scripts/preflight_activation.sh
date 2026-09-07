@@ -307,6 +307,199 @@ write_authority() { # write_authority <v0_status> <v1_status> <v2_overall> → s
   fi
 }
 
+# ─── AI-4（INFRA-PREFLIGHT-CORE-01，adapter shadow mode）───
+# 唯讀觀測層：蒐集 facts JSON、呼叫純 Python 決策核心、與既有 Bash 判定之
+# legacy 等價收斂值比對，僅記錄差異至 .tmp/preflight_shadow_<date>.log。
+# MUST NOT 改變任何既有副作用或輸出；任何子步驟失敗一律靜默略過（不阻斷主流程）。
+PREFLIGHT_CORE_PY=".claude/skills/qa/scripts/preflight_core.py"
+SHADOW_LOG_DIR=".tmp"
+
+map_v0_env_fact() { # map_v0_env_fact → stdout Facts Contract v0_env 值（純讀 V0_STATUS／V0_REASON）
+  if [[ "$V0_STATUS" == "PASS" ]]; then echo "PASS"; return; fi
+  case "$V0_REASON" in
+    "detached HEAD"*) echo "DETACHED_HEAD" ;;
+    "no ticket_id supplied"*) echo "NO_ACTIVE_TICKET" ;;
+    *) echo "OUT_OF_SCOPE" ;; # registry 查無／票檔失效／repo root 或 HEAD 不可解析，皆歸此類（無專屬列舉值，保守歸類）
+  esac
+}
+
+map_v1_facts() { # map_v1_facts → 設定全域 FACT_BASELINE_CHECK／FACT_V1_SCOPE／FACT_V1_PROVENANCE／FACT_BLOB_CHECK
+  # 僅於 V0=PASS 時呼叫。legacy 之 TARGET_MISSING／COMMAND_FAILED／INVALID_TICKET_VALUE
+  # 三型無 legacy V1_STATUS 可對應（正是 R3 缺陷本身：guard 靜默跳過，非判 mismatch），
+  # 故 BLOCKED_SCOPE_OR_TARGET_MISMATCH 之 legacy 唯一可達子型別為 MISMATCH。
+  FACT_BLOB_CHECK="NOT_EVALUATED"
+  case "$V1_STATUS" in
+    BASELINE_MATCHED)
+      FACT_BASELINE_CHECK="VALID"; FACT_V1_SCOPE="UNCHANGED_TARGETS"; FACT_V1_PROVENANCE="NOT_APPLICABLE"
+      FACT_BLOB_CHECK="MATCH"
+      ;;
+    ALREADY_EXECUTED_PENDING_CLOSURE)
+      FACT_BASELINE_CHECK="VALID"; FACT_V1_SCOPE="CHANGED_TARGETS"; FACT_V1_PROVENANCE="SELF_TICKET"
+      FACT_BLOB_CHECK="MATCH"
+      ;;
+    CANDIDATE_SUPERSEDED)
+      FACT_BASELINE_CHECK="VALID"; FACT_V1_SCOPE="CHANGED_TARGETS"; FACT_V1_PROVENANCE="OTHER_TICKET"
+      FACT_BLOB_CHECK="MATCH"
+      ;;
+    BLOCKED_SCOPE_OR_TARGET_MISMATCH)
+      FACT_BASELINE_CHECK="VALID"; FACT_V1_SCOPE="NOT_EVALUATED"; FACT_V1_PROVENANCE="NOT_APPLICABLE"
+      FACT_BLOB_CHECK="MISMATCH"
+      ;;
+    BLOCKED_UNATTRIBUTED_STATE)
+      if [[ "$V1_REASON" == "BASE_COMMIT 未回填或為佔位字面" ]]; then
+        FACT_BASELINE_CHECK="MISSING"; FACT_V1_SCOPE="NOT_EVALUATED"; FACT_V1_PROVENANCE="NOT_APPLICABLE"
+      elif [[ "$V1_REASON" == "BASE_COMMIT "*"不在 git 歷史內" ]]; then
+        FACT_BASELINE_CHECK="UNRESOLVABLE"; FACT_V1_SCOPE="NOT_EVALUATED"; FACT_V1_PROVENANCE="NOT_APPLICABLE"
+      else
+        FACT_BASELINE_CHECK="VALID"; FACT_V1_SCOPE="CHANGED_TARGETS"; FACT_V1_PROVENANCE="UNATTRIBUTED"
+        FACT_BLOB_CHECK="MATCH"
+      fi
+      ;;
+    *)
+      FACT_BASELINE_CHECK="NOT_EVALUATED"; FACT_V1_SCOPE="NOT_EVALUATED"; FACT_V1_PROVENANCE="NOT_APPLICABLE"
+      ;;
+  esac
+}
+
+collect_blob_check_fact() { # collect_blob_check_fact <ticket_path> → stdout Facts Contract blob_check 值
+  # 獨立重新讀取 TARGET_BLOB 並重新分類，MUST NOT 依賴 v1_check() 已產生之 V1_STATUS——
+  # 該函式之 blob 區塊正是 R3 缺陷所在（git hash-object 失敗時 guard 靜默跳過，非判
+  # mismatch），若由 legacy 判定值反推 facts 將形成循環，永遠無法讓 shadow 比對揭露此
+  # 缺陷本身。此函式為唯讀觀測，不影響 v1_check() 之既有（含缺陷）行為。
+  local ticket_path="$1"
+  local target_blob
+  target_blob="$(grep '^TARGET_BLOB=' "$ticket_path" 2>/dev/null | head -1 | cut -d'=' -f2- | xargs)"
+  if [[ -z "$target_blob" ]]; then echo "NOT_EVALUATED"; return; fi
+  if [[ "$target_blob" == "NEW" ]]; then echo "SKIPPED_NEW"; return; fi
+  if [[ "$target_blob" == "N/A" ]]; then echo "SKIPPED_NA"; return; fi
+
+  local blob_entry blob_path blob_sha actual_sha verdict="MATCH"
+  local IFS=';'
+  for blob_entry in $target_blob; do
+    blob_entry="$(echo "$blob_entry" | xargs)"
+    [[ -z "$blob_entry" ]] && continue
+    blob_path="${blob_entry%%:*}"
+    blob_sha="${blob_entry##*:}"
+    if [[ "$blob_path" == "$blob_sha" ]]; then verdict="INVALID_TICKET_VALUE"; break; fi
+    if [[ ! -f "$blob_path" ]]; then verdict="TARGET_MISSING"; break; fi
+    actual_sha="$(git hash-object "$blob_path" 2>/dev/null | cut -c1-8)"
+    if [[ -z "$actual_sha" ]]; then verdict="COMMAND_FAILED"; break; fi
+    if [[ "$actual_sha" != "$blob_sha" ]]; then verdict="MISMATCH"; break; fi
+  done
+  unset IFS
+  echo "$verdict"
+}
+
+map_v2_facts() { # map_v2_facts → 設定全域 FACT_V2_SEMANTICS／FACT_V2_PROVENANCE（僅於 V0=PASS 時有意義）
+  case "$V2_OVERALL" in
+    SATISFIED) FACT_V2_SEMANTICS="SATISFIED" ;;
+    PARTIAL) FACT_V2_SEMANTICS="PARTIAL" ;;
+    MISSING) FACT_V2_SEMANTICS="MISSING" ;;
+    *) FACT_V2_SEMANTICS="NOT_EVALUATED" ;;
+  esac
+  case "$V2_PROVENANCE" in
+    UNKNOWN) FACT_V2_PROVENANCE="UNKNOWN" ;;
+    *) FACT_V2_PROVENANCE="NOT_EVALUATED" ;;
+  esac
+}
+
+collect_facts_json() { # collect_facts_json <ticket_id> <activation_intent> → stdout JSON
+  local ticket_id="$1" activation_intent="$2"
+  local v0_env baseline_check v1_scope v1_provenance blob_check v2_semantics v2_provenance
+  v0_env="$(map_v0_env_fact)"
+  if [[ "$v0_env" == "PASS" ]]; then
+    map_v1_facts
+    baseline_check="$FACT_BASELINE_CHECK"; v1_scope="$FACT_V1_SCOPE"; v1_provenance="$FACT_V1_PROVENANCE"; blob_check="$FACT_BLOB_CHECK"
+    # 獨立重新量測 blob_check（見 collect_blob_check_fact 說明），取代上面由 legacy
+    # V1_STATUS 反推之假設值——僅在 baseline_check=VALID（BASE_COMMIT 可解析）時才有意
+    # 義覆寫；MISSING／UNRESOLVABLE 時 blob_check 依 Facts Contract 維持 NOT_EVALUATED。
+    if [[ -n "${V0_TICKET_PATH:-}" && "$baseline_check" == "VALID" ]]; then
+      blob_check="$(collect_blob_check_fact "$V0_TICKET_PATH")"
+    fi
+    map_v2_facts
+    v2_semantics="$FACT_V2_SEMANTICS"; v2_provenance="$FACT_V2_PROVENANCE"
+  else
+    baseline_check="NOT_EVALUATED"; v1_scope="NOT_EVALUATED"; v1_provenance="NOT_APPLICABLE"; blob_check="NOT_EVALUATED"
+    v2_semantics="NOT_EVALUATED"; v2_provenance="NOT_EVALUATED"
+  fi
+  local collected_at config_revision
+  collected_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  config_revision="preflight" # 沿用 activate_via_p3_writer 現行硬編碼 REVISION 值（AI-0 動作B 確認之現況 producer）
+  printf '{"context":{"ticket_id":"%s","repo_root":"%s","worktree_path":"%s","head_sha":"%s","config_revision":"%s","collected_at":"%s","activation_intent":"%s"},"environment":{"v0_env":"%s","baseline_check":"%s","v1_scope":"%s","v1_provenance":"%s","blob_check":"%s","v2_semantics":"%s","v2_provenance":"%s"}}' \
+    "$ticket_id" "${V0_REPO_ROOT:-}" "${V0_REPO_ROOT:-}" "${V0_HEAD:-}" "$config_revision" "$collected_at" "$activation_intent" \
+    "$v0_env" "$baseline_check" "$v1_scope" "$v1_provenance" "$blob_check" "$v2_semantics" "$v2_provenance"
+}
+
+legacy_equivalent_status() { # legacy_equivalent_status → stdout "<final_status> <exit_code>"
+  # 依 F-0～F-8 邏輯，用既有 V0_STATUS／V1_STATUS／route_v2_state() 收斂為單一可比對值
+  # （legacy 腳本本身無此單一欄位，僅分開輸出 V1_STATUS 與 V2_STATE）。
+  if [[ "$V0_STATUS" != "PASS" ]]; then
+    echo "BLOCKED_ENV_MISMATCH 1"
+    return
+  fi
+  if [[ "$V1_STATUS" != "BASELINE_MATCHED" ]]; then
+    echo "${V1_STATUS} 0"
+    return
+  fi
+  local v2_route
+  v2_route="$(route_v2_state)"
+  if [[ "$v2_route" == "CANDIDATE_SUPERSEDED" ]]; then
+    echo "CANDIDATE_SUPERSEDED 0"
+  else
+    echo "BASELINE_MATCHED 0"
+  fi
+}
+
+invoke_core_decision() { # invoke_core_decision <ticket_id> <activation_intent>
+  # → 全域 CORE_AVAILABLE(0/1)／CORE_FACTS_JSON／CORE_FINAL_STATUS／CORE_EXIT_CODE／
+  #   CORE_WRITE_AUTHORITY／CORE_MAY_ACTIVATE_TICKET／CORE_CONTEXT_ID／CORE_TICKET_ID
+  local ticket_id="$1" activation_intent="$2"
+  CORE_AVAILABLE=0
+  command -v python3 >/dev/null 2>&1 || { echo "⚠️ core unavailable: python3 not found" >&2; return 1; }
+  [[ -f "$PREFLIGHT_CORE_PY" ]] || { echo "⚠️ core unavailable: preflight_core.py not found" >&2; return 1; }
+
+  CORE_FACTS_JSON="$(collect_facts_json "$ticket_id" "$activation_intent" 2>/dev/null)"
+  local decision_json
+  decision_json="$(printf '%s' "$CORE_FACTS_JSON" | python3 "$PREFLIGHT_CORE_PY" 2>/dev/null)"
+  [[ -z "$decision_json" ]] && { echo "⚠️ core unavailable: invocation failed" >&2; return 1; }
+
+  CORE_FINAL_STATUS="$(printf '%s' "$decision_json" | grep -o '"final_status": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
+  CORE_EXIT_CODE="$(printf '%s' "$decision_json" | grep -o '"process_exit_code": *[0-9]*' | grep -o '[0-9]*$')"
+  CORE_WRITE_AUTHORITY="$(printf '%s' "$decision_json" | grep -o '"write_authority": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
+  CORE_MAY_ACTIVATE_TICKET="$(printf '%s' "$decision_json" | grep -o '"may_activate_ticket": *[a-z]*' | grep -o '[a-z]*$')"
+  CORE_CONTEXT_ID="$(printf '%s' "$decision_json" | grep -o '"context_id": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
+  CORE_TICKET_ID="$(printf '%s' "$decision_json" | grep -o '"ticket_id": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
+  if [[ -z "$CORE_FINAL_STATUS" || -z "$CORE_EXIT_CODE" || -z "$CORE_MAY_ACTIVATE_TICKET" ]]; then
+    echo "⚠️ core unavailable: unparseable decision output" >&2
+    return 1
+  fi
+  CORE_AVAILABLE=1
+  return 0
+}
+
+log_shadow_diff() { # log_shadow_diff <ticket_id> — 比對已快取之 CORE_* 與 legacy 收斂值，記錄差異
+  local ticket_id="$1"
+  [[ "$CORE_AVAILABLE" -eq 1 ]] || return 0
+
+  local legacy_final_status legacy_exit_code legacy_write_authority
+  read -r legacy_final_status legacy_exit_code <<< "$(legacy_equivalent_status)"
+  legacy_write_authority="$(write_authority "$V0_STATUS" "${V1_STATUS:-}" "${V2_OVERALL:-}" | sed -E 's/^(YES|NO).*/\1/')"
+
+  mkdir -p "$SHADOW_LOG_DIR" 2>/dev/null
+  local log_file="${SHADOW_LOG_DIR}/preflight_shadow_$(date -u +%Y%m%d).log"
+  local marker="MATCH"
+  if [[ "$CORE_FINAL_STATUS" != "$legacy_final_status" || "$CORE_EXIT_CODE" != "$legacy_exit_code" || "$CORE_WRITE_AUTHORITY" != "$legacy_write_authority" ]]; then
+    marker="DIFF"
+  fi
+  {
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] ticket=${ticket_id} marker=${marker}"
+    echo "  legacy: final_status=${legacy_final_status} exit=${legacy_exit_code} write_authority=${legacy_write_authority}"
+    echo "  core:   final_status=${CORE_FINAL_STATUS} exit=${CORE_EXIT_CODE} write_authority=${CORE_WRITE_AUTHORITY}"
+    [[ "$marker" == "DIFF" ]] && echo "  facts:  ${CORE_FACTS_JSON}"
+  } >> "$log_file" 2>/dev/null
+  return 0
+}
+
 main() {
   local explicit_ticket_id="${1:-}"
   local ticket_id="$explicit_ticket_id"
@@ -325,13 +518,16 @@ main() {
   echo "GIT_STATUS_SHORT_LINES=$(echo "${V0_STATUS_SHORT:-}" | grep -c . || true)"
   echo "ACTIVE_TICKET_IDENTITY=${V0_ACTIVE_IDENTITY:-}"
 
+  local activation_intent
+  activation_intent="$([[ "$is_explicit" -eq 1 ]] && echo EXPLICIT_SWITCH || echo IMPLICIT_RESUME)"
+
   if [[ "$V0_STATUS" != "PASS" ]]; then
     echo "REASON=${V0_REASON}"
     echo "ACTION=No writes, no test execution with ticket authority, no AC claim"
+    invoke_core_decision "$ticket_id" "$activation_intent"
+    log_shadow_diff "$ticket_id"
     exit 1
   fi
-
-  activate_via_p3_writer "$ticket_id" "${V0_ACTIVATION_SOURCE:-}" >&2
 
   local ticket_path="$V0_TICKET_PATH"
   echo "TICKET_FILE=${ticket_path}"
@@ -348,7 +544,24 @@ main() {
   v2_state="$(route_v2_state)"
   echo "V2_STATE=${v2_state}"
   echo "V2_JSON={\"ticket_id\":\"${ticket_id}\",\"semantic_contract\":${V2_RESULTS},\"overall\":\"${V2_OVERALL}\",\"provenance\":\"${V2_PROVENANCE}\"}"
-  echo "WRITE_AUTHORITY=$(write_authority "$V0_STATUS" "$V1_STATUS" "$V2_OVERALL")"
+
+  # ─── AI-5（authority 切換）：core 可用時，P3 寫入時機與 WRITE_AUTHORITY 值改由
+  #     核心 Decision 主導（R-4：寫入前驗證 ticket_id 一致）；core 不可用時 fail-open
+  #     回退至既有 legacy 行為（V0 PASS 後即寫、write_authority() 判定），維持既有
+  #     唯讀取證動作不被阻斷（HC-6）。───
+  invoke_core_decision "$ticket_id" "$activation_intent"
+  if [[ "$CORE_AVAILABLE" -eq 1 && "$CORE_TICKET_ID" == "$ticket_id" ]]; then
+    if [[ "$CORE_MAY_ACTIVATE_TICKET" == "true" ]]; then
+      activate_via_p3_writer "$ticket_id" "${V0_ACTIVATION_SOURCE:-}" >&2
+    fi
+    echo "WRITE_AUTHORITY=${CORE_WRITE_AUTHORITY}"
+  else
+    [[ "$CORE_AVAILABLE" -eq 1 ]] && echo "⚠️ core decision ticket_id mismatch（R-4），回退 legacy authority 路徑" >&2
+    activate_via_p3_writer "$ticket_id" "${V0_ACTIVATION_SOURCE:-}" >&2
+    echo "WRITE_AUTHORITY=$(write_authority "$V0_STATUS" "$V1_STATUS" "$V2_OVERALL")"
+  fi
+
+  log_shadow_diff "$ticket_id"
 
   exit 0
 }

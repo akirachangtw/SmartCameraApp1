@@ -1,0 +1,110 @@
+{
+  "_comment": "INFRA-PREFLIGHT-CORE-01 (Rev C) — allowlisted decision-table rows. Each row is one legal facts combination and its full expected Decision (context_id is computed by the test from the row's context, never hardcoded). No Cartesian expansion: unlisted combinations MUST fall through to R-2 in preflight_core.decide(), not be added here.",
+  "rows": [
+    {
+      "id": "F0-DETACHED_HEAD",
+      "rule": "F-0",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "IMPLICIT_RESUME"},
+      "environment": {"v0_env": "DETACHED_HEAD", "baseline_check": "NOT_EVALUATED", "v1_scope": "NOT_EVALUATED", "v1_provenance": "NOT_APPLICABLE", "blob_check": "NOT_EVALUATED", "v2_semantics": "NOT_EVALUATED", "v2_provenance": "NOT_EVALUATED"},
+      "expected": {"final_status": "BLOCKED_ENV_MISMATCH", "reason_code": "V0_ENV_MISMATCH", "process_exit_code": 1, "write_authority": "NO", "may_activate_ticket": false, "v2_probe_may_write": false, "may_run_tests_with_authority": false, "evidence_required": "No writes, no test execution with ticket authority, no AC claim"}
+    },
+    {
+      "id": "F0-NO_ACTIVE_TICKET",
+      "rule": "F-0",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "IMPLICIT_RESUME"},
+      "environment": {"v0_env": "NO_ACTIVE_TICKET", "baseline_check": "NOT_EVALUATED", "v1_scope": "NOT_EVALUATED", "v1_provenance": "NOT_APPLICABLE", "blob_check": "NOT_EVALUATED", "v2_semantics": "NOT_EVALUATED", "v2_provenance": "NOT_EVALUATED"},
+      "expected": {"final_status": "BLOCKED_ENV_MISMATCH", "reason_code": "V0_ENV_MISMATCH", "process_exit_code": 1, "write_authority": "NO", "may_activate_ticket": false, "v2_probe_may_write": false, "may_run_tests_with_authority": false, "evidence_required": "No writes, no test execution with ticket authority, no AC claim"}
+    },
+    {
+      "id": "F0-OUT_OF_SCOPE",
+      "rule": "F-0",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "EXPLICIT_SWITCH"},
+      "environment": {"v0_env": "OUT_OF_SCOPE", "baseline_check": "NOT_EVALUATED", "v1_scope": "NOT_EVALUATED", "v1_provenance": "NOT_APPLICABLE", "blob_check": "NOT_EVALUATED", "v2_semantics": "NOT_EVALUATED", "v2_provenance": "NOT_EVALUATED"},
+      "expected": {"final_status": "BLOCKED_ENV_MISMATCH", "reason_code": "V0_ENV_MISMATCH", "process_exit_code": 1, "write_authority": "NO", "may_activate_ticket": false, "v2_probe_may_write": false, "may_run_tests_with_authority": false, "evidence_required": "No writes, no test execution with ticket authority, no AC claim"}
+    },
+    {
+      "id": "F1-BASELINE_MISSING",
+      "rule": "F-1",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "IMPLICIT_RESUME"},
+      "environment": {"v0_env": "PASS", "baseline_check": "MISSING", "v1_scope": "NOT_EVALUATED", "v1_provenance": "NOT_APPLICABLE", "blob_check": "NOT_EVALUATED", "v2_semantics": "MISSING", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "BLOCKED_UNATTRIBUTED_STATE", "reason_code": "BASELINE_UNAVAILABLE", "process_exit_code": 0, "write_authority": "NO", "may_activate_ticket": false, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "No writes, no test execution with ticket authority, no AC claim"}
+    },
+    {
+      "id": "F1-BASELINE_UNRESOLVABLE",
+      "rule": "F-1",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "IMPLICIT_RESUME"},
+      "environment": {"v0_env": "PASS", "baseline_check": "UNRESOLVABLE", "v1_scope": "NOT_EVALUATED", "v1_provenance": "NOT_APPLICABLE", "blob_check": "NOT_EVALUATED", "v2_semantics": "PARTIAL", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "BLOCKED_UNATTRIBUTED_STATE", "reason_code": "BASELINE_UNAVAILABLE", "process_exit_code": 0, "write_authority": "NO", "may_activate_ticket": false, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "No writes, no test execution with ticket authority, no AC claim"}
+    },
+    {
+      "id": "F2-BLOB_TARGET_MISSING",
+      "rule": "F-2",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "EXPLICIT_SWITCH"},
+      "environment": {"v0_env": "PASS", "baseline_check": "VALID", "v1_scope": "NOT_EVALUATED", "v1_provenance": "NOT_APPLICABLE", "blob_check": "TARGET_MISSING", "v2_semantics": "MISSING", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "BLOCKED_SCOPE_OR_TARGET_MISMATCH", "reason_code": "BLOB_CHECK_FAILURE", "process_exit_code": 0, "write_authority": "NO", "may_activate_ticket": false, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "No writes, no test execution with ticket authority, no AC claim"}
+    },
+    {
+      "id": "F2-BLOB_MISMATCH",
+      "rule": "F-2",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "EXPLICIT_SWITCH"},
+      "environment": {"v0_env": "PASS", "baseline_check": "VALID", "v1_scope": "NOT_EVALUATED", "v1_provenance": "NOT_APPLICABLE", "blob_check": "MISMATCH", "v2_semantics": "MISSING", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "BLOCKED_SCOPE_OR_TARGET_MISMATCH", "reason_code": "BLOB_CHECK_FAILURE", "process_exit_code": 0, "write_authority": "NO", "may_activate_ticket": false, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "No writes, no test execution with ticket authority, no AC claim"}
+    },
+    {
+      "id": "F2-BLOB_COMMAND_FAILED",
+      "rule": "F-2",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "IMPLICIT_RESUME"},
+      "environment": {"v0_env": "PASS", "baseline_check": "VALID", "v1_scope": "NOT_EVALUATED", "v1_provenance": "NOT_APPLICABLE", "blob_check": "COMMAND_FAILED", "v2_semantics": "MISSING", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "BLOCKED_SCOPE_OR_TARGET_MISMATCH", "reason_code": "BLOB_CHECK_FAILURE", "process_exit_code": 0, "write_authority": "NO", "may_activate_ticket": false, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "No writes, no test execution with ticket authority, no AC claim"}
+    },
+    {
+      "id": "F2-BLOB_INVALID_TICKET_VALUE",
+      "rule": "F-2",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "IMPLICIT_RESUME"},
+      "environment": {"v0_env": "PASS", "baseline_check": "VALID", "v1_scope": "NOT_EVALUATED", "v1_provenance": "NOT_APPLICABLE", "blob_check": "INVALID_TICKET_VALUE", "v2_semantics": "MISSING", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "BLOCKED_SCOPE_OR_TARGET_MISMATCH", "reason_code": "BLOB_CHECK_FAILURE", "process_exit_code": 0, "write_authority": "NO", "may_activate_ticket": false, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "No writes, no test execution with ticket authority, no AC claim"}
+    },
+    {
+      "id": "F3-SELF_TICKET_ATTRIBUTION",
+      "rule": "F-3",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "IMPLICIT_RESUME"},
+      "environment": {"v0_env": "PASS", "baseline_check": "VALID", "v1_scope": "CHANGED_TARGETS", "v1_provenance": "SELF_TICKET", "blob_check": "MATCH", "v2_semantics": "MISSING", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "ALREADY_EXECUTED_PENDING_CLOSURE", "reason_code": "SELF_TICKET_ATTRIBUTION", "process_exit_code": 0, "write_authority": "NO", "may_activate_ticket": true, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "Closure review by ticket owner, no re-execution"}
+    },
+    {
+      "id": "F4-OTHER_TICKET_ATTRIBUTION",
+      "rule": "F-4",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "IMPLICIT_RESUME"},
+      "environment": {"v0_env": "PASS", "baseline_check": "VALID", "v1_scope": "CHANGED_TARGETS", "v1_provenance": "OTHER_TICKET", "blob_check": "MATCH", "v2_semantics": "MISSING", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "CANDIDATE_SUPERSEDED", "reason_code": "OTHER_TICKET_ATTRIBUTION", "process_exit_code": 0, "write_authority": "NO", "may_activate_ticket": true, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "Human review of superseding ticket before any further edit"}
+    },
+    {
+      "id": "F5-UNATTRIBUTED_COMMITS",
+      "rule": "F-5",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "IMPLICIT_RESUME"},
+      "environment": {"v0_env": "PASS", "baseline_check": "VALID", "v1_scope": "CHANGED_TARGETS", "v1_provenance": "UNATTRIBUTED", "blob_check": "MATCH", "v2_semantics": "MISSING", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "BLOCKED_UNATTRIBUTED_STATE", "reason_code": "UNATTRIBUTED_COMMITS", "process_exit_code": 0, "write_authority": "NO", "may_activate_ticket": false, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "No writes, no test execution with ticket authority, no AC claim"}
+    },
+    {
+      "id": "F6-V2_SATISFIED_UNKNOWN_PROVENANCE",
+      "rule": "F-6",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "IMPLICIT_RESUME"},
+      "environment": {"v0_env": "PASS", "baseline_check": "VALID", "v1_scope": "UNCHANGED_TARGETS", "v1_provenance": "NOT_APPLICABLE", "blob_check": "MATCH", "v2_semantics": "SATISFIED", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "CANDIDATE_SUPERSEDED", "reason_code": "V2_SATISFIED_UNKNOWN_PROVENANCE", "process_exit_code": 0, "write_authority": "NO", "may_activate_ticket": true, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "Human review of superseding ticket before any further edit"}
+    },
+    {
+      "id": "F7-BASELINE_MATCHED_WRITE_AUTHORITY_ELIGIBLE",
+      "rule": "F-7",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "EXPLICIT_SWITCH"},
+      "environment": {"v0_env": "PASS", "baseline_check": "VALID", "v1_scope": "UNCHANGED_TARGETS", "v1_provenance": "NOT_APPLICABLE", "blob_check": "SKIPPED_NEW", "v2_semantics": "MISSING", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "BASELINE_MATCHED", "reason_code": "BASELINE_MATCHED_WRITE_AUTHORITY_ELIGIBLE", "process_exit_code": 0, "write_authority": "YES", "may_activate_ticket": true, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "None beyond standard AC evidence"}
+    },
+    {
+      "id": "F7-BASELINE_MATCHED_CONSERVATIVE_NO",
+      "rule": "F-7",
+      "context": {"ticket_id": "T-DEMO", "repo_root": "/repo", "worktree_path": "/repo", "head_sha": "deadbeef", "config_revision": "rev-0", "collected_at": "2026-09-06T00:00:00Z", "activation_intent": "IMPLICIT_RESUME"},
+      "environment": {"v0_env": "PASS", "baseline_check": "VALID", "v1_scope": "UNCHANGED_TARGETS", "v1_provenance": "NOT_APPLICABLE", "blob_check": "SKIPPED_NA", "v2_semantics": "PARTIAL", "v2_provenance": "UNKNOWN"},
+      "expected": {"final_status": "BASELINE_MATCHED", "reason_code": "CONSERVATIVE_MANUAL_NOT_MACHINE_READABLE", "process_exit_code": 0, "write_authority": "NO", "may_activate_ticket": true, "v2_probe_may_write": false, "may_run_tests_with_authority": true, "evidence_required": "None beyond standard AC evidence"}
+    }
+  ]
+}
