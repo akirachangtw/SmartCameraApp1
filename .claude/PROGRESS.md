@@ -5,11 +5,11 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-REGISTRY-LIFECYCLE-GATE-APP-01 | ✅ Done（碼閉環，AC 6/11 PASS + 3 項 PARTIAL 誠實揭露 + 1 項未勾 [實機]）· 新建 `registry_review_stop_guard.py`（Stop hook 第三支，唯讀 `TICKET_REGISTRY.json`，收尾跡象成立〔票檔在 `deliver/` 或 AC 全勾〕但 lifecycle 未達終態時 `decision=block` 攔一次，session+ticket 雙鍵至多阻擋一次）+ 18 案例 bash 自測全 PASS · 開工閘（`IN_PROGRESS` 轉態）依票面明示排除未實作 · AI-0 六項前置取證含 registry_set_status 實測（rev195→196）+ 真實 Stop payload 探測（`session_id` 確認存在）· Codex Cross-Review R1 REPORT_FIX（快取時間措辭/HC3 冊面唯讀措辭/producer file:line 補證三項）→ R2 **ADVISORY**（A→B→A 跨 session marker 淘汰為票面既有設計限制，非新增缺陷，REACHABILITY: NONE）· R0 CHECKPOINT-REQUIRED 一次（PROGRESS.md 與 `.sh` 同 commit 違 Rule 3），Akira 裁決 A 拆分 commit（`95f3594` 純實作 + `3a8e6a2` 純 PROGRESS.md）解決 · `95f3594`/`3a8e6a2` · 免 Traycer（純 `.claude/hooks/` 治理工具票） |
 | INFRA-QA-ACTIVATION-01 | 🔀 lifecycle→`BLOCKED`（blocked_by `INFRA-PREFLIGHT-CORE-01`）· R1/R2 REPORT_FIX 修復（`12ad019`/`9895b3f`：V0 target-scope+identity gate、TARGET_BLOB 比對、WRITE_AUTHORITY 三態輸出、切票顯式/隱式分流）後 R3 再 FAIL（`v1_check()` git hash-object 失敗未判 mismatch），依 Rev B.1 裁決一「R3 FAIL 禁 R4 局部修補，立即轉票」→ 轉 `INFRA-PREFLIGHT-CORE-01`（seq 37） |
 | INFRA-SESSION-HOOK-01 | ✅ Done（碼閉環 `855df0a`：`settings.json` SessionStart 兩 matcher 群 + 新建 `session_start.sh` reset/inject 雙模式，全部行為性 AC 含四種真實損毀樣本測後還原）· `/qa` PASS，`/sv` Cross-Review R1-R5 皆 `REPORT_FIX`（純 sv_report.md 措辭/完備性問題，含 R5 `tmp/verify_cmd.conf` 被本票自身 SessionStart reset hook 清除導致 diff payload 空之根因排除）→ **R6 ADVISORY**（`echo >&2` 措辭差異已誠實揭露，非 BLOCKER，REACHABILITY: NONE）· 2 項 [實機] AC（`/clear`/`/compact`/fork 終端實測）因執行環境為 VSCode 擴充，依票面 Error Handling 明文停止未勾，留待 terminal 現場實測 |
+| INFRA-PREFLIGHT-CORE-01 | 🔧 WIP（`ded5dd2`，**禁收票**）· AI-0/AI-1/AI-2/AI-4/AI-W 完成，AI-1 實測發現並修正真實核心缺陷（`_is_f2_blob_failure()` 漏 `MISMATCH`）；AI-3/AI-5 依 Rev D SMTR 複審降回部分達成（AI-3 exit-code 斷言效果等價不構成逐字實作；AI-5 R-4 僅單欄比對 + fail-open 與 AI-6 目標結構性互斥）· AC 17 項 9 已勾 8 誠實揭露未達 · baseline refresh 一次（`07640f6b`→`0f723e69`）· 下一步 AI-3.1→AI-5.1→AI-6→AI-7，AI-5.1 派工前待裁 baseline refresh 排序議題（甲/乙二案，見票面 Rev D.1） |
 
-**Last Updated**: 2026-09-07（S104，`INFRA-SESSION-HOOK-01` 碼閉環，Codex R6 ADVISORY；`INFRA-QA-ACTIVATION-01` R3 FAIL 轉票 seq37）
+**Last Updated**: 2026-09-07（S105，`INFRA-PREFLIGHT-CORE-01` WIP AI-0~AI-5 + Rev D 複審降級；`INFRA-SESSION-HOOK-01` 碼閉環 Codex R6 ADVISORY）
 
 ## Active Ticket Activation
 
