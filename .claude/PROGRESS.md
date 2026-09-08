@@ -9,8 +9,9 @@
 | INFRA-SESSION-HOOK-01 | ✅ Done（碼閉環 `855df0a`：`settings.json` SessionStart 兩 matcher 群 + 新建 `session_start.sh` reset/inject 雙模式，全部行為性 AC 含四種真實損毀樣本測後還原）· `/qa` PASS，`/sv` Cross-Review R1-R5 皆 `REPORT_FIX`（純 sv_report.md 措辭/完備性問題，含 R5 `tmp/verify_cmd.conf` 被本票自身 SessionStart reset hook 清除導致 diff payload 空之根因排除）→ **R6 ADVISORY**（`echo >&2` 措辭差異已誠實揭露，非 BLOCKER，REACHABILITY: NONE）· 2 項 [實機] AC（`/clear`/`/compact`/fork 終端實測）因執行環境為 VSCode 擴充，依票面 Error Handling 明文停止未勾，留待 terminal 現場實測 |
 | INFRA-PREFLIGHT-CORE-01 | 🔧 WIP（**禁收票**，`test_preflight_core.py` 未 commit）· AI-0/AI-1/AI-2/AI-4/AI-W 完成，AI-3.1 已補四個具名 exit-code test method（13/13 PASS，票面 AI-3.1＋AC「R-5 exit 相容」已轉勾，`/uc` Auto-Chain 因 `/compact` 中途介入尚未走 QA/SV）；AI-5 依 Rev D SMTR 複審降回部分達成（R-4 僅單欄比對 + fail-open 與 AI-6 目標結構性互斥）· 下一步：新 session 先補 `/qa`→`/sv` 收尾並 commit test 檔，再續 AI-5.1（baseline refresh 甲/乙二案待裁決，見票面 Rev D.1） |
 | INFRA-CTAWR-PHASE0-01 | ✅ REVIEW（碼閉環 `e962b40`：新建 `.claude/scripts/activate_ticket.sh`（fail-closed 票務啟用腳本，恆覆寫 `tmp/verify_cmd.conf` + 清除 per-ticket 快照）+ `uc/SKILL.md`／`normal/SKILL.md` 各插入 Phase 0 Ticket Activation 節）· `/qa` PASS，`/sv` 階段 A-C PASS，階段 D Cross-Review R0 預審 `CHECKPOINT-REQUIRED`（`TRUE-POSITIVE-RULE-GAP`，`.tmp/fail-advisor/R0_INFRA-CTAWR-PHASE0-01_20260908_154022.md`，Codex 未執行）→ **Akira 2026-09-08 直接裁決跳過 Cross-Review 結案**（覆寫 2026-08-22 SOP 全程序條款，僅本票適用），票面已補逐字授權記錄，`reviews={qa:PASS,sv:N_A,codex:N_A,traycer:N_A}`，票檔已搬 `deliver/`（`6b8af01`）· 2 項 `[行為性]`/`[實機]` AC（`/normal <ID>` 實機行為、雙 host 矩陣）誠實保留未勾 |
+| INFRA-TPL-V310-01 | 🔧 碼閉環（AI-0~AI-4 全完成）· TPL v3.9→v3.10：Verify Config 增列 `INTRODUCED_CAPABILITY`／`DEPENDENCY_DELTA` 兩欄（實作級外審機械輸入，fail-closed）+ 欄位說明段 + Revision 歷史新增條目，`git diff --stat` 僅涉 ALLOWED 單檔（+7L，遠低於 MAX_LINES=40）· `/qa` Build/Test/Lint 全綠，待 `/sv` |
 
-**Last Updated**: 2026-09-08（`INFRA-CTAWR-PHASE0-01` 結案 REVIEW（Akira 授權跳過 SV）；`INFRA-PREFLIGHT-CORE-01` AI-3.1 完成（未 commit，待下輪 `/qa`→`/sv`）；`INFRA-SESSION-HOOK-01` 碼閉環 Codex R6 ADVISORY）
+**Last Updated**: 2026-09-08（`INFRA-TPL-V310-01` 碼閉環，待 `/sv`；`INFRA-CTAWR-PHASE0-01` 結案 REVIEW（Akira 授權跳過 SV）；`INFRA-PREFLIGHT-CORE-01` AI-3.1 完成（未 commit，待下輪 `/qa`→`/sv`））
 
 ## Active Ticket Activation
 

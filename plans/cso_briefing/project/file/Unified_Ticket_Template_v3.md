@@ -1,6 +1,6 @@
 # 統一 Ticket 模板（CSO + Pipeline v1.6 合併版）
 
-**版本**: v3.9
+**版本**: v3.10
 **產出日期**: 2026-05-29
 **Revision**: v3.7（2026-08-14，INFRA-TPL-V37-01）— 立「票檔落點律」：票檔 MUST 落於實作專案之票務目錄並登記於 TKR 平台對應 project 冊面；設計/協調型專案 MUST NOT 設 Pending/ 或存放票檔。與 v3.6「發現來源 ≠ 歸屬」分工：彼律管議題線歸屬，本律管物理落點。事件支撐：ADV-WTREE-01（2026-08-14 作廢重開 WKTR-01 於 mcp-ticket-platform）
 **完整 Revision 歷史（v3.1–v3.6）**：見文末「Revision 歷史」章節
@@ -38,8 +38,12 @@ DIFF_REF=[起始 commit hash]
 ANCHOR_PROBED=[YYYY-MM-DD hh:mm]
 BASE_COMMIT=[開票時 HEAD，票面前提所依之不可變基線 commit]
 TARGET_BLOB=[逐標的 git hash-object，格式 path:sha8，多筆分號分隔]
+INTRODUCED_CAPABILITY=[NONE | feature:<token> | skill:<token> | tech:<token>]
+DEPENDENCY_DELTA=[NONE | BUILD:<coordinate>@<version> | TOOL:<name>@<version|N/A> | SERVICE:<name>]
 
 **BASE_COMMIT／TARGET_BLOB 欄位說明**（v3.8，`INFRA-TPL-V38-01`）：二欄為 V1 baseline 判定之機械輸入；`docs` preset 且單檔小改之票得標 `N/A`（比例原則），標 `N/A` 者 V1 降級為 AI-0 錨點制。
+
+**INTRODUCED_CAPABILITY／DEPENDENCY_DELTA 欄位說明**（v3.10，`INFRA-TPL-V310-01`）：二欄為實作級外審觸發之機械輸入，**MUST** 由開票方顯式填寫，**MUST NOT** 由票面內文推斷。無新導入能力者填 `NONE`；無依賴異動者填 `NONE`。**fail-closed**：欄位缺失、空值或格式非法者一律視為外審觸發，**MUST NOT** 靜默視為 `NONE`。`INTRODUCED_CAPABILITY` 之 canonical token 為字面檢索鍵，**MUST** 為穩定識別字（套件座標、skill 名、feature slug），**MUST NOT** 使用自然語言描述。
 
 **MAX_LINES 量尺定義與性質**（v3.5，`Ticket_MaxLines_Metric_Retirement` R1–R3 ＋ 2026-08-13 終局裁決）：
 
@@ -307,5 +311,7 @@ Effort 決定 Claude Code 的思考深度（`--effort` 參數等效）。
 **Revision**: v3.8（2026-08-23，INFRA-TPL-V38-01）— ①Verify Config 增 BASE_COMMIT／TARGET_BLOB 欄（V1 baseline 機械化）；②AI-0 基線漂移三分流（範圍不相交自動通過／ALREADY_EXECUTED_PENDING_CLOSURE／CANDIDATE_SUPERSEDED／BLOCKED_UNATTRIBUTED_STATE）；③[行為性] AC given/expect 語義契約化，禁 YAML 雙軌；④P0 凍結唯一字面雙責任票面。**forward-only**：既有在途票之 AI-0 依原條款執行（祖父條款），不追溯。依據 QA-Session-Aware-Verification Rev B（R1–R5）＋ INFRA-MAXLINES-GATE-01 假停原型案例。
 
 **Revision**: v3.9（2026-09-02，Akira 免票直接授權）— 立「短檔名律」（forward-only）：生效日後新建或明確重開之 Ticket 檔 MUST 命名為 `<TICKET_ID>_<slug>.md`；slug 小寫 kebab-case、1–3 核心詞、長度 MUST NOT 超過 12 字元，完整 basename MUST NOT 超過 40 字元；禁重複議題／票號／目錄分類語義，禁泛化詞單獨作 slug。既有票名不追溯改名。
+
+**Revision**: v3.10（2026-09-08，INFRA-TPL-V310-01）— Verify Config 增列 `INTRODUCED_CAPABILITY` 與 `DEPENDENCY_DELTA` 二欄（實作級外審觸發之機械輸入），並立 fail-closed 判定：欄位缺失／空值／格式非法一律視為觸發，禁靜默視為 `NONE`。立法來源：`Instructions_for_Claude.md` v2.8.7「6. 實作級外審」a 款與 b③ 款；本票為該二款之生效前提（前置資源恆存律）。**forward-only**：既有在途票免補填。
 
 **End of 統一 Ticket 模板**
