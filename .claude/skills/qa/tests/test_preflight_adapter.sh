@@ -7,6 +7,8 @@
 #   ① active.json mtime 執行前後不變（MUST NOT 呼叫 P3 writer）
 #   ② exit code = 1（R-5 之明示例外）
 #   ③ stderr 含 ADVISORY_ONLY 字面
+#   ④ stdout 含 key CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH（每情境一次，AI-6 收尾新增）
+#   ⑤ stdout 含 key ADVISORY_ONLY=true（每情境一次，AI-6 收尾新增）
 # 四情境：①python3 不可達 ②preflight_core.py 暫時移離 ③core 輸出截斷／缺欄 ④四欄各自不符
 #
 # 本檔屬 adapter／I-O integration 測試（AI-0 動作 D 分類），不映射至 preflight_rules.json
@@ -58,20 +60,26 @@ done
 before1="$(_mtime)"
 out1="$(PATH="$_FILTERED_PATH" bash "$SCRIPT" "$TICKET_ID" 2>&1 1>/dev/null)"
 exit1=$?
+stdout1="$(PATH="$_FILTERED_PATH" bash "$SCRIPT" "$TICKET_ID" 2>/dev/null)"
 after1="$(_mtime)"
 PATH="$_ORIG_PATH"
 _check_case "① python3 unreachable" "$before1" "$after1" "$exit1" "$out1"
 echo "$out1" | grep -q "CORE_UNAVAILABLE" && _assert "reason_code=CORE_UNAVAILABLE" 0 || _assert "reason_code=CORE_UNAVAILABLE" 1
+echo "$stdout1" | grep -q "^CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH$" && _assert "stdout key CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH" 0 || _assert "stdout key CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH" 1
+echo "$stdout1" | grep -q "^ADVISORY_ONLY=true$" && _assert "stdout key ADVISORY_ONLY=true" 0 || _assert "stdout key ADVISORY_ONLY=true" 1
 
 echo "═══ Scenario ②: preflight_core.py temporarily moved away ═══"
 mv "$CORE_PY" "${CORE_PY}.movetest"
 before2="$(_mtime)"
 out2="$(bash "$SCRIPT" "$TICKET_ID" 2>&1 1>/dev/null)"
 exit2=$?
+stdout2="$(bash "$SCRIPT" "$TICKET_ID" 2>/dev/null)"
 after2="$(_mtime)"
 mv "${CORE_PY}.movetest" "$CORE_PY"
 _check_case "② preflight_core.py missing" "$before2" "$after2" "$exit2" "$out2"
 echo "$out2" | grep -q "CORE_UNAVAILABLE" && _assert "reason_code=CORE_UNAVAILABLE" 0 || _assert "reason_code=CORE_UNAVAILABLE" 1
+echo "$stdout2" | grep -q "^CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH$" && _assert "stdout key CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH" 0 || _assert "stdout key CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH" 1
+echo "$stdout2" | grep -q "^ADVISORY_ONLY=true$" && _assert "stdout key ADVISORY_ONLY=true" 0 || _assert "stdout key ADVISORY_ONLY=true" 1
 
 echo "═══ Scenario ③: core output truncated / missing fields ═══"
 cp "$CORE_PY" "${CORE_PY}.origbak"
@@ -83,10 +91,13 @@ STUB_EOF
 before3="$(_mtime)"
 out3="$(bash "$SCRIPT" "$TICKET_ID" 2>&1 1>/dev/null)"
 exit3=$?
+stdout3="$(bash "$SCRIPT" "$TICKET_ID" 2>/dev/null)"
 after3="$(_mtime)"
 mv "${CORE_PY}.origbak" "$CORE_PY"
 _check_case "③ core output truncated/missing fields" "$before3" "$after3" "$exit3" "$out3"
 echo "$out3" | grep -q "CORE_PROTOCOL_INVALID" && _assert "reason_code=CORE_PROTOCOL_INVALID" 0 || _assert "reason_code=CORE_PROTOCOL_INVALID" 1
+echo "$stdout3" | grep -q "^CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH$" && _assert "stdout key CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH" 0 || _assert "stdout key CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH" 1
+echo "$stdout3" | grep -q "^ADVISORY_ONLY=true$" && _assert "stdout key ADVISORY_ONLY=true" 0 || _assert "stdout key ADVISORY_ONLY=true" 1
 
 echo "═══ Scenario ④: four identity columns each mismatched ═══"
 cp "$CORE_PY" "${CORE_PY}.origbak"
@@ -119,6 +130,12 @@ STUB_EOF2
   after4="$(_mtime)"
   _check_case "④ identity mismatch: ${field}" "$before4" "$after4" "$exit4" "$out4"
   echo "$out4" | grep -q "IDENTITY_MISMATCH" && _assert "reason_code=IDENTITY_MISMATCH (${field})" 0 || _assert "reason_code=IDENTITY_MISMATCH (${field})" 1
+  if [[ "$field" == "ticket_id" ]]; then
+    # 情境層級斷言（非逐欄），與①②③一致每情境加 2 條，非乘以四欄
+    stdout4="$(bash "$SCRIPT" "$TICKET_ID" 2>/dev/null)"
+    echo "$stdout4" | grep -q "^CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH$" && _assert "stdout key CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH" 0 || _assert "stdout key CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH" 1
+    echo "$stdout4" | grep -q "^ADVISORY_ONLY=true$" && _assert "stdout key ADVISORY_ONLY=true" 0 || _assert "stdout key ADVISORY_ONLY=true" 1
+  fi
 done
 mv "${CORE_PY}.origbak" "$CORE_PY"
 
