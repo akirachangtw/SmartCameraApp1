@@ -84,6 +84,12 @@ disable-model-invocation: false
 4. 判準之字面定義以 `ticket-rigor-gate` REPAIR_ROUTING.md 之 Post-Signature Erratum Lane 為唯一 SSOT（`RGR-RESTRUCT-01` 三層拆分後之新落點，條目數未變仍為四項）；本檔不複製四項判準，**MUST** 現地讀取該節後方得動用本例外（防雙載體漂移）。
 5. 追認為事後批次；未追認之 erratum **MUST** 於 handoff 列示，**MUST NOT** 以沉默推定通過。
 
+## Phase 0：Ticket Activation（帶參數呼叫時）
+
+1. `$ARGUMENTS` 非空 → **MUST** 先執行 `bash .claude/scripts/activate_ticket.sh "$ARGUMENTS"`；非零 exit → 回報 `⛔ UC Activation STOPPED: <腳本 stderr 首行>` 並**不進入臥底模式**。
+2. `$ARGUMENTS` 為空 → **MUST** 維持現行行為（直接進入臥底模式，`tmp/verify_cmd.conf` 沿用現況），MUST NOT 因缺參數報錯。
+3. 本節 **MUST** 早於輸出規則 8 之 `TICKET_ID` 讀取；activation 成功後該讀取之來源即為本節重生成之 conf。
+
 ## 進入確認
 
 `🤫 UC mode ON. 輸入 /normal 退出。`
