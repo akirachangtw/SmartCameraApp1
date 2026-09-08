@@ -67,9 +67,34 @@ exit code（交付阻斷權屬五類第②項，非本層）。收口三件套�
 - **V0（環境）**：repo root／branch（僅照實輸出，**MUST NOT** 比對白名單——本專案無 allowed-branch 機制）／HEAD（detached → `BLOCKED_ENV_MISMATCH`）／`git status --short`／active ticket identity／票檔於 `TICKET_REGISTRY.json` 之 target-scope 存在性；不符 → `STATUS=BLOCKED_ENV_MISMATCH`，`ACTION=No writes, no test execution with ticket authority, no AC claim`。**顯式傳入 ticket_id**＝activation intent（切票），`activation_source="ticket-switch"`，identity 不比對；**省略**時 ticket_id 取自 `active.json`，mismatch 結構上不可能。
 - **V1（baseline）**：現行 HEAD 對票面 `BASE_COMMIT`；`TARGET_BLOB`（格式 `path:sha8`，分號分隔多標的，`NEW`／`N/A` 跳過比對）逐標的以 `git hash-object` 比對，不符 → `BLOCKED_SCOPE_OR_TARGET_MISMATCH`。四態輸出沿用票面字面：`BASELINE_MATCHED`／`ALREADY_EXECUTED_PENDING_CLOSURE`／`CANDIDATE_SUPERSEDED`／`BLOCKED_UNATTRIBUTED_STATE`（R1 範圍不相交規則：`BASE_COMMIT..HEAD` 對 targets 之 diff 為空 → 視同 `BASELINE_MATCHED` 直進 V2）。
 - **V2（語義探針）**：唯讀（**MUST NOT** 寫入任何檔案），輸出 `overall`（`MISSING`／`SATISFIED`／`PARTIAL`）與 `provenance`；`overall=SATISFIED` 且 `provenance=UNKNOWN` → 狀態改判 `CANDIDATE_SUPERSEDED`，**MUST NOT** 自動判 `DONE`／`ZERO-DIFF-DECLARED`。
-- **Write Authority**：票面公式為 V0=PASS 且（V1=`BASELINE_MATCHED` 或已 owner REAUTHORIZED）且（V2=`MISSING` 或 `PARTIAL` 且已有實作授權）時方得為 `YES`。`owner REAUTHORIZED`／`已有實作授權` 為人工裁決 token，**無機械判讀通道**，preflight 腳本為**保守縮減版**（非逐字實作）：V0=PASS 且 V1=`BASELINE_MATCHED` 且 V2=`MISSING` → `YES`；同前提但 V2 非 `MISSING` → `NO (conservative: manual reauthorization not machine-readable)`（區別於條件確實不成立之純 `NO`）。
+- **Write Authority（AI-5.1 起由 `preflight_core.py::decide()` 唯一權威判定；Bash 側同名 `write_authority()` 已於 AI-6 刪除，不再有第二來源）**：判定公式、R-4 identity binding、R-7 fail-closed 契約全文見下方「## 決策核心契約」節，本節僅保留 stdout 欄位語義描述。
 
 輸出快照寫入 `.claude/PROGRESS.md` `## Active Ticket Activation` 區塊（十一欄）為**人工依 preflight 輸出手動同步**（腳本本身不自動改寫 `.claude/PROGRESS.md`）；此為**最近一次實跑快照**，非即時輪詢，下次四時機任一觸發時 **MUST** 重跑並手動更新。
+
+## 決策核心契約（AI-7，`INFRA-PREFLIGHT-CORE-01` Rev D.3-3；本節五項為 MUST 級契約，違反即 preflight adapter 行為 FAIL）
+
+Bash（`preflight_activation.sh`）自 AI-6 起僅承擔 `FACT_COLLECTION`／`CORE_INVOCATION`／`CORE_DIRECTED_SIDE_EFFECT`／`LEGACY_STDOUT_SHIM` 四類職責（票面 AI-6 收尾職責歸類表，`INFRA-PREFLIGHT-CORE-01_Preflight_Decision_Core_Extraction.md:400`–`439`），**MUST NOT** 簡化為「一切副作用皆由 core 指示」——`CORE_DIRECTED_SIDE_EFFECT` 之 R-7 一格是規格預先指定之固定回應，非核心於現場指示。所有 `final_status`／`write_authority`／`reason_code` 之規則選定，唯一權威為 `.claude/skills/qa/scripts/preflight_core.py::decide()`。
+
+1. **決策表為規則 SSOT**：`.claude/skills/qa/scripts/preflight_rules.json`（15 rows）為規則判定之唯一真相來源。新增或修改任何決策規則 **MUST** 同步修改該表與 `test_preflight_core.py`（決策語義測試），**MUST NOT** 改動 `preflight_activation.sh` 內任何 `if`／`case` 條件式以達成規則變更——Bash 條件式僅供事實蒐集（見上方四類職責），不承載規則。（回鏈：AC「收斂完整性」`INFRA-PREFLIGHT-CORE-01_...md:477`，`test_all_rows` 全 PASS；AC「回歸」同檔 `:487`）
+2. **Model A 字面**：`write_authority=YES` 僅限同時滿足 `v0_env=PASS ∧ baseline_check=VALID ∧ v1_scope=UNCHANGED_TARGETS ∧ blob_check∈{MATCH,SKIPPED_NEW,SKIPPED_NA} ∧ v2_semantics=MISSING`（`preflight_core.py:271`–`284` `_write_authority()`）；`v2_semantics=PARTIAL` 或任何人工例外恆 `NO` 且 `reason_code` 含 `CONSERVATIVE_MANUAL_NOT_MACHINE_READABLE`；`manual_authorization` 固定 `NOT_MACHINE_READABLE`（無 producer）——**人工續作不構成工具背書**。（回鏈：AC「R-3，Model A」`INFRA-PREFLIGHT-CORE-01_...md:481`，`test_all_rows` 逐列斷言）
+3. **R-4 四欄 identity binding**：adapter（`main()` 之 `core_identity_ok` 判定，`preflight_activation.sh:510`–`517`）於任何副作用前 **MUST** 逐欄比對 `ticket_id`／`repo_root`／`worktree_path`／`head_sha`——core Decision 回傳值與 adapter 當下實測值全等方得續行；`context_id` 為診斷／evidence 欄，adapter **MUST NOT** 重算 Python 之 normalized JSON hash 作判準。任一欄不符 → 依 R-7 fail-closed。（回鏈：AC「R-4，並行安全」`INFRA-PREFLIGHT-CORE-01_...md:482`，`test_preflight_adapter.sh` Scenario ④ 四欄逐一注入斷言）
+   - **如實揭露（pending）**：現行 `repo_root` 與 `worktree_path` 兩事實欄皆源自同一命令 `git rev-parse --show-toplevel`（`collect_worktree_path_fact()` `preflight_activation.sh:385`–`389` 與 `V0_REPO_ROOT` 賦值 `:70`），非跨 worktree 實機下兩欄現為同值。R-4 綁定目的（防重放／防跨票污染）已達，但「跨 worktree 隔離」語義未經多 worktree 並行實測驗證——AC「並行 QA」（`INFRA-PREFLIGHT-CORE-01_...md:483`）未勾。**MUST NOT** 讀作「已支援 worktree 隔離」，僅得讀作「四欄比對機制已在盤，跨 worktree 分辨力 pending 實測」。
+4. **R-7 fail-closed 契約**：core 缺席（`python3` 不可達、`preflight_core.py` 不在盤）、core 輸出 protocol 無效（必要欄位缺漏／解析失敗），或 R-4 identity 不符時 ＝ **blocked**，**非** advisory 放行。adapter **MUST**：`process_exit_code` 固定 `1`；**MUST NOT** 呼叫 P3 writer；輸出 stdout key `CORE_FINAL_STATUS=BLOCKED_ENV_MISMATCH` 與 `ADVISORY_ONLY=true`（AI-6 新增，`preflight_activation.sh:534`–`535`），另於 stderr 附人類可讀 `ADVISORY_ONLY` 警示行。（回鏈：AC「R-7」`INFRA-PREFLIGHT-CORE-01_...md:492`–`494`，AI-6 收尾五子句全達，`test_preflight_adapter.sh` 36/36 PASS，commit `28df403`／`5b5d294`）
+5. **並行邊界**：同一 worktree 同時對多張 ticket 執行寫入型操作 **MUST** 禁止或序列化（票面非目標 §8 明文，`INFRA-PREFLIGHT-CORE-01_...md:459`）；preflight 本身**不提供**跨 worktree 鎖機制，屬既定 non-goal 而非缺陷——本票未新增鎖／佇列實作。
+
+### 已知未達項（D.3-3 忠實性揭露，MUST 標 pending／planned）
+
+| # | 事項 | 狀態 | 說明 |
+| --- | --- | --- | --- |
+| 1 | R-1 四型阻斷 | `pending`（adapter 層） | `blob_check`＝`MISMATCH`／`TARGET_MISSING`／`COMMAND_FAILED`／`INVALID_TICKET_VALUE` 四型於 `preflight_core.py::decide()`（核心層）皆已驗證阻斷（`test_preflight_core.py` `UnlistedCombinationTest`）；**adapter 層以真實 `active.json` mtime 不變驗證者僅 `MISMATCH` 一型**，其餘三型之 adapter 全流程重跑驗證為 `pending`。（AC `INFRA-PREFLIGHT-CORE-01_...md:475`，未勾） |
+| 2 | 多 worktree 並行 | `pending`（未實測） | 見上方「R-4 四欄 identity binding」如實揭露；`repo_root`／`worktree_path` 現為同值，跨 worktree 隔離未實機驗證。**MUST NOT** 寫成「已支援 worktree 隔離」。（AC `:483`，未勾） |
+| 3 | 四入口實機（`/resume`／新 session／切票／`post-compact`） | `planned` | 腳本本身二分支（顯式切票／取自 `active.json`）皆已真實執行，但未經真實 SessionStart hook 之 `startup`／`resume`／`compact`／`clear` matcher 觸發驗證。（AC `:486`，部分達成，未全勾） |
+| 4 | 「新增一條規則」可維護性演練 | `planned` | 上方「決策表為規則 SSOT」條款所述之維護流程尚未實際演練一次（新增一列 `preflight_rules.json` 並同步測試）；**MUST NOT** 寫成已驗證之可維護性保證，僅為設計時契約。（AC `:490`，未執行） |
+
+**另兩項如實描述義務**：
+
+- `V2_STATE=` stdout 行之計算函式 `route_v2_state()` 屬 `LEGACY_STDOUT_SHIM`（AI-6 職責歸類表 `INFRA-PREFLIGHT-CORE-01_...md:410`，唯一消費點為診斷 echo），**MUST NOT** 寫成契約狀態或決策依據——真實決策路徑讀 `V2_OVERALL`／`V2_PROVENANCE`（經 `map_v2_facts()`），不讀 `route_v2_state()` 之收斂值。
+- `v2_provenance=KNOWN` 與 `v2_semantics=FAILED` 為 schema 外 schema-outside 值，**未列入** `preflight_rules.json` 15 rows 決策表（R-6 producer closure，票面 AI-2 記載）；任何注入值一律落 R-2 `UNLISTED_COMBINATION`。**MUST NOT** 寫成「決策表已涵蓋全部 V2 語義」。
 
 ## Step 1: 編譯 (Build)
 
