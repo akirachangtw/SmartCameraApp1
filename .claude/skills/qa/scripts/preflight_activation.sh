@@ -9,8 +9,10 @@
 #   省略 <ticket_id> 時，讀取 tmp/verify/active.json 之 ticket_id（mismatch 結構上不可能）。
 #
 # 輸出（stdout）: 逐行 KEY=VALUE 狀態，末尾一行 V2 JSON。
-# 退出碼: 0 = V0 PASS（不代表 V1/V2 亦 PASS，逐層狀態各自輸出）
-#         1 = V0 BLOCKED_ENV_MISMATCH（no writes, no test execution with ticket authority, no AC claim）
+# 退出碼: 0 = V0 PASS 且 R-4/R-7 gate 通過（不代表 V1/V2 亦 PASS，逐層狀態各自輸出）
+#         1 = V0 BLOCKED_ENV_MISMATCH，或 V0 PASS 但 core 不可用／protocol 無效／
+#             R-4 四欄 identity 不符（R-7 fail-closed，Rev D A1；R-5 之明示例外）
+#             （no writes, no test execution with ticket authority, no AC claim）
 #
 # HC 對應（票面 Hard Constraints 逐字）:
 #   1. V2 MUST NOT 寫入任何檔案（唯讀探針）。
@@ -451,17 +453,24 @@ legacy_equivalent_status() { # legacy_equivalent_status → stdout "<final_statu
 }
 
 invoke_core_decision() { # invoke_core_decision <ticket_id> <activation_intent>
-  # → 全域 CORE_AVAILABLE(0/1)／CORE_FACTS_JSON／CORE_FINAL_STATUS／CORE_EXIT_CODE／
-  #   CORE_WRITE_AUTHORITY／CORE_MAY_ACTIVATE_TICKET／CORE_CONTEXT_ID／CORE_TICKET_ID
+  # → 全域 CORE_AVAILABLE(0/1)／CORE_UNAVAILABLE_REASON（0 時設定，R-7 reason_code 之一）／
+  #   CORE_FACTS_JSON／CORE_FINAL_STATUS／CORE_EXIT_CODE／CORE_WRITE_AUTHORITY／
+  #   CORE_MAY_ACTIVATE_TICKET／CORE_CONTEXT_ID／CORE_TICKET_ID／CORE_REPO_ROOT／
+  #   CORE_WORKTREE_PATH／CORE_HEAD_SHA
   local ticket_id="$1" activation_intent="$2"
   CORE_AVAILABLE=0
-  command -v python3 >/dev/null 2>&1 || { echo "⚠️ core unavailable: python3 not found" >&2; return 1; }
-  [[ -f "$PREFLIGHT_CORE_PY" ]] || { echo "⚠️ core unavailable: preflight_core.py not found" >&2; return 1; }
+  CORE_UNAVAILABLE_REASON=""
+  command -v python3 >/dev/null 2>&1 || { CORE_UNAVAILABLE_REASON="CORE_UNAVAILABLE"; echo "⚠️ core unavailable: python3 not found" >&2; return 1; }
+  [[ -f "$PREFLIGHT_CORE_PY" ]] || { CORE_UNAVAILABLE_REASON="CORE_UNAVAILABLE"; echo "⚠️ core unavailable: preflight_core.py not found" >&2; return 1; }
 
   CORE_FACTS_JSON="$(collect_facts_json "$ticket_id" "$activation_intent" 2>/dev/null)"
   local decision_json
   decision_json="$(printf '%s' "$CORE_FACTS_JSON" | python3 "$PREFLIGHT_CORE_PY" 2>/dev/null)"
-  [[ -z "$decision_json" ]] && { echo "⚠️ core unavailable: invocation failed" >&2; return 1; }
+  if [[ -z "$decision_json" ]]; then
+    CORE_UNAVAILABLE_REASON="CORE_PROTOCOL_INVALID"
+    echo "⚠️ core unavailable: invocation failed" >&2
+    return 1
+  fi
 
   CORE_FINAL_STATUS="$(printf '%s' "$decision_json" | grep -o '"final_status": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
   CORE_EXIT_CODE="$(printf '%s' "$decision_json" | grep -o '"process_exit_code": *[0-9]*' | grep -o '[0-9]*$')"
@@ -469,7 +478,12 @@ invoke_core_decision() { # invoke_core_decision <ticket_id> <activation_intent>
   CORE_MAY_ACTIVATE_TICKET="$(printf '%s' "$decision_json" | grep -o '"may_activate_ticket": *[a-z]*' | grep -o '[a-z]*$')"
   CORE_CONTEXT_ID="$(printf '%s' "$decision_json" | grep -o '"context_id": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
   CORE_TICKET_ID="$(printf '%s' "$decision_json" | grep -o '"ticket_id": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
-  if [[ -z "$CORE_FINAL_STATUS" || -z "$CORE_EXIT_CODE" || -z "$CORE_MAY_ACTIVATE_TICKET" ]]; then
+  CORE_REPO_ROOT="$(printf '%s' "$decision_json" | grep -o '"repo_root": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
+  CORE_WORKTREE_PATH="$(printf '%s' "$decision_json" | grep -o '"worktree_path": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
+  CORE_HEAD_SHA="$(printf '%s' "$decision_json" | grep -o '"head_sha": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
+  if [[ -z "$CORE_FINAL_STATUS" || -z "$CORE_EXIT_CODE" || -z "$CORE_MAY_ACTIVATE_TICKET" \
+        || -z "$CORE_REPO_ROOT" || -z "$CORE_WORKTREE_PATH" || -z "$CORE_HEAD_SHA" ]]; then
+    CORE_UNAVAILABLE_REASON="CORE_PROTOCOL_INVALID"
     echo "⚠️ core unavailable: unparseable decision output" >&2
     return 1
   fi
@@ -545,24 +559,44 @@ main() {
   echo "V2_STATE=${v2_state}"
   echo "V2_JSON={\"ticket_id\":\"${ticket_id}\",\"semantic_contract\":${V2_RESULTS},\"overall\":\"${V2_OVERALL}\",\"provenance\":\"${V2_PROVENANCE}\"}"
 
-  # ─── AI-5（authority 切換）：core 可用時，P3 寫入時機與 WRITE_AUTHORITY 值改由
-  #     核心 Decision 主導（R-4：寫入前驗證 ticket_id 一致）；core 不可用時 fail-open
-  #     回退至既有 legacy 行為（V0 PASS 後即寫、write_authority() 判定），維持既有
-  #     唯讀取證動作不被阻斷（HC-6）。───
+  # ─── AI-5.1（R-4 四欄 identity binding ＋ R-7 core availability fail-closed）：
+  #     core 可用 AND 四欄 identity（ticket_id／repo_root／worktree_path／head_sha）
+  #     全等 → 核心 Decision 主導 P3 寫入時機與 WRITE_AUTHORITY 值；任一條件不成立
+  #     （core 不可用／protocol 無效／identity 不符）→ R-7 fail-closed：MUST NOT
+  #     呼叫 P3 writer、MUST NOT 回退 legacy policy 判定路徑（write_authority() 僅
+  #     供 log_shadow_diff 唯讀比對使用，非本分支決策來源），process_exit_code
+  #     固定 1（R-5 明示例外）。───
   invoke_core_decision "$ticket_id" "$activation_intent"
-  if [[ "$CORE_AVAILABLE" -eq 1 && "$CORE_TICKET_ID" == "$ticket_id" ]]; then
+  local core_identity_ok=0
+  if [[ "$CORE_AVAILABLE" -eq 1 \
+        && "$CORE_TICKET_ID" == "$ticket_id" \
+        && "$CORE_REPO_ROOT" == "${V0_REPO_ROOT:-}" \
+        && "$CORE_WORKTREE_PATH" == "${V0_REPO_ROOT:-}" \
+        && "$CORE_HEAD_SHA" == "${V0_HEAD:-}" ]]; then
+    core_identity_ok=1
+  fi
+
+  local r7_blocked=0
+  if [[ "$core_identity_ok" -eq 1 ]]; then
     if [[ "$CORE_MAY_ACTIVATE_TICKET" == "true" ]]; then
       activate_via_p3_writer "$ticket_id" "${V0_ACTIVATION_SOURCE:-}" >&2
     fi
     echo "WRITE_AUTHORITY=${CORE_WRITE_AUTHORITY}"
   else
-    [[ "$CORE_AVAILABLE" -eq 1 ]] && echo "⚠️ core decision ticket_id mismatch（R-4），回退 legacy authority 路徑" >&2
-    activate_via_p3_writer "$ticket_id" "${V0_ACTIVATION_SOURCE:-}" >&2
-    echo "WRITE_AUTHORITY=$(write_authority "$V0_STATUS" "$V1_STATUS" "$V2_OVERALL")"
+    local r7_reason
+    if [[ "$CORE_AVAILABLE" -eq 0 ]]; then
+      r7_reason="${CORE_UNAVAILABLE_REASON:-CORE_UNAVAILABLE}"
+    else
+      r7_reason="IDENTITY_MISMATCH"
+    fi
+    echo "⚠️ ADVISORY_ONLY: R-7 fail-closed（reason_code=${r7_reason}）— no writes, no test execution with ticket authority, no AC claim" >&2
+    echo "WRITE_AUTHORITY=NO"
+    r7_blocked=1
   fi
 
   log_shadow_diff "$ticket_id"
 
+  [[ "$r7_blocked" -eq 1 ]] && exit 1
   exit 0
 }
 

@@ -166,6 +166,9 @@ class ActivationFacts:
 class Decision:
     context_id: str
     ticket_id: str
+    repo_root: str
+    worktree_path: str
+    head_sha: str
     final_status: str
     reason_code: str
     process_exit_code: int
@@ -304,6 +307,9 @@ def decide(facts: ActivationFacts) -> Decision:
     return Decision(
         context_id=ctx.digest(),
         ticket_id=ctx.ticket_id,
+        repo_root=ctx.repo_root,
+        worktree_path=ctx.worktree_path,
+        head_sha=ctx.head_sha,
         final_status=final_status,
         reason_code=reason_code,
         process_exit_code=process_exit_code,
