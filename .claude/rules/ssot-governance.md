@@ -53,6 +53,52 @@ globs:
 - `/index-verify` **SHOULD** 在每次 SSOT 升級後立即執行，確認零過期引用。
 - 引用已刪除路徑 → structural_verify.sh Check F 或 index-verify **MUST** 攔截。
 
+## Ticket 生命週期流程（五段）
+
+```text
+PENDING → TICKET_RIGOR → IN_PROGRESS → EXECUTED → REVIEW → CLOSED
+```
+
+旁支：`BLOCKED` 可自任意活態進出；`VOID` 可自任意活態進入，為終態。
+
+**Pending/ 淨空原則**：
+1. `plans/cso_briefing/project/Pending/` 僅承載**活態未交付**票（`PENDING`／`TICKET_RIGOR`／`IN_PROGRESS`／`EXECUTED` 四值），**MUST NOT** 窄寫為「僅 PENDING」。
+2. 經判定無復活路徑者 **MUST** 轉 `VOID` 並依「VOID 歸位紀律」（見 §Ticket Closure 紀律）離開 `Pending/`，**MUST NOT** 以 `blocked_by` 承載凍結語義而長期滯留活態。
+3. `BLOCKED` 僅為暫時態，其解除或轉 `VOID` 之判準 **MUST** 記於冊面 note，禁無限期停留。
+4. `Pending/` 內**非票檔**之文件（編纂檔、executor briefing、分析稿等）不受本原則之票檔紀律拘束，但 **MUST** 於目錄↔冊面落差清單中單獨分類，**MUST NOT** 混入「孤兒票」計數。
+
+`lifecycle` 合法值之 SSOT 為平台 `registry_service.py` `VALID_LIFECYCLE`；本節為其流程語義之引用。
+
+`Pending/` 之票檔集合與冊面活態未交付票集合 **MUST** 一一對應；發現落差即為治理 finding，**MUST** 於發現當批修正或明載於冊面。
+
+**`file` 欄正規化前置**：APP 冊 `file` 欄現存兩種格式——短路徑（如 `Pending/INFRA-SV-GOV-01_SV_Governance_Fix.md`）與長路徑（如 `plans/cso_briefing/project/Pending/...md`）。比對前 **MUST** 先將兩者正規化至同一形式（取 basename 或統一去除 `plans/cso_briefing/project/` 前綴），**否則全部舊票將被誤判為落差**。
+
+**落差清單分類**（依現況快照產出，**MUST NOT** 代為處置任何一筆，處置屬後續裁決）：①`Pending/` 有檔而冊面查無（孤兒票檔）；②冊面活態未交付而 `Pending/` 無檔；③冊面 `file` 欄指標與實際落點不符；④`Pending/` 內非票檔文件。事件支撐：PLT 端 2026-08-30 實測發現四張票檔在 `docs/pending/` 而冊面查無，其中兩張為已 VOID 歸檔票之滯留副本；APP 端 2026-09-05 已知至少存在 `MEO-FIX-A`／`MEO-FIX-B` 系列孤兒檔與 `void/INFRA-CLAUDE-MERGE-01`（票檔在盤而主冊與歸檔冊皆查無）。
+
+### 五段觸發與寫入者
+
+| 段 | 觸發 | 寫入者 |
+| --- | --- | --- |
+| ① `TICKET_RIGOR` | rigor gate 產報告 | 執行者（併寫 `rigor` 欄；開票或過閘時若判定須深驗，MUST 同批寫 `verification` 欄） |
+| ② `IN_PROGRESS` | 開工 | 執行者 |
+| ③ `EXECUTED` | AC 自驗全綠，未過 Cross Review | 執行者 |
+| ④ `REVIEW` | Cross Review 通過或依 RAPID MODE 省略 | 執行者（**併** `reviews.codex=PASS`／`N_A`＋票檔搬 `deliver/`＋`file` 欄及冊面更新），Traycer T2 另由 Akira 於 VS Code 手動執行 T2/CSO 複審 |
+| ⑤ `CLOSED` | 複審通過 | **限審查方 SMTR/CSO**（終審 `reviews` 回填＋收束 note） |
+
+**物理歸位邊界**（Akira 2026-09-07）：ticket 進入 `REVIEW` 即搬入 `deliver/`；`CLOSED` 保持於 `deliver/`；`VOID` 歸 `void/`。
+
+### verification 與 reviews 之分工
+
+`verification` ＝ 票之**要求**（開票或過閘時決定，屬性）；`reviews` ＝ 閘之**執行結果**（執行時回填）。**⑤段收束時 MUST 逐項核對 `verification.required` 各值於 `reviews` 有對應結果（PASS 或明示豁免記於 note），有缺即不得轉 `CLOSED`。**
+
+### §0 waiver 直跳條款
+
+票面帶 Rigor Gate Waiver 者得 `PENDING → IN_PROGRESS` 直跳；`TICKET_RIGOR` 僅過閘票必經。
+
+### Traycer T2 執行邊界
+
+Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP 工具鏈外部觸發。票面聲明需 Traycer T2 審查者，該審查動作 **MUST** 由人工（Akira）於 VS Code 內手動執行；執行端 **MUST NOT** 因無法觸發而靜默跳過、推定 PASS，或另尋機械替代路徑。此類票之收尾 **MUST** 正常轉入 `④REVIEW`（票檔搬 `deliver/`＋`file` 欄及冊面更新，同 §「五段觸發與寫入者」④列），**MUST NOT** 停於 `③EXECUTED`——`REVIEW` 本身即為「等待最終 T2／CSO 複審」之合理停留態，`EXECUTED` 僅代表「AC 自驗全綠、未過 Cross Review」之更早期狀態，用其表示「等 Traycer」語意錯位。`reviews.traycer` 欄位維持 `PENDING`（或依 §4.5 契約填 `N_A`）以標記人工複審未完成；lifecycle 本身 **MUST NOT** 因此卡在 `EXECUTED`。
+
 ## 治理載體↔存取工具對應圖譜
 
 - **兩套系統明示分立**：治理冊面（`plans/cso_briefing/project/TICKET_REGISTRY.json`，即本規則全篇治理對象）與執行審批票（SQLite，mcp-ticket-platform repo 之 `core/migrations/001_init_v2.sql`）為**互不相通之兩套資料**，同名概念不共享資料。工具由同一台 `mcp-ticket-platform` MCP server 提供，服務兩專案。
@@ -80,22 +126,11 @@ globs:
 - **FORBIDDEN 延後項免開票紀律**：票面 `FORBIDDEN` 命中 `.claude/PROGRESS.md` 導致的收尾延後項（Dashboard 同步／`PROGRESS_ARCHIVE.md` Done 標記／票檔 Pending→deliver 搬移／票內 AC checkbox 勾選）**MUST NOT** 另開獨立治理票（如 `*-DOCSYNC-01`）承接；此四項本屬標準 SOP 收尾流程，**MUST** 於下一輪 `/compact` 或後續 session 之正常收尾動作中處理即可。觸發來源：`INFRA-CONCURRENCY-01`（Akira 2026-07-19 對話裁決：「這本來就是標準的 SOP 執行票流程」，避免治理疊床架屋）。
 - **結構歧義停損律**(2026-08-01 CSO 確認決議):同一子系統下列任一**字面**成立,MUST 停止開立/受理新修補票並升報 CSO:①同一票修訂版次 ≥ 3(票面 Rev 直取);②結構性死結/自指阻塞 ≥ 2 種(決策檔/Handoff 記載筆數直取);③任一 workaround 額度制用量達上限 50%;④修補深度 ≥ 2(FIX 票之 FIX 票)。凍結僅及修補線,不及執行中之非修補工作;解除條件=外審回流+CSO 存廢三案(退役/降級/續修)裁決落檔。禁語義裁量(「此票很重要」不豁免)。SSOT:vault `2026-08-01_Structural_Ambiguity_Stop_Loss_Law.md`;觸發來源:MEO v1 十輪修補無停損(`MEO_V1_Enforcement_Layer_Decommission`)。
 
-## Pending/ 淨空原則
+## Ticket Rigor Gate（按需工具，非常駐前置）
 
-- **終態補集定義**：`plans/cso_briefing/project/Pending/` 僅承載**未達終態**之票檔；終態 ∈ {`CLOSED`, `VOID`}。票檔離開 `Pending/` 之條件為該票達終態，與其當下為何非終態值無關。理由：lifecycle 合法值之 SSOT 在平台，本檔不列舉活態值，以免成為無同步機制之副本。
-- 經判定無復活路徑者 **MUST** 轉 `VOID` 並依 VOID 歸位紀律離開 `Pending/`；**MUST NOT** 以 `blocked_by` 承載凍結語義而長期滯留未達終態。
-- `Pending/` 內**非票檔**之文件（編纂檔、executor briefing、分析稿等）不受本原則之票檔紀律拘束，但 **MUST** 於目錄↔冊面落差清單中單獨分類，**MUST NOT** 混入「孤兒票」計數。
-- **紀律**：**MUST NOT** 於本段寫入活態值之任何列舉（含清單、表格、括號並列）；`CLOSED`／`VOID` 之具名引用**限於終態定義用途**，**MUST NOT** 擴寫為完整枚舉；**MUST NOT** 書寫任何「APP 不使用 X 狀態」之斷言。
+> `TICKET_RIGOR` 為 TKR 冊面合法 lifecycle 狀態；其允許轉換、寫入者與後繼狀態依 PLT/TKR 平台之權威定義（見 §Ticket 生命週期流程（五段）①）。APP 不得將此狀態排除、歸零或映射為自建的「審查中」。`.claude/skills/ticket-rigor-gate/` 是按需使用的工具能力，不是一般新票的自動派工前置條件；除非未來存在已驗證的、由固定狀態或欄位觸發的 `ticket-run`／dispatcher consumer，否則不得將「得執行 rigor」作為常駐治理規則。
 
-**目錄↔冊面一一對應**：`Pending/` 之票檔集合與冊面**未達終態**票集合 **MUST** 一一對應；發現落差即為治理 finding，**MUST** 於發現當批修正或明載於冊面。
-
-**`file` 欄正規化前置**：APP 冊 `file` 欄現存兩種格式——短路徑（如 `Pending/INFRA-SV-GOV-01_SV_Governance_Fix.md`）與長路徑（如 `plans/cso_briefing/project/Pending/...md`）。比對前 **MUST** 先將兩者正規化至同一形式（取 basename 或統一去除 `plans/cso_briefing/project/` 前綴），**否則全部舊票將被誤判為落差**。
-
-**落差清單分類**（依現況快照產出，**MUST NOT** 代為處置任何一筆，處置屬後續裁決）：①`Pending/` 有檔而冊面查無（孤兒票檔）；②冊面未達終態而 `Pending/` 無檔；③冊面 `file` 欄指標與實際落點不符；④`Pending/` 內非票檔文件。事件支撐：PLT 端 2026-08-30 實測發現四張票檔在 `docs/pending/` 而冊面查無，其中兩張為已 VOID 歸檔票之滯留副本；APP 端 2026-09-05 已知至少存在 `MEO-FIX-A`／`MEO-FIX-B` 系列孤兒檔與 `void/INFRA-CLAUDE-MERGE-01`（票檔在盤而主冊與歸檔冊皆查無）。
-
-## Ticket Rigor Gate（選用制，INFRA-GOVSYNC-01）
-
-- APP 冊 lifecycle 維持 `PENDING / REVIEW / CLOSED / VOID`，**不引入** PLT 五段制之 `TICKET_RIGOR / IN_PROGRESS / EXECUTED` 狀態——此為對 PLT 全閘制之刻意裁剪（Akira 2026-08-27 治理減量裁決），非同步遺漏；日後兩端規則合併裁決 MUST 以本節為 APP 基線。
-- 新票**得**於派工前執行 `.claude/skills/ticket-rigor-gate/` 取品質報告；Akira 明示指派 rigor 檢核之票 **MUST** 執行並於派工訊息附報告要點。
 - 報告與遙測一律落 `.tmp/rigor-gate/`（`RGR-APPDEPLOY-01` L2 裁決：執行期產物，KEEP_N=10 輪替）；**MUST NOT** 於任何票面 AC 引用 `.tmp/` 下 rigor 產物為長期證據——耐久結論唯一載體為票面／冊面收尾實錄。
 - 本節不新增任何 MUST 級派工前置；未跑 gate 之票不因此退件。
+
+**翻盤紀錄**：2026-08-27 治理減量裁決（APP 冊 lifecycle 維持 `PENDING / REVIEW / CLOSED / VOID` 四態之刻意裁剪）由 2026-09-06 Akira D-1 裁決推翻，翻盤型態＝明示 supersede：PLT／TKR 平台為 lifecycle、狀態轉換、registry 資料契約與共通票務流程之唯一語義權威，APP 自此採 PLT 五段語義（見 §Ticket 生命週期流程（五段）），採取最小必要之 consumer 實作而非重寫平台 enum 或移植全套 script。（`INFRA-LIFECYCLE-SSOT-01`）
