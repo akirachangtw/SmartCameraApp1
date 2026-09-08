@@ -125,11 +125,12 @@ class UnlistedCombinationTest(unittest.TestCase):
         self.assertFalse(decision.v2_probe_may_write)
         self.assertEqual(decision.write_authority, "NO")
 
-    def test_r1_blob_failures_all_three_variants(self) -> None:
+    def test_r1_blob_failures_all_four_variants(self) -> None:
         for blob_value in (
             core.BlobCheck.TARGET_MISSING,
             core.BlobCheck.COMMAND_FAILED,
             core.BlobCheck.INVALID_TICKET_VALUE,
+            core.BlobCheck.MISMATCH,
         ):
             with self.subTest(blob_check=blob_value.value):
                 env = core.EnvironmentFacts(
@@ -194,12 +195,93 @@ class ExitCodeCompatibilityTest(unittest.TestCase):
     """R-5: process_exit_code is a pure function of v0_env, never inferred
     from final_status. Exercises the four v0_env values against the table."""
 
+    def _ctx(self) -> core.ContextFacts:
+        return core.ContextFacts(
+            "T-DEMO", "/repo", "/repo", "deadbeef", "rev-0",
+            "2026-09-06T00:00:00Z", core.ActivationIntent.IMPLICIT_RESUME,
+        )
+
     def test_every_row_exit_code_matches_v0_env_rule(self) -> None:
         for row in _load_rows():
             with self.subTest(row=row["id"]):
                 v0_env = row["environment"]["v0_env"]
                 expected_exit = 1 if v0_env != "PASS" else 0
                 self.assertEqual(row["expected"]["process_exit_code"], expected_exit)
+
+    def test_exit0_v0pass_with_blocked_unattributed_state(self) -> None:
+        # F-5: v0_env=PASS but a blocked final_status (unattributed commits
+        # on the ticket's own scope) MUST still yield exit 0, not 1 —
+        # process_exit_code is never inferred from final_status.
+        env = core.EnvironmentFacts(
+            v0_env=core.V0Env.PASS,
+            baseline_check=core.BaselineCheck.VALID,
+            v1_scope=core.V1Scope.CHANGED_TARGETS,
+            v1_provenance=core.V1Provenance.UNATTRIBUTED,
+            blob_check=core.BlobCheck.MATCH,
+            v2_semantics=core.V2Semantics.MISSING,
+            v2_provenance=core.V2Provenance.UNKNOWN,
+        )
+        decision = core.decide(core.ActivationFacts(self._ctx(), env))
+        self.assertEqual(decision.final_status, core.FINAL_STATUS_BLOCKED_UNATTRIBUTED_STATE)
+        self.assertEqual(decision.process_exit_code, 0)
+        self.assertFalse(decision.may_activate_ticket)
+
+    def test_exit0_v0pass_with_blocked_scope_or_target_mismatch(self) -> None:
+        # F-2: v0_env=PASS but a blob-check hard failure MUST still yield
+        # exit 0, not 1.
+        env = core.EnvironmentFacts(
+            v0_env=core.V0Env.PASS,
+            baseline_check=core.BaselineCheck.VALID,
+            v1_scope=core.V1Scope.NOT_EVALUATED,
+            v1_provenance=core.V1Provenance.NOT_APPLICABLE,
+            blob_check=core.BlobCheck.MISMATCH,
+            v2_semantics=core.V2Semantics.MISSING,
+            v2_provenance=core.V2Provenance.UNKNOWN,
+        )
+        decision = core.decide(core.ActivationFacts(self._ctx(), env))
+        self.assertEqual(decision.final_status, core.FINAL_STATUS_BLOCKED_SCOPE_OR_TARGET_MISMATCH)
+        self.assertEqual(decision.process_exit_code, 0)
+        self.assertFalse(decision.may_activate_ticket)
+
+    def test_exit0_v0pass_with_candidate_superseded(self) -> None:
+        # F-4: v0_env=PASS with other-ticket attribution (CANDIDATE_SUPERSEDED)
+        # MUST still yield exit 0, not 1.
+        env = core.EnvironmentFacts(
+            v0_env=core.V0Env.PASS,
+            baseline_check=core.BaselineCheck.VALID,
+            v1_scope=core.V1Scope.CHANGED_TARGETS,
+            v1_provenance=core.V1Provenance.OTHER_TICKET,
+            blob_check=core.BlobCheck.MATCH,
+            v2_semantics=core.V2Semantics.MISSING,
+            v2_provenance=core.V2Provenance.UNKNOWN,
+        )
+        decision = core.decide(core.ActivationFacts(self._ctx(), env))
+        self.assertEqual(decision.final_status, core.FINAL_STATUS_CANDIDATE_SUPERSEDED)
+        self.assertEqual(decision.process_exit_code, 0)
+        self.assertTrue(decision.may_activate_ticket)
+
+    def test_exit1_v0_each_failure_value(self) -> None:
+        # F-0: every non-PASS v0_env value MUST yield exit 1, each on its own
+        # subTest (DETACHED_HEAD / NO_ACTIVE_TICKET / OUT_OF_SCOPE).
+        for v0_value in (
+            core.V0Env.DETACHED_HEAD,
+            core.V0Env.NO_ACTIVE_TICKET,
+            core.V0Env.OUT_OF_SCOPE,
+        ):
+            with self.subTest(v0_env=v0_value.value):
+                env = core.EnvironmentFacts(
+                    v0_env=v0_value,
+                    baseline_check=core.BaselineCheck.NOT_EVALUATED,
+                    v1_scope=core.V1Scope.NOT_EVALUATED,
+                    v1_provenance=core.V1Provenance.NOT_APPLICABLE,
+                    blob_check=core.BlobCheck.NOT_EVALUATED,
+                    v2_semantics=core.V2Semantics.NOT_EVALUATED,
+                    v2_provenance=core.V2Provenance.NOT_EVALUATED,
+                )
+                decision = core.decide(core.ActivationFacts(self._ctx(), env))
+                self.assertEqual(decision.final_status, core.FINAL_STATUS_BLOCKED_ENV_MISMATCH)
+                self.assertEqual(decision.process_exit_code, 1)
+                self.assertFalse(decision.may_activate_ticket)
 
 
 class PurityTest(unittest.TestCase):
