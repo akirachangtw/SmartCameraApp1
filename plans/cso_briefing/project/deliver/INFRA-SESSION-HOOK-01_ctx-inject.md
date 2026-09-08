@@ -122,3 +122,21 @@ TARGET_BLOB=.claude/settings.json:<開工時回填>;.claude/hooks/session_start.
 **Rev A.2（2026-09-06，CSO Gate PARTIAL 補正裁決）**：接受外審 M1／M2 與 Medium。① `fork` 依官方 v2.1.214+ 語義併入 `resume|compact|fork` inject 群；其沿用既有 transcript 且可能與父 session 並行，共享 `tmp/` 未隔離前禁止啟動即清父 session 預載檔。② `active.json` 明定「完整／不存在／損毀」三態，損毀時 fail-open 但 fail-visible：僅注入固定警示、禁輸出局部欄位、exit 0，並補四類破壞樣本 AC。③ `preflight_activation.sh` 已在盤且 tracked，補存在性與提醒輸出 AC。**原送審版 Gate＝PARTIAL；本 Rev A.2 已完成必要補正，現轉 READY_FOR_DISPATCH，不拆票。**
 
 **End of INFRA-SESSION-HOOK-01**
+
+**Rev A.2（2026-09-07，SKAD，Akira 裁決「實機 AC 應適用於所有操作介面；主介面為 VSCode Claude Code 與手機 Claude Code（Remote Control）」）**
+
+1. **撤銷** Error Handling 第 3 條「實機 AC 於 VSCode 擴充執行 → 停止改於 terminal」。該條致 2 項 `[實機]` AC 於收尾時未勾（見 checkpoint.resolution）。
+2. **已知差異註記（非缺陷）**：VSCode 擴充內 `/clear` 送出 `source=startup`（anthropics/claude-code #49937，Windows，30/30 重現）。本票 AI-1 將 `startup|clear` 置同一 matcher 群，故 `reset` 行為不受影響。**實機 AC 一律以機械效果判定，禁以 source 字面判定。**
+3. **實機 AC 改寫（取代原第 7 條）**——測試矩陣 = host × 指令；Remote Control 為遠端客戶端，hook 執行於本機 host，手機不構成第三 host：
+
+| # | host | 觸發端 | 指令 | 前置 | 期望（機械可見） |
+|---|---|---|---|---|---|
+| M1 | VSCode 擴充 | 本機 | `/clear` | 先手建 `tmp/verify_cmd.conf` | 檔案消失；首則回應引用 `🧹` 與 `📍 Active ticket:` |
+| M2 | VSCode 擴充 | 本機 | `/compact` | `tmp/verify_cmd.conf` 存在 | 檔案**仍在**；首則回應引用 `📍 Active ticket:` |
+| M3 | VSCode 擴充 | 手機 RC | `/clear` | 同 M1 | 同 M1 |
+| M4 | VSCode 擴充 | 手機 RC | `/compact` | 同 M2 | 同 M2 |
+| M5 | CLI terminal | 本機 | `/clear`＋`/compact` | 同上 | 同上（對照組） |
+
+   - M1–M4 為 **MUST**（Akira 主介面）；M5 為對照組 SHOULD。
+   - 任一 MUST 項 hook 未觸發（檔案狀態與回應均無變化）→ 記錄 host／指令／Claude Code 版號為 finding，**不在本票修補**，另開 `INFRA-CTAWR-*` 修補票；本票其餘 AC 已 PASS 者不受牽連。
+4. 後續本議題（Session-Aware Ticket Activation）新票一律以 `INFRA-CTAWR-` 為前綴（Akira 2026-09-07 命名裁決）；本票不改名。
