@@ -414,3 +414,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 ## Archived 2026-09-08（INFRA-PREFLIGHT-CORE-01 /sv Step F.2 行數精簡）
 
 - **🟡 引用修正支線**：使用者要求「`.claude/`、`plans/` 引用新版本路徑 v3.3」，已掃描分類（現行指標多數已於 GOV-03/PROTO-01 同步；`plans/cso_briefing/` 內 v3.2 引用屬 R-T5 化石溯源，Hard Constraint 3 **MUST** 不回改）→ 新 session 待使用者確認範圍或指定具體檔案後執行（原 PROGRESS.md Next Actions #1，歸檔以滿足 Check F.2 ≤80 行）
+
+## Archived 2026-09-09（INFRA-PREFLIGHT-CORE-01-FIX-C /sv Step F.2 行數精簡）
+
+- **🔴 待 CSO 裁決（治理驗證器）**：L-1 `[0.3]` 行數 awk 字面比對 → `MAX_LINES` 靜默失效（建議開後續票）· L-2 裸目錄前綴 FORBIDDEN token 語義（加分支 vs 判 malformed）· D-1/D-2/C-1（INFRA-EOL-01 遺留）· 本輪微票是否入 PROGRESS.md（原 PROGRESS.md Next Actions #4，歸檔以滿足 Check F.2 ≤80 行）
