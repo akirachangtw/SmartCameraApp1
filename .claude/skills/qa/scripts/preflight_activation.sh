@@ -293,6 +293,14 @@ route_v2_state() {
 # 任何子步驟失敗一律靜默略過（不阻斷主流程）。
 PREFLIGHT_CORE_PY=".claude/skills/qa/scripts/preflight_core.py"
 
+# invoke_core_decision() protocol 完備性檢查之唯一 required-field 集合（FIX-A AI-1）。
+# 任一異動 CORE_* 欄位集合的修補 MUST 改此列表，禁另立第二份手寫欄位集合。
+readonly CORE_REQUIRED_FIELDS=(
+  CORE_FINAL_STATUS CORE_EXIT_CODE CORE_MAY_ACTIVATE_TICKET
+  CORE_WRITE_AUTHORITY CORE_TICKET_ID CORE_CONTEXT_ID
+  CORE_REPO_ROOT CORE_WORKTREE_PATH CORE_HEAD_SHA
+)
+
 map_v0_env_fact() { # map_v0_env_fact → stdout Facts Contract v0_env 值（純讀 V0_STATUS／V0_REASON）
   if [[ "$V0_STATUS" == "PASS" ]]; then echo "PASS"; return; fi
   case "$V0_REASON" in
@@ -446,12 +454,15 @@ invoke_core_decision() { # invoke_core_decision <ticket_id> <activation_intent>
   CORE_REPO_ROOT="$(printf '%s' "$decision_json" | grep -o '"repo_root": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
   CORE_WORKTREE_PATH="$(printf '%s' "$decision_json" | grep -o '"worktree_path": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
   CORE_HEAD_SHA="$(printf '%s' "$decision_json" | grep -o '"head_sha": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')"
-  if [[ -z "$CORE_FINAL_STATUS" || -z "$CORE_EXIT_CODE" || -z "$CORE_MAY_ACTIVATE_TICKET" \
-        || -z "$CORE_REPO_ROOT" || -z "$CORE_WORKTREE_PATH" || -z "$CORE_HEAD_SHA" ]]; then
-    CORE_UNAVAILABLE_REASON="CORE_PROTOCOL_INVALID"
-    echo "⚠️ core unavailable: unparseable decision output" >&2
-    return 1
-  fi
+
+  local _core_field
+  for _core_field in "${CORE_REQUIRED_FIELDS[@]}"; do
+    if [[ -z "${!_core_field}" ]]; then
+      CORE_UNAVAILABLE_REASON="CORE_PROTOCOL_INVALID"
+      echo "⚠️ core unavailable: unparseable decision output (missing ${_core_field})" >&2
+      return 1
+    fi
+  done
   CORE_AVAILABLE=1
   return 0
 }
