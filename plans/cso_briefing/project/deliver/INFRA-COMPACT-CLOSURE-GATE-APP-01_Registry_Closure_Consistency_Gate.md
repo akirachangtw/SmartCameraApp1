@@ -129,3 +129,34 @@ ANCHOR_PROBED=2026-09-02 17:10
 ---
 
 **End of INFRA-COMPACT-CLOSURE-GATE-APP-01**
+
+---
+
+## 收尾實錄（耐久載體＝本票檔；依四要件④，轉終態前落檔）
+
+**碼閉環（2026-09-09）**：AI-0～AI-2 全數完成，AC 13 項全勾（票檔 `- [ ]` 命中＝0）。
+
+**Commits（SMTR 一手 `git_log` 驗證）**：`d85452e`（16:04:21，`[INFRA-COMPACT-CLOSURE-GATE-APP-01] 新增冊面收束一致性閘＋收束閘狀態行`，`.claude/skills/compact/SKILL.md` +26L 僅此檔，`aud_20260909_d12d6471ed`）＋`0e56ea0`（16:11:29，`[GOVERNANCE-SYNC]` 票檔搬 `deliver/`，`aud_20260909_d12bc215ce`）。後者即本票檔之凍結點 commit。
+
+**審查鏈**：`/qa` PASS（Build／Test／Lint／ELF 全綠；Step 3.5 之 5 項既有 baseline 發現與本票無關）→ `/sv` Cross-Review R1 `REPORT_FIX`（`sv_report.md` §7 Guard Reachability 格式）→ R2 **PASS**。
+
+**Ticket Rigor Gate 三輪**：Round 1 Critical F1（HC5／AC-2 法源 `ssot-governance.md` L81 已被同檔推翻）→ Round 2 Critical F7（Rev C 新增之 AC 不可能滿足，成因為 SMTR Rev C 自身）→ **Round 3 PASS**（報告 `.tmp/rigor-gate/RGR_INFRA-COMPACT-CLOSURE-GATE-APP-01_20260909_R3.md`）。Rev D 之根治：AI-1 改為逐集合分別溯源（`Pending/` 四值→淨空原則 §1；`BLOCKED`→旁支條＋§3；`deliver/`→物理歸位邊界；`void/`→旁支條＋VOID 歸位紀律），明文排除「五段觸發與寫入者」節作為目錄歸屬來源，`DRAFT_NEEDED` 明文排除，未列值 `UNKNOWN_LIFECYCLE_MAPPING` fail-closed。SMTR 一手逐條核對 `ssot-governance.md` 原文全數字面相符。2 輪 FAIL 計數於 Round 3 PASS 中止，未觸發 3 輪凍結條款。
+
+### Traycer 裁決：`N_A`（2026-09-09，D-1 甲案）
+
+票面 L7 開票時即宣告 `**Traycer Workflow**: N/A（單一 skill .md 條文增補，§0 五分鐘 git restore 域）`，該宣告為法源；冊面原 `PENDING` 係無實跑 receipt 支撐之殘留值，經 Akira D-1 甲案裁決回填 `N_A`。**N_A 意為結構上不適用 Traycer，非推定 PASS**（撤警正向取證律）。`closure_record` 內「`traycer:PENDING`」之歷史字面保留不刪。
+
+### Extreview 4a 狀態（收票時）
+
+本票 Rev A→B→C→D 計 4，4a 於 Rev C 首次達 3 即成立，兩輪 rigor gate 事實上構成外審回流；Akira 2026-09-09 存廢三案裁決為**續修**（不退役、不降級），依 O6 遲滯律該裁決落檔後 **4a 計數重置為 0**。Rev D 授權範圍僅既有 AI-0～AI-2；票級 closure 前之新修補票凍結，隨本票轉 CLOSED 而失效（凍結標的為「closure 前」）。
+
+### 收票時仍在盤之非阻擋項（Round 3 報告所列，不另開票）
+
+- **Medium F10**：`MAX_LINES=35` 未依 Rev D 內容膨脹重新校準（實際 `/qa` PASS，未成災）
+- **Minor F9**：AC 第 124 行遺留 Rev C 舊標籤未清理
+- **Minor F11**：`void/` 集合引註未取最直接來源，非錯誤僅風格不對稱
+- Step 10 `PROGRESS_ARCHIVE.md` Done 標記因票面 `FORBIDDEN` 命中 `PROGRESS.md` 而延後至下輪 `/compact`（沿用 DEFERRED-TO-DOCSYNC 慣例，依 FORBIDDEN 延後項免開票紀律不另開票）
+
+### 下游影響
+
+`coordination_dependency` `INFRA-COMPACT-REVB-APP-01`（seq 32）之前行阻擋已於本票達 `REVIEW` 時解除；該票開立／派工時 **MUST** 於其 AI 明載「本節（`## 冊面收束一致性閘`）MUST 逐字保留並併入重構後版本」，否則整檔重構將覆蓋本票成果。
