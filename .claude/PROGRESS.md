@@ -5,12 +5,12 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-COMPACT-CLOSURE-GATE-APP-01 | ✅ REVIEW（並行 session 產出，commit `d85452e`/`0e56ea0`）· `compact/SKILL.md` Auto Commit 前新增「冊面收束一致性閘」三條機械判準 |
-| INFRA-PREFLIGHT-CORE-01-FIX-C | ✅ REVIEW（AI-0~AI-5 碼閉環，commit `7e87014`+`0adf022`+`8b41cb5`+`b82aee8`）· R-1 guard 前置化根治 F-3/F-4 遮蔽，`/sv` Codex Cross-Review R1 PASS，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:PENDING}`，票檔已搬 `deliver/` |
 | INFRA-CKPT-SEMANTICS-01 | ✅ REVIEW（commit `c167357`+`2e7271a`+`689f6c4`+`0b39db5`+`0092c27`+`e866197`）· 更正 SMTR 誤判：`set_status(CLOSED)` 清空 checkpoint 為 PLT 文件化設計非缺陷；`ssot-governance.md` 四要件④改寫、機械強制方向更正、新增 checkpoint 生命週期節；三張 CLOSED 票 + 母票誤判記載已加註更正（原文保留）；`/sv` Cross-Review R1 ADVISORY→R2 REPORT_FIX→R3 **PASS**，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}` |
-| INFRA-PREFLIGHT-CORE-01-FIX-B | 🔧 WIP（碼閉環，commit `1dfddd4`）· 同步 `SKILL.md` 決策核心契約段之已結案 pending 敘述（R-7 揭露段九欄化、已知未達項表第1列改「已完成」、`md:410`→`md:413`），回鏈 FIX-A/FIX-C 成果；AI-1 目標值已由 FIX-C 提前達成、本票該檔零異動；`test_preflight_adapter.sh` 119/119 PASS，`assembleDebug` PASS；待 `/sv`+Cross-Review |
+| （治理）Traycer existence-first | ✅（commit `83422eb`）· `ssot-governance.md` 新節：Traycer 產出票一律草案，未入冊不得派工/不得作依賴或證據，防未核准草案被誤審 |
+| INFRA-PREFLIGHT-CORE-01-FIX-B | ✅ CLOSED（commit `1dfddd4`+`46dd4bb`+`c61c425`）· 同步 `qa/SKILL.md` 決策核心契約段已結案 pending 敘述，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:PASS}`，票檔已搬 `deliver/` |
+| （治理）Preflight 家族收束 | ✅（commit `9443003`+`d50779e`）· 母票＋FIX-A/B/C 四票依四要件④新規則補「收尾實錄」耐久記載於票檔本體 |
 
-**Last Updated**: 2026-09-09（`INFRA-PREFLIGHT-CORE-01-FIX-B` 碼閉環，待 `/sv`；`INFRA-CKPT-SEMANTICS-01` 結案 REVIEW；`INFRA-COMPACT-CLOSURE-GATE-APP-01` coordination 依賴已解除，`INFRA-COMPACT-REVB-APP-01` 可重新派工）
+**Last Updated**: 2026-09-10（`INFRA-PREFLIGHT-CORE-01` 全家族＋`INFRA-COMPACT-CLOSURE-GATE-APP-01`＋`INFRA-CKPT-SEMANTICS-01` 均已收尾；`INFRA-COMPACT-REVB-APP-01` coordination 依賴已解除，可重新派工）
 
 ## Active Ticket Activation
 
