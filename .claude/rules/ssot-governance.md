@@ -99,6 +99,15 @@ PENDING → TICKET_RIGOR → IN_PROGRESS → EXECUTED → REVIEW → CLOSED
 
 Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP 工具鏈外部觸發。票面聲明需 Traycer T2 審查者，該審查動作 **MUST** 由人工（Akira）於 VS Code 內手動執行；執行端 **MUST NOT** 因無法觸發而靜默跳過、推定 PASS，或另尋機械替代路徑。此類票之收尾 **MUST** 正常轉入 `④REVIEW`（票檔搬 `deliver/`＋`file` 欄及冊面更新，同 §「五段觸發與寫入者」④列），**MUST NOT** 停於 `③EXECUTED`——`REVIEW` 本身即為「等待最終 T2／CSO 複審」之合理停留態，`EXECUTED` 僅代表「AC 自驗全綠、未過 Cross Review」之更早期狀態，用其表示「等 Traycer」語意錯位。`reviews.traycer` 欄位維持 `PENDING`（或依 §4.5 契約填 `N_A`）以標記人工複審未完成；lifecycle 本身 **MUST NOT** 因此卡在 `EXECUTED`。
 
+### Traycer 產出物之票務地位（registry existence-first）
+
+（Akira 2026-09-09 裁決；事件：Traycer 對未入冊且已裁決不核准開立之 `INFRA-PREFLIGHT-CORE-01-FIX-D` 產出 T1 `Approach Drift` 判定，其存在性依據為 Traycer 自家 Epic 之 `Todo` 狀態）
+
+1. **草案地位**：Traycer 產出之 ticket 一律為**草案**，`TICKET_REGISTRY.json` 為票務存在與狀態之唯一 SSOT。草案經 SMTR `registry_upsert_ticket` 入冊後方為有效票；未入冊者不具票務效力，**MUST NOT** 派工、**MUST NOT** 作為他票之依賴或證據。
+2. **審查存在性前置**：ticket 級審查 **MUST** 以冊面 `ticket_id` 為錨（`registry_list(project, ticket_id)`，禁 `get_ticket`，同 §「治理載體↔存取工具對應圖譜」）。冊面查無此票者，該審查**無效**，**MUST NOT** 產生任何 Tier／verdict 裁決；正確處置為回報「審查對象不存在於冊面」。
+3. **零 diff 之判讀前提**：「零 diff ＋ 追蹤器狀態未動 → 判定未執行」僅於審查對象**已入冊且已派工**時成立。缺此前置時，零 diff 為**草案未獲核准之預期結果**，**MUST NOT** 讀作交付偏移或執行失敗。
+4. **不新增第二套流程**：本節僅界定草案與有效票之分野，**MUST NOT** 據此新增第二套 lifecycle、verdict 枚舉或 approval 流程；既有五段語義與 `reviews` 四欄不變。
+
 ## 治理載體↔存取工具對應圖譜
 
 - **兩套系統明示分立**：治理冊面（`plans/cso_briefing/project/TICKET_REGISTRY.json`，即本規則全篇治理對象）與執行審批票（SQLite，mcp-ticket-platform repo 之 `core/migrations/001_init_v2.sql`）為**互不相通之兩套資料**，同名概念不共享資料。工具由同一台 `mcp-ticket-platform` MCP server 提供，服務兩專案。
