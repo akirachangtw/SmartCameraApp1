@@ -8,9 +8,10 @@
 | INFRA-PREFLIGHT-CORE-01-FIX-C | ✅ REVIEW（AI-1~AI-5 碼閉環，commit `7e87014`+`0adf022`+`8b41cb5`）· R-1 升為 F-3/F-4/F-5 前置 guard 根治遮蔽，`test_preflight_adapter.sh` 110→119 assertions · `/qa` PASS，`/sv` 階段 A-C PASS，R0 FORWARD，Codex Cross-Review R1 **PASS**，`structural_verify.sh --post` PASS(A-G)[ADVISORY]，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:PENDING}`，票檔已搬 `deliver/`· AI-0 部分完成（重現矩陣未獨立捕捉）誠實保留未勾 |
 | INFRA-PREFLIGHT-CORE-01-FIX-B | ⏸️ BLOCKED（解除條件已達成，待重新派工）· 根因（F-3/F-4 遮蔽 R-1）已由 `INFRA-PREFLIGHT-CORE-01-FIX-C` REVIEW 修復 |
 | INFRA-COMPACT-CLOSURE-GATE-APP-01 | ✅ REVIEW（並行 session 產出，commit `d85452e`/`0e56ea0`）· `compact/SKILL.md` Auto Commit 前新增「冊面收束一致性閘」三條機械判準 |
-| INFRA-CKPT-SEMANTICS-01 | ✅ 碼閉環（commit `c167357`+`2e7271a`）· 更正 SMTR 誤判：`set_status(CLOSED)` 清空 checkpoint 為 PLT 文件化設計非缺陷；`ssot-governance.md` 四要件④改寫耐久落點、機械強制方向更正、新增 checkpoint 生命週期節；三張 CLOSED 票 + 母票 `INFRA-PREFLIGHT-CORE-01` 誤判記載已加註更正（原文保留） |
+| INFRA-PREFLIGHT-CORE-01-FIX-C | ✅ REVIEW（AI-0~AI-5 碼閉環，commit `7e87014`+`0adf022`+`8b41cb5`+`b82aee8`）· R-1 guard 前置化根治 F-3/F-4 遮蔽，`/sv` Codex Cross-Review R1 PASS，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:PENDING}`，票檔已搬 `deliver/` |
+| INFRA-CKPT-SEMANTICS-01 | ✅ REVIEW（commit `c167357`+`2e7271a`+`689f6c4`+`0b39db5`+`0092c27`+`e866197`）· 更正 SMTR 誤判：`set_status(CLOSED)` 清空 checkpoint 為 PLT 文件化設計非缺陷；`ssot-governance.md` 四要件④改寫、機械強制方向更正、新增 checkpoint 生命週期節；三張 CLOSED 票 + 母票誤判記載已加註更正（原文保留）；`/sv` Cross-Review R1 ADVISORY→R2 REPORT_FIX→R3 **PASS**，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}` |
 
-**Last Updated**: 2026-09-09（`INFRA-CKPT-SEMANTICS-01` 碼閉環：checkpoint 生命週期語義對齊 PLT 契約 + 三票誤判更正；`INFRA-PREFLIGHT-CORE-01-FIX-C` 待 `/sv`+Cross-Review；並行 session 落地 `INFRA-COMPACT-CLOSURE-GATE-APP-01`）
+**Last Updated**: 2026-09-09（`INFRA-CKPT-SEMANTICS-01` 結案 REVIEW；`INFRA-PREFLIGHT-CORE-01-FIX-C` 結案 REVIEW；`INFRA-COMPACT-CLOSURE-GATE-APP-01` coordination 依賴已解除，`INFRA-COMPACT-REVB-APP-01` 可重新派工）
 
 ## Active Ticket Activation
 
@@ -48,7 +49,6 @@
 
 ## Next Actions
 
-5. **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審
 6. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
 7. **🟢 TRACTION-SSOT-04 CSO 閉環**（技術已閉，待 CSO Ticket）：母票 line-91 AC box 打勾 · `move_file` Pending→deliver · Postponed #6（R-T14）→DONE / #5（RENDER-01）→ready · 編號對帳 K4-45（R-T18 stamp 前釐清 R-T17：overruled-void vs consumed）
 8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART ✅ Done**（/qa+/sv+Codex Cross-Review 全 PASS，待 D17 Akira 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口；關票待 Traycer）

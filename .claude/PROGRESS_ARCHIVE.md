@@ -418,3 +418,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 ## Archived 2026-09-09（INFRA-PREFLIGHT-CORE-01-FIX-C /sv Step F.2 行數精簡）
 
 - **🔴 待 CSO 裁決（治理驗證器）**：L-1 `[0.3]` 行數 awk 字面比對 → `MAX_LINES` 靜默失效（建議開後續票）· L-2 裸目錄前綴 FORBIDDEN token 語義（加分支 vs 判 malformed）· D-1/D-2/C-1（INFRA-EOL-01 遺留）· 本輪微票是否入 PROGRESS.md（原 PROGRESS.md Next Actions #4，歸檔以滿足 Check F.2 ≤80 行）
+
+## Archived 2026-09-09（INFRA-CKPT-SEMANTICS-01 /compact 行數精簡）
+
+- **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審（原 PROGRESS.md Next Actions #5，歸檔以滿足 ≤80 行）
