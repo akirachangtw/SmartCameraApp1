@@ -512,3 +512,35 @@ F-3～F-5 優先於 F-6～F-7：V2 不得覆蓋 `ALREADY_EXECUTED_PENDING_CLOSUR
 **KAIROS 候選（Rev D 收割）**：①「同一主張兩處字面不一致即為漏實作之上游成因」——F-2 含 `MISMATCH` 而 R-1 未含，執行端跟 R-1 而漏，屬開票端過失非執行端；②「fail-open 回退使新舊判定同時持有 authority，令後續『舊邏輯清除』目標不可達」——過渡設計須先裁 degraded 路徑歸屬，否則階段性交付會固化雙 SSOT；③「執行端跨票引用條文須回票面查證」——本票 HC-6 被誤引為「唯讀取證不阻斷」。
 
 **End of INFRA-PREFLIGHT-CORE-01 (Rev D)**
+
+---
+
+## 收尾實錄（耐久載體＝本票檔；依四要件④，轉終態前落檔）
+
+**碼閉環**：2026-09-08 AI-6／AI-7 收尾＋一次性票級 Cross-Review 完成，lifecycle→REVIEW；2026-09-09 家族一次性收束轉 CLOSED。
+
+**Closing commits**：`28df403`／`5b5d294`（AI-6：刪除 Bash legacy 判定三函式、R-7 stdout key、職責歸類表）＋`4bf0253`（AI-7：`SKILL.md` 決策核心契約節）＋`de9be44`／`fb107c6`／`bc8c99e`。AI-W WIP 保存 `ded5dd2`；`TARGET_BLOB` refresh 三次（`07640f6b`→`0f723e69`→`c30ac687`→`47a4d120`），`BASE_COMMIT=9895b3f` 全程未動。
+
+**審查鏈**：`/qa` PASS；`/sv` 一次性票級 Cross-Review，Codex R1 verdict＝**ADVISORY**（`reviews.codex` 欄枚舉不支援 ADVISORY 字面，記為 `PASS`，實際嚴重度見此處）；`structural_verify.sh --post` PASS(A–G)[ADVISORY]；receipt `.tmp/cross_review_pass/INFRA-PREFLIGHT-CORE-01`，`DIFF_SCOPE=5fd5dac..4bf0253`。DIFF_REF 執行期人工調整已揭露（`4bf0453`→`9895b3f`→`5fd5dac`，詳 `sv_report.md`）。操作事故已揭露：執行期一次意外重複觸發 `cross_review.sh`（誤入背景，已 TaskStop 終止），殘留 fail-budget state 已清除，不影響權威結果。
+
+### Traycer 裁決：`N_A`（2026-09-09，Akira 明示）
+
+票面 L8 原宣告「待 Akira 指定（APP 非 RAPID）」保留不刪。裁決逐字：後續安全修補與獨立 review 由 `FIX-C` 承接，母票僅記錄其作為家族收束證據，不重新開啟歷史交付範圍；**此裁決不表示母票原始 AI-0～AI-7 已具 FIX-C 後續能力**。
+
+**承接來源之字面更正（避免假指標）**：`FIX-C` 票面所聲明之 Traycer `execute_review` 經 Akira 2026-09-09 明示**取消且作廢**，該次審查從未實跑（見 `FIX-C` checkpoint `traycer_waiver`）。實際存在之外部審查為 2026-09-09 Traycer 對本票族之**功能面終審**（`Path A — Approve`，審查基準為 repo 內四份 deliver 票檔＋六支實作／測試檔＋`SKILL.md`／`PROGRESS.md`／`sv_report.md`；無 T0、無未併批 T1）。本票之 `N_A` 係基於「歷史交付範圍不重開」之授權豁免，**非**基於任何針對母票原始交付範圍所做之獨立人工複審。
+
+### 禁倒灌（Akira 明示硬約束）
+
+本票四項誠實未勾 AC——`:480` R-1 四型 adapter 層驗證、`:488` 多 worktree 並行、`:491` 四入口實機、`:495` 新增規則演練——之**未勾狀態與揭露文字逐字保留**。`FIX-A`／`FIX-C` 之修補成果僅得以承接票回鏈表達，**MUST NOT** 改寫為本票已達成。續作者讀本票時，母票交付能力＝AI-0～AI-7 當時所達，不含後續修補票能力。
+
+### 家族承接關係（收票後仍有效）
+
+`FIX-A`（六項未閉環）→ `FIX-C`（R-1 前置 guard，根治 F-3／F-4 遮蔽）→ `FIX-B`（`SKILL.md` truthful resync）。四票均已於 2026-09-09 達終態。
+
+### 收票時仍在盤之已知未達項（Traycer 終審亦列為非阻擋）
+
+多 worktree 僅證明 identity 可分辨、非並行安全已證明；四入口實機 hook 觸發仍 `planned`；「新增一條規則」可維護性演練仍 `planned`；`test_preflight_adapter.sh` 仍改寫真實票檔後還原（有 byte-identical 斷言但中途中止較 fixture 式脆弱，KAIROS 候選）。
+
+### 已知文件債（不阻擋，本輪不修）
+
+`SKILL.md` 對本票之行號回鏈整體漂移：AC 類 **+5**（`:475`／`:483`／`:486`／`:490` 實際為 `:480`／`:488`／`:491`／`:495`），`route_v2_state` 職責歸類 **+1**（`:413` 實際為 `:414`）。成因為本票面歷次註記插入造成之疊加位移，逐次修正無效。KAIROS 候選：回鏈改錨定字串或 AC 編號，禁用行號。

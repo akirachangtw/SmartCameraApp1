@@ -153,3 +153,10 @@ DEPENDENCY_DELTA=NONE
 **票面聲明之 `execute_review`（Traycer）**：票頭明載「本票 AI-1 需重跑 `test_preflight_adapter.sh` 驗證行為性 AC，屬需驗功能運作性之票」。AI-1 實際已由 FIX-C 提前達成、本票僅唯讀復驗（非新增功能變更），惟票面既有聲明不因此追溯撤銷；`reviews.traycer` 依既有五段語義維持 `PENDING`，待 Akira 於 VS Code 執行 `execute_review` 人工複審，lifecycle 不因此停於 `EXECUTED`（依 ssot-governance.md「Traycer T2 執行邊界」條款）。
 
 **D-2 一次性收束提醒**：依票面 Rev A.1 註記，母票／FIX-A／FIX-B 之 metadata 於本票收尾後一次性收束；FIX-C／FIX-A 之成果（core R-1 guard、九欄 CORE_REQUIRED_FIELDS）**MUST NOT** 倒灌為母票原始交付能力之描述，僅得以回鏈引用方式呈現（已於 `SKILL.md` AI-2/AI-3 段落落實）。
+### 收尾實錄補記（2026-09-09，家族一次性收束）
+
+**Traycer 裁決：`PASS`**。本票票面聲明之 `execute_review` 已由 Traycer 2026-09-09 對 `INFRA-PREFLIGHT-CORE-01` 票族之功能面終審實跑，裁決 **Path A — Approve**（無 T0、無未併批 T1）。審查基準明列本票交付票檔 `deliver/INFRA-PREFLIGHT-CORE-01-FIX-B_sync.md` 與 `.claude/skills/qa/SKILL.md`，並明文確認「FIX-B 要求的 truthful resync 確實回寫到 `SKILL.md`，且沒有順手美化仍未完成的第 2／3／4 項」——即本票 HC-2 之外部驗證。故上文所載「`reviews.traycer` 維持 `PENDING` 待人工複審」之狀態**已解除**，改填實測值 `PASS`；原文保留不刪，以本補記更正。
+
+**該次終審之非阻擋 T3 二項**（不另開票）：①`.claude/PROGRESS.md` 未與 HEAD 同步（本票仍記為 WIP）——屬四標準收尾動作，依既有紀律於下輪 `/compact` 處理；②`SKILL.md` 行號型回鏈漂移——SMTR 量化：對母票之 AC 類回鏈整體 **+5**，`route_v2_state` 職責歸類 **+1**（本票 AI-3 之 `md:410`→`md:413` 係對母票 `2e7271a` 更正前之行號計算，母票現值為 `:414`）。成因為母票歷次註記插入之疊加位移，逐次修正無效；KAIROS 候選為回鏈改錨定字串或 AC 編號，禁用行號。本輪不修。
+
+**Traycer `[CANDIDATE RULE]`**：測試若需修改真實票檔或其他 tracked 治理載體，MUST 使用專用 fixture，或至少以 `trap EXIT` 做 byte-identical 還原，不得僅於 happy-path 尾端恢復。與本票族既有 KAIROS 候選（R0 NOTE-1／fixture 化）同型，合併為一筆候選，本輪不入法。

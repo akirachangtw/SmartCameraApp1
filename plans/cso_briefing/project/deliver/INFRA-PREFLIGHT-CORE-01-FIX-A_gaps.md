@@ -158,3 +158,27 @@ DEPENDENCY_DELTA=NONE
 總計 2+18+18+55+17 = **110**，與 `bash test_preflight_adapter.sh` 實跑輸出「110 passed, 0 failed」精確相符。
 
 **既有 R-7／R-4 case ID 存活性**：`R7-1`、`R7-2`、`R7-3`、`R4-1`(ticket_id)、`R4-2`(repo_root)、`R4-3`(worktree_path)、`R4-4`(head_sha) 七個既有 case 於本輪重跑逐一比對票面 Error Handling 條款「MUST 列出既有 case ID 是否消失/弱化」——七者斷言內容與強度（zero-write／exit 1／ADVISORY_ONLY／reason_code／必要時之 stdout key）**逐字保留**，未見任何弱化或刪除。
+
+---
+
+## 收尾實錄（耐久載體＝本票檔；依四要件④，轉終態前落檔）
+
+**碼閉環**：2026-09-09 AI-0～AI-5 全數完成，lifecycle→REVIEW；同日家族一次性收束轉 CLOSED。
+
+**Commits**：`0ab9bbd`（AI-0～AI-5 實作）＋`c1a42e4`（`PROGRESS.md` 獨立提交）＋`32ffc19`（票檔搬 `deliver/`）。`BASE_COMMIT=416c711`。
+
+**審查鏈**：`/qa` PASS → `/sv` 階段 A–C PASS → R0 三輪（R1 `CHECKPOINT-REQUIRED`：commit `9aa8922` 混 `PROGRESS.md`＋`.sh` 違 Rule 3，經 Akira 裁決選項 A 拆分為 `0ab9bbd`＋`c1a42e4` → R2 `FAIL`：`sv_report.md` scope 引用未同步 → R3 `FORWARD`）→ Codex Cross-Review 兩輪（R1 `REPORT_FIX`：AC「無第二份手寫集合」措辭過度宣稱 `_JSON_KEY_OF` mapping、scope AC 措辭未揭露 Pipeline Artifact，已修正 `sv_report.md` → R2 **PASS**）→ `structural_verify.sh --post` 一度 `REPORTFIX`（缺英文 Stage A/B/C 標頭字面），修正後 PASS(A–G)[ADVISORY]。R0 記錄三份於 `.tmp/fail-advisor/`，Codex 結果 `.tmp/cross_review_result_20260909_134237.md`。
+
+**交付內容**：母票六項未閉環之收斂——九欄 `CORE_REQUIRED_FIELDS` 單一來源驅動之 protocol 完備性檢查（取代原六欄手寫串接）＋R7-4 九個具名子案（自陣列動態萃取，55 項斷言）；R-1 四型 adapter 全流程驗證；mtime 斷言精度限制揭露。
+
+### Traycer 裁決：`PASS`（2026-09-09）
+
+依據：Traycer 2026-09-09 對 `INFRA-PREFLIGHT-CORE-01` 票族之功能面終審 `execute_review`，裁決 **Path A — Approve**（無 T0、無未併批 T1；審查基準含本票交付票檔 `deliver/INFRA-PREFLIGHT-CORE-01-FIX-A_gaps.md` 與 `preflight_activation.sh`／`test_preflight_adapter.sh` 等實作載體；工作樹無未提交變更，SMTR 一手驗證 `aud_20260909_8c113304ed`）。本票交付物確在該次審查範圍內，故填實測值 `PASS`，非推定。
+
+### 忠實性補記（FIX-C HC-5 義務，已於冊面同步）
+
+本票 AI-4 之 R1-2..R1-4（`TARGET_MISSING`／`COMMAND_FAILED`／`INVALID_TICKET_VALUE`）當時 PASS 之機制，經 `FIX-C` 根因分析證實為 **R-2 unlisted fallthrough 之偶然**，而非 F-2 正確判定：core 之 `_is_f2_blob_failure()` 綁 `v1_scope=NOT_EVALUATED ∧ v1_provenance=NOT_APPLICABLE` 前提，本票 commit 進入 `BASE_COMMIT..HEAD` 區間後 `v1_scope` 變為 `CHANGED_TARGETS`，該組合未列於任何 F 列 → 落入 R-2 fallthrough 恰巧 `BLOCKED`。**本票 AC 字面（blocked＋零寫入）當時觀測屬實，不撤銷**；此僅忠實記載其防護機制為偶然而非設計。根因已由 `FIX-C`（R-1 guard 前置化，commit `7e87014`）修復。
+
+### 禁倒灌
+
+`FIX-C` 之 core R-1 前置 guard 為 `FIX-C` 交付，非本票能力；本票亦未達成母票之多 worktree 並行／四入口實機／規則演練三項，該三項於 `SKILL.md` 已知未達項表維持 `pending`／`planned`。
