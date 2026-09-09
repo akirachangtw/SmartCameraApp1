@@ -117,3 +117,30 @@ DEPENDENCY_DELTA=NONE
 - [x] **[存在性]（HC-5）** FIX-A 冊面 checkpoint 已補記 R-2 fallthrough 更正（`registry_set_checkpoint`，`fix_c_erratum_correction` 欄，2026-09-09）
 - [x] `assembleDebug` PASS —— 保留強制（`bugfix`）；scope 全在 `.claude/`，預期 no-op；失敗且與 ALLOWED 無因果 → 記為環境事實，不得歸因本票（PASS，18s，如預期 no-op）
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案（`7e87014` 恰 5 個 ALLOWED 檔；`0adf022`/`8b41cb5` 僅 `.claude/PROGRESS.md`／`PROGRESS_ARCHIVE.md`，Pipeline Artifact）
+
+---
+
+## 收尾實錄（耐久載體＝本票檔；依四要件④，轉終態前落檔）
+
+**碼閉環（2026-09-09）**：AI-0～AI-5 完成，AC 全勾除 AI-0 動作 4（`:56` 誠實未勾，見下）。
+
+**Commit**：`7e87014`（AI-1～AI-4 單一 commit，ALLOWED 五檔零 `PROGRESS.md`）＋`0adf022`（`PROGRESS.md` 獨立同步）＋`8b41cb5`（Cross-Review 後 `structural_verify.sh --post` Check F.2 之獨立修正，僅觸 Pipeline Artifact，不納 `DIFF_END` 以維持與 Codex receipt 逐字相符）。
+
+**審查鏈**：`/qa` PASS → `/sv` 階段 A–C PASS → R0 `FORWARD`（塌陷條件核驗通過）→ Codex Cross-Review R1 **PASS**（`REACHABILITY: NONE`，`DIFF_SCOPE=81f0f22..0adf022`）→ `structural_verify.sh --post` PASS(A–G)[ADVISORY]。Ticket Rigor Gate：PASS with 1 Major（uncommitted FIX-B path fix 之隱性依賴，經併入單一 commit 並明示揭露而 resolved）。
+
+**D.2-1 refresh 紀錄（恰一次）**：`preflight_activation.sh` `47a4d120`→`b627d3ca`；`preflight_core.py` `4daf2c02`→`783a24a7`；`BASE_COMMIT` 全程 `416c711` 未動。重跑確認 `blob_check=MATCH`，R1-1..R1-4 含 self-ticket history 全 PASS，未二次 refresh。
+
+**工程命題達成**：`_is_r1_blob_failure_guard()` 置於 F-1 之後、F-3 之前（`L225` 早於 `L228`），判定式僅 `baseline_check`／`blob_check`，零 `v1_scope`／`v1_provenance` 引用；`test_r1_dominates_v1_attribution` 四型×3×4＝48 組合全矩陣 PASS；adapter `v1_check()` 四型對稱早退；history-invariant 前提斷言＋每案 core 探針落地，assertions 110→119（+9），既有 case ID 全保留，119/119 PASS。
+
+**HC-5 忠實性義務已履行**：FIX-A 冊面 checkpoint 已補記 `fix_c_erratum_correction`（R1-2..R1-4 當時 PASS 係 R-2 unlisted fallthrough 之偶然，非 F-2 設計，AC 字面不撤銷）。
+
+### Traycer `execute_review` 豁免（2026-09-09，Akira 明示裁決）
+
+票面 L7 原宣告 `**Traycer Workflow**: execute_review（本票變更安全邊界，需驗功能運作性）`，**該宣告原文保留不刪**；Akira 於 2026-09-09 明示「FIX-C 的 Traycer `execute_review` 已取消且作廢」，故 `reviews.traycer` 依四要件②填 `N_A`，豁免依據即本裁決。**此為授權豁免，非推定 PASS**（撤警正向取證律）。
+
+**豁免所遺留之取證缺口（誠實揭露，MUST NOT 讀作已驗）**：
+1. **[實機] runtime 功能運作性未經人工複審**。現有證據全屬機械層——unit／adapter 測試、Codex 靜態 Cross-Review、`structural_verify`。開票時判定「需驗功能運作性」之理由（變更安全邊界）並未因豁免而消滅，僅改為未驗收即收束。
+2. **R0 NOTE-1（未修）**：`test_preflight_adapter.sh` 之 `_r1_case()` 其 `sed -i`／`cp` 還原缺 `trap EXIT`，測試中途中止時有 tracked-dirty 殘留風險（S89 同型）。已交 Codex 裁決，Codex PASS 無異議；依 minimal-change 原則本票未加 `trap`（非 AI-1～AI-4 範圍）。
+3. **AI-0 動作 4 未獨立捕捉**（`:56` 未勾）：修復前逐案 facts JSON 三重證據重現矩陣未單獨留存，執行端依票面既有根因鏈直接進入 AI-1；AI-2／AI-4 事後驗證與根因鏈完全一致，未發現不符。
+
+**票面事實更正（非靜默改寫）**：AC `:113` 原「13 core methods」與 `TARGET_BLOB` 前值 `47a4d120` 兩處錯誤已於對應行內就地更正並保留原值對照。
