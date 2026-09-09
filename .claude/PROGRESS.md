@@ -5,12 +5,12 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-PREFLIGHT-CORE-01 | ✅ REVIEW（AI-0~AI-7 碼閉環：AI-6 `28df403`+`5b5d294`／AI-7 `4bf0253`）· `/qa` PASS，一次性票級 Cross-Review Codex R1 **ADVISORY**（`5fd5dac..4bf0253`，REACHABILITY: NONE），`reviews={qa:PASS,sv:PASS,codex:PASS(實際嚴重度ADVISORY),traycer:PENDING}`，票檔已搬 `deliver/`（`bc8c99e`）· 承接票 `INFRA-PREFLIGHT-CORE-01-FIX-A` 六項未閉環已全數碼閉環（見下列） |
 | INFRA-PREFLIGHT-CORE-01-FIX-A | ✅ REVIEW（AI-0~AI-5 碼閉環，commit `0ab9bbd`+`c1a42e4`）· `invoke_core_decision()` protocol 完備性檢查改 `CORE_REQUIRED_FIELDS` 單一列表驅動（六欄→九欄，AI-1）；`test_preflight_adapter.sh` Scenario ⑤ 九欄全覆蓋單欄缺漏回歸（AI-2）；零寫入雙證據化 ns-mtime + writer sentinel（AI-3）；R-1 四型 adapter 層真實 collector stimulus 補齊（AI-4）；雙 worktree identity 可分辨性實機驗證（AI-5 W1）· `test_preflight_adapter.sh` 36→110 assertions（+74），既有 7 個 R-7/R-4 case ID 全數保留可重跑 · `/qa` PASS，`/sv` 階段 A-C PASS，R0 三輪（CHECKPOINT-REQUIRED→拆分 commit→FAIL scope 引用→FORWARD）＋ Codex Cross-Review 兩輪（R1 REPORT_FIX 措辭修正→R2 **PASS**），`structural_verify.sh --post` PASS(A-G)[ADVISORY]，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:PENDING}`，票檔已搬 `deliver/` |
+| INFRA-PREFLIGHT-CORE-01-FIX-B | 🔧 WIP（**STOP**，AI-1 完成未 commit）· AI-0 錨點復驗 PASS（`TARGET_BLOB` 已 `git hash-object` 回填）；AI-1 修正 `test_preflight_adapter.sh` 之 `FIXA_TICKET_FILE` 路徑（`Pending/`→`deliver/`）後，重跑既有 case ID 發現 R1-2／R1-3／R1-4 zero-write 斷言穩定 FAIL（R1-1 仍 PASS）——見 Active Blockers。AI-2/AI-3（`SKILL.md` 文檔同步）未開始，待此議題裁決 |
+| INFRA-COMPACT-CLOSURE-GATE-APP-01 | ✅ REVIEW（並行 session 產出，commit `d85452e`/`0e56ea0`，非本 session 核驗）· `compact/SKILL.md` Auto Commit 前新增「冊面收束一致性閘」三條機械判準（觸發偵測／`registry_list` 兩級一致性驗證／不一致停止處置），本輪 `/compact` 已套用該閘 |
 | INFRA-CTAWR-PHASE0-01 | ✅ REVIEW（碼閉環 `e962b40`：新建 `.claude/scripts/activate_ticket.sh`（fail-closed 票務啟用腳本，恆覆寫 `tmp/verify_cmd.conf` + 清除 per-ticket 快照）+ `uc/SKILL.md`／`normal/SKILL.md` 各插入 Phase 0 Ticket Activation 節）· `/qa` PASS，`/sv` 階段 A-C PASS，階段 D Cross-Review R0 預審 `CHECKPOINT-REQUIRED`（`TRUE-POSITIVE-RULE-GAP`，`.tmp/fail-advisor/R0_INFRA-CTAWR-PHASE0-01_20260908_154022.md`，Codex 未執行）→ **Akira 2026-09-08 直接裁決跳過 Cross-Review 結案**（覆寫 2026-08-22 SOP 全程序條款，僅本票適用），票面已補逐字授權記錄，`reviews={qa:PASS,sv:N_A,codex:N_A,traycer:N_A}`，票檔已搬 `deliver/`（`6b8af01`）· 2 項 `[行為性]`/`[實機]` AC（`/normal <ID>` 實機行為、雙 host 矩陣）誠實保留未勾 |
-| INFRA-TPL-V310-01 | ✅ REVIEW（碼閉環 `8ba73b5`：TPL v3.9→v3.10，Verify Config 增列 `INTRODUCED_CAPABILITY`／`DEPENDENCY_DELTA` 兩欄（實作級外審機械輸入，fail-closed）+ 欄位說明段 + Revision 歷史新增條目，`git diff --stat` 僅涉 ALLOWED 單檔 +7L）· `/qa` PASS，`/sv` 階段 A-C PASS（`sv_report.md`），階段 D Cross-Review R0 預審中途被 Akira 明示中止（Codex 未觸發）→ **Akira 2026-09-08 直接裁決跳過 Cross-Review 結案**（純治理票，覆寫 2026-08-22 SOP 全程序條款，僅本票適用），`reviews={qa:PASS,sv:N_A,codex:N_A,traycer:N_A}`，票檔已搬 `deliver/`（`e3f45f6`）· 全部 AC 皆有實測證據，無保留未勾項 |
 
-**Last Updated**: 2026-09-09（`INFRA-PREFLIGHT-CORE-01-FIX-A` 結案 REVIEW，Codex Cross-Review R2 PASS；`INFRA-TPL-V310-01`／`INFRA-CTAWR-PHASE0-01` 均已結案 REVIEW（Akira 授權跳過 SV）；並行 session 另落地 `INFRA-HOUSEKEEPING-01`／`INFRA-LIFECYCLE-SSOT-01` 兩票（`6888bcc`/`573235c`/`6a94117`，非本 session 產出，內容未經本 session 核驗，如實記錄存在））
+**Last Updated**: 2026-09-09（`INFRA-PREFLIGHT-CORE-01-FIX-B` AI-1 完成後重跑既有 case ID 發現 R1-2/3/4 迴歸，已 STOP 待 Akira 裁決；`INFRA-PREFLIGHT-CORE-01-FIX-A` 結案 REVIEW；並行 session 落地 `INFRA-COMPACT-CLOSURE-GATE-APP-01`（`compact/SKILL.md` 新增冊面收束一致性閘，已套用）／`INFRA-HOUSEKEEPING-01`／`INFRA-LIFECYCLE-SSOT-01`（非本 session 產出，如實記錄存在））
 
 ## Active Ticket Activation
 
@@ -36,6 +36,7 @@
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
 | INFRA-SV-GOV-01 | UC session 回報 AI-3/AI-4 已寫入 `sv/SKILL.md` 但 `/compact` 前復核 `git diff` 為空，編輯未實際落地 | 🔴 完整性缺口 | 需重做並以 `git diff` 二次確認落地；AI-1/AI-2（rename repro）另因 Bash 權限遭拒待 CSO 三擇一裁決 |
+| INFRA-PREFLIGHT-CORE-01-FIX-B-R1V1CHECK | `preflight_activation.sh::v1_check()` 之「commit 歸因」分支（偵測自身票號前綴 commit → 固定 `v1_scope=CHANGED_TARGETS`／`v1_provenance=SELF_TICKET`）現因 FIX-A 自身 commit（`0ab9bbd`/`c1a42e4`）已進入 `BASE_COMMIT..HEAD` 範圍而觸發，繞過 `decide()` F-2 blob-failure 判定，導致 R-1 之 `TARGET_MISSING`／`COMMAND_FAILED`／`INVALID_TICKET_VALUE` 三型 writer 被錯誤呼叫（`MISMATCH` 型因 legacy 早退不受影響） | 🟡 P1（既存架構縫隙，因環境時序首次曝光，非新引入） | 需修 `preflight_activation.sh::v1_check()`（FIX-B FORBIDDEN，不得自行修）；待 Akira 裁決另立修補票或併入既有票範圍 |
 
 ## PROVISIONAL Ledger（防孤兒追蹤 · 2026-07-07 CSO 提案 Akira 授權）
 
