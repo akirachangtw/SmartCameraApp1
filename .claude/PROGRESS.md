@@ -6,11 +6,11 @@
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
 | INFRA-PREFLIGHT-CORE-01-FIX-C | ✅ REVIEW（AI-1~AI-5 碼閉環，commit `7e87014`+`0adf022`+`8b41cb5`）· R-1 升為 F-3/F-4/F-5 前置 guard 根治遮蔽，`test_preflight_adapter.sh` 110→119 assertions · `/qa` PASS，`/sv` 階段 A-C PASS，R0 FORWARD，Codex Cross-Review R1 **PASS**，`structural_verify.sh --post` PASS(A-G)[ADVISORY]，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:PENDING}`，票檔已搬 `deliver/`· AI-0 部分完成（重現矩陣未獨立捕捉）誠實保留未勾 |
-| INFRA-PREFLIGHT-CORE-01-FIX-A | ✅ REVIEW（AI-0~AI-5 碼閉環，commit `0ab9bbd`+`c1a42e4`）· `test_preflight_adapter.sh` 36→110 assertions（+74）· `/qa` PASS，`/sv` 階段 A-C PASS，Codex Cross-Review R2 **PASS**，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:PENDING}`，票檔已搬 `deliver/` |
 | INFRA-PREFLIGHT-CORE-01-FIX-B | ⏸️ BLOCKED（解除條件已達成，待重新派工）· 根因（F-3/F-4 遮蔽 R-1）已由 `INFRA-PREFLIGHT-CORE-01-FIX-C` REVIEW 修復 |
 | INFRA-COMPACT-CLOSURE-GATE-APP-01 | ✅ REVIEW（並行 session 產出，commit `d85452e`/`0e56ea0`）· `compact/SKILL.md` Auto Commit 前新增「冊面收束一致性閘」三條機械判準 |
+| INFRA-CKPT-SEMANTICS-01 | ✅ 碼閉環（commit `c167357`+`2e7271a`）· 更正 SMTR 誤判：`set_status(CLOSED)` 清空 checkpoint 為 PLT 文件化設計非缺陷；`ssot-governance.md` 四要件④改寫耐久落點、機械強制方向更正、新增 checkpoint 生命週期節；三張 CLOSED 票 + 母票 `INFRA-PREFLIGHT-CORE-01` 誤判記載已加註更正（原文保留） |
 
-**Last Updated**: 2026-09-09（`INFRA-PREFLIGHT-CORE-01-FIX-C` AI-0~AI-5 碼閉環 `7e87014`，R-1 guard 前置化根治 F-3/F-4 遮蔽，`INFRA-PREFLIGHT-CORE-01-FIX-B` 之 R1-2/3/4 迴歸已修復，待 `/sv`+Cross-Review；`INFRA-PREFLIGHT-CORE-01-FIX-A` 結案 REVIEW；並行 session 落地 `INFRA-COMPACT-CLOSURE-GATE-APP-01`）
+**Last Updated**: 2026-09-09（`INFRA-CKPT-SEMANTICS-01` 碼閉環：checkpoint 生命週期語義對齊 PLT 契約 + 三票誤判更正；`INFRA-PREFLIGHT-CORE-01-FIX-C` 待 `/sv`+Cross-Review；並行 session 落地 `INFRA-COMPACT-CLOSURE-GATE-APP-01`）
 
 ## Active Ticket Activation
 
