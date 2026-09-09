@@ -120,3 +120,32 @@ DEPENDENCY_DELTA=NONE
 - [x] **[存在性]** 文本 commit 與冊面 `[GOVERNANCE-SYNC]` commit 分離；`git diff --stat` 各自僅涉其範圍 —— `.claude/rules/ssot-governance.md` 以 `[INFRA-CKPT-SEMANTICS-01]` 獨立 commit；母票 `deliver/INFRA-PREFLIGHT-CORE-01_...md` 更正以 `[GOVERNANCE-SYNC]` 獨立 commit；三票 checkpoint 更正經 MCP `registry_set_checkpoint`（非 git diff）
 - [x] `assembleDebug` PASS (N/A: docs preset)
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案（`.claude/rules/ssot-governance.md`）
+
+---
+
+## 收尾實錄（耐久載體＝本票檔；依本票新立四要件④，轉終態前落檔）
+
+**碼閉環（2026-09-09）**：AI-0～AI-4 全數完成，AC 8/8 全勾。
+
+**Commit 鏈（`git_log` 一手取證，`aud_20260909_caac5fea56`）**：
+| commit | 時間 | 內容 |
+|---|---|---|
+| `c167357` | 20:40:00 | `[INFRA-CKPT-SEMANTICS-01]` checkpoint 生命週期語義對齊 PLT 契約（`.claude/rules/ssot-governance.md`，ALLOWED 唯一檔） |
+| `2e7271a` | 20:40:07 | `[GOVERNANCE-SYNC]` 母票 `INFRA-PREFLIGHT-CORE-01` Rev D.1 誤判更正：`detail_content` 非假成功 |
+| `689f6c4` | 20:44:18 | `[INFRA-CKPT-SEMANTICS-01]` PROGRESS.md Dashboard 同步：碼閉環 |
+| `0b39db5` | 20:47:58 | Codex R1 `ADVISORY`：澄清 `CLOSED` 合法時序措辭 |
+| `0092c27` | 20:50:23 | Codex R2 `REPORT_FIX`：消除四要件④與 checkpoint 回填必選／可選語義衝突 |
+| `e866197` | 20:52:17 | `[GOVERNANCE-SYNC]` 結案：票檔搬 `deliver/` |
+
+**審查終值**：`/qa` PASS；`/sv` Cross-Review R1 `ADVISORY` → R2 `REPORT_FIX` → R3 **PASS**。`reviews={qa:PASS, sv:PASS, codex:PASS, traycer:N_A}`——`traycer=N_A` 之豁免依據：純治理文本票，無 runtime 行為變更、零 `.kt`，票面 §Traycer Workflow 明示 N/A（非推定 PASS，撤警正向取證律遵循）。
+
+**AI-4 誤判更正落地**：三張 CLOSED 票（`INFRA-PENDING-HYGIENE-APP-01` seq 30／`INFRA-REGISTRY-LIFECYCLE-GATE-APP-01` seq 34／`INFRA-LIFECYCLE-SSOT-01` seq 35）均先備份 checkpoint，再以 `registry_set_checkpoint(checkpoint_data={"smtr_correction": ...})` 新增更正欄；read-back 逐一確認原 `closed_at_smtr` 等既有欄位逐字保留、`closed_at` 未變。母票 `INFRA-PREFLIGHT-CORE-01` Rev D.1 段落已加註更正且原文保留不刪。
+
+**SMTR 終審覆核（2026-09-09，SKAD session；非採信自述）**：
+- `git_log`（`aud_20260909_caac5fea56`）：上表六 commit 逐一命中，時序一致。
+- `git_diff` `2568333..e866197`（`aud_20260909_0b0efaa256`／`687a365d05`）：波及四檔——`ssot-governance.md`(+14/-5)、本票檔(+122)、母票更正(+1)、`PROGRESS.md`(Dashboard 慣例，依 INFRA-GOVSYNC-01 不計入 ALLOWED 違規)。L118 四要件④／L119 原子性時序句／L124 機械強制方向／新節五點字面逐一核實；①②③與 L133 逐字未動。
+- `registry_list`（`aud_20260909_129edba443`）：seq 30／34／35 三票 `smtr_correction` 欄均在盤，`closed_at_smtr` 原文完整。
+
+**本票自身之四要件④首例適用（EVIDENCE_GAP 補證，非 SPEC_DEFECT）**：終審發現收尾實錄原僅存冊面 `checkpoint.closure_record`，而該欄依 PLT 契約於 `set_status(CLOSED)` 轉態時清為 `null`；若逕行轉態，本票將成為自身新立規則之首例違反。故依合法時序於**轉態前**將實錄落本票檔（本節），冊面摘要於轉態後回填。此為分類 `EVIDENCE_GAP`（補證即可，未改任何 `R-n`／AC／HC），依停止半徑律不開 Rev、不新增 AI、不計入 4a。
+
+**待補版控同步**：本節為 Desktop 治理 session 以 `write_file_safe mode=append` 寫入，尚未 commit。Claude Code 端 MUST 以獨立 `[GOVERNANCE-SYNC] INFRA-CKPT-SEMANTICS-01 收尾實錄落票檔` commit 收束，並以 scoped `git_diff` 驗證僅涉本票檔。
