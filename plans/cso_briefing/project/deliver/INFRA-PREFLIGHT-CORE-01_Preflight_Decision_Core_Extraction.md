@@ -24,6 +24,7 @@
 - **R-7 `process_exit_code`＝1**：由 SMTR 推定升為 Akira 明示裁決。
 - **冊面 lifecycle 維持 `EXECUTED`**（Akira 明示）。此為就 AI-0～AI-5 已執行之事實記載，**不表示 AC 通過或可收票**；禁收票之約束由本票面承載。
 - **⚠️ 冊面敘事落點缺口（耐久揭露）**：`registry_set_checkpoint` 之 `detail_content` 於 APP 冊實測為**假成功**——回 `SUCCESS`、revision 220→221，但 `checkpoint` 物件無 `detail_ref`，schema 宣告落點 `reports/checkpoints/<TICKET_ID>.md` 全 repo 零命中（`aud_20260907_1e0e53b6ac` 寫、`9d236adfa6` read-back、`a54e6e5944` 檔案掃描）。**故本票之複審敘事以本票面為唯一 SSOT，冊面僅存 Rev B `resolution`。** 續作者 MUST NOT 依冊面 checkpoint 推定本票現況。PLT 缺口候選：`detail_content` 應 fail-loud。
+  **〔2026-09-09 INFRA-CKPT-SEMANTICS-01 更正〕**：上段「假成功」判定錯誤。`detail_content` 實際落點為 **PLT repo**（非 APP repo）之 `.tmp/checkpoints/{ticket_id}.md`（`D:/DevSources/workflow/mcp-ticket-platform/.tmp/checkpoints/INFRA-PREFLIGHT-CORE-01.md`，4,535 bytes，`aud_20260909_7839be9eaf`），性質為 transient 工作檔，非缺陷。原判定之根因為依 `TICKET_REGISTRY.json` schema 註解之過期路徑（`reports/checkpoints/`）於 APP repo 搜尋，未讀 PLT `tool-contracts.md` 契約原文（`:646`／`:664`／`:719`）。上段原文保留不刪，僅此加註更正；PLT 缺口候選（「應 fail-loud」）連帶失效，非本票新增之判斷。
 - **✅ baseline refresh 排序議題已裁決 → 見 Rev D.2**（原候選乙案「合併腳本異動以減少 refresh 次數」經 Akira 明示**否決**）。
 
 ---
