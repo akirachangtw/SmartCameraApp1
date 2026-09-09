@@ -5,9 +5,9 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-PREFLIGHT-CORE-01-FIX-C | 🔧 WIP（AI-0~AI-5 碼閉環，commit `7e87014`）· `preflight_core.py::_is_r1_blob_failure_guard()` 取代 `_is_f2_blob_failure()`，R-1 升為 F-3/F-4/F-5 前置 guard，不再看 v1_scope/v1_provenance（AI-1）；`test_preflight_core.py` 新增 `test_r1_dominates_v1_attribution` 全矩陣 subTest，14 methods PASS（AI-2）；`preflight_activation.sh::v1_check()` 四型對稱早退，facts 契約誠實化（AI-3）；`test_preflight_adapter.sh` R1-1..R1-4 加史實不變量前提 + core final_status/may_activate_ticket 直接斷言，110→119 assertions（AI-4）；`TARGET_BLOB` refresh 一次（`b627d3ca`/`783a24a7`），FIX-A checkpoint 已補記 R-2 fallthrough 忠實性更正（AI-5/HC-5）· ⚠️ 揭露：票面 TARGET_BLOB 前值 `47a4d120` 與 AI-0 實測不符（疑三票沿用同一錯誤值），未阻塞實作 · 待 `/sv`+Cross-Review |
+| INFRA-PREFLIGHT-CORE-01-FIX-C | ✅ REVIEW（AI-1~AI-5 碼閉環，commit `7e87014`+`0adf022`+`8b41cb5`）· R-1 升為 F-3/F-4/F-5 前置 guard 根治遮蔽，`test_preflight_adapter.sh` 110→119 assertions · `/qa` PASS，`/sv` 階段 A-C PASS，R0 FORWARD，Codex Cross-Review R1 **PASS**，`structural_verify.sh --post` PASS(A-G)[ADVISORY]，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:PENDING}`，票檔已搬 `deliver/`· AI-0 部分完成（重現矩陣未獨立捕捉）誠實保留未勾 |
 | INFRA-PREFLIGHT-CORE-01-FIX-A | ✅ REVIEW（AI-0~AI-5 碼閉環，commit `0ab9bbd`+`c1a42e4`）· `test_preflight_adapter.sh` 36→110 assertions（+74）· `/qa` PASS，`/sv` 階段 A-C PASS，Codex Cross-Review R2 **PASS**，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:PENDING}`，票檔已搬 `deliver/` |
-| INFRA-PREFLIGHT-CORE-01-FIX-B | ⏸️ BLOCKED（待 FIX-C REVIEW 後解除）· 根因（F-3/F-4 遮蔽 R-1）已由 FIX-C 修復（`7e87014`），AI-1 之 `FIXA_TICKET_FILE` 路徑修正已隨 FIX-C commit 一併納入版控 |
+| INFRA-PREFLIGHT-CORE-01-FIX-B | ⏸️ BLOCKED（解除條件已達成，待重新派工）· 根因（F-3/F-4 遮蔽 R-1）已由 `INFRA-PREFLIGHT-CORE-01-FIX-C` REVIEW 修復 |
 | INFRA-COMPACT-CLOSURE-GATE-APP-01 | ✅ REVIEW（並行 session 產出，commit `d85452e`/`0e56ea0`）· `compact/SKILL.md` Auto Commit 前新增「冊面收束一致性閘」三條機械判準 |
 
 **Last Updated**: 2026-09-09（`INFRA-PREFLIGHT-CORE-01-FIX-C` AI-0~AI-5 碼閉環 `7e87014`，R-1 guard 前置化根治 F-3/F-4 遮蔽，`INFRA-PREFLIGHT-CORE-01-FIX-B` 之 R1-2/3/4 迴歸已修復，待 `/sv`+Cross-Review；`INFRA-PREFLIGHT-CORE-01-FIX-A` 結案 REVIEW；並行 session 落地 `INFRA-COMPACT-CLOSURE-GATE-APP-01`）
