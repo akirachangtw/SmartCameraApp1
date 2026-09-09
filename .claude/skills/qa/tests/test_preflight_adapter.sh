@@ -30,7 +30,7 @@ CORE_PY=".claude/skills/qa/scripts/preflight_core.py"
 ACTIVE_JSON="tmp/verify/active.json"
 TICKET_ID="INFRA-PREFLIGHT-CORE-01"
 FIXA_TICKET_ID="INFRA-PREFLIGHT-CORE-01-FIX-A"
-FIXA_TICKET_FILE="plans/cso_briefing/project/Pending/INFRA-PREFLIGHT-CORE-01-FIX-A_gaps.md"
+FIXA_TICKET_FILE="plans/cso_briefing/project/deliver/INFRA-PREFLIGHT-CORE-01-FIX-A_gaps.md"
 
 # HOST_PYTHON3 MUST 於任何 PATH 遮蔽動作之前解析為絕對路徑——Scenario R7-1 會遮蔽受測
 # 腳本之 PATH，harness 自身仍須具備量測能力（FIX-A AI-3a）。
@@ -253,7 +253,14 @@ STUB_EOF3
 done
 mv "${CORE_PY}.origbak" "$CORE_PY"
 
-echo "═══ R1-1..R1-4: blob_check four types, real collector stimulus (FIX-A AI-4) ═══"
+echo "═══ R1-1..R1-4: blob_check four types, real collector stimulus (FIX-A AI-4; FIX-C history-invariant) ═══"
+# ─── FIX-C 共同不變量前提：BASE_COMMIT..HEAD MUST 含攜本票 ID 前綴之 commit——
+#     此為 R1-2..R1-4 曾穩定 FAIL（F-3 遮蔽 F-2/R-1）之重現前提本身，非可略過之環境細節。
+#     此檢查獨立於 TARGET_BLOB 刺激值，對四案共通，故於迴圈外驗證一次。───
+_FIXA_BASE_COMMIT="$(grep '^BASE_COMMIT=' "$FIXA_TICKET_FILE" 2>/dev/null | head -1 | cut -d'=' -f2- | xargs)"
+_FIXA_SELF_TICKET_COMMITS="$(git log --oneline "${_FIXA_BASE_COMMIT}..HEAD" -- .claude/skills/qa/ 2>/dev/null | grep -cF "[${FIXA_TICKET_ID}]")"
+_assert "history-invariant: BASE_COMMIT(${_FIXA_BASE_COMMIT})..HEAD contains >=1 [${FIXA_TICKET_ID}]-prefixed commit (got ${_FIXA_SELF_TICKET_COMMITS})" "$([[ "${_FIXA_SELF_TICKET_COMMITS:-0}" -ge 1 ]] && echo 0 || echo 1)"
+
 _FIXA_BACKUP_FILE="tmp/verify/.fixa_ticket_backup.$$"
 cp "$FIXA_TICKET_FILE" "$_FIXA_BACKUP_FILE"
 _GIT_REAL="$(command -v git)"
@@ -269,9 +276,13 @@ SHIM_EOF
 chmod +x "${_GIT_SHIM_DIR}/git"
 
 _r1_case() { # _r1_case <case_id> <target_blob_line> <expect_blob_check> <use_git_shim 0|1>
-  # 雙層驗證：①直接呼叫既有（未修改）collect_blob_check_fact() 收集函式，斷言其對真實
+  # 三層驗證：①直接呼叫既有（未修改）collect_blob_check_fact() 收集函式，斷言其對真實
   # TARGET_BLOB 刺激產生之精確 blob_check 型別（非 stub core output，係真實 collector）；
-  # ②全流程黑箱執行 adapter，斷言 exit/zero-write/WRITE_AUTHORITY 之可觀測外部行為。
+  # ②直接呼叫 v0_check()+invoke_core_decision()，斷言 core 之 final_status 確為 R-1 guard
+  # （BLOCKED_SCOPE_OR_TARGET_MISMATCH／may_activate_ticket=false），非經 F-3 遮蔽而恰巧
+  # 經 F-8/R-2 unlisted fallthrough 才被攔下（FIX-C 修復意圖之精確斷言，而非僅零寫入
+  # 之外部可觀測代理）；③全流程黑箱執行 adapter，斷言 exit/zero-write/WRITE_AUTHORITY
+  # 之可觀測外部行為。
   local case_id="$1" blob_line="$2" expect_blob="$3" use_shim="$4"
   sed -i "s|^TARGET_BLOB=.*|TARGET_BLOB=${blob_line}|" "$FIXA_TICKET_FILE"
 
@@ -289,6 +300,29 @@ _r1_case() { # _r1_case <case_id> <target_blob_line> <expect_blob_check> <use_gi
   fi
   echo "── ${case_id}: blob_check=${expect_blob} (真實 collect_blob_check_fact() 刺激，got=${got_blob}) ──"
   _assert "${case_id}: collect_blob_check_fact()=${expect_blob}" "$([[ "$got_blob" == "$expect_blob" ]] && echo 0 || echo 1)"
+
+  local core_probe got_final_status got_may_activate
+  # 複製 main() 之 V0→V1→V2→invoke_core_decision 呼叫序（map_v1_facts／map_v2_facts
+  # 依賴 V1_STATUS／V2_OVERALL／V2_PROVENANCE 全域變數，set -u 下省略 v1_check／v2_probe
+  # 會直接 unbound variable 中止，非本探針之孤立呼叫可省略的步驟）。
+  local _core_probe_script='
+      source .claude/skills/qa/scripts/preflight_activation.sh
+      v0_check "'"$FIXA_TICKET_ID"'" 1 >/dev/null 2>&1
+      allowed_targets="$(grep "^ALLOWED=" "$V0_TICKET_PATH" 2>/dev/null | head -1 | cut -d"=" -f2-)"
+      v1_check "'"$FIXA_TICKET_ID"'" "$V0_TICKET_PATH" "$allowed_targets" >/dev/null 2>&1
+      v2_probe "'"$FIXA_TICKET_ID"'" >/dev/null 2>&1
+      invoke_core_decision "'"$FIXA_TICKET_ID"'" "EXPLICIT_SWITCH" >/dev/null 2>&1
+      printf "%s|%s" "${CORE_FINAL_STATUS:-}" "${CORE_MAY_ACTIVATE_TICKET:-}"
+  '
+  if [[ "$use_shim" -eq 1 ]]; then
+    core_probe="$(PATH="${_GIT_SHIM_DIR}:${PATH}" bash -c "$_core_probe_script" 2>/dev/null)"
+  else
+    core_probe="$(bash -c "$_core_probe_script" 2>/dev/null)"
+  fi
+  got_final_status="${core_probe%%|*}"
+  got_may_activate="${core_probe##*|}"
+  _assert "${case_id}: core final_status=BLOCKED_SCOPE_OR_TARGET_MISMATCH via R-1 guard (got ${got_final_status})" "$([[ "$got_final_status" == "BLOCKED_SCOPE_OR_TARGET_MISMATCH" ]] && echo 0 || echo 1)"
+  _assert "${case_id}: core may_activate_ticket=false (got ${got_may_activate})" "$([[ "$got_may_activate" == "false" ]] && echo 0 || echo 1)"
 
   local before_ns after_ns before_hash after_hash out exit_code stdout_out
   before_ns="$(_mtime_ns "$ACTIVE_JSON")"; before_hash="$(_content_hash "$ACTIVE_JSON")"

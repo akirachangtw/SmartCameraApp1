@@ -1,5 +1,5 @@
 {
-  "_comment": "INFRA-PREFLIGHT-CORE-01 (Rev C) — allowlisted decision-table rows. Each row is one legal facts combination and its full expected Decision (context_id is computed by the test from the row's context, never hardcoded). No Cartesian expansion: unlisted combinations MUST fall through to R-2 in preflight_core.decide(), not be added here.",
+  "_comment": "INFRA-PREFLIGHT-CORE-01 (Rev C) — allowlisted decision-table rows. Each row is one legal facts combination and its full expected Decision (context_id is computed by the test from the row's context, never hardcoded). No Cartesian expansion: unlisted combinations MUST fall through to R-2 in preflight_core.decide(), not be added here. R-1 為前置 guard（FIX-C），blob failure 優先於 V1 attribution：不新增列，F-2 列（rows F2-*）字面不變，僅由 decide() 內判定式擴大覆蓋範圍。",
   "rows": [
     {
       "id": "F0-DETACHED_HEAD",

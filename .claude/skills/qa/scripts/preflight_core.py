@@ -202,18 +202,14 @@ def _is_f1_baseline_unavailable(env: EnvironmentFacts) -> bool:
     )
 
 
-def _is_f2_blob_failure(env: EnvironmentFacts) -> bool:
-    # F-2's blocked set is {MISMATCH, TARGET_MISSING, COMMAND_FAILED,
-    # INVALID_TICKET_VALUE} (ticket table, verbatim) — MISMATCH was already
-    # correctly caught pre-Rev-C; the other three are R-1's root-fix targets.
-    # Both MUST land here, or a real MISMATCH would wrongly fall through to
-    # F-8/R-2 as an "unlisted combination" instead of its own named status.
-    return (
-        env.baseline_check == BaselineCheck.VALID
-        and env.blob_check in _BLOB_FAILURE
-        and env.v1_scope == V1Scope.NOT_EVALUATED
-        and env.v1_provenance == V1Provenance.NOT_APPLICABLE
-    )
+def _is_r1_blob_failure_guard(env: EnvironmentFacts) -> bool:
+    # R-1 前置 guard（FIX-C）：blob failure 無條件優先於 V1 attribution，先於
+    # F-3/F-4/F-5 判定，判定式不看 v1_scope／v1_provenance／v2 任何欄。舊 F-2
+    # （要求 v1_scope=NOT_EVALUATED ∧ v1_provenance=NOT_APPLICABLE）為此 guard
+    # 之子集，已合併於此，reason_code 不變。四型（MISMATCH/TARGET_MISSING/
+    # COMMAND_FAILED/INVALID_TICKET_VALUE）皆 MUST 落此，不因 F-3/F-4 之
+    # CHANGED_TARGETS+SELF_TICKET/OTHER_TICKET 組合被遮蔽（F-3/F-4 遮蔽根治）。
+    return env.baseline_check == BaselineCheck.VALID and env.blob_check in _BLOB_FAILURE
 
 
 def _resolve_final_status_and_reason(env: EnvironmentFacts) -> tuple[str, str]:
@@ -225,8 +221,8 @@ def _resolve_final_status_and_reason(env: EnvironmentFacts) -> tuple[str, str]:
     if _is_f1_baseline_unavailable(env):
         return FINAL_STATUS_BLOCKED_UNATTRIBUTED_STATE, "BASELINE_UNAVAILABLE"
 
-    # F-2: blob check hard failure (R-1, R3 root fix).
-    if _is_f2_blob_failure(env):
+    # R-1: blob check hard failure, unconditional guard (FIX-C root fix).
+    if _is_r1_blob_failure_guard(env):
         return FINAL_STATUS_BLOCKED_SCOPE_OR_TARGET_MISMATCH, "BLOB_CHECK_FAILURE"
 
     if env.baseline_check == BaselineCheck.VALID and env.v1_scope == V1Scope.CHANGED_TARGETS:

@@ -149,6 +149,56 @@ class UnlistedCombinationTest(unittest.TestCase):
                 self.assertEqual(decision.write_authority, "NO")
                 self.assertFalse(decision.may_activate_ticket)
 
+    def test_r1_dominates_v1_attribution(self) -> None:
+        # FIX-C: R-1 guard MUST dominate F-3/F-4/F-5 unconditionally — full
+        # Cartesian product of the four blob-failure variants against every
+        # v1_scope x v1_provenance combination, including CHANGED_TARGETS +
+        # SELF_TICKET/OTHER_TICKET (the exact shape F-3/F-4 previously
+        # shadowed the blob failure with).
+        blob_failures = (
+            core.BlobCheck.MISMATCH,
+            core.BlobCheck.TARGET_MISSING,
+            core.BlobCheck.COMMAND_FAILED,
+            core.BlobCheck.INVALID_TICKET_VALUE,
+        )
+        v1_scopes = (
+            core.V1Scope.CHANGED_TARGETS,
+            core.V1Scope.UNCHANGED_TARGETS,
+            core.V1Scope.NOT_EVALUATED,
+        )
+        v1_provenances = (
+            core.V1Provenance.SELF_TICKET,
+            core.V1Provenance.OTHER_TICKET,
+            core.V1Provenance.UNATTRIBUTED,
+            core.V1Provenance.NOT_APPLICABLE,
+        )
+        for blob_value in blob_failures:
+            for scope_value in v1_scopes:
+                for provenance_value in v1_provenances:
+                    with self.subTest(
+                        blob_check=blob_value.value,
+                        v1_scope=scope_value.value,
+                        v1_provenance=provenance_value.value,
+                    ):
+                        env = core.EnvironmentFacts(
+                            v0_env=core.V0Env.PASS,
+                            baseline_check=core.BaselineCheck.VALID,
+                            v1_scope=scope_value,
+                            v1_provenance=provenance_value,
+                            blob_check=blob_value,
+                            v2_semantics=core.V2Semantics.MISSING,
+                            v2_provenance=core.V2Provenance.UNKNOWN,
+                        )
+                        decision = core.decide(core.ActivationFacts(self._ctx(), env))
+                        self.assertEqual(
+                            decision.final_status,
+                            core.FINAL_STATUS_BLOCKED_SCOPE_OR_TARGET_MISMATCH,
+                        )
+                        self.assertEqual(decision.reason_code, "BLOB_CHECK_FAILURE")
+                        self.assertFalse(decision.may_activate_ticket)
+                        self.assertEqual(decision.write_authority, "NO")
+                        self.assertEqual(decision.process_exit_code, 0)
+
 
 class ProducerClosureTest(unittest.TestCase):
     """R-6: v2_provenance=KNOWN / v2_semantics=FAILED have no producer and

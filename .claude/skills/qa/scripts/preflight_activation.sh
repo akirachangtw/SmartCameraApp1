@@ -155,8 +155,12 @@ v1_check() { # v1_check <ticket_id> <ticket_path> <targets_csv>
     return 0
   fi
 
-  # ─── TARGET_BLOB 比對（Rev B，修 R2 第 2 項）：格式 path:sha8，多標的以分號分隔；
-  #     整欄字面 NEW（新建檔無 pre-image）或 N/A（票面已顯式降級為 AI-0 錨點制）→ 跳過整組比對。───
+  # ─── TARGET_BLOB 比對（Rev B，修 R2 第 2 項；FIX-C 四型對稱早退）：格式
+  #     path:sha8，多標的以分號分隔；整欄字面 NEW（新建檔無 pre-image）或 N/A
+  #     （票面已顯式降級為 AI-0 錨點制）→ 跳過整組比對。四型失敗
+  #     （INVALID_TICKET_VALUE／TARGET_MISSING／COMMAND_FAILED／MISMATCH）
+  #     皆 MUST 早退，與 collect_blob_check_fact() 之分類對稱，facts 才符合
+  #     Facts Contract F-2/R-1 前提（V1 於 blob 失敗時本就「未評估」）。───
   if [[ -n "$target_blob" && "$target_blob" != "NEW" && "$target_blob" != "N/A" ]]; then
     local blob_entry blob_path blob_sha actual_sha
     local IFS=';'
@@ -165,9 +169,26 @@ v1_check() { # v1_check <ticket_id> <ticket_path> <targets_csv>
       [[ -z "$blob_entry" ]] && continue
       blob_path="${blob_entry%%:*}"
       blob_sha="${blob_entry##*:}"
-      [[ "$blob_path" == "$blob_sha" ]] && continue # 格式不含冒號，無法比對，跳過該項
+      if [[ "$blob_path" == "$blob_sha" ]]; then
+        V1_STATUS="BLOCKED_SCOPE_OR_TARGET_MISMATCH"
+        V1_REASON="TARGET_BLOB 格式不含冒號，無法比對：${blob_entry}"
+        unset IFS
+        return 0
+      fi
+      if [[ ! -f "$blob_path" ]]; then
+        V1_STATUS="BLOCKED_SCOPE_OR_TARGET_MISMATCH"
+        V1_REASON="TARGET_BLOB 標的檔不存在：${blob_path}"
+        unset IFS
+        return 0
+      fi
       actual_sha="$(git hash-object "$blob_path" 2>/dev/null | cut -c1-8)"
-      if [[ -n "$actual_sha" && "$actual_sha" != "$blob_sha" ]]; then
+      if [[ -z "$actual_sha" ]]; then
+        V1_STATUS="BLOCKED_SCOPE_OR_TARGET_MISMATCH"
+        V1_REASON="TARGET_BLOB hash 取值失敗：${blob_path}"
+        unset IFS
+        return 0
+      fi
+      if [[ "$actual_sha" != "$blob_sha" ]]; then
         V1_STATUS="BLOCKED_SCOPE_OR_TARGET_MISMATCH"
         V1_REASON="TARGET_BLOB 比對失敗：${blob_path} 現行 hash ${actual_sha} 與票面 ${blob_sha} 不符"
         unset IFS
@@ -311,9 +332,10 @@ map_v0_env_fact() { # map_v0_env_fact → stdout Facts Contract v0_env 值（純
 }
 
 map_v1_facts() { # map_v1_facts → 設定全域 FACT_BASELINE_CHECK／FACT_V1_SCOPE／FACT_V1_PROVENANCE／FACT_BLOB_CHECK
-  # 僅於 V0=PASS 時呼叫。legacy 之 TARGET_MISSING／COMMAND_FAILED／INVALID_TICKET_VALUE
-  # 三型無 legacy V1_STATUS 可對應（正是 R3 缺陷本身：guard 靜默跳過，非判 mismatch），
-  # 故 BLOCKED_SCOPE_OR_TARGET_MISMATCH 之 legacy 唯一可達子型別為 MISMATCH。
+  # 僅於 V0=PASS 時呼叫。FIX-C 後 legacy 之 TARGET_MISSING／COMMAND_FAILED／
+  # INVALID_TICKET_VALUE 三型與 MISMATCH 同樣早退為 BLOCKED_SCOPE_OR_TARGET_MISMATCH；
+  # 此處暫填 FACT_BLOB_CHECK="MISMATCH" 僅為過渡佔位，實際四型細分由下方
+  # collect_blob_check_fact() 獨立重新量測覆寫（見該函式說明）。
   FACT_BLOB_CHECK="NOT_EVALUATED"
   case "$V1_STATUS" in
     BASELINE_MATCHED)
@@ -350,9 +372,9 @@ map_v1_facts() { # map_v1_facts → 設定全域 FACT_BASELINE_CHECK／FACT_V1_S
 
 collect_blob_check_fact() { # collect_blob_check_fact <ticket_path> → stdout Facts Contract blob_check 值
   # 獨立重新讀取 TARGET_BLOB 並重新分類，MUST NOT 依賴 v1_check() 已產生之 V1_STATUS——
-  # 該函式之 blob 區塊正是 R3 缺陷所在（git hash-object 失敗時 guard 靜默跳過，非判
-  # mismatch），若由 legacy 判定值反推 facts 將形成循環，永遠無法讓 shadow 比對揭露此
-  # 缺陷本身。此函式為唯讀觀測，不影響 v1_check() 之既有（含缺陷）行為。
+  # v1_check() 之 blob 區塊為 R3 原缺陷所在（FIX-C 前 git hash-object 失敗時 guard
+  # 靜默跳過，非判 mismatch；FIX-C 已修正為四型對稱早退），若由 legacy 判定值反推
+  # facts 仍會形成循環，故維持獨立量測。此函式為唯讀觀測，不影響 v1_check() 之行為。
   local ticket_path="$1"
   local target_blob
   target_blob="$(grep '^TARGET_BLOB=' "$ticket_path" 2>/dev/null | head -1 | cut -d'=' -f2- | xargs)"
