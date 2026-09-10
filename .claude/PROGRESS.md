@@ -5,7 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-SV-GOV-01 | 🔧 WIP（AI-0~AI-5 碼閉環：`cross_review.sh` EXCLUDE_ARGS rename 第三優先級解析＋`sv/SKILL.md` 輪次二元帳／未勾項全盤點區塊，`git diff --stat` 僅涉 ALLOWED 兩檔；AI-1 已以真實 git rename commit 隔離測試驗證行為性 AC，非 fixture）· `/qa` Build+Test+Lint PASS，待 Auto Commit+`/sv` |
+| INFRA-SV-GOV-01 | ✅ Done（commit `07c77a2`）· AI-0~AI-5 碼閉環：`cross_review.sh` EXCLUDE_ARGS rename 第三優先級解析＋`sv/SKILL.md` 輪次二元帳／未勾項全盤點區塊；AI-1 以真實 git rename commit 隔離測試驗證行為性 AC（非 fixture）· `/qa` PASS，`/sv` Cross-Review R1/L1 **ADVISORY**（註解措辭建議，非阻斷），REACHABILITY: NONE，待 Traycer 終審 |
 | INFRA-CKPT-SEMANTICS-01 | ✅ REVIEW（commit `c167357`+`2e7271a`+`689f6c4`+`0b39db5`+`0092c27`+`e866197`）· `/sv` Cross-Review R1 ADVISORY→R2 REPORT_FIX→R3 **PASS**，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}` |
 | INFRA-PREFLIGHT-CORE-01-FIX-B | ✅ CLOSED（commit `1dfddd4`+`46dd4bb`+`c61c425`）· 票檔已搬 `deliver/` |
 | INFRA-CLAUDE-LONGSESSION-01 | ✅ REVIEW（commit `0129930`+`2bc8a56`+`f2adba0`）· Codex R1 PASS，`reviews={qa/sv/codex:PASS,traycer:N_A}` |
@@ -35,7 +35,6 @@
 | GAP-06 | HaloTraction：GuidanceActive + Aligned 態圓點渲染已閉環（GAP-06-RENDER-DOT-01 ✅ Done）。**GAP-06-TARGET-01-REVA**：Traycer strict_verification Path A APPROVE（碼域，錨 bc40d17）· 剩 D19 三項 [實機] AC（A7-1 映射表承接）+ Next Action #9 Akira 證據核驗。Normal vs Focus Ring 路由實機驗仍留 | 🟡 P1（碼域終審 PASS；GuidanceActive null-guard 已消除假對齊風險） | Aligned/GuidanceActive 消費斷鏈已修；A6 測試缺口已補（`HaloGuidanceLayerTest.kt` 三場景映射至 A7-1）；剩：D19 實機 AC（人臉偏離截圖 x2、假對齊風險驗證、topInstruction=HeadroomRule 無 targetHint 場景）+ Next Action #9 佐證核驗 |
 | BUG-P08-F4-REAL-DEVICE | AC-4 🔴 橫向 detection 失效（BUG-LCSOURCE-HARDCODED-ROTATION）| 🔴 Hard Gate FAIL | Phase B 後開票 |
 | BUG-LCSOURCE-HARDCODED-ROTATION | compensatedRotation 硬編碼 → 橫向偏差 | 🟡 P1 | 開 P08-F9 後處理 |
-| INFRA-SV-GOV-01 | ✅ 已修復（2026-09-11）：AI-1/AI-3/AI-4/AI-5 已以 `grep -n` 現地核驗落地，非僅回報；AI-1 rename 解析另以隔離 git repo 真實 rename commit 前後對照驗證 | 🟢 待 `/sv` 收尾確認 | 碼閉環完成，待 Cross-Review 終審 |
 | INFRA-PREFLIGHT-CORE-01-FIX-B-R1V1CHECK | ✅ 已修復（`INFRA-PREFLIGHT-CORE-01-FIX-C` commit `7e87014`）：`preflight_core.py` 新增 R-1 前置 guard（不看 v1_scope/v1_provenance），`preflight_activation.sh::v1_check()` 四型對稱早退，R1-1..R1-4 回歸矩陣（含 self-ticket history 不變量）全 PASS（119 assertions） | 🟢 已解除（待 FIX-C `/sv`+Cross-Review 收尾確認） | 修復已落地，待正式驗收後解除 FIX-B BLOCKED |
 
 ## PROVISIONAL Ledger（防孤兒追蹤 · 2026-07-07 CSO 提案 Akira 授權）
