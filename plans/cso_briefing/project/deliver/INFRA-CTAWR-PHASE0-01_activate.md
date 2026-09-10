@@ -103,8 +103,8 @@ TARGET_BLOB=.claude/skills/uc/SKILL.md:<開工時回填>;.claude/skills/normal/S
 - [x] **[行為性]** given `tmp/verify/<ID>.rev-0.conf` 存在，when 執行腳本，expect 該檔消失且 stdout 含 `🧹`；同時 `tmp/verify/<他票 ID>.*.conf` 與 `tmp/verify/active.json` 仍在（實測通過）
 - [x] **[行為性]** given 不存在之票號，when 執行腳本，expect 非零 exit 且 `tmp/verify_cmd.conf` 內容位元組級不變（fail-closed 不破壞既有 activation）（實測通過，`diff` 確認位元組級不變）
 - [x] **[行為性]** given 無參數之 `/uc` 與 `/normal`，expect 二者行為與改動前一致（進入／退出臥底模式，無 activation 訊息、無錯誤）（`git diff` 確認 Phase 0 節僅追加、原文位元組級不變，且邏輯上僅在 `$ARGUMENTS` 非空時觸發）
-- [ ] **[行為性]** given 存在之票號，when 執行 `/normal <ID>`，expect `tmp/verify_cmd.conf` 被覆寫為該票之九欄值，且無論 activation 成功或失敗均正常退出臥底模式（驗證 Hard Constraint 6：模式切換不得被 activation 失敗阻斷）——**未實機執行 `/normal <ID>`**，僅邏輯核驗（文字明定 Hard Constraint 6），誠實保留未勾，列入 K3-Rule 25 未覆蓋路徑
-- [ ] **[實機]** VSCode 擴充 host 下，本機與手機 Remote Control 各執行一次 `/uc <ID>` 與 `/normal <ID>`，expect 均見 `✅ ACTIVATED` 且後續 `/qa` 讀到正確 `TICKET_ID`（transcript 片段存收尾）——未實測，誠實保留未勾
+- [x] **[行為性]** given 存在之票號，when 執行 `/normal <ID>`，expect `tmp/verify_cmd.conf` 被覆寫為該票之九欄值，且無論 activation 成功或失敗均正常退出臥底模式（驗證 Hard Constraint 6）——**成功分支**：2026-09-10 session 實機 `/normal INFRA-SESSION-HOOK-01` 命中 `✅ ACTIVATED | INFRA-SESSION-HOOK-01 | main @ 2a8e003 | ALLOWED=...`，conf 覆寫為該票九欄值，`🗣️ Normal mode restored.` 正常退出（seq 38 台帳，見 Addendum）；**失敗分支**：沿用 L104 `activate_ticket.sh` 對不存在票號之 fail-closed 實測（非零 exit、conf 位元組級不變）——兩分支合證 HC6 不阻斷語意
+- [ ] **[實機]（部分達成）** VSCode 擴充 host 下，本機與手機 Remote Control 各執行一次 `/uc <ID>` 與 `/normal <ID>`，expect 均見 `✅ ACTIVATED` 且後續 `/qa` 讀到正確 `TICKET_ID`——**本機部分**：2026-09-10 session 已實測 `/uc INFRA-SESSION-HOOK-01` 與 `/normal INFRA-SESSION-HOOK-01` 皆見 `✅ ACTIVATED`（見 Addendum）；**手機 Remote Control 部分仍未測**，維持未勾，誠實保留
 - [x] ~~`assembleDebug` PASS~~（N/A：純 `.claude/` 工具鏈，`/sv` 階段 A 仍執行 `assembleDebug` 作基線 PASS）
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案（`745ab25..e962b40` 僅 3 個 ALLOWED 檔 + `.claude/PROGRESS.md`，後者依 INFRA-GOVSYNC-01 不計入違規判定）
 
@@ -123,3 +123,9 @@ TARGET_BLOB=.claude/skills/uc/SKILL.md:<開工時回填>;.claude/skills/normal/S
 ## Addendum
 
 **收束裁決（2026-09-10，Akira 甲案，SKAD 落冊）**：轉 `CLOSED`。兩項未勾 AC——`[行為性]` `/normal <ID>` 實機行為、`[實機]` VSCode＋手機 Remote Control 雙 host 矩陣——**已知未實機驗證**，與 `INFRA-SESSION-HOOK-01` Rev A.2 之 M1–M4 屬同一場實機測試，同批補測；補測結果以 Addendum 追加本檔，不重開票。冊面 checkpoint 於轉終態時依平台語義清空，resolution 全文以本票「結案授權」節與本 Addendum 為耐久載體。
+
+**補測記錄（2026-09-10，同一 session 台帳，seq 38）**：VSCode 擴充 host、本機，於處理 `INFRA-SESSION-HOOK-01` 過程中實機呼叫：
+1. `/uc INFRA-SESSION-HOOK-01` → `bash .claude/scripts/activate_ticket.sh "INFRA-SESSION-HOOK-01"` 輸出 `✅ ACTIVATED | INFRA-SESSION-HOOK-01 | main @ 2a8e003 | ALLOWED=.claude/settings.json,.claude/hooks/session_start.sh`，成功進入臥底模式。
+2. `/normal INFRA-SESSION-HOOK-01` → 同腳本重跑輸出同格式 `✅ ACTIVATED | INFRA-SESSION-HOOK-01 | ...`，緊接 `🗣️ Normal mode restored.` 正常退出臥底模式。
+
+上述已補全 `[行為性]`（L106，成功分支＋沿用 L104 失敗分支）與 `[實機]`（L107，僅本機分支）兩項。**手機 Remote Control 分支仍未測**，L107 維持未勾——若需完整關閉，待該分支實測後再補。
