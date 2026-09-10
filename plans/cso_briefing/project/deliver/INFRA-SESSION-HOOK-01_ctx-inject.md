@@ -97,7 +97,7 @@ TARGET_BLOB=.claude/settings.json:<開工時回填>;.claude/hooks/session_start.
 ## Error Handling
 - AI-0 A 之 `"SessionStart"` 命中 ≥1 → 停止回報（已先行，需先查來源）
 - AI-0 B 之 `git ls-files .claude/hooks/stop.sh` 無輸出 → 停止回報（hooks/ 未受追蹤，新檔將不入版控）
-- 實機 AC 於 VSCode 擴充執行 → 停止改於 terminal（#26794：VSCode `/clear` 曾送 `source=startup`）
+- ~~實機 AC 於 VSCode 擴充執行 → 停止改於 terminal（#26794）~~ **【Rev A.2（09-07）撤銷，見文末】**——實機 AC 一律於 VSCode 擴充與手機 RC 執行，禁以 source 字面判定；本行保留僅為留痕，MUST NOT 再據以停止
 - **[標配]** `git check-ignore -v .claude/settings.json .claude/hooks/session_start.sh` 命中 → 停止回報（gitignore 死結律，#20）
 
 ## Acceptance Criteria
@@ -110,8 +110,8 @@ TARGET_BLOB=.claude/settings.json:<開工時回填>;.claude/hooks/session_start.
 - [x] **[行為性]** given `active.json` 分別為截斷至任一欄位、缺任一七欄位、任一欄位空值、首／末大括號缺失，expect 兩模式均只輸出 `⚠️ ...` 單行、無局部值、exit 0；測後還原原檔 —— 四樣本（截斷 8 行缺末括號、缺 `activation_source` 鍵、`branch` 空值、缺首括號）全數實測命中該警示行且無局部值洩漏，`diff` 驗證還原無誤
 - [x] **[存在性]** `.claude/skills/qa/scripts/preflight_activation.sh` 在盤且由 `git ls-files` 追蹤 —— 實測有輸出
 - [x] **[行為性]** given `.claude/skills/qa/scripts/preflight_activation.sh` 在盤，執行 `inject` 時 stdout 恰含一行 `🔁 票續作前先跑 preflight_activation.sh` —— 實測命中 1 次
-- [ ] **[實機]** terminal Claude Code 內執行 `/clear` 後首則回應可見 `🧹` 與 PROGRESS 注入；執行 `/compact` 後可見 `📍 Active ticket:` 行且 `tmp/verify_cmd.conf` 未被清（截圖或 transcript 片段存收尾）—— **未測，誠實揭露**：本 session 執行環境為 VSCode 擴充（非 terminal），依本票 Error Handling 明文「實機 AC 於 VSCode 擴充執行 → 停止改於 terminal」，MUST NOT 於此環境嘗試；待 Akira 於 terminal Claude Code 實機驗證
-- [ ] **[實機]** terminal Claude Code 以 `--resume <session> --fork-session`（或 `/fork`／`/branch`）建立 fork，expect SessionStart stdout 可見 `📍 Active ticket:`、`tmp/verify_cmd.conf` 未被清，且 transcript 證據中的 source＝`fork`—— 同上，未測，需 terminal 環境
+- [ ] **[實機]（2026-09-11 收束處置：見文末 Addendum）** terminal Claude Code 內執行 `/clear` 後首則回應可見 `🧹` 與 PROGRESS 注入；執行 `/compact` 後可見 `📍 Active ticket:` 行且 `tmp/verify_cmd.conf` 未被清（截圖或 transcript 片段存收尾）—— **未測，誠實揭露**：本 session 執行環境為 VSCode 擴充（非 terminal），依本票 Error Handling 明文「實機 AC 於 VSCode 擴充執行 → 停止改於 terminal」，MUST NOT 於此環境嘗試；待 Akira 於 terminal Claude Code 實機驗證
+- [ ] **[實機]（2026-09-11 收束處置：見文末 Addendum）** terminal Claude Code 以 `--resume <session> --fork-session`（或 `/fork`／`/branch`）建立 fork，expect SessionStart stdout 可見 `📍 Active ticket:`、`tmp/verify_cmd.conf` 未被清，且 transcript 證據中的 source＝`fork`—— 同上，未測，需 terminal 環境
 - [x] ~~`assembleDebug` PASS~~（N/A：`.claude/` 工具鏈，零 `.kt`／`.xml`）
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案 —— 實測：`git diff --stat HEAD` 恰含 `.claude/hooks/session_start.sh`（94 insertions, new file）與 `.claude/settings.json`（14 insertions），`git status --short` 無其他 dirty 檔
 
@@ -140,3 +140,12 @@ TARGET_BLOB=.claude/settings.json:<開工時回填>;.claude/hooks/session_start.
    - M1–M4 為 **MUST**（Akira 主介面）；M5 為對照組 SHOULD。
    - 任一 MUST 項 hook 未觸發（檔案狀態與回應均無變化）→ 記錄 host／指令／Claude Code 版號為 finding，**不在本票修補**，另開 `INFRA-CTAWR-*` 修補票；本票其餘 AC 已 PASS 者不受牽連。
 4. 後續本議題（Session-Aware Ticket Activation）新票一律以 `INFRA-CTAWR-` 為前綴（Akira 2026-09-07 命名裁決）；本票不改名。
+
+**收束裁決（2026-09-11，Akira「其餘 AC 項目等遇到實作過程發生問題會開票進行修補」，SKAD 落冊）**：轉 `CLOSED`。
+
+1. **兩項 `[實機]` AC 之處置**：L113（`/clear`＋`/compact` 注入）、L114（`fork` 群 `--resume --fork-session`）維持未勾，**不偽勾**。Akira 口頭回報已於 VSCode host 執行 M1／M3 路徑，但票面與冊面均無第一手證據字面（`grep` 於 2026-09-11 確認兩行仍為 `- [ ]`，註記內容為 Rev A.2 已撤銷之停止理由）；依「執行端回報無證據力」，此處**記為執行端回報，非第一手取證**。
+2. **M2／M4（`compact` 群）之取證性結論**：Akira 現行工作流於 1M context 下一律使用 APP `compact` skill（`.claude/skills/compact/SKILL.md`），該 skill 不觸發 SessionStart；`source=compact` 僅由 Claude Code 內建壓縮（手動內建指令或 auto-compaction）觸發。故 `resume|compact|fork` inject 群於現行工作流**無常態觸發路徑**，M2／M4 非「未執行」而是「無觸發條件」。inject 群保留服務 `/resume` 與 `fork`，登記為觀察項，不開票。
+3. **主路徑閉環已成立**：`/compact`(skill checkpoint) → `/clear` 走 `startup|clear` reset 群；`.claude/PROGRESS.md` 現值 80 行、Dashboard 於 L1、Active Ticket Activation 於 L15，全數落於 reset 之 80 行注入範圍內（2026-09-11 `grep` 節構取證）。草案 §3.2「checkpoint 無消費者」已消解。
+4. **後續**：實作過程若出現 hook 未觸發或注入內容不符，開 `INFRA-CTAWR-*` 修補票處理，不重開本票。
+5. **票面留痕更正**：Error Handling 第 3 條（VSCode → 停止改 terminal）已於本次補上刪除線與撤銷註記——Rev A.2（09-07）僅以 Addendum 記載撤銷而未改本文，致執行端於收尾時逐字援引該行而停止測試。此為修訂波及面掃描不完整之實例，已回補。
+6. **版號瑕疵留記**：本檔存在兩則 `Rev A.2`（09-06 CSO Gate PARTIAL 補正、09-07 SKAD 實機 AC 改寫），後者應為 `Rev A.3`。不追改（改號將使既有引用失效），僅記載以利日後判讀。
