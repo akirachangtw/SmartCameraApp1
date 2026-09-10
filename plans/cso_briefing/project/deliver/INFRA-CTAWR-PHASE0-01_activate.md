@@ -119,3 +119,7 @@ TARGET_BLOB=.claude/skills/uc/SKILL.md:<開工時回填>;.claude/skills/normal/S
 **`reviews.codex` 填值**：`N_A`（未執行，非執行後 PASS；理由＝本裁決）。
 
 **End of INFRA-CTAWR-PHASE0-01**
+
+## Addendum
+
+**收束裁決（2026-09-10，Akira 甲案，SKAD 落冊）**：轉 `CLOSED`。兩項未勾 AC——`[行為性]` `/normal <ID>` 實機行為、`[實機]` VSCode＋手機 Remote Control 雙 host 矩陣——**已知未實機驗證**，與 `INFRA-SESSION-HOOK-01` Rev A.2 之 M1–M4 屬同一場實機測試，同批補測；補測結果以 Addendum 追加本檔，不重開票。冊面 checkpoint 於轉終態時依平台語義清空，resolution 全文以本票「結案授權」節與本 Addendum 為耐久載體。
