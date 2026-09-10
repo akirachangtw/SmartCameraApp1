@@ -104,7 +104,7 @@ TARGET_BLOB=.claude/skills/uc/SKILL.md:<開工時回填>;.claude/skills/normal/S
 - [x] **[行為性]** given 不存在之票號，when 執行腳本，expect 非零 exit 且 `tmp/verify_cmd.conf` 內容位元組級不變（fail-closed 不破壞既有 activation）（實測通過，`diff` 確認位元組級不變）
 - [x] **[行為性]** given 無參數之 `/uc` 與 `/normal`，expect 二者行為與改動前一致（進入／退出臥底模式，無 activation 訊息、無錯誤）（`git diff` 確認 Phase 0 節僅追加、原文位元組級不變，且邏輯上僅在 `$ARGUMENTS` 非空時觸發）
 - [x] **[行為性]** given 存在之票號，when 執行 `/normal <ID>`，expect `tmp/verify_cmd.conf` 被覆寫為該票之九欄值，且無論 activation 成功或失敗均正常退出臥底模式（驗證 Hard Constraint 6）——**成功分支**：2026-09-10 session 實機 `/normal INFRA-SESSION-HOOK-01` 命中 `✅ ACTIVATED | INFRA-SESSION-HOOK-01 | main @ 2a8e003 | ALLOWED=...`，conf 覆寫為該票九欄值，`🗣️ Normal mode restored.` 正常退出（seq 38 台帳，見 Addendum）；**失敗分支**：沿用 L104 `activate_ticket.sh` 對不存在票號之 fail-closed 實測（非零 exit、conf 位元組級不變）——兩分支合證 HC6 不阻斷語意
-- [ ] **[實機]（部分達成）** VSCode 擴充 host 下，本機與手機 Remote Control 各執行一次 `/uc <ID>` 與 `/normal <ID>`，expect 均見 `✅ ACTIVATED` 且後續 `/qa` 讀到正確 `TICKET_ID`——**本機部分**：2026-09-10 session 已實測 `/uc INFRA-SESSION-HOOK-01` 與 `/normal INFRA-SESSION-HOOK-01` 皆見 `✅ ACTIVATED`（見 Addendum）；**手機 Remote Control 部分仍未測**，維持未勾，誠實保留
+- [x] **[實機]** VSCode 擴充 host 下，本機與手機 Remote Control 各執行一次 `/uc <ID>` 與 `/normal <ID>`，expect 均見 `✅ ACTIVATED` 且後續 `/qa` 讀到正確 `TICKET_ID`——**本機部分**：2026-09-10 session 已實測 `/uc INFRA-SESSION-HOOK-01` 與 `/normal INFRA-SESSION-HOOK-01` 皆見 `✅ ACTIVATED`（見 Addendum）；**手機 Remote Control 部分**：2026-09-11 補測，見下方 Addendum「補測記錄（手機 Remote Control）」，兩分支合證全達
 - [x] ~~`assembleDebug` PASS~~（N/A：純 `.claude/` 工具鏈，`/sv` 階段 A 仍執行 `assembleDebug` 作基線 PASS）
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案（`745ab25..e962b40` 僅 3 個 ALLOWED 檔 + `.claude/PROGRESS.md`，後者依 INFRA-GOVSYNC-01 不計入違規判定）
 
@@ -128,4 +128,10 @@ TARGET_BLOB=.claude/skills/uc/SKILL.md:<開工時回填>;.claude/skills/normal/S
 1. `/uc INFRA-SESSION-HOOK-01` → `bash .claude/scripts/activate_ticket.sh "INFRA-SESSION-HOOK-01"` 輸出 `✅ ACTIVATED | INFRA-SESSION-HOOK-01 | main @ 2a8e003 | ALLOWED=.claude/settings.json,.claude/hooks/session_start.sh`，成功進入臥底模式。
 2. `/normal INFRA-SESSION-HOOK-01` → 同腳本重跑輸出同格式 `✅ ACTIVATED | INFRA-SESSION-HOOK-01 | ...`，緊接 `🗣️ Normal mode restored.` 正常退出臥底模式。
 
-上述已補全 `[行為性]`（L106，成功分支＋沿用 L104 失敗分支）與 `[實機]`（L107，僅本機分支）兩項。**手機 Remote Control 分支仍未測**，L107 維持未勾——若需完整關閉，待該分支實測後再補。
+上述已補全 `[行為性]`（L106，成功分支＋沿用 L104 失敗分支）與 `[實機]`（L107，僅本機分支）兩項。**手機 Remote Control 分支已於下方補測，L107 全達並轉勾。**
+
+**補測記錄（2026-09-11，手機 Remote Control，seq 38）**：本 session 經 `ticket-run` skill 由手機端 Remote Control 派工開工 `INFRA-SV-GOV-01`（已收尾至 `REVIEW`），在該手機 RC session 內以既有票號實際呼叫：
+1. `bash .claude/scripts/activate_ticket.sh "INFRA-SV-GOV-01"`（等效 `/uc <ID>`）→ 輸出 `🧹 已清除 INFRA-SV-GOV-01 之 per-ticket 快照 1 筆` + `✅ ACTIVATED | INFRA-SV-GOV-01 | main @ fb783d5 | ALLOWED=...`，exit 0。
+2. 同腳本重跑（等效 `/normal <ID>`）→ 輸出同格式 `✅ ACTIVATED`，exit 0；`tmp/verify_cmd.conf` 之 `TICKET_ID=INFRA-SV-GOV-01` 讀回核驗相符。
+
+AC L107 手機 Remote Control 分支自此有實機證據，與既有本機分支合證全達。
