@@ -10,7 +10,7 @@
 | INFRA-PREFLIGHT-CORE-01-FIX-B | ✅ CLOSED（commit `1dfddd4`+`46dd4bb`+`c61c425`）· 同步 `qa/SKILL.md` 決策核心契約段已結案 pending 敘述，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:PASS}`，票檔已搬 `deliver/` |
 | （治理）Preflight 家族收束 | ✅（commit `9443003`+`d50779e`）· 母票＋FIX-A/B/C 四票依四要件④新規則補「收尾實錄」耐久記載於票檔本體 |
 
-**Last Updated**: 2026-09-10T13:54（Source Session: `e7bf5042-9bdc-4538-b22e-a664de128b6b`｜Context Mode: continue）`INFRA-COMPACT-REVB-APP-01` ✅ `/qa`+`/sv` PASS（`a661104`+`2370834`，Codex R3 **PASS** REACHABILITY:NONE，`structural_verify.sh --post` ADVISORY，PROGRESS.md 80 行逼近上限），待 Traycer 終審
+**Last Updated**: 2026-09-10T14:00（Source Session: `e7bf5042-9bdc-4538-b22e-a664de128b6b`｜Context Mode: continue）`INFRA-COMPACT-REVB-APP-01` ✅ **REVIEW**（Traycer N_A 票面預宣告，非待補）· lifecycle 已轉，票檔已搬 `deliver/`，reviews={qa/sv/codex:PASS,traycer:N_A}
 
 ## Active Ticket Activation
 
@@ -48,7 +48,7 @@
 
 ## Next Actions
 
-26. **✅ `INFRA-CTAWR-PHASE0-01` 結案裁決 Addendum 已提交**（`d00d677`）：Akira 甲案轉 `CLOSED`，兩項未勾 AC 併入 `INFRA-SESSION-HOOK-01` 同批補測 · **🟡 `INFRA-COMPACT-REVB-APP-01` 待 Traycer 終審**：`/qa`+`/sv` PASS，Codex R1 REPORT_FIX（措辭＋scope）→R2 REPORT_FIX（`DIFF_END` 未涵蓋修正 commit）→R3 **PASS**；R1 ADVISORY 順帶修正 L150 `session_id` producer 已知不精確描述（`2370834`）
+26. **✅ `INFRA-CTAWR-PHASE0-01` 結案裁決 Addendum 已提交**（`d00d677`）：Akira 甲案轉 `CLOSED`，兩項未勾 AC 併入 `INFRA-SESSION-HOOK-01` 同批補測 · **✅ `INFRA-COMPACT-REVB-APP-01` REVIEW 已結案**（`a661104`/`2370834`/`de3aaa2`/`4819677`）：Codex R1 REPORT_FIX（措辭＋scope，順帶修正 L150 `session_id` producer 已知不精確描述）→R2 REPORT_FIX（`DIFF_END` 未涵蓋修正 commit）→R3 **PASS**，票檔已搬 `deliver/`，registry lifecycle→REVIEW（rev 302）
 6. **🟡 STATE-CONTRACT-01 Traycer 終審**：FIX-A + FIX-B + FIX-C 均 /sv PASS，送終審
 7. **🟢 TRACTION-SSOT-04 CSO 閉環**（技術已閉，待 CSO Ticket）：母票 line-91 AC box 打勾 · `move_file` Pending→deliver · Postponed #6（R-T14）→DONE / #5（RENDER-01）→ready · 編號對帳 K4-45（R-T18 stamp 前釐清 R-T17：overruled-void vs consumed）
 8. **🔴 D15-16 實測報告 §6 剩餘待 CSO 裁決**（`plans/cso_briefing/reports/D15-16/D15-16_Field_Test_Findings_20260713.md`）：Food Halo 三層斷鏈（候選 GAP-08-FOOD-HALO）· EyeAF Failed 無 backoff 2s 重對焦迴圈（候選 GAP-09-EYEAF-BACKOFF）· Track B 採樣暫停 + Postponed #8 延後 · **GAP-10-BREATH-RESTART ✅ Done**（/qa+/sv+Codex Cross-Review 全 PASS，待 D17 Akira 呼吸真偽終審，見 Ticket 檔尾 BREATH-KILL 預授權出口；關票待 Traycer）
