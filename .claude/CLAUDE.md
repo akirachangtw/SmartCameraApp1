@@ -124,10 +124,6 @@ Status code 已能回答的問題，code 回答。
 → 4.5.cross_review(Codex) → 5.Traycer → 6.Git → 7.KAIROS(節點時)
 ```
 
-## Session Health
-
-≤10 turns 🟢 / 11-18 🟡 / ≥19 🔴 立即 /compact。單則 >200 行代碼 +2 turns。
-
 ## Skills
 
 `/sv` 語意審查 · `/qa` Build+Test+靜態掃描 · `/uc` 臥底模式 · `/compact` 壓縮交接 · `/dream` KAIROS 回顧(D2/D6/D10/D13/D15) · `/mdlint` .md 格式修復
