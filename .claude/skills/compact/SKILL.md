@@ -147,7 +147,7 @@ disable-model-invocation: false
 - **MUST** 寫明目前 active workstream。
 - **MUST** 將「下一步」精確到檔案、函數或可執行單位。
 - **MUST** 將 blocker、已確認決策與約束落盤。
-- **Source Session 欄 MUST** 直接取自 `tmp/claude_status_cache.json` 頂層 `session_id`（producer：`.claude/skills/status/scripts/statusline.py` 之 `write_cache()`）；該快取檔或該欄位不存在時，**MUST** 標記 `unavailable`，**MUST NOT** 以檔名、時間戳等弱指紋推定。
+- **Source Session 欄 MUST** 直接取自 `tmp/claude_status_cache.json` 頂層 `session_id`；該欄位由 Claude Code hook 原始輸入 JSON payload 攜帶，經 `.claude/skills/status/scripts/statusline.py` 之 `write_cache()` 逐位元原樣持久化（該函數本身**不產生亦不引用** `session_id`，僅負責寫檔；`INFRA-STATUS-SYNC-01` 已實測記載此一區分）；該快取檔或該欄位不存在時，**MUST** 標記 `unavailable`，**MUST NOT** 以檔名、時間戳等弱指紋推定。
 - **Context Mode 欄值 MUST** 由呼叫時明示參數決定（`resumed`／`compacted`／`cleared`）；無參數呼叫時固定為 `continue`，**MUST 禁自行語義推定**實際模式。
 - **MUST NOT** 在 `.claude/PROGRESS.md` 保存冗長原始 log。
 - `.claude/PROGRESS.md` **MUST** 偏向「當前態」，歷史長文應放入 handoff 或 archive。
