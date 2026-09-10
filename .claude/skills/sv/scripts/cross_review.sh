@@ -350,6 +350,13 @@ PROMPT_HEADER
       [[ -z "$_tok" ]] && continue
       _matches=$(git ls-files -- "$_tok" 2>/dev/null)
       [[ -z "$_matches" ]] && _matches=$(git ls-files | awk -v t="$_tok" -F/ '{if ($NF==t) print}')
+      if [[ -z "$_matches" ]]; then
+        # rename-aware third priority: resolve against DIFF_SCOPE's changed-file
+        # list (post-image paths), so a rename that hasn't settled in the index
+        # yet doesn't fall through to the all-covered else branch below.
+        _matches=$(git diff --name-only "$DIFF_SCOPE" -- "$_tok" 2>/dev/null || true)
+        [[ -z "$_matches" ]] && _matches=$(git diff --name-only "$DIFF_SCOPE" 2>/dev/null | awk -v t="$_tok" -F/ '{if ($NF==t) print}' || true)
+      fi
       _mcount=$(echo "$_matches" | grep -c . || true)
       if [[ "$_mcount" -eq 1 ]]; then
         for _gpath in .claude/ docs/ plans/; do

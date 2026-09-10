@@ -167,6 +167,11 @@ disable-model-invocation: false
       ```
       ⚠️ ssot_context.md 不存在 — Codex cross-review 降級為純報告驗證（無架構重審）。
       ```
+    - **輪次二元帳**：Cross-Review 存在兩套獨立輪次計數，回件時 **MUST** 同時標示：
+      - **機械輪次**：`.tmp/cross_review_state/<TICKET_ID>` 之 `CURRENT_ROUND`（腳本自增，producer 明確）
+      - **邏輯輪次**：人工判例帳，SSOT 在 vault（非本檔、非狀態檔）
+      - 回件格式：`R{機械}/L{邏輯}`（例：`R2/L1`）
+      - 二帳不一致時**不自動對齊**，以 vault 邏輯帳為準並於回件註明差異
 
 ## Step 10: Ticket Done 標記
 
@@ -231,6 +236,22 @@ Token 估算基準
 Turns: [N] | Code: ~[M] lines
 Suggestion: [建議]
 Token 估算基準
+```
+
+**未勾項全盤點區塊（強制）**：回報 **MUST** 於上述模板末尾附加本區塊，AC 與 Action Item **雙軌**逐項列舉；全部已勾時**仍須輸出本區塊**並寫「無未勾項」——空區塊之缺席與「忘了寫」無法區辨。每項去向 **MUST** 為以下封閉三值之一，**MUST NOT** 增設「其他」或自由文字選項：
+
+```
+## 未勾項全盤點
+- AC: 無未勾項
+- Action Item: 無未勾項
+```
+
+或有未勾項時：
+
+```
+## 未勾項全盤點
+- AC [項目名稱]: 轉票<票號> / 豁免<理由字面> / 裁決中<待裁者>
+- Action Item [項目名稱]: 轉票<票號> / 豁免<理由字面> / 裁決中<待裁者>
 ```
 
 ## Session 健康度
