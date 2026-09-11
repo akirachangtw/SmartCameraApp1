@@ -6,7 +6,7 @@
 #   bash .claude/hooks/session_start.sh reset   # matcher: startup|clear
 #   bash .claude/hooks/session_start.sh inject  # matcher: resume|compact|fork
 #
-# reset  : 清 tmp/verify_cmd.conf／sv_report.md／handoff.md，輸出 active ticket 三態＋PROGRESS.md 過期提示（若 PROGRESS.md 舊於最後提交）＋PROGRESS.md（≤80 行上界）
+# reset  : 清 tmp/verify_cmd.conf／sv_report.md／handoff.md，輸出 active ticket 三態＋PROGRESS.md 過期提示（僅當該檔無本地未提交變更、且舊於最後提交時）＋PROGRESS.md（≤80 行上界）
 # inject : 不清任何檔，輸出 active ticket 三態＋PROGRESS.md 前 25 行＋續作提醒
 #
 # 恆 exit 0；任何子步驟失敗僅 echo >&2，不阻斷 session 啟動（HC-1）。
@@ -63,10 +63,13 @@ case "$mode" in
     echo "🧹 SessionStart(reset)：tmp/ 預載檔已清"
     report_active_ticket
     if [[ -f .claude/PROGRESS.md ]]; then
-      p_mtime="$(git log -1 --format=%ct -- .claude/PROGRESS.md 2>/dev/null)"
-      last_ct="$(git log -1 --format=%ct 2>/dev/null)"
-      if [[ "$p_mtime" =~ ^[0-9]+$ && "$last_ct" =~ ^[0-9]+$ && "$p_mtime" -lt "$last_ct" ]]; then
-        echo "⚠️ PROGRESS.md 舊於最後提交（可能未 checkpoint）——內容為前次狀態"
+      # 單檔 dirty guard：PROGRESS.md 有本地未提交變更（worktree 或 index）即注入新內容，不得宣告「前次狀態」
+      if [[ -z "$(git status --porcelain -- .claude/PROGRESS.md 2>/dev/null)" ]]; then
+        p_mtime="$(git log -1 --format=%ct -- .claude/PROGRESS.md 2>/dev/null)"
+        last_ct="$(git log -1 --format=%ct 2>/dev/null)"
+        if [[ "$p_mtime" =~ ^[0-9]+$ && "$last_ct" =~ ^[0-9]+$ && "$p_mtime" -lt "$last_ct" ]]; then
+          echo "⚠️ PROGRESS.md 舊於最後提交（可能未 checkpoint）——內容為前次狀態"
+        fi
       fi
       progress_n="$(wc -l < .claude/PROGRESS.md 2>/dev/null | tr -d '[:space:]')"
       if [[ "$progress_n" =~ ^[0-9]+$ && "$progress_n" -gt 80 ]]; then
