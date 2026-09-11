@@ -10,7 +10,7 @@
 | INFRA-PREFLIGHT-CORE-01-FIX-B | ✅ CLOSED（commit `1dfddd4`+`46dd4bb`+`c61c425`）· 票檔已搬 `deliver/` |
 | INFRA-CTAWR-CKPT-TRIGGER-01 | ✅ REVIEW（commit `ad4019d`+`69df4c1`）· `compact/SKILL.md` 新增 §9.5 checkpoint 觸發時機（3條SHOULD）＋`session_start.sh` reset 分支 PROGRESS.md 過期提示；`/qa` PASS，`/sv` Cross-Review R1 **PASS**，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}` |
 
-**Last Updated**: 2026-09-11（Source Session: `e7bf5042-9bdc-4538-b22e-a664de128b6b`｜Context Mode: continue）`INFRA-CTAWR-CKPT-TRIGGER-01` 結案 REVIEW；`compact/SKILL.md` 現行working tree為Rev B部署草稿（Akira 2026-09-11直接授權，尚未commit，非本次checkpoint動作範圍）；`INFRA-STATUS-MANUAL-01` 已VOID歸位完成（`ea1ceef`）
+**Last Updated**: 2026-09-12（Source Session: `e7bf5042-9bdc-4538-b22e-a664de128b6b`｜Context Mode: continue）`INFRA-CTAWR-CKPT-TRIGGER-01` 已補 dirty guard 修正（`44b89b1`）；`compact/SKILL.md` 仍為 Rev B 部署草稿（Akira 授權，尚未 commit，非 checkpoint 動作範圍，待 closeout 或顯式決議）
 
 ## Active Ticket Activation
 
