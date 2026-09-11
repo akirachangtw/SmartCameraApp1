@@ -56,6 +56,8 @@ disable-model-invocation: false
 
 ### 3.2 不變量
 
+- **自產物自提交，不連坐**（Akira 2026-09-12）：本技能自己寫入的檔案（`.claude/PROGRESS.md` 等 Governance Artifact），本技能 **MUST** 自己提交；工作樹上其他來源不明的 dirty 檔 **MUST NOT** 成為不提交自產物的理由——不認識的檔案保留即可，不得因此扣住自己已知的產物。「安全／不安全」不是分界，「自己寫的／別人寫的」才是。
+
 - `.claude/PROGRESS.md` **MUST** 反映當前 active workstream 的最新狀態。
 - handoff 檔案 **MUST NOT** 取代 `.claude/PROGRESS.md` 作為新 session 的第一入口。
 - Archive 只保存歷史，不得覆蓋當前活躍狀態。
