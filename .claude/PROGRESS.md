@@ -10,7 +10,7 @@
 | INFRA-PREFLIGHT-CORE-01-FIX-B | ✅ CLOSED（commit `1dfddd4`+`46dd4bb`+`c61c425`）· 票檔已搬 `deliver/` |
 | INFRA-CTAWR-CKPT-TRIGGER-01 | ✅ REVIEW（commit `ad4019d`+`69df4c1`）· `compact/SKILL.md` 新增 §9.5 checkpoint 觸發時機（3條SHOULD）＋`session_start.sh` reset 分支 PROGRESS.md 過期提示；`/qa` PASS，`/sv` Cross-Review R1 **PASS**，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}` |
 
-**Last Updated**: 2026-09-12（Source Session: `e7bf5042-9bdc-4538-b22e-a664de128b6b`｜Context Mode: continue）`/compact closeout` 執行：session 本輪工作已收束，`compact/SKILL.md` Rev B 部署草稿於冊面收束一致性閘前偵測為未分類 dirty 檔（不在 Governance Artifact 表列），依 §8.2 降為未決、未靜默提交，待下一 session 顯式裁決是否納入該檔異動
+**Last Updated**: 2026-09-12（Source Session: `e7bf5042-9bdc-4538-b22e-a664de128b6b`｜Context Mode: continue）`/compact closeout` 重跑：本輪 session 無新增碼異動，`compact/SKILL.md` Rev B 部署草稿（§3.2「自產物自提交，不連坐」段落）仍為唯一 tracked dirty 檔且不在 Governance Artifact 表列，依 §8.2 續留未決、未靜默提交；冊面收束一致性閘無 deliver/ 或 PROGRESS.md CLOSED 觸發訊號，SKIPPED
 
 ## Active Ticket Activation
 
