@@ -8,9 +8,9 @@
 | INFRA-SV-GOV-01 | ✅ Done（commit `07c77a2`）· AI-0~AI-5 碼閉環：`cross_review.sh` EXCLUDE_ARGS rename 第三優先級解析＋`sv/SKILL.md` 輪次二元帳／未勾項全盤點區塊；AI-1 以真實 git rename commit 隔離測試驗證行為性 AC（非 fixture）· `/qa` PASS，`/sv` Cross-Review R1/L1 **ADVISORY**（註解措辭建議，非阻斷），REACHABILITY: NONE，待 Traycer 終審 |
 | INFRA-CKPT-SEMANTICS-01 | ✅ REVIEW（commit `c167357`+`2e7271a`+`689f6c4`+`0b39db5`+`0092c27`+`e866197`）· `/sv` Cross-Review R1 ADVISORY→R2 REPORT_FIX→R3 **PASS**，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}` |
 | INFRA-PREFLIGHT-CORE-01-FIX-B | ✅ CLOSED（commit `1dfddd4`+`46dd4bb`+`c61c425`）· 票檔已搬 `deliver/` |
-| INFRA-CLAUDE-LONGSESSION-01 | ✅ REVIEW（commit `0129930`+`2bc8a56`+`f2adba0`）· Codex R1 PASS，`reviews={qa/sv/codex:PASS,traycer:N_A}` |
+| INFRA-CTAWR-CKPT-TRIGGER-01 | ✅ REVIEW（commit `ad4019d`+`69df4c1`）· `compact/SKILL.md` 新增 §9.5 checkpoint 觸發時機（3條SHOULD）＋`session_start.sh` reset 分支 PROGRESS.md 過期提示；`/qa` PASS，`/sv` Cross-Review R1 **PASS**，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}` |
 
-**Last Updated**: 2026-09-10T21:10（Source Session: `e7bf5042-9bdc-4538-b22e-a664de128b6b`｜Context Mode: continue）`INFRA-STATUS-MANUAL-01` ⏸️ 待裁：AC「全檔`見下方`＝0」與 L31 既存無關字面衝突；Akira 已指示退回 `git checkout --` 並授權作廢，VOID 歸位待執行
+**Last Updated**: 2026-09-11（Source Session: `e7bf5042-9bdc-4538-b22e-a664de128b6b`｜Context Mode: continue）`INFRA-CTAWR-CKPT-TRIGGER-01` 結案 REVIEW；`compact/SKILL.md` 現行working tree為Rev B部署草稿（Akira 2026-09-11直接授權，尚未commit，非本次checkpoint動作範圍）；`INFRA-STATUS-MANUAL-01` 已VOID歸位完成（`ea1ceef`）
 
 ## Active Ticket Activation
 
