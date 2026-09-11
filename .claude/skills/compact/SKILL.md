@@ -93,11 +93,24 @@ disable-model-invocation: false
   - 可能由另一位人員或 agent 接手；
   - 已累積非 trivial 的決策、blocker、驗證證據；
   - 即將 `/clear` 切換到不相關議題。
-- **MUST** 於 PROGRESS 寫入後建立單檔 commit：先以 `git diff --quiet HEAD -- .claude/PROGRESS.md` 判定有無變更，**有變更**才執行 `git commit -o -m "[COMPACT-SYNC] .claude/PROGRESS.md checkpoint：<一句話摘要>" -- .claude/PROGRESS.md`。
-  - `-o`（`--only`）為 pathspec 模式：**只提交該路徑之工作樹內容，忽略 index 中其他已 stage 內容**，故無須另設 staged-contamination guard，亦不夾帶任何其他檔案。
-  - **MUST NOT** 使用 `git add -A`／`git add .`／無 pathspec 之 `git commit`。
-  - **失敗一律降級不阻斷**：非 git 目錄、identity 缺失、hook 拒絕、無變更等任一情形 → 輸出 `⚠️ checkpoint commit 略過：<原因>`，**MUST** 保留已寫入之 PROGRESS 內容，**MUST NOT** rollback、**MUST NOT** 阻斷 checkpoint 或後續 `/clear`。
-  - commit prefix 依 `.claude/rules/ssot-governance.md`「Governance Artifact 清單」表（`.claude/PROGRESS.md` → `[COMPACT-SYNC]`），**MUST NOT** 自創前綴。
+- **MUST** 於 PROGRESS 寫入後執行「當前票 artifacts ＋ PROGRESS」兩段式 scoped commit（Akira 2026-09-12 裁決；取代原單檔 PROGRESS-only 版本。目的：解 QASV 清場——`verify_checklist.sh` 未指定 `DIFF_END` 時以 `git diff --name-only "$DIFF_REF"` 計算 changed paths，含工作樹未提交異動，故前票殘留會被判為次票 scope 汙染）：
+
+  **第一段——當前票 artifacts**（來源 `tmp/verify_cmd.conf`，**MUST NOT** 另立歸屬來源、**MUST NOT** 以 manifest／session ID／目錄掃描推定）：
+  1. 該檔不存在、或缺 `TICKET_ID`／`ALLOWED` → **跳過本段**（不視為失敗），逕行第二段。
+  2. 候選 ＝ `ALLOWED` 各路徑（逗號切分，含 glob 展開）∩ `git status --porcelain` 之 **tracked dirty**（`??` untracked 一律排除，除非該路徑為下一項之票檔）。
+  3. 補入該票票檔：`plans/cso_briefing/project/{Pending,deliver,void}/<TICKET_ID>_*.md` 命中者（含新增）。
+  4. 候選為空 → 跳過本段。非空 → `git commit -o -m "[<TICKET_ID>] <一句話用途>" -- <候選路徑…>`。
+  5. commit 前綴 **MUST** 為 `[<TICKET_ID>]` 單票字面——TPL v3.8 三分流 R2 以 `BASE_COMMIT..HEAD` 之 commit **前綴**歸因（`ALREADY_EXECUTED`／`CANDIDATE_SUPERSEDED`），多票合一或 `[COMPACT-SYNC]` 提交程式碼即使 R2 失效。**MUST NOT** 於單筆 commit 合併多張票之 artifacts。
+
+  **第二段——PROGRESS**：`git diff --quiet HEAD -- .claude/PROGRESS.md` 判定有無變更，**有變更**才 `git commit -o -m "[COMPACT-SYNC] .claude/PROGRESS.md checkpoint：<一句話摘要>" -- .claude/PROGRESS.md`。
+
+  **兩段共同約束**：
+  - `-o`（`--only`）為 pathspec 模式：**只提交所列路徑之工作樹內容，忽略 index 中其他已 stage 內容**，故無須 staged-contamination guard，亦不夾帶任何其他檔案。
+  - **MUST NOT** 使用 `git add -A`／`git add .`／`git commit -a`／無 pathspec 之 `git commit`。
+  - **無關 dirty paths MUST 保留**：不在候選集合者一律留於工作樹，**MUST NOT** 因其存在而跳過任一段 commit（§3.2 不連坐律）。結尾 **SHOULD** 輸出一行 `⏸️ 保留 N 檔（未歸屬本票）：<路徑>`。
+  - **失敗一律降級不阻斷**：非 git 目錄、identity 缺失、hook 拒絕、無變更等任一情形 → 輸出 `⚠️ checkpoint commit 略過：<段別>／<原因>`，**MUST** 保留已寫入之 PROGRESS 與所有工作樹內容，**MUST NOT** rollback、**MUST NOT** 阻斷 checkpoint 或後續 `/clear`。第一段失敗 **MUST NOT** 阻斷第二段。
+  - PROGRESS 之 commit prefix 依 `.claude/rules/ssot-governance.md`「Governance Artifact 清單」表（`.claude/PROGRESS.md` → `[COMPACT-SYNC]`），**MUST NOT** 自創前綴。
+  - **MUST NOT** 於 `.claude/PROGRESS.md` 建立 `Session Artifacts:` 或任何等價之 session ticket 集合行；**MUST NOT** 新增 JSON／SQLite／cache／sidecar／lock 等第二狀態載體（Akira 2026-09-12 明示否決）。
 - **MAY** 執行非破壞性的 housekeeping，例如 Archive 歷史 handoff（見 §7），但不得影響 `.claude/PROGRESS.md` 的現況可讀性。
 - **MUST** 在完成上述動作後直接結束，**MUST NOT** 到達本檔「冊面收束一致性閘」與「Auto Commit: Governance Artifacts」二節之邏輯。
 
