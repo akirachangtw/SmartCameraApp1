@@ -276,6 +276,12 @@ Do not preserve:
 - superseded assumptions
 ```
 
+## 9.5 checkpoint 觸發時機
+
+1. 執行原生 `/clear` 前 **SHOULD** 先跑 `checkpoint` 模式——`/clear` 後 SessionStart `reset` 會注入 `.claude/PROGRESS.md`，未先 checkpoint 則注入內容為前次狀態。
+2. 於同一 session 內切換到不相關議題前 **SHOULD** 先跑 `checkpoint` 模式。
+3. 票 closeout 前 **SHOULD** 跑 `closeout` 模式（已由 §4.3 規範，本條僅作時機索引，不重複其行為規格）。
+
 ## 10. 操作流程
 
 ### 10.1 同一議題、同一 session
