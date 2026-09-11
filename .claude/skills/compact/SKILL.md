@@ -32,7 +32,7 @@ disable-model-invocation: false
 - **不是** Claude Code `/compact` 的替代品；session context 壓縮仍由原生命令處理。
 - **不是** Claude Code `/resume` 的替代品；既有 session 的恢復仍以原生 session 機制為優先。
 - **不是** project memory 的唯一儲存位置；長期規則、架構不變量與 compact 保留偏好應放在 `CLAUDE.md`。
-- **不是**預設自動提交工具；Git stage / commit / ticket lifecycle 改動屬 delivery governance，必須顯式觸發。
+- **不是**全樹自動提交工具；`git add -A`／`git add .`／跨檔 stage、ticket lifecycle 改動屬 delivery governance，必須顯式觸發。**例外（Akira 2026-09-11 免票直接授權）**：`checkpoint` 模式對 `.claude/PROGRESS.md` 之單檔 pathspec commit 不屬 delivery governance——標的為本技能自身核心產物，不觸碰任何 app／ticket／設定檔，故預設自動執行（見 §4.2）。
 
 ## 2. 原生 session 原則
 
@@ -91,7 +91,11 @@ disable-model-invocation: false
   - 可能由另一位人員或 agent 接手；
   - 已累積非 trivial 的決策、blocker、驗證證據；
   - 即將 `/clear` 切換到不相關議題。
-- **MUST NOT** 預設進行 Git commit。
+- **MUST** 於 PROGRESS 寫入後建立單檔 commit：先以 `git diff --quiet HEAD -- .claude/PROGRESS.md` 判定有無變更，**有變更**才執行 `git commit -o -m "[COMPACT-SYNC] .claude/PROGRESS.md checkpoint：<一句話摘要>" -- .claude/PROGRESS.md`。
+  - `-o`（`--only`）為 pathspec 模式：**只提交該路徑之工作樹內容，忽略 index 中其他已 stage 內容**，故無須另設 staged-contamination guard，亦不夾帶任何其他檔案。
+  - **MUST NOT** 使用 `git add -A`／`git add .`／無 pathspec 之 `git commit`。
+  - **失敗一律降級不阻斷**：非 git 目錄、identity 缺失、hook 拒絕、無變更等任一情形 → 輸出 `⚠️ checkpoint commit 略過：<原因>`，**MUST** 保留已寫入之 PROGRESS 內容，**MUST NOT** rollback、**MUST NOT** 阻斷 checkpoint 或後續 `/clear`。
+  - commit prefix 依 `.claude/rules/ssot-governance.md`「Governance Artifact 清單」表（`.claude/PROGRESS.md` → `[COMPACT-SYNC]`），**MUST NOT** 自創前綴。
 - **MAY** 執行非破壞性的 housekeeping，例如 Archive 歷史 handoff（見 §7），但不得影響 `.claude/PROGRESS.md` 的現況可讀性。
 - **MUST** 在完成上述動作後直接結束，**MUST NOT** 到達本檔「冊面收束一致性閘」與「Auto Commit: Governance Artifacts」二節之邏輯。
 
@@ -239,7 +243,7 @@ Get-ChildItem -Path $root -File -Filter 'SESSION_HANDOFF_*.md' |
 
 ### 8.1 預設原則
 
-- `brief` 與 `checkpoint` 模式 **MUST NOT** 自動執行 `git add -A`、`git add .`、`git commit`。
+- `brief` 與 `checkpoint` 模式 **MUST NOT** 自動執行 `git add -A`、`git add .` 或無 pathspec 之 `git commit`。`checkpoint` 之 `.claude/PROGRESS.md` 單檔 pathspec commit（`git commit -o -- .claude/PROGRESS.md`）為本條唯一例外，見 §4.2。
 - 任何 Git stage / commit 都 **MUST** 屬於顯式的 `closeout` 或 delivery 流程。
 - `.claude/PROGRESS.md` 更新不等於自動同意提交。
 
@@ -311,7 +315,7 @@ Do not preserve:
 - `.claude/PROGRESS.md` 成為新 session 的第一入口。
 - 每次 `checkpoint` 與 `closeout` 都確實回存執行進度到 `.claude/PROGRESS.md`。
 - handoff 檔只在需要 durable handoff 時建立，不再與原生 `/compact` 綁死。
-- 預設流程不自動進行 Git commit。
+- 預設流程除 `checkpoint` 之 `.claude/PROGRESS.md` 單檔 pathspec commit（§4.2）外，不自動進行 Git commit。
 - 歷史 handoff 可 Archive，但不得破壞目前 workstream 的可讀性。
 
 ## 冊面收束一致性閘
@@ -343,10 +347,10 @@ Do not preserve:
 
 **MUST** 在 Housekeeping 完成、確認訊息輸出**之前**執行。Governance Artifact 清單（檔案路徑 + commit prefix）**MUST** 以 `.claude/rules/ssot-governance.md` 「Governance Artifact 清單」表為單一真相來源，**MUST NOT** 在本檔重複硬編碼清單內容——新增/異動 Governance Artifact 一律改該表，本步驟只讀表逐檔迴圈。
 
-1. **Scope 汙染確認**：`git status --short`，若有 tracked dirty 檔案**不在**上述表列中 → **MUST** 停止，回報 `⛔ Auto Commit BLOCKED: Scope 汙染 [檔案清單]`，**不執行任何 commit**（含表列檔案）。
+1. **Scope 盤點**：`git status --short`，tracked dirty 檔案**不在**上述表列中者 → **保留於工作樹、不納入本輪任何 commit**，於狀態行輸出 `⏸️ Auto Commit 保留 N 檔（非 Governance Artifact）：[檔案清單]`；表列檔案**照常逐檔提交**（步驟 2 之 `git commit -o` 為 pathspec 提交，不會夾帶保留檔，故保留即安全，無須阻斷）。**MUST NOT** 因保留檔存在而跳過表列檔案之 commit。〔Akira 2026-09-12 免票裁決，取代原「Scope 汙染 → BLOCKED 不執行任何 commit」：正向取證＝2026-09-12 00:03 closeout 因 `compact/SKILL.md` 一檔 dirty 而連 PROGRESS.md 都未提交〕
 2. **逐檔獨立提交**（表列每一行各自執行以下判定，互不阻擋）：
    - **零 diff 判定**：`git status --short -- <檔案>` 輸出為空 → 判定 SKIPPED，回報 `⚪ Auto Commit SKIPPED（<檔案> 無異動）`，**不執行 commit**，**MUST NOT** 使用 `git commit --allow-empty`。
-   - **Commit**：`git add <檔案>` → `git commit -m "<Prefix> <檔案> Dashboard/Registry 同步：/compact 交接"`（**SHOULD** 加 `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` trailer）。同 Prefix 之多檔（如 PROGRESS.md + PROGRESS_ARCHIVE.md 同時異動）**MAY** 合併為單一 commit。Commit 失敗 → **MUST** 回報 `⛔ Auto Commit FAILED: [檔案]`，不得靜默吞錯。
+   - **Commit**：`git commit -o <檔案> -m "<Prefix> <檔案> Dashboard/Registry 同步：/compact 交接"`（**SHOULD** 加 `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` trailer）。同 Prefix 之多檔（如 PROGRESS.md + PROGRESS_ARCHIVE.md 同時異動）**MAY** 合併為單一 commit。Commit 失敗 → **MUST** 回報 `⛔ Auto Commit FAILED: [檔案]`，不得靜默吞錯。
 
 **SHOULD** 完成後輸出以下確認訊息（必須包含實際檔案路徑），並於末尾附加逐檔 Auto Commit 狀態行：
 「交接文件已儲存至 docs/session_handoff/SESSION_HANDOFF_<實際時間戳>.md，PROGRESS.md 已同步更新。Housekeeping 已完成：docs/session_handoff/ 僅保留當天 handoff，過期檔已移至 docs/session_handoff/Archive/。建議：開新對話 → 貼入 Dashboard 段 → 按需展開細節。」
