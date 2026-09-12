@@ -8,9 +8,10 @@
 | INFRA-SV-GOV-01 | ✅ Done（commit `07c77a2`）· AI-0~AI-5 碼閉環：`cross_review.sh` EXCLUDE_ARGS rename 第三優先級解析＋`sv/SKILL.md` 輪次二元帳／未勾項全盤點區塊；AI-1 以真實 git rename commit 隔離測試驗證行為性 AC（非 fixture）· `/qa` PASS，`/sv` Cross-Review R1/L1 **ADVISORY**（註解措辭建議，非阻斷），REACHABILITY: NONE，待 Traycer 終審 |
 | INFRA-CKPT-SEMANTICS-01 | ✅ REVIEW（commit `c167357`+`2e7271a`+`689f6c4`+`0b39db5`+`0092c27`+`e866197`）· `/sv` Cross-Review R1 ADVISORY→R2 REPORT_FIX→R3 **PASS**，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}` |
 | INFRA-PREFLIGHT-CORE-01-FIX-B | ✅ CLOSED（commit `1dfddd4`+`46dd4bb`+`c61c425`）· 票檔已搬 `deliver/` |
-| INFRA-CTAWR-CKPT-TRIGGER-01 | ✅ REVIEW（commit `ad4019d`+`69df4c1`）· `compact/SKILL.md` 新增 §9.5 checkpoint 觸發時機（3條SHOULD）＋`session_start.sh` reset 分支 PROGRESS.md 過期提示；`/qa` PASS，`/sv` Cross-Review R1 **PASS**，`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}` |
+| INFRA-CTAWR-CKPT-TRIGGER-01 | ✅ CLOSED（commit `ad4019d`+`69df4c1`+`df60fa3`+`7ef8f5c`+`f9e19bf`）· `compact/SKILL.md` 四輪免票修訂（§9.5 checkpoint 觸發時機＋§3.2 自產物自提交不連坐＋§4.2 兩段式 scoped commit）＋`session_start.sh` dirty guard；`/qa` PASS，`/sv` Cross-Review R1 **PASS**，Addendum 補四輪修訂併入記錄，lifecycle→CLOSED |
+| RGR-P0A-01 | 🟡 WIP（commit `4af7260`）· `.claude/skills/ticket-rigor-gate/runner/repair_runner.sh` 新增 `blocker_preflight()`：Codex 呼叫前機械攔截三 reason（`ANCHOR_MISSING_OR_UNREADABLE`／`WRITE_MODE_FORBIDDEN`／`IRREVERSIBLE_TARGET_DENIED`）＋ blocker receipt／report 索引；AI-0~AI-2 完成（no-call fixture `fixtures/run_no_call_tests.sh` 5/5 PASS），**AI-3 STOP**：true-call 組對真實 `codex.cmd` 實跑，API 回 `400 invalid_json_schema`（`schemas/ticket-repair-response.v1.json` 缺 `additionalProperties:false`，該檔本票 FORBIDDEN 禁改），停止回報待 CSO 裁決承接票 |
 
-**Last Updated**: 2026-09-12（Source Session: `e7bf5042-9bdc-4538-b22e-a664de128b6b`｜Context Mode: continue）`/compact closeout` 重跑：本輪 session 無新增碼異動，`compact/SKILL.md` Rev B 部署草稿（§3.2「自產物自提交，不連坐」段落）仍為唯一 tracked dirty 檔且不在 Governance Artifact 表列，依 §8.2 續留未決、未靜默提交；冊面收束一致性閘無 deliver/ 或 PROGRESS.md CLOSED 觸發訊號，SKIPPED
+**Last Updated**: 2026-09-12（Source Session: `e7bf5042-9bdc-4538-b22e-a664de128b6b`｜Context Mode: continue）`/compact checkpoint`：RGR-P0A-01 AI-0~AI-2 落地＋no-call fixture 全綠，AI-3 因 FORBIDDEN 檔（schemas/）根因之 API 400 STOP，未結案；`.claude/skills/ticket-rigor-gate/runner/fixtures/`（新增，untracked）依 §4.2 候選規則排除於本次 scoped commit（untracked 非票檔不入候選），續留工作樹
 
 ## Active Ticket Activation
 
