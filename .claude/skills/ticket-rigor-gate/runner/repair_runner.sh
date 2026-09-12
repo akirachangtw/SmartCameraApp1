@@ -302,6 +302,114 @@ circuit_breaker_precheck() {
 }
 
 # ═══════════════════════════════════════
+#  Blocker Preflight（機械可指認 reason，Codex 呼叫前，run 級停止）
+# ═══════════════════════════════════════
+
+IRREVERSIBLE_TARGET_PATTERNS=("app/src/*" "*.gradle*" "gradle/*" ".github/*" "*migration*/*")
+
+declare -a BP_HIT_REASON=() BP_HIT_SOURCE=() BP_HIT_READ=() BP_HIT_MATCH=()
+
+write_blocker_receipt() {
+  local receipt_path="$ARTIFACTS_DIR/blocker-receipt.v1.json"
+  local reasons_ndjson="" resume_ndjson="" status="CHECKPOINT_REQUIRED" i resume
+
+  if [[ "${#BP_HIT_REASON[@]}" -eq 1 && "${BP_HIT_REASON[0]}" == "ANCHOR_MISSING_OR_UNREADABLE" ]]; then
+    status="PENDING_EVIDENCE"
+  fi
+
+  for i in "${!BP_HIT_REASON[@]}"; do
+    case "${BP_HIT_REASON[$i]}" in
+      ANCHOR_MISSING_OR_UNREADABLE) resume="確認 evidence[].path 存在且可讀後重跑" ;;
+      WRITE_MODE_FORBIDDEN) resume="確認 target.write_mode 為 addendum_only 後重跑" ;;
+      IRREVERSIBLE_TARGET_DENIED) resume="人工核准或改指非不可逆路徑後重跑" ;;
+      *) resume="人工核驗後重跑" ;;
+    esac
+    reasons_ndjson+="$(jq -nc --arg reason "${BP_HIT_REASON[$i]}" --arg fid "$CURRENT_FINDING_ID" \
+      --arg source "${BP_HIT_SOURCE[$i]}" --arg read_result "${BP_HIT_READ[$i]}" --arg match_result "${BP_HIT_MATCH[$i]}" \
+      '{reason:$reason, finding_id:$fid, producer_evidence:{source:$source, read_result:$read_result, match_result:$match_result}}')"$'\n'
+    resume_ndjson+="$(jq -nc --arg r "$resume" '$r')"$'\n'
+  done
+
+  jq -n \
+    --arg schema_version "blocker-receipt/v1" \
+    --arg ticket_id "$TICKET_ID" \
+    --arg source_run_id "$SOURCE_RUN_ID" \
+    --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg status "$status" \
+    --argjson reasons "$(printf '%s' "$reasons_ndjson" | jq -sc '.')" \
+    --argjson resume_condition "$(printf '%s' "$resume_ndjson" | jq -sc '.')" \
+    '{
+      schema_version: $schema_version,
+      ticket_id: $ticket_id,
+      source_run_id: $source_run_id,
+      created_at: $created_at,
+      status: $status,
+      reasons: $reasons,
+      automation_boundary: {
+        model_invoked: false,
+        prompt_rendered: false,
+        patch_attempted: false,
+        target_mutated: false,
+        external_side_effect: false,
+        final_pass_claimed: false
+      },
+      resume_condition: $resume_condition
+    }' > "$receipt_path"
+
+  for i in "${!BP_HIT_REASON[@]}"; do
+    append_report_entry "$CURRENT_FINDING_ID" "n/a" "escalated" "n/a" \
+      "P0A_PRECHECK_REASON=${BP_HIT_REASON[$i]}; BLOCKER_RECEIPT=blocker-receipt.v1.json; MODEL_INVOKED=false"
+  done
+}
+
+blocker_preflight() {
+  local payload="$1"
+  BP_HIT_REASON=(); BP_HIT_SOURCE=(); BP_HIT_READ=(); BP_HIT_MATCH=()
+
+  local ev_path
+  while IFS= read -r ev_path; do
+    ev_path="${ev_path%$'\r'}"
+    [[ -n "$ev_path" ]] || continue
+    if [[ ! -r "$ev_path" ]]; then
+      BP_HIT_REASON+=("ANCHOR_MISSING_OR_UNREADABLE")
+      BP_HIT_SOURCE+=("evidence[].path")
+      BP_HIT_READ+=("$ev_path")
+      BP_HIT_MATCH+=("not_readable_or_missing")
+    fi
+  done < <(jq -r '(.evidence // [])[].path' "$payload")
+
+  local write_mode
+  write_mode="$(jq -r '.target.write_mode' "$payload")"
+  if [[ "$write_mode" != "addendum_only" ]]; then
+    BP_HIT_REASON+=("WRITE_MODE_FORBIDDEN")
+    BP_HIT_SOURCE+=("target.write_mode")
+    BP_HIT_READ+=("$write_mode")
+    BP_HIT_MATCH+=("expected_addendum_only")
+  fi
+
+  local target_file pattern irreversible_hit="false" matched_pattern=""
+  target_file="$(jq -r '.target.file_path' "$payload")"
+  for pattern in "${IRREVERSIBLE_TARGET_PATTERNS[@]}"; do
+    if [[ "$target_file" == $pattern ]]; then
+      irreversible_hit="true"
+      matched_pattern="$pattern"
+      break
+    fi
+  done
+  if [[ "$irreversible_hit" == "true" ]]; then
+    BP_HIT_REASON+=("IRREVERSIBLE_TARGET_DENIED")
+    BP_HIT_SOURCE+=("target.file_path")
+    BP_HIT_READ+=("$target_file")
+    BP_HIT_MATCH+=("$matched_pattern")
+  fi
+
+  [[ "${#BP_HIT_REASON[@]}" -eq 0 ]] && return 0
+
+  write_blocker_receipt
+  return 1
+}
+
+# ═══════════════════════════════════════
 #  Prompt 組裝（版本化模板，禁人工即席 prompt）
 # ═══════════════════════════════════════
 
@@ -566,6 +674,10 @@ cp "$PAYLOAD_PATH" "$ARTIFACTS_DIR/input_payload.json"
 
 CURRENT_FINDING_ID="$(jq -r '.finding_ids[0]' "$PAYLOAD_PATH")"
 if ! circuit_breaker_precheck; then
+  exit 1
+fi
+
+if ! blocker_preflight "$PAYLOAD_PATH"; then
   exit 1
 fi
 
