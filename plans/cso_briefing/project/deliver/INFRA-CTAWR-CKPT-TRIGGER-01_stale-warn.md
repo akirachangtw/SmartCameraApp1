@@ -100,3 +100,36 @@ DEPENDENCY_DELTA=NONE
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案 —— 實測：`git status --short` 僅 `compact/SKILL.md`／`session_start.sh` 兩檔
 
 **End of INFRA-CTAWR-CKPT-TRIGGER-01**
+
+## Addendum — 免票修訂併入記錄（2026-09-12，SKAD）
+
+**性質聲明（誠實優先）**：以下四輪修訂**不屬**本票原 AI-1／AI-2 之標的語義，係 Traycer T1 回流與 Akira 連續裁決所生之新增範圍。因其標的路徑均落於本票 `ALLOWED`（`.claude/skills/compact/SKILL.md`、`.claude/hooks/session_start.sh`），且承接同一失效脈絡（checkpoint 與 `/clear` 之間的 durable state 可信度），依 Akira 2026-09-12 指示併入本票收束，**不另開票**。原 AC 9/9 之驗收範圍僅涵蓋 `ad4019d`，不涵蓋本 Addendum 所列異動——此為已知且接受之驗收邊界。
+
+### 併入之異動
+
+| # | commit | 內容 | 授權 |
+|---|--------|------|------|
+| 1 | `44b89b1`（09-11 23:59） | `session_start.sh` reset 分支加單檔 dirty guard：`git status --porcelain -- .claude/PROGRESS.md` 非空即不輸出過期提示；檔頭 Usage 同步 | Traycer T2 回流採納（Akira 2026-09-11） |
+| 2 | `a494b0e`（09-12 00:07） | `compact/SKILL.md` §1.2／§4.2／§8.1／§9：checkpoint 由「MUST NOT 預設 commit」改為 **MUST** 以 `git commit -o` 建立單檔 commit；Auto Commit 步驟 1 由「Scope 汙染 → BLOCKED 不執行任何 commit」改為「保留該檔、表列檔照提」，步驟 2 改 `git commit -o` | Akira 2026-09-11 免票直接授權 |
+| 3 | `df60fa3`（09-12 00:12） | `compact/SKILL.md` §3.2 新增不變量「自產物自提交，不連坐」——分界為「自己寫的／別人寫的」，非「安全／不安全」 | Akira 2026-09-12 |
+| 4 | `7ef8f5c`（09-12 00:41） | `compact/SKILL.md` §4.2 擴為兩段式：第一段當前票 artifacts（來源 `tmp/verify_cmd.conf` 之 `TICKET_ID`／`ALLOWED` ∩ tracked dirty ＋ 票檔），前綴 `[<TICKET_ID>]`；第二段 PROGRESS，前綴 `[COMPACT-SYNC]`。條文內明文禁止 `Session Artifacts:` manifest、多票合一 commit 與任何第二狀態載體 | Akira 2026-09-12 裁決（採納 1／否決 2、3／確認 4 已落地） |
+
+### 立法理由（供三個月後零上下文讀者）
+
+1. **T1 Approach Drift 之根因**：原 stale 判定僅比對 commit time，而 checkpoint 規格當時明令不 commit，故正常成功路徑必產生假陽性。異動 1 治 consumer 端真值（檔案有本地修改時不得宣稱「內容為前次狀態」）；異動 2 治 producer 端（checkpoint 留下 durable snapshot，使 commit-time proxy 重獲合理資料來源）。二者互補，非二擇一。
+2. **連坐之正向取證**：2026-09-12 00:03 `/compact closeout` 因 `compact/SKILL.md` 一檔 dirty 而回報 `⛔ Auto Commit BLOCKED: Scope 汙染`，連 skill 自己剛寫入的 `.claude/PROGRESS.md` 都未提交。`git commit -o` 使夾帶於原語層不可能發生，阻斷因而失去存在理由。
+3. **兩段式之立法目的**：`verify_checklist.sh` L324 未指定 `DIFF_END` 時以 `git diff --name-only "$DIFF_REF"` 計 changed paths，**含工作樹未提交異動**，故前票殘留必被判為次票 scope 汙染——此為長期須手動貼提交指令之機械根因。逐票清場即解。
+4. **單票前綴為硬約束**：TPL v3.8 三分流 R2 以 commit **前綴**歸因（`ALREADY_EXECUTED`／`CANDIDATE_SUPERSEDED`），多票合一或以 `[COMPACT-SYNC]` 提交程式碼即使 R2 失效。此為否決 session artifact-set manifest 路線之技術硬理由，非偏好。
+
+### 未驗項（明示留白）
+
+- `session_start.sh` dirty guard 八象限實測未跑：①修改未 staged ②已 staged ③clean 且 stale ④clean 且 equal ⑤他檔 dirty／PROGRESS clean 且 stale（驗單檔 guard 未被他檔壓掉）⑥非 git ⑦`inject` 逐行不變 ⑧輸出序。原 `ad4019d` 已驗 ③④⑥⑦⑧ 之等價案，新增未驗者為 ①②⑤。
+- §4.2 兩段式首次實跑未驗：需確認第一段產出 `[<TICKET_ID>]` 單票 commit 且 `git show --stat` 僅含該票 `ALLOWED` ∩ dirty ＋ 票檔。
+- 二者依 Akira 2026-09-11 既定處置：遇實作過程發生問題再開 `INFRA-CTAWR-*` 修補票，不阻斷本票收束。
+
+### 決策歸檔指標
+
+vault：`wiki/decisions/SKAD/2026-09-12_Compact_Checkpoint_Scoped_AutoCommit.md`（含五條 Key Decisions 之理由、否決方案與翻盤條件，四條 KAIROS 候選教訓）；圖譜：`Compact_Checkpoint_Scoped_AutoCommit`（decision）— `applies-to` → `SmartCameraApp1`。
+交接：`Skill-Advisor/Handoff/HANDOFF_2026-09-12-0041_compact-checkpoint-autocommit.md`。
+
+**收束**：lifecycle → `CLOSED`（2026-09-12，Akira 明示「補充後進行審查收束」）。工作樹於收束當刻為 clean（`git status` 空輸出，aud_20260911_7094dca17c），四筆異動均掛 `[INFRA-CTAWR-CKPT-TRIGGER-01]` 前綴，R2 歸因成立。
