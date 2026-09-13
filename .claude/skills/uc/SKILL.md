@@ -87,6 +87,8 @@ disable-model-invocation: false
 ## Phase 0：Ticket Activation（帶參數呼叫時）
 
 1. `$ARGUMENTS` 非空 → **MUST** 先執行 `bash .claude/scripts/activate_ticket.sh "$ARGUMENTS"`；非零 exit → 回報 `⛔ UC Activation STOPPED: <腳本 stderr 首行>` 並**不進入臥底模式**。
+1a. activation 成功（exit 0）→ 輸出「進入確認」句後 **MUST 立即自動接續**，**MUST NOT** 停下等待使用者：(i) 讀取腳本 `📄` 行所示票檔全文；(ii) 自票面 AI-0 起依序執行，進入既有 Auto-Chain（規則 8／9）。「進入確認」句為臥底模式之起點，非終點。
+1b. `$ARGUMENTS` 中票號 token 以外之文字 → 視為本次執行之**附帶指示**（如 Rev 收窄、限定 AI 範圍、補充判準），與票面一併納入：附帶指示得**限縮或補充**票面 AI 之範圍，**MUST NOT** 擴張至 `ALLOWED` 之外、**MUST NOT** 覆蓋 Hard Constraints。附帶指示與票面衝突且無法以限縮解讀者 → 回報 `⚠️ SSOT 衝突` 停止。
 2. `$ARGUMENTS` 為空 → **MUST** 維持現行行為（直接進入臥底模式，`tmp/verify_cmd.conf` 沿用現況），MUST NOT 因缺參數報錯。
 3. 本節 **MUST** 早於輸出規則 8 之 `TICKET_ID` 讀取；activation 成功後該讀取之來源即為本節重生成之 conf。
 
