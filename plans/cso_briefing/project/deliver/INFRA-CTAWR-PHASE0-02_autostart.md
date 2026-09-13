@@ -116,3 +116,14 @@ TICKET_ID_ARG="$1"
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案
 
 **End of INFRA-CTAWR-PHASE0-02**
+
+## Addendum
+
+**收束裁決（2026-09-13，Akira，SKAD 落冊）**：轉 `CLOSED`。
+
+1. **條 1a 明示裁決**：Akira 2026-09-13 逐字裁決「activation 成功後自動開工」。票面「檔案治理／來源說明」節所預留之作廢路徑（改為 `📄 已載入，等待指示`）**廢止**，1a 為定案語義。
+2. **兩項未勾 AC 之處置（誠實留白，不偽勾）**：
+   - L113 `[行為性]` `tmp/verify/` 不可寫 fail-open：執行端第一手取證 Windows／git-bash 下 `chmod 555` 對 NTFS 目錄不生效，無法模擬唯讀；程式碼路徑（`mv -f … 2>/dev/null || echo ⚠️ … >&2`，exit 0 不受影響）與 `verify_checklist.sh` L73／L76 既有 `write_active_json` fail-open 同構，未實測。**補驗途徑（不需唯讀掛載）**：以 regular file 佔位 `tmp/verify`（`mv tmp/verify tmp/verify.bak && touch tmp/verify`）使 `${dest}.tmp.$$` 寫入因 `Not a directory` 失敗，即可觸發同一 fail-open 分支；測後還原。留待下次順手驗。
+   - L114 `[實機]` VSCode 冷啟自動接續：本輪為同一 UC session 內連續呼叫，非獨立 `/uc <TICKET>` 冷啟；1a 之「進場確認句後未經使用者輸入即讀票、執行 AI-0」需下次 session 首次 `/uc` 驗證。**此為下次 session 第一個 `/uc` 的自然副產品**，不需另排測試；結果以 Addendum 追加本檔。
+3. **Rev 歷程冊面補記**：Rev A.1（`@` 路徑拼法、HC-6、三條 AC）與 Rev A.2（`active.json` 同步、多 ID 首個為準＋提示行、`resolve`／`stat` 字面）於派工前落票面，冊面 `notes` 停在 Rev A.0——本 Addendum 為冊面側之補記載體（`checkpoint` 於轉終態時依平台語義清空）。
+4. **閉環確認**：兩起 `/uc` 停止事件（長文參數 exit 3、成功後停於進場確認句）均由 commits `04a29cc`／`5914562`／`8c2e6dc` 修復；`active.json` 與 `tmp/verify_cmd.conf` 不同步（PERTICKET 線事件）由 AI-1 條 5a 併入解決。後續遇問題依既定處置開 `INFRA-CTAWR-*` 修補票，不重開本票。
