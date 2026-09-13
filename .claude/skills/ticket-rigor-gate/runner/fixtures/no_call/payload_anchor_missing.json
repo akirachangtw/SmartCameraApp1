@@ -1,0 +1,33 @@
+{
+  "schema_version": "ticket-repair-payload/v1",
+  "ticket_id": "RGR-P0A-01-FIXTURE",
+  "source_run_id": "nocall-anchor-missing",
+  "finding_ids": ["F-ANCHOR-1"],
+  "target": {
+    "file_path": ".claude/skills/ticket-rigor-gate/runner/fixtures/sandbox/target_placeholder.md",
+    "write_mode": "addendum_only"
+  },
+  "findings": [
+    {
+      "finding_id": "F-ANCHOR-1",
+      "class": "fact-error",
+      "severity": "Minor",
+      "decisionness": "fact-layer",
+      "summary": "fixture: evidence path 不存在",
+      "repair_eligibility": "eligible"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "E-1",
+      "path": ".claude/skills/ticket-rigor-gate/runner/fixtures/sandbox/DOES_NOT_EXIST.md",
+      "claim": "fixture placeholder"
+    }
+  ],
+  "constraints": {
+    "max_changed_lines": 10
+  },
+  "quality_report": {
+    "report_path": ".claude/skills/ticket-rigor-gate/runner/fixtures/sandbox/reports/anchor_missing.report.md"
+  }
+}

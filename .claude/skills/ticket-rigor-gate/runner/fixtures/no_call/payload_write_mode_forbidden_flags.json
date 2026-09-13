@@ -1,0 +1,35 @@
+{
+  "schema_version": "ticket-repair-payload/v1",
+  "ticket_id": "RGR-P0A-01-FIXTURE",
+  "source_run_id": "nocall-write-mode-forbidden-flags",
+  "finding_ids": ["F-WRITEMODE-FLAGS-1"],
+  "target": {
+    "file_path": ".claude/skills/ticket-rigor-gate/runner/fixtures/sandbox/target_placeholder.md",
+    "write_mode": "full_rewrite"
+  },
+  "findings": [
+    {
+      "finding_id": "F-WRITEMODE-FLAGS-1",
+      "class": "fact-error",
+      "severity": "Minor",
+      "decisionness": "fact-layer",
+      "summary": "fixture: allow_scope_expansion/allow_decision_making 不得作放行權",
+      "repair_eligibility": "eligible"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "E-1",
+      "path": ".claude/skills/ticket-rigor-gate/runner/fixtures/sandbox/evidence_ok.md",
+      "claim": "fixture placeholder"
+    }
+  ],
+  "constraints": {
+    "max_changed_lines": 10,
+    "allow_scope_expansion": true,
+    "allow_decision_making": true
+  },
+  "quality_report": {
+    "report_path": ".claude/skills/ticket-rigor-gate/runner/fixtures/sandbox/reports/write_mode_forbidden_flags.report.md"
+  }
+}
