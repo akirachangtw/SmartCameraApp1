@@ -2,15 +2,17 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "ticket-repair-response/v1",
   "type": "object",
+  "additionalProperties": false,
   "required": ["schema_version", "ticket_id", "finding_results", "run_summary"],
   "properties": {
-    "schema_version": { "const": "ticket-repair-response/v1" },
+    "schema_version": { "type": "string", "const": "ticket-repair-response/v1" },
     "ticket_id": { "type": "string", "minLength": 1 },
     "finding_results": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["finding_id", "disposition", "reason"],
+        "additionalProperties": false,
+        "required": ["finding_id", "disposition", "reason", "source_refs_used", "patch", "changed_line_estimate", "requires_human_decision", "verification_hints"],
         "properties": {
           "finding_id": { "type": "string", "minLength": 1 },
           "disposition": {
@@ -25,29 +27,32 @@
           },
           "reason": { "type": "string" },
           "source_refs_used": {
-            "type": "array",
+            "type": ["array", "null"],
             "items": {
               "type": "object",
-              "required": ["path"],
+              "additionalProperties": false,
+              "required": ["path", "lines"],
               "properties": {
                 "path": { "type": "string" },
-                "lines": { "type": "string" }
+                "lines": { "type": ["string", "null"] }
               }
             }
           },
           "patch": {
-            "type": "object",
+            "type": ["object", "null"],
+            "additionalProperties": false,
+            "required": ["target_file", "target_section", "expected_old_text_hash", "replacement_text"],
             "properties": {
-              "target_file": { "type": "string" },
-              "target_section": { "type": "string" },
-              "expected_old_text_hash": { "type": "string" },
-              "replacement_text": { "type": "string" }
+              "target_file": { "type": ["string", "null"] },
+              "target_section": { "type": ["string", "null"] },
+              "expected_old_text_hash": { "type": ["string", "null"] },
+              "replacement_text": { "type": ["string", "null"] }
             }
           },
-          "changed_line_estimate": { "type": "integer", "minimum": 0 },
-          "requires_human_decision": { "type": "boolean" },
+          "changed_line_estimate": { "type": ["integer", "null"], "minimum": 0 },
+          "requires_human_decision": { "type": ["boolean", "null"] },
           "verification_hints": {
-            "type": "array",
+            "type": ["array", "null"],
             "items": { "type": "string" }
           }
         }
@@ -55,11 +60,12 @@
     },
     "run_summary": {
       "type": "object",
-      "required": ["model", "reasoning_effort"],
+      "additionalProperties": false,
+      "required": ["model", "reasoning_effort", "prompt_template_version"],
       "properties": {
         "model": { "type": "string", "minLength": 1 },
         "reasoning_effort": { "type": "string", "minLength": 1 },
-        "prompt_template_version": { "type": "string" }
+        "prompt_template_version": { "type": ["string", "null"] }
       }
     }
   }
