@@ -6,7 +6,7 @@
 #   bash .claude/hooks/session_start.sh reset   # matcher: startup|clear
 #   bash .claude/hooks/session_start.sh inject  # matcher: resume|compact|fork
 #
-# reset  : 清 tmp/verify_cmd.conf／sv_report.md／handoff.md，輸出 active ticket 三態＋PROGRESS.md 過期提示（僅當該檔無本地未提交變更、且舊於最後提交時）＋PROGRESS.md（≤80 行上界）
+# reset  : 清 tmp/verify_cmd.conf／.tmp/sv_report.md／handoff.md，輸出 active ticket 三態＋PROGRESS.md 過期提示（僅當該檔無本地未提交變更、且舊於最後提交時）＋PROGRESS.md（≤80 行上界）
 # inject : 不清任何檔，輸出 active ticket 三態＋PROGRESS.md 前 25 行＋續作提醒
 #
 # 恆 exit 0；任何子步驟失敗僅 echo >&2，不阻斷 session 啟動（HC-1）。
@@ -59,7 +59,7 @@ mode="${1:-}"
 case "$mode" in
   reset)
     mkdir -p tmp 2>/dev/null
-    rm -f tmp/verify_cmd.conf tmp/sv_report.md tmp/handoff.md 2>/dev/null
+    rm -f tmp/verify_cmd.conf .tmp/sv_report.md tmp/handoff.md 2>/dev/null
     echo "🧹 SessionStart(reset)：tmp/ 預載檔已清"
     report_active_ticket
     if [[ -f .claude/PROGRESS.md ]]; then

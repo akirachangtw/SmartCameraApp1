@@ -69,9 +69,9 @@ disable-model-invocation: false
    對本 diff 新增的任何 Guard / gate / early-return，逐一確認依賴的 input：
    - 在 `app/src/main/` 是否存在 production 寫入點（非預設初始化、非 reset-to-Idle 語意）？
    - 若任一 input 無 non-idle production producer → 標記 **⚠️ UNREACHABLE GUARD**
-   - **機械分級（INFRA-REACH-02）**：UNREACHABLE GUARD **且** 該 guard/欄位名稱出現於本 Ticket AC 文字中 → 判定 **MUST** 升級為 **📋 REPORT_FIX 機械級**（非可自選 WARNING/PARTIAL）；對應 AC **MUST** 不得標 PASS/PARTIAL 自選，**MUST** 停用 sv_report.md 修報告即放行。豁免 **MUST** 僅得引用 Ticket 內**具名白名單**條款（比照 K4-39/K4-48 具名排除格式），**MUST** 禁止 context-gated 理由文（如「本情境下可接受」等臨場豁免）。
+   - **機械分級（INFRA-REACH-02）**：UNREACHABLE GUARD **且** 該 guard/欄位名稱出現於本 Ticket AC 文字中 → 判定 **MUST** 升級為 **📋 REPORT_FIX 機械級**（非可自選 WARNING/PARTIAL）；對應 AC **MUST** 不得標 PASS/PARTIAL 自選，**MUST** 停用 .tmp/sv_report.md 修報告即放行。豁免 **MUST** 僅得引用 Ticket 內**具名白名單**條款（比照 K4-39/K4-48 具名排除格式），**MUST** 禁止 context-gated 理由文（如「本情境下可接受」等臨場豁免）。
    - UNREACHABLE GUARD 但欄位未出現於本票 AC 文字 → 沿用既有語意豁免：對應 AC **MUST** 不得標 PASS，改為 **⚠️ PARTIAL**，並開後續 follow-up Ticket
-   - 結果（含「已確認可達」「UNREACHABLE-PARTIAL」或「UNREACHABLE-REPORT_FIX」判定）**MUST** 寫入 `sv_report.md`
+   - 結果（含「已確認可達」「UNREACHABLE-PARTIAL」或「UNREACHABLE-REPORT_FIX」判定）**MUST** 寫入 `.tmp/sv_report.md`
    - 輔助工具：Step 3.5.5 Dead-State 掃描輸出；參考 K3-Rule 26（多消費路徑掃描）
 
 8. **Integration Test 存在閘（INFRA-REACH-02 G-5）**：
@@ -79,7 +79,7 @@ disable-model-invocation: false
    - 於 `app/src/test/` 或 `app/src/androidTest/` 中搜尋以驅動 production 路徑（非直注 fixture state）方式覆蓋該 AC 的測試檔案/方法。
    - 找不到對應測試 → **MUST** 標記 **⚠️ MISSING-INTEGRATION-TEST**，對應 AC **MUST** 不得標 PASS。
    - 本項為存在性檢查起步（確認測試「存在且綠」），測試斷言的行為深度由個別 Ticket 自行以更嚴格 AC 承載（不在本項強制範圍）。
-   - 結果 **MUST** 寫入 `sv_report.md`。
+   - 結果 **MUST** 寫入 `.tmp/sv_report.md`。
 
 ## 階段 C：架構合規 (Architecture Compliance)
 
@@ -96,7 +96,7 @@ disable-model-invocation: false
 > 此階段在 SV Report 產出後**自動觸發**。
 > 完整 cross-review 指南見 [CROSS_REVIEW.md](CROSS_REVIEW.md)（Layer 3 資源）。
 
-9. **SV Report 輸出**：刪除舊資料的 `sv_report.md` 後，將以上審查結果寫入 `sv_report.md`（工作目錄根）。
+9. **SV Report 輸出**：刪除舊資料的 `.tmp/sv_report.md` 後，將以上審查結果寫入 `.tmp/sv_report.md`（工作目錄根）。
 
    **SV Report payload disclosure 規則**（不可省略）：
    - `## Files Changed (payload)` — **MUST** 列出 `git diff --name-only DIFF_REF..HEAD` 的**全部**檔案（完整 payload）
@@ -138,9 +138,9 @@ disable-model-invocation: false
         echo "⚠️ WARNING: DIFF_END 未設定，使用 DIFF_REF..HEAD（HEAD-moving scope）"
       fi
       if [[ -n "$_DIFF_REF" ]]; then
-        bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md "${_SCOPE}"
+        bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md "${_SCOPE}"
       else
-        bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md
+        bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md
       fi
       ```
       並將 Codex 回傳結果附加至 SV Report 末尾。
@@ -153,7 +153,7 @@ disable-model-invocation: false
     - **退出碼對應行動**：
       - `exit 0` (PASS/ADVISORY) → ✅ 繼續 Traycer 終審
       - `exit 1` (BLOCKER) → 🔴 修程式碼後重新 /qa → /sv
-      - `exit 3` (REPORT_FIX) → 📋 修 sv_report.md 後重新執行 cross_review（不需重跑 /qa）
+      - `exit 3` (REPORT_FIX) → 📋 修 .tmp/sv_report.md 後重新執行 cross_review（不需重跑 /qa）
       - `exit 2` (ENV / FAIL BUDGET) → ⛔ 人工介入，檢查 `.tmp/cross_review_state/<ticket>`
     - **Fail Budget**: `.tmp/cross_review_state/<TICKET_ID>` 記錄 Round 與 Last Verdict
       - R2 BLOCKER → ⚠️ Checkpoint 警告，等待裁決
@@ -161,7 +161,7 @@ disable-model-invocation: false
     - **若 codex 不可用**：在 SV Report 末尾附加提示：
       ```
       ⚠️ Codex CLI 不可用 — 請手動執行 cross-review 或直接提交 Traycer 終審。
-      手動指令：bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md
+      手動指令：bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md
       ```
     - **若 ssot_context.md 不存在**：降級為純 SV Report 驗證（Layer 2 only），在 Report 中標記：
       ```

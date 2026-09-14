@@ -5,7 +5,7 @@ Domain rules: .claude/rules/（path-scoped，碰到匹配檔案時自動載入�
 
 ## ⚡ Boot Sequence
 
-Session 啟動 → `mkdir -p tmp && rm -f tmp/verify_cmd.conf tmp/sv_report.md tmp/handoff.md` → 讀 PROGRESS.md → 輸出 Boot Report → **停止等 Ticket**。
+Session 啟動 → `mkdir -p tmp && rm -f tmp/verify_cmd.conf .tmp/sv_report.md tmp/handoff.md` → 讀 PROGRESS.md → 輸出 Boot Report → **停止等 Ticket**。
 
 ```text
 📍 Ticket: [ID] / 無 → 停止

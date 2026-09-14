@@ -2,7 +2,7 @@
 
 **版本**: v1.6
 **所屬 Skill**: /sv（本地 Reviewer）
-**觸發時機**: /sv 階段 A-C 全部通過並產出 `sv_report.md` 後，自動進入階段 D
+**觸發時機**: /sv 階段 A-C 全部通過並產出 `.tmp/sv_report.md` 後，自動進入階段 D
 
 ---
 
@@ -23,32 +23,32 @@ Cross-Review 是 gstack Step 4.5 防線。它使用 Codex CLI 對 Claude Code �
 /sv 通過後，Claude Code 自動檢查環境並執行：
 
 ```bash
-bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md [diff_scope] [extra_exclude] [ssot_context]
+bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md [diff_scope] [extra_exclude] [ssot_context]
 ```
 
 參數說明：
 
 | 參數 | 預設值 | 說明 |
 |------|--------|------|
-| `sv_report.md` | 必填 | /sv 產出的 SV Report 檔案路徑 |
+| `.tmp/sv_report.md` | 必填 | /sv 產出的 SV Report 檔案路徑 |
 | `diff_scope` | `tmp/verify_cmd.conf` 的 `DIFF_REF..DIFF_END`，無 conf 時才 fallback `HEAD~1..HEAD` | Git diff 範圍，可指定如 `HEAD~3..HEAD` |
-| `extra_exclude` | 空 | 逗號分隔 pathspec；亦會合併 `sv_report.md ## Excluded Payload` |
+| `extra_exclude` | 空 | 逗號分隔 pathspec；亦會合併 `.tmp/sv_report.md ## Excluded Payload` |
 | `ssot_context` | `.claude/skills/sv/ssot_context.md` | SSOT 精簡上下文路徑 |
 
 ### 手動執行
 
 ```bash
 # 基本用法
-bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md
+bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md
 
 # 指定 diff 範圍
-bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md HEAD~3..HEAD
+bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md HEAD~3..HEAD
 
 # 指定 diff 範圍 + 授權排除
-bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md "a9558fc..c65482f" "*/CameraScreen.kt"
+bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md "a9558fc..c65482f" "*/CameraScreen.kt"
 
 # 完整四參數
-bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md "a9558fc..c65482f" "*/CameraScreen.kt" .claude/skills/sv/ssot_context.md
+bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md "a9558fc..c65482f" "*/CameraScreen.kt" .claude/skills/sv/ssot_context.md
 ```
 
 ## Verdict 與退出碼
@@ -60,7 +60,7 @@ bash .claude/skills/sv/scripts/cross_review.sh ./sv_report.md "a9558fc..c65482f"
 | `PASS` | 0 | Cross-Review 通過 | 進入 Traycer 終審 |
 | `ADVISORY` | 0 | 有非阻斷建議 | 記錄後可進入 Traycer 終審 |
 | `BLOCKER` | 1 | 真實功能、架構、scope 或 anti-mock 缺陷 | 修程式碼後重新 /qa → /sv |
-| `REPORT_FIX` | 3 | `sv_report.md` 或 payload disclosure 不可信 | 修報告後重跑 cross-review，不需重跑 /qa |
+| `REPORT_FIX` | 3 | `.tmp/sv_report.md` 或 payload disclosure 不可信 | 修報告後重跑 cross-review，不需重跑 /qa |
 | ENV / FAIL BUDGET | 2 | codex、Git、輸入、或 fail budget 錯誤 | 人工介入 |
 
 `REPORT_FIX` 不得放行到 Traycer；它的目的就是避免用昂貴終審配額審一份不可信報告。

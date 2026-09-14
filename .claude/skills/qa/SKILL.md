@@ -137,7 +137,7 @@ Bash（`preflight_activation.sh`）自 AI-6 起僅承擔 `FACT_COLLECTION`／`CO
 bash .claude/skills/qa/scripts/static_blind_scan.sh
 ```
 
-Step 3.5 產出 ⚠️ WARNING 而非硬 FAIL；所有 ⚠️ 項目 **SHOULD** 在 `sv_report.md` 中記錄豁免理由，由 `cross_review.sh` Layer 3 和 Traycer 做最終判斷。
+Step 3.5 產出 ⚠️ WARNING 而非硬 FAIL；所有 ⚠️ 項目 **SHOULD** 在 `.tmp/sv_report.md` 中記錄豁免理由，由 `cross_review.sh` Layer 3 和 Traycer 做最終判斷。
 
 ## Step 4 / 4.5 例外：票面明文優先序
 
@@ -226,7 +226,7 @@ Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error
 /sv + Cross-Review PASS 後，執行最終結構完整性驗證：
 
 ```bash
-bash .claude/skills/qa/scripts/structural_verify.sh ./sv_report.md "" --post
+bash .claude/skills/qa/scripts/structural_verify.sh .tmp/sv_report.md "" --post
 ```
 
 **四級 Verdict 語義**（`structural_verify.sh v2.0`）：
@@ -235,7 +235,7 @@ bash .claude/skills/qa/scripts/structural_verify.sh ./sv_report.md "" --post
 |---------|------|------|
 | PASS | 0 | ✅ Ticket 驗收完成，可提交 Traycer |
 | ADVISORY | 0 | ✅ 可繼續；警告項記錄於報告，建議下輪處理 |
-| REPORT_FIX | 1 | 📋 修正 sv_report.md 後重新執行（不需重跑 /qa） |
+| REPORT_FIX | 1 | 📋 修正 .tmp/sv_report.md 後重新執行（不需重跑 /qa） |
 | BLOCKER | 1 | 🔴 修程式碼或 Cross-Review 後重新 /qa → /sv |
 
 Verdict 順序（嚴重度升序）：`PASS < ADVISORY < REPORT_FIX < BLOCKER`
@@ -245,7 +245,7 @@ Verdict 順序（嚴重度升序）：`PASS < ADVISORY < REPORT_FIX < BLOCKER`
 `--post` 模式執行 A/B/C/D/E/F（D: sv_report 五段結構 / E: cross_review PASS / F: PROGRESS.md 格式）。
 不帶 `--post`（cross_review.sh pre-check）只跑 A/B/C，不讀 `.tmp/cross_review_state`。
 
-執行後自動在 `tmp/sv_report_YYYYMMDD_HHMMSS.md` 歸檔當次 sv_report 快照。
+執行後自動在 `.tmp/sv_report_YYYYMMDD_HHMMSS.md` 歸檔當次 sv_report 快照。
 
 ## 回報格式
 
@@ -275,5 +275,5 @@ Token 估算基準
 
 ## SV Archive Retention
 
-`structural_verify.sh` archives each run to `tmp/sv_report_YYYYMMDD_HHMMSS.md`.
+`structural_verify.sh` archives each run to `.tmp/sv_report_YYYYMMDD_HHMMSS.md`.
 The archive retention policy is latest 5 snapshots only.

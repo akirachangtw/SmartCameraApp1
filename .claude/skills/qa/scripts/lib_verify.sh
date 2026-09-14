@@ -128,7 +128,7 @@ display_verdict() {
 }
 
 # ─── archive_report ───
-# Copy sv_report to tmp/sv_report_YYYYMMDD_HHMMSS.md, keeping only the newest 5 snapshots.
+# Copy sv_report to .tmp/sv_report_YYYYMMDD_HHMMSS.md, keeping only the newest 5 snapshots.
 # Returns 2 on failure so caller can propagate to fail_env.
 archive_report() {
   local _src="$1"
@@ -138,16 +138,16 @@ archive_report() {
   local _i
   local _removed=0
   _ts="$(date '+%Y%m%d_%H%M%S')"
-  if [[ ! -d "tmp" ]]; then
-    mkdir -p "tmp" || { echo "❌ ENV ERROR: Cannot create tmp/ directory" >&2; return 2; }
+  if [[ ! -d ".tmp" ]]; then
+    mkdir -p ".tmp" || { echo "❌ ENV ERROR: Cannot create .tmp/ directory" >&2; return 2; }
   fi
-  mapfile -t _archives < <(ls -1t tmp/sv_report_*.md 2>/dev/null || true)
+  mapfile -t _archives < <(ls -1t .tmp/sv_report_*.md 2>/dev/null || true)
   for ((_i = _keep - 1; _i < ${#_archives[@]}; _i++)); do
     rm -f -- "${_archives[$_i]}" \
       || { echo "ENV ERROR: Cannot prune old sv_report archive: ${_archives[$_i]}" >&2; return 2; }
     ((_removed += 1))
   done
-  cp "$_src" "tmp/sv_report_${_ts}.md" \
-    || { echo "❌ ENV ERROR: Cannot archive sv_report to tmp/" >&2; return 2; }
-  echo "📁 Archived: tmp/sv_report_${_ts}.md"
+  cp "$_src" ".tmp/sv_report_${_ts}.md" \
+    || { echo "❌ ENV ERROR: Cannot archive sv_report to .tmp/" >&2; return 2; }
+  echo "📁 Archived: .tmp/sv_report_${_ts}.md"
 }

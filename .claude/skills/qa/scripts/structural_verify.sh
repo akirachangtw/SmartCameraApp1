@@ -49,7 +49,7 @@ for _arg in "$@"; do
   fi
 done
 
-SV_REPORT="${POSITIONAL[0]:-./sv_report.md}"
+SV_REPORT="${POSITIONAL[0]:-.tmp/sv_report.md}"
 SCOPE_ARG="${POSITIONAL[1]:-}"
 
 [[ -f "$SV_REPORT" ]] || fail_env "SV Report not found: $SV_REPORT"
@@ -136,7 +136,7 @@ if [[ -z "$REPORTED_FILES" ]]; then
     ZERO_DIFF_MODE=true
   else
     echo "❌ STRUCTURAL FAIL — missing or empty '## Files Changed' section in SV Report"
-    echo "   修正方式：補齊 sv_report.md ## Files Changed，使其與 git diff ${DIFF_SCOPE} 精確一致。"
+    echo "   修正方式：補齊 .tmp/sv_report.md ## Files Changed，使其與 git diff ${DIFF_SCOPE} 精確一致。"
     escalate_verdict "REPORT_FIX"
     archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
     exit 1
@@ -193,7 +193,7 @@ if [[ "$ZERO_DIFF_MODE" != "true" ]]; then
   }
 
   if [[ "$_CURRENT_VERDICT" == "REPORT_FIX" || "$_CURRENT_VERDICT" == "BLOCKER" ]]; then
-    echo "   修正方式：更新 sv_report.md ## Files Changed 使其與 git diff ${DIFF_SCOPE} 精確一致。"
+    echo "   修正方式：更新 .tmp/sv_report.md ## Files Changed 使其與 git diff ${DIFF_SCOPE} 精確一致。"
     archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
     exit 1
   fi
