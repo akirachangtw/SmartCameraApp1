@@ -369,7 +369,7 @@ PROMPT_HEADER
         done
       fi
     done
-    EXCLUDE_ARGS=(':!sv_report.md')
+    EXCLUDE_ARGS=(':!.tmp/sv_report.md')
     for _gpath in .claude/ docs/ plans/; do
       printf '%s\n' "${_COVERED_GPATHS[@]}" | grep -qxF "$_gpath" || EXCLUDE_ARGS+=( ":!${_gpath}" )
     done

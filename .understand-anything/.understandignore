@@ -24,7 +24,6 @@ local.properties
 .clinerules.bak
 AGENTS.md
 CLAUDE.local.md
-sv_report.md
 normal_dump.xml
 
 # ===== 治理文件 / 設計文件（已有 CSO_INDEX 導航）=====
