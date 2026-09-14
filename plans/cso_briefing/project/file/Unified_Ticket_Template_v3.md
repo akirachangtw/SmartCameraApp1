@@ -1,6 +1,6 @@
 # 統一 Ticket 模板（CSO + Pipeline v1.6 合併版）
 
-**版本**: v3.10
+**版本**: v3.11
 **產出日期**: 2026-05-29
 **完整 Revision 歷史**：見文末「Revision 歷史」章節
 **來源**: CSO 裁決官 Ticket 格式 + TRA Ticket v2 合併，消除冗餘
@@ -62,7 +62,9 @@ DEPENDENCY_DELTA=[NONE | BUILD:<coordinate>@<version> | TOOL:<name>@<version|N/A
 > **基線漂移三分流**（v3.8，`INFRA-TPL-V38-01`，依據 QA-Session-Aware-Verification Rev B R1＋R2）。AI-0 錨點不符時，MUST 依序執行：
 > 1. **範圍不相交自動通過（R1）**：先跑 `git diff --name-only <BASE_COMMIT>..HEAD -- <ALLOWED 各標的>`；輸出為**空** → 漂移未及本票標的，錨點失配屬票面撰寫層問題，停止並回報「ANCHOR_STALE_SCOPE_INTACT」；輸出**非空** → 進入歸因判定。
 > 2. **歸因機械判準（R2）**：清點 `BASE_COMMIT..HEAD` 間觸及標的之 commit 前綴——含**本票 ID** → 回報 `ALREADY_EXECUTED_PENDING_CLOSURE`（直送 SMTR 收束審查，禁重複施作、禁自行勾選）；含**他票 ID** → 回報 `CANDIDATE_SUPERSEDED`（附該票 ID，禁自判等價）；**無前綴 commit** 觸及標的 → 回報 `BLOCKED_UNATTRIBUTED_STATE`（唯讀取證後升裁）。
-> 3. 三態均為**停止＋分類回報**，禁「推定等價位置」續作——本條取代舊制單一「不符即 STOP 無分類」，使停止報告自帶處置路由。
+> 3. **分類即處置，非一律停工**（v3.11，可逆優先裁決，Akira 2026-09-14）：`ANCHOR_STALE_SCOPE_INTACT` 與 `CANDIDATE_SUPERSEDED` 降為**資訊性分類**——執行者 MUST 記錄該分類與其歸因票 ID，然後**以工作樹現值續作**：需求仍存在即直接實作，已由他票等價完成即跳過該項並載明。二者 **MUST NOT** 單獨作為停工、廢票或升裁依據。`ALREADY_EXECUTED_PENDING_CLOSURE` 維持停止（直送收束審查，禁重複施作）。`BLOCKED_UNATTRIBUTED_STATE` 維持停止之範圍限**觸及 `app/` production code** 者；僅觸及 `.claude/`、`plans/` 等可逆治理面者，降為記錄後續作。禁「推定等價位置」仍適用於**字面錨點定位**，不適用於是否續行之判定。
+>
+> **`BASE_COMMIT`／`ANCHOR_PROBED`／`TARGET_BLOB` 之性質**（v3.11）：三欄為資訊性診斷值，**MUST NOT** 作為實作、QA、SV、Cross-Review、closeout 或 archive 之 gate。`ANCHOR_PROBED` 過期**不**強制重跑預檢方可派工（v3.2 該句於此降級為 SHOULD）。**Desktop fallback 正式化**：開票端無合法 blob-hash producer（MCP 唯讀 git 原語不回傳 blob hash、shell 通道未授權）時，`TARGET_BLOB` **得標 `N/A`** 並於票面載明原因；此時 `BASE_COMMIT` 必填、AI-0 MUST 逐檔讀取現值錨點，且 `N/A` **MUST NOT** 被解讀為豁免 AI-0、scope 或 evidence 驗證。
 
 > **序號機械取號律**（律 A，`KAIROS_CaseC_Harvest_Round_Merged_Laws` KD-2/KD-3）。指派任何票號／候選序號前，開票方 MUST 以**全冊機械取號**決定新號：對 registry 全檔（per-project `TICKET_REGISTRY.json`）與 `deliver/`、`reports/` 執行 ID 樣式 grep 取 max-ID，`max+1` 為新號。**禁只掃 `Pending/`**（已通過票離開 Pending/，只掃必碰撞）；**禁以 `tail`／局部讀取驗證「目前最大號」**（局部讀取必然漏看他處已登記條目）。二次實證：PROTO-01 票號碰撞、K4-46 雙登。
 
@@ -314,5 +316,7 @@ Effort 決定 Claude Code 的思考深度（`--effort` 參數等效）。
 **Revision**: v3.9（2026-09-02，Akira 免票直接授權）— 立「短檔名律」（forward-only）：生效日後新建或明確重開之 Ticket 檔 MUST 命名為 `<TICKET_ID>_<slug>.md`；slug 小寫 kebab-case、1–3 核心詞、長度 MUST NOT 超過 12 字元，完整 basename MUST NOT 超過 40 字元；禁重複議題／票號／目錄分類語義，禁泛化詞單獨作 slug。既有票名不追溯改名。
 
 **Revision**: v3.10（2026-09-08，INFRA-TPL-V310-01）— Verify Config 增列 `INTRODUCED_CAPABILITY` 與 `DEPENDENCY_DELTA` 二欄（實作級外審觸發之機械輸入），並立 fail-closed 判定：欄位缺失／空值／格式非法一律視為觸發，禁靜默視為 `NONE`。立法來源：`Instructions_for_Claude.md` v2.8.7「6. 實作級外審」a 款與 b③ 款；本票為該二款之生效前提（前置資源恆存律）。**forward-only**：既有在途票免補填。
+
+**Revision**: v3.11（2026-09-14，Akira 免票直接授權——可逆優先裁決）— ①基線漂移三分流之 `ANCHOR_STALE_SCOPE_INTACT`／`CANDIDATE_SUPERSEDED` 降為資訊性分類（記錄歸因後以現值續作，MUST NOT 單獨停工／廢票／升裁）；`BLOCKED_UNATTRIBUTED_STATE` 之停止限觸及 `app/` production code；②`BASE_COMMIT`／`ANCHOR_PROBED`／`TARGET_BLOB` 明定為資訊性診斷值，MUST NOT 作為實作／QA／SV／Cross-Review／closeout／archive 之 gate，`ANCHOR_PROBED` 過期之重跑預檢由 MUST 降為 SHOULD；③`TARGET_BLOB` Desktop fallback 正式化——開票端無合法 blob-hash producer 者得標 `N/A`，`BASE_COMMIT` 必填＋AI-0 逐檔現值錨點為替代控制，`N/A` 不豁免 AI-0／scope／evidence 驗證。立法來源：`Instructions_for_Claude.md` §「獨立開發者：MVP 優先、反過度治理」第 4 條（只有高風險或不可逆操作才提高驗證強度）＋ 2026-09-14 ACAGOV 可逆優先草案審查。**forward-only**：既有在途票免補填。
 
 **End of 統一 Ticket 模板**
