@@ -209,7 +209,7 @@ Step 4（PROGRESS.md 更新）與 Step 4.5（Auto Commit / Auto-Chain）之通�
 
 ## Step 4.5 完成後：Auto-Chain 銜接點
 
-若 Step 0-4.5 全部 PASS（無任何 FAIL），輸出單行摘要後**自動進入 /sv**：
+若 Step 0-4.5 全部 PASS（無任何 FAIL），輸出單行摘要；next transition 依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table 決定（「QA PASS → SV」列，`MUST AUTO-CHAIN`）：
 
 ```
 Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error)

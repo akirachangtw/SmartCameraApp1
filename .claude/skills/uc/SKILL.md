@@ -49,11 +49,8 @@ disable-model-invocation: false
    - Ticket 完成格式：`✅ DONE | [TICKET_ID] [摘要] | [影響檔案數]F [影響行數]L`。
    - 輸出 Ticket DONE 後，**MUST** 立即呼叫 `Skill(qa)`（等價 `/qa`），不得停下等待使用者確認。
    - `compile fix`、`git commit` 或其他非 Ticket DONE 僅為中間動作，**MUST NOT** 觸發 QA。
-   - `tmp/verify_cmd.conf` 不存在或 `TICKET_ID` 為空時，回報 `⛔ UC Auto-Chain STOPPED: [原因]` 並停止。
-   - **收尾 SOP 觸發**：Ticket DONE 後 **MUST** 依序完成下列三項獨立子項，觸發時機二分：RAPID MODE ON（QA/SV 已豁免）→ Ticket DONE 輸出當下即為終點，**MUST** 立即觸發；RAPID MODE OFF → 沿用既有契約，於 SV PASS（Cross Review 通過）後觸發。收尾動作律則字面唯一 SSOT 為 `.claude/rules/ssot-governance.md` Ticket Closure 紀律／五段流程，本檔不重複判準。
-     1. **AC/AI checkbox 勾選**：逐項核對票面 Acceptance Criteria 與 Action Items，僅勾「有 SV／QA／commit 佐證」之項。
-     2. **registry lifecycle sync**：**MUST** 先呼叫 `registry_list`（或等效 read，如 `get_ticket`）取得該票冊面現值 → 與待寫入值比對 → 確認無衝突後才可呼叫 `registry_set_status`／`registry_upsert_ticket` 宣告收尾完成；**MUST NOT** 憑記憶或前次回報直接寫入而略過現值核對。lifecycle 落點：**MUST** 一律轉入 `REVIEW`（併搬 `deliver/`＋`file` 欄更新）；票面聲明需 Traycer T2 審查且尚未執行時，`reviews.traycer` 維持 `PENDING` 標記人工複審未完成，**MUST NOT** 因此使 lifecycle 停於 `EXECUTED`；終態（`CLOSED`/`VOID`）**MUST NOT** 由 Auto-Chain 自行轉入，限審查方裁決。
-     3. **`registry_append_note`**：附上本輪收尾證據摘要（AC/測試/commit 引用）。
+   - 依 `/qa` 現行 verification-config 讀取優先序解析當前 Ticket binding；僅當**所有**既有候選載體均不存在、`TICKET_ID` 空值、各載體 Ticket ID 不一致，或票檔 Header 無法解析時，**MUST STOP** 並回報 `⛔ UC Auto-Chain STOPPED: [原因]`。
+   - **收尾引用**：Ticket DONE 後之收尾由 `/sv` Step 11 Closeout Auto-Chain 承載，判準唯一依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table；模式切換（`/uc`／`/normal`／`/compact`）**不中斷** Ticket lifecycle。本檔不複製收尾子項或 GO predicate。
 9. **Auto-Chain ownership**：
    - `/uc` 只呼叫 QA，**MUST NOT** 直接呼叫 SV。
    - QA 全步驟 PASS 後，由 QA Skill 依既有契約自動進入 SV。
@@ -89,6 +86,7 @@ disable-model-invocation: false
 1. `$ARGUMENTS` 非空 → **MUST** 先執行 `bash .claude/scripts/activate_ticket.sh "$ARGUMENTS"`；非零 exit → 回報 `⛔ UC Activation STOPPED: <腳本 stderr 首行>` 並**不進入臥底模式**。
 1a. activation 成功（exit 0）→ 輸出「進入確認」句後 **MUST 立即自動接續**，**MUST NOT** 停下等待使用者：(i) 讀取腳本 `📄` 行所示票檔全文；(ii) 自票面 AI-0 起依序執行，進入既有 Auto-Chain（規則 8／9）。「進入確認」句為臥底模式之起點，非終點。
 1b. `$ARGUMENTS` 中票號 token 以外之文字 → 視為本次執行之**附帶指示**（如 Rev 收窄、限定 AI 範圍、補充判準），與票面一併納入：附帶指示得**限縮或補充**票面 AI 之範圍，**MUST NOT** 擴張至 `ALLOWED` 之外、**MUST NOT** 覆蓋 Hard Constraints。附帶指示與票面衝突且無法以限縮解讀者 → 回報 `⚠️ SSOT 衝突` 停止。
+1c. activation 成功後，**MUST** 於「進入確認」句同輪輸出 session-local Snapshot（固定欄位：`Ticket`／`Allowed`／`Forbidden`／`Traycer workflow`／`Agent terminal lifecycle: REVIEW`／`Auto-chain`／`Stop only`）。`Traycer workflow` 唯一取自 Ticket Header 字面；其餘 verification facts 依 `/qa` 既有讀取優先序取得。Snapshot **MUST** 為 session-local 輸出，**MUST NOT** 寫成持久檔、**MUST NOT** 新增 script／hook producer、**MUST NOT** 成為第二份流程規則。Header／`ALLOWED`／`FORBIDDEN`／必要 gate 任一不完整 → 禁止進入 auto-chain，`MUST STOP` 並列出缺少之具體欄位。
 2. `$ARGUMENTS` 為空 → **MUST** 維持現行行為（直接進入臥底模式，`tmp/verify_cmd.conf` 沿用現況），MUST NOT 因缺參數報錯。
 3. 本節 **MUST** 早於輸出規則 8 之 `TICKET_ID` 讀取；activation 成功後該讀取之來源即為本節重生成之 conf。
 

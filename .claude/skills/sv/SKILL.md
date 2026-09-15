@@ -201,6 +201,13 @@ Cross-Review PASS 且 Done 標記完成後：
 
 若 `## Next Actions` 段落不存在或 `>` 行數 ≤ 5 → `⚪ Session Note 清理跳過：[N] 筆 ≤ 5`
 
+## Step 11: Closeout Auto-Chain
+
+SV＋Codex PASS（或 RAPID MODE 豁免）後 **MUST AUTO-CHAIN**，依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table 與 §Ticket Closure 紀律執行 Agent closeout 至 `REVIEW`。本節為引用，**MUST NOT** 複製四要件、GO predicate 或 Traycer 判定表全文。
+
+1. **入口冪等**：先 `registry_list` 讀現值，命中 §Ticket Runtime Transition Table「最小冪等回傳」條件即 `MUST RETURN`。
+2. **敘事寫入**：走 `registry_set_checkpoint`（`detail_content` 承載收尾實錄敘事、`checkpoint_data` 承載結構化欄），**MUST NOT** 用 `registry_append_note`；且 **MUST** 置於 `registry_set_status` **之後**（`set_status` 每次呼叫清空 checkpoint）。寫後 **MUST** read-back 驗證。
+
 ## 回報格式
 
 ```
@@ -216,7 +223,7 @@ Cross-Review PASS 且 Done 標記完成後：
 📐 SSOT: ✅ ALIGNED
 🔍 Cross-Review: ✅ PASS / 💡 ADVISORY / 📋 REPORT_FIX / 🔴 BLOCKER / ⚠️ SKIPPED (codex unavailable)
 
-→ 本地 SV + Cross-Review 通過，準備提交 Traycer 終審。
+→ MUST AUTO-CHAIN: Step 11 Closeout
 📊 Status: ~[X]K used | [🟢 繼續 / 🟡 留意 / 🔴 建議 /compact]（健康度依 Turns 判定）
 Turns: [N] | Code: ~[M] lines
 Suggestion: [建議]
