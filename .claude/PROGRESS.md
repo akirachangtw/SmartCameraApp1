@@ -9,8 +9,9 @@
 | INFRA-CTAWR-CKPT-TRIGGER-01 | ✅ CLOSED（commit `ad4019d`+`69df4c1`+`df60fa3`+`7ef8f5c`+`f9e19bf`）· `compact/SKILL.md` 四輪免票修訂（§9.5 checkpoint 觸發時機＋§3.2 自產物自提交不連坐＋§4.2 兩段式 scoped commit）＋`session_start.sh` dirty guard；`/qa` PASS，`/sv` Cross-Review R1 **PASS**，Addendum 補四輪修訂併入記錄，lifecycle→CLOSED |
 | INFRA-CTAWR-PHASE0-02 | ✅ CLOSED（commit `04a29cc`+`5914562`+`8c2e6dc`+`69270bf`）· `activate_ticket.sh` 參數容錯＋`active.json` 同步；`uc/SKILL.md` Phase 0 `1a`/`1b`；`/qa`+`/sv` PASS，Akira 裁決轉 CLOSED |
 | ACAGOV-RUNTIME-TABLE-01 | ✅ REVIEW（commit `08599a8`+`91e0ca1`+`7dcee9d`+`2fbc017`）· `ssot-governance.md` 新增 `## Ticket Runtime Transition Table`（唯一 GO lane）與 `## Session Persistence 邊界`；`/qa`+`/sv` Cross-Review R1/R2 REPORT_FIX→R3/R4 **ADVISORY** 終局，REACHABILITY: NONE。存在性 AC 11/17 全綠，行為性 AC147-152（6 項）待後續合成測試 |
-| RGR-RESP-SCHEMA-01 | 🟡 EXECUTED（commit 待 QA Auto Commit）· v3.8 三分流 AI-0 判定 `ALREADY_EXECUTED_PENDING_CLOSURE`（技術工作已由 `c9d1870` 完成：schema 五節點 strict-mode 封閉、AI-2 true-call 確認 provider 不再拒 schema，止於 RTR-006 移交 `RGR-CODEX-TRANSPORT-01`）；Akira 裁決走標準 SOP 收尾，live 復驗 AI-0~AI-2 全數與票面記載相符，AC 11/12 補齊（AC104 移交範圍維持未勾） |
-**Last Updated**: 2026-09-15（Source Session: `e2fc54e4-a75c-4408-87d0-4d9750c3d173`）`/qa`：ACAGOV-RUNTIME-TABLE-01 完成 closeout 至 REVIEW；RGR-RESP-SCHEMA-01 經 v3.8 三分流判定為已執行完畢，走標準 SOP 收尾中
+| RGR-RESP-SCHEMA-01 | ✅ REVIEW（commit `89abe7f`）· v3.8 三分流 AI-0 判定 `ALREADY_EXECUTED_PENDING_CLOSURE`（技術工作已由 `c9d1870` 完成：schema 五節點 strict-mode 封閉、AI-2 true-call 確認 provider 不再拒 schema，止於 RTR-006 移交 `RGR-CODEX-TRANSPORT-01`）；Akira 裁決走標準 SOP 收尾，live 復驗 AI-0~AI-2 全數與票面記載相符，AC 11/12 補齊（AC104 移交範圍維持未勾）。**更正**：收尾當下誤稱「`RGR-CODEX-TRANSPORT-01` 已於本 session 完成並 CLOSED」，live `git log --all` 核驗為假（該票全無 commit、票檔未離 `Pending/`、從未實作），已更正 checkpoint；不影響本票轉 REVIEW 之實質判斷 |
+| RGR-CODEX-TRANSPORT-01 | ⚪ TICKET_RIGOR（票檔於 `Pending/`）· 尚未實作，coordination_dependency（`RGR-RESP-SCHEMA-01` 需離開 Active）已於上列滿足，待 Akira 裁決是否續走 AI-0 |
+**Last Updated**: 2026-09-15（Source Session: `e2fc54e4-a75c-4408-87d0-4d9750c3d173`）`/qa`+`/sv`：ACAGOV-RUNTIME-TABLE-01、RGR-RESP-SCHEMA-01 均收尾至 REVIEW。發現並更正 RGR-RESP-SCHEMA-01 收尾時的錯誤陳述（誤稱 RGR-CODEX-TRANSPORT-01 已完成，實為從未實作），已於 checkpoint 記載更正
 
 ## Active Ticket Activation
 
