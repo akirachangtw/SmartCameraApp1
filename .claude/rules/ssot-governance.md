@@ -157,6 +157,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 | QA PASS → SV | `MUST AUTO-CHAIN` 進 `/sv`（依既有 Auto-Chain 契約） | 停下等待使用者下達 `/sv` |
 | QA FAIL | `MUST STOP`，回報失敗項 | 自行修復後靜默重跑並宣告 PASS |
 | SV 或 Codex 非 PASS（BLOCKER／REPORT_FIX） | `MUST STOP`，依 SV／Cross-Review 既有契約處理 | 由 UC 自動重跑或改判（回指 `uc/SKILL.md` 規則 9） |
+| SV Cross-Review `ADVISORY`，或 `codex` 不可用致降級為 `SKIPPED` | 視同 PASS，`MUST AUTO-CHAIN` 進 Agent closeout（`ADVISORY` 為非阻斷觀察記錄，`SKIPPED` 為降級純報告驗證，均非失敗，依 `cross_review.sh`／`sv/SKILL.md` 既有 exit 0 契約） | 因 `ADVISORY`／`SKIPPED` 而停工、要求人工介入或視為 BLOCKER |
 | SV＋Codex PASS 且 `Traycer Workflow: N/A` | `MUST AUTO-CHAIN` 進 Agent closeout 至 `REVIEW`，`reviews.traycer=N_A` | 詢問或操作 Traycer |
 | SV＋Codex PASS 且 `Traycer Workflow ≠ N/A` | `MUST AUTO-CHAIN` 進 Agent closeout 至 `REVIEW`，`reviews.traycer=PENDING` | 假設可由 agent／CLI／MCP 觸發 Traycer（回指 §Traycer T2 執行邊界）、因 `PENDING` 而停車 |
 | 已收束重入（`lifecycle ∈ {REVIEW, CLOSED}` 且票檔位於 `deliver/`） | `MUST RETURN`（見下「最小冪等回傳」） | 重寫 status、二次搬移票檔、二次寫等價 checkpoint、建空 commit |
