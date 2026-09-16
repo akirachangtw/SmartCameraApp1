@@ -157,7 +157,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 | QA PASS → SV | `MUST AUTO-CHAIN` 進 `/sv`（依既有 Auto-Chain 契約） | 停下等待使用者下達 `/sv` |
 | QA FAIL | `MUST STOP`，回報失敗項 | 自行修復後靜默重跑並宣告 PASS |
 | SV 或 Codex 非 PASS（BLOCKER／REPORT_FIX） | `MUST STOP`，依 SV／Cross-Review 既有契約處理 | 由 UC 自動重跑或改判（回指 `uc/SKILL.md` 規則 9） |
-| SV Cross-Review `ADVISORY`，或 `codex` 不可用致降級為 `SKIPPED` | 視同 PASS，`MUST AUTO-CHAIN` 進 Agent closeout（`ADVISORY` 為非阻斷觀察記錄，`SKIPPED` 為降級純報告驗證，均非失敗，依 `cross_review.sh`／`sv/SKILL.md` 既有 exit 0 契約） | 因 `ADVISORY`／`SKIPPED` 而停工、要求人工介入或視為 BLOCKER |
+| SV Cross-Review `ADVISORY`，或 `codex` 不可用致降級為 `SKIPPED` | **無 BLOCKER／FAIL finding 時**視同 PASS，`MUST AUTO-CHAIN` 進 Agent closeout；存在任一 BLOCKER 或 FAIL finding → `MUST STOP`（Akira 2026-09-15 追認並加此條件；registry `reviews.codex` 維持既有 `PASS` enum，**實際 verdict MUST 落 checkpoint** 之 `codex_verdict_actual`）（`ADVISORY` 為非阻斷觀察記錄，`SKIPPED` 為降級純報告驗證，均非失敗，依 `cross_review.sh`／`sv/SKILL.md` 既有 exit 0 契約） | 因 `ADVISORY`／`SKIPPED` 而停工、要求人工介入或視為 BLOCKER |
 | SV＋Codex PASS 且 `Traycer Workflow: N/A` | `MUST AUTO-CHAIN` 進 Agent closeout 至 `REVIEW`，`reviews.traycer=N_A` | 詢問或操作 Traycer |
 | SV＋Codex PASS 且 `Traycer Workflow ≠ N/A` | `MUST AUTO-CHAIN` 進 Agent closeout 至 `REVIEW`，`reviews.traycer=PENDING` | 假設可由 agent／CLI／MCP 觸發 Traycer（回指 §Traycer T2 執行邊界）、因 `PENDING` 而停車 |
 | 已收束重入（`lifecycle ∈ {REVIEW, CLOSED}` 且票檔位於 `deliver/`） | `MUST RETURN`（見下「最小冪等回傳」） | 重寫 status、二次搬移票檔、二次寫等價 checkpoint、建空 commit |
@@ -178,9 +178,13 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 1. **可見性**：尚未持久化之收尾異動，以 `git status --short` 之 APP 工作樹 tracked dirty 集合，與 `registry_list` 讀得之 `lifecycle`／`file` 現值**共同觀測**；此二者即唯一觀測面，**MUST NOT** 另設狀態檔。
 2. **Artifact set 範圍**：含本 session 已收束票之 ①`Pending/` → `deliver/` 票檔移動、②`.claude/PROGRESS.md`／`.claude/PROGRESS_ARCHIVE.md` 同步、③`plans/cso_briefing/project/TICKET_REGISTRY.json`。**registry 之雙面事實 MUST 明載**：其**合法寫入通道**為平台 API（`registry_set_status`／`registry_set_checkpoint` 等，**MUST NOT** 以檔案寫入直改，回指 §治理載體↔存取工具對應圖譜），但其**檔案落點在 APP repo 內**且已列於 §Governance Artifact 清單（`[GOVERNANCE-SYNC]`），故仍由既有治理 artifact persistence 納入。**MUST NOT** 因「寫入通道在平台側」而將其排除於 APP artifact set 之外。
-3. **時效**：未持久化之 APP closeout artifact **MUST NOT** 跨 session；`/handoff`、主題切換或明確結束 session 前 **MUST** 執行 `/compact closeout`。
-4. **驗證**：`/compact closeout` 於 commit 前執行既有 Closure Gate 與 scoped `git_diff`（零意外變更）；任一失敗 → 禁止提交，**MUST NOT** 將未驗證之治理異動帶過 session 邊界。
-5. **Session Persistence 路徑指認（選路，非創設權限）**：本節所列 closeout artifact 之 APP Git persistence **MUST** 走 `/compact` 之 `## Auto Commit: Governance Artifacts` 路徑；其 commit prefix、pathspec、逐檔處理、同 prefix 合併與 zero-diff SKIPPED 語義，一律依 §Governance Artifact 清單與 `compact/SKILL.md` 既有規則執行。**MUST NOT** 使用「當前票 artifacts」段之 `[<TICKET_ID>]` 單票路徑；該段之多票合併禁令**不受本節修改**，亦 **MUST NOT** 擴義 `<TICKET_ID>` 佔位符值域。本條為既有機制之指認，**不新增任何提交授權**。
+3. **時效**：未持久化之 APP closeout artifact **MUST NOT** 跨 session；若收尾當下未走軌道 A（見第 5 點），則 `/handoff`、主題切換或明確結束 session 前 **MUST** 執行 `/compact closeout`。已隨票即時提交者不受本條拘束（已持久化）。
+4. **驗證**：任一軌道於 commit 前 **MUST** 執行 scoped `git_diff` 零意外變更驗證（軌道 B 另含既有 Closure Gate）；任一失敗 → 禁止提交，**MUST NOT** 將未驗證之治理異動帶過 session 邊界。
+5. **雙軌持久化（Akira 2026-09-15 裁決；取代原「路徑指認」單軌條款）**：已完成 Ticket 之 closeout artifact **得擇一**持久化，兩者均合法，執行者自行選擇，**MUST NOT** 因選擇其一而被判違規：
+   - **軌道 A — 隨票即時**：以 `[<TICKET_ID>]` 單票前綴立即 commit。**MUST** 為單票，**MUST NOT** 混入他票 artifact（`compact/SKILL.md` 之多票合併禁令與 TPL 三分流 R2 之 commit 前綴歸因**不受本節修改**）。
+   - **軌道 B — session 邊界**：延至 `/compact closeout`，走 `## Auto Commit: Governance Artifacts` 表驅動路徑；其 prefix、pathspec、逐檔處理、同 prefix 合併與 zero-diff SKIPPED 語義依 §Governance Artifact 清單與 `compact/SKILL.md` 既有規則執行。
+   **唯一禁止**：將**無法歸屬於已收束 Ticket** 之 tracked dirty change 混入任一軌道之保存集合。除此之外本節**不新增任何提交授權**，亦 **MUST NOT** 擴義 `<TICKET_ID>` 佔位符值域為多票列舉。
+   **立法事由**：`ACAGOV-RUNTIME-TABLE-01` 自身收尾即走軌道 A（commit `2fbc017`），與原單軌 MUST 相衝；Akira 裁決不追罰、不 revert，改撤該 MUST——本地 commit 為最廉價之回退點，強制延後反降低可回復性（可逆優先）。
 6. **Governance Artifact 清單補列**：於 §Governance Artifact 清單表新增一列 `plans/cso_briefing/project/deliver/*.md` → `[GOVERNANCE-SYNC]`（說明欄：已交付票檔，`REVIEW`／`CLOSED` 之物理歸位產物）。依該表節首「新增 Governance Artifact 只需在此表加一行，**MUST NOT** 另開票或單獨改 SKILL.md 判斷邏輯」之既有授權執行（已於本檔 §Governance Artifact 清單表落地，見該表列）。**不補此列則票檔搬移將落在 `compact` Scope 盤點之表列外而永不提交，屬靜默失效。**
 
 ## Ticket Closure 紀律
@@ -191,7 +195,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 - **修補票紀律**：母票存在未閉環 AC → **MUST** 同步產出修補票（`-FIX-[X]` 後綴或後續票）置於 `Pending/`，載明追蹤條目與轉 PASS 條件。
 - 母票 AC 佐證不明（無法判定該勾或保留）→ **MUST** 停止勾選該項並列入修補票追蹤，禁止推定勾選。
 - **冊面轉態紀律**：票檔層三步（勾選／搬移／修補票）完成後，`TICKET_REGISTRY.json` 對應條目 **MUST** 同步完成**四要件**——①`lifecycle` 轉終態；②`reviews` 四欄（qa／sv／codex／traycer）各填實測值，無可考記錄者填 `N_A` 並於 checkpoint 揭露豁免依據，**MUST NOT** 以推定補 `PASS`（撤警正向取證律）；③`file` 欄指標由 `Pending/` 改指實際落點 `deliver/` 或 `archive/`；④收尾實錄之耐久載體為**票檔（`deliver/`）＋vault 決策檔**；`checkpoint` 為收尾前之工作載體，依 PLT 契約於 `set_status(CLOSED)` 轉態時清為 `null` 並 unlink `.tmp/checkpoints/{ticket_id}.md`（見「checkpoint 生命週期與 detail 檔」節）。**轉終態前**，收尾實錄 MUST 已落票檔；若需保留冊面可見之收尾摘要，MUST 於 `set_status(CLOSED)` **之後**以 `registry_set_checkpoint` 回填（此序不改變已轉 `CLOSED` 之 `closed_at`）。
-- **原子性**：四要件 **MUST** 於同一收尾回合內完成，**MUST NOT** 分批跨 session；任一要件缺漏即視為該票**未收尾**，不得回報結案。`CLOSED` 情形之合法時序為「②③備妥＋④收尾實錄落票檔（四要件之必要部分，轉態前完成）→ ①`set_status(CLOSED)` 執行轉態 →（若需）checkpoint 摘要回填（④之選填延伸，非四要件計數對象）」，該序**不違反**本條之同回合要求。冊面異動之 APP Git persistence 依 §Session Persistence 邊界於 `/compact closeout` 邊界執行；scoped `git_diff` 零意外變更之驗證義務隨之移轉至該邊界，**MUST NOT 取消**。
+- **原子性**：四要件 **MUST** 於同一收尾回合內完成，**MUST NOT** 分批跨 session；任一要件缺漏即視為該票**未收尾**，不得回報結案。`CLOSED` 情形之合法時序為「②③備妥＋④收尾實錄落票檔（四要件之必要部分，轉態前完成）→ ①`set_status(CLOSED)` 執行轉態 →（若需）checkpoint 摘要回填（④之選填延伸，非四要件計數對象）」，該序**不違反**本條之同回合要求。冊面異動之 APP Git persistence 依 §Session Persistence 邊界第 5 點**雙軌擇一**執行（隨票即時 `[<TICKET_ID>]` 單票 commit，或延至 `/compact closeout` 走 `[GOVERNANCE-SYNC]`）；scoped `git_diff` 零意外變更之驗證義務隨該軌道執行，**MUST NOT 取消**。
 - **矛盾停止**：票檔層與冊面層狀態不一致（如票檔已搬 `deliver/` 而冊面 `file` 仍指 `Pending/`）→ **MUST** 停止回報並列入待裁，禁單方推定何者為真。
 - **VOID 歸位紀律**：票務判定作廢時 **MUST** 完成四要件：①票檔移 `plans/cso_briefing/project/void/`；②冊面 `file` 欄同步改指 void 路徑；③以 `registry_set_checkpoint`（敘事欄位置於 `checkpoint_data` 物件內）載明作廢事由，**MUST NOT** 使用 `registry_append_note`——依本檔「治理載體↔存取工具對應圖譜」節既有記載，該工具對本專案恆回 `REGISTRY_CROSS_PROJECT_REF`，寫入必定失敗；寫入後 **MUST** 以 `registry_list fields=["checkpoint"]` read-back 驗證欄位確實落地（防頂層鍵位靜默丟棄，同節既有規範）；④**復活紀律**——`VOID` 為終態，議題日後重啟 **MUST** 開新票，**MUST NOT** 改回原票 `lifecycle`；原解凍／續辦條件自動降級為新票之開票前置檢核，既有產物留存不刪，供新票直取為 `evidence_dependency`。
   **平台限制**：`registry_upsert_ticket` 對已歸檔票回 `REGISTRY_ARCHIVED_TICKET`，且 `registry_unarchive` 平台**未實作**（PLT `INFRA-REGISTRY-API-GAPS-01` 明示範圍收斂不實作）——故「開新票」非風格建議而是**平台強制**。
