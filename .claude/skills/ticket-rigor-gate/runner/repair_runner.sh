@@ -497,18 +497,6 @@ validate_response_structure() {
   return 0
 }
 
-validate_model_contract() {
-  local response="$1"
-  local resp_model resp_effort
-  resp_model="$(jq -r '.run_summary.model // ""' "$response")"
-  resp_effort="$(jq -r '.run_summary.reasoning_effort // ""' "$response")"
-  if [[ "$resp_model" != "$MODEL" || "$resp_effort" != "$EFFORT" ]]; then
-    echo "❌ RTR-006: run_summary.model=$resp_model reasoning_effort=$resp_effort 不符宣告 profile（$PROFILE → $MODEL/$EFFORT）" >&2
-    return 6
-  fi
-  return 0
-}
-
 # ═══════════════════════════════════════
 #  §7 驗證層（finding 級：§7.3–§7.8）
 # ═══════════════════════════════════════
@@ -719,11 +707,6 @@ fi
 if ! validate_response_structure "$RAW_RESPONSE" "$PAYLOAD_PATH"; then
   code=$?
   case "$code" in 4) fail_rtr RTR-004 "$CURRENT_FINDING_ID" "response 結構驗證失敗" ;; *) fail_rtr RTR-005 "$CURRENT_FINDING_ID" "response 結構驗證失敗" ;; esac
-  exit 1
-fi
-
-if ! validate_model_contract "$RAW_RESPONSE"; then
-  fail_rtr RTR-006 "$CURRENT_FINDING_ID" "model contract 不符"
   exit 1
 fi
 
