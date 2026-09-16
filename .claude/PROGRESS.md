@@ -5,13 +5,12 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-PREFLIGHT-CORE-01-FIX-B | ✅ CLOSED（commit `1dfddd4`+`46dd4bb`+`c61c425`）· 票檔已搬 `deliver/` |
-| INFRA-CTAWR-CKPT-TRIGGER-01 | ✅ CLOSED（commit `ad4019d`+`69df4c1`+`df60fa3`+`7ef8f5c`+`f9e19bf`）· `compact/SKILL.md` 四輪免票修訂（§9.5 checkpoint 觸發時機＋§3.2 自產物自提交不連坐＋§4.2 兩段式 scoped commit）＋`session_start.sh` dirty guard；`/qa` PASS，`/sv` Cross-Review R1 **PASS**，Addendum 補四輪修訂併入記錄，lifecycle→CLOSED |
 | INFRA-CTAWR-PHASE0-02 | ✅ CLOSED（commit `04a29cc`+`5914562`+`8c2e6dc`+`69270bf`）· `activate_ticket.sh` 參數容錯＋`active.json` 同步；`uc/SKILL.md` Phase 0 `1a`/`1b`；`/qa`+`/sv` PASS，Akira 裁決轉 CLOSED |
 | ACAGOV-RUNTIME-TABLE-01 | ✅ REVIEW（commit `08599a8`+`91e0ca1`+`7dcee9d`+`2fbc017`）· `ssot-governance.md` 新增 `## Ticket Runtime Transition Table`（唯一 GO lane）與 `## Session Persistence 邊界`；`/qa`+`/sv` Cross-Review R1/R2 REPORT_FIX→R3/R4 **ADVISORY** 終局，REACHABILITY: NONE。存在性 AC 11/17 全綠，行為性 AC147-152（6 項）待後續合成測試 |
 | RGR-RESP-SCHEMA-01 | ✅ REVIEW（commit `89abe7f`）· v3.8 三分流 AI-0 判定 `ALREADY_EXECUTED_PENDING_CLOSURE`（技術工作已由 `c9d1870` 完成：schema 五節點 strict-mode 封閉、AI-2 true-call 確認 provider 不再拒 schema，止於 RTR-006 移交 `RGR-CODEX-TRANSPORT-01`）；Akira 裁決走標準 SOP 收尾，live 復驗 AI-0~AI-2 全數與票面記載相符，AC 11/12 補齊（AC104 移交範圍維持未勾）。**更正**：收尾當下誤稱「`RGR-CODEX-TRANSPORT-01` 已於本 session 完成並 CLOSED」，live `git log --all` 核驗為假（該票全無 commit、票檔未離 `Pending/`、從未實作），已更正 checkpoint；不影響本票轉 REVIEW 之實質判斷 |
-| RGR-CODEX-TRANSPORT-01 | 🟡 IN_PROGRESS（commit `0736116`+`f151eea`）· AI-0 五動作完成（動作 C 零模型呼叫重現截斷層＝cmd.exe `%*` 巨集展開；動作 E 裁定丙案，維持 `fixtures/true_call/`）；AI-1 stdin 傳輸修復＋AI-2 空跑守門已提交（`0736116`）；AI-3 真呼叫（thread `01a0a569`）證實傳輸修復有效（`ticket_id` 正確、finding 非空實質判斷），RTR-006 拒絕記錄已提交（`f151eea`，evidence label 已修正為 requested profile，非 provider-executed identity 宣稱），但 RTR-006 本身仍 STOP，依 HC5 禁繞過，等 Akira 對契約裁決 |
-**Last Updated**: 2026-09-16（Source Session: `e2fc54e4-a75c-4408-87d0-4d9750c3d173`）`/compact checkpoint`：RGR-CODEX-TRANSPORT-01 AI-1/AI-2 傳輸修復＋AI-3 RTR-006 拒絕證據已分兩筆 commit 提交（`0736116`/`f151eea`），RTR-006 契約問題仍待裁決，冊面 lifecycle 維持 IN_PROGRESS
+| RGR-CODEX-TRANSPORT-01 | 🟡 IN_PROGRESS（commit `0736116`+`f151eea`）· AI-0 五動作完成（動作 C 零模型呼叫重現截斷層＝cmd.exe `%*` 巨集展開；動作 E 裁定丙案，維持 `fixtures/true_call/`）；AI-1 stdin 傳輸修復＋AI-2 空跑守門已提交（`0736116`）；AI-3 真呼叫（thread `01a0a569`）證實傳輸修復有效（`ticket_id` 正確、finding 非空實質判斷），RTR-006 拒絕記錄已提交（`f151eea`，evidence label 已修正為 requested profile，非 provider-executed identity 宣稱），但 RTR-006 本身仍 STOP，依 HC5 禁繞過；**已由 `RGR-MODEL-CONTRACT-01` 解套**（下一步：以已提交 transport baseline 原樣重跑 AI-3 bounded true-call） |
+| RGR-MODEL-CONTRACT-01 | ✅ REVIEW（commit `ab23c62`+`1f5ae34`）· 刪除 `validate_model_contract()` 與其唯一 caller（RTR-006 self-report gate，Probe A 證實無 runner-owned provider metadata producer）；AI-0~AI-2 碼閉環，throwaway `source` 函式隔離 regression 3/3 PASS；`/qa`+`/sv` Cross-Review R1 **PASS**（REACHABILITY: NONE），票檔已搬 `deliver/`，lifecycle→REVIEW，reviews={qa/sv/codex:PASS,traycer:N_A} |
+**Last Updated**: 2026-09-16（Source Session: `75113174-ec38-4807-bec2-11d0a61596dc`）`/compact checkpoint`：`RGR-MODEL-CONTRACT-01` AI-0~AI-2 碼閉環 + /qa + /sv Cross-Review PASS + Step 11 Closeout 完成（lifecycle→REVIEW），解套 `RGR-CODEX-TRANSPORT-01` RTR-006 契約阻塞，可續重跑 AI-3
 
 ## Active Ticket Activation
 
