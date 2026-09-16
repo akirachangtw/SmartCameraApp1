@@ -10,8 +10,8 @@
 | INFRA-CTAWR-PHASE0-02 | ✅ CLOSED（commit `04a29cc`+`5914562`+`8c2e6dc`+`69270bf`）· `activate_ticket.sh` 參數容錯＋`active.json` 同步；`uc/SKILL.md` Phase 0 `1a`/`1b`；`/qa`+`/sv` PASS，Akira 裁決轉 CLOSED |
 | ACAGOV-RUNTIME-TABLE-01 | ✅ REVIEW（commit `08599a8`+`91e0ca1`+`7dcee9d`+`2fbc017`）· `ssot-governance.md` 新增 `## Ticket Runtime Transition Table`（唯一 GO lane）與 `## Session Persistence 邊界`；`/qa`+`/sv` Cross-Review R1/R2 REPORT_FIX→R3/R4 **ADVISORY** 終局，REACHABILITY: NONE。存在性 AC 11/17 全綠，行為性 AC147-152（6 項）待後續合成測試 |
 | RGR-RESP-SCHEMA-01 | ✅ REVIEW（commit `89abe7f`）· v3.8 三分流 AI-0 判定 `ALREADY_EXECUTED_PENDING_CLOSURE`（技術工作已由 `c9d1870` 完成：schema 五節點 strict-mode 封閉、AI-2 true-call 確認 provider 不再拒 schema，止於 RTR-006 移交 `RGR-CODEX-TRANSPORT-01`）；Akira 裁決走標準 SOP 收尾，live 復驗 AI-0~AI-2 全數與票面記載相符，AC 11/12 補齊（AC104 移交範圍維持未勾）。**更正**：收尾當下誤稱「`RGR-CODEX-TRANSPORT-01` 已於本 session 完成並 CLOSED」，live `git log --all` 核驗為假（該票全無 commit、票檔未離 `Pending/`、從未實作），已更正 checkpoint；不影響本票轉 REVIEW 之實質判斷 |
-| RGR-CODEX-TRANSPORT-01 | ⚪ TICKET_RIGOR（票檔於 `Pending/`）· 尚未實作，coordination_dependency（`RGR-RESP-SCHEMA-01` 需離開 Active）已於上列滿足，待 Akira 裁決是否續走 AI-0 |
-**Last Updated**: 2026-09-15（Source Session: `e2fc54e4-a75c-4408-87d0-4d9750c3d173`）`/qa`+`/sv`：ACAGOV-RUNTIME-TABLE-01、RGR-RESP-SCHEMA-01 均收尾至 REVIEW。發現並更正 RGR-RESP-SCHEMA-01 收尾時的錯誤陳述（誤稱 RGR-CODEX-TRANSPORT-01 已完成，實為從未實作），已於 checkpoint 記載更正
+| RGR-CODEX-TRANSPORT-01 | 🟡 IN_PROGRESS（commit `0736116`+`f151eea`）· AI-0 五動作完成（動作 C 零模型呼叫重現截斷層＝cmd.exe `%*` 巨集展開；動作 E 裁定丙案，維持 `fixtures/true_call/`）；AI-1 stdin 傳輸修復＋AI-2 空跑守門已提交（`0736116`）；AI-3 真呼叫（thread `01a0a569`）證實傳輸修復有效（`ticket_id` 正確、finding 非空實質判斷），RTR-006 拒絕記錄已提交（`f151eea`，evidence label 已修正為 requested profile，非 provider-executed identity 宣稱），但 RTR-006 本身仍 STOP，依 HC5 禁繞過，等 Akira 對契約裁決 |
+**Last Updated**: 2026-09-16（Source Session: `e2fc54e4-a75c-4408-87d0-4d9750c3d173`）`/compact checkpoint`：RGR-CODEX-TRANSPORT-01 AI-1/AI-2 傳輸修復＋AI-3 RTR-006 拒絕證據已分兩筆 commit 提交（`0736116`/`f151eea`），RTR-006 契約問題仍待裁決，冊面 lifecycle 維持 IN_PROGRESS
 
 ## Active Ticket Activation
 
