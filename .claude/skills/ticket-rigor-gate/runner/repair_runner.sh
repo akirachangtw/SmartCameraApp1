@@ -474,6 +474,19 @@ validate_response_structure() {
 
   jq -e 'has("finding_results") and has("run_summary")' "$response" >/dev/null 2>&1 || { echo "❌ RTR-005: 缺 finding_results／run_summary" >&2; return 5; }
 
+  local payload_ticket_id resp_ticket_id
+  payload_ticket_id="$(jq -r '.ticket_id // ""' "$payload")"
+  resp_ticket_id="$(jq -r '.ticket_id // ""' "$response")"
+  [[ "$resp_ticket_id" == "$payload_ticket_id" ]] || { echo "❌ RTR-005: response ticket_id（$resp_ticket_id）不符 payload ticket_id（$payload_ticket_id）" >&2; return 5; }
+
+  local payload_finding_count resp_finding_count
+  payload_finding_count="$(jq -r '(.finding_ids // []) | length' "$payload")"
+  resp_finding_count="$(jq -r '(.finding_results // []) | length' "$response")"
+  if [[ "$payload_finding_count" -gt 0 && "$resp_finding_count" -eq 0 ]]; then
+    echo "❌ RTR-005: finding_results 為空但 payload 含 $payload_finding_count 個 finding" >&2
+    return 5
+  fi
+
   local unauthorized
   unauthorized="$(jq -rn --slurpfile p "$payload" --slurpfile r "$response" '
     ($p[0].finding_ids) as $allowed
@@ -696,7 +709,7 @@ if ! "$CODEX_BIN" exec --json \
       -c "model_reasoning_effort=$EFFORT" \
       --output-schema "$RESPONSE_SCHEMA" \
       --output-last-message "$RAW_RESPONSE" \
-      "$(cat "$PROMPT_FILE")" > "$EVENT_STREAM" 2>"$ARTIFACTS_DIR/stderr.log"; then
+      - < "$PROMPT_FILE" > "$EVENT_STREAM" 2>"$ARTIFACTS_DIR/stderr.log"; then
   fail_rtr RTR-003 "$CURRENT_FINDING_ID" "codex exec 非零退出"
   exit 1
 fi
