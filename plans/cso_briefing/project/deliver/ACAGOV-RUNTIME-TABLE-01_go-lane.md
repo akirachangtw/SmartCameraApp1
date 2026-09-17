@@ -166,3 +166,17 @@ DEPENDENCY_DELTA=NONE
 現行權威以 `.claude/rules/ssot-governance.md` 之 §Session Persistence 邊界與 §Governance Artifact 清單條文為準。
 
 **更正取證說明**：冊面 checkpoint 已於寫入時 read-back；SSOT 五處 patch 初次僅確認寫入成功，後續 read-back 已確認五個 block 均落於預期位置（`ssot-governance.md:160/181/182/183-187/198`）。本文不逐處改寫原票，以保留立法演進。
+
+## 2026-09-17 收束紀錄（CLOSED）
+
+**裁決者**：Akira｜**執行者**：SMTR（審查方，依 §五段語義⑤之寫入者授權）
+
+**收束理由**：本票原始問題（`/uc`／`/qa`／`/sv` 各自零散持有「下一步該怎麼做」邏輯，無唯一 GO lane；模式切換中斷 lifecycle；治理 artifact 持久化時點未定）、範圍與修法均已完成並落 SSOT。AI-0～AI-7 全數完成並經回流審查逐項取證。
+
+**未來自然觀測 AC 之定性**：AC 147／148／149／150／151／152 為機制建立後方可於真實工作中觀測之 runtime 行為，**不構成本票未完成工作**。票內自證構成 bootstrap 悖論，已交付機制不因尚未被自然使用而視為未完成。已完成之治理票 **MUST NOT** 因此永久滯留 `REVIEW`。
+
+**後續處理原則**：未來如有新的實作問題、殘留、回歸或流程斷點，**MUST 以新票處理**。該新票得將 `ACAGOV-RUNTIME-TABLE-01` 設為 `evidence_dependency`，**MUST NOT** 設為 `execution_dependency`，亦 **MUST NOT** 重新打開本票。脈絡由 dependency 欄位留存，不由「舊票不結案」留存。
+
+**四要件對照**：①`lifecycle=CLOSED`（本次轉態）②`reviews`：`qa=PASS`／`sv=PASS`／`codex=PASS`（實際 verdict `ADVISORY`，非阻斷，依 §Transition Table ADVISORY 列；原值留存於 checkpoint `codex_verdict_actual`）／`traycer=N_A` ③`file` 欄指向本檔（`deliver/`）④本節即收尾實錄，於轉態前落檔。
+
+**交付成果**：`ssot-governance.md` §Ticket Runtime Transition Table（唯一 GO lane）、§Session Persistence 邊界（雙軌持久化）、§Governance Artifact 清單新增 `deliver/*.md`；`CLAUDE.md` Rule 4b 但書；`sv` Step 11 Closeout Auto-Chain；`uc` 收尾引用＋session-local Snapshot；`qa` 銜接引用。連帶免票異動：TPL v3.11（基線漂移三分流降級、`TARGET_BLOB` Desktop fallback）、`Instructions_for_Claude.md`「Git 歷史非 gate 律」。
