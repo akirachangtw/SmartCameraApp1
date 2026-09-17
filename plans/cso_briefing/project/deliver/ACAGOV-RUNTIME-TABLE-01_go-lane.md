@@ -156,3 +156,13 @@ DEPENDENCY_DELTA=NONE
 ## 收尾義務
 - 本票自身之收尾 MUST 依**修訂後**之 §Ticket Runtime Transition Table 與 §Session Persistence 邊界執行（自我適用），作為第三個行為性驗證樣本。
 - 冊面四要件（lifecycle／reviews 四欄／`file` 欄／收尾實錄）MUST 同回合完成；APP Git persistence 依新制於 `/compact closeout` 邊界執行。
+
+## 2026-09-15 裁決後記
+
+本票中標題、來源說明、AI-2 第 3–5 點、HC-7／HC-8、AC 151 及收尾義務所載「APP Git persistence 僅延至 `/compact closeout`」，為本票原始單軌設計與當時驗收語境，**不再代表現行強制流程**。
+
+依 2026-09-15 裁決，closeout artifact 之保存得採：單一 Ticket 立即 commit，或於 `/compact closeout` session 邊界保存。兩者都屬**可選 persistence 時點**，**不構成 QA、SV、REVIEW transition 或 closeout 之前置條件**；亦不得反向解讀為「每票必須立即 commit」。唯一限制為不得混入無法歸屬之 dirty change。
+
+現行權威以 `.claude/rules/ssot-governance.md` 之 §Session Persistence 邊界與 §Governance Artifact 清單條文為準。
+
+**更正取證說明**：冊面 checkpoint 已於寫入時 read-back；SSOT 五處 patch 初次僅確認寫入成功，後續 read-back 已確認五個 block 均落於預期位置（`ssot-governance.md:160/181/182/183-187/198`）。本文不逐處改寫原票，以保留立法演進。
