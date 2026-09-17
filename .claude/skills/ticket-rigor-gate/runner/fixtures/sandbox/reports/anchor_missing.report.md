@@ -1,5 +1,5 @@
 
-## Repair Execution Record - 2026-09-12T07:04:26Z
+## Repair Execution Record - 2026-09-17T06:39:13Z
 
 - Ticket ID: RGR-P0A-01-FIXTURE
 - Source Run ID: nocall-anchor-missing
@@ -13,7 +13,7 @@
 - Ratification Status: pending
 - Notes: P0A_PRECHECK_REASON=ANCHOR_MISSING_OR_UNREADABLE; BLOCKER_RECEIPT=blocker-receipt.v1.json; MODEL_INVOKED=false
 
-## Repair Execution Record - 2026-09-12T07:04:34Z
+## Repair Execution Record - 2026-09-17T06:39:23Z
 
 - Ticket ID: RGR-P0A-01-FIXTURE
 - Source Run ID: nocall-anchor-missing
