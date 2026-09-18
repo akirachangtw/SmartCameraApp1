@@ -105,6 +105,8 @@ echo "🔧 Command assembly | profile=$PROFILE model=$MODEL effort=$EFFORT" >&2
 [[ -n "$PAYLOAD_PATH" ]] || usage_error "缺 --payload <path>"
 [[ -f "$PAYLOAD_PATH" ]] || usage_error "payload 檔不存在：$PAYLOAD_PATH"
 
+[[ "$PWD" == "$REPO_ROOT" ]] || fail_env "CWD 必須為 repo root（$REPO_ROOT），現為：$PWD"
+
 # ═══════════════════════════════════════
 #  失敗碼與 Quality Report
 # ═══════════════════════════════════════
