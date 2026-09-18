@@ -42,7 +42,7 @@ Ledger format and required fields for each repair entry are legislated once, in 
 **Six release conditions (all MUST hold).** A finding may be auto-applied only when all six are true:
 
 1. An authority anchor exists and is locatable in a repo-readable source.
-2. The target falls within the scope the ticket declared.
+2. The target falls within the scope the ticket declared, and is never the body of another already-signed ticket — preauthorization scopes only the declaring ticket's own target, never a write into a different, already-registered ticket's text.
 3. The preimage matches the declared value.
 4. The proposed change's shape falls within the declared mutation shape.
 5. Required verification is declared and executable.
