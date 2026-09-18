@@ -10,12 +10,17 @@
 - Prompt 模板版本：`ticket-repair-prompt/v1`（`prompts/ticket-repair-prompt.v1.txt`）
 - Model profiles 版本：`model-profiles/v1`（`profiles/model-profiles.v1.json`）
 
-## §7.2 Profile 化偏差（KD-6）
+## §7.2 Model contract 驗證層——已退役（`RGR-MODEL-CONTRACT-01`，commit `ab23c62`，2026-09-16）
 
-契約 §7.2 字面為固定值比對（`run_summary.model` 必須是 `gpt-5.6-sol`）。本落地依裁決
-`RigorGate_R2_Terra_Routing_Profile_Switch_And_A5_Family`（2026-08-20）改為比對**本次 run 宣告之
-profile** 於 `profiles/model-profiles.v1.json` 所載值；比對值與命令組裝之 `-m`／`-c` 共用同一常數
-來源（`repair_runner.sh` 之 `MODEL`／`EFFORT` 變數，皆自 profiles 檔解析，無兩處各自硬編）。
+契約 §7.2 字面為固定值比對（`run_summary.model` 必須是 `gpt-5.6-sol`）；本落地曾依裁決
+`RigorGate_R2_Terra_Routing_Profile_Switch_And_A5_Family`（2026-08-20，KD-6）改為比對本次 run 宣告之
+profile。**該比對已整段移除**：`run_summary.model`／`run_summary.reasoning_effort` 為模型輸出之自述，
+runner 自有事件流（`codex exec --json` stdout）無 `turn_context`，故無可信 provider metadata producer，
+自述不承載 provider identity 語意。現行 runner 不再存在 `validate_model_contract()` 或 RTR-006 拒絕路徑；
+`RTR_RETRYABLE` 表中之 `RTR-006` 條目為未被引用之靜態保留項。
+
+`run_summary` 仍由 response schema 要求存在（結構檢查），但僅為 audit 資料。命令組裝之 `-m`／`-c`
+仍自 `profiles/model-profiles.v1.json` 解析（`repair_runner.sh` 之 `MODEL`／`EFFORT`），此部分未變。
 
 ## 執行 Shell
 
@@ -41,8 +46,10 @@ bash repair_runner.sh [sol|terra] --payload <payload.json>
 
 ## 驗證層與斷路器
 
-- §7.1–§7.8 八層驗證（schema／model contract／eligibility／evidence／target hash／diff budget／
-  frozen sentence／decision leakage）均由主執行路徑依序呼叫；任一層未過即禁寫入，該 finding 整筆回退。
+- §7.1–§7.8 驗證層中，§7.2 model contract 已退役（見上節），現行為**七層**（schema／eligibility／
+  evidence／target hash／diff budget／frozen sentence／decision leakage）均由主執行路徑依序呼叫；
+  任一層未過即禁寫入，該 finding 整筆回退。`validate_response_structure` 另含 RTR-005 之
+  `ticket_id` 一致性與非空 `finding_results` 守門（`RGR-CODEX-TRANSPORT-01` AI-2）。
 - §14 斷路器 CB-1～CB-4 於每次 `codex exec` 呼叫前評估；觸發後凍結該 `ticket_id`，quality report 記
   `Apply Status: escalated` 與對應 CB 編號，禁自行重試。
 
