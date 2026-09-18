@@ -12,6 +12,8 @@ Each Advisor Repair whitelist class (see `REPAIR_ROUTING.md`'s Repair Whitelist)
 
 Before a class clears this bar, its repairs remain proposal-only: emitted as a diff for human review, and MUST NOT be written to disk. Any rejection resets that class's counter to zero, regardless of how close it was to the bar.
 
+A finding that satisfies all six release conditions of `REPAIR_ROUTING.md`'s `Dispatch Authority` section is exempt from this Phase 0 proposal-only restriction for that finding; a finding that does not satisfy them falls back to the Phase 0/1 law above unchanged. The threshold values (N = 10, ≥ 90%), the rejection-reset rule, and the ledger obligation are unchanged; a preauthorized apply's result still counts toward that class's calibration counter.
+
 > 若日後決意退役，MUST 同批立 supersede 紀錄，禁靜默。
 
 This mirrors the shadow-mode rule for gate verdicts defined in `SKILL.md`'s Iteration And Escalation section; the two counters are independent — passing one does not advance the other.

@@ -35,6 +35,25 @@ All five apply. Failing any one voids the repair.
 
 Ledger format and required fields for each repair entry are legislated once, in `OPS_CALIBRATION.md`'s Repair Ledger section.
 
+### Dispatch Authority — Preauthorized Autonomous Apply
+
+**Definition.** Preauthorization is issued by the ticket at signing time, not by a post-signature repair. Its authority basis, target, and verification conditions are fixed at that moment and reviewed under L2 at signing. It is therefore not an exception to Guardrail 1's "Pre-signature only" — it falls outside that guardrail's range entirely. Guardrail 1 remains in full force against any post-signature repair that was not preauthorized.
+
+**Six release conditions (all MUST hold).** A finding may be auto-applied only when all six are true:
+
+1. An authority anchor exists and is locatable in a repo-readable source.
+2. The target falls within the scope the ticket declared.
+3. The preimage matches the declared value.
+4. The proposed change's shape falls within the declared mutation shape.
+5. Required verification is declared and executable.
+6. No breaker or contract block is currently in effect.
+
+**Consequence when all six hold.** The host MUST release the apply; the runner applies, verifies, persists the receipt, and continues to the next item in the batch. It MUST NOT ask a human about that finding case by case.
+
+**Consequence when any condition fails.** The host MUST NOT guess and MUST NOT ask the human in free text "to be safe." It MUST emit an existing machine code (RTR / CB) or hand the finding back to the human under the existing Out Of Range / decision-layer rules.
+
+**Self-report carries no authority.** `requires_human_decision` in the response is a model self-report; when preauthorization is met it is an audit-only field and MUST NOT by itself constitute a stop, on the same footing as `RGR-MODEL-CONTRACT-01`'s treatment of `run_summary`.
+
 ### Tooling Note
 
 Two layers describe this mode's non-write posture.
