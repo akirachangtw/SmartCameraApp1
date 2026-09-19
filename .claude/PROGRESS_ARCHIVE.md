@@ -422,3 +422,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 ## Archived 2026-09-09（INFRA-CKPT-SEMANTICS-01 /compact 行數精簡）
 
 - **🔴 實機重測**：TRACTION-SSOT-01 修復後，AC-6/8/9 實機重測 → Traycer 終審（原 PROGRESS.md Next Actions #5，歸檔以滿足 ≤80 行）
+
+## Archived 2026-09-19（/compact checkpoint · 最近 Ticket 表 5 筆上限輪替）
+
+- INFRA-CTAWR-PHASE0-02 | ✅ CLOSED（commit `04a29cc`+`5914562`+`8c2e6dc`+`69270bf`）· `activate_ticket.sh` 參數容錯＋`active.json` 同步；`uc/SKILL.md` Phase 0 `1a`/`1b`；`/qa`+`/sv` PASS，Akira 裁決轉 CLOSED
