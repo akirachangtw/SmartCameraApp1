@@ -5,12 +5,12 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
-| INFRA-CTAWR-PHASE0-02 | ✅ CLOSED（commit `04a29cc`+`5914562`+`8c2e6dc`+`69270bf`）· `activate_ticket.sh` 參數容錯＋`active.json` 同步；`uc/SKILL.md` Phase 0 `1a`/`1b`；`/qa`+`/sv` PASS，Akira 裁決轉 CLOSED |
 | ACAGOV-RUNTIME-TABLE-01 | ✅ REVIEW（commit `08599a8`+`91e0ca1`+`7dcee9d`+`2fbc017`）· `ssot-governance.md` 新增 `## Ticket Runtime Transition Table`（唯一 GO lane）與 `## Session Persistence 邊界`；`/qa`+`/sv` Cross-Review R1/R2 REPORT_FIX→R3/R4 **ADVISORY** 終局，REACHABILITY: NONE。存在性 AC 11/17 全綠，行為性 AC147-152（6 項）待後續合成測試 |
 | RGR-RESP-SCHEMA-01 | ✅ REVIEW（commit `89abe7f`）· v3.8 三分流 AI-0 判定 `ALREADY_EXECUTED_PENDING_CLOSURE`（技術工作已由 `c9d1870` 完成：schema 五節點 strict-mode 封閉、AI-2 true-call 確認 provider 不再拒 schema，止於 RTR-006 移交 `RGR-CODEX-TRANSPORT-01`）；Akira 裁決走標準 SOP 收尾，live 復驗 AI-0~AI-2 全數與票面記載相符，AC 11/12 補齊（AC104 移交範圍維持未勾）。**更正**：收尾當下誤稱「`RGR-CODEX-TRANSPORT-01` 已於本 session 完成並 CLOSED」，live `git log --all` 核驗為假（該票全無 commit、票檔未離 `Pending/`、從未實作），已更正 checkpoint；不影響本票轉 REVIEW 之實質判斷 |
 | RGR-CODEX-TRANSPORT-01 | ✅ REVIEW（commit `ed3739a`+`0a5af60`）· AI-0~AI-3 全數完成，AC 11/11 全勾。AI-3 postfix bounded true-call `exit 0`（thread `01a0adec`），八面 PASS 判準成立，`run_no_call_tests.sh` 5/5 PASS。`/qa` Step 0 PASS；`/sv` Cross-Review R1 REPORT_FIX（sv_report 措辭）→R2 **PASS**（REACHABILITY: NONE）。執行中發現並修正一次錨點失誤：session 中途重跑 `activate_ticket.sh` 誤把 `DIFF_REF` 回填至已含本票證據 commit 之後的 HEAD，造成零寬審查窗口，已人工修正為 `0b632f8..ed3739a` 後才送審 |
 | RGR-MODEL-CONTRACT-01 | ✅ REVIEW（commit `ab23c62`+`1f5ae34`）· 刪除 `validate_model_contract()` 與其唯一 caller（RTR-006 self-report gate，Probe A 證實無 runner-owned provider metadata producer）；AI-0~AI-2 碼閉環，throwaway `source` 函式隔離 regression 3/3 PASS；`/qa`+`/sv` Cross-Review R1 **PASS**（REACHABILITY: NONE），票檔已搬 `deliver/`，lifecycle→REVIEW，reviews={qa/sv/codex:PASS,traycer:N_A} |
-**Last Updated**: 2026-09-17（Source Session: `75113174-ec38-4807-bec2-11d0a61596dc`）`/sv`：`RGR-CODEX-TRANSPORT-01` Cross-Review PASS（REACHABILITY: NONE），Step 11 Closeout 進行中（lifecycle→REVIEW）
+| RGR-DISPATCH-AUTH-01 | ✅ REVIEW（commit `673e54e`+`c010a91`+`bb119b7`）· doc-only 立法票：`REPAIR_ROUTING.md` 新增 `Dispatch Authority — Preauthorized Autonomous Apply` 節（六項放行條件、命中 MUST 放行禁逐案諮詢、自報不承載授權），`OPS_CALIBRATION.md` 加一句 Phase 0 例外（門檻數值不變）；Rigor Gate 開票時已登記之 1 Medium（條件②未排除「target=另一張已簽發票本文」）於 Closeout 前發現漏做並補上（`c010a91`）；`/sv` Cross-Review 五輪（R1-R4 為 sv_report.md 措辭/終點校準 REPORT_FIX，R5 **PASS**，REACHABILITY: NONE），Structural Verify PASS(A-G)[ADVISORY]，AC 11/11、Action Item 全數完成，票檔已搬 `deliver/`，reviews={qa:N_A,sv/codex:PASS,traycer:N_A}；解除 `RGR-P0A-02` coordination_dependency 前置 |
+**Last Updated**: 2026-09-18（Source Session: `14996e6e-5c9d-4141-b5e5-038891995cd9`）`/sv`：`RGR-DISPATCH-AUTH-01` Cross-Review PASS R5（REACHABILITY: NONE），Step 11 Closeout 完成（lifecycle→REVIEW）
 
 ## Active Ticket Activation
 
