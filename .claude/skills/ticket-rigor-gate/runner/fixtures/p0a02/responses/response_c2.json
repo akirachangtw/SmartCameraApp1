@@ -1,0 +1,28 @@
+{
+  "schema_version": "ticket-repair-response/v1",
+  "ticket_id": "RGR-P0A-02-C2",
+  "finding_results": [
+    {
+      "finding_id": "F-1",
+      "disposition": "propose_repair",
+      "reason": "Case 2 canned stub response (never reached — target preimage guard rejects first).",
+      "source_refs_used": [
+        { "path": ".claude/skills/ticket-rigor-gate/runner/fixtures/p0a02/evidence/evidence_shared.md", "lines": "1-3" }
+      ],
+      "patch": {
+        "target_file": ".claude/skills/ticket-rigor-gate/runner/fixtures/p0a02/targets/target_c2.md",
+        "target_section": null,
+        "expected_old_text_hash": null,
+        "replacement_text": "Addendum: FIXTURE_VALUE = 07 recorded for case 2."
+      },
+      "changed_line_estimate": 1,
+      "requires_human_decision": true,
+      "verification_hints": []
+    }
+  ],
+  "run_summary": {
+    "model": "gpt-5.6-terra",
+    "reasoning_effort": "medium",
+    "prompt_template_version": "ticket-repair-prompt/v1"
+  }
+}
