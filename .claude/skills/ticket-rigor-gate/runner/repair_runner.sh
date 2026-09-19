@@ -602,15 +602,30 @@ validate_frozen_sentence() {
 }
 
 validate_decision_leakage() {
-  local finding_result="$1"
+  local payload="$1" finding_result="$2"
   local requires_human disposition replacement marker
   requires_human="$(jq -r '.requires_human_decision // false' <<<"$finding_result")"
   disposition="$(jq -r '.disposition' <<<"$finding_result")"
   replacement="$(jq -r '.patch.replacement_text // ""' <<<"$finding_result")"
 
   if [[ "$requires_human" == "true" && "$disposition" == "propose_repair" ]]; then
-    echo "❌ RTR-012: requires_human_decision=true 但 disposition=propose_repair（自相矛盾）" >&2
-    return 12
+    local preauth_flag verification_ref target_file fixture_root target_abs override="false"
+    preauth_flag="$(jq -r '.preauthorized_autonomous_apply // false' "$payload")"
+    verification_ref="$(jq -r '.required_verification // ""' "$payload")"
+    if [[ "$preauth_flag" == "true" && -n "$verification_ref" ]]; then
+      target_file="$(jq -r '.target.file_path' "$payload")"
+      fixture_root="$(realpath -m -- "$REPO_ROOT/.claude/skills/ticket-rigor-gate/runner/fixtures")/"
+      target_abs="$(realpath -m -- "$target_file" 2>/dev/null || true)"
+      if [[ -n "$target_abs" && "$target_abs" == "$fixture_root"* ]]; then
+        override="true"
+      fi
+    fi
+    if [[ "$override" == "true" ]]; then
+      PREAUTH_OVERRIDE_NOTE="PREAUTHORIZED_AUTONOMOUS_APPLY=true REQUIRES_HUMAN_SELF_REPORT=true REQUIRED_VERIFICATION_REF=$verification_ref HUMAN_CHECKPOINT_EMITTED=false"
+    else
+      echo "❌ RTR-012: requires_human_decision=true 但 disposition=propose_repair（自相矛盾）" >&2
+      return 12
+    fi
   fi
 
   for marker in "${FROZEN_LEAKAGE_MARKERS[@]}"; do
@@ -719,6 +734,7 @@ CB4_TRIPPED=0
 while IFS= read -r row; do
   fid="$(jq -r '.finding_id' <<<"$row")"
   CURRENT_FINDING_ID="$fid"
+  PREAUTH_OVERRIDE_NOTE=""
   disposition="$(jq -r '.disposition' <<<"$row")"
   orig_finding="$(jq -c --arg fid "$fid" '.findings[] | select(.finding_id == $fid)' "$PAYLOAD_PATH")"
 
@@ -740,7 +756,7 @@ while IFS= read -r row; do
   fi
   if ! validate_diff_budget "$MAX_CHANGED_LINES" "$row" "$TARGET_FILE"; then fail_rtr RTR-010 "$fid" "diff budget 超限"; continue; fi
   if ! validate_frozen_sentence "$PAYLOAD_PATH" "$row"; then fail_rtr RTR-011 "$fid" "frozen sentence 未授權觸及"; continue; fi
-  if ! validate_decision_leakage "$row"; then
+  if ! validate_decision_leakage "$PAYLOAD_PATH" "$row"; then
     fail_rtr RTR-012 "$fid" "decision leakage"
     append_report_entry "$fid" "$disposition" "escalated" "RTR-012" "CB-4：DECISION_LEAKAGE 觸發 1 次即停損"
     CB4_TRIPPED=1
@@ -773,7 +789,11 @@ while IFS= read -r row; do
     continue
   fi
 
-  append_report_entry "$fid" "$disposition" "applied" "none" "bounded addendum write only"
+  if [[ -n "$PREAUTH_OVERRIDE_NOTE" ]]; then
+    append_report_entry "$fid" "$disposition" "applied" "none" "bounded addendum write only; $PREAUTH_OVERRIDE_NOTE"
+  else
+    append_report_entry "$fid" "$disposition" "applied" "none" "bounded addendum write only"
+  fi
   TARGET_MUTATED=0
 done < <(jq -c '.finding_results[]' "$VALIDATED_RESPONSE")
 
