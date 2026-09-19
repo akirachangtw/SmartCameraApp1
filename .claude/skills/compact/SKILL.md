@@ -102,7 +102,7 @@ disable-model-invocation: false
   4. 候選為空 → 跳過本段。非空 → `git commit -o -m "[<TICKET_ID>] <一句話用途>" -- <候選路徑…>`。
   5. commit 前綴 **MUST** 為 `[<TICKET_ID>]` 單票字面——TPL v3.8 三分流 R2 以 `BASE_COMMIT..HEAD` 之 commit **前綴**歸因（`ALREADY_EXECUTED`／`CANDIDATE_SUPERSEDED`），多票合一或 `[COMPACT-SYNC]` 提交程式碼即使 R2 失效。**MUST NOT** 於單筆 commit 合併多張票之 artifacts。
 
-  **第二段——PROGRESS**：`git diff --quiet HEAD -- .claude/PROGRESS.md` 判定有無變更，**有變更**才 `git commit -o -m "[COMPACT-SYNC] .claude/PROGRESS.md checkpoint：<一句話摘要>" -- .claude/PROGRESS.md`。
+  **第二段——PROGRESS（含 Archive）**（`INFRA-CTAWR-CKPT-TRIGGER-01` 補充修訂：`.claude/PROGRESS.md` 與 `.claude/PROGRESS_ARCHIVE.md` 同屬 `[COMPACT-SYNC]` 前綴之 Governance Artifact，見 `ssot-governance.md`「Governance Artifact 清單」表；原版僅提交前者，checkpoint 常態執行之最近 Ticket 表 5 筆輪替會同時異動兩檔，僅提交 PROGRESS.md 導致 Archive 每次殘留未提交，須靠 `/compact closeout` 才會被表驅動 Auto Commit 撿走——但多數 session 只用 `/compact` 預設 checkpoint，從不主動跑 closeout，殘留因而系統性發生）：兩檔各自以 `git diff --quiet HEAD -- <檔案>` 判定有無變更；**任一檔有變更**即提交，候選路徑僅含當次實際變更者（可能一檔或兩檔）：`git commit -o -m "[COMPACT-SYNC] PROGRESS checkpoint：<一句話摘要>" -- <實際變更之路徑…>`。兩檔變更判定互不依賴——**MUST NOT** 因其中一檔無變更而略過另一檔之提交；兩者同時有變更時**MAY**合併為單一 commit（同 prefix 合併原則，呼應 §「Auto Commit: Governance Artifacts」步驟 2 之既有慣例）。
 
   **兩段共同約束**：
   - `-o`（`--only`）為 pathspec 模式：**只提交所列路徑之工作樹內容，忽略 index 中其他已 stage 內容**，故無須 staged-contamination guard，亦不夾帶任何其他檔案。
