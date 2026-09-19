@@ -426,3 +426,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 ## Archived 2026-09-19（/compact checkpoint · 最近 Ticket 表 5 筆上限輪替）
 
 - INFRA-CTAWR-PHASE0-02 | ✅ CLOSED（commit `04a29cc`+`5914562`+`8c2e6dc`+`69270bf`）· `activate_ticket.sh` 參數容錯＋`active.json` 同步；`uc/SKILL.md` Phase 0 `1a`/`1b`；`/qa`+`/sv` PASS，Akira 裁決轉 CLOSED
+
+## Archived 2026-09-20（/compact checkpoint · 最近 Ticket 表 5 筆上限輪替）
+
+- ACAGOV-RUNTIME-TABLE-01 | ✅ REVIEW（commit `08599a8`+`91e0ca1`+`7dcee9d`+`2fbc017`）· `ssot-governance.md` 新增 `## Ticket Runtime Transition Table`（唯一 GO lane）與 `## Session Persistence 邊界`；`/qa`+`/sv` Cross-Review R1/R2 REPORT_FIX→R3/R4 **ADVISORY** 終局，REACHABILITY: NONE。存在性 AC 11/17 全綠，行為性 AC147-152（6 項）待後續合成測試
