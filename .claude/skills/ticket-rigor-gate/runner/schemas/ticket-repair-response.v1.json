@@ -54,7 +54,8 @@
           "verification_hints": {
             "type": ["array", "null"],
             "items": { "type": "string" }
-          }
+          },
+          "edit_intent": { "type": "string", "enum": ["additive", "supersede"] }
         }
       }
     },

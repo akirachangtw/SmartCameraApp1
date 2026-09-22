@@ -48,6 +48,10 @@ unset _code
 
 FROZEN_LEAKAGE_MARKERS=("new policy" "new acceptance criteria" "reassign" "change of ownership")
 
+# single_attachment_live_lane 之 PERMITTED class allowlist——RGR-AUTO-01 bundle 驗收條件②：
+# runner 常數，MUST NOT 從票面或 payload 讀取；唯一合法變更路徑為改本行常數本身（需開 Rev）。
+readonly -a PERMITTED_REPAIR_CLASSES=("A-1" "A-2")
+
 # ═══════════════════════════════════════
 #  用法／環境錯誤（Codex 呼叫次數恆為 0）
 # ═══════════════════════════════════════
@@ -63,6 +67,10 @@ fail_env() { echo "❌ ENV ERROR: $*" >&2; exit 2; }
 command -v jq >/dev/null 2>&1 || fail_env "jq not found"
 command -v sha256sum >/dev/null 2>&1 || fail_env "sha256sum not found"
 command -v diff >/dev/null 2>&1 || fail_env "diff not found"
+# python3 僅為 single_attachment_live_lane 之 canonicalization 依賴；non-live P0A-02
+# payload 不需 python3，此探測 MUST NOT 全域執行（會使既有無 python3 環境下之 legacy
+# 呼叫無故 regress）。實際條件式探測見主流程 payload lane 判讀處（Codex 呼叫前，維持
+# 「exit 2 → codex 呼叫次數恆為 0」之既有契約）。
 
 # ═══════════════════════════════════════
 #  引數解析（profile 首參，payload 旗標）
@@ -118,6 +126,11 @@ CURRENT_FINDING_ID=""
 TARGET_MUTATED=0
 CURRENT_BEFORE_FILE=""
 CURRENT_BEFORE_HASH=""
+CIRCUIT_BREAKER_PRECHECK_PASSED="false"
+LIVE_BINDING_PASSED="false"
+LIVE_LANE_RAW=""
+LIVE_LANE_RESOLVED=""
+LIVE_LANE_CANONICAL=""
 
 _report_write_failed() {
   local finding_id="$1" msg="$2"
@@ -135,6 +148,7 @@ _report_write_failed() {
 
 append_report_entry() {
   local finding_id="$1" disposition="$2" apply_status="$3" failure_code="$4" notes="$5"
+  local auth_basis="${6:-}" raw_ref="${7:-}" resolved_ref="${8:-}" canonical_ref="${9:-}"
   [[ -n "$QUALITY_REPORT_PATH" ]] || return 0
   mkdir -p "$(dirname "$QUALITY_REPORT_PATH")" || _report_write_failed "$finding_id" "quality report 父目錄建立失敗：$QUALITY_REPORT_PATH"
   {
@@ -151,6 +165,10 @@ append_report_entry() {
     echo "- Apply Status: $apply_status"
     echo "- Failure Code: $failure_code"
     echo "- Ratification Status: pending"
+    [[ -n "$auth_basis" ]] && echo "- Authorization Basis: $auth_basis"
+    [[ -n "$raw_ref" ]] && echo "- Attachment Raw: $raw_ref"
+    [[ -n "$resolved_ref" ]] && echo "- Attachment Resolved: $resolved_ref"
+    [[ -n "$canonical_ref" ]] && echo "- Attachment Canonical: $canonical_ref"
     echo "- Notes: $notes"
   } >> "$QUALITY_REPORT_PATH" || _report_write_failed "$finding_id" "quality report 寫入失敗：$QUALITY_REPORT_PATH"
 }
@@ -434,11 +452,14 @@ render_prompt() {
   allow_scope="$(jq -r '.constraints.allow_scope_expansion // false' "$payload")"
   allow_decision="$(jq -r '.constraints.allow_decision_making // false' "$payload")"
 
+  local lane
+  lane="$(jq -r '.lane // ""' "$payload")"
+
   awk -v findings="$findings_block" -v evidence="$evidence_block" \
       -v ticket_id="$ticket_id" -v target_file="$target_file" -v write_mode="$write_mode" \
       -v section_id="$section_id" -v old_hash="$old_hash" -v max_lines="$max_lines" \
       -v frozen_terms="$frozen_terms" -v allow_norm="$allow_norm" -v allow_scope="$allow_scope" \
-      -v allow_decision="$allow_decision" '
+      -v allow_decision="$allow_decision" -v lane="$lane" '
     /{{#findings}}/ { print findings; skip_f=1; next }
     /{{\/findings}}/ { skip_f=0; next }
     skip_f { next }
@@ -457,6 +478,7 @@ render_prompt() {
       gsub(/{{constraints\.allow_normative_edit_only_if_cited_finding}}/, allow_norm, line)
       gsub(/{{constraints\.allow_scope_expansion}}/, allow_scope, line)
       gsub(/{{constraints\.allow_decision_making}}/, allow_decision, line)
+      gsub(/{{lane}}/, lane, line)
       print line
     }
   ' "$PROMPT_TEMPLATE" > "$out"
@@ -519,6 +541,20 @@ validate_eligibility() {
     fi
   }
   return 0
+}
+
+# class allowlist 檢查（AI-3：SCOPE_EXPANSION/CLASS_NOT_PERMITTED）。獨立於 RTR-002：
+# RTR-002 判 eligibility／severity／decisionness，本檢查判 class 是否在本 lane 之固定
+# PERMITTED_REPAIR_CLASSES 常數內；finding 缺 class 欄一律視為不在allowlist（fail-closed）。
+validate_class_permitted() {
+  local orig_finding="$1"
+  local class c
+  class="$(jq -r '.class // ""' <<<"$orig_finding")"
+  [[ -n "$class" ]] || return 1
+  for c in "${PERMITTED_REPAIR_CLASSES[@]}"; do
+    [[ "$class" == "$c" ]] && return 0
+  done
+  return 1
 }
 
 validate_evidence() {
@@ -601,6 +637,152 @@ validate_frozen_sentence() {
   return 0
 }
 
+# canonical 形式＝repo 相對 posix 路徑。接受：repo 相對路徑、Windows 絕對路徑
+# （d:\... 或 d:/...，任意大小寫磁碟代號）、git-bash posix 絕對路徑（/d/...）。
+# 落於 repo 根外或無法定位磁碟代號 → 非零 exit、空輸出。MUST NOT 依賴 bash realpath
+# 直接處理 d:\ 形式輸入（跨環境行為不一致），改由 python3 之 posixpath.normpath 正規化。
+canonicalize_target() {
+  local input="$1"
+  python3 - "$input" "$REPO_ROOT" <<'PYEOF'
+import re, sys, posixpath
+
+raw, repo_root = sys.argv[1], sys.argv[2]
+
+def to_posix(p):
+    return p.replace("\\", "/")
+
+def extract_drive(p):
+    m = re.match(r'^([A-Za-z]):/(.*)$', p)
+    if m:
+        return m.group(1).lower(), '/' + m.group(2)
+    m = re.match(r'^/([A-Za-z])/(.*)$', p)
+    if m:
+        return m.group(1).lower(), '/' + m.group(2)
+    return None, p
+
+raw_p = to_posix(raw)
+root_p = to_posix(repo_root)
+raw_drive, raw_rest = extract_drive(raw_p)
+root_drive, root_rest = extract_drive(root_p)
+
+if raw_drive is not None:
+    if root_drive is None or raw_drive != root_drive:
+        sys.exit(1)
+    abs_rest = raw_rest
+elif raw_p.startswith('/'):
+    sys.exit(1)
+else:
+    norm = posixpath.normpath(raw_p)
+    if norm == '.' or norm == '..' or norm.startswith('../'):
+        sys.exit(1)
+    print(norm)
+    sys.exit(0)
+
+if root_drive is None:
+    sys.exit(1)
+
+if not (abs_rest == root_rest or abs_rest.startswith(root_rest + '/')):
+    sys.exit(1)
+
+rel = abs_rest[len(root_rest):].lstrip('/')
+norm = posixpath.normpath(rel)
+if norm in ('.', '..') or norm.startswith('../'):
+    sys.exit(1)
+print(norm)
+PYEOF
+}
+
+# 三重約束（lane-entry guard）：對所有帶 lane=single_attachment_live_lane 之 payload
+# 無條件執行（不依附 RTR-012 分支），輸出全域 LIVE_BINDING_PASSED。非本 lane payload
+# 即刻 return 0（LIVE_BINDING_PASSED 維持 false，既有流程逐字不變）。
+# 定性：anti-drift 一致性控制＋圍堵，非獨立授權證明（見 RGR-AUTO-01 AI-1，REPAIR_ROUTING.md
+# Single-Attachment Live Lane Carve-out 條件②）。
+lane_entry_guard() {
+  local payload="$1" fid="$2"
+  LIVE_BINDING_PASSED="false"
+  LIVE_LANE_RAW=""
+  LIVE_LANE_RESOLVED=""
+  LIVE_LANE_CANONICAL=""
+
+  local lane
+  lane="$(jq -r '.lane // ""' "$payload")"
+  [[ "$lane" == "single_attachment_live_lane" ]] || return 0
+
+  local raw resolved target_file canon_attach canon_target
+  raw="$(jq -r '.attachment_target.raw // ""' "$payload")"
+  resolved="$(jq -r '.attachment_target.resolved // ""' "$payload")"
+  target_file="$(jq -r '.target.file_path' "$payload")"
+
+  if [[ -z "$raw" || -z "$resolved" ]]; then
+    fail_rtr "SCOPE_EXPANSION/TARGET_MISMATCH" "$fid" "single_attachment_live_lane payload 缺 attachment_target.raw／resolved"
+    return 1
+  fi
+
+  if ! canon_attach="$(canonicalize_target "$resolved")"; then
+    fail_rtr "SCOPE_EXPANSION/TARGET_MISMATCH" "$fid" "attachment_target.resolved 無法 canonicalize 或落於 repo 根外：$resolved"
+    return 1
+  fi
+  if ! canon_target="$(canonicalize_target "$target_file")"; then
+    fail_rtr "SCOPE_EXPANSION/TARGET_MISMATCH" "$fid" "target.file_path 無法 canonicalize 或落於 repo 根外：$target_file"
+    return 1
+  fi
+  if [[ "$canon_attach" != "$canon_target" ]]; then
+    fail_rtr "SCOPE_EXPANSION/TARGET_MISMATCH" "$fid" "attachment_target（$canon_attach）≠ target.file_path（$canon_target）"
+    return 1
+  fi
+
+  local containment_root="plans/cso_briefing/project/Pending/"
+  if [[ "$canon_target" != "$containment_root"*".md" ]]; then
+    fail_rtr "SCOPE_EXPANSION/CONTAINMENT" "$fid" "target（$canon_target）不在 Pending/ 下之單一 .md 實檔"
+    return 1
+  fi
+  if [[ ! -f "$REPO_ROOT/$canon_target" || -L "$REPO_ROOT/$canon_target" ]]; then
+    fail_rtr "SCOPE_EXPANSION/CONTAINMENT" "$fid" "target（$canon_target）非單一實檔或為 symlink"
+    return 1
+  fi
+
+  local expected_hash
+  expected_hash="$(jq -r '.target.expected_old_text_hash // ""' "$payload")"
+  if [[ -z "$expected_hash" ]]; then
+    fail_rtr "VERIFICATION_FAILURE/HASH_FIELD_MISSING" "$fid" "live lane payload 缺 expected_old_text_hash 欄位"
+    return 1
+  fi
+
+  local verification_ref
+  verification_ref="$(jq -r '.required_verification // ""' "$payload")"
+  if [[ -z "$verification_ref" ]]; then
+    fail_rtr "VERIFICATION_FAILURE" "$fid" "live lane payload 缺 required_verification"
+    return 1
+  fi
+
+  LIVE_LANE_RAW="$raw"
+  LIVE_LANE_RESOLVED="$resolved"
+  LIVE_LANE_CANONICAL="$canon_target"
+  LIVE_BINDING_PASSED="true"
+  return 0
+}
+
+# Dispatch Authority 六條件之 preauth_eligible 謂詞（僅消費 RTR-012 評估時點即可判定之
+# payload 靜態事實與已完成之前置檢查結果）。條件①之 anchor＝REPAIR_ROUTING.md
+# Single-Attachment Live Lane Carve-out 條文本身（repo-readable、version-controlled），
+# MUST NOT 為任一 ticket 之 signing text（HC3 禁 runner 讀 Pending 票作 scope／
+# authorization source）；非執行期可求值布林項，不入本謂詞。條件③④由 validate_target()／
+# validate_diff_budget()／validate_frozen_sentence() 於主迴圈原位置獨立把關，不入本謂詞
+# （避免重複判定）。
+preauth_eligible() {
+  local payload="$1"
+  local preauth_flag verification_ref write_mode
+  preauth_flag="$(jq -r '.preauthorized_autonomous_apply // false' "$payload")"
+  verification_ref="$(jq -r '.required_verification // ""' "$payload")"
+  write_mode="$(jq -r '.target.write_mode // ""' "$payload")"
+  [[ "$preauth_flag" == "true" ]] || return 1
+  [[ -n "$verification_ref" ]] || return 1
+  [[ "$LIVE_BINDING_PASSED" == "true" ]] || return 1
+  [[ "$write_mode" == "addendum_only" ]] || return 1
+  [[ "$CIRCUIT_BREAKER_PRECHECK_PASSED" == "true" ]] || return 1
+  return 0
+}
+
 validate_decision_leakage() {
   local payload="$1" finding_result="$2"
   local requires_human disposition replacement marker
@@ -620,6 +802,9 @@ validate_decision_leakage() {
         override="true"
       fi
     fi
+    if [[ "$override" != "true" ]] && preauth_eligible "$payload"; then
+      override="true"
+    fi
     if [[ "$override" == "true" ]]; then
       PREAUTH_OVERRIDE_NOTE="PREAUTHORIZED_AUTONOMOUS_APPLY=true REQUIRES_HUMAN_SELF_REPORT=true REQUIRED_VERIFICATION_REF=$verification_ref HUMAN_CHECKPOINT_EMITTED=false"
     else
@@ -634,6 +819,53 @@ validate_decision_leakage() {
       return 12
     fi
   done
+  return 0
+}
+
+# A-1 addendum eligibility（機械；二條件皆成立方可 auto-apply）：
+# ①錨點須落於規範性節以外（Acceptance Criteria／Hard Constraints／Verify Config／
+# 前置依賴／Action Items／標題行以外）；②response edit_intent 須為 additive。
+# 判定資料源：finding 之 anchor_section（payload 端由 evidence/finding 自陳，本函式
+# 只讀 finding_result 之 edit_intent 與 orig_finding 之 anchor_section 兩欄，不臆測）。
+NORMATIVE_SECTION_TOKENS=("Verify Config" "前置依賴" "Action Items" "Hard Constraints" "Error Handling" "Acceptance Criteria")
+
+validate_a1_addendum_eligibility() {
+  local orig_finding="$1" finding_result="$2"
+  local class edit_intent anchor_section tok
+  class="$(jq -r '.class // ""' <<<"$orig_finding")"
+  [[ "$class" == "A-1" ]] || return 0
+
+  edit_intent="$(jq -r '.edit_intent // ""' <<<"$finding_result")"
+  anchor_section="$(jq -r '.anchor_section // ""' <<<"$orig_finding")"
+
+  if [[ -z "$anchor_section" ]]; then
+    echo "❌ SCOPE_EXPANSION/A1_NEEDS_INPLACE: A-1 finding 缺 anchor_section，不適格（normative_section 保守判定）" >&2
+    return 1
+  fi
+  for tok in "${NORMATIVE_SECTION_TOKENS[@]}"; do
+    if [[ "$anchor_section" == *"$tok"* ]]; then
+      echo "❌ SCOPE_EXPANSION/A1_NEEDS_INPLACE: A-1 錨點落規範性節（$anchor_section），不適格：normative_section" >&2
+      return 1
+    fi
+  done
+  if [[ "$edit_intent" != "additive" ]]; then
+    echo "❌ SCOPE_EXPANSION/A1_NEEDS_INPLACE: A-1 edit_intent=$edit_intent（缺失併入 not_additive），不適格：not_additive" >&2
+    return 1
+  fi
+  return 0
+}
+
+# A-2 為純追加宣告，同樣 MUST 為 edit_intent=additive；不受 A-1 之規範性節限制。
+validate_a2_additive() {
+  local orig_finding="$1" finding_result="$2"
+  local class edit_intent
+  class="$(jq -r '.class // ""' <<<"$orig_finding")"
+  [[ "$class" == "A-2" ]] || return 0
+  edit_intent="$(jq -r '.edit_intent // ""' <<<"$finding_result")"
+  [[ "$edit_intent" == "additive" ]] || {
+    echo "❌ SCOPE_EXPANSION/A1_NEEDS_INPLACE: A-2 edit_intent=$edit_intent（缺失併入 not_additive），不適格：not_additive" >&2
+    return 1
+  }
   return 0
 }
 
@@ -686,6 +918,13 @@ QUALITY_REPORT_PATH="$(jq -r '.quality_report.report_path' "$PAYLOAD_PATH")"
 TARGET_FILE="$(jq -r '.target.file_path' "$PAYLOAD_PATH")"
 MAX_CHANGED_LINES="$(jq -r '.constraints.max_changed_lines' "$PAYLOAD_PATH")"
 
+# python3 runnable probe：僅在 payload 宣告 single_attachment_live_lane（唯一會呼叫
+# canonicalize_target() 之路徑）時執行；non-live payload 完全不受影響。置於 Codex 呼叫
+# 之前，維持「exit 2 → codex 呼叫次數恆為 0」之既有契約。
+if [[ "$(jq -r '.lane // ""' "$PAYLOAD_PATH")" == "single_attachment_live_lane" ]]; then
+  command -v python3 >/dev/null 2>&1 || fail_env "python3 not found（single_attachment_live_lane 之 canonicalization 依賴 python3，本 payload 宣告該 lane）"
+fi
+
 ARTIFACTS_DIR="$TELEMETRY_ROOT/$TICKET_ID/$SOURCE_RUN_ID"
 mkdir -p "$ARTIFACTS_DIR"
 cp "$PAYLOAD_PATH" "$ARTIFACTS_DIR/input_payload.json"
@@ -694,6 +933,7 @@ CURRENT_FINDING_ID="$(jq -r '.finding_ids[0]' "$PAYLOAD_PATH")"
 if ! circuit_breaker_precheck; then
   exit 1
 fi
+CIRCUIT_BREAKER_PRECHECK_PASSED="true"
 
 if ! blocker_preflight "$PAYLOAD_PATH"; then
   exit 1
@@ -709,10 +949,30 @@ EVENT_STREAM="$ARTIFACTS_DIR/events.jsonl"
 
 command -v "$CODEX_BIN" >/dev/null 2>&1 || fail_env "$CODEX_BIN not found"
 
+# Provider (OpenAI Structured Outputs) strict mode requires every properties key to also
+# appear in that object's required array; optionality is expressed via a nullable anyOf
+# branch, never via omission from required. Canonical RESPONSE_SCHEMA intentionally keeps
+# edit_intent out of required (HC14: legacy P0A-02 responses lacking the key must still
+# validate against the canonical file on disk). Derive a transport-only variant — required
+# includes edit_intent, its schema widened to anyOf[original, null] — session-local under
+# $ARTIFACTS_DIR, regenerated every call, never committed, never a second canonical schema.
+# Submitted to the provider only; parsing/validation downstream still reads RAW_RESPONSE
+# against the unchanged canonical file via validate_response_structure() etc.
+STRICT_RESPONSE_SCHEMA="$ARTIFACTS_DIR/response_schema_strict.json"
+jq '
+  .properties.finding_results.items.required += ["edit_intent"]
+  | .properties.finding_results.items.properties.edit_intent = {
+      "anyOf": [
+        .properties.finding_results.items.properties.edit_intent,
+        {"type": "null"}
+      ]
+    }
+' "$RESPONSE_SCHEMA" > "$STRICT_RESPONSE_SCHEMA"
+
 if ! "$CODEX_BIN" exec --json \
       -m "$MODEL" \
       -c "model_reasoning_effort=$EFFORT" \
-      --output-schema "$RESPONSE_SCHEMA" \
+      --output-schema "$STRICT_RESPONSE_SCHEMA" \
       --output-last-message "$RAW_RESPONSE" \
       - < "$PROMPT_FILE" > "$EVENT_STREAM" 2>"$ARTIFACTS_DIR/stderr.log"; then
   fail_rtr RTR-003 "$CURRENT_FINDING_ID" "codex exec 非零退出"
@@ -743,7 +1003,30 @@ while IFS= read -r row; do
     continue
   fi
 
+  if ! lane_entry_guard "$PAYLOAD_PATH" "$fid"; then continue; fi
+
   if ! validate_eligibility "$orig_finding" "$disposition"; then fail_rtr RTR-002 "$fid" "eligibility 驗證失敗"; continue; fi
+
+  # class／A-1／A-2 intent gate：僅作用於 single_attachment_live_lane（LIVE_BINDING_PASSED
+  # 由 lane_entry_guard 設置，且僅在 lane=single_attachment_live_lane 且 binding 通過時為
+  # true）。non-live payload（含 P0A-02 legacy fixture，class="fact-error"）不受本段約束，
+  # runtime 行為逐字不變——這是 lane-only 限制，不是全域 class allowlist。
+  if [[ "$LIVE_BINDING_PASSED" == "true" ]]; then
+    if ! validate_class_permitted "$orig_finding"; then
+      fail_rtr "SCOPE_EXPANSION/CLASS_NOT_PERMITTED" "$fid" "finding class 不在 PERMITTED_REPAIR_CLASSES（A-1,A-2）內，proposal-only"
+      continue
+    fi
+
+    if ! validate_a1_addendum_eligibility "$orig_finding" "$row"; then
+      fail_rtr "SCOPE_EXPANSION/A1_NEEDS_INPLACE" "$fid" "A-1 not eligible for auto-apply（見上一行 stderr 之 normative_section／not_additive 具體原因）"
+      continue
+    fi
+    if ! validate_a2_additive "$orig_finding" "$row"; then
+      fail_rtr "SCOPE_EXPANSION/A1_NEEDS_INPLACE" "$fid" "A-2 edit_intent 非 additive（見上一行 stderr）"
+      continue
+    fi
+  fi
+
   if ! validate_evidence "$PAYLOAD_PATH" "$row"; then fail_rtr RTR-007 "$fid" "evidence 驗證失敗"; continue; fi
   target_rc=0
   validate_target "$PAYLOAD_PATH" "$row" || target_rc=$?
@@ -761,6 +1044,18 @@ while IFS= read -r row; do
     append_report_entry "$fid" "$disposition" "escalated" "RTR-012" "CB-4：DECISION_LEAKAGE 觸發 1 次即停損"
     CB4_TRIPPED=1
     continue
+  fi
+
+  # Defense-in-depth（獨立於 validate_class_permitted 之陣列查表）：live lane 寫入前之
+  # 最終硬編碼字面 class 再確認，非讀 PERMITTED_REPAIR_CLASSES 常數，用意是即使上游 gate
+  # 因未來編輯而失效，此處仍以獨立、不可變的字面比對阻擋非 A-1/A-2 mutation。理論上不可達
+  # （上游已擋），命中即視為 upstream gate 失效之內部不變量違反，fail-closed。
+  if [[ "$LIVE_BINDING_PASSED" == "true" ]]; then
+    live_lane_class="$(jq -r '.class // ""' <<<"$orig_finding")"
+    if [[ "$live_lane_class" != "A-1" && "$live_lane_class" != "A-2" ]]; then
+      fail_rtr "SCOPE_EXPANSION/CLASS_NOT_PERMITTED" "$fid" "defense-in-depth: live-lane 寫入前偵測 class=$live_lane_class 非 A-1/A-2（不應到達此處，upstream gate 理應已攔截）"
+      continue
+    fi
   fi
 
   replacement="$(jq -r '.patch.replacement_text // ""' <<<"$row")"
@@ -789,7 +1084,15 @@ while IFS= read -r row; do
     continue
   fi
 
-  if [[ -n "$PREAUTH_OVERRIDE_NOTE" ]]; then
+  if [[ "$LIVE_BINDING_PASSED" == "true" ]]; then
+    if [[ -n "$PREAUTH_OVERRIDE_NOTE" ]]; then
+      append_report_entry "$fid" "$disposition" "applied" "none" "bounded addendum write only; $PREAUTH_OVERRIDE_NOTE" \
+        "ticket-session-preauthorized" "$LIVE_LANE_RAW" "$LIVE_LANE_RESOLVED" "$LIVE_LANE_CANONICAL"
+    else
+      append_report_entry "$fid" "$disposition" "applied" "none" "bounded addendum write only" \
+        "ticket-session-preauthorized" "$LIVE_LANE_RAW" "$LIVE_LANE_RESOLVED" "$LIVE_LANE_CANONICAL"
+    fi
+  elif [[ -n "$PREAUTH_OVERRIDE_NOTE" ]]; then
     append_report_entry "$fid" "$disposition" "applied" "none" "bounded addendum write only; $PREAUTH_OVERRIDE_NOTE"
   else
     append_report_entry "$fid" "$disposition" "applied" "none" "bounded addendum write only"

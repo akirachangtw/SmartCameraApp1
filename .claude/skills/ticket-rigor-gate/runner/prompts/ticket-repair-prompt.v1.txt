@@ -10,6 +10,7 @@ TICKET
 - ticket_id: {{ticket_id}}
 - target_file: {{target.file_path}}
 - write_mode: {{target.write_mode}}
+- lane: {{lane}}
 
 ALLOWED REPAIR SCOPE
 - target.section_id: {{target.section_id}}
@@ -41,6 +42,12 @@ CONSTRAINTS
 - allow_scope_expansion: {{constraints.allow_scope_expansion}}
 - allow_decision_making: {{constraints.allow_decision_making}}
 - if ambiguous or decision-like: return escalate_to_human
+
+EDIT INTENT INSTRUCTION (lane=single_attachment_live_lane only)
+When TICKET.lane is single_attachment_live_lane, every finding_result MUST set edit_intent to exactly one of: additive, supersede.
+- additive means the replacement_text only adds information the target does not already state (e.g. a missing cross-reference); it does not assert that any existing sentence in the target is wrong, stale, or superseded.
+- supersede means the replacement_text corrects or replaces an existing statement in the target.
+Only class A-1 and class A-2 findings are in scope for this lane; a finding of any other class MUST be returned as out_of_range, never as propose_repair, regardless of how mechanically simple the fix looks. For class A-1, additive is only usable when the finding's own anchor is outside the ticket's normative sections (title, Verify Config, 前置依賴, Action Items, Hard Constraints, Error Handling, Acceptance Criteria); if the correct fix would require touching one of those sections, or would supersede existing text, you MUST NOT propose it as an addendum — return escalate_to_human instead, since that shape needs an in-place edit this lane does not perform. For class A-2, edit_intent MUST always be additive; a class A-2 finding that would require correcting rather than adding a dependency declaration is out of range for this lane.
 
 REFUSAL INSTRUCTION
 If a finding is out of range, lacks sufficient evidence, or requires a decision-layer judgment call, you MUST return the corresponding disposition (`out_of_range`, `insufficient_evidence`, or `escalate_to_human`) instead of `propose_repair`. Do not invent policy, do not broaden scope, do not touch frozen normative sentences unless the sentence itself is the cited finding target.

@@ -110,6 +110,15 @@ else
   FAIL=$((FAIL+1))
 fi
 
+echo "--- rgr-auto matrix (RGR-AUTO-01 AI-4, single_attachment_live_lane, real Codex call=0) ---"
+if bash "$FIXTURES_DIR/rgr-auto/run_rgr_auto_matrix.sh"; then
+  echo "✅ PASS | rgr_auto_matrix"
+  PASS=$((PASS+1))
+else
+  echo "❌ FAIL | rgr_auto_matrix | see output above"
+  FAIL=$((FAIL+1))
+fi
+
 echo "----"
 echo "PASS=$PASS FAIL=$FAIL"
 [[ "$FAIL" -eq 0 ]]
