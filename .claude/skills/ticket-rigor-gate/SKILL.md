@@ -342,7 +342,7 @@ If such an obligation exists but is neither declared nor explicitly waived, mark
 
 ## Advisor Repair Mode And Calibration
 
-Repair routing law — the fact-layer whitelist, the guardrails, and the Post-Signature Erratum Lane — is legislated in `REPAIR_ROUTING.md`. Calibration accounting — the Repair Ledger, the Phase promotion bar, and verification sampling — is legislated in `OPS_CALIBRATION.md`. Both files are installed alongside this one at `.claude/skills/ticket-rigor-gate/`; this file does not restate their content.
+Repair routing law — the fact-layer whitelist, the guardrails, the Post-Signature Erratum Lane, the General Autonomous Repair Default, and Research Fallback — is legislated in `REPAIR_ROUTING.md`. Calibration accounting — the Repair Ledger, the Phase promotion bar, and verification sampling — is legislated in `OPS_CALIBRATION.md`. Both files are installed alongside this one at `.claude/skills/ticket-rigor-gate/`; this file does not restate their content.
 
 Eligible repair MUST be invoked only through the project-owned non-interactive repair runner defined by `ticket-quality-skill-codex-runner-contract.md`. The runner assembles the versioned prompt, invokes Codex CLI with the model profile resolved from `runner/profiles/model-profiles.v1.json`, requires a versioned JSON response schema, validates the result before write, and appends the execution record to the ticket quality report.
 

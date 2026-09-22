@@ -123,3 +123,32 @@ Detection and repair-proposal drafting for this lane may be delegated to Codex C
 Sol is assigned to proposal drafting during calibration because a rejection resets the counter to zero; the binding cost there is counter loss, not tokens. Once a class has passed, proposal drafting is mechanical and drops to Terra.
 
 Codex output is an executor report and carries no evidential weight by itself. Verification sampling requirements, and how a failed sample counts against the calibration counter, are legislated once in `OPS_CALIBRATION.md`'s Verification Sampling section.
+
+## General Autonomous Repair Default
+
+Rev A. Established by `RGR-RESEARCH-SUBMIT-01`, Akira, 2026-09-22.
+
+**Scope — an independent track, not an extension.** This default governs behavior only when this skill's finding review is executed live and directly — a Claude Code session (or an equivalent executor with direct tool access) running the review itself — as opposed to the `/ticket-rigor-gate sol|terra` runner-driven path described in `SKILL.md`'s Advisor Repair Mode section. `SKILL.md`'s "Eligible repair MUST be invoked only through the project-owned non-interactive repair runner" governs that separate runner path and is untouched by this section. This default does not read, extend, narrow to, or otherwise depend on the Repair Whitelist above, its `Autonomy: Full`/`Partial` labels, `OPS_CALIBRATION.md`'s per-class calibration counters, `PERMITTED_REPAIR_CLASSES`, or the Single-Attachment Live Lane Carve-out (including any ticket, such as `RGR-AUTO-01`, that instantiates it). The Repair Whitelist's "the list is closed, not illustrative" stays true of that list; this default is a second, separate judgment mechanism, not an entry added to it.
+
+**The four-condition test.** When a finding satisfies all four, the executor MUST fix and verify it directly, in the same turn, without first proposing the fix and waiting for a per-finding "do you agree" confirmation:
+
+1. The finding falls inside the current task's scope and the executor's already-granted modification permission (the ALLOWED scope already in force for the work at hand — this default never grants new permission, it only decides whether the executor stops to ask within permission it already has).
+2. The correct fix can be reasonably determined — a fact-layer judgment under `SKILL.md`'s Non-Negotiable Principle 2, not a design choice.
+3. The change is reversible, or its risk is otherwise bounded — a small, local, git-revertible edit, not a schema, contract, or behavior-changing mutation.
+4. A proportionate verification method exists and is actually run before the fix is reported done.
+
+Success is reported only in the final report: what was fixed and what verification confirmed it. This default does not create a Repair Ledger obligation, a queue, a batch-approval step, a webhook, a poller, a notifier, a retry system, or a second review pass — none of that exists for this track and none may be added under cover of it.
+
+**When any condition fails.** The finding turns on a decision — a requirement, a policy call, an SSOT adjudication, a genuine choice among multiple non-interchangeable options — or the change is irreversible or high-risk, or no proportionate verification exists: stop and report it as an exception in the final report. The absence of an official or authoritative local source is not itself grounds to stop or to assert infeasibility — attempt Research Fallback below first.
+
+**Open question, not resolved here.** `OPS_CALIBRATION.md`'s Phase Promotion Criteria embodies a calibrate-before-trust model: every other repair path in this skill earns unattended autonomy through a tracked accept-without-modification count. This default has no class to count and takes effect from the first use, authorized directly by Akira's 2026-09-22 ruling rather than by calibration. Whether this asymmetry should eventually be bounded by some calibration-like review is a policy question this section does not decide and does not attempt to encode; it is recorded here as an open question for human adjudication, not silently normalized.
+
+## Research Fallback
+
+Rev A. Established by `RGR-RESEARCH-SUBMIT-01`, Akira, 2026-09-22.
+
+When local evidence — repo-readable source, this skill's own governing files, the ticket under review — is insufficient to resolve a genuine external-fact ambiguity (a public technical specification, an official API/SDK contract, a platform behavior, or vendor policy), call the already-registered MCP tool `research_submit` once, with the minimal, desensitized question and queries needed to resolve it. Never send secrets, tokens, credentials, private URLs, absolute local paths, a full diff, a full ticket body, customer data, or private source code. No fixed numeric query cap is legislated here beyond the platform's own `maxItems: 5`; "minimal" is a principle, not a countable rule this section can mechanically enforce.
+
+The call is synchronous: `research_submit` returns `results[]` in the same response (verified against `core/services/research_service.py` in `mcp-ticket-platform`, which calls the search provider inline and returns the artifact before the tool call completes). There is no submission queue, no webhook, no completion notifier, and no poll loop to wait on — none may be built to simulate one. Feed the returned result back into the General Autonomous Repair Default's four-condition test above: if the fix is now reasonably determinable and still within existing scope and permission, fix and verify directly per that default; if it still turns on a decision, multiple non-interchangeable options, or an irreversible/high-risk change, report it as an exception.
+
+Record in the final report, per call: the question asked and the `request_id`/`run_id` the tool returned, as the reference. A submit-call failure (validation, cap, or provider error) is recorded in the final report; it does not retry itself and does not block any other finding. This section does not add a dedup ledger, an allowlist, a DLP filter, or any other persistent state — repeat-submission discipline for the same ticket, finding, and question is the executor's own judgment, stated plainly in the report, not a mechanically enforced constraint.
