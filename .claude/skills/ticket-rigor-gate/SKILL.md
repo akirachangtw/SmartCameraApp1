@@ -344,9 +344,9 @@ If such an obligation exists but is neither declared nor explicitly waived, mark
 
 Repair routing law — the fact-layer whitelist, the guardrails, the Post-Signature Erratum Lane, the General Autonomous Repair Default, and Research Fallback — is legislated in `REPAIR_ROUTING.md`. Calibration accounting — the Repair Ledger, the Phase promotion bar, and verification sampling — is legislated in `OPS_CALIBRATION.md`. Both files are installed alongside this one at `.claude/skills/ticket-rigor-gate/`; this file does not restate their content.
 
-Eligible repair MUST be invoked only through the project-owned non-interactive repair runner defined by `ticket-quality-skill-codex-runner-contract.md`. The runner assembles the versioned prompt, invokes Codex CLI with the model profile resolved from `runner/profiles/model-profiles.v1.json`, requires a versioned JSON response schema, validates the result before write, and appends the execution record to the ticket quality report.
+Eligible repair under Advisor Repair Mode's fact-layer whitelist MUST be invoked only through the project-owned non-interactive repair runner defined by `ticket-quality-skill-codex-runner-contract.md`; this runner-only mandate binds Advisor Repair Mode's non-interactive runner lane alone. A finding reviewed interactively in a live Claude Code session, already inside the current task's effective write scope, is governed instead by `REPAIR_ROUTING.md`'s General Autonomous Repair Default, not by this paragraph. The runner assembles the versioned prompt, invokes Codex CLI with the model profile resolved from `runner/profiles/model-profiles.v1.json`, requires a versioned JSON response schema, validates the result before write, and appends the execution record to the ticket quality report.
 
-The skill MUST NOT rely on manual freeform prompt invocation as the production repair path.
+Within that same lane, the skill MUST NOT rely on manual freeform prompt invocation as the production repair path.
 
 Repair invocation accepts a `sol|terra` profile argument (`/ticket-rigor-gate sol|terra`), mapped to `runner/profiles/model-profiles.v1.json`. The default profile is `terra`. Free-form model strings are rejected.
 
