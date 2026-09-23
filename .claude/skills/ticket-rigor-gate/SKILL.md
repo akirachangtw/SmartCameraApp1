@@ -350,8 +350,6 @@ Within that same lane, the skill MUST NOT rely on manual freeform prompt invocat
 
 Repair invocation accepts a `sol|terra` profile argument (`/ticket-rigor-gate sol|terra`), mapped to `runner/profiles/model-profiles.v1.json`. The default profile is `terra`. Free-form model strings are rejected.
 
-**Single-attachment live lane.** When this skill is invoked as `/ticket-rigor-gate @<single-pending-ticket>.md` against exactly one attached Pending ticket, the runner may operate under `REPAIR_ROUTING.md`'s Single-Attachment Live Lane Carve-out instead of stopping the flow at Step 11's Gate Decision. For each finding whose class, edit intent, and mechanical guard conditions satisfy that carve-out, the flow continues past proposal into apply → verify → receipt → batch closeout, without a per-finding approval wait; every other finding remains proposal-only and is reported as such at batch closeout. This does not add a Step 12 to the Review Algorithm above — Steps 1–11 are unchanged and still produce the same findings and Gate Decision; the live lane governs only what happens to an eligible finding *after* Step 11, and that governance is legislated in `REPAIR_ROUTING.md`, not restated here.
-
 ## Iteration And Escalation
 
 This gate must not loop forever.

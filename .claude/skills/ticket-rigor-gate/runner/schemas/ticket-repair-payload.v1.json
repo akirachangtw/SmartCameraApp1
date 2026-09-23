@@ -87,15 +87,6 @@
       }
     },
     "preauthorized_autonomous_apply": { "type": "boolean" },
-    "required_verification": { "type": "string", "minLength": 1 },
-    "lane": { "type": "string", "enum": ["single_attachment_live_lane"] },
-    "attachment_target": {
-      "type": "object",
-      "required": ["raw", "resolved"],
-      "properties": {
-        "raw": { "type": "string", "minLength": 1 },
-        "resolved": { "type": "string", "minLength": 1 }
-      }
-    }
+    "required_verification": { "type": "string", "minLength": 1 }
   }
 }

@@ -54,27 +54,6 @@ Ledger format and required fields for each repair entry are legislated once, in 
 
 **Self-report carries no authority.** `requires_human_decision` in the response is a model self-report; when preauthorization is met it is an audit-only field and MUST NOT by itself constitute a stop, on the same footing as `RGR-MODEL-CONTRACT-01`'s treatment of `run_summary`.
 
-### Single-Attachment Live Lane Carve-out
-
-This carve-out applies **only** to payloads carrying `lane: single_attachment_live_lane`. It does not generalize to any other lane, and it is not a scope compiler: it resolves condition ② below by definition, once, for this one lane — it does not introduce multi-root, glob, or cross-ticket target resolution of any kind.
-
-**Provenance.** This carve-out, its fixed parameters, and the bootstrap basis for the two classes it releases are adjudicated in vault decision `wiki/decisions/SKAD/2026-09-21_RGR_Single_Attachment_Live_Lane_Authorization.md`, Key Decisions KD1 (authorization model) and KD5 (`PERMITTED_REPAIR_CLASSES`, `CLASS_BASIS`). Any later ticket that instantiates this lane inherits authority from this committed clause; it does not itself grant authority — a ticket's signing text, a ticket's fields, and a model-produced payload are **never** a write-authority source under this carve-out.
-
-**Fixed lane parameters (committed policy literal, not read from any ticket or payload).**
-
-- `LANE_WRITE_MODE = addendum_only`
-- `PERMITTED_REPAIR_CLASSES = A-1, A-2` (the two `Autonomy: Full` rows of the Repair Whitelist above; `CLASS_BASIS = whitelist-autonomy-full`, a bootstrap exception to `OPS_CALIBRATION.md`'s Phase Promotion Criteria — see that file's Phase 0 bootstrap exception clause for the full reasoning and reversal condition)
-
-**Condition ① (authority anchor) for this lane.** The anchor is this carve-out clause itself, as committed in this file — a repo-readable, version-controlled source, unlike any individual ticket's file under `plans/cso_briefing/project/Pending/`, which is gitignored and therefore not a repo-readable source in the sense condition ① requires. The runner's `PERMITTED_REPAIR_CLASSES` allowlist is a fixed constant in `repair_runner.sh`, sourced from this clause's literal values above, never from a ticket field or payload field.
-
-**Condition ② (target scope) for this lane.** "The scope the ticket declared" is defined, for this lane only, as the single Pending ticket the user attached in that `/ticket-rigor-gate` invocation — a session-parametrized target, not a fixed path. The runner's mechanical proof of this definition is `live_binding_passed`: canonical(`attachment_target`) equals canonical(`target.file_path`), the target is contained under `plans/cso_briefing/project/Pending/` as a single real `.md` file (not a directory, glob, symlink, or path outside the repo), and `expected_old_text_hash` is present. This binding is anti-drift verification, not an independent grant of authority — the authority is condition ① above.
-
-**Condition ⑥ (no breaker/contract block) for this lane.** Satisfied by `circuit_breaker_precheck()` having already run and passed for the current run, evaluated before any per-finding processing begins.
-
-Conditions ③④⑤ are unchanged from the general six-condition list and are enforced by the runner's existing `validate_target()`, `validate_diff_budget()`/`validate_frozen_sentence()`, and `required_verification` checks respectively, each at its own existing position in the guard chain.
-
-**Class-level gate (independent of the six conditions).** A finding whose class is not in the fixed `PERMITTED_REPAIR_CLASSES` set above is proposal-only under this lane, regardless of any other condition, and is never mutated. Within the permitted classes: an A-1 finding auto-applies only when its anchor falls outside the ticket's normative sections (title, Verify Config, 前置依賴, Action Items, Hard Constraints, Error Handling, Acceptance Criteria) **and** the response's `edit_intent` is `additive`; an anchor inside a normative section, or `edit_intent` of `supersede` or missing, is not eligible and stays proposal-only. An A-2 finding auto-applies only when `edit_intent` is `additive`.
-
 ### Tooling Note
 
 Two layers describe this mode's non-write posture.
