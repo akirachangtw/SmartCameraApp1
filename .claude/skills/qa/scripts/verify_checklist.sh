@@ -114,7 +114,14 @@ token_matches_file() {
     # there is no pathname expansion, so `*` also spans `/`: the token
     # `app/src/main/**/*State.kt` matches nested files as intended.
     # Wildcard-free path tokens still compare exactly (no metacharacters).
-    [[ "$file" == $token ]]
+    # RGR-VERIFY-CHECKLIST-01: a directory-form token (trailing `/`) is a repo-
+    # relative path prefix, not a glob — `[[ "$file" == $token ]]` never matches
+    # a nested file since the token has no trailing `*`. Match by prefix instead.
+    if [[ "$token" == */ ]]; then
+      [[ "$file" == "$token"* ]]
+    else
+      [[ "$file" == $token ]]
+    fi
   else
     [[ "$base" == "$token" ]]
   fi
@@ -180,6 +187,9 @@ self_test() {
   # Pipeline Artifact 豁免 · INFRA-VERIFY-EXEMPT-01
   _expect hit  ".claude/PROGRESS_ARCHIVE.md" ".claude/PROGRESS_ARCHIVE.md"          "pipeline-artifact 正 · PROGRESS_ARCHIVE 豁免命中"
   _expect miss ".claude/PROGRESS_ARCHIVE.md" ".claude/PROGRESS_ARCHIVE_Sprint2.md"  "pipeline-artifact 負 · 豁免不得外溢至衍生檔名"
+  # 目錄型 token（尾端 /）· RGR-VERIFY-CHECKLIST-01
+  _expect hit  ".claude/skills/ticket-rigor-gate/runner/fixtures/rgr-auto/" ".claude/skills/ticket-rigor-gate/runner/fixtures/rgr-auto/cases/c1.json"          "目錄型 token 正 · 巢狀檔以路徑前綴命中"
+  _expect miss ".claude/skills/ticket-rigor-gate/runner/fixtures/rgr-auto/" ".claude/skills/ticket-rigor-gate/runner/fixtures/rgr-auto-sibling/x.json"         "目錄型 token 負 · 前綴相鄰目錄不得誤命中"
   # Pipeline Artifact 豁免有界化 · INFRA-VERIFY-PA-BOUND-01
   _expect_num() { # _expect_num <want 0|1> <delta> <desc>
     local want="$1" delta="$2" desc="$3" got
