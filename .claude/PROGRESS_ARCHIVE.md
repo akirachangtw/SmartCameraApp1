@@ -434,3 +434,8 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 ## Archived 2026-09-22（/compact checkpoint · 最近 Ticket 表 5 筆上限輪替）
 
 - RGR-RESP-SCHEMA-01 | ✅ REVIEW（commit `89abe7f`）· v3.8 三分流 AI-0 判定 `ALREADY_EXECUTED_PENDING_CLOSURE`（技術工作已由 `c9d1870` 完成：schema 五節點 strict-mode 封閉、AI-2 true-call 確認 provider 不再拒 schema，止於 RTR-006 移交 `RGR-CODEX-TRANSPORT-01`）；Akira 裁決走標準 SOP 收尾，live 復驗 AI-0~AI-2 全數與票面記載相符，AC 11/12 補齊（AC104 移交範圍維持未勾）。**更正**：收尾當下誤稱「`RGR-CODEX-TRANSPORT-01` 已於本 session 完成並 CLOSED」，live `git log --all` 核驗為假，已更正 checkpoint；不影響本票轉 REVIEW 之實質判斷
+
+## Archived 2026-09-24（/compact checkpoint · 最近 Ticket 表 5 筆上限輪替）
+
+- RGR-AUTO-01 | VOID（registry `lifecycle=VOID`，票檔 `plans/cso_briefing/project/void/RGR-AUTO-01_live-lane.md`）。先前 Dashboard 記載為 🔧 WIP 屬陳舊；2026-09-24 核驗 registry 現值與票檔實際落點一致，`void/` 下兩份 untracked 票檔（本票＋`RGR-SCOPE-BIND-01`）矛盾已消解，非帳實不符
+- RGR-MODEL-CONTRACT-01 | ✅ REVIEW（commit `ab23c62`+`1f5ae34`）· 刪除 `validate_model_contract()` 與其唯一 caller（RTR-006 self-report gate，Probe A 證實無 runner-owned provider metadata producer）；AI-0~AI-2 碼閉環，throwaway `source` 函式隔離 regression 3/3 PASS；`/qa`+`/sv` Cross-Review R1 **PASS**（REACHABILITY: NONE），票檔已搬 `deliver/`，lifecycle→REVIEW，reviews={qa/sv/codex:PASS,traycer:N_A}
