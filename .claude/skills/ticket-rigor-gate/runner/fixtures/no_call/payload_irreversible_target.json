@@ -28,6 +28,6 @@
     "max_changed_lines": 10
   },
   "quality_report": {
-    "report_path": ".claude/skills/ticket-rigor-gate/runner/fixtures/sandbox/reports/irreversible_target.report.md"
+    "report_path": ".tmp/rigor-gate/fixture-latch/irreversible_target.report.md"
   }
 }

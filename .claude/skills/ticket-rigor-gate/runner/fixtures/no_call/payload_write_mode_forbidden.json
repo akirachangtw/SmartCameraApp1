@@ -28,6 +28,6 @@
     "max_changed_lines": 10
   },
   "quality_report": {
-    "report_path": ".claude/skills/ticket-rigor-gate/runner/fixtures/sandbox/reports/write_mode_forbidden.report.md"
+    "report_path": ".tmp/rigor-gate/fixture-latch/write_mode_forbidden.report.md"
   }
 }

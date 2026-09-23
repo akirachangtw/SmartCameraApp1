@@ -30,7 +30,7 @@
     "max_changed_lines": 5
   },
   "quality_report": {
-    "report_path": ".claude/skills/ticket-rigor-gate/runner/fixtures/p0a02/reports/report_c6.report.md"
+    "report_path": ".tmp/rigor-gate/fixture-latch/report_c6.report.md"
   },
   "preauthorized_autonomous_apply": true,
   "required_verification": "fixture-ref-c6"

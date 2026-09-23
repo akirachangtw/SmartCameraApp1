@@ -28,6 +28,6 @@
     "max_changed_lines": 10
   },
   "quality_report": {
-    "report_path": ".claude/skills/ticket-rigor-gate/runner/fixtures/sandbox/reports/anchor_missing.report.md"
+    "report_path": ".tmp/rigor-gate/fixture-latch/anchor_missing.report.md"
   }
 }

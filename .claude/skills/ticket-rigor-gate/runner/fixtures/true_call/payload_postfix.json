@@ -30,6 +30,6 @@
     "max_changed_lines": 5
   },
   "quality_report": {
-    "report_path": ".claude/skills/ticket-rigor-gate/runner/fixtures/true_call/report_true_call.report.md"
+    "report_path": ".tmp/rigor-gate/fixture-latch/report_true_call.report.md"
   }
 }
