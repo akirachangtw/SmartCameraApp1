@@ -350,6 +350,10 @@ Within that same lane, the skill MUST NOT rely on manual freeform prompt invocat
 
 Repair invocation accepts a `sol|terra` profile argument (`/ticket-rigor-gate sol|terra`), mapped to `runner/profiles/model-profiles.v1.json`. The default profile is `terra`. Free-form model strings are rejected.
 
+## Experience Card Lookup
+
+Experience cards live at `experience-cards/*.md` (no index file — grep the directory). ① On a stall, a scope dispute, a verification misjudgment, a non-unique fix, a repeated failure, or a direction already rejected, grep `experience-cards/` by problem, file, and error type first. ② Only when a card's `confidence: high` AND its `trigger` AND `reuse_when` both match the current situation may its `decision` be used as the preferred course of action. ③ A hit on `avoid_when`, stale evidence, or a not-quite-matching situation means do not apply the card — fall back to normal local evidence and exception handling. ④ At task end, propose a candidate card only when the work produced a genuinely reusable decision, misjudgment pattern, effective fix, or a clearly non-retryable path — not a one-off event record. ⑤ A candidate card has no rule force until confirmed. Raw evidence belongs only in `source_refs`; never load a card's underlying reports/logs wholesale into skill context.
+
 ## Iteration And Escalation
 
 This gate must not loop forever.
