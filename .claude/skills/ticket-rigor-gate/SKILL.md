@@ -358,6 +358,8 @@ Experience cards live at `experience-cards/*.md` (no index file — grep the dir
 
 This gate must not loop forever.
 
+A review round is one completed gate execution that reaches a final PASS, PARTIAL, or FAIL disposition for the parent ticket. Internal repair, verification, and rerun activity performed within that same interactive execution does not create additional review rounds; only the final disposition of that execution is counted.
+
 - If a ticket receives `FAIL`, revise the parent ticket and rerun the gate.
 - If the same parent ticket fails or remains partial for **3 review rounds**, freeze autonomous progression and escalate to L2 / designated human adjudication.
 - Before granting this skill full veto authority in a repo, run it in **shadow mode** against historical ticket families: **N = 10 cases at 90% or higher verdict consistency** with prior human review outcomes. Consistency is measured on the gate state (PASS / PARTIAL / FAIL) and on the Critical-finding set, not on optional scores. Any case below the bar resets the count. Until the bar is met, gate output is advisory and must not block dispatch.
