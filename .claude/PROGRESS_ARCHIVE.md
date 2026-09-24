@@ -439,3 +439,8 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 
 - RGR-AUTO-01 | VOID（registry `lifecycle=VOID`，票檔 `plans/cso_briefing/project/void/RGR-AUTO-01_live-lane.md`）。先前 Dashboard 記載為 🔧 WIP 屬陳舊；2026-09-24 核驗 registry 現值與票檔實際落點一致，`void/` 下兩份 untracked 票檔（本票＋`RGR-SCOPE-BIND-01`）矛盾已消解，非帳實不符
 - RGR-MODEL-CONTRACT-01 | ✅ REVIEW（commit `ab23c62`+`1f5ae34`）· 刪除 `validate_model_contract()` 與其唯一 caller（RTR-006 self-report gate，Probe A 證實無 runner-owned provider metadata producer）；AI-0~AI-2 碼閉環，throwaway `source` 函式隔離 regression 3/3 PASS；`/qa`+`/sv` Cross-Review R1 **PASS**（REACHABILITY: NONE），票檔已搬 `deliver/`，lifecycle→REVIEW，reviews={qa/sv/codex:PASS,traycer:N_A}
+
+## Archived 2026-09-24（/compact checkpoint · 最近 Ticket 表 5 筆上限輪替）
+
+- RGR-DISPATCH-AUTH-01 | ✅ REVIEW（commit `673e54e`+`c010a91`+`bb119b7`）· doc-only 立法票：`REPAIR_ROUTING.md` 新增 `Dispatch Authority — Preauthorized Autonomous Apply` 節，`OPS_CALIBRATION.md` 加一句 Phase 0 例外；`/sv` Cross-Review 五輪（R5 PASS，REACHABILITY: NONE），AC 11/11 全數完成，reviews={qa:N_A,sv/codex:PASS,traycer:N_A}
+- RGR-P0A-02 | ✅ REVIEW（commit `568d139`+`b172441`+`0b8fa8d`+`7881fe7`+`7d3fd31`+`8662cef`）· payload v1 新增 `preauthorized_autonomous_apply`／`required_verification`；runner 消費預授權；fixture 樹 8/8 PASS；`/sv` Cross-Review R2 PASS（REACHABILITY: NONE），reviews={qa:N_A,sv/codex:PASS,traycer:N_A}；`RGR-SCOPE-BIND-01` follow-up 已 VOID
