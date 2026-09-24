@@ -94,3 +94,27 @@ p0a02/run_preauth_matrix.sh: PASS=8 FAIL=0（同上 8 案）
 run_no_call_tests.sh: PASS=5 FAIL=0（同上 5 案）
 git status --short（跑後）：無 reports 相關異動；.tmp/rigor-gate/fixture-latch/ 下 12 個 report 檔（gitignored，不入 status）
 ```
+
+
+---
+
+## Closeout（SKAD 補登 2026-09-24）
+
+**Lifecycle**: CLOSED（`closed_at` 2026-09-23）　**Reviews**: sv=PASS、qa=PASS、codex=N_A、traycer=N_A
+
+| 項目 | 結果 |
+|---|---|
+| Commits | `de6072d`（實作：14 payload 各改 1 行 report_path＋12 tracked report 刪除，26 檔 +14/-252）、`6bcb419`（GOVERNANCE-SYNC：checkbox＋兩輪 receipt＋票檔搬 deliver/） |
+| AC1 | PASS — fixture payload 對版控 `reports/` 路徑命中 0 |
+| AC2 | PASS — `repair_runner.sh`、兩 schema、兩支回歸腳本於 `552fd28..6bcb419` diff 全空；CB-1～CB-4 與 report parser 未被動到 |
+| AC3 | PASS — 回歸 8/8＋5/5；執行後 `git status --short` 零 reports 異動（本票核心行為驗收） |
+| AC4 | PASS — 連跑兩輪 `cb4_not_latched_on_rerun` 行為不變 |
+| scope | PASS — 26 檔全落 ALLOWED |
+
+**latch root 實證**：`.tmp/rigor-gate/fixture-latch/` — gitignored；與 `TELEMETRY_ROOT`（`.tmp/rigor-gate/ticket-repair`）為**兄弟目錄而非巢狀**，未觸 RTR-001；`housekeeping.sh` 之 `rm -rf` 僅及 `ticket-repair` 下之 ticket 子樹，不及此路徑。落地後該目錄實際生成 12 個 latch 檔（380–948 bytes），數量與刪除之 tracked report 一致。
+
+**保留裁決**：reports 為 runner 之必要 runtime state（`repair_runner.sh` L162／L238 以 `report_records()` 回讀驅動 CB-1～CB-4 停損；`run_no_call_tests.sh` L69–74 對其內容做斷言），**不得整體刪除**。本票移除的是 Git-tracked fixture output 與錯誤的落點綁定，非 latch 能力本身。
+
+**KAIROS 候選**：測試寫入版控路徑會污染工作樹並毀損時序證據（`RGR-AUTO-CLEANUP-01` 之 receipt 遭覆寫即此因）；修法優先序為「改落點 ＞ 刪能力」。經驗卡 `exp-runtime-state-vs-fixture-output-01`（`experience-cards/`）已收錄其辨識與處置模式。
+
+**禁再修改**：本票已收尾，後續相關需求一律新票處理。

@@ -105,3 +105,26 @@ MAX_LINES=N/A 註：本票 AI 觸及 scope 守門判定（安全不變量），�
   ✅ [OK] maxlines_verdict · 實測 653 ≤ 估算 800 → OK
 ── self-test: 20 passed, 0 failed ──
 ```
+
+
+---
+
+## Closeout（SKAD 補登 2026-09-24）
+
+**Lifecycle**: CLOSED（`closed_at` 2026-09-23）　**Reviews**: sv=PASS、qa=PASS、codex=N_A、traycer=N_A
+
+| 項目 | 結果 |
+|---|---|
+| Commits | `c73e6ba`（實作，`verify_checklist.sh` +11/-1）、`84009a9`（GOVERNANCE-SYNC：checkbox＋receipt＋票檔搬 deliver/） |
+| AC1 | PASS — 目錄型前綴分支存在，basename 分支字面未變 |
+| AC2 | PASS — 正例 `…/rgr-auto/` → `…/rgr-auto/cases/c1.json` hit；負例 `…/rgr-auto-sibling/x.json` miss |
+| AC3 | PASS — self-test 20/20，18 個既有案例零回歸 |
+| scope | PASS — `552fd28..c73e6ba` 單檔，嚴格落 ALLOWED |
+
+**修法摘要**：`token_matches_file()` 於含 `/` 之分支內新增 `if [[ "$token" == */ ]]` → `[[ "$file" == "$token"* ]]` 路徑前綴比對；`else` 維持原 glob 一字未動；basename 分支未觸碰。因三者共用同一函式，FORBIDDEN 與 EXCLUDED_PAYLOAD 之目錄型 token 一體適用（預期內之一致性改善）。
+
+**下游效益**：`RGR-FIXTURE-REPORT-PATH-01`（其 ALLOWED 全為目錄型）之 Step 0 未再遭誤判阻斷，無須人工 override——本修復之直接驗證。
+
+**KAIROS 候選**：含 `/` 之 token 一律走 glob 比對時，尾斜線 token 對巢狀檔恆不匹配 → 全數採目錄型 ALLOWED 之票必踩 Step 0 假陽性。經驗卡 `exp-path-token-directory-prefix-01`（`experience-cards/`）已收錄其辨識與處置模式。
+
+**禁再修改**：本票已收尾，後續相關需求一律新票處理。

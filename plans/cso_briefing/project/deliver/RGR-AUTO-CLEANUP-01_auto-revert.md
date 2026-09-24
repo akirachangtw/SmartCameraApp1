@@ -82,3 +82,27 @@ MAX_LINES=N/A 註：純撤回票，diff 規模由 `47813ac` 決定，非估算�
 - [x] **[行為性]** given 撤回後 runner，expect `p0a02/run_preauth_matrix.sh` 與 `run_no_call_tests.sh` 全 PASS（輸出附 receipt）— receipt: `tmp/RGR-AUTO-CLEANUP-01/evidence/ai3_regression_receipt.txt`，8/8 + 5/5 PASS
 - [x] ~~assembleDebug PASS~~ (N/A: 無 app/ 變更)
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案 — 人工逐檔核對 45/45 ⊆ ALLOWED（`verify_checklist.sh` Step 0 對 `rgr-auto/` 目錄前綴型 ALLOWED token 之 basename-only 誤判，Codex Cross-Review PASS + Structural Verify PASS(ADVISORY) 已交叉確認）
+
+
+---
+
+## Closeout（SKAD 補登 2026-09-24）
+
+**Lifecycle**: CLOSED（`closed_at` 2026-09-23）　**Reviews**: sv=PASS、codex=PASS、qa=N_A、traycer=N_A
+
+| 項目 | 結果 |
+|---|---|
+| Commits | `0adfa40`（主撤回，45 檔 -1210）、`86ee90e`（REPAIR_ROUTING 孤兒引用補 staging，1 行）、`552fd28`（GOVERNANCE-SYNC：checkbox＋票檔搬 deliver/） |
+| AC1 | PASS — 三份 `.md` 五字面 grep 命中 0；`runner/fixtures/rgr-auto/` 不存在 |
+| AC2 | PASS — 五檔（runner／兩 schema／prompt／`run_no_call_tests.sh`）對 `65fd8c4` diff 為空 |
+| K4 | PASS — `REPAIR_ROUTING.md` 之「Calibration boundary」段與「## Research Fallback」節存續 |
+| AC6 scope | PASS — `git diff 3ff2910..86ee90e` 共 45 檔，37 檔在 `rgr-auto/` 前綴下、8 檔為 ALLOWED 明列 |
+| 回歸 | `p0a02/run_preauth_matrix.sh` PASS 8/8；`run_no_call_tests.sh` PASS 5/5；tracked side effects 已還原 |
+
+**QA Step 0 覆寫裁決**：`verify_checklist.sh` 回報之 SCOPE VIOLATION 判定為 false positive（SKAD 以 `git diff` 逐檔核對推翻），本票 override Step 0，Auto-Chain 自 Step 1 續跑。真因非 basename-only，而是目錄型 token 未被識別為路徑前綴——已由 `RGR-VERIFY-CHECKLIST-01`（CLOSED）修復。
+
+**證據等級揭露**：條件④「回歸須早於 `0adfa40` 執行」之原始 mtime 證據**不可複驗**（receipt 檔 mtime 15:10:37、`report_c1` 14:43:48，均晚於 commit 14:24:12，第一次跑動產物已被二次跑動覆寫），僅標 `SUPPORTED`。條件④改以**內容等價性**成立並標 `CONFIRMED`：`0adfa40..86ee90e` 僅改 `REPAIR_ROUTING.md` 一行文字，runner／schema／prompt／fixture 與 `65fd8c4` 逐位元組相同，故後跑測試驗到的是與 commit 前相同之可執行狀態。執行端已誠實揭露二次覆寫插曲，未以不可複驗之 mtime 充作硬證據。
+
+**衍生票**：`RGR-VERIFY-CHECKLIST-01`（scope verifier 目錄型 token 缺陷）、`RGR-FIXTURE-REPORT-PATH-01`（回歸寫入版控路徑毀損時序證據）——二者均已 CLOSED。
+
+**禁再修改**：本票及其兩筆 cleanup commit 不得再改動；任何 AUTO-01 遺留一律新票處理。
