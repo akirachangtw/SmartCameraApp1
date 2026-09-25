@@ -187,6 +187,17 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
    **立法事由**：`ACAGOV-RUNTIME-TABLE-01` 自身收尾即走軌道 A（commit `2fbc017`），與原單軌 MUST 相衝；Akira 裁決不追罰、不 revert，改撤該 MUST——本地 commit 為最廉價之回退點，強制延後反降低可回復性（可逆優先）。
 6. **Governance Artifact 清單補列**：於 §Governance Artifact 清單表新增一列 `plans/cso_briefing/project/deliver/*.md` → `[GOVERNANCE-SYNC]`（說明欄：已交付票檔，`REVIEW`／`CLOSED` 之物理歸位產物）。依該表節首「新增 Governance Artifact 只需在此表加一行，**MUST NOT** 另開票或單獨改 SKILL.md 判斷邏輯」之既有授權執行（已於本檔 §Governance Artifact 清單表落地，見該表列）。**不補此列則票檔搬移將落在 `compact` Scope 盤點之表列外而永不提交，屬靜默失效。**
 
+## Mid-Execution 回報前雙軌同步義務
+
+任一對話模式（`/uc`、`/normal`、或未切換模式之預設對話）下，執行者於本回合完成任一 Action Item 或 Acceptance Criteria 後，若即將停下回報、詢問下一步、或結束一輪工具呼叫序列，**MUST** 同批完成雙軌同步，缺一律屬未完成：
+
+1. **本地票檔軌**：對應項目由 `- [ ]` 改為 `- [x]`，並附完成依據（commit hash／驗證方法）。`Pending/` 票檔縱因 `.gitignore` 而 untracked，仍 **MUST** 執行——untracked 不構成免做理由。
+2. **Registry 軌**：以 `registry_list(ticket_id=...)` 確認該票已入冊時，**MUST** 呼叫 `registry_set_checkpoint` 將本回合完成範圍、對應 commit hash（如有）、尚未完成項目與其原因寫入 checkpoint，並依既有規範以 `registry_list fields=["checkpoint"]` read-back 驗證。
+
+**本義務不因對話模式而免除**——回指 §Ticket Runtime Transition Table 不變量①「對話模式非 lifecycle」之同一原則：模式僅決定回報語氣與詳略，不決定紀錄義務是否存在。僅完成軌 1（本地勾選）而未同步軌 2（registry）→ 對 Akira 而言等同「什麼都沒發生」（TKR 系統視圖為其唯一可信來源），**MUST** 視為回報不完整，不得宣稱已如實揭露進度。
+
+觸發來源：`RGR-INTERACTIVE-CLOSURE-AUTH-01` 執行期間，Action Items 與 AC checkbox 僅勾入本地 untracked 票檔、未同步 registry checkpoint，導致 Akira 由 TKR 系統視角判讀為「全數未完成」，與執行端本地認知不同步（Akira 2026-09-25 對話裁決，免票直接授權補此條）。
+
 ## Ticket Closure 紀律
 
 - **勾選紀律**：碼閉環 + `/sv` PASS（Codex Cross-Review 終局 PASS）後，主 session **MUST** 逐項勾選母票 Action Items 與 Acceptance Criteria；僅勾「有 SV / QA / commit 佐證」之項；`[行為性]` / `[實機]` 未實測項 **MUST** 保留未勾並於 PROGRESS.md 誠實揭露（K5-Rule 29）。**MUST** 於該項目實際完成的同一回合內立即勾選（Edit 落地 / 測試轉綠 / Codex PASS / commit 成功發生當下），**MUST NOT** 留待後續 /sv Step 10 之外的另一輪「確認完成度」請求才回頭補勾。
