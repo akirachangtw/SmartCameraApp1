@@ -77,6 +77,8 @@ Gather as many of the following as are available:
 - existing tests and acceptance criteria;
 - team ticket governance conventions, if documented.
 
+`/ticket-rigor-gate @<ticket-path>` 之附掛票檔，於其 lifecycle 為 `TICKET_RIGOR` 時，為本次 execution 之唯一 mutation target；授權條件與邊界見 `REPAIR_ROUTING.md` → General Autonomous Repair Default → Attached-ticket authority。
+
 If canonical sources for enums, schemas, state vocabularies, or contracts are missing or not repo-readable, call that out explicitly as a high-risk finding rather than guessing.
 
 ## Non-Negotiable Principles
@@ -407,6 +409,23 @@ List findings grouped by severity:
 - Minor
 
 `Medium` findings never affect the Mechanical Verdict Rule (gate verdicts draw only on `Critical`/`Major`); the tier exists in this summary so repair routing (`REPAIR_ROUTING.md`, Erratum Lane) has an unambiguous bucket to consume.
+
+Every finding MUST carry an eight-field disposition:
+
+```text
+FINDING_ID=
+SEVERITY=
+ROUTE=A_AUTO_REPAIR|B_RESEARCH_SUBMITTED|C_EXCEPTION
+AUTO_REPAIR_ATTEMPTED=true|false
+RUNNER_DISPATCHED=true|false
+REASON_CODES=
+DECISION_QUESTION=
+NEXT_ACTION=
+```
+
+Three consistency rules: `AUTO_REPAIR_ATTEMPTED=false` requires non-empty `REASON_CODES`; a non-empty `DECISION_QUESTION` MUST be a specific, answerable question (a bare "please ask Akira to decide" is invalid); a direct interactive repair sets `RUNNER_DISPATCHED=false`, which MUST NOT be phrased as a runner or runtime failure.
+
+Within a session-local closure loop (see Iteration And Escalation), each cycle's findings are grouped under a `## Session-local Closure Cycle N of 3` heading; this does not add a ninth field.
 
 ### 3. Key Risks
 
