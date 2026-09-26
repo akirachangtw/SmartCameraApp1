@@ -435,7 +435,7 @@ DECISION_QUESTION=
 NEXT_ACTION=
 ```
 
-Three consistency rules: `AUTO_REPAIR_ATTEMPTED=false` requires non-empty `REASON_CODES`; a non-empty `DECISION_QUESTION` MUST be a specific, answerable question (a bare "please ask Akira to decide" is invalid); a direct interactive repair sets `RUNNER_DISPATCHED=false`, which MUST NOT be phrased as a runner or runtime failure. `RESEARCH_DISPATCHED=true` does not mean the repair succeeded, nor does it substitute for `ROUTE`. When `RESEARCH_DISPATCHED=false` for a finding that is an external-fact candidate, `REASON_CODES` MUST use one of: `LOCAL_EVIDENCE_SUFFICIENT`, `DECISION_REQUIRED`, `RESEARCH_UNAVAILABLE`, `RESEARCH_FAILED`, `UNRESOLVED_AFTER_RESEARCH`.
+Consistency rules: `AUTO_REPAIR_ATTEMPTED=false` requires non-empty `REASON_CODES`; a non-empty `DECISION_QUESTION` MUST be a specific, answerable question (a bare "please ask Akira to decide" is invalid); a direct interactive repair sets `RUNNER_DISPATCHED=false`, which MUST NOT be phrased as a runner or runtime failure. `RESEARCH_DISPATCHED=true` does not mean the repair succeeded, nor does it substitute for `ROUTE`. When `RESEARCH_DISPATCHED=false` for a finding that is an external-fact candidate, `REASON_CODES` MUST use one of: `LOCAL_EVIDENCE_SUFFICIENT`, `DECISION_REQUIRED`, `RESEARCH_UNAVAILABLE`, `RESEARCH_FAILED`, `UNRESOLVED_AFTER_RESEARCH`.
 
 Within a session-local closure loop (see Iteration And Escalation), each cycle's findings are grouped under a `## Session-local Closure Cycle N of 3` heading; this does not add an eleventh field.
 
