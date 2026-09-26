@@ -5,6 +5,7 @@
 
 | 最近 Ticket | 狀態 |
 | ---------- | ---- |
+| RGR-ROUTING-SELECTOR-01 | 🟡 EXECUTED（docs-only，待 commit）· `SKILL.md` 新增 `## Mandatory Runtime Load` 節（強制載入 `REPAIR_ROUTING.md`＋4 條 routing selector），disposition 改 `ROUTE=A_AUTO_REPAIR｜C_EXCEPTION`＋新增 `RESEARCH_DISPATCHED`／`RESEARCH_REF` 二欄＋5 個標準 `REASON_CODES`；`B_RESEARCH_SUBMITTED` 零殘留（grep 確認）；AC 8/8（存在性）已勾，`assembleDebug` N/A（docs preset），待 /sv |
 | RGR-RESEARCH-SUBMIT-01 | ✅ **CLOSED**（commit `3a0a562`+`b39ebb4`）· `REPAIR_ROUTING.md` 新增獨立軌道「General Autonomous Repair Default」＋「Research Fallback」；2026-09-24 QA/SV/Codex 矛盾消解重驗（compile/test/lint 全 PASS，Cross-Review PASS），reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A} |
 | RGR-AUTO-CLEANUP-01 系列 | ✅ **CLOSED**×3（commit `0adfa40`+`86ee90e`／`c73e6ba`／`de6072d`）· **RGR-AUTO-CLEANUP-01**：撤回 `RGR-AUTO-01`（VOID）之 `47813ac` 差分 · **RGR-VERIFY-CHECKLIST-01**：修 `verify_checklist.sh` `token_matches_file()` 目錄型 ALLOWED token 前綴比對缺陷（20/20 self-test PASS）· **RGR-FIXTURE-REPORT-PATH-01**：14 個 fixture payload `report_path` 移出版控至 `.tmp/rigor-gate/fixture-latch/`，止住回歸測試工作樹污染 |
 | RGR-EXPERIENCE-CARD-01 | ✅ **CLOSED**（commit `1bedb76`+`1382bc6`）· 建 `experience-cards/` 目錄，兩張泛化種子卡（目錄型 token 前綴模式／runtime state vs fixture output 模式），`SKILL.md` 新增查卡規則（五條）；Codex Cross-Review PASS（REACHABILITY: NONE），Structural Verify PASS(ADVISORY)，AC 6/6 全勾，reviews={qa:N_A,sv:PASS,codex:PASS,traycer:N_A} |

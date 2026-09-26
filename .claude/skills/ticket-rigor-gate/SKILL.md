@@ -243,6 +243,16 @@ Three previously separate variants collapse into one family so the reviewer can 
 
 For **document-layer evidence** (analyses, walkthroughs, review write-ups) there is no isolation to impose — a narrative cannot be run in a separate process. The equivalent disposition is **per-claim line-number citation**: every substantive claim MUST carry a locatable source (`file` + line range), marked `[first-hand]` or `[relayed]`. A walkthrough with no citable source counts as `Mechanism Bypass` and its evidence is invalid — because a fluent, self-consistent narrative can be produced without ever reading the source, which is exactly the closer mechanism this family is about.
 
+## Mandatory Runtime Load
+
+Before executing the Review Algorithm below, every gate execution MUST fully read `REPAIR_ROUTING.md`; if the selected lane uses calibration, `OPS_CALIBRATION.md` MUST also be read for that lane. Routing decisions MUST NOT be inferred from memory, a prior session, or a conversation summary. If `REPAIR_ROUTING.md` cannot be read, routing stops and the final report records `ROUTING_LAW_UNAVAILABLE`.
+
+**Routing selector** (Research is a fact-gathering action, not a terminal route):
+- Finding resolvable with local evidence → run the existing four-condition test.
+- Genuine external factual ambiguity, local evidence insufficient → dispatch one minimally-redacted Research call, then rerun the four-condition test with the returned evidence.
+- Decision, policy, SSOT adjudication, or a non-interchangeable choice → `ROUTE=C_EXCEPTION`; Research MUST NOT substitute for human judgment.
+- Research fails, or remains unresolved after Research → do not retry; `ROUTE=C_EXCEPTION`.
+
 ## Review Algorithm
 
 Follow this sequence strictly.
@@ -410,20 +420,22 @@ List findings grouped by severity:
 
 `Medium` findings never affect the Mechanical Verdict Rule (gate verdicts draw only on `Critical`/`Major`); the tier exists in this summary so repair routing (`REPAIR_ROUTING.md`, Erratum Lane) has an unambiguous bucket to consume.
 
-Every finding MUST carry an eight-field disposition:
+Every finding MUST carry a ten-field disposition:
 
 ```text
 FINDING_ID=
 SEVERITY=
-ROUTE=A_AUTO_REPAIR|B_RESEARCH_SUBMITTED|C_EXCEPTION
+ROUTE=A_AUTO_REPAIR|C_EXCEPTION
 AUTO_REPAIR_ATTEMPTED=true|false
 RUNNER_DISPATCHED=true|false
+RESEARCH_DISPATCHED=true|false
+RESEARCH_REF=
 REASON_CODES=
 DECISION_QUESTION=
 NEXT_ACTION=
 ```
 
-Three consistency rules: `AUTO_REPAIR_ATTEMPTED=false` requires non-empty `REASON_CODES`; a non-empty `DECISION_QUESTION` MUST be a specific, answerable question (a bare "please ask Akira to decide" is invalid); a direct interactive repair sets `RUNNER_DISPATCHED=false`, which MUST NOT be phrased as a runner or runtime failure.
+Three consistency rules: `AUTO_REPAIR_ATTEMPTED=false` requires non-empty `REASON_CODES`; a non-empty `DECISION_QUESTION` MUST be a specific, answerable question (a bare "please ask Akira to decide" is invalid); a direct interactive repair sets `RUNNER_DISPATCHED=false`, which MUST NOT be phrased as a runner or runtime failure. `RESEARCH_DISPATCHED=true` does not mean the repair succeeded, nor does it substitute for `ROUTE`. When `RESEARCH_DISPATCHED=false` for a finding that is an external-fact candidate, `REASON_CODES` MUST use one of: `LOCAL_EVIDENCE_SUFFICIENT`, `DECISION_REQUIRED`, `RESEARCH_UNAVAILABLE`, `RESEARCH_FAILED`, `UNRESOLVED_AFTER_RESEARCH`.
 
 Within a session-local closure loop (see Iteration And Escalation), each cycle's findings are grouped under a `## Session-local Closure Cycle N of 3` heading; this does not add a ninth field.
 
