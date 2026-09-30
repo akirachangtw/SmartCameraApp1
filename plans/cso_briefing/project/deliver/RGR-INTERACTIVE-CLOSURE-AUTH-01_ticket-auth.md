@@ -135,3 +135,29 @@ MAX_LINES=N/A 註：AI 含授權判定類安全不變量（lifecycle 閘、跨�
 - **closure rule**：觸發條件成立且 required evidence 到齊 → AC-4／AC-5 由 `ACCEPTANCE_PENDING` 改判為已驗證，於當次收尾同批註記完成。若本票已收尾（進入 `REVIEW`／`CLOSED`）而觸發條件仍未成立（迄未出現合格候選票），`ACCEPTANCE_PENDING` 轉為待稽核之未閉環殘留風險，MUST 於下一次 `/dream` 或 `/compact closeout` 明列，不得靜默遺忘。
 - [x] ~~assembleDebug PASS~~ (N/A: docs preset)
 - [x] `git diff --stat`（本票 commit）僅涉及兩個 ALLOWED 檔案（commit `a65b0bc` read-back 確認）
+
+
+---
+
+## Closeout（SKAD 2026-09-30）
+
+**Lifecycle**: CLOSED　**Reviews**: qa=PASS、sv=PASS、codex=PASS、traycer=N_A　**實作 commit**: `a65b0bc`（`REPAIR_ROUTING.md`＋`SKILL.md`，+28／-1）
+
+**Live acceptance 證據**：`RGR-LIVE-DOGFOOD-01` Run 1 gate report，保全副本 `.tmp/rigor-gate/RGR_RGR-LIVE-DOGFOOD-01_20260926_run1.md`（8561 bytes，sha256 `c6bd254048de6f8a426bc4a0a77c864bb0a7834aa147253ae0373fab0d641823`）。該副本位於 gitignored 路徑，本節為其核心事實之耐久承載。
+
+| contract 驗收項 | 結果 |
+|---|---|
+| ① eligible 修訂被自主寫入 target | ✅ 兩筆（`evidence_dependency` 誠實化、`AUTH-00`→`AUTH-01`），正確值僅能由 registry 導出 |
+| ② mutation 限於附掛票檔 | ✅ `git status` 乾淨，`settings.json` hash 前後一致 |
+| ③ read-back 與比例驗證 | ✅ |
+| ④ same-scope reassessment | ✅ rerun 後原 finding 零命中 |
+| ⑤ C_EXCEPTION 不短路 | ⚠️ **僅消極證據**：open verification question 未被裁定、未阻斷修正，但未被建為 C_EXCEPTION finding，故「已分類 C_EXCEPTION 與 eligible repair 並存」未正向覆蓋 |
+| ⑥ iteration 計數與八欄 disposition | ✅ cycle 1/3，每筆附八欄 |
+| ⑦ 未經 runner／schema／fixture | ✅ |
+| AC-5 轉 PENDING 後再 invoke 應無 mutation | ❌ **未驗證** |
+
+**收束依據**：Akira 2026-09-30 裁定——實際發生 routing 問題時再開修補票。⑤ 與 AC-5 依此以「未驗證、豁免」收束，**非通過**。
+
+**附記**：`RGR-LIVE-DOGFOOD-01` Run 2 另自主修正一筆真實 Major（其 Closeout 未區分轉態 actor，依 `.claude/rules/ssot-governance.md` L86–87），為 A-route 之第二次 live 證據（副本 `…_run2.md`，sha256 `caeebda1d0a9da35c7c31a2f5d4695bae341740ae06fea0bda756f57250aefa7`）。首次 live 觸發時，gate 曾以決策層內容（assignee／trigger）自修本票票面，屬 boundary miss，影響低，不作驗收證據。
+
+**後續取代**：本票 HC-9（Research 維持 `B_RESEARCH_SUBMITTED` 路由語義）已由 `RGR-ROUTING-SELECTOR-01` 明示取代，僅限 final-report disposition。
