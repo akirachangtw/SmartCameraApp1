@@ -62,3 +62,12 @@ When `RESEARCH_DISPATCHED=true`, `RESEARCH_REF` MUST be written as `question=<mi
 - [x] **[存在性]** `ten-field disposition`、`this does not add an eleventh field` 與十欄模板未被 `git diff` 觸及。
 - [x] ~~`assembleDebug` PASS~~ (N/A: docs preset)
 - [x] **[存在性]** `git diff --stat` 僅涉及 ALLOWED 檔案。
+
+## Closeout（審查方收束，2026-09-30）
+
+- **裁決**：CLOSED。審查方獨立核對 `git diff 4a1b777 94ab24c`：`SKILL.md` 僅 L438 單行變更，插入文字與 AI-1 目標值逐字一致；L423 `ten-field disposition`、L426-435 十欄模板、L440 `this does not add an eleventh field` 未觸及。
+- **Commits**：`94ab24c`（實作＋Dashboard 同步）、`104e88f`（票檔歸位 deliver/）、`ad89779`（Dashboard 轉 REVIEW）。
+- **reviews**：qa=N_A（docs preset）、sv=PASS、codex=PASS（REACHABILITY: NONE）、traycer=N_A。
+- **流程揭露一**：`preflight_activation.sh` 於 AI-1 編輯後補跑，`V1_STATUS=BLOCKED_SCOPE_OR_TARGET_MISMATCH` 為 TARGET_BLOB 編輯前快照之預期落差；內容正確性以直接 `git diff` 核驗，不依賴 preflight Write Authority。
+- **流程揭露二**：R0 預審首輪 FAIL，因 `.tmp/cross_review_payload.md` 為前票 `RGR-ROUTING-SELECTOR-01` 殘留快取；重跑 `cross_review.sh` 取正確 scope `4a1b777..94ab24c` 後 Codex PASS。同型已連續兩票發生，列為待裁之 pipeline 缺口（payload 快取未隨票切換清理），本票不處置。
+- **下游**：`RGR-ROUTING-CONTRACT-01` 行為性 AC 仍未勾；待下一次合適 live case 以本格式驗證完整證據鏈。
