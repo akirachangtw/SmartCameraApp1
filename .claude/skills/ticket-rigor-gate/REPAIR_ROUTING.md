@@ -134,6 +134,18 @@ A finding reported as an exception under this branch MUST be reported with `ROUT
 
 **Calibration boundary.** Guardrail 2's per-class shadow calibration, and the `OPS_CALIBRATION.md` Phase Promotion Criteria it enforces, govern only the enumerated repair classes (A-1 through A-4) entering Advisor Repair Mode's non-interactive runner lane. Neither may be read to delay, gate, or otherwise limit the General Autonomous Repair Default for a finding already inside an interactive task's authorized write scope: the two mechanisms bind different lanes — runner-invoked versus live-session-invoked — and calibration in one is not a precondition the other's law imposes.
 
+### Migration-Lite Family Closure
+
+A finding family is the set of findings that share the same alias, state class, or guard contract. A bounded matrix is a table, indexed by the five facets in `SKILL.md`'s Migration-Lite Review, that lists the disposition of every applicable class in that family.
+
+Within a `TICKET_RIGOR` execution, after repairing an active Migration-Lite finding, MUST rerun the complete active profile, and MUST scan for sibling Action Items, constraints, error rules, and Acceptance Criteria that share the affected field contract, population, entrypoint, or consumer.
+
+An Acceptance Criterion that is removed, reduced, exempted, or amended MUST, before the verdict is recomputed, have every sibling Acceptance Criterion that shares the same population, source, entrypoint, or contract assumption reverified.
+
+Counting: the initial Critical or Major finding is the first appearance of its family. On the first rerun after repair, any Critical or Major finding in the same family — including the original finding if it remains unresolved — counts as the second appearance. On the second appearance, the next repair MUST close the family with a bounded matrix; no further example-specific branches may be added. A matrix cell that requires a product or policy decision is marked `L2-DECIDE` and reported with `ROUTE=C_EXCEPTION`. If the third repair iteration is still not PASS, stop under the existing closure cap and report the unresolved classes and the Acceptance Criteria they affect.
+
+None of the session-local repairs above determine whether SKAD opens a Revision, splits, supersedes, or voids this ticket.
+
 ## Research Fallback
 
 Rev A. Established by `RGR-RESEARCH-SUBMIT-01`, Akira, 2026-09-22.

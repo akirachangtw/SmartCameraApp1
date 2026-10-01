@@ -253,6 +253,18 @@ Before executing the Review Algorithm below, every gate execution MUST fully rea
 - Decision, policy, SSOT adjudication, or a non-interchangeable choice → `ROUTE=C_EXCEPTION`; Research MUST NOT substitute for human judgment.
 - Research fails, or remains unresolved after Research → do not retry; `ROUTE=C_EXCEPTION`.
 
+## Migration-Lite Review
+
+Trigger: a ticket that introduces or changes field aliasing, deprecation, normalization, migration, legacy-record preservation, or create/update compatibility, or that promises zero mutation for a rejection guard governing persisted or shared mutable data. A purely presentational change, or a hardware guard that persists no data, does not trigger this review.
+
+Token: record `MIGRATION_LITE=ACTIVE` or `MIGRATION_LITE=NOT_TRIGGERED` on the line immediately after the §1 Verdict.
+
+When active, check five facets: (1) distinguish the stored-state and input classes that materially differ, and where key presence affects behavior, distinguish absent, present-with-null, and present-with-value; (2) for each applicable class, the create/update accept-or-reject outcome, the persisted shape, retained values, and side effects; (3) whether each production reader, writer, serializer, archive path, API, and UI has been changed, is protected by an explicit compatibility behavior, or is disclosed as an open gap; (4) that every real-data behavioral AC names a reachable population, source, entrypoint, or observer; (5) that any legacy fixture that cannot be produced through the normalized writer is seeded below that boundary and its shape is asserted before the operation under test.
+
+Disposition: all identified Migration-Lite completeness gaps MUST be recorded as findings and MUST NOT be omitted merely because their expected impact appears limited. Severity and final disposition remain governed by the existing severity table and Mechanical Verdict Rule.
+
+Equivalent classes may be merged; this review does not require a Cartesian-product artifact. A Preflight PASS means the specification is dispatchable, not that its future implementation has been proven.
+
 ## Review Algorithm
 
 Follow this sequence strictly.
