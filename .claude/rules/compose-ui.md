@@ -1,6 +1,6 @@
 ---
 description: Compose UI + Ambient UI 規則
-globs:
+paths:
   - "**/*Screen*.kt"
   - "**/*Overlay*.kt"
   - "**/*Composable*.kt"

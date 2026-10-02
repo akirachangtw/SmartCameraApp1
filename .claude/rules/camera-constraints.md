@@ -1,6 +1,6 @@
 ---
 description: 相機硬體約束 — CameraX / ML Kit / Executor / Performance
-globs:
+paths:
   - "**/*Camera*.kt"
   - "**/*CameraX*.kt"
 ---

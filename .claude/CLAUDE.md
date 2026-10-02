@@ -1,7 +1,6 @@
 # CLAUDE.md — Cueshot MVP Behavioral Contract
 
 ≤ 150 行 / 12 核心規則。超標即重構。
-Domain rules: .claude/rules/（frontmatter 為 `globs:`，Claude Code 不據以條件載入，實際每 session 全數常駐）
 
 ## ⚡ Boot Sequence
 
@@ -122,7 +121,9 @@ Cross-Review 行為規範 → `.claude/rules/cross-review.md`
 
 ## Path-Scoped Rules
 
-`.claude/rules/*.md` — domain rules 與移出主檔之常駐規則（如 `engineering-discipline.md`），每 session 全數載入。
+- 使用 `paths:` 的 rule，僅在讀取匹配檔案後載入。
+- 沒有 `paths:` 的 rule 無條件載入。
+- `globs:` 不是有效欄位，Claude Code 會忽略；不得新增。
 
 ---
 

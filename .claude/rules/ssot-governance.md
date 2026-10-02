@@ -1,9 +1,5 @@
 ---
 description: PROGRESS.md / SSOT 文件治理規則 — 確保儀表板精簡、歸檔紀律
-globs:
-  - ".claude/PROGRESS.md"
-  - ".claude/PROGRESS_ARCHIVE.md"
-  - "plans/architecture/*SSOT*.md"
 ---
 
 > RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。

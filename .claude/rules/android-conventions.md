@@ -1,6 +1,6 @@
 ---
 description: Android 開發規範 — 錯誤防禦、UDF、i18n、Bash 安全、命名規範、Git Commit
-globs:
+paths:
   - "app/src/main/**/*.kt"
   - "app/src/main/**/*.xml"
   - "*.gradle.kts"

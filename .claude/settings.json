@@ -79,9 +79,11 @@
       "Bash(git -C * reset --hard *)",
       "Bash(git -C * push --force *)",
       "Bash(format *)",
-      "Bash(taskkill /f /im explorer*)"
+      "Bash(taskkill /f /im explorer*)",
+      "AskUserQuestion"
     ]
   },
+  "outputStyle": "zh-tw",
   "model": "claude-sonnet-5",
   "hooks": {
     "SessionStart": [

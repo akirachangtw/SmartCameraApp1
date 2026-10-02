@@ -1,6 +1,6 @@
 ---
 description: PTF 場景規則
-globs:
+paths:
   - "**/*Ptf*.kt"
   - "**/*PassToFriend*.kt"
 ---

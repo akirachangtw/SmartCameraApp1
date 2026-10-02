@@ -1,7 +1,5 @@
 ---
 description: Phase 0 盲區規則 — 來自 D0-D8 退件經驗萃取
-globs:
-  - "app/src/main/**/*.kt"
 ---
 
 > RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。

@@ -1,10 +1,5 @@
 ---
 description: Cross-Review pipeline 行為規範 — FAIL 處理 / Checkpoint / 路由
-globs:
-  - "app/src/**/*.kt"
-  - ".claude/skills/**"
-  - ".agents/skills/**"
-  - "tmp/**"
 ---
 
 > RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。

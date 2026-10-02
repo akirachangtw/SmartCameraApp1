@@ -1,8 +1,5 @@
 ---
 description: 禁刪檔案清單 — 工作流自動化工具
-globs:
-  - "tools/**"
-  - ".vscode/**"
 ---
 
 # Critical Project Files — DO NOT DELETE

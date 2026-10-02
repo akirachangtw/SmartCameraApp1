@@ -1,8 +1,5 @@
 ---
 description: KAIROS 回顧產出的架構守則 — 經實戰驗證的規則
-globs:
-  - "app/src/main/**/*.kt"
-  - "app/src/test/**/*.kt"
 ---
 
 > RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。
