@@ -95,7 +95,7 @@ if echo "$LAST_MSG" | grep -qE "Cross-Review.*PASS|STRUCTURAL VERIFY PASS.*A/B/C
     MSG="${TICKET} ✅ SV+Cross-Review ${ROUND} PASS — 準備 Traycer 終審。下一步？"
     [[ -n "$_PREVIEW" ]] && MSG="${MSG}
 💬 ${_PREVIEW}"
-    bash .claude/skills/telegram-notify/scripts/notify.sh "$MSG" 0
+    bash .claude/hooks/notify.sh "$MSG" 0
     exit 0
 fi
 
@@ -105,7 +105,7 @@ if echo "$LAST_MSG" | grep -qE "✅ DONE \|"; then
     MSG="${DONE_LINE} — 請執行 /qa"
     [[ -n "$_PREVIEW" ]] && MSG="${MSG}
 💬 ${_PREVIEW}"
-    bash .claude/skills/telegram-notify/scripts/notify.sh "$MSG" 0
+    bash .claude/hooks/notify.sh "$MSG" 0
     exit 0
 fi
 
@@ -115,7 +115,7 @@ if echo "$LAST_MSG" | grep -qE "QA Report|Build: ✅ PASS.*Tests:.*PASS"; then
     MSG="${TICKET} 🔨 /qa PASS — 請執行 /sv"
     [[ -n "$_PREVIEW" ]] && MSG="${MSG}
 💬 ${_PREVIEW}"
-    bash .claude/skills/telegram-notify/scripts/notify.sh "$MSG" 0
+    bash .claude/hooks/notify.sh "$MSG" 0
     exit 0
 fi
 
@@ -123,5 +123,5 @@ fi
 _DEFAULT_MSG="⏸️ Claude 已停止，等待 Akira 操作"
 [[ -n "$_PREVIEW" ]] && _DEFAULT_MSG="${_DEFAULT_MSG}
 💬 ${_PREVIEW}"
-bash .claude/skills/telegram-notify/scripts/notify.sh "$_DEFAULT_MSG" 0
+bash .claude/hooks/notify.sh "$_DEFAULT_MSG" 0
 exit 0

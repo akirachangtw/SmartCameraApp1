@@ -29,6 +29,6 @@ fi
 
 [[ -z "$QUESTION_TEXT" ]] && QUESTION_TEXT="❓ Claude 提出選擇題"
 
-bash .claude/skills/telegram-notify/scripts/notify.sh "🙋 Claude 等待 Akira 選擇
+bash .claude/hooks/notify.sh "🙋 Claude 等待 Akira 選擇
 ${QUESTION_TEXT}" 0
 exit 0
