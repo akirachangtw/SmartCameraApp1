@@ -1,7 +1,7 @@
 # CLAUDE.md — Cueshot MVP Behavioral Contract
 
 ≤ 150 行 / 12 核心規則。超標即重構。
-Domain rules: .claude/rules/（path-scoped，碰到匹配檔案時自動載入）
+Domain rules: .claude/rules/（frontmatter 為 `globs:`，Claude Code 不據以條件載入，實際每 session 全數常駐）
 
 ## ⚡ Boot Sequence
 
@@ -15,6 +15,19 @@ Session 啟動 → `mkdir -p tmp && rm -f tmp/verify_cmd.conf .tmp/sv_report.md 
 ```
 
 Ticket 含 `## Verify Config` 區塊時，必須將該區塊內容複製為 `tmp/verify_cmd.conf`（純文字，原樣複製，不加工）。
+
+---
+
+## 獨立開發者：MVP 優先、反過度治理
+
+以最低時間、成本、Token 與流程摩擦交付可發布 MVP。 預設直接完成任務，不把小需求升格為企業級架構、治理或文件以確保獨立開發的最大彈性及可接受的風險界線。
+
+新增程式碼、依賴、流程或抽象前依序判斷：
+1. 這是目前 MVP、收款、使用者回饋或安全發布的必要條件嗎？不是就不做。
+2. 標準庫、原生平台、既有程式或已安裝依賴能做嗎？能就重用。
+3. 能否更小、可逆、可測、可快速發布？優先最少檔案、最少設定、單一路徑。
+4. 只有高風險或不可逆操作，才提高驗證與治理強度。
+5. 採用企業化嚴謹工作流及治理? 需要的是AI自主智能化，嚴謹對獨立開發者是毀滅性的天災。
 
 ---
 
@@ -75,43 +88,9 @@ d) Session 首訊無 Ticket → 詢問後停止。
 
 ---
 
-## 工程紀律（6 條）
+## 工程紀律（Rule 7–12）
 
-### 7. Intent-Driven
-
-將任務轉化為可驗證目標，迭代直到成功：
-- 「加驗證」→「寫 invalid input 測試，然後讓它通過」
-- 「修 bug」→「寫重現測試，然後讓它通過」
-- 「重構 X」→「確認重構前後測試都通過」
-
-強成功標準讓你能獨立迭代。弱標準（「讓它動」）需要不斷確認。
-
-### 8. 確定性工作用代碼
-
-routing / retry / status-code / deterministic transform → 用 code。
-只在 classification / drafting / extraction 場景用 model 判斷。
-Status code 已能回答的問題，code 回答。
-
-### 9. 測試驗 intent
-
-測試編碼「為什麼」行為重要，不只驗「做了什麼」。
-若 diff 含 return 值語義變更或 state 轉移路徑變更 → 測試必須覆蓋新舊值邊界。
-無法在 business logic 變更時失敗的測試 = 錯誤的測試。
-
-### 10. 每步 Checkpoint
-
-多步驟任務每完成一步 → 回報 done / verified / remaining。
-無法回述當前狀態 → 停下來重述。不從無法描述的狀態繼續前進。
-
-### 11. 衝突不混搭
-
-兩種 pattern 矛盾 → 選較新 / 較多測試覆蓋的那個，標記另一個待清。
-混合兩種 pattern 的代碼 = 最差的代碼。發現矛盾 → 大聲說，不靜默各取一半。
-
-### 12. 失敗要大聲
-
-不確定就說。「完成」但跳過項目 = 沒完成。「測試通過」但跳了測試 = 沒通過。
-預設：暴露不確定性，而非隱藏它。
+Intent-Driven／確定性用代碼／測試驗 intent／每步 Checkpoint／衝突不混搭／失敗要大聲 → 全文見 `.claude/rules/engineering-discipline.md`（編號沿用）。
 
 ---
 
@@ -123,7 +102,7 @@ Status code 已能回答的問題，code 回答。
 
 ## SOP
 
-> 本 repo 全程序執行，無 RAPID／快速通道；任何票（含 .claude/ 與 plans/ 治理文本票）均不得跳過 3./qa、4./sv、4.5.cross_review（Akira 2026-08-22 裁決）。
+> 依風險分級（Akira 2026-10-02 裁決，取代 2026-08-22「全程序、無快速通道」）：低風險 docs／治理文本票（僅 `.md`、可 git revert）得省略 3./qa、4./sv、4.5.cross_review；觸及 `app/` production code、腳本／pipeline 或不可逆操作之票維持全程序。
 
 ```text
 0.Resume → 1.Plan(Gemini) → 2.Code(/uc) → 3./qa → 4./sv
@@ -143,7 +122,7 @@ Cross-Review 行為規範 → `.claude/rules/cross-review.md`
 
 ## Path-Scoped Rules
 
-`.claude/rules/*.md` — domain rules，碰到匹配檔案時自動載入。
+`.claude/rules/*.md` — domain rules 與移出主檔之常駐規則（如 `engineering-discipline.md`），每 session 全數載入。
 
 ---
 
