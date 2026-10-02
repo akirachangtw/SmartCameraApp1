@@ -47,8 +47,7 @@ description: PROGRESS.md / SSOT 文件治理規則 — 確保儀表板精簡、�
 
 - `CLAUDE.md` / `PROGRESS.md` / `CSO_INDEX.md` / `UITA_INDEX.md` **MUST** 只引用現行 SSOT 版本路徑。
 - 每次 SSOT 版本升級 **MUST** 在同一 commit 中同步更新所有引用文件。
-- `/index-verify` **SHOULD** 在每次 SSOT 升級後立即執行，確認零過期引用。
-- 引用已刪除路徑 → structural_verify.sh Check F 或 index-verify **MUST** 攔截。
+- 引用已刪除路徑 → structural_verify.sh Check F **MUST** 攔截。
 
 ## Ticket 生命週期流程（五段）
 
