@@ -1,0 +1,8 @@
+{
+  "name": "token-weather",
+  "version": "0.1.0",
+  "description": "Read-only context window usage indicator",
+  "author": {
+    "name": "Akira Chang"
+  }
+}
