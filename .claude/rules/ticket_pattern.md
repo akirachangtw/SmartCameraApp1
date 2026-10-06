@@ -61,6 +61,7 @@ commit-hook=^\[[A-Z][A-Z0-9]*(-[A-Z0-9]+)+\]
 | `RGR-` | `RGR-APPDEPLOY-01` | `RGR-APPDEPLOY-01` | `plans/cso_briefing/project/Pending/RGR-APPDEPLOY-01_RigorGate_Skill_Port.md` | 2026-08-27 | TPL v3.6 前綴表預授權（RGR）；APP 端首用當刻補登（Rule 4a）；PLT 端 family 既存（RGR-INSTALL-01 起） |
 | `ACAGOV-` | `ACAGOV-RUNTIME-TABLE-01` | `ACAGOV-RUNTIME-TABLE-01` | `plans/cso_briefing/project/Pending/ACAGOV-RUNTIME-TABLE-01_go-lane.md` | 2026-09-13 | Akira 2026-09-13 裁決立 ACAGOV 議題線（Autonomous Closed Anti-over Governance：票務流程自主收束與反過度治理，涵蓋 GO lane 轉移表、模式無關 lifecycle、session-level persistence 邊界）；開票當刻補登（Rule 4a／TPL v3.6 縮寫規則，6 字母合 2–6 上限）。結構文法既已涵蓋，**不改 regex** |
 | `CLEANUP-` | `CLEANUP-01` | `CLEANUP-01`（無票檔，純行政清理） | 無票檔——Akira 於對話中直接指示以 `CLEANUP-NN` 前綴提交根目錄過期文檔刪除（`995a18d` `CLEANUP-01`／`09b64d3` `CLEANUP-02`），非 Pending/deliver 票務流程標的 | 2026-09-13 | Akira 對話直接授權（非 Ticket 派工，純行政性文檔刪除 commit 前綴）；結構文法既已涵蓋，**不改 regex**；本 family 無對應票檔，補登為忠實記錄授權事實，非追溯創造票務存在性 |
+| `TKA-` | `TKA-ALIGN-01` | `TKA-ALIGN-01` | `plans/cso_briefing/project/Pending/TKA-ALIGN-01_retro.md` | 2026-10-06 | Akira 2026-10-06 裁決立 TKAuthor 議題線（ticket-author Skill：diag／plan／ticket 三模式開票入口之建置與維護）；TKA 為 TKAuthor 登記縮寫（Rule 4a／TPL v3.6 縮寫規則，3 字母合 2–6 上限）。結構文法既已涵蓋，**不改 regex** |
 
 ## 票據模板規範
 
