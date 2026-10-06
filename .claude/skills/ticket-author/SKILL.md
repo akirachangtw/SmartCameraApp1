@@ -36,17 +36,35 @@ The mode selects the workflow stage; it is not the task description. Treat the r
 
 If mode is absent or unsupported, stop with `STOP_INVALID_MODE`. Never infer a mode silently.
 
-## Required references
+## Reference routing
 
-Read only what the selected mode requires:
+Load a reference only when its stage is reached:
 
-- Always read `references/input-contract.md`.
-- Always read `references/state-transitions.md`.
-- Always read `references/stop-conditions.md`.
-- In `ticket`, also fully read the latest `D:\DevSources\AndroidProj\SmartCameraApp1\plans\cso_briefing\project\file\Unified_Ticket_Template_v3.md` before creating, reviewing, or modifying a formal Ticket.
-- If Craft synchronization is explicitly requested, fully read `Craft_MCP_Protocol.md` before any Craft operation.
+- `references/input-contract.md`: parsing, mode inputs, fixture tightening, parent classification.
+- `references/state-transitions.md`: states, receipts, recovery.
+- `references/stop-conditions.md`: reason codes and repair limits.
+
+In `ticket`, before creating a formal Ticket, fully read the only mandatory governance source: `D:\DevSources\AndroidProj\SmartCameraApp1\plans\cso_briefing\project\file\Unified_Ticket_Template_v3.md`. Record the actual path read, template version, document date, and effective revision date. No other copy, summary, or model memory substitutes; missing, incompletely readable, or unidentifiable version → `STOP_GOVERNANCE_UNAVAILABLE`.
 
 A prior session summary does not substitute for a mandatory current read.
+
+## Evidence model
+
+Three separate axes:
+
+| Axis | Values | Applies to |
+|---|---|---|
+| Gate | `PASS` / `STOP` (STOP carries `Final state` and `Code`) | Whether the mode workflow completed |
+| Diag Verdict | `CONFIRMED` / `PARTIALLY_CONFIRMED` / `DISPROVED` / `INSUFFICIENT_EVIDENCE` | `diag` overall conclusion only |
+| Claim Status | `CONFIRMED` / `SUPPORTED` / `HYPOTHESIS` / `UNKNOWN` | Each load-bearing claim |
+
+`PARTIALLY_CONFIRMED` belongs only to Diag Verdict, never Claim Status. Baseline types `HISTORICAL` / `CURRENT_LIVE` classify a claim; they are not statuses. Gate and Diag Verdict are this Skill's output contract; only the Claim Status definition below is a mirror.
+
+Claim Status definition — verbatim local copy of the approved persistent protocol, not definitions created by this Skill. Source: `D:\DevSources\Smarter-Project\file\Instructions_for_Claude.md` (v3.1.5), section "證據分級與硬風險判準(本協議共同基底;2026-09-12 修訂裁決)", original line L18:
+
+**證據四態**:`CONFIRMED`(官方契約、本地原始碼或可重現 provider 實測支持)／`SUPPORTED`(可信二手來源、SDK wrapper、issue、論壇或相鄰實作支持)／`HYPOTHESIS`(有合理技術路徑,尚未驗證)／`UNKNOWN`(訊號不足)。「公認」「業界常見」至多 `SUPPORTED`,MUST NOT 標 `CONFIRMED`。
+
+`HYPOTHESIS` carries no added probe duty; probes follow the hard-risk rule independently. Update this copy whenever the persistent protocol changes (no automatic sync in P0).
 
 ## Core rules
 
@@ -54,7 +72,7 @@ A prior session summary does not substitute for a mandatory current read.
 2. Reuse existing project tools, ticket writers, templates, and evidence mechanisms.
 3. Ask the user only for unresolved product semantics, compatibility policy, scope expansion, ownership, destructive action, or another non-derivable decision.
 4. Automatically repair uniquely resolvable factual, formatting, consistency, and template defects, then rerun the complete applicable gate.
-5. Label load-bearing claims as `VERIFIED`, `INFERRED`, `CONFLICTED`, or `UNRESOLVED`.
+5. Label every load-bearing claim with a Claim Status (see Evidence model); none may remain `UNKNOWN` without an AI-0 probe or explicit disposition.
 6. Local live evidence governs local implementation facts. Preserve conflicts with parent or external sources and surface semantic consequences.
 7. Source diagnoses/specifications provide intent and prior analysis, not fresh proof of current repository state.
 8. Never add a service, daemon, database, workflow engine, or governance layer for this P0 workflow.
@@ -97,17 +115,14 @@ Procedure:
 7. Compare credible repair directions by outcome, scope, compatibility, and verification path.
 8. Do not choose between valid product semantics without an existing decision.
 
-Gate PASS requires a precise symptom, bounded inspection scope, evidence-supported causal assessment or explicit insufficiency, distinguished credible alternatives, and explicit unknowns.
+Gate PASS requires a precise symptom, bounded inspection scope, evidence-supported causal assessment or explicit insufficiency, distinguished credible alternatives, and explicit unknowns. An unobservable symptom with no trustworthy trace completes with Verdict `INSUFFICIENT_EVIDENCE`, not a stop.
 
-Output:
+Output sections, fixed order: `Document / Historical baseline`, `Current-live baseline`, `Evidence gaps`, `External research`, `Evidence reconciliation`, `Verdict`.
 
-- Verdict: confirmed, partially confirmed, disproved, or insufficient evidence.
-- Observed baseline and causal chain.
-- Verified findings and weakened hypotheses.
-- Repair directions and risks.
-- Decision required, if any.
-- Recommended next mode, normally `plan`.
-- Final state.
+- A complete historical document is never current-live `CONFIRMED`; without current repo/runtime/Registry/device evidence use `PARTIALLY_CONFIRMED` or `INSUFFICIENT_EVIDENCE`.
+- `External research` may output `NOT_RUN` in P0.
+- Include repair directions and risks, decision required (if any), and recommended next mode (normally `plan`).
+- Saved artifact header MUST contain `Fixture:`, `Gate:`, `Verdict:` (see `input-contract.md`).
 
 Do not produce a Ticket Map unless the user starts `plan`.
 
@@ -138,6 +153,10 @@ Each Ticket Map item MUST include:
 
 Gate PASS requires one observable parent goal, resolved plan-defining semantics, one primary outcome per candidate, no duplicated ownership, directional non-circular dependencies, no fabricated anchors/line numbers/formal IDs, preserved shared constraints, and explicit per-ticket evidence gaps.
 
+Load-bearing decisions have one of three states: `APPROVED` (may support a formal Ticket Map), `PENDING_DECISION` (blocks affected items), `RECOMMENDED_ONLY` (suggestion, never authorization). "Recommend/suggest/candidate" wording in a source defaults to non-`APPROVED`.
+
+An unresolved fork may be saved as a provisional plan (header per `input-contract.md`); after the decision, resume from the analysis state and rerun the Plan Gate. A `plan` PASS writes an artifact by default as the `ticket` parent, with plan-local IDs and no formal Ticket ID.
+
 Output the plan baseline, decisions, technical boundary, Ticket Map, dependency order, deferred scope, unresolved decisions, recommended first ticket invocation, and final state. Do not register or write a formal Ticket.
 
 ## Mode: ticket
@@ -146,10 +165,10 @@ Purpose: collect complete live evidence for one atomic plan item and create one 
 
 Procedure:
 
-1. Perform all mandatory governance reads and record actual filenames, versions, and dates.
-2. Validate the selected plan item, parent source, target project, and single-ticket goal.
+1. Fully read the Ticket template (see Reference routing) and record actual path, version, document date, and effective revision date.
+2. Classify the parent by header (Plan-backed → Diag-backed → Spec-backed, per `input-contract.md`) and apply its eligibility rule; ineligible → `STOP_REPLAN_REQUIRED`. Fixture parents are always rejected. Then validate the selected item, target project, and single-ticket goal; unprovable atomicity → `STOP_REPLAN_REQUIRED`.
 3. Search for an existing Ticket with the same ID, title, source, or equivalent outcome.
-4. Pin repository/worktree, HEAD or equivalent revision, dirty/clean state, registry revision, and evidence time.
+4. Record repository/worktree, HEAD or equivalent revision, dirty/clean state, registry revision, and evidence time as diagnostics only; none may alone veto authoring. If content changes: re-read affected sources → update evidence → update the Ticket → rerun the complete gate.
 5. Verify parent decisions against live state. If live facts invalidate scope or semantics, stop with `STOP_REPLAN_REQUIRED`.
 6. Bound relevant producers, readers, writers, consumers, entrypoints, populations, and observers.
 7. Distinguish main, archive, fixture, and other populations where relevant.
@@ -162,7 +181,14 @@ Procedure:
 14. Run the evidence gate.
 15. Compile the Ticket, scan repeated claims for consistency, then review the complete final revision.
 16. Run the authoring gate.
-17. Write/register only through the existing authorized mechanism and verify the write.
+17. Write and register through this named sequence, then verify the final registry state and discoverability (acceptance looks at the final state, not call count):
+    1. Duplicate check: target project `Pending/`, `deliver/`, `void/`, and the same-project Registry (`registry_list(project=<PROFILE.PROJECT>, ...)`).
+    2. Create the Ticket file under `<PROFILE.TICKET_FILE_BASE>/Pending/` (file name per `input-contract.md`; embed parent source per `input-contract.md`).
+    3. `registry_upsert_ticket(project=<PROFILE.PROJECT>, ticket_data={id, title, topic, file, lifecycle: "PENDING", ...}, allow_new_topic=false)` with project, ID, file, and lifecycle explicit; `ticket_data` MUST be a dict containing `id`. The `file` field uses the single convention `Pending/<basename>` (relative to `PROFILE.TICKET_FILE_BASE`): this matches every live PENDING entry and the `ticket-run` path join `TICKET_FILE_BASE + "/" + file`.
+    4. Do not rely on an implicit lifecycle default. If the upsert already yields `lifecycle=PENDING`, do not re-call for form.
+    5. Read back with `registry_list(project=<PROFILE.PROJECT>, ticket_id=<ID>, fields=["id","lifecycle","file","topic"])` and verify ID, project, lifecycle, and file.
+    6. Verify the ticket is discoverable by the `ticket-run` equivalent query `registry_list(project=<PROFILE.PROJECT>, lifecycle="PENDING", fields=["id","title","file","lifecycle"], limit=50)`.
+    A mismatch after the minimal safe retry → `STOP_WRITE_FAILED`.
 
 Evidence gate PASS requires:
 
@@ -187,7 +213,7 @@ Authoring gate PASS requires:
 - Evidence-tier wording is not overstated.
 - The complete Ticket was re-reviewed after final revision.
 
-On PASS, return Ticket path/ID, one-sentence goal, evidence baseline, both gate results, governance filenames/versions/dates, non-blocking limitations, next action `RGR`, and `Final state: COMPLETE`.
+On PASS, return Ticket path/ID, one-sentence goal, evidence baseline, both gate results, template path/version/dates, non-blocking limitations, the next action (the project's existing review path; do not unconditionally chain a rigor review), and `Final state: COMPLETE`. This skill only authors new Tickets.
 
 On non-PASS, do not create or partially register a Ticket. Return the exact stop code and smallest next action.
 
@@ -237,7 +263,13 @@ Code: <exact stop code>
 Completed evidence: <brief list>
 Blocker: <one precise statement>
 Decision or input needed: <smallest answer required>
-Final state: DECISION_REQUIRED | BLOCKED
+Final state: DECISION_REQUIRED | CHANNEL_BLOCKED | REPAIR_EXHAUSTED
 ```
+
+Terminal states (SSOT; the per-code mapping lives in `references/stop-conditions.md`):
+
+- `DECISION_REQUIRED`: product semantics, compatibility policy, scope, ownership, or irreversible action needs a decision.
+- `CHANNEL_BLOCKED`: the template, repo, Registry, or a required tool is inaccessible.
+- `REPAIR_EXHAUSTED`: the same blocker survived two repairs. Format, template, AC, fixture, consumer, and state-space defects are first repaired or supplemented automatically, never ended immediately.
 
 Never hide partial completion or claim PASS with a pending load-bearing condition.

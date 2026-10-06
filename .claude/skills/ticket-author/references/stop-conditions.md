@@ -1,18 +1,6 @@
 # Ticket Author P0 — Stop Conditions
 
-## Response contract
-
-Every stop must return:
-
-```text
-Mode: diag | plan | ticket
-Gate: STOP
-Code: <exact code>
-Completed evidence: <brief list>
-Blocker: <one precise statement>
-Decision or input needed: <smallest answer required>
-Final state: DECISION_REQUIRED | BLOCKED
-```
+Reason-code table and repair limits only. Response shape and the three terminal states are defined in `SKILL.md`.
 
 Do not discard completed read-only evidence. Do not continue into a partial write.
 
@@ -20,13 +8,13 @@ Do not discard completed read-only evidence. Do not continue into a partial writ
 
 | Code | Trigger | Final state |
 |---|---|---|
-| `STOP_INVALID_MODE` | Mode absent or not `diag`, `plan`, `ticket` | `BLOCKED` |
+| `STOP_INVALID_MODE` | Mode absent or not `diag`, `plan`, `ticket` | `DECISION_REQUIRED` |
 | `STOP_MISSING_SUBJECT` | No problem, goal, source, or selected item identifies work | `DECISION_REQUIRED` |
-| `STOP_SOURCE_UNAVAILABLE` | Load-bearing referenced source cannot be read | `BLOCKED` |
+| `STOP_SOURCE_UNAVAILABLE` | Load-bearing referenced source cannot be read | `CHANNEL_BLOCKED` |
 | `STOP_TARGET_AMBIGUOUS` | Multiple projects/components plausibly own the work | `DECISION_REQUIRED` |
 | `STOP_DECISION_REQUIRED` | Multiple materially different semantics/outcomes remain valid | `DECISION_REQUIRED` |
 | `STOP_EVIDENCE_CONFLICT` | Load-bearing sources conflict and precedence cannot resolve semantics | `DECISION_REQUIRED` |
-| `STOP_ACCESS_BLOCKED` | Required repository, registry, runtime, or tool inaccessible | `BLOCKED` |
+| `STOP_ACCESS_BLOCKED` | Required repository, registry, runtime, or tool inaccessible | `CHANNEL_BLOCKED` |
 | `STOP_IRREVERSIBLE_RISK` | Destructive, external, credentialed, or irreversible action lacks authorization | `DECISION_REQUIRED` |
 | `STOP_SCOPE_EXPANSION` | Required work crosses approved parent boundary | `DECISION_REQUIRED` |
 
@@ -35,9 +23,8 @@ Do not discard completed read-only evidence. Do not continue into a partial writ
 | Code | Trigger | Final state |
 |---|---|---|
 | `STOP_PROBE_REQUIRED` | One named runtime/device/external probe is necessary to distinguish causes | `DECISION_REQUIRED` |
-| `STOP_SYMPTOM_NOT_OBSERVABLE` | Symptom cannot be observed and no trustworthy trace exists | `BLOCKED` |
 
-A diagnostic run may complete with verdict `insufficient evidence` instead when that limitation is itself the useful answer.
+An unobservable symptom with no trustworthy trace is not a stop: complete with Diag Verdict `INSUFFICIENT_EVIDENCE`.
 
 ## `plan` stops
 
@@ -45,27 +32,28 @@ A diagnostic run may complete with verdict `insufficient evidence` instead when 
 |---|---|---|
 | `STOP_GOAL_AMBIGUOUS` | Source supports multiple materially different parent goals | `DECISION_REQUIRED` |
 | `STOP_PLAN_CONFLICT` | Approved decisions contradict each other | `DECISION_REQUIRED` |
-| `STOP_NOT_DECOMPOSABLE` | Requested split creates invalid intermediate states or duplicate verification | `BLOCKED` |
 
-`STOP_NOT_DECOMPOSABLE` is not a defect. Return one coupled candidate and explain why splitting is unsafe or wasteful.
+Work that cannot be split safely is not a stop: return one coupled candidate and explain why splitting is unsafe or wasteful, then complete.
 
 ## `ticket` stops
 
 | Code | Trigger | Final state |
 |---|---|---|
-| `STOP_GOVERNANCE_UNAVAILABLE` | Evidence spec or current Ticket template cannot be fully read | `BLOCKED` |
-| `STOP_REPLAN_REQUIRED` | Item not atomic, parent semantics changed, or live evidence invalidates plan | `DECISION_REQUIRED` |
-| `STOP_DUPLICATE_TICKET` | Existing Ticket already owns equivalent outcome | `BLOCKED` |
+| `STOP_GOVERNANCE_UNAVAILABLE` | Current Ticket template cannot be fully read or its version is unidentifiable | `CHANNEL_BLOCKED` |
+| `STOP_REPLAN_REQUIRED` | Parent ineligible (see parent eligibility in `input-contract.md`), item not atomic, parent semantics changed, or live evidence invalidates plan | `DECISION_REQUIRED` |
+| `STOP_DUPLICATE_TICKET` | Existing Ticket already owns equivalent outcome | `DECISION_REQUIRED` |
 | `STOP_ID_OWNERSHIP_UNRESOLVED` | Ticket ID, project ownership, or registry destination unsafe to determine | `DECISION_REQUIRED` |
-| `STOP_BASELINE_CONTAMINATED` | Dirty/concurrent changes make target behavior or diff boundary unreliable | `BLOCKED` |
-| `STOP_POPULATION_UNKNOWN` | Load-bearing data claim lacks bounded population | `BLOCKED` |
-| `STOP_AC_UNREACHABLE` | Behavioral AC data cannot reach stated entrypoint or observer | `BLOCKED` |
-| `STOP_STATE_SPACE_INCOMPLETE` | Triggered matrix omits reachable contract-relevant class | `BLOCKED` |
-| `STOP_CONSUMER_UNKNOWN` | Load-bearing consumer set cannot be bounded | `BLOCKED` |
-| `STOP_FIXTURE_INVALID` | Fixture traverses behavior under test or fails to establish claimed precondition | `BLOCKED` |
-| `STOP_EVIDENCE_STALE` | Revision, runtime, registry, or source changed after collection | `BLOCKED` |
-| `STOP_TEMPLATE_INVALID` | Compiled Ticket fails current template | `BLOCKED` |
-| `STOP_WRITE_FAILED` | Authorized Ticket/registry write fails read-back verification | `BLOCKED` |
+| `STOP_POPULATION_UNKNOWN` | Load-bearing data claim lacks bounded population | `REPAIR_EXHAUSTED` (self-repair or supplement evidence and re-verify first; emit only after the same blocker fails twice) |
+| `STOP_AC_UNREACHABLE` | Behavioral AC data cannot reach stated entrypoint or observer | `REPAIR_EXHAUSTED` (self-repair or supplement evidence and re-verify first; emit only after the same blocker fails twice) |
+| `STOP_STATE_SPACE_INCOMPLETE` | Triggered matrix omits reachable contract-relevant class | `REPAIR_EXHAUSTED` (self-repair or supplement evidence and re-verify first; emit only after the same blocker fails twice) |
+| `STOP_CONSUMER_UNKNOWN` | Load-bearing consumer set cannot be bounded | `REPAIR_EXHAUSTED` (self-repair or supplement evidence and re-verify first; emit only after the same blocker fails twice) |
+| `STOP_FIXTURE_INVALID` | Fixture traverses behavior under test or fails to establish claimed precondition | `REPAIR_EXHAUSTED` (self-repair or supplement evidence and re-verify first; emit only after the same blocker fails twice) |
+| `STOP_TEMPLATE_INVALID` | Compiled Ticket fails current template | `REPAIR_EXHAUSTED` (self-repair or supplement evidence and re-verify first; emit only after the same blocker fails twice) |
+| `STOP_WRITE_FAILED` | Ticket/registry write already performed per contract still fails or read-back mismatches after the minimal safe retry (content or format defects take the matching repair code first) | `CHANNEL_BLOCKED` |
+
+A runtime/behavior unknown that matches no hard risk and can be verified through an AI-0 probe plus a reachable observer is not a stop: record `Claim status: UNKNOWN` with the AI-0 probe, failure branch, and a `[行為性]` AC.
+
+HEAD, worktree state, Registry revision, and evidence time are diagnostic records only and never a stop condition. When content changes: re-read affected sources → update evidence → update the Ticket → rerun the complete gate.
 
 ## Decision-fork discipline
 

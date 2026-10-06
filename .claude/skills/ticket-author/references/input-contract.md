@@ -30,9 +30,38 @@ Optional fields:
 | `constraints` | Compatibility, scope, cost, safety, and forbidden-change limits |
 | `non_goals` | Explicit exclusions |
 | `decisions` | Approved semantic/architectural choices |
-| `requested_output` | Report, Ticket Map, dry run, or formal Ticket |
+| `requested_output` | Report, Ticket Map, or formal Ticket |
+| `fixture_execution` | `true` or `false`; omitted means `false` only when no fixture signal exists (see Fixture tightening) |
+| `Fixture decisions:` | Synthetic decision list supplied only for fixture runs; never a formal approval |
 
 Do not stop for a missing optional field when bounded read-only inspection can establish it.
+
+## Fixture tightening
+
+Fixture signals (any one tightens; none can loosen):
+
+1. Input `fixture_execution: true`.
+2. Input contains `Fixture decisions:`.
+3. Parent header has `Fixture: true`.
+4. Input or parent self-labels as synthetic, fake-decision, or fixture execution (semantic safety net; tightens only).
+
+Any signal present → effective `fixture_execution = true`; no other parameter overrides it, including `fixture_execution: false`. Do not stop; output `Input normalization: fixture_execution forced to true because <signal>`.
+
+Fixture mode MUST NOT: allocate a formal Ticket ID, create a formal Ticket, write the Registry, change any lifecycle, serve as a `ticket` parent, or treat a synthetic decision as formal approval. Artifacts carry `Fixture: true` and `Ticket mode eligibility: FORBIDDEN`. Every `diag` and `plan` artifact outputs a `Fixture:` field.
+
+| Artifact | `Fixture` | Formal Ticket eligibility |
+|---|---|---|
+| Normal diag | `false` | Still requires Gate, Verdict, atomicity |
+| Fixture diag | `true` | Forbidden |
+| Normal plan PASS | `false` | `Ticket mode eligibility: ALLOWED` |
+| Provisional plan | `false` | `Ticket mode eligibility: FORBIDDEN` |
+| Fixture plan | `true` | `Ticket mode eligibility: FORBIDDEN` |
+
+## Cross-mode artifacts
+
+Location: `<PROFILE.REPO_ROOT>/.tmp/ticket-author/`; names `YYYYMMDD-<slug>-diag.md` and `YYYYMMDD-<slug>-plan.md`. Short-term hand-off only, not a long-term SSOT. No ledger, database, or cross-session state.
+
+`diag` replies in conversation by default; it writes an artifact when the work crosses sessions, the user asks to save, or `plan` references it. A `plan` PASS writes an artifact by default as the `ticket` parent. Artifact header (the leading `key: value` block before the first `#`/`##` heading) MUST contain `Fixture:`; `diag` also `Gate:` and `Verdict:`; `plan` also `Plan Gate:` and `Ticket mode eligibility:`. A provisional plan header: `Plan Gate: NOT PASSED`, `Status: PROVISIONAL`, `Formal Ticket IDs: FORBIDDEN`, `Ticket mode eligibility: FORBIDDEN`, `Fixture: <true|false>`.
 
 ## `diag`
 
@@ -80,11 +109,35 @@ Produce the smallest ordered Ticket Map. Do not create formal Tickets.
 Required:
 
 - One selected Ticket Map item or equivalently atomic objective.
-- Traceable parent diagnosis/specification/approved plan.
+- Traceable parent diagnosis/specification/approved plan (a readable file).
 - One observable Ticket goal.
 - Target project or enough information to locate it uniquely.
 
-Return to `plan` with `STOP_REPLAN_REQUIRED` when the request contains independently deployable outcomes, unrelated repositories, or unresolved semantic decisions.
+Return to `plan` with `STOP_REPLAN_REQUIRED` when the request contains independently deployable outcomes, unrelated repositories, unresolved semantic decisions, atomicity cannot be proven, or the selected item still has multiple goals.
+
+### Parent classification
+
+Header = the leading `key: value` block of the artifact before the first `#`/`##` heading. Classify by header only (same-named text in the body does not count), in this priority, regardless of filename, directory, extension, description, or user-claimed parent type:
+
+1. Header has `Plan Gate:` or `Ticket mode eligibility:` → Plan-backed.
+2. Else header has `Verdict:` → Diag-backed.
+3. Else → Spec-backed.
+
+| Type | Required | Rejected (`STOP_REPLAN_REQUIRED`) |
+|---|---|---|
+| Plan-backed | `Fixture: false` + `Plan Gate: PASS` + `Ticket mode eligibility: ALLOWED` | Any field missing or different; `Fixture: true` |
+| Diag-backed | `Fixture: false` + `Gate: PASS` + `Verdict` ∈ {`CONFIRMED`, `PARTIALLY_CONFIRMED`} | `Fixture` missing or true; `Gate` missing or not PASS; Verdict `DISPROVED`/`INSUFFICIENT_EVIDENCE`/missing/invalid |
+| Spec-backed | Readable file; one atomic implementation outcome; problem and goal sufficient to start live evidence; no unresolved multi-option fork | Header `Fixture: true`; document self-labels as fixture/synthetic/fake decision |
+
+Spec-backed `Fixture` is optional (absent = ordinary existing spec); only self-labeling tightens, and a test-related topic is not self-labeling. A bare prompt, session memory, or a provisional/blocked plan is never a parent.
+
+`PARTIALLY_CONFIRMED` stops only for: unresolved product goal/semantics, unclear ALLOWED ownership/write responsibility, unauthorized irreversible/destructive/high-risk operation, or another persistent-protocol hard risk. A runtime/behavior unknown that matches no hard risk may proceed as `Claim status: UNKNOWN` + `AI-0 probe` (through the formal entrypoint) + `Failure branch` + `[行為性]` AC; `[實機]` is limited to real-device Logcat/screen/screenshot.
+
+### Source embedding and naming
+
+The formal Ticket source section MUST embed: Parent type, Parent absolute path, Parent artifact status, plan-local item ID (if applicable), selected item text or atomic objective, relevant constraints, Plan Gate/eligibility result (if applicable), and Parent read timestamp. A `.tmp` path alone is insufficient; the Ticket must stand alone after the `.tmp` file is gone. Do not copy the whole plan.
+
+File name: `<ID>_<slug>.md`; slug lowercase ASCII kebab-case ≤12 characters; whole basename ≤40 characters. Check both limits before generating.
 
 Example:
 

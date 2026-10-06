@@ -74,6 +74,8 @@ INTAKE_PARSED
 
 A Ticket Map is not a group of formal Tickets. It contains plan-local IDs and unverified estimated scope.
 
+After a pending decision is resolved, resume from the analysis state and rerun the Plan Gate; do not redo undisputed evidence collection.
+
 ### `ticket`
 
 ```text
@@ -89,7 +91,9 @@ INTAKE_PARSED
 → COMPLETE
 ```
 
-No formal Ticket may be written before both governance files are fully read and the evidence gate passes. A failed write verification transitions to `BLOCKED`, not `COMPLETE`.
+No formal Ticket may be written before the current Ticket template is fully read and the evidence gate passes. A failed write verification ends the run with `STOP_WRITE_FAILED` (`CHANNEL_BLOCKED` in `stop-conditions.md`), not `COMPLETE`.
+
+Parent classification precedes `atomic item validated`: classify by header per `input-contract.md`; an ineligible parent ends with `STOP_REPLAN_REQUIRED`.
 
 ## Regression transitions
 
