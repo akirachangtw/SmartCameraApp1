@@ -18,10 +18,14 @@ Side states:
 
 ```text
 ANY ACTIVE STATE → DECISION_REQUIRED
-ANY ACTIVE STATE → BLOCKED
-DECISION_REQUIRED → INPUT_VALIDATED | MODE_ANALYSIS | BLOCKED
-BLOCKED → end run
+ANY ACTIVE STATE → CHANNEL_BLOCKED
+LIVE_EVIDENCE | MODE_ANALYSIS | MODE_GATE | OUTPUT_READY → REPAIR_EXHAUSTED
+DECISION_REQUIRED → INPUT_VALIDATED | MODE_ANALYSIS | CHANNEL_BLOCKED
+CHANNEL_BLOCKED → end run
+REPAIR_EXHAUSTED → end run
 ```
+
+`CHANNEL_BLOCKED` is entered when a required source, governance file, repo, Registry, or formal write channel is unavailable. `REPAIR_EXHAUSTED` is entered only from the four named states above, when the same repairable or supplementable blocker has already failed twice after repair/evidence and re-verification. No other generic source state or new intermediate state is introduced; parent classification and eligibility checks stay under the existing `INPUT_VALIDATED`.
 
 Never report a later state when an earlier state's exit conditions remain incomplete.
 
@@ -39,7 +43,8 @@ Never report a later state when an earlier state's exit conditions remain incomp
 | `OUTPUT_READY` | Output complete and validated | Output type and destination |
 | `COMPLETE` | Result delivered | Final response and next action |
 | `DECISION_REQUIRED` | Non-derivable decision blocks progress | Fork, consequence, recommendation |
-| `BLOCKED` | Access, governance, evidence, or write prevents progress | Completed work, blocker, smallest recovery action |
+| `CHANNEL_BLOCKED` | Required source, governance file, repo, Registry, or formal write channel is unavailable | Unavailable channel, attempted recovery, Decision or input needed, resume point |
+| `REPAIR_EXHAUSTED` | Same repairable/supplementable blocker failed twice after repair/evidence and re-verification | Repair attempt 1 and result, repair attempt 2 and result, remaining blocker, Decision or input needed, resume point |
 
 P0 requires no database or persistent run ledger. Include receipts only where they improve traceability.
 

@@ -54,7 +54,7 @@ Three separate axes:
 
 | Axis | Values | Applies to |
 |---|---|---|
-| Gate | `PASS` / `STOP` (STOP carries `Final state` and `Code`) | Whether the mode workflow completed |
+| Gate | `PASS` / `STOP` (STOP carries `Final state` and `Reason code`) | Whether the mode workflow completed |
 | Diag Verdict | `CONFIRMED` / `PARTIALLY_CONFIRMED` / `DISPROVED` / `INSUFFICIENT_EVIDENCE` | `diag` overall conclusion only |
 | Claim Status | `CONFIRMED` / `SUPPORTED` / `HYPOTHESIS` / `UNKNOWN` | Each load-bearing claim |
 
@@ -165,23 +165,24 @@ Purpose: collect complete live evidence for one atomic plan item and create one 
 
 Procedure:
 
-1. Fully read the Ticket template (see Reference routing) and record actual path, version, document date, and effective revision date.
-2. Classify the parent by header (Plan-backed → Diag-backed → Spec-backed, per `input-contract.md`) and apply its eligibility rule; ineligible → `STOP_REPLAN_REQUIRED`. Fixture parents are always rejected. Then validate the selected item, target project, and single-ticket goal; unprovable atomicity → `STOP_REPLAN_REQUIRED`.
-3. Search for an existing Ticket with the same ID, title, source, or equivalent outcome.
-4. Record repository/worktree, HEAD or equivalent revision, dirty/clean state, registry revision, and evidence time as diagnostics only; none may alone veto authoring. If content changes: re-read affected sources → update evidence → update the Ticket → rerun the complete gate.
-5. Verify parent decisions against live state. If live facts invalidate scope or semantics, stop with `STOP_REPLAN_REQUIRED`.
-6. Bound relevant producers, readers, writers, consumers, entrypoints, populations, and observers.
-7. Distinguish main, archive, fixture, and other populations where relevant.
-8. For alias, schema, normalization, fallback, guard, migration, lifecycle, or zero-mutation work, build the smallest complete state matrix before ACs.
-9. Ensure legacy fixtures bypass the behavior under test and assert their starting shape.
-10. Classify every load-bearing claim; none may remain unresolved.
-11. Derive candidate ALLOWED/FORBIDDEN from live ownership and approved scope.
-12. Write behavioral ACs only after population/source, entrypoint, and observer are mutually reachable.
-13. Apply all current template requirements, including dependency triplet, Verify Config, AI-0 live anchors, ownership/location, Error Handling, and AC types.
-14. Run the evidence gate.
-15. Compile the Ticket, scan repeated claims for consistency, then review the complete final revision.
-16. Run the authoring gate.
-17. Write and register through this named sequence, then verify the final registry state and discoverability (acceptance looks at the final state, not call count):
+1. Classify the parent by header (Plan-backed → Diag-backed → Spec-backed, per `input-contract.md`) and apply its eligibility rule, including the selected item's atomicity. An ineligible parent — any fixture parent, or one whose atomicity cannot be shown — returns `STOP_REPLAN_REQUIRED` immediately with zero formal writes: no template read, no Ticket ID, no `Pending/` write, no Registry write.
+2. Eligible parent: fully read the Ticket template (see Reference routing) and record actual path, version, document date, and effective revision date.
+3. Fully read the parent source.
+4. Search for an existing Ticket with the same ID, title, source, or equivalent outcome.
+5. Record repository/worktree, HEAD or equivalent revision, dirty/clean state, registry revision, and evidence time as diagnostics only; none may alone veto authoring. If content changes: re-read affected sources → update evidence → update the Ticket → rerun the complete gate.
+6. Verify parent decisions against live state. If live facts invalidate scope or semantics, stop with `STOP_REPLAN_REQUIRED`.
+7. Bound relevant producers, readers, writers, consumers, entrypoints, populations, and observers.
+8. Distinguish main, archive, fixture, and other populations where relevant.
+9. For alias, schema, normalization, fallback, guard, migration, lifecycle, or zero-mutation work, build the smallest complete state matrix before ACs.
+10. Ensure legacy fixtures bypass the behavior under test and assert their starting shape.
+11. Classify every load-bearing claim; none may remain unresolved.
+12. Derive candidate ALLOWED/FORBIDDEN from live ownership and approved scope.
+13. Write behavioral ACs only after population/source, entrypoint, and observer are mutually reachable.
+14. Apply all current template requirements, including dependency triplet, Verify Config, AI-0 live anchors, ownership/location, Error Handling, and AC types.
+15. Run the evidence gate.
+16. Compile the Ticket, scan repeated claims for consistency, then review the complete final revision.
+17. Run the authoring gate.
+18. Write and register through this named sequence, then verify the final registry state and discoverability (acceptance looks at the final state, not call count):
     1. Duplicate check: target project `Pending/`, `deliver/`, `void/`, and the same-project Registry (`registry_list(project=<PROFILE.PROJECT>, ...)`).
     2. Create the Ticket file under `<PROFILE.TICKET_FILE_BASE>/Pending/` (file name per `input-contract.md`; embed parent source per `input-contract.md`).
     3. `registry_upsert_ticket(project=<PROFILE.PROJECT>, ticket_data={id, title, topic, file, lifecycle: "PENDING", ...}, allow_new_topic=false)` with project, ID, file, and lifecycle explicit; `ticket_data` MUST be a dict containing `id`. The `file` field uses the single convention `Pending/<basename>` (relative to `PROFILE.TICKET_FILE_BASE`): this matches every live PENDING entry and the `ticket-run` path join `TICKET_FILE_BASE + "/" + file`.
@@ -215,7 +216,18 @@ Authoring gate PASS requires:
 
 On PASS, return Ticket path/ID, one-sentence goal, evidence baseline, both gate results, template path/version/dates, non-blocking limitations, the next action (the project's existing review path; do not unconditionally chain a rigor review), and `Final state: COMPLETE`. This skill only authors new Tickets.
 
-On non-PASS, do not create or partially register a Ticket. Return the exact stop code and smallest next action.
+On non-PASS, do not create or partially register a Ticket. Return the exact stop code and smallest next action. For a parent-eligibility stop, route the `Decision or input needed` by the parent problem:
+
+| Parent problem | Decision or input needed |
+|---|---|
+| Non-atomic Spec | Run `/ticket-author plan` on that spec |
+| Provisional plan, or Plan Gate not PASS | Resolve the pending decision, then rerun `plan` |
+| `Fixture: true` | Supply a non-fixture real parent; do not rerun the same fixture |
+| `Ticket mode eligibility: FORBIDDEN` | Resolve the blockers the artifact lists, producing a new eligible plan |
+| Diag Gate not PASS, Verdict not on the whitelist, missing field, or invalid value | Supplement evidence or rerun `/ticket-author diag` |
+| Partial artifact header | Regenerate the artifact with the complete required header |
+
+A source document with no artifact header at all is still Spec-backed; missing Plan/Diag fields alone never reject it.
 
 ## Conditional state matrix
 
@@ -259,7 +271,7 @@ Stop:
 ```text
 Mode: diag | plan | ticket
 Gate: STOP
-Code: <exact stop code>
+Reason code: <exact stop code>
 Completed evidence: <brief list>
 Blocker: <one precise statement>
 Decision or input needed: <smallest answer required>
