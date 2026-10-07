@@ -1,9 +1,11 @@
 # tmp Expiry Cleanup
 
-`cleanup_expired_tmp.py` cleans only these two approved paths:
+`cleanup_expired_tmp.py` cleans only these approved paths:
 
 - `D:\DevSources\AndroidProj\SmartCameraApp1\tmp`
+- `D:\DevSources\AndroidProj\SmartCameraApp1\.tmp`
 - `D:\DevSources\workflow\mcp-ticket-platform\tmp`
+- `D:\DevSources\workflow\mcp-ticket-platform\.tmp`
 
 It uses local time and each item's last-modified time. Files older than seven days are removed individually. A directory older than seven days is removed as a complete tree only if no symbolic link is found inside it. Symbolic links, the `tmp` folders themselves, and anything outside the two approved paths are never removed.
 

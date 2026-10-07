@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Safely remove expired content from the two approved project tmp folders."""
+"""Safely remove expired content from approved project tmp and .tmp folders."""
 
 from __future__ import annotations
 
@@ -19,7 +19,9 @@ APP_ROOT = SCRIPT_ROOT
 MCP_ROOT = Path(r"D:\DevSources\workflow\mcp-ticket-platform")
 TARGETS = {
     "smartcamera": APP_ROOT / "tmp",
+    "smartcamera-.tmp": APP_ROOT / ".tmp",
     "mcp-ticket-platform": MCP_ROOT / "tmp",
+    "mcp-ticket-platform-.tmp": MCP_ROOT / ".tmp",
 }
 
 
