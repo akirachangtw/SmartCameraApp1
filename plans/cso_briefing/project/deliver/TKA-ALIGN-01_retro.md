@@ -357,3 +357,51 @@ H1–H6 是 2026-10-06 對 G1–G3 初版指示的修正裁決。H1–H5 的內�
 - **H6（待辦）**：待上列實跑證據補齊、SV／Cross-Review 重跑通過後，以 `registry_set_checkpoint` 只寫 `summary` 鍵（淺合併）：`Ticket remains in REVIEW. Implementation alignment is complete; live_acceptance_contract remains OPEN pending real-ticket dogfood.`，寫後 `registry_list(fields=["lifecycle","checkpoint"])` read-back 確認 `summary` 與 `live_acceptance_contract.status: OPEN` 並存。
 - **SV／Cross-Review**（2026-10-07）：SV PASS（階段 A／A.5／B／C 多數 ⚪ N/A，`PRESET=docs`，無 Kotlin/Java/XML 變更）。Codex Cross-Review 首輪 `REPORT_FIX`（`sv_report.md` 誤寫「SSOT v3.3」應為現行 `v4.0.7`，純報告措辭，非程式碼問題）；修正後重跑，**ADVISORY**（`REACHABILITY: NONE`；架構/範圍/SV Report 一致性/狀態機四項 PASS；唯一建議補驗項＝provisional plan 作 `ticket` parent 之拒收複驗，未執行，已誠實揭露，不構成 BLOCKER）。依規 `reviews.codex` 維持 `PASS` enum，實際 verdict 記於 registry checkpoint `codex_verdict_actual`。已依票面 H6 寫入 `registry_set_checkpoint`（僅 `summary` 鍵，淺合併）：「Ticket remains in REVIEW. Implementation alignment is complete; live_acceptance_contract remains OPEN pending real-ticket dogfood.」，read-back 確認 `summary` 與 `live_acceptance_contract.status: OPEN` 並存，lifecycle 維持 `REVIEW`。
 - **已知未覆蓋項**：H5③「UC provisional plan」驗收描述後半句「再用它驗證 ticket 拒收」未執行——Akira 於跑完①②③之 plan/diag 部分後直接要求重跑 `/sv`，本項未补跑。Dogfood 執行前建議補上，非強制阻斷本輪 SV 結論。
+
+
+## 關票裁決（2026-10-07 Akira）
+
+本節取代「Fix-forward 指示／收束」第 5–6 項與「Live acceptance（closure 條件）」段之關票條件：本票**不再等待真實 dogfood**。依通則——驗收無法當下取證者立即結案，事後觀測到缺陷再另開修補票——完成下列步驟後即轉 `CLOSED`。
+
+### 關票前仍須完成（已知範圍內缺陷，非延後項）—— 全部完成（2026-10-07）
+
+1. **L1**（完成）：只改 `SKILL.md`。ticket 步驟 1 收斂為僅做檔頭分類＋fixture/eligibility fail-closed 檢查；atomicity 驗證移至步驟 3「Fully read the parent source」之後，失敗仍回 `STOP_REPLAN_REQUIRED`、不配置 Ticket ID／不寫 `Pending/`／不觸碰 Registry。單一 commit `e6d6e5ff`（僅 `SKILL.md`，+2/-2）。
+2. **L2**（完成，兩段）：
+   - Plan 段：早於本次裁決即已產生 provisional artifact `.tmp/ticket-author/20261007-uc-permit-plan.md`（`Plan Gate: NOT PASSED`／`Status: PROVISIONAL`／`Ticket mode eligibility: FORBIDDEN`／`Fixture: false`），來源與未裁決狀態未變，不重跑。
+   - Ticket 段（2026-10-07，Akira 手動觸發 `/ticket-author ticket source: .tmp\ticket-author\20261007-uc-permit-plan.md`，新 L1 程式碼下首次實測）：依新步驟 1 僅讀檔頭即判定——Plan-backed，`Fixture: false` 符合但 `Plan Gate: NOT PASSED`／`Ticket mode eligibility: FORBIDDEN` 不符 → `Gate: STOP`、`Reason code: STOP_REPLAN_REQUIRED`、`Final state: DECISION_REQUIRED`；未讀 Ticket template、未配置 Ticket ID、未寫 `Pending/`、未觸碰 Registry。零寫入 observer：`registry_list(project=SmartCameraApp1)` total=11（不變）；`Pending/` 15 檔（不變）。與先前「fixture 拒收」（`20261006-uc-permit-plan.md`，`Fixture: true`）為不同分支之獨立實測，兩條拒收路徑現皆有證據。
+3. **Cross-Review**（完成）：對 `e6d6e5ff` 單一 commit 範圍（`91714a40..e6d6e5ff`）執行最小 Cross-Review，Codex 直接 **PASS**（`REACHABILITY: NONE`，無 REPORT_FIX 輪次）。`git diff --name-only 91714a40..e6d6e5ff` 確認僅 `SKILL.md`，⊆ ALLOWED 四檔。
+4. 未建立 dogfood 票、未做真實 Pending／Registry 寫入測試、未新增 fixture／Gate／state／reason code／欄位——皆與裁決一致。
+
+### 冊面關票順序
+`registry_set_checkpoint`（resolution 含下列關票理由與 `Deferred live acceptance: first real use; not a closure gate.`）→ `registry_set_status(CLOSED, reviews)` → `registry_set_checkpoint`（收尾實錄＋後續開票觸發條件）→ `registry_list(fields=["lifecycle","checkpoint"])` read-back。不新增任何 lifecycle 或狀態值。
+
+### 關票理由
+```text
+Closure rationale:
+TKA-ALIGN-01 closes after its bounded P0 implementation, fixture validation,
+scope verification, and review gates are complete.
+A real non-fixture ticket-mode dogfood run is intentionally deferred.
+It is not a closure gate for this implementation-alignment ticket.
+If first real use exposes a defect in parent classification, eligibility,
+template-load ordering, temporary artifact handling, formal Ticket write,
+Registry read-back, or response/receipt semantics, create a new follow-up
+Ticket from that observed failure. Do not reopen or expand TKA-ALIGN-01
+except for a proven regression directly attributable to its delivered change.
+```
+
+```text
+關票理由：
+TKA-ALIGN-01 的範圍限定於 ticket-author P0 的既定契約對齊、fixture 驗證、
+範圍核對與審查收束；上述工作完成後即關票。
+真實 non-fixture ticket-mode dogfood 刻意延後至首次實際使用，
+不作為本實作對齊票的關票 Gate。
+首次真實使用若暴露 parent 分類、資格判定、TPL 載入順序、暫存 artifact、
+正式 Ticket 寫入、Registry read-back 或 response／receipt 語義缺陷，
+必須依實際失敗現象另開新的修補票；除非能證明是本票交付造成的直接回歸，
+否則不得重新打開或擴張 TKA-ALIGN-01。
+```
+
+### 後續開票觸發（首次真實使用觀測到任一即開新票）
+合格非 fixture parent 被誤拒；fixture／provisional artifact 被誤放行；TPL 讀取時機錯誤；`.tmp/ticket-author/` artifact 致無法追溯或誤引用；Pending／Registry 寫入或 read-back 失敗；`Reason code`／`Final state`／receipt／Next 與實際行為不一致；真實票經 RGR、Code Review 或 Traycer 指出可歸因於 ticket-author 之票面缺陷。
+
+裁決依據：vault `wiki/decisions/SKAD/2026-10-06_TicketAuthor_P0_Retro_Alignment.md`「補記 2026-10-07」B1–B4。
