@@ -165,9 +165,9 @@ Purpose: collect complete live evidence for one atomic plan item and create one 
 
 Procedure:
 
-1. Classify the parent by header (Plan-backed → Diag-backed → Spec-backed, per `input-contract.md`) and apply its eligibility rule, including the selected item's atomicity. An ineligible parent — any fixture parent, or one whose atomicity cannot be shown — returns `STOP_REPLAN_REQUIRED` immediately with zero formal writes: no template read, no Ticket ID, no `Pending/` write, no Registry write.
+1. Classify the parent by header (Plan-backed → Diag-backed → Spec-backed, per `input-contract.md`) and apply its fixture and eligibility fail-closed checks. An ineligible parent — any fixture parent — returns `STOP_REPLAN_REQUIRED` immediately with zero formal writes: no template read, no Ticket ID, no `Pending/` write, no Registry write.
 2. Eligible parent: fully read the Ticket template (see Reference routing) and record actual path, version, document date, and effective revision date.
-3. Fully read the parent source.
+3. Fully read the parent source. Then validate the selected item's atomicity; unprovable atomicity — multiple independent outcomes, or a fork the selected item cannot resolve on its own — stops with `STOP_REPLAN_REQUIRED`, with no Ticket ID, no `Pending/` write, and no Registry write issued.
 4. Search for an existing Ticket with the same ID, title, source, or equivalent outcome.
 5. Record repository/worktree, HEAD or equivalent revision, dirty/clean state, registry revision, and evidence time as diagnostics only; none may alone veto authoring. If content changes: re-read affected sources → update evidence → update the Ticket → rerun the complete gate.
 6. Verify parent decisions against live state. If live facts invalidate scope or semantics, stop with `STOP_REPLAN_REQUIRED`.
