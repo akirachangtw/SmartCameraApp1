@@ -141,3 +141,219 @@ DEPENDENCY_DELTA=NONE
 - **誠實揭露**：①AI-6 ③「fixture parent 拒收結果」PASS，「完整程序順序符合性」**PARTIAL**（實跑先分類 parent 並拒收，未先完整讀 Ticket template；未取得符合 `SKILL.md` 步驟 1→2 順序之重跑證據）；②R0 預審（`cross-reviewer`）本輪未執行，依 Akira 裁決為 optional advisory；③`[行為性]` AC 之證據為使用者手動觸發 `/ticket-author` 之實跑與零寫入 observer（無可重播腳本；`.tmp/ticket-author/` artifact 屬短期傳遞，非耐久證據）；④`[可達性]` AC 之 `檔案:行號` 為文件契約實作位置，非 production Guard 可達性。
 - **reviews**：qa=PASS（僅 Step 0；Build／Test／Lint N/A）、sv=PASS、codex=PASS（R4）、traycer=N_A（Header `Traycer Workflow: N/A`）。
 - **Live acceptance**：依票面停 REVIEW；`live_acceptance_contract.status=OPEN`，待 APP 內第一張經 `/ticket-author ticket` 完整寫入之真實票完成寫入／read-back／可發現性後由審查方 CLOSED。
+
+
+## Fix-forward 指示（G1–G3／H1–H6，2026-10-06 Akira 裁決）
+
+### 授權與邊界
+
+本節是 TKA-ALIGN-01 在 REVIEW 階段的 fix-forward 派工依據。本節不修改 AC、HC、Ticket Rev、ALLOWED、FORBIDDEN、Registry lifecycle 或 live acceptance contract。
+
+- Ticket Rev 維持 `2`
+- Registry lifecycle 維持 `REVIEW`
+- 預期只修改：
+  - `.claude/skills/ticket-author/SKILL.md`
+  - `.claude/skills/ticket-author/references/state-transitions.md`
+  - `.claude/skills/ticket-author/references/stop-conditions.md`
+- 不得修改：
+  - `.claude/skills/ticket-author/references/input-contract.md`
+  - Intake
+  - 其他 Skill
+  - Registry schema
+  - Android production code
+
+若實作發現 `input-contract.md` 與本節存在必須同步修正的實質矛盾，停止並回報；不得直接修改該檔。
+
+### G1 — 終態狀態機收斂
+
+不得將 `BLOCKED` 作為有效 run state、receipt value 或 runtime response value。合法終態僅為：
+
+- `DECISION_REQUIRED`
+- `CHANNEL_BLOCKED`
+- `REPAIR_EXHAUSTED`
+
+在 `state-transitions.md` 內：
+
+- 將必要來源、治理文件、repo、Registry 或正式寫入通道不可用的情況，轉入 `CHANNEL_BLOCKED`
+- 將同一可修／可補證 blocker 已完成兩次修復或補證及重新驗證、仍未通過的情況，轉入 `REPAIR_EXHAUSTED`
+- `CHANNEL_BLOCKED → end run`
+- `REPAIR_EXHAUSTED → end run`
+- `DECISION_REQUIRED → INPUT_VALIDATED | MODE_ANALYSIS | CHANNEL_BLOCKED`
+
+`REPAIR_EXHAUSTED` 僅可由以下具名狀態轉入：
+
+- `LIVE_EVIDENCE`
+- `MODE_ANALYSIS`
+- `MODE_GATE`
+- `OUTPUT_READY`
+
+不得新增上列以外之泛稱來源狀態或任何新中間狀態；Parent 分類與資格檢查沿用既有 `INPUT_VALIDATED`。
+
+`CHANNEL_BLOCKED` receipt 必須記錄：
+
+- unavailable channel
+- attempted recovery
+- Decision or input needed
+- resume point
+
+`REPAIR_EXHAUSTED` receipt 必須記錄：
+
+- repair attempt 1 and result
+- repair attempt 2 and result
+- remaining blocker
+- Decision or input needed
+- resume point
+
+### G2 — Parent 拒收與下一步分流
+
+維持 `STOP_REPLAN_REQUIRED`，不得新增 reason code。
+
+所有 STOP response 使用：
+
+```text
+Gate: STOP
+Reason code: <STOP_*>
+Completed evidence: <verified facts>
+Blocker: <current blocker>
+Decision or input needed: <single next action>
+Final state: <terminal state>
+```
+
+現行 runtime STOP 範本之 `Code:` 欄必須改名為 `Reason code:`。不得將 `What remains:`、`Required next action:` 或 `Resume point:` 加入 runtime STOP response；`Resume point:` 僅存在於終態 receipt。
+
+Parent 分類維持機械優先序：
+
+1. 檔頭含 `Plan Gate:` 或 `Ticket mode eligibility:`，判為 Plan-backed
+2. 否則檔頭含 `Verdict:`，判為 Diag-backed
+3. 以上皆無，判為 Spec-backed
+
+Plan-backed 必須 fail-closed：
+
+```yaml
+Fixture: false
+Plan Gate: PASS
+Ticket mode eligibility: ALLOWED
+```
+
+Diag-backed 必須 fail-closed：
+
+```yaml
+Fixture: false
+Gate: PASS
+Verdict: CONFIRMED | PARTIALLY_CONFIRMED
+```
+
+Diag-backed Verdict 採白名單（對齊 `input-contract.md` L129）：僅 `CONFIRMED`、`PARTIALLY_CONFIRMED` 為 ticket-eligible。所有其他 Verdict、缺欄或非法值，包括 `DISPROVED` 與 `INSUFFICIENT_EVIDENCE`，均拒收。
+
+`PARTIALLY_CONFIRMED` 可包含未觸硬風險的 `UNKNOWN` 主張；該未知必須有 AI-0 probe、可達 observer、failure branch 與適當 AC，不能將單一 `UNKNOWN` 主張誤作整份 Diag Verdict 拒收。
+
+Next 分流：
+
+| Parent 問題 | Decision or input needed |
+|---|---|
+| 非原子 Spec | 對該規格執行 `/ticket-author plan` |
+| Provisional plan 或 Plan Gate 非 PASS | 完成待裁決事項後重新執行 plan |
+| `Fixture: true` | 提供非 fixture 的真實 parent；不得重跑同一 fixture |
+| `Ticket mode eligibility: FORBIDDEN` | 解決 artifact 所列 blocker，產生新的 eligible plan |
+| Diag Gate 非 PASS、Verdict 不在白名單、缺欄或非法值 | 補充證據或重新執行 `/ticket-author diag` |
+| 部分 artifact header | 以完整必要 header 重新產生 artifact |
+
+完全沒有 artifact header 的一般來源文件仍判為 Spec-backed；不得因沒有 Plan／Diag 欄位而拒收。
+
+### G3 — Eligibility-first Ticket 順序
+
+ticket 模式使用下列順序：
+
+1. Parse mode and minimum input
+2. Resolve parent path
+3. Read minimum parent header for classification
+4. Classify Plan-backed, Diag-backed, or Spec-backed
+5. Apply fixture and eligibility fail-closed checks
+6. Ineligible parent immediately returns STOP with zero formal writes
+7. Eligible parent fully reads the required Ticket template
+8. Fully read parent source
+9. Perform live evidence collection
+10. Compile ticket
+11. Write to `PROFILE.TICKET_FILE_BASE`
+12. Write and read back Registry state
+
+Parent 分類與資格檢查屬 `INPUT_VALIDATED`。完整讀取 Template 與來源基線屬 `SOURCE_BASELINED`。
+
+以下界線不得鬆動：
+
+- eligible parent 後必須完整讀取 Ticket template
+- 完整讀取 Template 前不得編譯正式 Ticket
+- 完整讀取 Template 前不得配置票號
+- 完整讀取 Template 前不得寫入 Pending
+- 完整讀取 Template 前不得修改 Registry
+- Spec-backed 必須完整讀取來源本文
+
+### 驗證方式
+
+不得為驗證而注入 Registry 故障、直接改 Registry 狀態，或讓 fixture 進入正式 Pending／Registry 寫入路徑。
+
+必做靜態驗證：
+
+- 掃描全部四個 ALLOWED 檔案的有效 run-state、Final-state、receipt 及 runtime response 字面
+- 合法終態僅為 `DECISION_REQUIRED`、`CHANNEL_BLOCKED`、`REPAIR_EXHAUSTED`
+- `BLOCKED` 不得作為有效 run state、receipt value 或 runtime response
+- `REPAIR_EXHAUSTED` 必須具有兩次修復／補證記錄
+- `Reason code:` 已取代 runtime response 中的舊欄名
+- 兩種終態 receipt 與 runtime response 之下一步欄位均為 `Decision or input needed`
+- Parent 拒收分流與 `Decision or input needed:` 一致
+- reason-code 表的欄位標題 `Code` 可保留，因其不是 runtime response 欄位
+
+可合法實跑：
+
+- 空參數：期待 `STOP_INVALID_MODE / DECISION_REQUIRED`
+- Fixture plan：拒收且零正式寫入
+- UC provisional plan：不帶 fixture flag 執行 plan，產出僅存在於 `<PROFILE.REPO_ROOT>/.tmp/ticket-author/` 的 `Fixture: false`、ticket-ineligible artifact；再用它驗證 ticket 拒收
+- 證據不足 diag：只有自然產出的 artifact 時才實跑，否則使用靜態分支檢查
+- 合格 plan：併入真實 non-fixture dogfood，不在本 fix-forward 驗證階段執行
+
+若既有合法 fixture artifact 不存在，僅允許經正式入口傳入 `fixture_execution: true` 重新產生。不得手工製作、拼接或編輯 fixture artifact。
+
+### 收束
+
+完成後：
+
+1. 建立單一 `[TKA-ALIGN-01] fix-forward G1-G3` commit
+2. 更新 `DIFF_END`
+3. 在收尾實錄追加 G1–G3／H1–H6 的靜態與合法實跑證據
+4. 重跑針對新 diff 的 SV／Cross-Review
+5. 通過後，以真實 non-fixture eligible parent 執行 dogfood
+6. Registry lifecycle 繼續維持 `REVIEW`，直到 live acceptance contract 的 observer 完成
+
+
+### 附錄：H1–H6 對照（2026-10-07 補記）
+
+H1–H6 是 2026-10-06 對 G1–G3 初版指示的修正裁決。H1–H5 的內容**已併入上方 G1–G3 與「驗證方式」各節**，不是另一組待執行項；本附錄只供逐項取證對照。H6 上方各節未載，以本附錄為準。
+
+| H | 裁決要旨 | 落點 |
+|---|---|---|
+| H1 | runtime STOP 範本 `Code:` 改名 `Reason code:`；不新增 `What remains:`、`Required next action:`、`Resume point:` 欄；`Resume point` 只存在於終態 receipt | G2「所有 STOP response 使用」範本及其下一段 |
+| H2 | 不新增中間狀態；parent 分類與資格檢查屬 `INPUT_VALIDATED`，完整讀取 Template 與來源基線屬 `SOURCE_BASELINED` | G1 末段；G3 順序之後段 |
+| H3 | Diag Verdict 白名單；含非硬風險 `UNKNOWN` 主張之 `PARTIALLY_CONFIRMED` 可開票；部分 artifact header 依已判類型拒收；完全無 header 者為 Spec-backed | G2 Diag-backed 段、Next 分流表末列與表後段 |
+| H4 | `REPAIR_EXHAUSTED` 僅由 `LIVE_EVIDENCE`／`MODE_ANALYSIS`／`MODE_GATE`／`OUTPUT_READY` 轉入；`DECISION_REQUIRED` 轉移中的舊終態改為 `CHANNEL_BLOCKED`；兩種終態 receipt 分列 | G1 |
+| H5 | 不注入故障、不直改冊面；失敗類情境（第一次可修失敗、兩次未過、寫入通道失敗）以靜態檢查；合法實跑限空參數、fixture plan、UC provisional、自然產出之證據不足 diag；合格 plan 併入 dogfood | 驗證方式 |
+| H6 | 冊面 lifecycle 只用 `REVIEW`，不新增任何結構化狀態值。進度以 `registry_set_checkpoint` 只寫 `summary` 鍵（淺合併，保留 `live_acceptance_contract`）；fix-forward 完成並重審通過後，`summary` 為：`Ticket remains in REVIEW. Implementation alignment is complete; live_acceptance_contract remains OPEN pending real-ticket dogfood.` 寫後以 `registry_list(fields=["lifecycle","checkpoint"])` read-back，確認 `summary` 與 `live_acceptance_contract.status: OPEN` 並存 | 本附錄 |
+
+收束清單第 3 項「G1–G3／H1–H6 的靜態與合法實跑證據」＝依本表逐列附證據；H6 的證據為上述 checkpoint read-back。
+
+**提交邊界**：本票檔之「Fix-forward 指示」與本附錄屬票面治理文字，不併入 `[TKA-ALIGN-01] fix-forward G1-G3` 實作 commit，另以票面 commit 提交。票檔未提交不構成執行阻擋（Git 歷史非 gate）。
+
+## Fix-forward 收尾實錄（2026-10-07）
+
+- **實作 commit**：`1343d860`（2 檔 +41／-24，僅 `SKILL.md`＋`state-transitions.md`；`stop-conditions.md`／`input-contract.md` 零異動）。`DIFF_REF`（本輪基線）＝`92001224`（前次收尾 commit）；`DIFF_END=1343d860`。
+- **G1/H4 靜態證據**：`state-transitions.md` 側狀態圖與 Receipts 表已改為 `CHANNEL_BLOCKED`（由 `ANY ACTIVE STATE` 進入）／`REPAIR_EXHAUSTED`（僅由 `LIVE_EVIDENCE`／`MODE_ANALYSIS`／`MODE_GATE`／`OUTPUT_READY` 進入），各自 receipt 含 `resume point`；`DECISION_REQUIRED → INPUT_VALIDATED | MODE_ANALYSIS | CHANNEL_BLOCKED`。
+- **G2/H1/H3 靜態證據**：`SKILL.md` Response shape 之 `Code:` 已全數改為 `Reason code:`（`grep -n "Code:"` 於 `SKILL.md`／`stop-conditions.md` 零命中；`grep -n "Reason code:"` 命中 1 處）；未新增 `What remains:`／`Required next action:`，`Resume point` 僅存在於 `state-transitions.md` receipt。新增 Next 分流表（6 類 parent 問題）。Diag-backed Verdict 白名單、`PARTIALLY_CONFIRMED` 含 `UNKNOWN` 主張免拒收、無 header 來源判 Spec-backed——三者已存在於 `input-contract.md`（未改動，確認既有文字已符合 H3，本輪無需異動該檔）。
+- **G3/H2 靜態證據**：`SKILL.md` Mode: ticket Procedure 重排為「先分類＋資格判定（含 fixture fail-closed、atomicity）→ ineligible 立即 STOP 零正式寫入 → 完整讀 Template → 完整讀 parent 來源 → ...」；修正先前步驟 1→2 順序與實際行為不一致之缺口。
+- **四檔逐檔精確計數**（`\bBLOCKED\b`，已排除 `CHANNEL_BLOCKED` 誤判）：`SKILL.md`=0、`state-transitions.md`=0、`stop-conditions.md`=0、`input-contract.md`=0。`REPAIR_EXHAUSTED` 兩次語義：`stop-conditions.md` 6 列全含「emit only after the same blocker fails twice」。reason-code 表欄位標題 `Code`（4 處表頭）依規保留，非 runtime response 欄位。
+- **H5／可合法實跑項**：`disable-model-invocation: true`——`/ticket-author` 僅能由 Akira 本人手動輸入觸發。
+  - ①**空參數**（2026-10-07，Akira 手動觸發 `/ticket-author` 不帶任何引數）：`Gate: STOP`、`Reason code: STOP_INVALID_MODE`、`Final state: DECISION_REQUIRED`；未讀 TPL、未產 `.tmp/ticket-author/` artifact、未觸碰 Registry。與既有 AC-126 一致。**完成**。
+  - ②**fixture plan 拒收**（2026-10-07，Akira 手動觸發 `/ticket-author ticket source: .tmp\ticket-author\20261006-uc-permit-plan.md`）：parent 檔頭 `Plan Gate: PASS`／`Ticket mode eligibility: FORBIDDEN`／`Fixture: true` → 分類 Plan-backed；`Gate: STOP`、`Reason code: STOP_REPLAN_REQUIRED`、`Final state: DECISION_REQUIRED`；**未讀 TPL、未配置 Ticket ID、未寫 `Pending/`、未觸碰 Registry**——直接證明 G3 重排後「分類先於讀 template」已落地，反證前次 Closeout 揭露之「AI-6③ 程序順序 PARTIAL」缺口已修正。與既有 AC-129 一致。**完成**。
+  - ③**UC provisional plan**（2026-10-07，Akira 手動觸發 `/ticket-author plan`，來源 `Autonomous_closed_Antiover_uc_Permit.md`，不帶 `fixture_execution`、不帶 `Fixture decisions:`，來源本文無 fixture／synthetic 自我標示——真實執行）：`Gate: STOP`、`Reason code: STOP_DECISION_REQUIRED`、`Final state: DECISION_REQUIRED`（來源 §10 六項 CSO 待裁皆未核准）；已先重新核實 live baseline（`ticket-runtime-contract.md` 不存在、`ssot-governance.md` 未提及、`CLAUDE.md` Rule 4b 現值與來源 §3.1 一致，HEAD `1343d860`），與先前 fixture 分析結論一致，非盲目沿用。已存 provisional artifact `.tmp/ticket-author/20261007-uc-permit-plan.md`：`Plan Gate: NOT PASSED`、`Status: PROVISIONAL`、`Formal Ticket IDs: FORBIDDEN`、`Ticket mode eligibility: FORBIDDEN`、`Fixture: false`（與前次 fixture 產物之 `Fixture: true` 明確區分）。零寫入 observer：`registry_list(project=SmartCameraApp1)` total=11（與原始基線一致，含 `TKA-ALIGN-01` 本票）；`Pending/` 現為 15 檔（原基線 16 檔之差額純屬 TKA-ALIGN-01 本票先前搬 `deliver/` 所致，與本次 plan 呼叫無關，非本次寫入）。**完成**。
+  - ④最終 dogfood：待②③產物用於驗證 `ticket` 拒收（下一步）與 SV／Cross-Review 通過後執行。
+- **H6（待辦）**：待上列實跑證據補齊、SV／Cross-Review 重跑通過後，以 `registry_set_checkpoint` 只寫 `summary` 鍵（淺合併）：`Ticket remains in REVIEW. Implementation alignment is complete; live_acceptance_contract remains OPEN pending real-ticket dogfood.`，寫後 `registry_list(fields=["lifecycle","checkpoint"])` read-back 確認 `summary` 與 `live_acceptance_contract.status: OPEN` 並存。
+- **SV／Cross-Review**（2026-10-07）：SV PASS（階段 A／A.5／B／C 多數 ⚪ N/A，`PRESET=docs`，無 Kotlin/Java/XML 變更）。Codex Cross-Review 首輪 `REPORT_FIX`（`sv_report.md` 誤寫「SSOT v3.3」應為現行 `v4.0.7`，純報告措辭，非程式碼問題）；修正後重跑，**ADVISORY**（`REACHABILITY: NONE`；架構/範圍/SV Report 一致性/狀態機四項 PASS；唯一建議補驗項＝provisional plan 作 `ticket` parent 之拒收複驗，未執行，已誠實揭露，不構成 BLOCKER）。依規 `reviews.codex` 維持 `PASS` enum，實際 verdict 記於 registry checkpoint `codex_verdict_actual`。已依票面 H6 寫入 `registry_set_checkpoint`（僅 `summary` 鍵，淺合併）：「Ticket remains in REVIEW. Implementation alignment is complete; live_acceptance_contract remains OPEN pending real-ticket dogfood.」，read-back 確認 `summary` 與 `live_acceptance_contract.status: OPEN` 並存，lifecycle 維持 `REVIEW`。
+- **已知未覆蓋項**：H5③「UC provisional plan」驗收描述後半句「再用它驗證 ticket 拒收」未執行——Akira 於跑完①②③之 plan/diag 部分後直接要求重跑 `/sv`，本項未补跑。Dogfood 執行前建議補上，非強制阻斷本輪 SV 結論。
