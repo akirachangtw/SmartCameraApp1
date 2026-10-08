@@ -454,3 +454,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 ## Archived 2026-10-07（/compact checkpoint · 最近 Ticket 表 5 筆上限輪替）
 
 - RGR-AUTO-CLEANUP-01 系列 | ✅ CLOSED×3（commit `0adfa40`+`86ee90e`／`c73e6ba`／`de6072d`）· **RGR-AUTO-CLEANUP-01**：撤回 `RGR-AUTO-01`（VOID）之 `47813ac` 差分 · **RGR-VERIFY-CHECKLIST-01**：修 `verify_checklist.sh` `token_matches_file()` 目錄型 ALLOWED token 前綴比對缺陷（20/20 self-test PASS）· **RGR-FIXTURE-REPORT-PATH-01**：14 個 fixture payload `report_path` 移出版控至 `.tmp/rigor-gate/fixture-latch/`，止住回歸測試工作樹污染
+
+## Archived 2026-10-08（/compact checkpoint · 最近 Ticket 表 5 筆上限輪替）
+
+- RGR-RESEARCH-SUBMIT-01 | ✅ CLOSED（commit `3a0a562`+`b39ebb4`）· `REPAIR_ROUTING.md` 新增獨立軌道「General Autonomous Repair Default」＋「Research Fallback」；2026-09-24 QA/SV/Codex 矛盾消解重驗（compile/test/lint 全 PASS，Cross-Review PASS），reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}
