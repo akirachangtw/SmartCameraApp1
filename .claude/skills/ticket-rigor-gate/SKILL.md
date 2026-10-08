@@ -216,9 +216,15 @@ When reviewing evidence obligations, use the following mapping:
 | English label | 中文對照 | Meaning |
 |---|---|---|
 | existence | 存在性 | proves a thing exists in code or config |
-| reachability | 可達性 | proves the production path can reach the guarded behavior |
+| reachability | 可達性 | proves a production runtime or workflow-control path can reach the guarded behavior (see the rule below) |
 | behavior | 行為性 | proves the system behaves correctly under positive or negative conditions |
 | on-device | 實機 | proves runtime behavior on the real target environment or device |
+
+A `[可達性]` AC MUST exercise or trace a production runtime or workflow-control path from a stated source or precondition through guarded behavior to a named observer. A trace MUST show the path being taken — an execution result, emitted state, receipt, or a non-default production write point; listing where a producer and a consumer are defined does not by itself constitute a trace.
+
+An AC that only asserts the presence or location of a document, contract, section, symbol, producer, consumer, or `file:line` reference is `[存在性]`, even if that material describes a runtime guard, and even if the cited file is itself an executable instruction artifact such as a skill. A docs-only ticket MAY use `[可達性]` only when it actually verifies a reachable production or workflow-control path.
+
+A mislabeled AC MUST be recorded as a finding. Severity and disposition remain governed by the existing severity table and Mechanical Verdict Rule.
 
 ### On-Device Requirement Rule
 
@@ -231,17 +237,22 @@ A ticket must not pretend that existence-only or behavior-only desktop evidence 
 
 ## Vacuous Verification
 
-Three previously separate variants collapse into one family so the reviewer can apply a pattern library instead of three scattered rules.
+Three previously separate variants collapse into one family so the reviewer can apply a pattern library instead of three scattered rules. `Unobserved Procedure Claim` was added later and belongs to the same family.
 
 | Variant | Symptom | Detection Question |
 |---|---|---|
 | Self-Satisfying AC | The AC's truth value already holds at sign-off time, with no causal link to this ticket's action | Would this AC also be true if the ticket's action were **never executed**? |
 | Mechanism Bypass | The test passes, but it proves a different mechanism than the one under review | **Which mechanism makes this observation true?** Is there a closer mechanism that would satisfy the observation without going through the mechanism under test? |
 | Degradable Guard | A guard parameter's default value makes the assertion vacuously true / a no-op | With this parameter omitted, does the guard degrade to always-true? |
+| Unobserved Procedure Claim | An AC asserts an internal step, ordering, file-read, or skipped action, but names only the final outcome and no observer for the claimed procedure | Is the procedure itself acceptance scope, and if so, **which observer records that it happened** (or happened in this order)? |
 
 **Mandatory disposition**: when `Mechanism Bypass` is hit, require an isolation design that makes the mechanism under test the **sole load-bearing path** (independent instance, independent process, fault injection); otherwise the evidence is invalid.
 
 For **document-layer evidence** (analyses, walkthroughs, review write-ups) there is no isolation to impose — a narrative cannot be run in a separate process. The equivalent disposition is **per-claim line-number citation**: every substantive claim MUST carry a locatable source (`file` + line range), marked `[first-hand]` or `[relayed]`. A walkthrough with no citable source counts as `Mechanism Bypass` and its evidence is invalid — because a fluent, self-consistent narrative can be produced without ever reading the source, which is exactly the closer mechanism this family is about.
+
+**Mandatory disposition (Unobserved Procedure Claim)**: decide whether the procedure itself is required. If not, rewrite the AC around the observable outcome and state that internal ordering is not acceptance scope. If required, provide a separate observable clause or AC naming its observer and evidence. Without an observer, the procedure claim MUST NOT count as PASS and may only be disclosed.
+
+A tool-call transcript is one possible observer, not a mandatory evidence format. Existing logs, receipts, emitted state, or other durable evidence MAY be used when they directly observe the claimed procedure.
 
 ## Mandatory Runtime Load
 
