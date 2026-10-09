@@ -72,6 +72,7 @@ a) 無 Ticket 不動手。合法格式見 `.claude/rules/ticket_pattern.md`（SS
 b) 不基於 MEMORY.md / PROGRESS.md / TODO / FIXME 自主決定下一步。本條拘束「自行開啟新工作」，**不適用於**當前已啟動 Ticket 中由 Header／Verify Config／Action Items／AC／gate receipt 唯一決定之同票後續 transition；該類 transition 依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table 執行，**不因對話模式切換而失效**。
 c) /qa /sv /compact /dream 是驗收工具，不是實作授權。發現問題 → 回報，不自行修復。
 d) Session 首訊無 Ticket → 詢問後停止。
+e) 正式開票一律經 `/ticket-author`，並自 `plan` 起步（單項規格亦同；根因未明時先 `diag`，再依診斷結果執行 `plan`）；`ticket` 僅可對 `Plan Gate: PASS`、`Ticket mode eligibility: ALLOWED` 且 `Fixture: false` 的 plan artifact 之選定 item 執行。禁止手工建立 Pending 票檔或直接 Registry 登冊（Akira 2026-10-08；錨 Obsidian SKAD/2026-10-08_TicketAuthor_Upstream_Ticketing_Channel）。
 
 ### 5. 寫之前先讀
 
