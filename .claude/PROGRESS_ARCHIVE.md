@@ -458,3 +458,7 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 ## Archived 2026-10-08（/compact checkpoint · 最近 Ticket 表 5 筆上限輪替）
 
 - RGR-RESEARCH-SUBMIT-01 | ✅ CLOSED（commit `3a0a562`+`b39ebb4`）· `REPAIR_ROUTING.md` 新增獨立軌道「General Autonomous Repair Default」＋「Research Fallback」；2026-09-24 QA/SV/Codex 矛盾消解重驗（compile/test/lint 全 PASS，Cross-Review PASS），reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}
+
+## Archived 2026-10-09（/compact checkpoint · 最近 Ticket 表 5 筆上限輪替）
+
+- TKA-ALIGN-01 | ✅ **CLOSED**（2026-10-07，commit `1343d860`+`0f886bcc`+`e6d6e5ff`+`dde3ba61`；registry lifecycle=CLOSED 已 read-back 核實）· `ticket-author` Skill 對齊核准三模式契約：終態狀態機收斂（`BLOCKED`→`CHANNEL_BLOCKED`/`REPAIR_EXHAUSTED`）、Response shape `Code:`→`Reason code:`、Mode:ticket 流程重排（parent 分類＋fixture/eligibility fail-closed 檢查在前，ineligible 零寫入 STOP；atomicity 驗證移至完整讀 parent 全文之後）。四檔裸 `BLOCKED` 字面皆 0。SV PASS，Codex Cross-Review 兩輪皆 **PASS/ADVISORY**（無 BLOCKER）。三項合法實跑（空參數／fixture plan 拒收／UC provisional plan→ticket 拒收複驗）由 Akira 手動觸發 `/ticket-author` 完成，皆與預期一致、零 Pending/Registry 寫入。**關票裁決（2026-10-07 Akira）**：真實 non-fixture dogfood 刻意延後至首次實際使用，不作本票關票 Gate（`Deferred live acceptance: first real use; not a closure gate.`）；後續開票觸發條件見票檔 §關票裁決
