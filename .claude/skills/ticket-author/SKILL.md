@@ -2,8 +2,7 @@
 name: ticket-author
 description: Diagnose an issue, turn an approved specification into a minimal Ticket Map, or author one evidence-backed formal Ticket. Manual modes: diag, plan, ticket.
 argument-hint: "diag|plan|ticket [task text and @sources]"
-disable-model-invocation: true
-user-invocable: true
+disable-model-invocation: false
 ---
 
 # Ticket Author P0
