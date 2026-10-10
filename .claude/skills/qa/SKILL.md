@@ -243,7 +243,7 @@ Verdict 順序（嚴重度升序）：`PASS < ADVISORY < REPORT_FIX < BLOCKER`
 - ⚪ ENV ERROR (exit 2) → 回報環境問題（lib_verify.sh 缺失 / tmp/ 無法建立）
 
 `--post` 模式執行 A/B/C/D/E/F（D: sv_report 五段結構 / E: cross_review PASS / F: PROGRESS.md 格式）。
-不帶 `--post`（cross_review.sh pre-check）只跑 A/B/C，不讀 `.tmp/cross_review_state`。
+不帶 `--post`（`cross_review.sh` pre-check，即 SV_REPORT_PREFLIGHT）執行 A/B/C/D，不讀 `.tmp/cross_review_state`。
 
 執行後自動在 `.tmp/sv_report_YYYYMMDD_HHMMSS.md` 歸檔當次 sv_report 快照。
 

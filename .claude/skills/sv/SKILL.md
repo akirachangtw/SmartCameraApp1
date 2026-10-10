@@ -109,6 +109,7 @@ disable-model-invocation: false
      ```
      每個 excluded 檔案 **MUST** 仍出現在 `## Files Changed`，否則 `structural_verify.sh` Check C FAIL
    - **MUST** 禁止只列 ALLOWED 而省略 payload 其他檔案，否則 `structural_verify.sh` Check B FAIL
+   - **必備標題（字面，與 `structural_verify.sh` Check D 相同，於 Codex 前由 SV_REPORT_PREFLIGHT 檢查）**：`## Files Changed`、`## Implementation Scope`、`## Stage A`、`## Stage B`、`## Stage C`；缺任一 → REPORT_FIX（`cross_review.sh` exit 3，不呼叫 Codex）
 
 10. **Cross-Review 自動路由**：
     - 檢查 `codex` CLI 是否可用：`command -v codex`
@@ -153,11 +154,13 @@ disable-model-invocation: false
     - **退出碼對應行動**：
       - `exit 0` (PASS/ADVISORY) → ✅ 繼續 Traycer 終審
       - `exit 1` (BLOCKER) → 🔴 修程式碼後重新 /qa → /sv
-      - `exit 3` (REPORT_FIX) → 📋 修 .tmp/sv_report.md 後重新執行 cross_review（不需重跑 /qa）
-      - `exit 2` (ENV / FAIL BUDGET) → ⛔ 人工介入，檢查 `.tmp/cross_review_state/<ticket>`
+      - `exit 3` (REPORT_FIX，未達閉環上限) → 📋 符合 report-only 閉環條件者依下方「REPORT_FIX report-only 閉環」處理；不符者修 `.tmp/sv_report.md` 後停止回報（不需重跑 /qa）
+      - `exit 2` (ENV / FAIL BUDGET / `CHECKPOINT_REPORT_FIX_LIMIT` / `REPORT_FIX_ESCALATE`) → ⛔ 人工介入，檢查 `.tmp/cross_review_state/<ticket>`；`CHECKPOINT_REPORT_FIX_LIMIT` 為人工裁決 checkpoint（非 BLOCKER、非程式碼修正重試），不得自動重跑
     - **Fail Budget**: `.tmp/cross_review_state/<TICKET_ID>` 記錄 Round 與 Last Verdict
       - R2 BLOCKER → ⚠️ Checkpoint 警告，等待裁決
       - R3 BLOCKER → ⛔ 強制停止 (exit 2)，需人工審查
+      - `REPORT_FIX` 不遞增 `ROUND`（不扣 blocker budget）、遞增 `REPORT_FIX_COUNT`（上限 2）；`REPORT_FIX → REPORT_FIX → BLOCKER` 的第三次 exit 1 為一般 BLOCKER R1，**不是 REPORT_FIX 升級**
+    - **REPORT_FIX report-only 閉環**（七條件 predicate 之**唯一來源**為 `ssot-governance.md` Transition Table，此處**不複製**）：①讀 exit 3 輸出之 `REPORT_FIX_SOURCE=`——`structural_preflight` 才可進入閉環；`codex` 一律輸出 `REPORT_FIX_ESCALATE` 並停止；②見 `CHECKPOINT_REPORT_FIX_LIMIT` 或 `REPORT_FIX_ESCALATE`（exit 2）即停止等待人工裁決；③僅修改 `.tmp/sv_report.md`（僅限既有內容重排、必要標題補齊、既有事實之欄位格式校正；不得新增測試結果、commit、命令輸出、證據引用、完成宣稱等新事實）；④單跑 `bash .claude/skills/qa/scripts/structural_verify.sh .tmp/sv_report.md "<DIFF_REF>..<DIFF_END>"` 至 exit 0；⑤以 `REPORT_FIX_CLOSURE=1 bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md "<DIFF_REF>..<DIFF_END>"` 重跑；⑥同票同一 state 週期（PASS／ADVISORY 清 state 前）最多自動閉環 2 次，第 3 次由腳本輸出 `CHECKPOINT_REPORT_FIX_LIMIT`
     - **若 codex 不可用**：在 SV Report 末尾附加提示：
       ```
       ⚠️ Codex CLI 不可用 — 請手動執行 cross-review 或直接提交 Traycer 終審。
@@ -168,7 +171,7 @@ disable-model-invocation: false
       ⚠️ ssot_context.md 不存在 — Codex cross-review 降級為純報告驗證（無架構重審）。
       ```
     - **輪次二元帳**：Cross-Review 存在兩套獨立輪次計數，回件時 **MUST** 同時標示：
-      - **機械輪次**：`.tmp/cross_review_state/<TICKET_ID>` 之 `CURRENT_ROUND`（腳本自增，producer 明確）
+      - **機械輪次**：`.tmp/cross_review_state/<TICKET_ID>` 之 `CURRENT_ROUND`（BLOCKER 輪次，REPORT_FIX 不遞增；腳本自增，producer 明確）
       - **邏輯輪次**：人工判例帳，SSOT 在 vault（非本檔、非狀態檔）
       - 回件格式：`R{機械}/L{邏輯}`（例：`R2/L1`）
       - 二帳不一致時**不自動對齊**，以 vault 邏輯帳為準並於回件註明差異

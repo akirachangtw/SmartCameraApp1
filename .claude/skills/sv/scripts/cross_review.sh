@@ -11,7 +11,7 @@
 # 退出碼：
 #   0 — PASS 或 ADVISORY（流程繼續）
 #   1 — BLOCKER（真實功能缺陷，修程式碼後重跑）
-#   2 — ENV 錯誤 或 FAIL BUDGET EXHAUSTED (依 MAX_BLOCKER_BUDGET)
+#   2 — ENV 錯誤 或 FAIL BUDGET EXHAUSTED (依 MAX_BLOCKER_BUDGET)；或 REPORT_FIX 閉環上限（CHECKPOINT_REPORT_FIX_LIMIT）／closure 守門拒絕（REPORT_FIX_ESCALATE）— 人工介入
 #   3 — REPORT_FIX（sv_report.md 問題，修報告後重跑）
 
 set -euo pipefail
@@ -152,11 +152,37 @@ cleanup_terminal_success_states() {
 cleanup_terminal_success_states
 
 CURRENT_ROUND=1
+_PREV_RF=0
 if [[ -f "$STATE_FILE" ]]; then
   _PREV="$(grep "^ROUND=" "$STATE_FILE" 2>/dev/null | head -1 | cut -d'=' -f2- || echo 0)"
   CURRENT_ROUND=$(( _PREV + 1 ))
+  _PREV_RF="$(grep "^REPORT_FIX_COUNT=" "$STATE_FILE" 2>/dev/null | head -1 | cut -d'=' -f2- || echo 0)"
+  [[ "$_PREV_RF" =~ ^[0-9]+$ ]] || _PREV_RF=0
 fi
 echo "📊 Round: R${CURRENT_ROUND} | Ticket: ${TICKET_ID}"
+
+# REPORT_FIX does not advance ROUND (no blocker budget); REPORT_FIX_COUNT caps automatic closure at 2.
+# $1 = REPORT_FIX source: structural_preflight | codex
+record_report_fix() {
+  local _rf="$_PREV_RF" _limit=0
+  if [[ "$_rf" -ge 2 ]]; then _limit=1; else _rf=$(( _rf + 1 )); fi
+  printf 'TICKET=%s\nROUND=%s\nREPORT_FIX_COUNT=%s\nLAST=REPORT_FIX\n' "$TICKET_ID" "$(( CURRENT_ROUND - 1 ))" "$_rf" > "$STATE_FILE"
+  echo "REPORT_FIX_SOURCE=$1"
+  if [[ $_limit -eq 1 ]]; then
+    echo "CHECKPOINT_REPORT_FIX_LIMIT"
+    echo "⛔ 同票同一 state 週期（PASS／ADVISORY 清 state 前）已自動閉環 2 次 — 人工裁決 checkpoint（非 BLOCKER）；不得再自動重跑。"
+    exit 2
+  fi
+}
+
+# Stateless closure guard: report-only closure requires a clean worktree outside .tmp/.
+if [[ "${REPORT_FIX_CLOSURE:-0}" == "1" ]]; then
+  if [[ -n "$(git status --porcelain -- . ':!.tmp' 2>/dev/null)" ]]; then
+    echo "REPORT_FIX_ESCALATE"
+    echo "   closure 模式：.tmp/ 以外偵測到工作樹變更，report-only 條件不成立 → 停止自動閉環，等待人工裁決。"
+    exit 2
+  fi
+fi
 
 # ═══════════════════════════════════════
 #  Parse ## Excluded Payload from sv_report.md → merge into EXTRA_EXCLUDE
@@ -182,7 +208,7 @@ if [[ -f "$_SV_SCRIPT" ]]; then
   _SV_EXIT=$?
   set -e
   if [[ $_SV_EXIT -eq 1 ]]; then
-    printf 'TICKET=%s\nROUND=%s\nLAST=REPORT_FIX\n' "$TICKET_ID" "$CURRENT_ROUND" > "$STATE_FILE"
+    record_report_fix structural_preflight
     fail_report_fix
   elif [[ $_SV_EXIT -ne 0 ]]; then
     echo "⚠️ structural_verify returned $_SV_EXIT — proceeding with Codex review"
@@ -445,7 +471,11 @@ REACHABILITY="$(printf '%s\n' "$RESULT" | tr -d '\r' | grep -E "^REACHABILITY:" 
 [[ -z "$REACHABILITY" ]] && REACHABILITY="UNSET"
 
 # Save fail budget state
-printf 'TICKET=%s\nROUND=%s\nLAST=%s\n' "$TICKET_ID" "$CURRENT_ROUND" "${VERDICT:-UNKNOWN}" > "$STATE_FILE"
+if [[ "$VERDICT" == "REPORT_FIX" ]]; then
+  record_report_fix codex
+else
+  printf 'TICKET=%s\nROUND=%s\nREPORT_FIX_COUNT=%s\nLAST=%s\n' "$TICKET_ID" "$CURRENT_ROUND" "$_PREV_RF" "${VERDICT:-UNKNOWN}" > "$STATE_FILE"
+fi
 
 
 # Fail budget enforcement
@@ -459,7 +489,7 @@ if [[ "$VERDICT" == "BLOCKER" ]]; then
 fi
 
 # Terminal-success cleanup: fail budget no longer needed once the ticket passes.
-# BLOCKER/REPORT_FIX must KEEP the state file so ROUND keeps accumulating across reruns.
+# BLOCKER/REPORT_FIX must KEEP the state file so ROUND (blocker rounds) and REPORT_FIX_COUNT keep accumulating across reruns.
 clear_budget_state() { rm -f "$STATE_FILE" 2>/dev/null || true; rmdir "$STATE_DIR" 2>/dev/null || true; }
 
 # Durable range-bound PASS/ADVISORY receipt (Concern B). Written BEFORE clear_budget_state so

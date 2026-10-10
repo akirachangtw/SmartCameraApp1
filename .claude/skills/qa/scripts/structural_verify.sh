@@ -4,14 +4,14 @@
 # 用法：
 #   bash .claude/skills/qa/scripts/structural_verify.sh [sv_report] [diff_scope_or_ref] [--post]
 #   arg2: "ref..HEAD" (scope) 或單一 commit ref (自動補 ..HEAD)
-#   --post: 啟用 post mode，額外執行 Check D/E/F（/qa Step 5 使用）
-#           pre-check 模式（cross_review.sh 呼叫，不帶 --post）只跑 A/B/C
+#   --post: 啟用 post mode，額外執行 Check E/F/G…（/qa Step 5 使用）
+#           pre-check 模式（SV_REPORT_PREFLIGHT；cross_review.sh 呼叫，不帶 --post）只跑 A/B/C/D
 #
 # 檢查規則 + Verdict 映射：
 #   A. report 宣稱但 diff 無此檔 → REPORT_FIX (幽靈宣稱)          [pre + post]
 #   B. diff 有但 report 未列    → REPORT_FIX (漏揭露)              [pre + post]
 #   C. Excluded Payload 的每個檔案必須也出現在 Files Changed → REPORT_FIX [pre + post]
-#   D. sv_report 五段結構完整性 → REPORT_FIX (缺必要段落)           [post only]
+#   D. sv_report 五段結構完整性 → REPORT_FIX (缺必要段落)           [pre + post]
 #   E. cross_review BLOCKER 或未 PASS → BLOCKER                     [post only]
 #   F. PROGRESS.md 缺必要欄位  → BLOCKER                            [post only]
 #   F.2 PROGRESS_WARN < lines <= PROGRESS_FAIL → ADVISORY           [post only]
@@ -205,12 +205,7 @@ else
   echo "✅ STRUCTURAL VERIFY PASS (A/B/C) — git diff ${DIFF_SCOPE}"
 fi
 
-if [[ "$POST_MODE" != "true" ]]; then
-  archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
-  exit 0
-fi
-
-# ─── Check D: sv_report 五段結構 ───
+# ─── Check D: sv_report 五段結構（preflight 與 --post 共用）───
 echo ""
 echo "=== [D] SV Report 五段結構 ==="
 _MISSING_SECTIONS=""
@@ -225,6 +220,16 @@ if [[ -n "$_MISSING_SECTIONS" ]]; then
   escalate_verdict "REPORT_FIX"
 else
   echo "✅ SV Report 五段結構完整"
+fi
+
+if [[ "$POST_MODE" != "true" ]]; then
+  if [[ "$_CURRENT_VERDICT" == "REPORT_FIX" || "$_CURRENT_VERDICT" == "BLOCKER" ]]; then
+    echo "   修正方式：補齊 .tmp/sv_report.md 缺少之必要標題。"
+    archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
+    exit 1
+  fi
+  archive_report "$SV_REPORT" || fail_env "Cannot archive sv_report to tmp/"
+  exit 0
 fi
 
 # ─── Check E: cross_review PASS 確認（re-anchored to durable receipt, INFRA-SV-STATE-RECEIPT-01）───

@@ -55,7 +55,7 @@ disable-model-invocation: false
    - `/uc` 只呼叫 QA，**MUST NOT** 直接呼叫 SV。
    - QA 全步驟 PASS 後，由 QA Skill 依既有契約自動進入 SV。
    - QA FAIL、Auto Commit FAIL 或 `Auto-Chain STOPPED` 時，**MUST** 停止且不得進入 SV。
-   - SV 的 PASS／ADVISORY／REPORT_FIX／BLOCKER／ENV ERROR 依 SV Skill 契約處理，**MUST NOT** 由 UC 自動重跑或改判。
+   - SV 的 PASS／ADVISORY／REPORT_FIX／BLOCKER／ENV ERROR 依 SV Skill 契約處理；`/uc` 自身 **MUST NOT** 重跑、改判或修改 `.tmp/sv_report*.md`；SV 契約內之 report-only REPORT_FIX 閉環由 SV 流程自行消費 exit 3，不屬 UC 之重跑或改判。
 
 ## 驗證性動作豁免
 
