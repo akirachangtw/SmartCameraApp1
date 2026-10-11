@@ -159,6 +159,8 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 | 已收束重入（`lifecycle ∈ {REVIEW, CLOSED}` 且票檔位於 `deliver/`） | `MUST RETURN`（見下「最小冪等回傳」） | 重寫 status、二次搬移票檔、二次寫等價 checkpoint、建空 commit |
 | Header 缺失或非法（`Traycer Workflow` 非封閉四值、`ALLOWED`／`FORBIDDEN` 無法解析） | `MUST STOP`，列出具體缺失欄位 | 猜測值續行 |
 
+> QA FAIL 列之適用邊界及 Gate 前置見 §Autonomous Engineering Gate。
+
 ### Traycer 語義
 
 - `Traycer Workflow: N/A` → 不詢問、不操作，寫 `reviews.traycer=N_A`。
@@ -169,6 +171,76 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 ### 最小冪等回傳
 
 `registry lifecycle ∈ {REVIEW, CLOSED}` **且**票檔實際位於 `deliver/` → `MUST RETURN`（已收束）：**MUST NOT** 再呼叫 `registry_set_status`／`registry_upsert_ticket` 轉態、**MUST NOT** 再搬移或 unlink 票檔、**MUST NOT** 再寫等價 checkpoint、**MUST NOT** 建立空 commit。二者不一致（如票檔已搬 `deliver/` 而冊面 `file` 仍指 `Pending/`）→ 交既有 Closure Gate 判定（回指 §Ticket Closure 紀律「矛盾停止」），Agent **MUST NOT** 猜測修復。
+
+## Autonomous Engineering Gate
+
+> 契約狀態：本節為契約文字。所稱 helper、ledger、Stop hook、入口 `check` 呼叫與三輪機械停損均為後續票目標，目前尚不存在；落地前本節僅約束 agent 決策順序（模型契約），agent **MUST NOT** 呼叫不存在的指令，**MUST NOT** 宣稱已有機械計數或 hook 阻擋。
+
+### 詞彙域與不外溢條件
+
+- Gate 詞彙＝`HUMAN_REQUIRED` 及其類別與 `basis`、PPSS 證據三態（`RETRIEVED`／`SOURCE_READ`／`INVALID`）、ledger 事件型別（`finding`／`round`／`step_limit`／`consult`／`missed_check` 等），僅存活於 Gate 子系統。
+- 不外溢條件（僅針對 Gate 詞彙，非全檔枚舉之通用定義）：①不寫入 registry `lifecycle`／`reviews`／`file`／`checkpoint` 結構化欄位、不構成 registry schema（`checkpoint` 敘事摘要與票檔收尾實錄除外）；②不成為 Transition Table 控制詞或任一 Table 列之轉移條件（Table 節對本節之回指一行除外）；③不作為 approval／review verdict 於票或審查者之間交換。本節不新增 lifecycle 值、approval／review verdict 或 registry schema。
+- 一致性依據：Transition Table 節首引言（本檔 `:126`）之限制字面範圍為「本節」且該行未變；本節為獨立節並受上述不外溢條件約束。將該限制改為全檔通用屬另案修訂。
+
+### Gate 適用條件與順序
+
+- 適用：active（經 `activate_ticket.sh` 啟動、`tmp/verify/active.json` 含 `ticket_id`）且非終態（registry lifecycle ∉ {`REVIEW`,`CLOSED`,`VOID`}）之 ticket，於回合結束、請示或交棒前。不攔使用者下達之 `ticket-run`、`/compact`、`/clear`，但計數與恢復義務不因此排除：clear／compact／resume 後若有未結 incident，下一個決策點前先讀其狀態。
+- 順序：①入口檢查；②遇失敗記 `finding`（不開輪）；③已授權可執行者直接執行，不轉為請示；④未知先本地取證；⑤仍不能解，主 agent 諮詢 Advisor（僅裁決本地可推導之設計／修法，不裁決產品語義、SSOT、scope、權限、不可逆動作）；⑥需外部事實才用 PPSS；⑦以新且已授權策略開輪、修復、局部驗證；⑧輪 fail 後判斷續輪或升報；⑨權限被拒記 `PERMISSION`，不得改道重試同一被拒動作。
+
+### Incident 與輪次
+
+- incident 身分＝`ticket_id`×subject（根因對象）；verdict 類別與 gate point 為屬性，不入身分。verdict 改變不自動開新 incident，同根因續算；僅有獨立問題證據（獨立失敗輸出）且 subject 不重疊才分開。
+- 一輪＝以一個新且已授權策略完成之完整解題循環（取證→Advisor→PPSS→修復→局部驗證）。初次 finding、單純執行腳本、步驟級上限事件皆不是輪。
+- 最多 3 輪；驗證通過即結案，不要求湊滿三輪；第 3 輪（及其前各輪）有新且已授權策略時，任何其他機制不得提前截斷。輪數 3 且 fail→`EXHAUSTED`；輪數 <3 而無可行已授權策略→`NO_AUTHORIZED_STRATEGY`。
+- PPSS 預設每輪 1 次；第 2 次須附新查詢策略與理由，且不開新輪。
+- Gate 的「輪」≠ `cross_review.sh` BLOCKER `ROUND` ≠ RGR review round／session-local closure iteration，各自獨立計。
+
+### 步驟級上限與 LIMIT
+
+- 步驟級上限（`uc` 連續 2 次修復仍編譯失敗、BLOCKER budget、REPORT_FIX 閉環／`CHECKPOINT_REPORT_FIX_LIMIT`、QA 編譯重試等）到達＝該路徑終止，記 `step_limit` 並作為該輪局部驗證失敗之輸入；不重置 incident 計數，不自動等於三輪耗盡之 `EXHAUSTED` 或 `NO_AUTHORIZED_STRATEGY`，不自動升報；各步驟級數字不由本節改動。
+- LIMIT 處置：先停止該腳本受限重試（超過 LIMIT 再重跑不是已授權策略，exit semantics 不變）→核對剩餘輪數與已授權策略→有可行策略即續作→經本地取證與 Advisor 確認無策略才升報。不清 state（含 `.tmp/cross_review_state`），不換 incident 繞過 LIMIT。
+
+### HUMAN_REQUIRED
+
+- 唯一升報路徑，單行：`HUMAN_REQUIRED: <類別> | ticket | incident | round=<n>/3 | basis`（單行為呈現，事件為準）。
+- 立即類：`PERMISSION`、`IRREVERSIBLE_SECURITY_COST`、`HUMAN_GATE`（Traycer T2／`CLOSED`／Rule 4a 無票）、`COST`（三輪耗盡之 `EXHAUSTED` 後續跑 ack）。
+- 驗證先行類（升報前須已有本地取證＋Advisor 諮詢記錄）：`SSOT_CONFLICT`、`PRODUCT_DECISION`（含 Rule 1 歧義）、`SCOPE`、`NO_AUTHORIZED_STRATEGY`（另須最小 `strategy_scan`：已考慮策略清單，每項一句排除依據；僅為紀錄，非策略搜尋框架）。
+- 機械類：`EXHAUSTED`（僅限同 incident 已 3 輪 fail，basis 恆為 `rounds_3`）、`NO_PROGRESS`。
+- 權限被拒屬 `PERMISSION`，但不視為升裁已完成。腳本 stdout 之「人工介入」字樣不構成 `HUMAN_REQUIRED`。
+
+### Advisor 與 PPSS
+
+- Advisor 由主 agent 承接，hook 不呼叫；「已諮詢」以記錄為證，內容加密不可驗。
+- PPSS 證據：`RETRIEVED` 僅表取回，`SOURCE_READ` 僅表已讀，`INVALID` 為空、缺 artifact 或網域不符。`evidence_ok` 僅表示來源閱讀與支持聲明可追溯，不表示語意被 helper 驗真；`SOURCE_READ` 單獨不使其成立；離題來源已讀仍不得算問題已獲支持；`evidence_ok` 為必要條件，非主張成立之充分條件。
+
+### 入口與覆蓋矩陣
+
+- 正常入口最小落點（目前尚未加入呼叫，屬後續票）：`qa`＝`qa/SKILL.md` `## Step 0: Ticket Scope 驗證 (Scope Gate)`；`commit`＝同檔 `## Step 4.5: Ticket Auto Commit`；`sv`＝`sv/SKILL.md` `## 前置檢查：Ticket 已 Commit Gate`；`closeout`＝同檔 `## Step 11: Closeout Auto-Chain`；`done`＝`uc/SKILL.md` 規則 8；`resume`＝`.claude/CLAUDE.md` `## ⚡ Boot Sequence`。
+- 覆蓋矩陣四軸分開記錄：check 程式結果（確定性）／呼叫路徑（模型契約）／機械後盾／未覆蓋。決策點：pause、ask-user、commit、QA、SV、closeout、恢復義務、提前升報、Advisor、PPSS、權限被拒、subagent、headless、並行；目前皆未實作。
+- 缺入口 receipt 之後盾屬事後漏檢偵測，不得回填成事前已通過；補跑 receipt 標 `late`，不得引為已發生動作之事前放行。
+- hook 連續 block 之官方上限（8 次）不是解題預算。
+
+### QA FAIL 優先序
+
+- 可自修且在既有授權內之 QA FAIL，先依本節修復與驗證。Table「QA FAIL」列之 `MUST STOP` 僅適用於：不可自修；人工邊界（權限、不可逆動作、產品語義，或經本地取證與 Advisor 確認無 ALLOWED 內替代策略、確實需擴 scope）；或停損成立（輪數 3 且 fail，或經取證＋Advisor 確認無可行已授權策略）。
+- 疑似 scope 問題不得直接停止，須先本地取證並經 Advisor 確認。
+- 該列 `MUST NOT`「自行修復後靜默重跑並宣告 PASS」仍有效：Gate 修復為非靜默，須局部驗證並於輸出揭露失敗項與修復摘要。
+- 過渡期：T02 對齊前，`qa/SKILL.md`「Auto-Chain 停止條件」與 `uc/SKILL.md` 規則 8 對 QA FAIL 之「停止」解讀為不進入 /sv，不排除依本節自修後重跑 /qa。
+- Table 其他 `MUST STOP` 列之現行語意不由本節改變。
+
+### REPORT_FIX 局部對照
+
+- 輪數唯一依據為 ledger `round` 事件；`cross_review.sh` 計數與 LIMIT 僅為輸入事件。
+- 第 1 次 REPORT_FIX＝incident 開啟（`finding`，rounds=0）。
+- 每次以新策略修補並重跑所得之 REPORT_FIX verdict＝該輪 fail（依據為 verdict，非 LIMIT）；取得 verdict 前即失敗（`REPORT_FIX_ESCALATE`、環境錯誤）只記 `step_limit` 或環境事件，不計輪。
+- 第 3 次 verdict 後之 `CHECKPOINT_REPORT_FIX_LIMIT`＝`step_limit`，依上節 LIMIT 處置；rounds=2<3 時不是三輪耗盡之 `EXHAUSTED`。
+- PASS／ADVISORY＝結案。REPORT_FIX 變 BLOCKER＝同 incident 續算（BLOCKER `ROUND` 與 Gate 輪數各自獨立）。同 state 週期第二缺陷預設同 incident，另開須獨立證據。
+- 殘餘分歧：`REPORT_FIX_COUNT` 為同票 state 週期計數，第二缺陷仍可能提前觸及該路徑 LIMIT；本節不改 `cross_review.sh`。
+
+### 實作狀態與宣告限制
+
+- 本節只交付契約；helper、Stop hook、入口 `check` 呼叫、三輪機械停損、Advisor 採納之驗證、PPSS 取回／證據記錄皆尚不存在。
+- 「完整 Gate」僅為需求名稱；任何票或收尾實錄不得宣稱其「已完整」，只得陳述實際落地之入口控制與覆蓋矩陣各列實測現況；揭露未覆蓋項不能替代機械後盾條件。
 
 ## Session Persistence 邊界
 
