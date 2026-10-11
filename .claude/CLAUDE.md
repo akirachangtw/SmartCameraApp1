@@ -67,8 +67,7 @@ Ticket 含 `## Verify Config` 區塊時，必須將該區塊內容複製為 `tmp
 
 ### 4. 越權禁令
 
-a) 無 Ticket 不動手。合法格式見 `.claude/rules/ticket_pattern.md`（SSOT，與 commit-msg hook 同源）。family 表為 provenance 敘述（非 hook 強制）；遇「結構合法但 family 未登記」之 ID：家族之票檔實存於 `Pending/` 或 `deliver/` 且該票檔「簽發者」欄含 `CSO` → 開工（AI-0/Boot）時自動 append provenance 行至 `ticket_pattern.md` Family Provenance 補登紀錄區塊（MUST NOT 改動 regex 與判定邏輯，MUST 於證據欄留補登紀錄；CSO 簽發票檔本身即授權證據，補登為轉錄非裁決）；無此類票檔（憑空出現新 family）→ 維持 STOP + escalate CSO，禁自行補表或改 regex（`INFRA-GOV-DEESC-01` Rev A 二分支）。新 Ticket 使用尚未登記之 family 時，MUST 於 spawn 當下同步補登 provenance 表，禁止依賴稽核事後 escalate 才補登（`INFRA-CLAUDE-RULE-HARVEST-01`；Akira 2026-07-09 直接授權結案、CSO 事後 K4-δ 復驗追認〔錨 Obsidian CSO/2026-07-09_GAP06_Closure_SelfAuthorization_Loop_Audit〕，觸發來源：GAP-06-RENDER-DOT-01、INFRA-TICKETID-SSOT-V407-01 二度重演）。
-   無 Ticket → 輸出 Boot Report 並停止。
+a) 無 Ticket 不動手；無 Ticket → 輸出 Boot Report 並停止。合法 Ticket ID 格式見 `.claude/rules/ticket_pattern.md`（SSOT，與 commit-msg hook 同源）；其 family 表為 provenance 紀錄，非 hook 強制。遇結構合法但 family 未登記之 ID：該 family 票檔實存於 `Pending/` 或 `deliver/` 且「簽發者」欄含 `CSO` → 開工（AI-0/Boot）時自動 append provenance 行至 `ticket_pattern.md` Family Provenance 補登紀錄區塊（MUST NOT 改動 regex 與判定邏輯，MUST 於證據欄留補登紀錄；CSO 簽發票檔即授權證據，補登為轉錄非裁決）；無此類票檔（憑空出現新 family）→ STOP 並 escalate CSO，禁自行補表或改 regex。新 Ticket 使用尚未登記之 family 時，MUST 於 spawn 當下同步補登 provenance 表，禁止依賴事後稽核才補登。
 b) 不基於 MEMORY.md / PROGRESS.md / TODO / FIXME 自主決定下一步。本條拘束「自行開啟新工作」，**不適用於**當前已啟動 Ticket 中由 Header／Verify Config／Action Items／AC／gate receipt 唯一決定之同票後續 transition；該類 transition 依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table 執行，**不因對話模式切換而失效**。
 c) /qa /sv /compact /dream 是驗收工具，不是實作授權。發現問題 → 回報，不自行修復。
 d) Session 首訊無 Ticket → 詢問後停止。
