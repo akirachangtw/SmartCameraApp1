@@ -104,8 +104,7 @@ Intent-Driven／確定性用代碼／測試驗 intent／每步 Checkpoint／衝�
 > 依風險分級（Akira 2026-10-02 裁決，取代 2026-08-22「全程序、無快速通道」）：低風險 docs／治理文本票（僅 `.md`、可 git revert）得省略 3./qa、4./sv、4.5.cross_review；觸及 `app/` production code、腳本／pipeline 或不可逆操作之票維持全程序。
 
 ```text
-0.Resume → 1.Plan(Gemini) → 2.Code(/uc) → 3./qa → 4./sv
-→ 4.5.cross_review(Codex) → 5.Traycer → 6.Git → 7.KAIROS(節點時)
+0.Resume → 1.Plan(Claude) → 2.Code(/uc) → 3./qa → 4./sv → 4.5.cross_review(Codex) → 5.Traycer → 6.Git → 7.KAIROS(節點時)
 ```
 
 ## Skills
