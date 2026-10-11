@@ -75,7 +75,7 @@ PENDING → TICKET_RIGOR → IN_PROGRESS → EXECUTED → REVIEW → CLOSED
 
 | 段 | 觸發 | 寫入者 |
 | --- | --- | --- |
-| ① `TICKET_RIGOR` | rigor gate 產報告 | 執行者（併寫 `rigor` 欄；開票或過閘時若判定須深驗，MUST 同批寫 `verification` 欄） |
+| ① `TICKET_RIGOR` | rigor gate 開工 | 執行者（併寫 `rigor` 欄；開票或過閘時若判定須深驗，MUST 同批寫 `verification` 欄） |
 | ② `IN_PROGRESS` | 開工 | 執行者 |
 | ③ `EXECUTED` | AC 自驗全綠，未過 Cross Review | 執行者 |
 | ④ `REVIEW` | Cross Review 通過或依 RAPID MODE 省略 | 執行者（**併** `reviews.codex=PASS`／`N_A`＋票檔搬 `deliver/`＋`file` 欄及冊面更新），Traycer T2 另由 Akira 於 VS Code 手動執行 T2/CSO 複審 |
