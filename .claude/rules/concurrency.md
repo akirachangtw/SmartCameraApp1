@@ -2,8 +2,6 @@
 
 # Concurrency Governance — 並行 Session 治理規約
 
-事件支撐依據：`2026-07-16_Parallel_Session_Interference_SixCases`（Obsidian CSO）＋
-`2026-07-17_TPRG_Case2_And_Concurrency_Case7_ReceiptBreak_Case2`（Obsidian CSO）。
 ①–⑦為並行干擾七例，R1–R2 為跨 session 回執斷鏈兩例。九例對照表見文末。
 
 ## §1 Scratch 隔離制
@@ -68,5 +66,4 @@
 | R1 | GAP-06 系回執斷鏈 | §3 | `.claude/PROGRESS.md` Next Actions #9 |
 | R2 | COMPRESS-01 `fc78525` 回執未流回治理線 | §3 | `INFRA-PROGRESS-COMPRESS-01_Dashboard_LineCap_Archive.md` |
 
-原始決策 SSOT 存於 Obsidian CSO（非 git-tracked），逐字全文未併入本檔；上表佐證欄位為
-repo 內可核驗之 corroborating evidence，非 SSOT 原文引用。
+本檔即 runtime 規則全文；上表佐證欄位為 repo 內可核驗之 corroborating evidence。
