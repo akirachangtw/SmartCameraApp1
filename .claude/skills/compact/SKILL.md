@@ -21,7 +21,7 @@ disable-model-invocation: false
 本技能用於同一專案內的 session checkpoint、跨 session 交接與 durable progress 同步。它的主要目標如下：
 
 - 將本次工作中**不可只依賴 transcript 保存**的狀態，落盤到 `.claude/PROGRESS.md`。
-- 在需要跨 session、跨人或跨 agent 交接時，產出 `docs/session_handoff/SESSION_HANDOFF_<timestamp>.md`。
+- 於每次 `checkpoint`／`closeout` 產出 `docs/session_handoff/SESSION_HANDOFF_<timestamp>.md`，供跨 session、跨人或跨 agent 交接。
 - 讓新 session 或恢復中的 session 能先讀 `.claude/PROGRESS.md`，必要時再讀 handoff 檔，而不是把 handoff 當作原生 `/resume` 的替代品。
 - 保留原附件對 Dashboard-first、交接摘要、Archive 與治理可追溯性的要求，但將其與原生 `/compact` 語義解耦。
 
@@ -88,11 +88,7 @@ disable-model-invocation: false
 規則：
 
 - **MUST** 更新 `.claude/PROGRESS.md`。
-- **SHOULD** 在下列條件成立時產出 handoff 檔：
-  - 即將跨 session 暫停；
-  - 可能由另一位人員或 agent 接手；
-  - 已累積非 trivial 的決策、blocker、驗證證據；
-  - 即將 `/clear` 切換到不相關議題。
+- **MUST** 於每次 `checkpoint` 產出 handoff 檔（Akira 2026-10-12 裁決，取代原 SHOULD＋條件清單）：下一步是否與本議題相關無法預判，**MUST NOT** 以「議題已結束」「PROGRESS 已最新」「無人接手」為由省略。
 - **MUST** 於 PROGRESS 寫入後執行「當前票 artifacts ＋ PROGRESS」兩段式 scoped commit（Akira 2026-09-12 裁決；取代原單檔 PROGRESS-only 版本。目的：解 QASV 清場——`verify_checklist.sh` 未指定 `DIFF_END` 時以 `git diff --name-only "$DIFF_REF"` 計算 changed paths，含工作樹未提交異動，故前票殘留會被判為次票 scope 汙染）：
 
   **第一段——當前票 artifacts**（來源 `tmp/verify_cmd.conf`，**MUST NOT** 另立歸屬來源、**MUST NOT** 以 manifest／session ID／目錄掃描推定）：
@@ -121,7 +117,7 @@ disable-model-invocation: false
 規則：
 
 - **MUST** 更新 `.claude/PROGRESS.md` 為最新完成狀態。
-- **SHOULD** 產出 handoff 或 closeout 文件，記錄完成內容、驗收證據與 reopen 條件。
+- **MUST** 產出 handoff 或 closeout 文件，記錄完成內容、驗收證據與 reopen 條件。
 - **MAY** 提出 Git stage / commit 建議，但必須等待顯式確認。
 - **MUST NOT** 因 closeout 而自動取代 ticket lifecycle 的治理決策。
 - **MUST** 依序執行本檔「冊面收束一致性閘」節、再執行「Auto Commit: Governance Artifacts」節——此二節之呼叫路徑僅限於 `closeout` 模式。
@@ -216,7 +212,7 @@ disable-model-invocation: false
 
 ### 6.3 使用規則
 
-- handoff 檔 **SHOULD** 在需要 durable handoff 時建立，而不是每次原生 `/compact` 都建立。
+- handoff 檔 **MUST** 於每次 `checkpoint`／`closeout` 建立；原生 `/compact` 本身不觸發本技能，不在此限。
 - handoff 檔 **MUST** 聚焦於跨 session 必須保留的事實。
 - handoff 檔 **MUST NOT** 嘗試完整重建 session transcript。
 - handoff 檔 **SHOULD** 引用 `.claude/PROGRESS.md`，不得與其形成雙重真相競爭。
@@ -307,13 +303,13 @@ Do not preserve:
 
 1. 使用原生 `/compact` 管理 context。
 2. 若決策、blocker、下一步或驗證狀態已改變，執行 `checkpoint` 模式更新 `.claude/PROGRESS.md`。
-3. 除非需要 durable handoff，否則不必產生 handoff 檔。
+3. 原生 `/compact` 本身不產生 handoff 檔；若執行 `checkpoint`，handoff 檔 **MUST** 產出（§4.2）。
 
 ### 10.2 同專案、切換到不相關議題
 
 1. 執行 `checkpoint` 模式。
 2. **MUST** 更新 `.claude/PROGRESS.md`。
-3. 視需要建立 handoff。
+3. 建立 handoff（**MUST**，§4.2）。
 4. 再使用原生 `/clear` 開始新議題。
 
 ### 10.3 回到既有議題
@@ -329,7 +325,7 @@ Do not preserve:
 - 同專案 session 管理遵循原生 `/compact`、`/clear`、`/resume` 優先原則。
 - `.claude/PROGRESS.md` 成為新 session 的第一入口。
 - 每次 `checkpoint` 與 `closeout` 都確實回存執行進度到 `.claude/PROGRESS.md`。
-- handoff 檔只在需要 durable handoff 時建立，不再與原生 `/compact` 綁死。
+- 每次 `checkpoint` 與 `closeout` 皆產出 handoff 檔，且不與原生 `/compact` 綁死。
 - 預設流程除 `checkpoint` 之 `.claude/PROGRESS.md` 單檔 pathspec commit（§4.2）外，不自動進行 Git commit。
 - 歷史 handoff 可 Archive，但不得破壞目前 workstream 的可讀性。
 
