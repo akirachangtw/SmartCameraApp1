@@ -77,6 +77,7 @@ STALE_SECONDS = 30.0
 MAX_ROUNDS = 3
 STILL_ACTIVE = 259
 ERROR_INVALID_PARAMETER = 87
+ERROR_ACCESS_DENIED = 5
 
 TICKET_RE = re.compile(r"^[A-Z][A-Z0-9]*(-[A-Z0-9]+)+$")
 GATE_POINTS = ("qa", "commit", "sv", "closeout", "done", "resume")
@@ -195,8 +196,10 @@ def _win_pid_state(pid: int):
     handle = k32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
     if not handle:
         err = ctypes.get_last_error()
-        if err == ERROR_INVALID_PARAMETER:  # no such process
+        if err == ERROR_INVALID_PARAMETER:  # 87: no such process
             return False, f"OpenProcess: no such pid (last_error={err})"
+        if err == ERROR_ACCESS_DENIED:  # 5: process exists but cannot be queried
+            return None, f"OpenProcess: access denied, process may exist (last_error={err})"
         return None, f"OpenProcess failed (last_error={err})"
     try:
         code = wintypes.DWORD()
@@ -212,6 +215,8 @@ def _win_pid_state(pid: int):
 
 def _pid_state(pid: int):
     """Return (alive, detail): True alive, False dead, None undecidable."""
+    if pid <= 0:  # never probe 0 / negative pids (os.kill would signal a process group)
+        return None, f"invalid pid {pid}"
     if os.name == "nt":
         return _win_pid_state(pid)
     try:
@@ -247,6 +252,9 @@ def _maybe_reclaim(path: Path, stale: float, notes: list) -> bool:
     try:
         pid = int(json.loads(raw)["pid"])
     except (ValueError, KeyError, TypeError):
+        pid = None
+    if pid is not None and pid <= 0:  # invalid owner pid: ownerless, reclaimed by age alone
+        notes.append(f"lock owner pid {pid} is invalid; treated as ownerless")
         pid = None
     if pid is not None:
         alive, detail = _pid_state(pid)
@@ -322,13 +330,19 @@ class Ledger:
     def exists(self) -> bool:
         return self.path.is_file()
 
-    def read(self) -> list:
+    def read(self, strict: bool = True) -> list:
+        """strict (mutations): a damaged tail raises GateError(6) and the file is left untouched.
+        lenient (status): a partial trailing line is ignored."""
         if not self.path.is_file():
             return []
         try:
-            lines = self.path.read_text(encoding="utf-8").splitlines()
-        except OSError as exc:
+            raw = self.path.read_bytes().decode("utf-8")
+        except (OSError, ValueError) as exc:
             raise GateError(EXIT_IO, f"ledger read failed: {exc!r}") from exc
+        if strict and raw and not raw.endswith("\n"):
+            raise GateError(EXIT_IO, f"ledger {self.path} has an unterminated tail line; "
+                                     "refusing to append (file left unchanged)")
+        lines = raw.splitlines()
         events = []
         for i, line in enumerate(lines):
             if not line.strip():
@@ -336,7 +350,7 @@ class Ledger:
             try:
                 events.append(json.loads(line))
             except ValueError as exc:
-                if i == len(lines) - 1:  # partial trailing write
+                if i == len(lines) - 1 and not strict:  # partial trailing write, read-only view
                     break
                 raise GateError(EXIT_IO, f"ledger corrupt at line {i + 1}") from exc
         return events
@@ -504,7 +518,7 @@ def cmd_status(args) -> int:
     ctx = Ctx(args, mutation=False)
     if not ctx.ledger.exists() and ctx.location == "loc:none":
         raise GateError(EXIT_TICKET, f"no ledger and no ticket file for {ctx.tid} (loc:none)")
-    st = fold(ctx.ledger.read())
+    st = fold(ctx.ledger.read(strict=False))
     out = summarize(ctx, st)
     out["stale"] = ctx.source == "active_json" and ctx.location != "loc:pending"
     if args.json:

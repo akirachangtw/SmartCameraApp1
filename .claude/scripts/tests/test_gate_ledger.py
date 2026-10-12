@@ -363,6 +363,38 @@ class Concurrency(RepoCase):
         self.assertFalse((self.repo / ".git" / "gate" / "ADV-TEST-01.jsonl.lock").exists())
 
 
+class LedgerTail(RepoCase):
+    def test_damaged_tail_refuses_mutation_and_leaves_file_unchanged(self):
+        self.assertEqual(self.run_cli("incident", "open", "--subject", "s").returncode, 0)
+        led = self.ledger_path()
+        original = led.read_bytes()
+        good_json_no_newline = json.dumps({"seq": 2, "ts": "t", "ticket": "ADV-TEST-01",
+                                           "type": "blocks", "note": None}).encode("utf-8")
+        for tail in (b'{"seq": 2, "ty', good_json_no_newline):
+            led.write_bytes(original + tail)
+            before = led.read_bytes()
+            for cmd in (("blocks", "--note", "x"), ("check", "qa"),
+                        ("round", "start", "--incident", "INC-001", "--expect", "0",
+                         "--strategy", "s2", "--authority", "a")):
+                res = self.run_cli(*cmd)
+                self.assertEqual(res.returncode, 6, (tail, cmd, res.err))
+                self.assertIn("unterminated tail", res.err)
+                self.assertEqual(led.read_bytes(), before, (tail, cmd))
+                self.assertFalse(led.with_name(led.name + ".lock").exists())
+            # read-only status keeps working (partial tail ignored)
+            self.assertEqual(self.run_cli("status", "--json").returncode, 0)
+            self.assertEqual(led.read_bytes(), before)
+
+    def test_corrupt_middle_line_also_refuses_and_keeps_bytes(self):
+        self.assertEqual(self.run_cli("incident", "open", "--subject", "s").returncode, 0)
+        led = self.ledger_path()
+        led.write_bytes(b'not json\n' + led.read_bytes())
+        before = led.read_bytes()
+        res = self.run_cli("blocks", "--note", "x")
+        self.assertEqual(res.returncode, 6, res.err)
+        self.assertEqual(led.read_bytes(), before)
+
+
 class CarrierSurvival(RepoCase):
     def test_reset_inject_and_cleanup_leave_ledger(self):
         self.run_cli("incident", "open", "--subject", "s")
@@ -513,6 +545,61 @@ class LockCases(unittest.TestCase):
         os.utime(self.lock, (past, past))
         gl.acquire_lock(self.lock, timeout=5, stale=0.1)
         self.assertTrue(self.lock.exists())
+
+    # ---- G1: invalid owner pids are never probed -------------------------
+    def test_g1_invalid_pid_is_never_probed_and_expired_lock_is_reclaimed(self):
+        for bad in (0, -1, -4242):
+            self.write_lock(bad, age=120)
+            with mock.patch.object(gl, "_pid_state") as probe:
+                gl.acquire_lock(self.lock, timeout=5, stale=0.1)
+            probe.assert_not_called()
+            self.assertEqual(json.loads(self.lock.read_text(encoding="utf-8"))["pid"], os.getpid())
+            gl.release_lock(self.lock)
+
+    def test_g1_invalid_pid_unexpired_lock_is_not_reclaimed(self):
+        self.write_lock(0, age=0)
+        with mock.patch.object(gl, "_pid_state") as probe:
+            with self.assertRaises(gl.LockTimeout):
+                gl.acquire_lock(self.lock, timeout=0.4, stale=30)
+        probe.assert_not_called()
+        self.assertTrue(self.lock.exists())
+
+    def test_g1_pid_state_rejects_non_positive_without_any_api_call(self):
+        with mock.patch.object(gl, "_kernel32") as k32, mock.patch.object(gl.os, "kill") as kill:
+            for bad in (0, -1):
+                self.assertIsNone(gl._pid_state(bad)[0])
+        k32.assert_not_called()
+        kill.assert_not_called()
+
+    # ---- G2: OpenProcess NULL handle mapping ------------------------------
+    @unittest.skipUnless(os.name == "nt", "Win32 only")
+    def test_g2_openprocess_null_error_mapping_and_no_close_handle(self):
+        import ctypes
+
+        class Fake:
+            def __init__(self, null):
+                self.null, self.closed, self.queried = null, [], []
+
+            def OpenProcess(self, access, inherit, pid):
+                return self.null
+
+            def GetExitCodeProcess(self, handle, ref):
+                self.queried.append(handle)
+                return 1
+
+            def CloseHandle(self, handle):
+                self.closed.append(handle)
+                return 1
+
+        for null in (0, None):
+            for err, expected in ((87, False), (5, None), (1314, None)):
+                fake = Fake(null)
+                with mock.patch.object(gl, "_kernel32", return_value=fake), \
+                        mock.patch.object(ctypes, "get_last_error", return_value=err):
+                    state, detail = gl._win_pid_state(4321)
+                self.assertIs(state, expected, (null, err))
+                self.assertEqual((fake.closed, fake.queried), ([], []), (null, err))
+                self.assertIn(f"last_error={err}", detail)
 
     # ---- E1: Win32 liveness API contract -------------------------------
     def test_e1_live_and_dead_pid_states(self):
