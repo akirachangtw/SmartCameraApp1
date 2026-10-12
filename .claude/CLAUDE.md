@@ -69,7 +69,7 @@ Ticket 含 `## Verify Config` 區塊時，必須將該區塊內容複製為 `tmp
 
 a) 無 Ticket 不動手；無 Ticket → 輸出 Boot Report 並停止。合法 Ticket ID 格式見 `.claude/rules/ticket_pattern.md`（SSOT，與 commit-msg hook 同源）；其 family 表為 provenance 紀錄，非 hook 強制。遇結構合法但 family 未登記之 ID：該 family 票檔實存於 `Pending/` 或 `deliver/` 且「簽發者」欄含 `CSO` → 開工（AI-0/Boot）時自動 append provenance 行至 `ticket_pattern.md` Family Provenance 補登紀錄區塊（MUST NOT 改動 regex 與判定邏輯，MUST 於證據欄留補登紀錄；CSO 簽發票檔即授權證據，補登為轉錄非裁決）；無此類票檔（憑空出現新 family）→ STOP 並 escalate CSO，禁自行補表或改 regex。新 Ticket 使用尚未登記之 family 時，MUST 於 spawn 當下同步補登 provenance 表，禁止依賴事後稽核才補登。
 b) 不基於 MEMORY.md / PROGRESS.md / TODO / FIXME 自主決定下一步。本條拘束「自行開啟新工作」，**不適用於**當前已啟動 Ticket 中由 Header／Verify Config／Action Items／AC／gate receipt 唯一決定之同票後續 transition；該類 transition 依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table 執行，**不因對話模式切換而失效**。
-c) /qa /sv /compact /dream 是驗收工具，不是實作授權。發現問題 → 回報，不自行修復。
+c) /qa /sv /compact /dream 是驗收工具，本身不構成新增實作授權；無 Ticket 授權之問題 → 回報，不自行修復。本條**不適用於**當前已啟動 Ticket 之 ALLOWED 內可自修問題：該類問題依 `.claude/rules/ssot-governance.md` §Autonomous Engineering Gate 修復、局部驗證並揭露；確需新增權限、經取證與 Advisor 確認須擴 scope，或涉及不可逆操作者，依該節升報。
 d) Session 首訊無 Ticket → 詢問後停止。
 e) 正式開票僅可在目標專案 Claude Code session 經 `/ticket-author` 執行。一律自 `plan` 起步；根因未明時先 `diag`，再依診斷結果執行 `plan`。`ticket` 僅可對 plan artifact 的選定 item 執行，且該 artifact 必須同時為：`Plan Gate: PASS`、`Ticket mode eligibility: ALLOWED`、`Fixture: false`。`plan` 必須提供可讀的 Source、Goal、Constraints 與 Decisions；`ticket` 必須引用 plan artifact、Selected item 與 Goal。正式 ticket ID 僅能由 ticket mode 對既有 Registry（含 archive、Pending、deliver、void）查重後分配；不得由上游預留或宣稱已建立。禁止手工建立 Pending 票檔、直接寫入 Pending Registry，或繞過 `/ticket-author` 正式登冊。本條只規範正式 Pending ticket 的建立與登冊；任何下游 routing 後的執行、審查與狀態規則，依接手流程自身的 SSOT 辦理。
 

@@ -150,7 +150,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 | Action Items 未完成 | `MUST AUTO-CHAIN` 續作下一個未完成 Action Item | 跳過未完成項宣告 Ticket DONE |
 | Action Items 完成 → QA | `MUST AUTO-CHAIN` 呼叫 `/qa` | 停下等待使用者下達 `/qa` |
 | QA PASS → SV | `MUST AUTO-CHAIN` 進 `/sv`（依既有 Auto-Chain 契約） | 停下等待使用者下達 `/sv` |
-| QA FAIL | `MUST STOP`，回報失敗項 | 自行修復後靜默重跑並宣告 PASS |
+| QA FAIL | 可自修且在既有授權內：`MUST AUTO-CHAIN` 依 §Autonomous Engineering Gate 修復、局部驗證並揭露後重跑 `/qa`（`/qa` PASS 前不進入 `/sv`）；不可自修、人工邊界或停損成立：`MUST STOP`，回報失敗項 | 自行修復後靜默重跑並宣告 PASS |
 | SV 或 Codex 判 BLOCKER | `MUST STOP`，依 SV／Cross-Review 既有契約處理 | 由 UC 自動重跑或改判（回指 `uc/SKILL.md` 規則 9） |
 | SV／Codex 判 REPORT_FIX | **先判斷是否符合 report-only 閉環**（七條件須全成立：①verdict＝`REPORT_FIX`；②僅修改 `.tmp/sv_report*.md`；③不改 Ticket、SSOT、AC、contract、產品程式碼、`PROGRESS.md`、`CLAUDE.md` 或任何其他 repo 檔案；④修補僅限既有內容重排、必要標題補齊、既有事實之欄位格式校正；⑤不新增測試結果、commit、命令輸出、證據引用、完成宣稱或任何新事實；⑥修補後通過 SV report preflight（`structural_verify.sh` 不帶 `--post`）才重跑 Cross-Review；⑦本次 `cross_review.sh` 以 exit 3 結束，且本次 result 不含 `CHECKPOINT_REPORT_FIX_LIMIT` 或 `REPORT_FIX_ESCALATE`）。成立 → `MUST AUTO-CHAIN`（步驟見 `sv/SKILL.md` 階段 D「REPORT_FIX report-only 閉環」）；任一不成立 → `MUST STOP` 並輸出 `REPORT_FIX_ESCALATE`；第 3 次 → `CHECKPOINT_REPORT_FIX_LIMIT`（exit 2，人工裁決 checkpoint） | 於條件外修改 `.tmp/sv_report*.md` 以外任何檔案、新增事實、超過上限重跑、將 LIMIT 當 BLOCKER 或程式碼修正重試；新增 lifecycle／verdict／receipt 枚舉（上列標記為輸出字面，非 verdict） |
 | SV Cross-Review `ADVISORY`，或 `codex` 不可用致降級為 `SKIPPED` | **無 BLOCKER／FAIL finding 時**視同 PASS，`MUST AUTO-CHAIN` 進 Agent closeout；存在任一 BLOCKER 或 FAIL finding → `MUST STOP`（Akira 2026-09-15 追認並加此條件；registry `reviews.codex` 維持既有 `PASS` enum，**實際 verdict MUST 落 checkpoint** 之 `codex_verdict_actual`）（`ADVISORY` 為非阻斷觀察記錄，`SKIPPED` 為降級純報告驗證，均非失敗，依 `cross_review.sh`／`sv/SKILL.md` 既有 exit 0 契約） | 因 `ADVISORY`／`SKIPPED` 而停工、要求人工介入或視為 BLOCKER |
@@ -158,8 +158,6 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 | SV＋Codex PASS 且 `Traycer Workflow ≠ N/A` | `MUST AUTO-CHAIN` 進 Agent closeout 至 `REVIEW`，`reviews.traycer=PENDING` | 假設可由 agent／CLI／MCP 觸發 Traycer（回指 §Traycer T2 執行邊界）、因 `PENDING` 而停車 |
 | 已收束重入（`lifecycle ∈ {REVIEW, CLOSED}` 且票檔位於 `deliver/`） | `MUST RETURN`（見下「最小冪等回傳」） | 重寫 status、二次搬移票檔、二次寫等價 checkpoint、建空 commit |
 | Header 缺失或非法（`Traycer Workflow` 非封閉四值、`ALLOWED`／`FORBIDDEN` 無法解析） | `MUST STOP`，列出具體缺失欄位 | 猜測值續行 |
-
-> QA FAIL 列之適用邊界及 Gate 前置見 §Autonomous Engineering Gate。
 
 ### Traycer 語義
 
@@ -179,7 +177,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 ### 詞彙域與不外溢條件
 
 - Gate 詞彙＝`HUMAN_REQUIRED` 及其類別與 `basis`、PPSS 證據三態（`RETRIEVED`／`SOURCE_READ`／`INVALID`）、ledger 事件型別（`finding`／`round`／`step_limit`／`consult`／`missed_check` 等），僅存活於 Gate 子系統。
-- 不外溢條件（僅針對 Gate 詞彙，非全檔枚舉之通用定義）：①不寫入 registry `lifecycle`／`reviews`／`file`／`checkpoint` 結構化欄位、不構成 registry schema（`checkpoint` 敘事摘要與票檔收尾實錄除外）；②不成為 Transition Table 控制詞或任一 Table 列之轉移條件（Table 節對本節之回指一行除外）；③不作為 approval／review verdict 於票或審查者之間交換。本節不新增 lifecycle 值、approval／review verdict 或 registry schema。
+- 不外溢條件（僅針對 Gate 詞彙，非全檔枚舉之通用定義）：①不寫入 registry `lifecycle`／`reviews`／`file`／`checkpoint` 結構化欄位、不構成 registry schema（`checkpoint` 敘事摘要與票檔收尾實錄除外）；②不成為 Transition Table 控制詞或任一 Table 列之轉移條件（Table 節對本節之回指除外）；③不作為 approval／review verdict 於票或審查者之間交換。本節不新增 lifecycle 值、approval／review verdict 或 registry schema。
 - 一致性依據：Transition Table 節首引言（本檔 `:126`）之限制字面範圍為「本節」且該行未變；本節為獨立節並受上述不外溢條件約束。將該限制改為全檔通用屬另案修訂。
 
 ### Gate 適用條件與順序
@@ -225,7 +223,6 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 - 可自修且在既有授權內之 QA FAIL，先依本節修復與驗證。Table「QA FAIL」列之 `MUST STOP` 僅適用於：不可自修；人工邊界（權限、不可逆動作、產品語義，或經本地取證與 Advisor 確認無 ALLOWED 內替代策略、確實需擴 scope）；或停損成立（輪數 3 且 fail，或經取證＋Advisor 確認無可行已授權策略）。
 - 疑似 scope 問題不得直接停止，須先本地取證並經 Advisor 確認。
 - 該列 `MUST NOT`「自行修復後靜默重跑並宣告 PASS」仍有效：Gate 修復為非靜默，須局部驗證並於輸出揭露失敗項與修復摘要。
-- 過渡期：T02 對齊前，`qa/SKILL.md`「Auto-Chain 停止條件」與 `uc/SKILL.md` 規則 8 對 QA FAIL 之「停止」解讀為不進入 /sv，不排除依本節自修後重跑 /qa。
 - Table 其他 `MUST STOP` 列之現行語意不由本節改變。
 
 ### REPORT_FIX 局部對照
