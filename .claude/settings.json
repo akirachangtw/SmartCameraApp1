@@ -142,6 +142,15 @@
             "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/registry_review_stop_guard.py\""
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/gate_stop_guard.py\"",
+            "timeout": 30
+          }
+        ]
       }
     ]
   },

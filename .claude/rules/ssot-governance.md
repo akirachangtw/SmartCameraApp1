@@ -172,7 +172,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ## Autonomous Engineering Gate
 
-> 契約狀態：本節為契約文字。helper 與 ledger 已存在（ADV-GATE-02）；入口 `check` 呼叫已接入 qa／commit／sv／closeout／done，`resume` 讀 `status`（ADV-GATE-03）。呼叫路徑屬模型契約，不被機械阻擋；本 Gate 專用 Stop guard 與升報通知對齊尚未實作（待後繼票），Advisor 採納之驗證限制（內容加密、不可驗）照實保留；agent **MUST NOT** 宣稱已有 hook 阻擋，**MUST NOT** 宣稱完整 Gate。
+> 契約狀態：本節為契約文字。helper 與 ledger 已存在（ADV-GATE-02）；入口 `check` 呼叫已接入 qa／commit／sv／closeout／done，`resume` 讀 `status`（ADV-GATE-03）。呼叫路徑屬模型契約，不被機械阻擋；本 Gate 專用 Stop guard（`.claude/hooks/gate_stop_guard.py`）已註冊於 `.claude/settings.json` 的 Stop；升報通知對齊尚未實作。Advisor 採納之驗證限制（內容加密、不可驗）照實保留；agent **MUST NOT** 宣稱完整 Gate，**MUST NOT** 宣稱 hook 涵蓋途中違規。
 
 ### 詞彙域與不外溢條件
 
@@ -182,7 +182,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ### Gate 適用條件與順序
 
-- 適用：active（經 `activate_ticket.sh` 啟動、`tmp/verify/active.json` 含 `ticket_id`）且非終態（registry lifecycle ∉ {`REVIEW`,`CLOSED`,`VOID`}）之 ticket，於回合結束、請示或交棒前。不攔使用者下達之 `ticket-run`、`/compact`、`/clear`，但計數與恢復義務不因此排除：clear／compact／resume 後若有未結 incident，下一個決策點前先讀其狀態。
+- 適用：active（經 `activate_ticket.sh` 啟動、`tmp/verify/active.json` 含 `ticket_id`）且非終態（registry lifecycle ∉ {`REVIEW`,`CLOSED`,`VOID`}）之 ticket；**本 Gate 適用範圍排除 `BLOCKED`**（不要求續作、不解除、不恢復編排；`BLOCKED` 不是 lifecycle 終態）。工作途中遇到失敗或不確定時即依本節順序處理，不待回合結束；回合結束、請示或交棒前的檢查維持。不攔使用者下達之 `ticket-run`、`/compact`、`/clear`，但計數與恢復義務不因此排除：clear／compact／resume 後若有未結 incident，下一個決策點前先讀其狀態。
 - 順序：①入口檢查；②遇失敗記 `finding`（不開輪）；③已授權可執行者直接執行，不轉為請示；④未知先本地取證；⑤仍不能解，主 agent 諮詢 Advisor（僅裁決本地可推導之設計／修法，不裁決產品語義、SSOT、scope、權限、不可逆動作）；⑥需外部事實才用 PPSS；⑦以新且已授權策略開輪、修復、局部驗證；⑧輪 fail 後判斷續輪或升報；⑨權限被拒記 `PERMISSION`，不得改道重試同一被拒動作。
 
 ### Incident 與輪次
@@ -190,7 +190,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 - incident 身分＝`ticket_id`×subject（根因對象）；verdict 類別與 gate point 為屬性，不入身分。verdict 改變不自動開新 incident，同根因續算；僅有獨立問題證據（獨立失敗輸出）且 subject 不重疊才分開。
 - 一輪＝以一個新且已授權策略完成之完整解題循環（取證→Advisor→PPSS→修復→局部驗證）。初次 finding、單純執行腳本、步驟級上限事件皆不是輪。
 - 最多 3 輪；驗證通過即結案，不要求湊滿三輪；第 3 輪（及其前各輪）有新且已授權策略時，任何其他機制不得提前截斷。輪數 3 且 fail→`EXHAUSTED`；輪數 <3 而無可行已授權策略→`NO_AUTHORIZED_STRATEGY`。
-- PPSS 預設每輪 1 次；第 2 次須附新查詢策略與理由，且不開新輪。
+- 工具預算（同一 incident，不是每輪）：Advisor 初判最多 1 次、PPSS 定向研究最多 1 次、research 後 Advisor reconcile 最多 1 次；全部含於最多三輪內，不另加預算。換策略、phase、模型或改名不重置額度，不同 incident 各自計。helper 允許的額外調用（例如第 2 次 PPSS 附新查詢策略）不等於本 Gate 授權使用。Advisor 建議與研究結果不構成新增授權；無新證據的相同命令、prompt、研究問題、patch 不重播。預算屬模型契約，不由機械控制強制；hook 僅於 reason 顯示用量（Advisor「x／2」為用量摘要，仍受初判／reconcile 角色限制）。
 - Gate 的「輪」≠ `cross_review.sh` BLOCKER `ROUND` ≠ RGR review round／session-local closure iteration，各自獨立計。
 
 ### 步驟級上限與 LIMIT
@@ -208,15 +208,15 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ### Advisor 與 PPSS
 
-- Advisor 由主 agent 承接，hook 不呼叫；「已諮詢」以記錄為證，內容加密不可驗。
+- Advisor 由主 agent 承接，hook 不呼叫；`consult --kind advisor` 只能記錄實際原生 Advisor 調用，主 agent 自判不得以 advisor kind 記錄；回答內容加密不可驗。Advisor 不可達時：如實說明工具／環境缺口與原擬升報類別，不偽造 consult、不為滿足前置硬湊輪次；此時驗證先行類升報無法寫入 ledger，停止由 `NO_PROGRESS` 預算放行。
 - PPSS 證據：`RETRIEVED` 僅表取回，`SOURCE_READ` 僅表已讀，`INVALID` 為空、缺 artifact 或網域不符。`evidence_ok` 僅表示來源閱讀與支持聲明可追溯，不表示語意被 helper 驗真；`SOURCE_READ` 單獨不使其成立；離題來源已讀仍不得算問題已獲支持；`evidence_ok` 為必要條件，非主張成立之充分條件。
 
 ### 入口與覆蓋矩陣
 
 - 正常入口最小落點：入口 check 呼叫已接入（ADV-GATE-03）。`qa`＝`qa/SKILL.md` `## Step 0: Ticket Scope 驗證 (Scope Gate)`；`commit`＝同檔 `## Step 4.5: Ticket Auto Commit`；`sv`＝`sv/SKILL.md` `## 前置檢查：Ticket 已 Commit Gate`；`closeout`＝同檔 `## Step 11: Closeout Auto-Chain`；`done`＝`uc/SKILL.md` 規則 8；`resume`＝`.claude/CLAUDE.md` `## ⚡ Boot Sequence`（讀 `status`）。`check` 退出碼映射（單一來源，各入口呼叫處只回指）：0＝續行該入口動作；1＝ledger 已有待人工，依印出的類別、incident、basis 輸出 `HUMAN_REQUIRED`，不新造理由；2–6＝檢核未完成，不代表有待人工，不續行該入口動作，依原始錯誤在既有授權內排除後重跑，不得視為通過，同一入口同一原始錯誤重跑仍失敗 → 記 `step_limit`，依 Gate 處置，需權限或擴 scope 者依 Gate 升報；不與 `cross_review.sh` 的 exit 2 或 Gate 三輪合併計數；不得以偽造事件修復損毀 ledger。`resume` 讀 `status` 非 0：記原始錯誤與 ledger 狀態未知，可續行 Boot／讀取／取證，不得當作無 open incident，後續受 Gate 控制的動作須先通過第一個對應 `check`，不得偽造事件、重置 ledger 或繞過檢核。
-- 覆蓋矩陣四軸分開記錄：check 程式結果（確定性）／呼叫路徑（模型契約）／機械後盾／未覆蓋。決策點：pause、ask-user、commit、QA、SV、closeout、恢復義務、提前升報、Advisor、PPSS、權限被拒、subagent、headless、並行；目前皆未實作。
+- 覆蓋矩陣四軸分開記錄：check 程式結果（確定性）／呼叫路徑（模型契約）／機械後盾／未覆蓋。決策點：pause、ask-user、commit、QA、SV、closeout、恢復義務、提前升報、Advisor、PPSS、權限被拒、subagent、headless、並行。現況（ADV-GATE-04 提交）：呼叫路徑（入口 `check`，模型契約）已接入 qa／commit／sv／closeout／done，`resume` 讀 `status`（ADV-GATE-03；`done` 見 `.claude/skills/uc/SKILL.md` 的 `check done` 呼叫）；機械後盾：pause（本 Gate Stop guard `gate_stop_guard.py`）、qa／commit／sv 的漏檢事後偵測（受 receipt 視窗限制，僅回合起點可得時）；無機械後盾：done（有入口 check，但無推進證據 producer）、closeout（漏檢偵測無此腳）及其餘決策點。
 - 缺入口 receipt 之後盾屬事後漏檢偵測，不得回填成事前已通過；補跑 receipt 標 `late`，不得引為已發生動作之事前放行。
-- hook 連續 block 之官方上限（8 次）不是解題預算。
+- hook 連續 block 之預設上限（8 次）不是解題預算。
 
 ### QA FAIL 優先序
 
@@ -236,7 +236,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ### 實作狀態與宣告限制
 
-- 本節只交付契約；helper 與 ledger 已存在（ADV-GATE-02），入口 `check` 呼叫已接入（ADV-GATE-03）；本 Gate 專用 Stop guard 與升報通知對齊尚未實作（待後繼票），Advisor 採納之驗證限制（內容加密、不可驗）照實保留。
+- 現況：helper 與 ledger 已存在（ADV-GATE-02），入口 `check` 呼叫已接入（ADV-GATE-03），本 Gate 專用 Stop guard（`gate_stop_guard.py`）已註冊於 Stop（ADV-GATE-04）；升報通知對齊尚未實作。Advisor 採納之驗證限制（內容加密、不可驗）照實保留；不宣稱完整 Gate，不宣稱 hook 涵蓋途中違規。
 - 「完整 Gate」僅為需求名稱；任何票或收尾實錄不得宣稱其「已完整」，只得陳述實際落地之入口控制與覆蓋矩陣各列實測現況；揭露未覆蓋項不能替代機械後盾條件。
 
 ## Session Persistence 邊界
