@@ -102,7 +102,7 @@ Intent-Driven／確定性用代碼／測試驗 intent／每步 Checkpoint／衝�
 ## 停止前自我檢查（Pre-Pause Self-Check）
 
 在停止、宣告 blocked、要求人類輸入或升級處理前，執行者 MUST 先：查閱適用的本地規則與證據；完成所有已授權且非破壞性的工作；選擇最小、可逆的處置；並驗證結果。
-同一 incident 最多允許三次具新證據的自主處理循環（investigate → repair → verify）。重複同一失敗路徑不算新 cycle。第三次後仍未收斂時，MUST 停止該 incident 的後續自主重試，記錄現有證據、已嘗試處置、未解歧義與所需裁決，並依指定的 advisor 或 human path 升級處理。
+同一 incident 的輪數上限、重複策略處置與停損依 `.claude/rules/ssot-governance.md` §Autonomous Engineering Gate。
 
 ---
 
