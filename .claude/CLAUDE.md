@@ -93,6 +93,17 @@ e) 正式開票僅可在目標專案 Claude Code session 經 `/ticket-author` �
 
 Intent-Driven／確定性用代碼／測試驗 intent／每步 Checkpoint／衝突不混搭／失敗要大聲 → 全文見 `.claude/rules/engineering-discipline.md`（編號沿用）。
 
+## 角色邊界（Role Boundary）
+
+各角色 MUST 僅在其被授權的職責、決策權與檔案範圍內行動。
+角色可以辨識、記錄並路由上游或下游問題，但 MUST NOT 未經授權而改寫其他角色的契約、修改其產物，或宣稱其審查結論。完成路由後，由接手角色對其領域的判定與處置負責；上游角色僅提供可驗證的證據、背景與交接資訊，不得預設下游 verdict、實作方案或驗收結論。
+發現權責衝突時，MUST 記錄並交由對應 owner 裁決；不得以跨角色直接編輯代替正確路由。
+
+## 停止前自我檢查（Pre-Pause Self-Check）
+
+在停止、宣告 blocked、要求人類輸入或升級處理前，執行者 MUST 先：查閱適用的本地規則與證據；完成所有已授權且非破壞性的工作；選擇最小、可逆的處置；並驗證結果。
+同一 incident 最多允許三次具新證據的自主處理循環（investigate → repair → verify）。重複同一失敗路徑不算新 cycle。第三次後仍未收斂時，MUST 停止該 incident 的後續自主重試，記錄現有證據、已嘗試處置、未解歧義與所需裁決，並依指定的 advisor 或 human path 升級處理。
+
 ---
 
 ## Acceptance Criteria 修訂閉環
