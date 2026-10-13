@@ -14,7 +14,7 @@ disable-model-invocation: false
 
 ## Step 0: Ticket Scope 驗證 (Scope Gate)
 
-若 `tmp/verify_cmd.conf` 存在，執行：
+若 `tmp/verify_cmd.conf` 存在，先執行 `python .claude/scripts/gate_ledger.py check qa --ticket <TICKET_ID>`（`<TICKET_ID>` 取自該 conf，`grep/head/cut`，禁 `source`）；exit 0 續行，非 0 **不續行** Step 0，退出碼映射見 `ssot-governance.md` 入口落點句；續行則執行：
 
 ```bash
 bash .claude/skills/qa/scripts/verify_checklist.sh tmp/verify_cmd.conf
@@ -22,7 +22,7 @@ bash .claude/skills/qa/scripts/verify_checklist.sh tmp/verify_cmd.conf
 
 - ✅ PASS → 繼續 Step 1
 - ⚠️ WARNING (STALE/MISMATCH) → 回報警告後繼續 Step 1
-- ⛔ FAIL → **MUST** 立即回報違規項目，**不執行 assembleDebug**
+- ⛔ FAIL → **不執行 assembleDebug**，違規項目照實回報；終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置（可自修者——如還原本票越權變更——修復後重跑 /qa）
   - 修正範圍問題後重跑 /qa
 - ⚪ `tmp/verify_cmd.conf` 不存在 → 跳過 Step 0，直接進 Step 1
 
@@ -47,7 +47,7 @@ exit code（交付阻斷權屬五類第②項，非本層）。收口三件套�
 
 ### Anchor Drift STOP（首次成文，`INFRA-GOV-DEESC-01` Rev A AI-2c）
 
-回填制下，Anchor Drift STOP 僅保留一種觸發：回填後之 `DIFF_REF..HEAD` 之間出現**觸及本票 ALLOWED 檔**之 commit（票面現值描述失真風險，需人裁決）；其餘 HEAD 前進一律不觸發。**本判定目前尚無 hook 機械強制點**，屬 /sv、/qa 執行者行為準則；未來若機械化須另立票。
+回填制下，Anchor Drift STOP 僅保留一種觸發：回填後之 `DIFF_REF..HEAD` 之間出現**觸及本票 ALLOWED 檔**之 commit（票面現值描述失真風險；終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置）；其餘 HEAD 前進一律不觸發。**本判定目前尚無 hook 機械強制點**，屬 /sv、/qa 執行者行為準則；未來若機械化須另立票。
 
 ### Per-ticket config 落點（`INFRA-QA-PERTICKET-CONF-01`，根治 `tmp/verify_cmd.conf` 全域單槽位污染）
 
@@ -104,7 +104,7 @@ Bash（`preflight_activation.sh`）自 AI-6 起僅承擔 `FACT_COLLECTION`／`CO
 - ✅ 成功 → 繼續 Step 2
 - 🔴 失敗 → 擷取錯誤 Log，**MUST** 立即提出修復方案並執行。**MUST** 禁止沉默失敗。
   - 修復後重新編譯。最多重試 2 次。
-  - 第 3 次仍失敗 → 回報 `🔴 QA BLOCKED: Compile` 並**停止整個 QA 流程**。
+  - 第 3 次仍失敗 → 記 `step_limit`、回報 `🔴 QA BLOCKED: Compile` 並**停止整個 QA 流程**（該路徑終止）；終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置。
 
 ## Step 2: 單元測試 (Unit Tests)
 
@@ -148,9 +148,9 @@ Step 4（PROGRESS.md 更新）與 Step 4.5（Auto Commit / Auto-Chain）之通�
 
 命中時 QA 報告標注 `SKIPPED — DEFERRED-TO-DOCSYNC`。
 
-**承接條件（缺一仍 STOP）**：存在承接 DOCSYNC 票，**或** QA 報告「待開票」節登記同步債（含本票 ID 與完成狀態）——防同步債靜默累積。
+**承接條件（缺一仍不得改判 SKIP，終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置）**：存在承接 DOCSYNC 票，**或** QA 報告「待開票」節登記同步債（含本票 ID 與完成狀態）——防同步債靜默累積。
 
-**適用範圍**：本條款僅適用「Skill 通用流程 vs 票面明文例外（FORBIDDEN 或 Hard Constraints）」此一衝突型；其餘規則衝突維持 Rule 11 停下確認，**不得推廣為任意衝突之自動裁決**。
+**適用範圍**：本條款僅適用「Skill 通用流程 vs 票面明文例外（FORBIDDEN 或 Hard Constraints）」此一衝突型；其餘規則衝突 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置（驗證先行類），**不得推廣為任意衝突之自動裁決**。
 
 ## Step 4: 更新 PROGRESS.md Dashboard
 
@@ -166,16 +166,16 @@ Step 4（PROGRESS.md 更新）與 Step 4.5（Auto Commit / Auto-Chain）之通�
 /qa Step 4 完成後，從 `tmp/verify_cmd.conf` 讀取 Ticket 範圍並自動提交：
 
 1. **前置確認**：
-   - `tmp/verify_cmd.conf` **MUST** 存在且可讀；否則 → `⛔ Auto Commit BLOCKED: tmp/verify_cmd.conf 不存在`
+   - `tmp/verify_cmd.conf` **MUST** 存在且可讀；否則 → `⛔ Auto Commit BLOCKED: tmp/verify_cmd.conf 不存在`，終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置
    - 從 conf 讀取 `TICKET_ID`、`ALLOWED`（使用 `grep "^KEY=" | head -1 | cut -d'=' -f2-`，**MUST** 禁止 `source`）
-   - `ALLOWED` **MUST** 不得為空；否則 → `⛔ Auto Commit BLOCKED: ALLOWED 為空`
+   - `ALLOWED` **MUST** 不得為空；否則 → `⛔ Auto Commit BLOCKED: ALLOWED 為空`，終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置
 
 2. **Scope 汙染確認**：
    - 執行 `git status --short`，確認無非 ALLOWED 且非 Pipeline Artifact 豁免（`.claude/PROGRESS.md` + `.claude/PROGRESS_ARCHIVE.md`，範圍與行數界線以 `verify_checklist.sh` 的 `PIPELINE_ARTIFACT` / `PIPELINE_ARTIFACT_MAX_LINES` 為單一真相來源，本行僅描述性引用）的 dirty 檔案
-   - 若有 → **MUST** 停止並回報 `⛔ Scope 汙染: [檔案名]`，**不執行 commit**
+   - 若有 → **不執行 commit**，回報 `⛔ Scope 汙染: [檔案名]`；終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置（還原本票越權變更屬可自修；需擴 ALLOWED 才 `HUMAN_REQUIRED(SCOPE)`）
 
 3. **零 diff 判定**：
-   - **Malformed ALLOWED 防禦**：執行前述 `git status --short` 前，若 `ALLOWED` 任一條目含 wildcard／glob／pathspec 異常字元或格式無法安全解析 → **STOP**，回報 **MUST** 逐字引述 `tmp/verify_cmd.conf` 實際內容（禁猜測、禁憑記憶轉述、禁自行修正後續行）
+   - **Malformed ALLOWED 防禦**：執行前述 `git status --short` 前，若 `ALLOWED` 任一條目含 wildcard／glob／pathspec 異常字元或格式無法安全解析 → **不執行 commit**，回報 **MUST** 逐字引述 `tmp/verify_cmd.conf` 實際內容（禁猜測、禁憑記憶轉述、禁自行修正後續行）；終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置
    - 執行 `git status --short -- <ALLOWED 逐檔清單>`
    - 輸出為空 → 真零 diff（untracked `??` 新增檔視為有變更，**不算**輸出為空）：
      - 跳過下列「4. Staging」「5. Commit」子步驟
@@ -188,6 +188,7 @@ Step 4（PROGRESS.md 更新）與 Step 4.5（Auto Commit / Auto-Chain）之通�
    - 只 stage `ALLOWED` 中每個檔案路徑 + `.claude/PROGRESS.md`
 
 5. **Commit**：
+   - Commit 前 **MUST** 先執行 `python .claude/scripts/gate_ledger.py check commit --ticket <TICKET_ID>`；exit 0 續行，非 0 不執行 `git commit`，退出碼映射見 `ssot-governance.md` 入口落點句。
    - Message 格式：`[TICKET_ID] <變更摘要>`
    - **SHOULD** 加 `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>` trailer
    - Commit 失敗 → `⛔ Auto Commit FAILED`，**不進入 /sv**
@@ -216,7 +217,7 @@ Auto-Chain: Build: PASS [Xs] | Tests: [N]/[N] PASS | Lint: [N] warnings (0 error
 ```
 
 **Auto-Chain 停止條件**（任一觸發即停止，**MUST** 不進入 /sv）：
-- 任一 QA Step FAIL
+- 任一 QA Step FAIL（終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置）
 - context 剩餘 ≤ 30K tokens
 
 停止時輸出：`⛔ Auto-Chain STOPPED: [原因]`

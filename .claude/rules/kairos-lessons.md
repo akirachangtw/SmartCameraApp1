@@ -43,7 +43,7 @@ Bug 修復 Ticket 若只覆蓋「觸發路徑」而非「所有消費路徑」�
 Ticket 動工前（Plan 階段），**MUST** 對 Ticket 要修改的「資料來源」執行：
 `grep -rn "[資料來源名]" app/src/main/java --include=*.kt`
 列出所有消費者路徑，每條路徑標註「是否在 ALLOWED 範圍」。
-若存在消費者不在 ALLOWED 範圍 → **MUST** 回報 CSO，等待裁決是否擴充 ALLOWED 或開後續 Ticket。
+若存在消費者不在 ALLOWED 範圍 → 疑似需擴充 ALLOWED 或開後續 Ticket，先本地取證與 Advisor，依 `ssot-governance.md` §Autonomous Engineering Gate 處置（驗證先行類 `SCOPE`）。
 **MUST** 嚴禁「只修觸手可及的路徑，忽略看不見的消費者」。
 觸發來源：Session V — GazeAF Ghost Face 壁癌分析（三條消費路徑，P05-R1 僅覆蓋一條）。
 

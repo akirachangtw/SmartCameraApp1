@@ -7,12 +7,12 @@ disable-model-invocation: false
 > RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。
 
 # Prompt
-你現在是本專案的「本地 Reviewer」。請依序執行以下 **四階段驗收**，任一階段失敗則停止並回報：
+你現在是本專案的「本地 Reviewer」。請依序執行以下 **四階段驗收**，任一階段失敗則該階段後續不續行並回報，終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置：
 
 ## 前置檢查：Ticket 已 Commit Gate
 
-執行 `git diff --name-only HEAD`，若 `tmp/verify_cmd.conf` 存在，讀取 `ALLOWED` 後比對：
-- 若結果含有任何 ALLOWED 中的實作檔案（即 Ticket 代碼尚未 commit）→ **MUST** 停止整個 SV 流程，回報：
+若 `tmp/verify_cmd.conf` 存在，先執行 `python .claude/scripts/gate_ledger.py check sv --ticket <TICKET_ID>`（`<TICKET_ID>` 取自該 conf，`grep/head/cut`，禁 `source`）；exit 0 續行，非 0 **不進階段 A**，退出碼映射見 `ssot-governance.md` 入口落點句；續行則執行 `git diff --name-only HEAD`，讀取 `ALLOWED` 後比對：
+- 若結果含有任何 ALLOWED 中的實作檔案（即 Ticket 代碼尚未 commit）→ **不進階段 A**（可自修：回 `/qa` Step 4.5 完成 commit），終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置，回報：
   ```
   ⛔ SV BLOCKED: Ticket not committed after /qa
   提示：請先完成 /qa Step 4.5 Auto Commit，再執行 /sv
@@ -24,7 +24,7 @@ disable-model-invocation: false
 
 1. **編譯驗證**：執行 `./gradlew assembleDebug 2>&1 | tail -30`
    - **MUST** 0 error。若失敗，擷取錯誤 Log 並**立即修復**，然後重新編譯。
-   - 最多重試 2 次，第 3 次仍失敗則回報 `🔴 SV FAIL: Compile error` 並停止。
+   - 最多重試 2 次，第 3 次仍失敗則回報 `🔴 SV FAIL: Compile error` 並停止（該路徑終止），記 `step_limit`，終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置。
 
 2. **Lint 檢查**：執行 `./gradlew lint 2>&1 | tail -20`
    - **MUST** 無新增 Warning（與上次基線比對）。
@@ -32,7 +32,7 @@ disable-model-invocation: false
 
 3. **檔案邊界檢查**：執行 `git diff --name-only HEAD`
    - 比對本次 Ticket 的授權修改範圍（參考 PROGRESS.md 的 Today's Tickets）。
-   - 若修改了**未授權檔案**，**MUST** 立刻回報 `🚫 Scope Violation: [檔案名]`。
+   - 若修改了**未授權檔案**，**MUST** 立刻回報 `🚫 Scope Violation: [檔案名]`；終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置（還原本票越權變更屬可自修；需擴 scope 才 `HUMAN_REQUIRED(SCOPE)`）。
    - 若該修改是合理連帶（如 import 更新），說明理由。否則還原。
 
 ## 階段 A.5：Android 16KB ELF 對齊驗證 (16KB Page Size Gate)
@@ -155,10 +155,10 @@ disable-model-invocation: false
       - `exit 0` (PASS/ADVISORY) → ✅ 繼續 Traycer 終審
       - `exit 1` (BLOCKER) → 🔴 修程式碼後重新 /qa → /sv
       - `exit 3` (REPORT_FIX，未達閉環上限) → 📋 符合 report-only 閉環條件者依下方「REPORT_FIX report-only 閉環」處理；不符者修 `.tmp/sv_report.md` 後停止回報（不需重跑 /qa）
-      - `exit 2` (ENV / FAIL BUDGET / `CHECKPOINT_REPORT_FIX_LIMIT` / `REPORT_FIX_ESCALATE`) → ⛔ 人工介入，檢查 `.tmp/cross_review_state/<ticket>`；`CHECKPOINT_REPORT_FIX_LIMIT` 為人工裁決 checkpoint（非 BLOCKER、非程式碼修正重試），不得自動重跑
+      - `exit 2` (ENV / FAIL BUDGET / `CHECKPOINT_REPORT_FIX_LIMIT` / `REPORT_FIX_ESCALATE`) → 步驟級事件：記 `step_limit`，檢查 `.tmp/cross_review_state/<ticket>`，終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置；`CHECKPOINT_REPORT_FIX_LIMIT` 為步驟級上限（非 BLOCKER、非程式碼修正重試），不得自動重跑
     - **Fail Budget**: `.tmp/cross_review_state/<TICKET_ID>` 記錄 Round 與 Last Verdict
-      - R2 BLOCKER → ⚠️ Checkpoint 警告，等待裁決
-      - R3 BLOCKER → ⛔ 強制停止 (exit 2)，需人工審查
+      - R2 BLOCKER → ⚠️ Checkpoint 警告（腳本步驟級預算），終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置
+      - R3 BLOCKER → ⛔ 強制停止 (exit 2)，步驟級上限，記 `step_limit`，終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置
       - `REPORT_FIX` 不遞增 `ROUND`（不扣 blocker budget）、遞增 `REPORT_FIX_COUNT`（上限 2）；`REPORT_FIX → REPORT_FIX → BLOCKER` 的第三次 exit 1 為一般 BLOCKER R1，**不是 REPORT_FIX 升級**
     - **REPORT_FIX report-only 閉環**（七條件 predicate 之**唯一來源**為 `ssot-governance.md` Transition Table，此處**不複製**）：①讀 exit 3 輸出之 `REPORT_FIX_SOURCE=`——`structural_preflight` 才可進入閉環；`codex` 一律輸出 `REPORT_FIX_ESCALATE` 並停止；②見 `CHECKPOINT_REPORT_FIX_LIMIT` 或 `REPORT_FIX_ESCALATE`（exit 2）即停止等待人工裁決；③僅修改 `.tmp/sv_report.md`（僅限既有內容重排、必要標題補齊、既有事實之欄位格式校正；不得新增測試結果、commit、命令輸出、證據引用、完成宣稱等新事實）；④單跑 `bash .claude/skills/qa/scripts/structural_verify.sh .tmp/sv_report.md "<DIFF_REF>..<DIFF_END>"` 至 exit 0；⑤以 `REPORT_FIX_CLOSURE=1 bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md "<DIFF_REF>..<DIFF_END>"` 重跑；⑥同票同一 state 週期（PASS／ADVISORY 清 state 前）最多自動閉環 2 次，第 3 次由腳本輸出 `CHECKPOINT_REPORT_FIX_LIMIT`
     - **若 codex 不可用**：在 SV Report 末尾附加提示：
@@ -208,7 +208,8 @@ Cross-Review PASS 且 Done 標記完成後：
 
 SV＋Codex PASS（或 RAPID MODE 豁免）後 **MUST AUTO-CHAIN**，依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table 與 §Ticket Closure 紀律執行 Agent closeout 至 `REVIEW`。本節為引用，**MUST NOT** 複製四要件、GO predicate 或 Traycer 判定表全文。
 
-1. **入口冪等**：先 `registry_list` 讀現值，命中 §Ticket Runtime Transition Table「最小冪等回傳」條件即 `MUST RETURN`。
+1. **入口冪等**：先 `registry_list` 讀現值，命中 §Ticket Runtime Transition Table「最小冪等回傳」條件即 `MUST RETURN`（此路徑**不**呼叫 `check`）。
+   - 入口冪等判定之後、第一個 registry／票檔寫入之前，**MUST** 先執行 `python .claude/scripts/gate_ledger.py check closeout --ticket <TICKET_ID>`（`<TICKET_ID>` 取自 `tmp/verify_cmd.conf`）；exit 0 續行，非 0 **不寫任何 registry／不搬移票檔**，退出碼映射見 `ssot-governance.md` 入口落點句。票在 `deliver/` 而冊面 `file` 仍指 `Pending/` 者不 RETURN、**不呼叫** `check`，交既有 Closure Gate 與「矛盾停止」，不新增恢復流程。
 2. **敘事寫入**：走 `registry_set_checkpoint`（`detail_content` 承載收尾實錄敘事、`checkpoint_data` 承載結構化欄），**MUST NOT** 用 `registry_append_note`；且 **MUST** 置於 `registry_set_status` **之後**（`set_status` 每次呼叫清空 checkpoint）。寫後 **MUST** read-back 驗證。
 
 ## 回報格式
@@ -241,7 +242,7 @@ Token 估算基準
 📦 16KB ELF: 🟡 WARNING — [UNALIGNED .so 清單] (Release 前必須清零)
 🔍 Cross-Review: 🔴 BLOCKER — [問題清單] / 📋 REPORT_FIX — [sv_report 段落]
 ...
-→ 🚫 SV 未通過。已自動修復 X 項，仍有 Y 項需人工介入。
+→ 🚫 SV 未通過。已自動修復 X 項，仍有 Y 項未通過，終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置（續作或 `HUMAN_REQUIRED`）。
 📊 Status: ~[X]K used | [狀態 emoji]（健康度依 Turns 判定）
 Turns: [N] | Code: ~[M] lines
 Suggestion: [建議]

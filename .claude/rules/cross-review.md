@@ -12,11 +12,10 @@ description: Cross-Review pipeline 行為規範 — FAIL 處理 / Checkpoint / �
 
 - 修正涉及：PROGRESS.md / sv_report*.md / ssot_context.md / CLAUDE.md / SSOT*.md / *_Contract*.md（**例外**：符合 `ssot-governance.md` Transition Table「SV／Codex 判 REPORT_FIX」七條件、僅修改 `.tmp/sv_report*.md` 之 report-only 閉環不觸發本款）
 - 修正含 token：FeatureFlags / gate / Gate / cooldown / @Inject / @Module / @Provides
-- 第 2 次 FAIL（同票任何維度；report-only REPORT_FIX 閉環之重跑不計入，其上限由腳本於第 3 次輸出 `CHECKPOINT_REPORT_FIX_LIMIT`（exit 2）管制）
 
-**次數限制**：第 1 次 FAIL 純 .kt fix **MAY** inline，完成後 **MUST** 立即回報等 ack。第 2 次 → **MUST** 停。report-only REPORT_FIX 閉環不適用本段。
+**次數限制**：第 2 次 FAIL（同票任何維度）屬步驟級事件，記 `step_limit` → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置；第 1 次 FAIL 純 .kt fix **MAY** inline。report-only REPORT_FIX 閉環之重跑不計入，其上限由腳本於第 3 次輸出 `CHECKPOINT_REPORT_FIX_LIMIT`（exit 2）管制。
 
-**Checkpoint 格式**（**MUST** 使用）：
+**Checkpoint 格式**（**MUST** 使用；僅於 `HUMAN_REQUIRED` 成立時輸出）：
 
 ```text
 📍 CROSS_REVIEW CHECKPOINT | Ticket: [ID] | Round: R[N]
@@ -24,7 +23,7 @@ Codex: [判定原文] | 選項: A.[方案A] / B.[方案B] / D.[Codex誤判理由
 ⏸️ 等待 Akira 裁決
 ```
 
-**退出機制**：無 Akira ack **MUST** 不得連續執行 2 次以上 cross_review.sh（report-only REPORT_FIX 閉環於腳本本次回 exit 3 之重跑除外；第 3 次 → `CHECKPOINT_REPORT_FIX_LIMIT` 人工裁決）。
+**退出機制**：步驟級預算用盡後再重跑 `cross_review.sh` 不是已授權策略（report-only REPORT_FIX 閉環於腳本本次回 exit 3 之重跑除外；第 3 次 → `CHECKPOINT_REPORT_FIX_LIMIT` 為步驟級上限，依 `ssot-governance.md` §Autonomous Engineering Gate 處置）；Akira ack 僅作為 `EXHAUSTED` 後續跑之恢復門（`HUMAN_REQUIRED(COST)`），例行 ack 不構成「無已授權策略」之理由。
 
 ## Scope Ban BLOCKER 處置 + Payload 一致性
 

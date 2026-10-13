@@ -46,6 +46,7 @@ disable-model-invocation: false
 7. **MUST** 多檔修改：按修改順序列出所有 diff，檔案間用空行分隔。UC 實作輸出的最後一行才輸出 `✅ DONE`。
 8. **Ticket DONE = QA 交棒信號**：
    - Ticket 完成前，**MUST** 從 `tmp/verify_cmd.conf` 以 `grep/head/cut` 讀取 `TICKET_ID`，**MUST NOT** `source` 或猜測 Ticket ID。
+   - 輸出 Ticket DONE 前，**MUST** 先執行 `python .claude/scripts/gate_ledger.py check done --ticket <TICKET_ID>`；exit 0 續行，非 0 **不輸出 Ticket DONE**，退出碼映射見 `ssot-governance.md` 入口落點句。
    - Ticket 完成格式：`✅ DONE | [TICKET_ID] [摘要] | [影響檔案數]F [影響行數]L`。
    - 輸出 Ticket DONE 後，**MUST** 立即呼叫 `Skill(qa)`（等價 `/qa`），不得停下等待使用者確認。
    - `compile fix`、`git commit` 或其他非 Ticket DONE 僅為中間動作，**MUST NOT** 觸發 QA。
@@ -54,7 +55,7 @@ disable-model-invocation: false
 9. **Auto-Chain ownership**：
    - `/uc` 只呼叫 QA，**MUST NOT** 直接呼叫 SV。
    - QA 全步驟 PASS 後，由 QA Skill 依既有契約自動進入 SV。
-   - QA FAIL、Auto Commit FAIL 或 `Auto-Chain STOPPED` 時，**MUST** 停止且不得進入 SV。
+   - QA FAIL、Auto Commit FAIL 或 `Auto-Chain STOPPED` 時，`/qa` PASS 前**不得進入 SV**；終點 → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置。
    - SV 的 PASS／ADVISORY／REPORT_FIX／BLOCKER／ENV ERROR 依 SV Skill 契約處理；`/uc` 自身 **MUST NOT** 重跑、改判或修改 `.tmp/sv_report*.md`；SV 契約內之 report-only REPORT_FIX 閉環由 SV 流程自行消費 exit 3，不屬 UC 之重跑或改判。
 
 ## 驗證性動作豁免
@@ -68,9 +69,9 @@ disable-model-invocation: false
 ## 唯一例外
 
 遇到以下情況 **MUST** 打破沉默：
-- 🚫 需修改 CLAUDE.md 禁區內的檔案 → 回報 `🚫 [檔案名] 需架構審查`
-- ⚠️ 發現 SSOT 規格衝突 → 回報 `⚠️ SSOT 衝突: [描述]`
-- 🔴 連續 2 次修復仍編譯失敗 → 回報 `🔴 需要人工介入: [錯誤]`
+- 🚫 需修改 CLAUDE.md 禁區內的檔案 → 疑似需擴 scope，先本地取證與 Advisor，依 `ssot-governance.md` §Autonomous Engineering Gate 處置（驗證先行類 `SCOPE`；成立時回報 `🚫 [檔案名] 需架構審查`）
+- ⚠️ 發現 SSOT 規格衝突 → 先本地取證與 Advisor，依 `ssot-governance.md` §Autonomous Engineering Gate 處置（驗證先行類 `SSOT_CONFLICT`；成立時回報 `⚠️ SSOT 衝突: [描述]`）
+- 🔴 連續 2 次修復仍編譯失敗 → 記 `step_limit`，依 `ssot-governance.md` §Autonomous Engineering Gate 處置（需人工時回報 `🔴 需要人工介入: [錯誤]`）
 - 📝 票面事實層錯誤且落於 `ticket-rigor-gate` 之 Post-Signature Erratum Lane 射程內 → 回報 `📝 Erratum queued: [TICKET_ID] | [欄位] | [舊值→新值] | [出處 file:行號]`
 - ⚠️ 收尾 SOP 執行遇「AC 佐證不明」或「lifecycle 落點判準衝突」→ 回報 `⚠️ SSOT 衝突` 或等效揭露待決，**MUST NOT** 靜默推定勾選或轉態（沿用 `ssot-governance.md` 既有「母票 AC 佐證不明」條款）
 

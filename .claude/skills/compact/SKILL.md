@@ -118,7 +118,7 @@ disable-model-invocation: false
 
 - **MUST** 更新 `.claude/PROGRESS.md` 為最新完成狀態。
 - **MUST** 產出 handoff 或 closeout 文件，記錄完成內容、驗收證據與 reopen 條件。
-- **MAY** 提出 Git stage / commit 建議，但必須等待顯式確認。
+- Governance Artifact 之 commit 由本檔「Auto Commit: Governance Artifacts」節機械執行，不另等待確認；非 Governance Artifact 之 Git stage／commit 建議 **MAY** 提出，須等待顯式確認。Gate 不攔截使用者指令（`/compact`／`/clear`），但不排除計數與恢復義務（見 `ssot-governance.md` §Autonomous Engineering Gate）。
 - **MUST NOT** 因 closeout 而自動取代 ticket lifecycle 的治理決策。
 - **MUST** 依序執行本檔「冊面收束一致性閘」節、再執行「Auto Commit: Governance Artifacts」節——此二節之呼叫路徑僅限於 `closeout` 模式。
 
@@ -184,6 +184,7 @@ disable-model-invocation: false
 - 完成：
 - 阻塞：
 - 下一步：
+- 恢復：有 active 票時先 `python .claude/scripts/gate_ledger.py status --json` 讀 open incident／待人工（非 0 → 記原始錯誤與 ledger 狀態未知，不當作無 open incident）
 - 帶入：CLAUDE.md · .claude/PROGRESS.md · <relevant files>
 
 ## 關鍵決策
@@ -263,7 +264,7 @@ Get-ChildItem -Path $root -File -Filter 'SESSION_HANDOFF_*.md' |
 在顯式 `closeout` 模式下：
 
 - **MAY** 顯示 `git status --short` 作為預覽。
-- **MAY** 依使用者確認逐檔 `git add`。
+- Governance Artifact 逐檔提交依「Auto Commit: Governance Artifacts」節機械執行；非 Governance Artifact 之逐檔 `git add` **MAY** 依使用者確認。
 - **MUST NOT** 使用 `git add -A` 或 `git add .`。
 - **MUST** 將無法分類或未獲裁決的檔案降為未決，不得靜默提交。
 - **SHOULD** 將未決項目寫入 handoff 的「未識別檔處置」段。

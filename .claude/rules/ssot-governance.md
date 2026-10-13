@@ -172,7 +172,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ## Autonomous Engineering Gate
 
-> 契約狀態：本節為契約文字。所稱 helper、ledger、Stop hook、入口 `check` 呼叫與三輪機械停損均為後續票目標，目前尚不存在；落地前本節僅約束 agent 決策順序（模型契約），agent **MUST NOT** 呼叫不存在的指令，**MUST NOT** 宣稱已有機械計數或 hook 阻擋。
+> 契約狀態：本節為契約文字。helper 與 ledger 已存在（ADV-GATE-02）；入口 `check` 呼叫已接入 qa／commit／sv／closeout／done，`resume` 讀 `status`（ADV-GATE-03）。呼叫路徑屬模型契約，不被機械阻擋；本 Gate 專用 Stop guard 與升報通知對齊尚未實作（待後繼票），Advisor 採納之驗證限制（內容加密、不可驗）照實保留；agent **MUST NOT** 宣稱已有 hook 阻擋，**MUST NOT** 宣稱完整 Gate。
 
 ### 詞彙域與不外溢條件
 
@@ -213,7 +213,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ### 入口與覆蓋矩陣
 
-- 正常入口最小落點（目前尚未加入呼叫，屬後續票）：`qa`＝`qa/SKILL.md` `## Step 0: Ticket Scope 驗證 (Scope Gate)`；`commit`＝同檔 `## Step 4.5: Ticket Auto Commit`；`sv`＝`sv/SKILL.md` `## 前置檢查：Ticket 已 Commit Gate`；`closeout`＝同檔 `## Step 11: Closeout Auto-Chain`；`done`＝`uc/SKILL.md` 規則 8；`resume`＝`.claude/CLAUDE.md` `## ⚡ Boot Sequence`。
+- 正常入口最小落點：入口 check 呼叫已接入（ADV-GATE-03）。`qa`＝`qa/SKILL.md` `## Step 0: Ticket Scope 驗證 (Scope Gate)`；`commit`＝同檔 `## Step 4.5: Ticket Auto Commit`；`sv`＝`sv/SKILL.md` `## 前置檢查：Ticket 已 Commit Gate`；`closeout`＝同檔 `## Step 11: Closeout Auto-Chain`；`done`＝`uc/SKILL.md` 規則 8；`resume`＝`.claude/CLAUDE.md` `## ⚡ Boot Sequence`（讀 `status`）。`check` 退出碼映射（單一來源，各入口呼叫處只回指）：0＝續行該入口動作；1＝ledger 已有待人工，依印出的類別、incident、basis 輸出 `HUMAN_REQUIRED`，不新造理由；2–6＝檢核未完成，不代表有待人工，不續行該入口動作，依原始錯誤在既有授權內排除後重跑，不得視為通過，同一入口同一原始錯誤重跑仍失敗 → 記 `step_limit`，依 Gate 處置，需權限或擴 scope 者依 Gate 升報；不與 `cross_review.sh` 的 exit 2 或 Gate 三輪合併計數；不得以偽造事件修復損毀 ledger。`resume` 讀 `status` 非 0：記原始錯誤與 ledger 狀態未知，可續行 Boot／讀取／取證，不得當作無 open incident，後續受 Gate 控制的動作須先通過第一個對應 `check`，不得偽造事件、重置 ledger 或繞過檢核。
 - 覆蓋矩陣四軸分開記錄：check 程式結果（確定性）／呼叫路徑（模型契約）／機械後盾／未覆蓋。決策點：pause、ask-user、commit、QA、SV、closeout、恢復義務、提前升報、Advisor、PPSS、權限被拒、subagent、headless、並行；目前皆未實作。
 - 缺入口 receipt 之後盾屬事後漏檢偵測，不得回填成事前已通過；補跑 receipt 標 `late`，不得引為已發生動作之事前放行。
 - hook 連續 block 之官方上限（8 次）不是解題預算。
@@ -236,7 +236,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ### 實作狀態與宣告限制
 
-- 本節只交付契約；helper、Stop hook、入口 `check` 呼叫、三輪機械停損、Advisor 採納之驗證、PPSS 取回／證據記錄皆尚不存在。
+- 本節只交付契約；helper 與 ledger 已存在（ADV-GATE-02），入口 `check` 呼叫已接入（ADV-GATE-03）；本 Gate 專用 Stop guard 與升報通知對齊尚未實作（待後繼票），Advisor 採納之驗證限制（內容加密、不可驗）照實保留。
 - 「完整 Gate」僅為需求名稱；任何票或收尾實錄不得宣稱其「已完整」，只得陳述實際落地之入口控制與覆蓋矩陣各列實測現況；揭露未覆蓋項不能替代機械後盾條件。
 
 ## Session Persistence 邊界
