@@ -482,3 +482,6 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 
 <!-- 2026-10-14 /compact checkpoint：自 PROGRESS.md 最近 Ticket 表輪替 -->
 | ADV-RULE4C-01 | ✅ **CLOSED**（2026-10-12 REVIEW→2026-10-13 終審，commit `9a0e1fb3`+`4fb5671b`；冊面 lifecycle=CLOSED、reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}，已 read-back）· `CLAUDE.md` Rule 4c 整行替換（驗收工具不新增授權；ALLOWED 內可自修問題依 Gate 修復後揭露）；`ssot-governance.md` Table QA FAIL 列改寫（可自修→`MUST AUTO-CHAIN` 修復後重跑 /qa；不可自修／人工邊界／停損→`MUST STOP`）、刪除回指行與過渡句、同步 Gate 節括註。RGR 首跑即轉 `TICKET_RIGOR` 自主修補（M-1／n-1／n-2）；兩個 fresh subagent 重放（Rule 4c 入口、qa 入口）無互斥，n=1 弱證據。殘餘：`uc` 規則 9／`qa` 停止字面屬 autogate T02 |
+
+<!-- 2026-10-15 /compact checkpoint：自 PROGRESS.md 最近 Ticket 表輪替 -->
+| ADV-GATE-01 | ✅ **CLOSED**（2026-10-11，commit `2441aeba`+`470bf098`；冊面 lifecycle=CLOSED、reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}）· `rules/ssot-governance.md` 純新增 72 行：獨立 `## Autonomous Engineering Gate` 契約節（詞彙不外溢、最多 3 輪、`EXHAUSTED` 僅限三輪耗盡、`NO_AUTHORIZED_STRATEGY`、`evidence_ok` 僅可追溯、入口落點與覆蓋矩陣四軸）＋Table 回指一行；**只交付契約，helper／hook／機械停損尚不存在**。原歸 ACAGOV，Akira 裁決改歸 Advisor（`ACAGOV-GATE-01`→`ADV-GATE-01`）。Codex PASS；AC-8 重放 n=1 弱證據 |
