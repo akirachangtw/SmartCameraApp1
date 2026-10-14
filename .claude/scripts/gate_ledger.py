@@ -18,6 +18,13 @@ Location (conservative usability judgement from where the ticket file sits under
          Only loc:pending is mutable. status is read-only and works for any
          location as long as a ledger exists.
 
+Layers : MAX_ROUNDS (3) is a per-layer cap. A round counts against the layer its
+         strategy came from (--layer, default executor; events without a layer
+         field fold as executor). The first r0 / advisor round of an incident needs a
+         prior consult --kind r0 / advisor on the SAME incident (the record's
+         existence only; this helper cannot verify that a real call happened).
+         EXHAUSTED means 3 failed advisor-layer rounds (--basis layer_advisor_3).
+
 Global option (accepted before or after the sub-command): --ticket ID
 
 Sub-commands
@@ -25,9 +32,10 @@ Sub-commands
   incident open --subject TOK [--subject TOK ...] [--gate-point P] [--verdict V]
                 [--same-root-cause INC] [--independent-evidence REF]
   round start --incident INC --expect N --strategy S --authority A
+              [--layer executor|r0|advisor]
   round end   --incident INC --result pass|fail
   step-limit  --incident INC --source NAME [--note N]
-  consult     --incident INC --kind local|advisor [--note N]
+  consult     --incident INC --kind local|advisor|r0 [--note N]
   strategy-scan --incident INC --item "<strategy>::<reason excluded>" [--item ...]
   ppss record --incident INC --artifact PATH [--domains d1,d2]
               [--new-query-strategy S --reason R]
@@ -74,7 +82,9 @@ EXIT_OK, EXIT_BLOCKED, EXIT_USAGE, EXIT_IDENT, EXIT_TICKET, EXIT_CONTRACT, EXIT_
 
 LOCK_TIMEOUT = 10.0
 STALE_SECONDS = 30.0
-MAX_ROUNDS = 3
+MAX_ROUNDS = 3  # per-layer cap (executor / r0 / advisor), not an incident-wide total
+LAYERS = ("executor", "r0", "advisor")
+EXHAUSTED_BASIS = "layer_advisor_3"
 STILL_ACTIVE = 259
 ERROR_INVALID_PARAMETER = 87
 ERROR_ACCESS_DENIED = 5
@@ -388,9 +398,18 @@ class Ledger:
 # --------------------------------------------------------------------------
 def _new_incident(iid: str) -> dict:
     return {"id": iid, "subjects": [], "status": "open", "rounds_started": 0, "results": [],
-            "round_open": False, "strategies": [], "consults": {"local": 0, "advisor": 0},
+            "round_open": False, "strategies": [], "consults": {"local": 0, "advisor": 0, "r0": 0},
             "scans": 0, "findings": 0, "step_limits": 0, "ppss_window": 0,
-            "gate_points": [], "verdicts": []}
+            "gate_points": [], "verdicts": [],
+            "layers": {name: {"started": 0, "failed": 0} for name in LAYERS}, "round_layer": None}
+
+
+def top_layer_rounds(inc: dict) -> int:
+    """Rounds started on the highest engaged known layer (advisor > r0 > executor); 0 if none."""
+    for name in ("advisor", "r0", "executor"):
+        if inc["layers"][name]["started"]:
+            return inc["layers"][name]["started"]
+    return 0
 
 
 def fold(events: list) -> dict:
@@ -415,9 +434,16 @@ def fold(events: list) -> dict:
             inc["rounds_started"] += 1
             inc["round_open"] = True
             inc["strategies"].append(e["strategy_norm"])
+            layer = e.get("layer") or "executor"
+            # an unknown layer value keeps its own bucket: data is preserved, never counted as a known layer
+            inc["layers"].setdefault(layer, {"started": 0, "failed": 0})["started"] += 1
+            inc["round_layer"] = layer
         elif t == "round_end":
             inc["round_open"] = False
             inc["results"].append(e["result"])
+            if e["result"] == "fail" and inc["round_layer"]:
+                inc["layers"][inc["round_layer"]]["failed"] += 1
+            inc["round_layer"] = None
             inc["ppss_window"] = 0
             if e["result"] == "pass":
                 inc["status"] = "closed"
@@ -503,6 +529,7 @@ def summarize(ctx: Ctx, st: dict) -> dict:
         incidents.append({"id": iid, "status": i["status"], "subjects": i["subjects"],
                           "rounds_started": i["rounds_started"],
                           "rounds_failed": i["results"].count("fail"),
+                          "layers": i["layers"],
                           "round_open": i["round_open"], "strategies": i["strategies"],
                           "pending_human": [p["category"] for p in pending_for(st, iid)],
                           "consults": i["consults"], "strategy_scans": i["scans"],
@@ -527,7 +554,9 @@ def cmd_status(args) -> int:
         print(f"ticket={out['ticket']} source={out['ticket_source']} location={out['ticket_location']}"
               f" stale={out['stale']} ledger={'yes' if out['ledger_exists'] else 'no'} last_seq={out['last_seq']}")
         for i in out["incidents"]:
-            print(f"  {i['id']} {i['status']} rounds={i['rounds_started']}/{MAX_ROUNDS}"
+            per_layer = " ".join(f"{name}={b['started']}/{MAX_ROUNDS}(failed {b['failed']})"
+                                 for name, b in i["layers"].items())
+            print(f"  {i['id']} {i['status']} rounds={i['rounds_started']} {per_layer}"
                   f" failed={i['rounds_failed']} pending_human={i['pending_human']} subjects={i['subjects']}")
         for p in out["pending_human"]:
             print(f"  PENDING_HUMAN {p['category']} incident={p['incident']} basis={p['basis']}")
@@ -582,8 +611,12 @@ def cmd_round_start(args) -> int:
             raise GateError(EXIT_CONTRACT, f"{inc['id']} is pending a human decision")
         if inc["round_open"]:
             raise GateError(EXIT_CONTRACT, f"{inc['id']} already has a round in progress")
-        if inc["rounds_started"] >= MAX_ROUNDS:
-            raise GateError(EXIT_CONTRACT, f"{inc['id']} already used {MAX_ROUNDS} rounds")
+        layer = args.layer
+        if inc["layers"][layer]["started"] >= MAX_ROUNDS:
+            raise GateError(EXIT_CONTRACT, f"{inc['id']} already used {MAX_ROUNDS} {layer} rounds")
+        if layer != "executor" and inc["consults"][layer] < 1:
+            raise GateError(EXIT_CONTRACT, f"{inc['id']} {layer} layer needs a prior "
+                                           f"consult --kind {layer} on this incident")
         if args.expect is None:
             raise GateError(EXIT_CONTRACT, "--expect is required (CAS)")
         if args.expect != inc["rounds_started"]:
@@ -594,8 +627,9 @@ def cmd_round_start(args) -> int:
             raise GateError(EXIT_CONTRACT, "strategy repeats an earlier round of this incident")
         ev = ctx.ledger.append(st["last_seq"], {
             "type": "round_start", "incident": inc["id"], "round": inc["rounds_started"] + 1,
+            "layer": layer,
             "strategy": strategy, "strategy_norm": norm(strategy), "authority": authority})
-    emit({"ok": True, "incident": inc["id"], "round": ev["round"], "seq": ev["seq"]})
+    emit({"ok": True, "incident": inc["id"], "round": ev["round"], "layer": layer, "seq": ev["seq"]})
     return EXIT_OK
 
 
@@ -761,21 +795,24 @@ def cmd_human(args) -> int:
         elif cat not in IMMEDIATE and cat != "NO_PROGRESS":
             raise GateError(EXIT_CONTRACT, f"{cat} needs --incident")
         if cat == "EXHAUSTED":
-            if basis != "rounds_3" or inc["rounds_started"] != MAX_ROUNDS or inc["results"].count("fail") != MAX_ROUNDS:
-                raise GateError(EXIT_CONTRACT, "EXHAUSTED needs 3 failed rounds on the incident and --basis rounds_3")
+            adv = inc["layers"]["advisor"]
+            if basis != EXHAUSTED_BASIS or adv["started"] != MAX_ROUNDS or adv["failed"] != MAX_ROUNDS:
+                raise GateError(EXIT_CONTRACT, f"EXHAUSTED needs {MAX_ROUNDS} failed advisor-layer rounds "
+                                               f"on the incident and --basis {EXHAUSTED_BASIS}")
         elif cat in VERIFY_FIRST:
             if inc["consults"]["local"] < 1 or inc["consults"]["advisor"] < 1:
                 raise GateError(EXIT_CONTRACT, f"{cat} needs prior consult local and consult advisor")
             if cat == "NO_AUTHORIZED_STRATEGY":
-                if inc["rounds_started"] >= MAX_ROUNDS or inc["round_open"]:
-                    raise GateError(EXIT_CONTRACT, "NO_AUTHORIZED_STRATEGY needs rounds<3 and no round in progress")
+                if inc["layers"]["advisor"]["started"] >= MAX_ROUNDS or inc["round_open"]:
+                    raise GateError(EXIT_CONTRACT, "NO_AUTHORIZED_STRATEGY needs advisor-layer rounds<3 "
+                                                   "and no round in progress")
                 if inc["scans"] < 1:
                     raise GateError(EXIT_CONTRACT, "NO_AUTHORIZED_STRATEGY needs a non-empty strategy-scan")
         elif cat == "NO_PROGRESS" and st["blocks"] < 1:
             raise GateError(EXIT_CONTRACT, "NO_PROGRESS needs at least one recorded blocks event")
         ev = ctx.ledger.append(st["last_seq"], {"type": "human", "category": cat,
                                                 "incident": inc["id"] if inc else None, "basis": basis})
-        rounds = inc["rounds_started"] if inc else 0
+        rounds = top_layer_rounds(inc) if inc else 0
     print(f"HUMAN_REQUIRED: {cat} | {ctx.tid} | {inc['id'] if inc else 'none'} | round={rounds}/{MAX_ROUNDS} | {basis}")
     return EXIT_OK
 
@@ -843,6 +880,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--expect", type=int)
     p.add_argument("--strategy")
     p.add_argument("--authority")
+    p.add_argument("--layer", choices=LAYERS, default="executor")
     p.add_argument("--result", choices=["pass", "fail"])
     p.set_defaults(fn=lambda a: cmd_round_start(a) if a.action == "start" else _round_end(a))
 
@@ -854,7 +892,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("consult", parents=[common])
     p.add_argument("--incident", required=True)
-    p.add_argument("--kind", required=True, choices=["local", "advisor"])
+    p.add_argument("--kind", required=True, choices=["local", "advisor", "r0"])
     p.add_argument("--note")
     p.set_defaults(fn=cmd_consult)
 

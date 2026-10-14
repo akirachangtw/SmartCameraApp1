@@ -338,29 +338,54 @@ def load_seq(ctx: Ctx):
 
 
 # --------------------------------------------------------------------------- reasons
+LAYER_NAMES = ("executor", "r0", "advisor")
+
+
+def layer_stat(inc: dict, name: str):
+    """(started, failed) of one known layer; a missing `layers` field reads as (0, 0)."""
+    bucket = (inc.get("layers") or {}).get(name) or {}
+    return int(bucket.get("started", 0)), int(bucket.get("failed", 0))
+
+
+def exhausted_note(inc: dict) -> str:
+    """Pointer to the next layer when a lower layer is spent and Advisor is not engaged yet."""
+    if layer_stat(inc, "advisor")[0] > 0:
+        return ""
+    if layer_stat(inc, "r0")[1] >= 3:
+        return ("；r0 層已耗盡：不得再要求跑已耗盡的 R0；必須升 Advisor（`consult --kind advisor` 後 "
+                "`round start --layer advisor`）；不得僅因 r0 耗盡而升人類")
+    if layer_stat(inc, "executor")[1] >= 3:
+        return ("；executor 層已耗盡：必須升下一適用層（cross-review 路徑先 R0，否則 Advisor）；"
+                "尚未 engaged 的 Advisor 不得視為已處理")
+    return ""
+
+
 def incident_lines(st: dict, incidents) -> list:
     ppss = st.get("ppss") or []
     lines = []
     for inc in incidents:
         used_ppss = sum(1 for rec in ppss if rec.get("incident") == inc["id"])
         advisor = (inc.get("consults") or {}).get("advisor", 0)
-        lines.append(f"- {inc['id']}（{', '.join(inc.get('subjects') or [])}）：輪數 {inc.get('rounds_failed', 0)} 失敗／"
-                     f"已開 {inc.get('rounds_started', 0)}／3；Advisor 已用 {advisor}（初判 ≤1＋reconcile ≤1，"
-                     f"角色限制不因次數改變）；PPSS 已用 {used_ppss}／1")
+        stats = "｜".join(f"{name} {layer_stat(inc, name)[0]}/3（失敗 {layer_stat(inc, name)[1]}）"
+                          for name in LAYER_NAMES)
+        lines.append(f"- {inc['id']}（{', '.join(inc.get('subjects') or [])}）：{stats}；"
+                     f"Advisor 已用 {advisor}；PPSS 已用 {used_ppss}" + exhausted_note(inc))
     return lines
 
 
 ROUTER = ("依 Gate 順序走 Router：R1 已授權可做者直接做並驗證；R2 未知先本地取證（`consult --kind local`）；"
-          "R3 仍不能判定下一個安全行動才呼叫原生 Advisor（`consult --kind advisor`）；R4 缺必要外部事實才用 "
-          "PPSS（`research_submit`→`ppss record`／`ppss read`）；R5 research 後至多一次 Advisor reconcile；"
-          "R6 以新且已授權策略 `round start`→修復→局部驗證→`round end`。")
+          "R3 仍不能判定下一個安全行動才呼叫原生 Advisor（`consult --kind advisor`；本層不確定即可升層，"
+          "不必先用完本層輪數）；R4 缺必要外部事實才用 PPSS（`research_submit`→`ppss record`／`ppss read`）；"
+          "R5 PPSS 證據回流同一 incident，於後續 round 策略引用並消費；同缺口不重送、不新增研究額度；"
+          "R6 以新且已授權策略 `round start`（`--layer` 依策略來源層；advisor 層首輪前須有同 incident "
+          "`consult --kind advisor`）→修復→局部驗證→`round end`。")
 
 
 def build_reason(ctx: Ctx, st: dict, router_incidents, escalate_incidents, missed, other_pending) -> str:
     parts = [f"[gate_stop_guard] {ctx.ticket}：目前停止不合格，帶回 Gate Router。"]
     if escalate_incidents:
-        parts.append("以下 incident 已用滿 3 輪失敗，**僅允許升報**：執行 `python .claude/scripts/gate_ledger.py human "
-                     "--category EXHAUSTED --incident <INC> --basis rounds_3` 並輸出 `HUMAN_REQUIRED` 單行；"
+        parts.append("以下 incident 的 advisor 層已用滿 3 輪失敗，**僅允許升報**：執行 `python .claude/scripts/gate_ledger.py human "
+                     "--category EXHAUSTED --incident <INC> --basis layer_advisor_3` 並輸出 `HUMAN_REQUIRED` 單行；"
                      "不提出或執行第四輪、不再修復／研究／諮詢／重試該 incident。")
         parts.extend(incident_lines(st, escalate_incidents))
     if router_incidents:
@@ -435,7 +460,7 @@ def decide(ctx: Ctx):
     pending_ids = {p.get("incident") for p in pending}
     incidents = st.get("incidents") or []
     open_incs = [i for i in incidents if i.get("status") == "open" and i["id"] not in pending_ids]
-    escalate = [i for i in open_incs if int(i.get("rounds_failed", 0)) >= 3]
+    escalate = [i for i in open_incs if layer_stat(i, "advisor")[1] >= 3]
     router = [i for i in open_incs if i not in escalate]
 
     try:

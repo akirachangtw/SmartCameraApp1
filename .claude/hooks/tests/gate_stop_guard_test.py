@@ -80,9 +80,25 @@ class Env:
         out = json.loads(self.ledger("incident", "open", "--subject", subject, *extra).stdout)
         return out["incident"]
 
-    def fail_round(self, inc, n, strategy):
-        self.ledger("round", "start", "--incident", inc, "--expect", str(n), "--strategy", strategy, "--authority", "ticket")
+    def fail_round(self, inc, n, strategy, layer=None):
+        args = ["round", "start", "--incident", inc, "--expect", str(n), "--strategy", strategy, "--authority", "ticket"]
+        if layer:
+            args += ["--layer", layer]
+        self.ledger(*args)
         self.ledger("round", "end", "--incident", inc, "--result", "fail")
+
+    def consult(self, inc, kind):
+        self.ledger("consult", "--incident", inc, "--kind", kind)
+
+    def exhaust_advisor(self, inc, start=0):
+        self.consult(inc, "advisor")
+        for k in range(3):
+            self.fail_round(inc, start + k, f"adv-{inc}-{k}", layer="advisor")
+
+    def write_events(self, events):
+        path = self.root / ".git" / "gate" / f"{TICKET}.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in events), encoding="utf-8")
 
     def transcript(self, prompt, text, ts=None):
         path = self.root / "tmp" / f"transcript_{prompt}.jsonl"
@@ -233,9 +249,11 @@ class OpenIncidents(Base):
     def test_open_incident_below_three_rounds_blocks_with_router(self):
         inc = self.env.incident("s-a")
         reason = self.block(self.env.payload())
-        for token in ("R1", "R3", "R4", "R6", "consult --kind advisor", inc, "Advisor 已用 0", "PPSS 已用 0／1", "permissions"):
+        for token in ("R1", "R3", "R4", "R6", "consult --kind advisor", inc, "Advisor 已用 0", "PPSS 已用 0",
+                      "executor 0/3（失敗 0）", "permissions"):
             self.assertIn(token, reason)
-        self.assertNotIn("僅允許升報", reason)
+        for banned in ("PPSS 已用 0／1", "初判", "reconcile", "僅允許升報"):
+            self.assertNotIn(banned, reason)
         self.assertEqual(self.env.status()["blocks"], 1)
 
     def test_three_failed_rounds_only_escalation_and_other_incident_not_misblocked(self):
@@ -244,8 +262,15 @@ class OpenIncidents(Base):
             self.env.fail_round(i1, n, strat)
         i2 = self.env.incident("s-b", ("--independent-evidence", "separate failing output"))
         reason = self.block(self.env.payload())
+        self.assertNotIn("僅允許升報", reason)             # executor exhaustion alone is not an escalation
+        self.assertIn("executor 層已耗盡", reason)
+        self.assertIn("consult --kind advisor", reason)
+        self.assertIn(i2, reason)
+        self.env.exhaust_advisor(i1, start=3)
+        reason = self.block(self.env.payload(prompt="p2"))
         self.assertIn("僅允許升報", reason)
         self.assertIn("EXHAUSTED", reason)
+        self.assertIn("layer_advisor_3", reason)
         self.assertIn(i2, reason)
         router_part = reason.split("僅允許升報")[1]
         self.assertIn("以下 incident 仍有未結義務", router_part)
@@ -254,14 +279,16 @@ class OpenIncidents(Base):
         i1 = self.env.incident("s-a")
         for n, strat in enumerate(("a", "b", "c")):
             self.env.fail_round(i1, n, strat)
-        self.env.ledger("human", "--category", "EXHAUSTED", "--incident", i1, "--basis", "rounds_3")
+        self.env.exhaust_advisor(i1, start=3)
+        self.env.ledger("human", "--category", "EXHAUSTED", "--incident", i1, "--basis", "layer_advisor_3")
         self.assertAllow(self.env.payload())
 
     def test_local_pending_does_not_excuse_other_open_incident(self):
         i1 = self.env.incident("s-a")
         for n, strat in enumerate(("a", "b", "c")):
             self.env.fail_round(i1, n, strat)
-        self.env.ledger("human", "--category", "EXHAUSTED", "--incident", i1, "--basis", "rounds_3")
+        self.env.exhaust_advisor(i1, start=3)
+        self.env.ledger("human", "--category", "EXHAUSTED", "--incident", i1, "--basis", "layer_advisor_3")
         i2 = self.env.incident("s-b", ("--independent-evidence", "separate failing output"))
         reason = self.block(self.env.payload())
         self.assertIn(i2, reason)
@@ -278,6 +305,87 @@ class OpenIncidents(Base):
         i2 = self.env.incident("s-b", ("--independent-evidence", "separate failing output"))
         reason = self.block(self.env.payload())
         self.assertIn(i2, reason)
+
+
+class LayeredRouting(Base):
+    """ADV-LAYER-01: routing by layer state (bounded probe, stub level; real helper, real hook subprocess)."""
+
+    def test_advisor_layer_below_three_failures_is_router_not_escalation(self):
+        inc = self.env.incident("s-a")
+        self.env.consult(inc, "advisor")
+        for k in range(2):
+            self.env.fail_round(inc, k, f"adv {k}", layer="advisor")
+        reason = self.block(self.env.payload())
+        self.assertNotIn("僅允許升報", reason)
+        self.assertIn("advisor 2/3（失敗 2）", reason)
+
+    def test_early_escalation_with_advisor_round_in_progress_is_router_and_shows_layer_state(self):
+        inc = self.env.incident("s-a")
+        self.env.fail_round(inc, 0, "ex one")
+        self.env.consult(inc, "advisor")
+        self.env.ledger("round", "start", "--incident", inc, "--expect", "1", "--strategy", "adv one",
+                        "--authority", "ticket", "--layer", "advisor")
+        reason = self.block(self.env.payload())
+        self.assertNotIn("僅允許升報", reason)
+        self.assertNotIn("executor 層已耗盡", reason)
+        self.assertIn("advisor 1/3（失敗 0）", reason)       # production path: CLI -> ledger -> status -> hook reason
+        self.assertIn("executor 1/3（失敗 1）", reason)
+
+    def test_legacy_events_without_layer_count_as_executor_and_route_to_advisor(self):
+        events = [{"seq": 1, "ts": "2026-10-14T00:00:00+00:00", "ticket": TICKET, "type": "finding",
+                   "incident": "INC-001", "new": True, "subjects": ["s-a"], "gate_point": None, "verdict": None,
+                   "same_root_cause": None, "independent_evidence": None, "attach_reason": None}]
+        seq = 2
+        for k in range(3):
+            events.append({"seq": seq, "ts": "2026-10-14T00:00:00+00:00", "ticket": TICKET, "type": "round_start",
+                           "incident": "INC-001", "round": k + 1, "strategy": f"old {k}", "strategy_norm": f"old {k}",
+                           "authority": "ticket"})
+            events.append({"seq": seq + 1, "ts": "2026-10-14T00:00:00+00:00", "ticket": TICKET, "type": "round_end",
+                           "incident": "INC-001", "round": k + 1, "result": "fail"})
+            seq += 2
+        self.assertFalse(any("layer" in e for e in events))
+        self.env.write_events(events)
+        reason = self.block(self.env.payload())
+        self.assertNotIn("僅允許升報", reason)
+        self.assertIn("executor 3/3（失敗 3）", reason)
+        self.assertIn("executor 層已耗盡", reason)
+
+    def test_r0_exhausted_points_to_advisor_without_rerunning_r0_or_escalating(self):
+        inc = self.env.incident("s-a")
+        self.env.consult(inc, "r0")
+        for k in range(3):
+            self.env.fail_round(inc, k, f"r0 {k}", layer="r0")
+        reason = self.block(self.env.payload())
+        self.assertIn("r0 層已耗盡", reason)
+        self.assertIn("consult --kind advisor", reason)
+        self.assertNotIn("僅允許升報", reason)
+        self.assertNotIn("--layer r0", reason)               # never points back at the spent R0 layer
+        self.assertNotIn("EXHAUSTED", reason)
+        self.env.consult(inc, "advisor")
+        self.env.fail_round(inc, 3, "adv one", layer="advisor")
+        reason = self.block(self.env.payload(prompt="p2"))
+        self.assertNotIn("僅允許升報", reason)
+        self.assertNotIn("r0 層已耗盡", reason)              # Advisor engaged: no more pointing
+        self.assertIn("advisor 1/3（失敗 1）", reason)
+
+    def test_r0_and_executor_both_exhausted_uses_r0_branch(self):
+        inc = self.env.incident("s-a")
+        for k in range(3):
+            self.env.fail_round(inc, k, f"ex {k}")
+        self.env.consult(inc, "r0")
+        for k in range(3):
+            self.env.fail_round(inc, 3 + k, f"r0 {k}", layer="r0")
+        reason = self.block(self.env.payload())
+        self.assertIn("r0 層已耗盡", reason)
+        self.assertNotIn("executor 層已耗盡", reason)
+        self.assertNotIn("僅允許升報", reason)
+
+    def test_executor_pass_closes_incident_and_stop_is_allowed(self):
+        inc = self.env.incident("s-a")
+        self.env.ledger("round", "start", "--incident", inc, "--expect", "0", "--strategy", "fix it",
+                        "--authority", "ticket")
+        self.env.ledger("round", "end", "--incident", inc, "--result", "pass")
+        self.assertAllow(self.env.payload())
 
 
 class SingleCheck(Base):

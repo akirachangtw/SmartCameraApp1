@@ -114,12 +114,20 @@ class RepoCase(unittest.TestCase):
         self.assertIn(res.returncode, (0, 5), res.err)
         return json.loads(res.out)
 
-    def round(self, inc, expect, strategy, result=None, authority="ALLOWED"):
-        res = self.run_cli("round", "start", "--incident", inc, "--expect", str(expect),
-                           "--strategy", strategy, "--authority", authority)
+    def round(self, inc, expect, strategy, result=None, authority="ALLOWED", layer=None):
+        argv = ["round", "start", "--incident", inc, "--expect", str(expect),
+                "--strategy", strategy, "--authority", authority]
+        if layer is not None:
+            argv += ["--layer", layer]
+        res = self.run_cli(*argv)
         if res.returncode == 0 and result:
             end = self.run_cli("round", "end", "--incident", inc, "--result", result)
             self.assertEqual(end.returncode, 0, end.err)
+        return res
+
+    def consult(self, inc, kind):
+        res = self.run_cli("consult", "--incident", inc, "--kind", kind)
+        self.assertEqual(res.returncode, 0, res.err)
         return res
 
 
@@ -146,11 +154,18 @@ class RoundsAndHuman(RepoCase):
         b = self.open_incident("test:a", gate_point="sv", verdict="BLOCKER")
         self.assertEqual((b["incident"], b["action"]), (a, "attached"))
         self._fail_rounds(a, 3)
-        res = self.run_cli("human", "--category", "EXHAUSTED", "--incident", a, "--basis", "rounds_3")
+        for basis in ("rounds_3", gl.EXHAUSTED_BASIS):  # executor exhaustion alone is not EXHAUSTED
+            res = self.run_cli("human", "--category", "EXHAUSTED", "--incident", a, "--basis", basis)
+            self.assertEqual(res.returncode, 5, basis)
+        self.assertEqual(self.round(a, 3, "strategy 4").returncode, 5)  # 4th executor round
+        self.consult(a, "advisor")
+        for i in range(3):
+            self.assertEqual(self.round(a, 3 + i, f"advisor strategy {i}", "fail", layer="advisor").returncode, 0)
+        res = self.run_cli("human", "--category", "EXHAUSTED", "--incident", a, "--basis", gl.EXHAUSTED_BASIS)
         self.assertEqual(res.returncode, 0, res.err)
         lines = [x for x in res.out.splitlines() if x.strip()]
-        self.assertEqual(lines, [f"HUMAN_REQUIRED: EXHAUSTED | ADV-TEST-01 | {a} | round=3/3 | rounds_3"])
-        self.assertEqual(self.round(a, 3, "strategy 4").returncode, 5)
+        self.assertEqual(lines, [f"HUMAN_REQUIRED: EXHAUSTED | ADV-TEST-01 | {a} | round=3/3 | layer_advisor_3"])
+        self.assertEqual(self.round(a, 6, "advisor strategy 4", layer="advisor").returncode, 5)
 
     def test_independent_evidence(self):
         a = self.open_incident("test:a")["incident"]
@@ -181,18 +196,23 @@ class RoundsAndHuman(RepoCase):
         self.run_cli("consult", "--incident", a, "--kind", "advisor")
         self.run_cli("strategy-scan", "--incident", a, "--item", "x::none authorised")
         self._fail_rounds(a, 2)
-        for basis in ("rounds_3", "rounds_2"):
+        for basis in ("rounds_3", "rounds_2", gl.EXHAUSTED_BASIS):
             res = self.run_cli("human", "--category", "EXHAUSTED", "--incident", a, "--basis", basis)
             self.assertEqual(res.returncode, 5)
         ok = self.run_cli("human", "--category", "PERMISSION", "--incident", a, "--basis", "denied")
         self.assertEqual(ok.returncode, 0)
         res = self.run_cli("human", "resolve", "--ref", "akira")
         self.assertEqual(res.returncode, 0, res.err)
-        self._fail_rounds_third = self.round(a, 2, "third", "fail")
-        self.run_cli("human", "--category", "EXHAUSTED", "--incident", a, "--basis", "rounds_3")
+        self.assertEqual(self.round(a, 2, "third", "fail").returncode, 0)
+        for basis in ("rounds_3", gl.EXHAUSTED_BASIS):  # three executor failures are not enough
+            res = self.run_cli("human", "--category", "EXHAUSTED", "--incident", a, "--basis", basis)
+            self.assertEqual(res.returncode, 5)
+        for i in range(3):
+            self.assertEqual(self.round(a, 3 + i, f"adv {i}", "fail", layer="advisor").returncode, 0)
+        self.run_cli("human", "--category", "EXHAUSTED", "--incident", a, "--basis", gl.EXHAUSTED_BASIS)
         res = self.run_cli("human", "resolve", "--ref", "akira")
         self.assertEqual(res.returncode, 5)
-        self.assertEqual(self.round(a, 3, "fourth").returncode, 5)
+        self.assertEqual(self.round(a, 6, "fourth adv", layer="advisor").returncode, 5)
 
     def test_no_authorized_strategy(self):
         a = self.open_incident()["incident"]
@@ -247,6 +267,193 @@ class RoundsAndHuman(RepoCase):
         self.assertEqual(st.returncode, 0, st.err)
         self.ledger_path().read_text(encoding="utf-8")  # valid UTF-8
         self.assertIn("修補策略 一", self.status()["incidents"][0]["strategies"][0])
+
+
+LEGACY_EVENTS = json.loads(r'''[{"seq":1,"ts":"2026-10-14T15:15:09+00:00","ticket":"ADV-TEST-01","type":"finding","incident":"INC-001","new":true,"subjects":["legacy:a"],"gate_point":"sv","verdict":"REPORT_FIX","same_root_cause":null,"independent_evidence":null,"attach_reason":null},{"seq":2,"ts":"2026-10-14T15:15:09+00:00","ticket":"ADV-TEST-01","type":"step_limit","incident":"INC-001","source":"X","note":null},{"seq":3,"ts":"2026-10-14T15:15:09+00:00","ticket":"ADV-TEST-01","type":"consult","incident":"INC-001","kind":"local","note":null},{"seq":4,"ts":"2026-10-14T15:15:09+00:00","ticket":"ADV-TEST-01","type":"consult","incident":"INC-001","kind":"advisor","note":null},{"seq":5,"ts":"2026-10-14T15:15:09+00:00","ticket":"ADV-TEST-01","type":"strategy_scan","incident":"INC-001","strategy":"retry","excluded_because":"already tried"},{"seq":6,"ts":"2026-10-14T15:15:10+00:00","ticket":"ADV-TEST-01","type":"round_start","incident":"INC-001","round":1,"strategy":"legacy one","strategy_norm":"legacy one","authority":"ALLOWED"},{"seq":7,"ts":"2026-10-14T15:15:10+00:00","ticket":"ADV-TEST-01","type":"round_end","incident":"INC-001","round":1,"result":"fail"},{"seq":8,"ts":"2026-10-14T15:15:10+00:00","ticket":"ADV-TEST-01","type":"round_start","incident":"INC-001","round":2,"strategy":"legacy two","strategy_norm":"legacy two","authority":"ALLOWED"},{"seq":9,"ts":"2026-10-14T15:15:10+00:00","ticket":"ADV-TEST-01","type":"round_end","incident":"INC-001","round":2,"result":"fail"},{"seq":10,"ts":"2026-10-14T15:15:10+00:00","ticket":"ADV-TEST-01","type":"ppss_record","incident":"INC-001","request_id":"rsch-legacy","state":"RETRIEVED","reason_invalid":null,"urls":["https://docs.example.org/a"],"artifact":"art.json","domains":[],"new_query_strategy":null,"reason":null},{"seq":11,"ts":"2026-10-14T15:15:10+00:00","ticket":"ADV-TEST-01","type":"ppss_read","incident":"INC-001","request_id":"rsch-legacy","url":"https://docs.example.org/a","source_sha256":"71f23e542052c4fa064d2988533c7b2d2a1bc43e7522487d2cdaad5ec1c3b82a","supports":"claim-1","quote_sha256":"12be9a687330fd1625e89cee83d764c34886e5163dbff8747e69cb9b25c08f91","evidence_ok":true},{"seq":12,"ts":"2026-10-14T15:15:10+00:00","ticket":"ADV-TEST-01","type":"finding","incident":"INC-002","new":true,"subjects":["legacy:b"],"gate_point":null,"verdict":null,"same_root_cause":null,"independent_evidence":"out.txt","attach_reason":null},{"seq":13,"ts":"2026-10-14T15:15:11+00:00","ticket":"ADV-TEST-01","type":"round_start","incident":"INC-002","round":1,"strategy":"legacy three","strategy_norm":"legacy three","authority":"ALLOWED"},{"seq":14,"ts":"2026-10-14T15:15:11+00:00","ticket":"ADV-TEST-01","type":"round_end","incident":"INC-002","round":1,"result":"pass"},{"seq":15,"ts":"2026-10-14T15:15:11+00:00","ticket":"ADV-TEST-01","type":"human","category":"PERMISSION","incident":"INC-001","basis":"denied"},{"seq":16,"ts":"2026-10-14T15:15:11+00:00","ticket":"ADV-TEST-01","type":"blocks","note":"n"},{"seq":17,"ts":"2026-10-14T15:15:11+00:00","ticket":"ADV-TEST-01","type":"missed_check","gate_point":"qa"}]''')
+LEGACY_STATUS = json.loads(r'''{"last_seq":17,"incidents":[{"id":"INC-001","status":"open","subjects":["legacy:a"],"rounds_started":2,"rounds_failed":2,"round_open":false,"strategies":["legacy one","legacy two"],"pending_human":["PERMISSION"],"consults":{"local":1,"advisor":1},"strategy_scans":1,"findings":1,"step_limits":1},{"id":"INC-002","status":"closed","subjects":["legacy:b"],"rounds_started":1,"rounds_failed":0,"round_open":false,"strategies":["legacy three"],"pending_human":[],"consults":{"local":0,"advisor":0},"strategy_scans":0,"findings":1,"step_limits":0}],"pending_human":[{"category":"PERMISSION","incident":"INC-001","basis":"denied","seq":15}],"ppss":[{"request_id":"rsch-legacy","incident":"INC-001","state":"SOURCE_READ","evidence_ok":true,"urls":["https://docs.example.org/a"],"reason":null,"reads":[{"url":"https://docs.example.org/a","sha256":"71f23e542052c4fa064d2988533c7b2d2a1bc43e7522487d2cdaad5ec1c3b82a","supports":"claim-1"}]}],"blocks":1,"missed_checks":1}''')
+LEGACY_FROZEN_NOTE = ("Events/status above were generated once with the BASE_COMMIT (d39b6661) helper, before "
+                      "ADV-LAYER-01; no event carries a `layer` key.")
+
+
+def _ev(seq, **kw):
+    return {"seq": seq, "ts": "2026-10-14T00:00:00+00:00", "ticket": "ADV-TEST-01", **kw}
+
+
+def _finding(seq, subject="test:a"):
+    return _ev(seq, type="finding", incident="INC-001", new=True, subjects=[subject], gate_point=None,
+               verdict=None, same_root_cause=None, independent_evidence=None, attach_reason=None)
+
+
+class Layers(RepoCase):
+    """ADV-LAYER-01: per-layer round budget (executor / r0 / advisor); bounded probe, stub level."""
+
+    def layers_of(self, inc):
+        return {i["id"]: i for i in self.status()["incidents"]}[inc]["layers"]
+
+    def fail_layer(self, inc, layer, n, start=0, tag="s"):
+        for k in range(n):
+            res = self.round(inc, start + k, f"{tag} {layer} {k}", "fail", layer=layer)
+            self.assertEqual(res.returncode, 0, res.err)
+
+    def write_events(self, events):
+        self.ledger_path().parent.mkdir(parents=True, exist_ok=True)
+        self.ledger_path().write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in events),
+                                      encoding="utf-8")
+
+    def test_a_legacy_ledger_is_compatible(self):
+        self.assertFalse(any("layer" in e for e in LEGACY_EVENTS))
+        self.write_events(LEGACY_EVENTS)
+        st = self.status()
+        for key in ("last_seq", "pending_human", "ppss", "blocks", "missed_checks"):
+            self.assertEqual(st[key], LEGACY_STATUS[key], key)
+        got = {i["id"]: i for i in st["incidents"]}
+        for want in LEGACY_STATUS["incidents"]:
+            have = dict(got[want["id"]])
+            layers = have.pop("layers")
+            consults = dict(have["consults"])
+            self.assertEqual(consults.pop("r0"), 0)
+            have["consults"] = consults
+            self.assertEqual(have, want)
+            self.assertEqual(layers["executor"], {"started": want["rounds_started"], "failed": want["rounds_failed"]})
+            self.assertEqual(layers["r0"], {"started": 0, "failed": 0})
+            self.assertEqual(layers["advisor"], {"started": 0, "failed": 0})
+
+    def test_b_per_layer_caps_are_independent(self):
+        a = self.open_incident()["incident"]
+        self.fail_layer(a, "executor", 3)
+        self.assertEqual(self.round(a, 3, "ex four").returncode, 5)
+        self.consult(a, "advisor")
+        self.consult(a, "r0")
+        self.fail_layer(a, "advisor", 3, start=3)
+        self.assertEqual(self.round(a, 6, "adv four", layer="advisor").returncode, 5)
+        self.fail_layer(a, "r0", 3, start=6)
+        self.assertEqual(self.round(a, 9, "r0 four", layer="r0").returncode, 5)
+        self.assertEqual(self.layers_of(a), {"executor": {"started": 3, "failed": 3},
+                                             "r0": {"started": 3, "failed": 3},
+                                             "advisor": {"started": 3, "failed": 3}})
+
+    def test_c_first_advisor_round_needs_same_incident_consult(self):
+        a = self.open_incident("test:a")["incident"]
+        b = self.open_incident("test:b", independent_evidence="out.txt")["incident"]
+        self.consult(b, "advisor")  # another incident's consult does not unlock
+        self.assertEqual(self.round(a, 0, "adv one", layer="advisor").returncode, 5)
+        self.consult(a, "local")  # wrong kind does not unlock either
+        self.assertEqual(self.round(a, 0, "adv one", layer="advisor").returncode, 5)
+        self.assertEqual(self.layers_of(a)["advisor"], {"started": 0, "failed": 0})
+
+    def test_d_one_consult_covers_later_rounds_of_that_layer(self):
+        a = self.open_incident()["incident"]
+        self.consult(a, "advisor")
+        for k in range(3):
+            self.assertEqual(self.round(a, k, f"adv {k}", "fail", layer="advisor").returncode, 0)
+        st = {i["id"]: i for i in self.status()["incidents"]}[a]
+        self.assertEqual(st["consults"]["advisor"], 1)
+        self.assertEqual(st["layers"]["advisor"], {"started": 3, "failed": 3})
+
+    def test_r0_layer_needs_r0_consult(self):
+        a = self.open_incident()["incident"]
+        self.consult(a, "advisor")  # an advisor consult does not unlock r0
+        self.assertEqual(self.round(a, 0, "r0 one", layer="r0").returncode, 5)
+        self.consult(a, "r0")
+        self.assertEqual(self.round(a, 0, "r0 one", layer="r0").returncode, 0)
+
+    def test_e_early_escalation_after_one_executor_failure(self):
+        a = self.open_incident()["incident"]
+        self.assertEqual(self.round(a, 0, "ex one", "fail").returncode, 0)
+        self.consult(a, "advisor")
+        self.assertEqual(self.round(a, 1, "adv one", layer="advisor").returncode, 0)  # executor not filled
+        self.assertEqual(self.layers_of(a)["executor"], {"started": 1, "failed": 1})
+        self.assertEqual(self.layers_of(a)["advisor"], {"started": 1, "failed": 0})
+
+    def test_f_strategy_dedupe_spans_layers(self):
+        a = self.open_incident()["incident"]
+        self.assertEqual(self.round(a, 0, "same plan", "fail").returncode, 0)
+        self.consult(a, "advisor")
+        self.assertEqual(self.round(a, 1, "  SAME  plan ", layer="advisor").returncode, 5)
+        self.assertEqual(self.round(a, 1, "different plan", layer="advisor").returncode, 0)
+
+    def test_g_cas_compares_incident_total_across_layers(self):
+        a = self.open_incident()["incident"]
+        self.assertEqual(self.round(a, 0, "ex one", "fail").returncode, 0)
+        self.consult(a, "advisor")
+        self.assertEqual(self.round(a, 0, "adv one", layer="advisor").returncode, 5)
+        self.assertEqual(self.round(a, 2, "adv one", layer="advisor").returncode, 5)
+        self.assertEqual(self.round(a, 1, "adv one", layer="advisor").returncode, 0)
+
+    def test_i_no_authorized_strategy_follows_advisor_layer(self):
+        a = self.open_incident()["incident"]
+        self.fail_layer(a, "executor", 3)
+        self.consult(a, "local")
+        self.consult(a, "advisor")
+        self.assertEqual(self.run_cli("strategy-scan", "--incident", a, "--item", "retry::already tried").returncode, 0)
+        cat = ("human", "--category", "NO_AUTHORIZED_STRATEGY", "--incident", a, "--basis", "none left")
+        self.assertEqual(self.run_cli(*cat).returncode, 0)  # executor spent, advisor layer untouched
+        self.assertEqual(self.run_cli("human", "resolve", "--ref", "akira").returncode, 0)
+        self.fail_layer(a, "advisor", 3, start=3)
+        self.assertEqual(self.run_cli(*cat).returncode, 5)  # advisor layer spent -> EXHAUSTED territory
+
+    def test_k_verify_first_and_immediate_categories(self):
+        a = self.open_incident("test:a")["incident"]
+        scope = ("human", "--category", "SCOPE", "--incident", a, "--basis", "needs wider scope")
+        self.assertEqual(self.run_cli(*scope).returncode, 5)
+        self.consult(a, "local")
+        self.assertEqual(self.run_cli(*scope).returncode, 5)
+        self.consult(a, "advisor")
+        self.assertEqual(self.run_cli(*scope).returncode, 0)
+        b = self.open_incident("test:b", independent_evidence="out.txt")["incident"]
+        perm = self.run_cli("human", "--category", "PERMISSION", "--incident", b, "--basis", "denied")
+        self.assertEqual(perm.returncode, 0, perm.err)
+
+    def test_l_r0_exhaustion_routes_to_advisor_not_to_human(self):
+        a = self.open_incident(gate_point="sv", verdict="REPORT_FIX")["incident"]
+        self.consult(a, "r0")
+        self.fail_layer(a, "r0", 3)
+        self.assertEqual(self.round(a, 3, "r0 four", layer="r0").returncode, 5)
+        for basis in ("rounds_3", gl.EXHAUSTED_BASIS):  # r0 exhaustion is not EXHAUSTED
+            res = self.run_cli("human", "--category", "EXHAUSTED", "--incident", a, "--basis", basis)
+            self.assertEqual(res.returncode, 5, basis)
+        self.consult(a, "advisor")
+        self.assertEqual(self.round(a, 3, "adv one", layer="advisor").returncode, 0)  # no r0 top-up required
+        layers = self.layers_of(a)
+        self.assertEqual((layers["r0"], layers["advisor"]), ({"started": 3, "failed": 3}, {"started": 1, "failed": 0}))
+
+    def test_m_mixed_legacy_and_layered_events(self):
+        self.write_events([
+            _finding(1),
+            _ev(2, type="round_start", incident="INC-001", round=1, strategy="old one", strategy_norm="old one",
+                authority="ALLOWED"),
+            _ev(3, type="round_end", incident="INC-001", round=1, result="fail"),
+            _ev(4, type="round_start", incident="INC-001", round=2, strategy="old two", strategy_norm="old two",
+                authority="ALLOWED"),
+            _ev(5, type="round_end", incident="INC-001", round=2, result="fail"),
+        ])
+        self.consult("INC-001", "advisor")
+        self.assertEqual(self.round("INC-001", 2, "new adv", "fail", layer="advisor").returncode, 0)
+        st = {i["id"]: i for i in self.status()["incidents"]}["INC-001"]
+        self.assertEqual(st["rounds_started"], 3)
+        self.assertEqual(st["layers"]["executor"], {"started": 2, "failed": 2})
+        self.assertEqual(st["layers"]["advisor"], {"started": 1, "failed": 1})
+        self.assertEqual(self.round("INC-001", 2, "adv two", layer="advisor").returncode, 5)
+        self.assertEqual(self.round("INC-001", 3, "adv two", layer="advisor").returncode, 0)
+
+    def test_n_unknown_layer_value_is_kept_but_never_counts(self):
+        events = [_finding(1)]
+        seq = 2
+        for k in range(3):
+            events.append(_ev(seq, type="round_start", incident="INC-001", round=k + 1, layer="bogus",
+                              strategy=f"b{k}", strategy_norm=f"b{k}", authority="ALLOWED"))
+            events.append(_ev(seq + 1, type="round_end", incident="INC-001", round=k + 1, result="fail"))
+            seq += 2
+        self.write_events(events)
+        layers = self.layers_of("INC-001")  # status must not crash
+        self.assertEqual(layers["bogus"], {"started": 3, "failed": 3})
+        for known in gl.LAYERS:
+            self.assertEqual(layers[known], {"started": 0, "failed": 0}, known)
+        res = self.run_cli("human", "--category", "EXHAUSTED", "--incident", "INC-001", "--basis", gl.EXHAUSTED_BASIS)
+        self.assertEqual(res.returncode, 5)  # an unknown bucket is no basis for EXHAUSTED
+        res = self.run_cli("round", "start", "--incident", "INC-001", "--expect", "3", "--strategy", "x",
+                           "--authority", "ALLOWED", "--layer", "bogus")
+        self.assertEqual(res.returncode, 2)  # only the three known layers are accepted
 
 
 class Identity(RepoCase):
@@ -697,6 +904,17 @@ class Ppss(RepoCase):
         self.assertEqual(self.record(inc, self.artifact("rsch-2"), new_query_strategy="other domain",
                                      reason="first query off-topic").returncode, 0)
         self.assertEqual(self.status()["incidents"][0]["rounds_started"], 0)
+
+    def test_ppss_does_not_touch_layer_counts(self):
+        inc = self.open_incident()["incident"]
+        self.assertEqual(self.round(inc, 0, "ex one", "fail").returncode, 0)
+        before = {i["id"]: i for i in self.status()["incidents"]}[inc]["layers"]
+        art = self.artifact()
+        self.record(inc, art)
+        self.read(inc, "rsch-1", "https://docs.example.org/a", self.source(), "claim-1", "keep the original error")
+        after = {i["id"]: i for i in self.status()["incidents"]}[inc]["layers"]
+        self.assertEqual(before, after)
+        self.assertEqual(self.record(inc, art).returncode, 5)  # the existing second-record gate is unchanged
 
     def test_evidence_matrix(self):
         inc = self.open_incident()["incident"]

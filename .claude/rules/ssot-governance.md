@@ -189,31 +189,31 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 - incident 身分＝`ticket_id`×subject（根因對象）；verdict 類別與 gate point 為屬性，不入身分。verdict 改變不自動開新 incident，同根因續算；僅有獨立問題證據（獨立失敗輸出）且 subject 不重疊才分開。
 - 一輪＝以一個新且已授權策略完成之完整解題循環（取證→Advisor→PPSS→修復→局部驗證）。初次 finding、單純執行腳本、步驟級上限事件皆不是輪。
-- 最多 3 輪；驗證通過即結案，不要求湊滿三輪；第 3 輪（及其前各輪）有新且已授權策略時，任何其他機制不得提前截斷。輪數 3 且 fail→`EXHAUSTED`；輪數 <3 而無可行已授權策略→`NO_AUTHORIZED_STRATEGY`。
-- 工具預算（同一 incident，不是每輪）：Advisor 初判最多 1 次、PPSS 定向研究最多 1 次、research 後 Advisor reconcile 最多 1 次；全部含於最多三輪內，不另加預算。換策略、phase、模型或改名不重置額度，不同 incident 各自計。helper 允許的額外調用（例如第 2 次 PPSS 附新查詢策略）不等於本 Gate 授權使用。Advisor 建議與研究結果不構成新增授權；無新證據的相同命令、prompt、研究問題、patch 不重播。預算屬模型契約，不由機械控制強制；hook 僅於 reason 顯示用量（Advisor「x／2」為用量摘要，仍受初判／reconcile 角色限制）。
+- 逐層計輪：round 依**策略來源層**計入 `executor`、`r0`（僅 cross-review 路徑）、`advisor`，**每層最多 3 次**實質修復＋回驗；各層互不共用、互不重置；驗證通過即結案，不要求湊滿；某層有新且已授權策略時，任何其他機制不得提前截斷該層。本層無法判定下一個安全行動時，不必先用盡本層輪數即可升下一適用層（取證記 `consult --kind local`）；某層耗盡或回報無合法策略，**必須**升下一適用層，尚未 engaged 的 Advisor 不得視為已處理；提早升級後不要求回低層補滿。同 incident 首個 `--layer advisor` round 前須有至少一筆**同 incident** 的 `consult --kind advisor`（`--layer r0` 同理須 `--kind r0`）；後續該層 round 不要求新 consult，其他 incident 的 consult 不適用。機械檢查只證存在紀錄，不證真實調用；真實性與時序依 transcript 原生 `advisor` 調用與結果，策略與結論對應由模型負責，不新增 transcript 解析機制。最終適用層（`advisor`）3 次 fail 且無合法續作路徑→`EXHAUSTED`；`advisor` 層未耗盡而無可行已授權策略→`NO_AUTHORIZED_STRATEGY`。
+- 工具使用（同一 incident）：Advisor 僅在本層無法判定時由主 agent 呼叫，新的不確定且附新證據才再諮詢，同一次結論可供不同合法策略使用；不允許自判掛名 Advisor，不以任意歷史 consult 開輪。PPSS 僅限外部事實缺口：同一 incident 同一缺口預設定向研究一次，消費已有證據，不重送同題；不因換查詢措辭或進下一 round 自動獲得研究額度；證據回流同一 incident，於後續 round 的策略引用消費，不新增或重置任何層額度。換策略、phase、模型或改名不重置額度，不同 incident 各自計。helper 允許的額外調用（例如第 2 次 PPSS 附新查詢策略）不等於本 Gate 授權使用。Advisor 建議與研究結果不構成新增授權；無新證據的相同命令、prompt、研究問題、patch 不重播。以上屬模型契約，不由機械控制強制（機械僅：per-layer 輪數上限、策略去重、首個 advisor／r0 層 round 前的同 incident consult 紀錄）；hook 僅於 reason 顯示用量。
 - Gate 的「輪」≠ `cross_review.sh` BLOCKER `ROUND` ≠ RGR review round／session-local closure iteration，各自獨立計。
 
 ### 步驟級上限與 LIMIT
 
-- 步驟級上限（`uc` 連續 2 次修復仍編譯失敗、BLOCKER budget、REPORT_FIX 閉環／`CHECKPOINT_REPORT_FIX_LIMIT`、QA 編譯重試等）到達＝該路徑終止，記 `step_limit` 並作為該輪局部驗證失敗之輸入；不重置 incident 計數，不自動等於三輪耗盡之 `EXHAUSTED` 或 `NO_AUTHORIZED_STRATEGY`，不自動升報；各步驟級數字不由本節改動。
-- LIMIT 處置：先停止該腳本受限重試（超過 LIMIT 再重跑不是已授權策略，exit semantics 不變）→核對剩餘輪數與已授權策略→有可行策略即續作→經本地取證與 Advisor 確認無策略才升報。不清 state（含 `.tmp/cross_review_state`），不換 incident 繞過 LIMIT。
+- 步驟級上限（`uc` 連續 2 次修復仍編譯失敗、BLOCKER budget、REPORT_FIX 閉環／`CHECKPOINT_REPORT_FIX_LIMIT`、QA 編譯重試等）到達＝該路徑終止，記 `step_limit` 並作為該輪局部驗證失敗之輸入；不重置 incident 計數，不自動等於最終適用層耗盡之 `EXHAUSTED` 或 `NO_AUTHORIZED_STRATEGY`，不自動升報；各步驟級數字不由本節改動。
+- LIMIT 處置：先停止該腳本受限重試（超過 LIMIT 再重跑不是已授權策略，exit semantics 不變）→核對各層剩餘輪數與已授權策略→有可行策略即續作→經本地取證與 Advisor 確認無策略才升報。不清 state（含 `.tmp/cross_review_state`），不換 incident 繞過 LIMIT。
 
 ### HUMAN_REQUIRED
 
-- 唯一升報路徑，單行：`HUMAN_REQUIRED: <類別> | ticket | incident | round=<n>/3 | basis`（單行為呈現，事件為準）。
-- 立即類：`PERMISSION`、`IRREVERSIBLE_SECURITY_COST`、`HUMAN_GATE`（Traycer T2／`CLOSED`／Rule 4a 無票）、`COST`（三輪耗盡之 `EXHAUSTED` 後續跑 ack）。
+- 唯一升報路徑，單行：`HUMAN_REQUIRED: <類別> | ticket | incident | round=<n>/3 | basis`（`n`＝已 engaged 最高層之已開輪數；單行為呈現，事件為準）。
+- 立即類：`PERMISSION`、`IRREVERSIBLE_SECURITY_COST`、`HUMAN_GATE`（Traycer T2／`CLOSED`／Rule 4a 無票）、`COST`（最終適用層耗盡之 `EXHAUSTED` 後續跑 ack）。
 - 驗證先行類（升報前須已有本地取證＋Advisor 諮詢記錄）：`SSOT_CONFLICT`、`PRODUCT_DECISION`（含 Rule 1 歧義）、`SCOPE`、`NO_AUTHORIZED_STRATEGY`（另須最小 `strategy_scan`：已考慮策略清單，每項一句排除依據；僅為紀錄，非策略搜尋框架）。
-- 機械類：`EXHAUSTED`（僅限同 incident 已 3 輪 fail，basis 恆為 `rounds_3`）、`NO_PROGRESS`。
+- 機械類：`EXHAUSTED`（僅限同 incident `advisor` 層已 3 輪 fail，basis 恆為 `layer_advisor_3`）、`NO_PROGRESS`。
 - 權限被拒屬 `PERMISSION`，但不視為升裁已完成。腳本 stdout 之「人工介入」字樣不構成 `HUMAN_REQUIRED`。
 
 ### Advisor 與 PPSS
 
-- Advisor 由主 agent 承接，hook 不呼叫；`consult --kind advisor` 只能記錄實際原生 Advisor 調用，主 agent 自判不得以 advisor kind 記錄；回答內容加密不可驗。Advisor 不可達時：如實說明工具／環境缺口與原擬升報類別，不偽造 consult、不為滿足前置硬湊輪次；此時驗證先行類升報無法寫入 ledger，停止由 `NO_PROGRESS` 預算放行。
+- Advisor 由主 agent 承接，hook 不呼叫；`consult --kind advisor` 只能記錄實際原生 Advisor 調用，主 agent 自判不得以 advisor kind 記錄；回答內容加密不可驗。Advisor 不可達時：如實說明工具／環境缺口與原擬升報類別，不偽造 consult、不為滿足前置硬湊輪次；此時驗證先行類升報無法寫入 ledger，停止由 `NO_PROGRESS` 預算放行。Advisor 不可達時 `advisor` 層無法 engaged，`EXHAUSTED` 亦不可達（已知限制）。
 - PPSS 證據：`RETRIEVED` 僅表取回，`SOURCE_READ` 僅表已讀，`INVALID` 為空、缺 artifact 或網域不符。`evidence_ok` 僅表示來源閱讀與支持聲明可追溯，不表示語意被 helper 驗真；`SOURCE_READ` 單獨不使其成立；離題來源已讀仍不得算問題已獲支持；`evidence_ok` 為必要條件，非主張成立之充分條件。
 
 ### 入口與覆蓋矩陣
 
-- 正常入口最小落點：入口 check 呼叫已接入（ADV-GATE-03）。`qa`＝`qa/SKILL.md` `## Step 0: Ticket Scope 驗證 (Scope Gate)`；`commit`＝同檔 `## Step 4.5: Ticket Auto Commit`；`sv`＝`sv/SKILL.md` `## 前置檢查：Ticket 已 Commit Gate`；`closeout`＝同檔 `## Step 11: Closeout Auto-Chain`；`done`＝`uc/SKILL.md` 規則 8；`resume`＝`.claude/CLAUDE.md` `## ⚡ Boot Sequence`（讀 `status`）。`check` 退出碼映射（單一來源，各入口呼叫處只回指）：0＝續行該入口動作；1＝ledger 已有待人工，依印出的類別、incident、basis 輸出 `HUMAN_REQUIRED`，不新造理由；2–6＝檢核未完成，不代表有待人工，不續行該入口動作，依原始錯誤在既有授權內排除後重跑，不得視為通過，同一入口同一原始錯誤重跑仍失敗 → 記 `step_limit`，依 Gate 處置，需權限或擴 scope 者依 Gate 升報；不與 `cross_review.sh` 的 exit 2 或 Gate 三輪合併計數；不得以偽造事件修復損毀 ledger。`resume` 讀 `status` 非 0：記原始錯誤與 ledger 狀態未知，可續行 Boot／讀取／取證，不得當作無 open incident，後續受 Gate 控制的動作須先通過第一個對應 `check`，不得偽造事件、重置 ledger 或繞過檢核。
+- 正常入口最小落點：入口 check 呼叫已接入（ADV-GATE-03）。`qa`＝`qa/SKILL.md` `## Step 0: Ticket Scope 驗證 (Scope Gate)`；`commit`＝同檔 `## Step 4.5: Ticket Auto Commit`；`sv`＝`sv/SKILL.md` `## 前置檢查：Ticket 已 Commit Gate`；`closeout`＝同檔 `## Step 11: Closeout Auto-Chain`；`done`＝`uc/SKILL.md` 規則 8；`resume`＝`.claude/CLAUDE.md` `## ⚡ Boot Sequence`（讀 `status`）。`check` 退出碼映射（單一來源，各入口呼叫處只回指）：0＝續行該入口動作；1＝ledger 已有待人工，依印出的類別、incident、basis 輸出 `HUMAN_REQUIRED`，不新造理由；2–6＝檢核未完成，不代表有待人工，不續行該入口動作，依原始錯誤在既有授權內排除後重跑，不得視為通過，同一入口同一原始錯誤重跑仍失敗 → 記 `step_limit`，依 Gate 處置，需權限或擴 scope 者依 Gate 升報；不與 `cross_review.sh` 的 exit 2 或 Gate 輪次合併計數；不得以偽造事件修復損毀 ledger。`resume` 讀 `status` 非 0：記原始錯誤與 ledger 狀態未知，可續行 Boot／讀取／取證，不得當作無 open incident，後續受 Gate 控制的動作須先通過第一個對應 `check`，不得偽造事件、重置 ledger 或繞過檢核。
 - 覆蓋矩陣四軸分開記錄：check 程式結果（確定性）／呼叫路徑（模型契約）／機械後盾／未覆蓋。決策點：pause、ask-user、commit、QA、SV、closeout、恢復義務、提前升報、Advisor、PPSS、權限被拒、subagent、headless、並行。現況（ADV-GATE-04 提交）：呼叫路徑（入口 `check`，模型契約）已接入 qa／commit／sv／closeout／done，`resume` 讀 `status`（ADV-GATE-03；`done` 見 `.claude/skills/uc/SKILL.md` 的 `check done` 呼叫）；機械後盾：pause（本 Gate Stop guard `gate_stop_guard.py`）、qa／commit／sv 的漏檢事後偵測（受 receipt 視窗限制，僅回合起點可得時）；無機械後盾：done（有入口 check，但無推進證據 producer）、closeout（漏檢偵測無此腳）及其餘決策點。
 - 缺入口 receipt 之後盾屬事後漏檢偵測，不得回填成事前已通過；補跑 receipt 標 `late`，不得引為已發生動作之事前放行。
 - hook 連續 block 之預設上限（8 次）不是解題預算。
@@ -230,7 +230,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 - 輪數唯一依據為 ledger `round` 事件；`cross_review.sh` 計數與 LIMIT 僅為輸入事件。
 - 第 1 次 REPORT_FIX＝incident 開啟（`finding`，rounds=0）。
 - 每次以新策略修補並重跑所得之 REPORT_FIX verdict＝該輪 fail（依據為 verdict，非 LIMIT）；取得 verdict 前即失敗（`REPORT_FIX_ESCALATE`、環境錯誤）只記 `step_limit` 或環境事件，不計輪。
-- 第 3 次 verdict 後之 `CHECKPOINT_REPORT_FIX_LIMIT`＝`step_limit`，依上節 LIMIT 處置；rounds=2<3 時不是三輪耗盡之 `EXHAUSTED`。
+- 第 3 次 verdict 後之 `CHECKPOINT_REPORT_FIX_LIMIT`＝`step_limit`，依上節 LIMIT 處置；executor 層 rounds=2<3 時不是 `EXHAUSTED`（`EXHAUSTED` 僅限 `advisor` 層耗盡）。
 - PASS／ADVISORY＝結案。REPORT_FIX 變 BLOCKER＝同 incident 續算（BLOCKER `ROUND` 與 Gate 輪數各自獨立）。同 state 週期第二缺陷預設同 incident，另開須獨立證據。
 - 殘餘分歧：`REPORT_FIX_COUNT` 為同票 state 週期計數，第二缺陷仍可能提前觸及該路徑 LIMIT；本節不改 `cross_review.sh`。
 
