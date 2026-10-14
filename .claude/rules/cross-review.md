@@ -11,7 +11,7 @@ description: Cross-Review pipeline 行為規範 — FAIL 處理 / Checkpoint / �
 **立即停 + Checkpoint 觸發條件**（任一觸發 → **MUST** 輸出 Checkpoint 格式，等待裁決）：
 
 - 修正涉及：PROGRESS.md / sv_report*.md / ssot_context.md / CLAUDE.md / SSOT*.md / *_Contract*.md（**例外**：符合 `ssot-governance.md` Transition Table「SV／Codex 判 REPORT_FIX」七條件、僅修改 `.tmp/sv_report*.md` 之 report-only 閉環不觸發本款）
-- 修正含 token：FeatureFlags / gate / Gate / cooldown / @Inject / @Module / @Provides
+- 修正涉及既定 feature flag 預設值或 DI 綁定（FeatureFlags／@Inject／@Module／@Provides 的綁定與 scope）之變更，且票面未明確授權：屬新 authority → MUST 立即 Checkpoint／升報（HUMAN_REQUIRED，類別依 Gate，多為 SCOPE）。關鍵詞（FeatureFlags / gate / Gate / cooldown / @Inject / @Module / @Provides）僅作取證提示：命中後須讀 hunk 判定，不獨立觸發 Checkpoint；票面已明確授權、屬已授權 scope 內之契約修復者走 Gate，不因此再找人工。
 
 **次數限制**：第 2 次 FAIL（同票任何維度）屬步驟級事件，記 `step_limit` → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置；第 1 次 FAIL 純 .kt fix **MAY** inline。report-only REPORT_FIX 閉環之重跑不計入，其上限由腳本於第 3 次輸出 `CHECKPOINT_REPORT_FIX_LIMIT`（exit 2）管制。
 

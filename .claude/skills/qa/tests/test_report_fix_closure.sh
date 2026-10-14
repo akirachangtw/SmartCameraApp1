@@ -163,6 +163,35 @@ run_cases() {
   # F8：BLOCKER,REPORT_FIX,BLOCKER,BLOCKER
   run_seq good BLOCKER REPORT_FIX BLOCKER BLOCKER
   check "F8 exits" 1/3/1/2 "$(join "${RCS[@]}")"
+
+  # F9：[stub] payload 靜態斷言（ADV-REVIEW-01）——僅證明送進 Codex 的 prompt 字面，非真實 Codex 行為證據
+  hasF() { grep -qF -- "$1" "$2" 2>/dev/null && echo 1 || echo 0; }
+  mkdir -p "$S/.claude/skills/sv" && cp "$REAL_ROOT/.claude/skills/sv/ssot_context.md" "$S/.claude/skills/sv/"
+  write_report good; reset_state; run_cr PASS
+  check "F9 [stub] exit" 0 "$RC"
+  local P="$S/.tmp/cross_review_payload.md" PP="$S/_out/f9_prompt.txt" SS="$S/_out/f9_ssot.txt" s
+  awk '/^## Authorized Exclusions/{exit} {print}' "$P" | tr -d '\r' > "$PP"
+  awk '/^## SSOT Reference/{f=1} /^## SV Report/{f=0} f{print}' "$P" | tr -d '\r' > "$SS"
+  check "F9 [stub] BLOCKER heading" 1 "$(grep -c '^## BLOCKER 判準（唯一來源' "$PP")"
+  check "F9 [stub] BLOCKER table rows" 10 "$(awk '/^## BLOCKER 判準（唯一來源/{f=1;next} f&&/^## /{exit} f&&/^\| [0-9]+ \|/{n++} END{print n+0}' "$PP")"
+  for s in '品質目的' '適用條件' '必備證據'; do
+    check "F9 [stub] table header $s" 1 "$(grep -F '| # |' "$PP" | grep -cF -- "$s")"
+  done
+  check "F9 [stub] no FINDING/PRIOR line" 0 "$(grep -cE '^(FINDING|PRIOR):' "$P")"
+  for s in 'BLOCKER 不要求另找一段報告原文' '降級不得掩蓋錯誤 PASS' '不得就檔案清單提出任何 finding' '一跳為止' 'ADVISORY（記錄即可，exit 0）' '每項仍須在回件中列為一行' '不以關鍵詞自動套用'; do
+    check "F9 [stub] present: $s" 1 "$(hasF "$s" "$PP")"
+  done
+  for s in '其他一律降級' '事實錯誤 → BLOCKER' 'diff 修改超出 SV Report 聲明範圍' 'sv_report.md 格式/完備性問題' 'app/src/main/' '治理類'; do
+    check "F9 [stub] absent: $s" 0 "$(hasF "$s" "$PP")"
+  done
+  for s in '`PASS` / `BLOCKER` / `REPORT_FIX` / `ADVISORY`' \
+           'Guard Input Reachability: [無新 Guard] / [有新 Guard — State: X — Producer: (A)/(B)/(C)] / [missing-wiring: State X 無 producer]' \
+           '- `REACHABILITY: NONE`（無新 Guard，或所有 producer 判定為 (A)/(B)）' \
+           '- `REACHABILITY: <guard1>:<producer位置>,<guard2>:MISSING`（逐一列出每個新 Guard；producer 位置格式 `檔案:行號`；判定 (C) 一律填 `MISSING`）'; do
+    check "F9 [stub] contract verbatim: ${s:0:40}" 1 "$(hasF "$s" "$PP")"
+  done
+  check "F9 [stub] ssot_context 僅此三名" 1 "$(hasF '僅此三名' "$SS")"
+  check "F9 [stub] ssot_context no open-ended 等" 0 "$(hasF '等非 SSOT 名稱' "$SS")"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

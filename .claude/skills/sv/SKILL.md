@@ -54,7 +54,7 @@ disable-model-invocation: false
 
 4. **殘骸掃描 (Orphan Check)**：
    - 確認舊邏輯、隱藏的 feature flag、廢棄 import 是否已徹底刪除。
-   - **MUST** 搜尋 `// TODO`、`// FIXME`、`// HACK`、`return null`——零容忍。
+   - **MUST** 於**本 diff 新增行**搜尋 `// TODO`、`// FIXME`、`// HACK` 與佔位語意的 `return null`（如 `return null // implement later`）——零容忍；有明確契約語意的 `return null`（如 `rules/android-conventions.md` 明令的無效幾何尺寸）不在此列；既有行不屬本項，發現時可另報 ADVISORY。
 
 5. **Mock 偵測 (Anti-Lazy Check)**：
    - 檢查是否有塞入無意義的預設值（如 `Size(36.dp)` 硬編碼、`Color.Gray` 佔位）。
@@ -65,18 +65,17 @@ disable-model-invocation: false
    - `when` 分支 **MUST** exhaustive，`return` 防線是否穩固。
    - Compose `if/else` 層次是否正確處理 null 狀態。
 
-7. **Guard Input Reachability（INFRA-REACH-01 / INFRA-REACH-02 機械分級）**：
-   對本 diff 新增的任何 Guard / gate / early-return，逐一確認依賴的 input：
-   - 在 `app/src/main/` 是否存在 production 寫入點（非預設初始化、非 reset-to-Idle 語意）？
-   - 若任一 input 無 non-idle production producer → 標記 **⚠️ UNREACHABLE GUARD**
-   - **機械分級（INFRA-REACH-02）**：UNREACHABLE GUARD **且** 該 guard/欄位名稱出現於本 Ticket AC 文字中 → 判定 **MUST** 升級為 **📋 REPORT_FIX 機械級**（非可自選 WARNING/PARTIAL）；對應 AC **MUST** 不得標 PASS/PARTIAL 自選，**MUST** 停用 .tmp/sv_report.md 修報告即放行。豁免 **MUST** 僅得引用 Ticket 內**具名白名單**條款（比照 K4-39/K4-48 具名排除格式），**MUST** 禁止 context-gated 理由文（如「本情境下可接受」等臨場豁免）。
-   - UNREACHABLE GUARD 但欄位未出現於本票 AC 文字 → 沿用既有語意豁免：對應 AC **MUST** 不得標 PASS，改為 **⚠️ PARTIAL**，並開後續 follow-up Ticket
-   - 結果（含「已確認可達」「UNREACHABLE-PARTIAL」或「UNREACHABLE-REPORT_FIX」判定）**MUST** 寫入 `.tmp/sv_report.md`
+7. **Guard Input Reachability（INFRA-REACH-01 / INFRA-REACH-02，依實際風險）**：
+   對本 diff 新增的任何 Guard / gate / early-return（含 runtime hook／helper 的判定分支），只檢查該判定**實際讀取且影響結果**的 input（不列全 schema、不向 producer 上游無限追溯，一跳為止）：
+   - 該 input 是否存在 production 寫入點（`檔案:行號`，可位於任何 repo 或 runtime 路徑；非預設初始化、非 reset-to-Idle 語意）？舉證以指令輸出（grep／read）為準。
+   - 若任一被讀取的 input 無 non-idle production producer → 標記 **⚠️ UNREACHABLE GUARD**：對應 AC **MUST** 不得標 PASS，如實標為 **⚠️ PARTIAL**。是否檢查與是否升級依實際可達性風險，**不**以 AC 文字是否出現某欄位名稱或標記為準。
+   - 報告宣稱「可達」而未附 producer 舉證 → 決策相關主張缺證據，Cross-Review 判 REPORT_FIX。補上有效舉證（`檔案:行號` 與指令輸出）可解除該缺證據 finding；改標 PARTIAL 僅更正報告主張，**不**自動滿足原 AC、**不**豁免必要品質、**不**放行整票，後續依原票與 Gate 處置（本項不自動強制另開 follow-up Ticket；`ssot-governance.md` Ticket Closure 紀律對「母票存在未閉環 AC」之修補票要求於收尾時獨立適用，不因本句免除）。豁免 **MUST** 僅得引用 Ticket 內**具名白名單**條款（比照 K4-39/K4-48 具名排除格式），**MUST** 禁止 context-gated 理由文（如「本情境下可接受」等臨場豁免）。
+   - 結果（含「已確認可達」「UNREACHABLE-PARTIAL」判定）**MUST** 寫入 `.tmp/sv_report.md`
    - 輔助工具：Step 3.5.5 Dead-State 掃描輸出；參考 K3-Rule 26（多消費路徑掃描）
 
 8. **Integration Test 存在閘（INFRA-REACH-02 G-5）**：
-   凡本 Ticket Acceptance Criteria 含 `[可達性]` 或 `[行為性]` 類型標記 → **MUST** 確認對應 integration/ViewModel 層測試存在且綠：
-   - 於 `app/src/test/` 或 `app/src/androidTest/` 中搜尋以驅動 production 路徑（非直注 fixture state）方式覆蓋該 AC 的測試檔案/方法。
+   凡本 diff 新增依賴外部輸入的行為（Guard／gate／early-return、reducer 分支、依 runtime state 的 fallback），或本 Ticket Acceptance Criteria 含 `[可達性]` 或 `[行為性]` 類型標記 → **MUST** 確認對應 integration／整合層測試存在且綠（標記是票面額外要求，不是唯一觸發條件）：
+   - 於票面 ALLOWED 內的測試檔或本 diff 實際新增／修改的測試檔中搜尋，以驅動 production 路徑（非直注 fixture state）方式覆蓋該行為的測試檔案／方法；測試位置不固定於特定目錄（如 `app/src/test/`、`app/src/androidTest/`、`.claude/**/tests/` 皆可）。
    - 找不到對應測試 → **MUST** 標記 **⚠️ MISSING-INTEGRATION-TEST**，對應 AC **MUST** 不得標 PASS。
    - 本項為存在性檢查起步（確認測試「存在且綠」），測試斷言的行為深度由個別 Ticket 自行以更嚴格 AC 承載（不在本項強制範圍）。
    - 結果 **MUST** 寫入 `.tmp/sv_report.md`。
@@ -99,7 +98,7 @@ disable-model-invocation: false
 9. **SV Report 輸出**：刪除舊資料的 `.tmp/sv_report.md` 後，將以上審查結果寫入 `.tmp/sv_report.md`（工作目錄根）。
 
    **SV Report payload disclosure 規則**（不可省略）：
-   - `## Files Changed (payload)` — **MUST** 列出 `git diff --name-only DIFF_REF..HEAD` 的**全部**檔案（完整 payload）
+   - `## Files Changed (payload)` — **MUST** 列出 `git diff --name-only DIFF_REF..DIFF_END` 的**全部**檔案（完整 payload；`tmp/verify_cmd.conf` 無 `DIFF_END` 時才以 `DIFF_REF..HEAD`）
      - `.claude/PROGRESS.md` 如果出現在 diff → **MUST** 列出，並在行尾標註 `← Pipeline Artifact`
    - `## Implementation Scope` — 只列 ALLOWED 實作檔（`tmp/verify_cmd.conf` 中的 `ALLOWED`）
    - `## Excluded Payload`（選填）— 已授權排除出 Codex diff 的跨票檔案，格式：

@@ -11,8 +11,10 @@
 Cross-Review 是 gstack Step 4.5 防線。它使用 Codex CLI 對 Claude Code 的 SV Report 與 git diff 進行獨立跨模型二審，一次呼叫完成三層驗證：
 
 - **Layer 1 — Architectural Review（架構重審）**：SSOT drift、Scope Ban、Clean Architecture 依賴方向、硬體約束
-- **Layer 2 — SV Report Cross-Review（報告驗證）**：SV Report 宣稱 vs diff 事實比對、Orphan Code、Anti-Mock
+- **Layer 2 — SV Report Cross-Review（報告驗證）**：SV Report 決策相關主張 vs 原始證據比對（檔案清單由 `structural_verify.sh` Check A/B/C 確定性核對）、Orphan Code、Anti-Mock
 - **Layer 3 — Blind Scan（盲區掃描）**：物理邊界、全鏈路退場、狀態機時序、治理證據鏈、**Guard Input Reachability（固定項）**
+
+BLOCKER 判準之唯一來源為 `cross_review.sh` PROMPT_HEADER 的「BLOCKER 判準」表；各 Layer 僅作歸類提示。
 
 `REPORT_FIX` 是本專案的正式 verdict 名稱。原始 fail-budget plugin 的 `REPORTFIX` 只作為相容輸入；任何 state、報告、文件輸出都必須使用 `REPORT_FIX`。
 
@@ -58,9 +60,9 @@ bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md "a9558fc..c6548
 | Verdict | Exit | 意義 | 下一步 |
 |---------|------|------|--------|
 | `PASS` | 0 | Cross-Review 通過 | 進入 Traycer 終審 |
-| `ADVISORY` | 0 | 有非阻斷建議 | 記錄後可進入 Traycer 終審 |
-| `BLOCKER` | 1 | 真實功能、架構、scope 或 anti-mock 缺陷 | 修程式碼後重新 /qa → /sv |
-| `REPORT_FIX` | 3 | `.tmp/sv_report.md` 或 payload disclosure 不可信 | 符合 report-only 閉環條件者依 `sv/SKILL.md` 閉環（修報告→preflight→重跑）；否則修報告後停止回報，不需重跑 /qa |
+| `ADVISORY` | 0 | 有非阻斷觀察（含輕微措辭、無品質影響連結、含糊完備性；每項在回件列一行） | 記錄後可進入 Traycer 終審 |
+| `BLOCKER` | 1 | BLOCKER 判準表所列之真實契約、API、接線或行為違反（單一來源：`cross_review.sh`） | 修程式碼後重新 /qa → /sv |
+| `REPORT_FIX` | 3 | `.tmp/sv_report.md` 的決策相關主張與原始證據矛盾（輕微措辭、無品質影響連結、含糊完備性屬 ADVISORY；檔案清單由 Check A/B/C 確定性核對） | 符合 report-only 閉環條件者依 `sv/SKILL.md` 閉環（修報告→preflight→重跑）；否則修報告後停止回報，不需重跑 /qa |
 | ENV / FAIL BUDGET / REPORT_FIX 閉環上限 | 2 | codex、Git、輸入、fail budget 錯誤；或 `CHECKPOINT_REPORT_FIX_LIMIT`／`REPORT_FIX_ESCALATE` | 人工介入（LIMIT 為人工裁決 checkpoint，非 BLOCKER） |
 
 `REPORT_FIX` 不得放行到 Traycer；它的目的就是避免用昂貴終審配額審一份不可信報告。
@@ -128,8 +130,10 @@ Cross-Review `PASS` / `ADVISORY` 後仍必須送 Traycer 終審。
 | 判定 | 說明 |
 |------|------|
 | (A) diff 內可見 | producer 存在於本次 diff 範圍內 |
-| (B) diff 外但 production 可達 | `app/src/main/` 有 non-idle / non-reset 賦值點 |
+| (B) diff 外但 production 可達 | 任何 repo／runtime 路徑上有 non-idle / non-reset 賦值點（附 `檔案:行號`） |
 | (C) missing-wiring | producer 不存在或不可證明 → 標記風險，對應 AC 不得標 PASS |
+
+檢查範圍只限判定實際讀取且影響結果的輸入；每個輸入舉證一個 writer 與判定處 consumer，不列全 schema、不向上游無限追溯（一跳為止）。
 
 **強制輸出格式**（每次 Cross-Review 必須輸出此行）：
 

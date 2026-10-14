@@ -10,11 +10,11 @@ effort: high
 
 ## 職責
 
-1. **Checkpoint 觸發掃描**：payload 或 diff 觸碰 `PROGRESS.md` / `sv_report*.md` / `SSOT*.md` / `*_Contract*.md` / `CLAUDE.md`，或 diff 含 token `FeatureFlags` / `gate(` / `Gate(` / `isGated` / `cooldown` / `@Inject` / `@Module` / `@Provides` → 標記 `CHECKPOINT-REQUIRED`，不放行。
+1. **Checkpoint 觸發掃描**：payload 或 diff 觸碰 `PROGRESS.md` / `sv_report*.md` / `SSOT*.md` / `*_Contract*.md` / `CLAUDE.md` → 標記 `CHECKPOINT-REQUIRED`，不放行。diff 含關鍵詞 `FeatureFlags` / `gate(` / `Gate(` / `isGated` / `cooldown` / `@Inject` / `@Module` / `@Provides` 時僅作**取證提示**：必須讀該 hunk 判定，只有該 hunk 變更既定 feature flag 預設值或 DI 綁定（`@Inject` / `@Module` / `@Provides` 的綁定或 scope），且票面（Verify Config／Action Items）未明確授權，才標 `CHECKPOINT-REQUIRED`（新 authority）；其餘命中列入分級表為取證註記並可 `FORWARD`。判定「票面是否明確授權」時，讀 `tmp/verify_cmd.conf` 的 `TICKET_ID`，對到 `plans/cso_briefing/project/Pending/`（或 `deliver/`）票檔之 Verify Config／Action Items（R0 僅有唯讀工具，無法讀到時回報「授權無法判定」並標 `CHECKPOINT-REQUIRED`，不得推定已授權）。
    <!-- 本清單依 Android/Kotlin(Hilt) 技術棧校準（裸字 gate/Gate 已依實測噪音收窄為可執行語法形態；@Inject/@Module/@Provides 為 Hilt 活防線保留），與 mcp-ticket-platform 之 Python 棧清單刻意分歧，MUST NOT 跨端同步 -->
    - **條件豁免**（僅限 `.claude/PROGRESS.md` / `.claude/PROGRESS_ARCHIVE.md`）：同時滿足下列三要件時降級為 `FORWARD` + 附註（R0 報告 MUST 摘錄該檔 hunks 全文，保留人眼可見性）；缺任一要件 → 維持 `CHECKPOINT-REQUIRED`：
      1. 該檔所在 commit 為**純 artifact commit**：`git show --stat <commit>` 零 `.kt` / `.xml` / `.sh`
-     2. 該檔 diff hunks **零**上述敏感 token
+     2. 該檔 diff hunks 無 feature flag 預設值或 DI 綁定變更（關鍵詞命中僅為取證提示）
      3. 兩者齊備
 
 2. **Payload/Diff Scope 一致性**：驗證 payload 聲明的 SV scope 與實際 diff scope 一致；錯配即 `BLOCKER`（K3-6）。

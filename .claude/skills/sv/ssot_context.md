@@ -63,7 +63,7 @@ presentation/ → Jetpack Compose + ViewModel
 - `FocusIndicatorOverlay` — Eye-AF 視覺系統，MVP 階段由 flag 關閉（光學 AF 保留）。檔案保留不刪，非 dead code。
 - `TapFocusRing` + `TapFocusController` — Strangler Fig 新建，取代 Eye-AF 視覺層。
 
-**零容忍**: 若 diff 中出現 `CompositionScore`, `EyeAfPolicyOutput`, `SceneType` 等非 SSOT 名稱 → FAIL
+**零容忍**: 若 diff 中出現 `CompositionScore`, `EyeAfPolicyOutput`, `SceneType`（僅此三名；其餘型別命名差異不屬零容忍，依 `cross_review.sh` BLOCKER 判準表歸類）→ FAIL
 
 ---
 

@@ -261,65 +261,79 @@ cat > "$PAYLOAD" << 'PROMPT_HEADER'
 第一行必須且只能輸出以下四種裁決之一（無其他文字）：
 `PASS` / `BLOCKER` / `REPORT_FIX` / `ADVISORY`
 
-**BLOCKER 白名單 — 只有以下情況可判 BLOCKER，其他一律降級**：
-1. .kt/.xml 中確認存在的 Runtime crash 風險或功能 regression（非假設性）
-2. Scope Ban 清單中的禁止檔案被修改且無授權
-3. 真實 Anti-Mock：`TODO()`、`error("Not implemented")`、無 SSOT 依據的 hardcoded magic
-4. Clean Architecture 分層違反（domain 依賴 presentation/data）
-5. CameraX 重綁、ML Kit 互斥、Edge Warmth 60fps 約束違反
-6. 狀態機時序錯誤（Cooldown timestamp 寫入時機錯誤，有 diff 行號為證）
+## BLOCKER 判準（唯一來源；下列各 Layer 僅作歸類提示，不另立阻斷規則）
 
-**REPORT_FIX 情境（修 sv_report.md 即可，不要求修程式碼，但會阻擋 Cross/Traycer pipeline）**：
-- SV Report 段落描述措辭與 diff 事實輕微不符
-- 治理文件連結問題（PROGRESS.md 死連結等）
-- sv_report.md 格式/完備性問題
+只有同時符合「阻斷情形」與「適用條件」並提供「必備證據」者可判 BLOCKER；缺必備證據或不符適用條件者一律降級為 ADVISORY。
 
-**ADVISORY 情境（記錄即可，exit 0）**：
+| # | 阻斷情形 | 品質目的 | 適用條件 | 必備證據 |
+|---|----------|----------|----------|----------|
+| 1 | 確認存在的 runtime crash 或功能 regression（非假設性） | 防出貨崩潰或功能退化 | diff 含 `.kt`/`.xml` | diff 行號＋觸發路徑 |
+| 2 | Scope Ban 清單中的檔案被修改且無授權 | 防越權改動受保護檔 | ssot_context §3 | 檔名＋票面 ALLOWED 無授權 |
+| 3 | 佔位實作取代應有行為（`TODO()`、`error("Not implemented")`、placeholder return） | 防假實作進主線 | 本 diff 新增行 | diff 行號 |
+| 4 | Clean Architecture 分層違反（domain 依賴 presentation／data／android.*） | 守住依賴方向 | ssot_context §1 | 依賴／import 行 |
+| 5 | 管線約束違反（CameraX 重綁、ML Kit 互斥、Edge Warmth 60fps） | 防相機管線退化 | diff 觸及相關路徑 | diff 行號＋約束出處 |
+| 6 | 狀態機時序（Cooldown／Lockout／Timeout 時間戳寫入時機錯誤） | 防冷卻起算語意錯誤 | diff 含此類邏輯 | diff 行號 |
+| 7 | 新舊雙路徑或孤兒碼**造成行為或 API 影響**（接線斷裂、consumer 取值不確定） | 防 split-brain | 被消費者引用 | 兩路徑與 consumer 的 `檔案:行號` |
+| 8 | SSOT 明文契約違反：僅限 ssot_context §2 明列之三個名稱（`CompositionScore`、`EyeAfPolicyOutput`、`SceneType`），或實際破壞 SSOT 已定義型別／API／常數之使用者 | 防契約偽造或漂移 | 明列名稱／既有定義 | 名稱或定義出處＋使用處（consumer 證據） |
+| 9 | UI 物理規則（insets、48dp、LocalDensity） | 防遮擋、誤觸、細線消失 | 票面／SSOT／rules 對**該元件有明確要求** | 要求出處＋diff 行；不以關鍵詞自動套用 |
+| 10 | 全鏈路退場殘留（UI→ViewModel→Settings→DataStore 未同步清除） | 防退場後殘留層 | 票面**明示**為退場類 | grep 輸出 |
+
+## REPORT_FIX 判準（修 sv_report.md 即可，不要求修程式碼，但會阻擋 Cross/Traycer pipeline）
+
+僅限：SV Report 中「決策相關」的主張與原始證據矛盾。決策相關＝影響 AC 的 PASS 狀態、範圍／payload 揭露、producer／consumer 證據、測試／驗證結果主張。
+
+- 降級不得掩蓋錯誤 PASS：報告標 ✅／PASS 的決策相關主張若與證據矛盾，維持 REPORT_FIX；ADVISORY 只適用於不影響 PASS 判定的項目。
+- finding 格式（兩式）：**REPORT_FIX** 須引用①報告主張原文；②原始證據（diff 行、log、`檔案:行號` 或指令輸出皆可，不限於 diff）；③修正判準（什麼條件下視為已解）。**BLOCKER** 須引用①違反的既定要求或程式行為（如 BLOCKER 表列號與其出處、或實際錯誤的程式行為）；②原始證據（diff 行號、`檔案:行號`、grep 輸出等）；③修正判準。BLOCKER 不要求另找一段報告原文。
+- `## Files Changed`、`## Excluded Payload` 的檔案清單由 structural_verify.sh Check A/B/C 確定性核對，不得就檔案清單提出任何 finding。
+- 不要求報告陳述 hunk 數或行數；報告出現此類敘述且不正確時，除非影響 PASS 判定，一律 ADVISORY。
+
+## ADVISORY（記錄即可，exit 0）
+
+每項仍須在回件中列為一行，不得靜默略過：
 - 已豁免的 static scan warning（1.dp BorderStroke、既有 hardcoded string）
-- 潛在但未確認的 regression（無 diff 行號）
-- 建議性改進（不影響功能正確性）
+- 潛在但未確認的 regression（無 diff 行號）；建議性改進（不影響功能正確性）；缺測試的 business logic 變更
+- 輕微措辭偏差、無品質影響的治理文件連結問題（PROGRESS.md 死連結等）、含糊的「完備性」意見（若報告據以宣稱 PASS 的證據連結失效，屬決策相關主張，依 REPORT_FIX 判準）
+- 不符 BLOCKER 表適用條件者：非明文清單的 SSOT 命名偏好、無 SSOT 矛盾的 hardcoded 值、無行為影響的孤兒碼、無明確要求的 UI 規則、非退場票的退場殘留
 
-## Layer 1: Architectural Review（架構重審）
+## Layer 1: Architectural Review（架構重審；歸類提示）
 
-根據 SSOT Reference 驗證：
-1. diff 是否符合 Clean Architecture 分層（domain 不依賴任何人）→ BLOCKER
-2. SSOT drift — 型別名稱與核心型別清單不一致 → BLOCKER
-3. Scope Ban 清單檔案被修改且無授權 → BLOCKER
-4. 硬體約束違反（ML Kit 互斥、CameraX 零重綁）→ BLOCKER
+根據 SSOT Reference 驗證，並依 BLOCKER 判準表歸類：
+1. diff 是否符合 Clean Architecture 分層（domain 不依賴任何人）→ 表 #4
+2. 型別名稱與 SSOT 核心型別清單不一致 → 僅 ssot_context §2 明列三名稱，或實際破壞 SSOT 已定義型別／API／常數之使用者，屬表 #8；其餘為 ADVISORY
+3. Scope Ban 清單檔案被修改且無授權 → 表 #2
+4. 硬體約束違反（ML Kit 互斥、CameraX 零重綁）→ 表 #5
 
-## Layer 2: SV Report Cross-Review（報告驗證）
+## Layer 2: SV Report Cross-Review（報告驗證；歸類提示）
 
-1. SV Report ✅ 項目與 diff 事實不符（措辭偏差 → REPORT_FIX；事實錯誤 → BLOCKER）
-2. diff 修改超出 SV Report 聲明範圍 → BLOCKER
-3. Orphan Code（split-brain）→ BLOCKER
-4. Anti-Mock（TODO()、placeholder return）→ BLOCKER
+1. SV Report ✅ 項目與 diff／原始證據不符：決策相關者 → REPORT_FIX（見 REPORT_FIX 判準）；其餘 → ADVISORY
+2. （檔案清單與 payload 揭露一致性由 structural_verify.sh Check A/B/C 確定性核對，不由模型重審，不得就此提出 finding）
+3. Orphan Code（split-brain）→ 造成行為或 API 影響者屬表 #7；其餘 ADVISORY
+4. Anti-Mock（TODO()、placeholder return）→ 表 #3
 5. 缺測試的 business logic 變更 → ADVISORY
 
-## Layer 3: 實作級盲區掃描
+## Layer 3: 實作級盲區掃描（歸類提示）
 
 ### 3.1 物理與系統邊界（僅本次 diff 新增的 .kt 代碼）
-- `statusBarsPadding()` / `navigationBarsPadding()` 缺失 → BLOCKER
-- 極細線條缺 LocalDensity → BLOCKER
-- Touch Target < 48dp → BLOCKER
+- `statusBarsPadding()` / `navigationBarsPadding()` 缺失、極細線條缺 LocalDensity、Touch Target < 48dp → 僅當票面／SSOT／rules 對該元件有明確要求且 diff 行證實違反，屬表 #9；否則 ADVISORY
 - 既有代碼（diff 未改動）類似問題 → ADVISORY
 
-### 3.2 全鏈路退場（僅本次 diff 含 UI 元件刪除/替換時檢查）
-- UI → ViewModel → Settings → DataStore 未同步清除 → BLOCKER
+### 3.2 全鏈路退場（僅本次 diff 含 UI 元件刪除/替換且票面明示為退場類時檢查）
+- UI → ViewModel → Settings → DataStore 未同步清除 → 表 #10（須附 grep 輸出）
 
 ### 3.3 狀態機時序（僅本次 diff 含 Cooldown/Lockout/Timeout 時檢查）
-- Timestamp 寫入時機錯誤 → BLOCKER（必須引用 diff 行號）
+- Timestamp 寫入時機錯誤 → 表 #6（必須引用 diff 行號）
 
 ### 3.4 治理證據鏈
-- PROGRESS.md / CLAUDE.md 連結指向已刪除檔案 → REPORT_FIX（非 BLOCKER）
+- PROGRESS.md / CLAUDE.md 連結指向已刪除檔案 → ADVISORY（無品質影響）；若報告據以宣稱 PASS 的證據連結失效，依 REPORT_FIX 判準
 
 ### 3.5 Guard Input Reachability（INFRA-REACH-01 固定項）
 
-以下問題為跨 Ticket 強制回答項（即使本次 diff 無相關新增，也必須明確輸出一行回答）：
+以下問題為跨 Ticket 強制回答項（即使本次 diff 無相關新增，也必須明確輸出一行回答）。檢查依**實際風險**進行：不因檔案類型（含 runtime hook／helper／腳本）豁免，也不因 AC 文字是否出現某名稱或標記而決定是否檢查或升級：
 
-1. 本 Ticket diff 是否新增任何 guard / gate / early-return / reducer branch / fallback，且其觸發條件依賴 diff 外部的 CameraState 欄位或 runtime state？
-2. 若有，該 state 是否在 `app/src/main/` 存在 production writer（非預設初始化、非 reset-to-Idle 語意）？
-3. producer 判定三選一：(A) diff 內可見；(B) diff 外但 production 可達；(C) 不存在或不可證明 → 標記 `missing-wiring` 風險
-4. 若 producer 為 (C) → 即使 unit test 全綠，對應 AC **不得標 PASS**，標記 `missing-wiring`
+1. 本 Ticket diff 是否新增任何 guard / gate / early-return / reducer branch / fallback，且其觸發條件依賴 diff 外部的 CameraState 欄位或 runtime state（含 runtime hook／helper 所讀取的檔案、registry、ledger、payload 欄位等外部輸入）？
+2. 若有，只檢查該判定**實際讀取、且影響放行或攔截結果**的輸入：每個輸入舉證一個 production writer（`檔案:行號`，可位於任何 repo 或 runtime 路徑；非預設初始化、非 reset-to-Idle 語意）與其判定處 consumer。不必列出完整 schema 或判定未使用的欄位，也不必向 writer 的上游無限追溯（一跳為止）。
+3. producer 判定三選一：(A) diff 內可見；(B) diff 外但 production 可達（附 `檔案:行號`）；(C) 不存在或不可證明 → 標記 `missing-wiring` 風險
+4. 若 producer 為 (C) → 即使 unit test 全綠，對應 AC **不得標 PASS**，標記 `missing-wiring`；舉證由 SV Report 以指令輸出提供，報告宣稱可達卻未舉證者屬決策相關主張缺證據（REPORT_FIX）；補有效舉證可解除該 finding，僅改標 PARTIAL 只更正報告、不自動滿足原 AC 或放行整票。
 
 **強制輸出格式（每次必須輸出此行）**：
 `Guard Input Reachability: [無新 Guard] / [有新 Guard — State: X — Producer: (A)/(B)/(C)] / [missing-wiring: State X 無 producer]`
