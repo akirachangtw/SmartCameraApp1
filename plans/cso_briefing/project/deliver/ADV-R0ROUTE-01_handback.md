@@ -269,3 +269,12 @@ DEPENDENCY_DELTA=NONE
 - **reviews 回填**：`qa=PASS`（Step 0 PASS＋治理測試 PASS，build N/A）、`sv=PASS`、`codex=PASS`〔依 Transition Table「ADVISORY 無 BLOCKER／FAIL finding 視同 PASS」映射；**實際 verdict＝ADVISORY**，記於 checkpoint `codex_verdict_actual`〕、`traycer=N_A`（`Traycer Workflow: N/A`）。
 - **未勾 AC 去向**：F1／F2「真實 R0 實載新定義」重放兩條與 A 鏈「真實 R0 ACTIONABLE」一條保持未勾（UNVERIFIED），待 Akira 終審裁決是否接受限定交付，或於新 session 重載 agent 定義後以真實 cross-reviewer 重放（即 Codex 之解除條件）；不自動轉票（正式開票僅可經 `/ticket-author`）。
 - **清理**：`tmp/ADV-R0ROUTE-01/`（payload、變體、結果副本、stub、closeout 草稿）於 closeout 時移除；耐久內容已落本票收尾實錄。
+
+### 8. 終審收束附註（Akira 2026-10-16，REVIEW → CLOSED 前）
+- **終審**：接受限定交付，核可依既有通道 REVIEW → CLOSED。
+- **三條未驗 AC 保持未勾、標 UNVERIFIED**（F1／F2 真實 R0 實載新定義重放、A 鏈真實 R0 ACTIONABLE）：不補勾、不重跑 AI-5。**真實 cross-reviewer 新定義整合未驗。**
+- **證據分層各自獨立記錄，不互相替代**：stub-equivalent（R0 產出）、真實 Advisor（transcript line 1022→1023）、helper（ledger 事件）、研究回流消費（僅 C 之消費段，事後登錄）。**不宣稱完整自主閉環。**
+- **本 session 五次真實委派未取得新定義回件：原因維持未確認，不定性為已證實的環境屬性。**
+- **後續觀察（不另開 probe 票）**：下一張票自然 `/sv` 可順帶觀察；若 R0 回件含五欄分類，只證明該次輸出契約可達，不等價替代 F1／F2 正反重放，**不自動解除三條 UNVERIFIED**；遇相應情境，結果記於當次 SV 實錄。
+- **偏差保留**：stub PATH 誤呼叫真實 Codex（約 43K tokens，ADV-RESETISO-01 範圍，ADVISORY）之偏差與影響保留；該次輸出**不作驗收證據**，**不追溯宣稱 HC9 全程合規**（第 2 節已有等價紀錄，不重複追加）。
+- **Codex 實際 verdict＝ADVISORY**（`reviews.codex=PASS` 為 Transition Table 映射），連同上列限定驗收結果持久保存於本票檔與 CLOSED 後回填之 checkpoint。
