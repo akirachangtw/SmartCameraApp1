@@ -4,7 +4,7 @@
 
 ## ⚡ Boot Sequence
 
-Session 啟動 → `mkdir -p tmp && rm -f tmp/verify_cmd.conf .tmp/sv_report.md tmp/handoff.md` → 讀 PROGRESS.md → 輸出 Boot Report → **停止等 Ticket**。
+Session 啟動 → `mkdir -p tmp`（runtime 檔清理僅由 SessionStart `reset` 之隔離判定承擔，Boot 不另行 `rm`）→ 讀 PROGRESS.md → 輸出 Boot Report → **停止等 Ticket**。
 
 有 active 票（`tmp/verify/active.json` 之 `ticket_id`）時，Boot Report 前先執行 `python .claude/scripts/gate_ledger.py status --json`：有 open incident 或待人工者，依 Gate 續作或輸出 `HUMAN_REQUIRED`，不以「停止等 Ticket」收尾（Rule 4b 但書）；`status` 非 0（含無票 exit 3、ledger IO 失敗）→ 記原始錯誤與「ledger 狀態未知」，可續行 Boot／讀取／取證，不得當作無 open incident，後續受 Gate 控制的動作須先通過第一個對應 `check`，不得偽造事件、重置 ledger 或繞過檢核；無 active 票時維持「停止等 Ticket」（Rule 4a）。
 

@@ -6,7 +6,7 @@
 #   bash .claude/hooks/session_start.sh reset   # matcher: startup|clear
 #   bash .claude/hooks/session_start.sh inject  # matcher: resume|compact|fork
 #
-# reset  : 清 tmp/verify_cmd.conf／.tmp/sv_report.md／handoff.md，輸出 active ticket 三態＋PROGRESS.md 過期提示（僅當該檔無本地未提交變更、且舊於最後提交時）＋PROGRESS.md（≤80 行上界）
+# reset  : 清 tmp/verify_cmd.conf／.tmp/sv_report.md／handoff.md（owner 他人／身分未知／現役票 conf 匹配時整組略過，見 reset_protected），輸出 active ticket 三態＋PROGRESS.md 過期提示（僅當該檔無本地未提交變更、且舊於最後提交時）＋PROGRESS.md（≤80 行上界）
 # inject : 不清任何檔，輸出 active ticket 三態＋PROGRESS.md 前 25 行＋續作提醒
 #
 # 恆 exit 0；任何子步驟失敗僅 echo >&2，不阻斷 session 啟動（HC-1）。
@@ -84,13 +84,37 @@ report_active_ticket() {
   report_owner_status "$ticket_id"
 }
 
+# ─── reset 隔離判定（唯讀；D2）───
+# protect = valid_active AND ( (owner 非空 AND (SID 空 OR SID != owner))
+#                              OR (owner 空 AND conf_ticket 非空 AND conf_ticket == active_ticket) )
+# valid_active＝active.json 存在且取得非空 ticket_id。不查 Registry／lifecycle；不 claim、不改 owner。
+reset_protected() {
+  [[ -f "$ACTIVE_JSON" ]] || return 1
+  local active_ticket owner current conf_ticket
+  active_ticket="$(sed -n 's/.*"ticket_id":[[:space:]]*"\([^"]*\)".*/\1/p' "$ACTIVE_JSON" 2>/dev/null | head -1)"
+  [[ -n "$active_ticket" ]] || return 1
+  owner="$(sed -n 's/.*"owner_session_id":[[:space:]]*"\([^"]*\)".*/\1/p' "$ACTIVE_JSON" 2>/dev/null | head -1)"
+  current="${CLAUDE_CODE_SESSION_ID:-}"
+  if [[ -n "$owner" ]]; then
+    [[ -z "$current" || "$current" != "$owner" ]] && return 0
+    return 1
+  fi
+  conf_ticket="$(grep -m1 '^TICKET_ID=' tmp/verify_cmd.conf 2>/dev/null | cut -d= -f2- | tr -d '\r')"
+  [[ -n "$conf_ticket" && "$conf_ticket" == "$active_ticket" ]] && return 0
+  return 1
+}
+
 mode="${1:-}"
 
 case "$mode" in
   reset)
     mkdir -p tmp 2>/dev/null
-    rm -f tmp/verify_cmd.conf .tmp/sv_report.md tmp/handoff.md 2>/dev/null
-    echo "🧹 SessionStart(reset)：tmp/ 預載檔已清"
+    if reset_protected; then
+      echo "🛡️ SessionStart(reset)：runtime 檔屬他人或歸屬未確認，略過清理"
+    else
+      rm -f tmp/verify_cmd.conf .tmp/sv_report.md tmp/handoff.md 2>/dev/null
+      echo "🧹 SessionStart(reset)：tmp/ 預載檔已清"
+    fi
     report_active_ticket
     if [[ -f .claude/PROGRESS.md ]]; then
       # 單檔 dirty guard：PROGRESS.md 有本地未提交變更（worktree 或 index）即注入新內容，不得宣告「前次狀態」
