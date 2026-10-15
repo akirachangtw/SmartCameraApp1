@@ -240,3 +240,13 @@ DEPENDENCY_DELTA=NONE
 - **reviews 回填**：`qa=PASS`、`sv=PASS`、`codex=PASS`〔依 Transition Table「ADVISORY 無 BLOCKER／FAIL finding 視同 PASS」映射；**實際 verdict＝ADVISORY**，記於 checkpoint `codex_verdict_actual`〕、`traycer=N_A`（`Traycer Workflow: N/A`）。
 - **作業期間偏差（如實）**：①`tmp/verify_cmd.conf`／`.tmp/sv_report.md` 於 QA→SV 期間數度被外力刪除（與每次子 agent 結束時序吻合，來源未確認；`session_start.sh reset` 為唯一會同時刪此二檔之程式），以 per-ticket 快照與 `.tmp/sv_report_*.md` 歸檔重建，並將 stub 重產 payload／R0／送 Codex 置於同一命令鏈內以避免再被刪；②為先產生 payload 而不呼叫 Codex，使用 PATH 上的 stub `codex`（`tmp/ADV-OWNER-01/stubbin/codex`，僅 exit 1），未寫入 `.tmp/cross_review_state` 的 round／verdict；③`PROGRESS.md`／`PROGRESS_ARCHIVE.md` 同步、Done 標記為 `DEFERRED-TO-DOCSYNC`。
 - **未做（不變）**：本地 env↔payload 值比對、真實 Stop 鏈驗證、變異驗證；`test_preflight_adapter.sh` 39/80 為與基線相同的既有失敗。
+
+## 終審收束附註（2026-10-15；Akira 終審通過，REVIEW → CLOSED；本節為轉 CLOSED 前之耐久載體）
+
+- **終審結論**：Akira 2026-10-15 核可依既有通道 REVIEW → CLOSED。`reviews` 保留不覆寫：`qa=PASS`、`sv=PASS`、`codex=PASS`、`traycer=N_A`。冊面無 `verification` 欄（無 `verification.required` 需逐項核對）。
+- **實際 Codex verdict（耐久紀錄，不因 checkpoint 於 CLOSED 清空而遺失）**：`codex_verdict_actual=ADVISORY`（首次 `REPORT_FIX` 補件後第 2 次 ADVISORY；`reviews.codex=PASS` 為 Transition Table 對 ADVISORY 且無 BLOCKER／FAIL finding 之映射值，非「Codex 判 PASS」）。
+- **限定交付**：決定性子行程／stub 測試通過（gate hook 54 OK、registry guard shell ALL PASS、`owner_writer_test` ALL PASS、`session_start_owner_test` ALL PASS、`test_gate_ledger` 53 OK）。**維持 UNVERIFIED**：同 session env↔payload 逐值比對、真實 Stop 鏈端到端、變異驗證。官方契約僅為契約層確認，**不**記為本地實測 PASS。終審不重跑驗證。
+- **adapter 如實保留**：`test_preflight_adapter.sh` **39 通過／80 失敗**，與 HEAD 基線逐項相同（既有失敗，非本票引入），**不宣稱全綠**；隔離執行時原始 `tmp/verify/active.json` 已恢復並讀回確認（`RESTORE_READBACK=IDENTICAL`）。
+- **殘餘窗口承接（不變）**：`gate_ledger.py` 缺省票號解析未核對 owner（同根殘餘窗口，本票不修、不改該檔、不另開報告）。
+- **後續 reset 清理隔離之輸入（附註）**：已發現 `session_start.sh` 的 `reset` 含可同時刪除 `tmp/verify_cmd.conf`、`.tmp/sv_report.md`、`tmp/handoff.md` 的路徑（`session_start.sh:92`）；在已掃描的 `.claude` shell 腳本範圍內為唯一同時刪除命中。本次刪除事件的觸發 session 與實際執行來源未確認；列為後續 reset 清理隔離的輸入。本票不修 `reset`。
+- **DEFERRED-TO-DOCSYNC 維持**：`PROGRESS.md`／`PROGRESS_ARCHIVE.md` 同步與 Done 標記由 `/compact` 處理。
