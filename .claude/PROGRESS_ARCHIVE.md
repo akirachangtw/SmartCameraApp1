@@ -488,3 +488,6 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 
 <!-- 2026-10-15 /compact checkpoint：自 PROGRESS.md 最近 Ticket 表輪替 -->
 | ADV-GATE-02 | ✅ **CLOSED**（2026-10-13，commit `cc541546`+`0452a579`+`b712fb3e`；reviews 同上）· 新增 `.claude/scripts/gate_ledger.py`（事件溯源 ledger：incident／最多 3 輪 CAS／PPSS 證據／`check`／`status`；lock＋Windows 存活判斷）＋39 unittest；PPSS 真實鏈 PASS-chain（`evidence_ok=false`）；豁免 AC1 probe 內容基線子項（無開工基線）；E2 失敗分支未實測 |
+
+<!-- 2026-10-15 /compact checkpoint：自 PROGRESS.md 最近 Ticket 表輪替 -->
+| ADV-GATE-03 | ✅ **CLOSED**（2026-10-13，commit `0386ec9e`+`a18a0ee5`+`0be68e10`；冊面 lifecycle=CLOSED、reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}，已 read-back）· 停止／等待條款終點回指 Gate；五入口 `gate_ledger.py check`（qa／commit／sv／closeout〔入口冪等之後、首個寫入之前〕／done）＋Boot 與 handoff 讀 `status`（非 0 不當作無 open incident）；`ssot-governance.md` 僅三處狀態字面（入口 check 已接入；退出碼映射單一來源）。8F +42L −37L；Cross-Review 第 1 次 REPORT_FIX（codex 來源，補 producer 行號）→PASS。n=1 實戰（ledger 12 事件），不宣稱機械強制或完整 Gate；resume 未經新 session 實跑；mdlint 人工核對 |
