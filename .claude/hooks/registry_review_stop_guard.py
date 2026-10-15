@@ -92,16 +92,13 @@ def ac_all_checked(location):
         return None
 
 
-def evict_stale_markers(session_id):
+def read_owner():
     try:
-        for fn in os.listdir(STOP_GUARD_DIR):
-            if not fn.startswith(session_id + "_"):
-                try:
-                    os.remove(os.path.join(STOP_GUARD_DIR, fn))
-                except Exception:
-                    pass
+        with open(ACTIVE_JSON, "r", encoding="utf-8") as f:
+            owner = json.load(f).get("owner_session_id")
+        return owner if isinstance(owner, str) and owner else None
     except Exception:
-        pass
+        return None
 
 
 def main():
@@ -113,6 +110,9 @@ def main():
 
     session_id = payload.get("session_id") if isinstance(payload, dict) else None
     if not session_id:
+        fail_open()
+
+    if read_owner() != session_id:
         fail_open()
 
     ticket_id = read_ticket_id()
@@ -141,7 +141,6 @@ def main():
 
     try:
         os.makedirs(STOP_GUARD_DIR, exist_ok=True)
-        evict_stale_markers(session_id)
         marker = os.path.join(STOP_GUARD_DIR, f"{session_id}_{ticket_id}.blocked")
         if os.path.isfile(marker):
             fail_open()

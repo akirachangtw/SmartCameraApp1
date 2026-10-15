@@ -47,7 +47,7 @@ class Env:
         (base / location / f"{TICKET}_x.md").write_text(ticket_text, encoding="utf-8")
         self.set_lifecycle(lifecycle)
         (self.root / "tmp" / "verify").mkdir(parents=True)
-        (self.root / "tmp" / "verify" / "active.json").write_text(json.dumps({"ticket_id": TICKET}), encoding="utf-8")
+        (self.root / "tmp" / "verify" / "active.json").write_text(json.dumps({"ticket_id": TICKET, "owner_session_id": "s1"}), encoding="utf-8")
         (self.root / "sub").mkdir()
         self.n = 0
 
@@ -243,6 +243,66 @@ class AllowConditions(Base):
         text = HOOK.read_text(encoding="utf-8").lower()
         for banned in ("notify", "telegram", "import gate_ledger", "from gate_ledger"):
             self.assertNotIn(banned, text)
+
+
+class OwnerGate(Base):
+    """ADV-OWNER-01: only the session registered as active.json owner is controlled; everyone else is allowed untouched."""
+
+    def snapshot(self):
+        led = self.env.root / ".git" / "gate" / f"{TICKET}.jsonl"
+        guard = self.env.root / "tmp" / ".stop_guard"
+        return (led.read_bytes() if led.exists() else None,
+                sorted(p.name for p in guard.iterdir()) if guard.exists() else None)
+
+    def set_active(self, **fields):
+        data = {"ticket_id": TICKET}
+        data.update(fields)
+        (self.env.root / "tmp" / "verify" / "active.json").write_text(json.dumps(data), encoding="utf-8")
+
+    def test_owner_session_is_still_controlled(self):
+        self.env.incident("s-a")
+        self.block(self.env.payload())
+        self.assertEqual(self.env.status()["blocks"], 1)
+
+    def test_non_owner_same_ticket_same_cwd_is_allowed_without_any_write(self):
+        self.env.incident("s-a")
+        before = self.snapshot()
+        for session in ("other", "s1x"):
+            self.assertAllow(self.env.payload(session_id=session))
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.env.status()["blocks"], 0)
+        self.assertEqual(self.env.status()["pending_human"], [])
+
+    def test_missing_or_empty_owner_is_allowed_without_any_write(self):
+        self.env.incident("s-a")
+        before = self.snapshot()
+        for fields in ({}, {"owner_session_id": ""}, {"owner_session_id": None}, {"owner_session_id": 7}):
+            self.set_active(**fields)
+            self.assertAllow(self.env.payload())
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.env.status()["blocks"], 0)
+
+    def test_no_session_id_in_payload_is_allowed(self):
+        self.env.incident("s-a")
+        before = self.snapshot()
+        data = self.env.payload()
+        data.pop("session_id")
+        self.assertAllow(data)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_handoff_new_owner_controlled_old_owner_allowed(self):
+        self.env.incident("s-a")
+        self.set_active(owner_session_id="s2")
+        self.assertAllow(self.env.payload(session_id="s1"))
+        self.block(self.env.payload(session_id="s2", prompt="p2"))
+
+    def test_non_owner_never_reaches_no_progress_pending(self):
+        self.env.incident("s-a")
+        before = self.snapshot()
+        for n in range(8):
+            self.assertAllow(self.env.payload(prompt=f"q{n}", session_id="other"))
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.env.status()["pending_human"], [])
 
 
 class OpenIncidents(Base):

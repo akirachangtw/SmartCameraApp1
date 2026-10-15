@@ -14,6 +14,31 @@
 
 ACTIVE_JSON="tmp/verify/active.json"
 
+# ─── owner 狀態提示（唯讀、非阻斷；report_active_ticket 通過校驗後呼叫，reset／inject 共用）───
+# 不寫任何檔、不認領；REVIEW／CLOSED／VOID 或無法判定 lifecycle 者不輸出。
+report_owner_status() { # report_owner_status <ticket_id>
+  local ticket_id="$1" lifecycle owner current
+  lifecycle="$(python -c 'import json,sys
+d=json.load(open("plans/cso_briefing/project/TICKET_REGISTRY.json",encoding="utf-8"))
+for t in d.get("tickets",[]):
+    if t.get("id")==sys.argv[1]:
+        print(t.get("lifecycle") or ""); break' "$ticket_id" 2>/dev/null | tr -d '\r')"
+  case "$lifecycle" in
+    ""|REVIEW|CLOSED|VOID) return 0 ;;
+  esac
+  owner="$(sed -n 's/.*"owner_session_id":[[:space:]]*"\([^"]*\)".*/\1/p' "$ACTIVE_JSON" 2>/dev/null | head -1)"
+  current="${CLAUDE_CODE_SESSION_ID:-}"
+  if [[ -z "$owner" ]]; then
+    echo "👤 Ticket owner: 未登記（票務 Stop guard 對 ${ticket_id} 不生效；需承接請顯式 activation，不會自動認領）"
+  elif [[ -z "$current" ]]; then
+    echo "👤 Ticket owner: 無法取得當前 session ID，歸屬未確認（不代表非 owner）"
+  elif [[ "$owner" == "$current" ]]; then
+    echo "👤 Ticket owner: 本 session 為 owner（票務 Stop guard 生效）"
+  else
+    echo "👤 Ticket owner: 其他 session 為 owner（本 session 不受 ${ticket_id} 票務 Stop guard 控制；需承接請顯式 activation）"
+  fi
+}
+
 # ─── active.json 三態（reset／inject 共用）───
 report_active_ticket() {
   if [[ ! -f "$ACTIVE_JSON" ]]; then
@@ -21,13 +46,17 @@ report_active_ticket() {
     return 0
   fi
 
-  local total first last
+  # 舊 7 欄檔＝9 行；含選用 owner_session_id 之 8 欄檔＝10 行
+  local total first last owner_cnt expect_total=9
+  owner_cnt="$(grep -c '"owner_session_id":' "$ACTIVE_JSON" 2>/dev/null)"
+  [[ "$owner_cnt" == "1" ]] && expect_total=10
   total="$(wc -l < "$ACTIVE_JSON" 2>/dev/null | tr -d '[:space:]')"
   first="$(sed -n '1p' "$ACTIVE_JSON" 2>/dev/null)"
-  last="$(sed -n '9p' "$ACTIVE_JSON" 2>/dev/null)"
+  last="$(sed -n "${expect_total}p" "$ACTIVE_JSON" 2>/dev/null)"
 
   local ok=1
-  [[ "$total" == "9" ]] || ok=0
+  [[ "$owner_cnt" == "0" || "$owner_cnt" == "1" ]] || ok=0
+  [[ "$total" == "$expect_total" ]] || ok=0
   [[ "$first" == "{" ]] || ok=0
   [[ "$last" == "}" ]] || ok=0
 
@@ -52,6 +81,7 @@ report_active_ticket() {
   head_sha="$(sed -n 's/.*"head_sha":[[:space:]]*"\([^"]*\)".*/\1/p' "$ACTIVE_JSON")"
   activated_at="$(sed -n 's/.*"activated_at":[[:space:]]*"\([^"]*\)".*/\1/p' "$ACTIVE_JSON")"
   echo "📍 Active ticket: ${ticket_id} | ${branch} @ ${head_sha:0:8} | activated ${activated_at}"
+  report_owner_status "$ticket_id"
 }
 
 mode="${1:-}"

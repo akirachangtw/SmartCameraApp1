@@ -55,7 +55,14 @@ write_conf_snapshot() { # write_conf_snapshot <dest_path>
 write_active_json() { # write_active_json → 0=ok 1=mismatch/failure（不影響 Step 0 exit code）
   local dest="${PERTICKET_DIR}/active.json" tmp_dest
   tmp_dest="${dest}.tmp.$$"
-  local repo_root branch head_sha activated_at src
+  local repo_root branch head_sha activated_at src prev_tid owner=""
+  # owner_session_id：恆為非 claim——同票沿用既有 owner（不讀 CLAUDE_CODE_SESSION_ID），異票／缺檔／不可解析→空
+  if [[ -f "$dest" ]]; then
+    prev_tid=$(sed -n 's/.*"ticket_id":[[:space:]]*"\([^"]*\)".*/\1/p' "$dest" 2>/dev/null | head -1)
+    if [[ -n "$prev_tid" && "$prev_tid" == "$TICKET_ID" ]]; then
+      owner=$(sed -n 's/.*"owner_session_id":[[:space:]]*"\([^"]*\)".*/\1/p' "$dest" 2>/dev/null | head -1)
+    fi
+  fi
   repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
   branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
   head_sha=$(git rev-parse HEAD 2>/dev/null)
@@ -66,8 +73,8 @@ write_active_json() { # write_active_json → 0=ok 1=mismatch/failure（不影�
     *) src="new-session" ;;
   esac
   mkdir -p "$PERTICKET_DIR" 2>/dev/null
-  printf '{\n  "ticket_id": "%s",\n  "ticket_revision": "%s",\n  "repo_root": "%s",\n  "branch": "%s",\n  "head_sha": "%s",\n  "activated_at": "%s",\n  "activation_source": "%s"\n}\n' \
-    "$TICKET_ID" "$REVISION" "$repo_root" "$branch" "$head_sha" "$activated_at" "$src" > "$tmp_dest" 2>/dev/null
+  printf '{\n  "ticket_id": "%s",\n  "ticket_revision": "%s",\n  "repo_root": "%s",\n  "branch": "%s",\n  "head_sha": "%s",\n  "activated_at": "%s",\n  "activation_source": "%s",\n  "owner_session_id": "%s"\n}\n' \
+    "$TICKET_ID" "$REVISION" "$repo_root" "$branch" "$head_sha" "$activated_at" "$src" "$owner" > "$tmp_dest" 2>/dev/null
   if [[ ! -s "$tmp_dest" ]]; then
     rm -f "$tmp_dest" 2>/dev/null
     echo "⚠️ active.json 寫入失敗（不影響 Step 0 判定，既有 config 未被觸碰）" >&2

@@ -439,6 +439,9 @@ def decide(ctx: Ctx):
     ticket = active.get("ticket_id") if isinstance(active, dict) else None
     if not isinstance(ticket, str) or not TICKET_RE.match(ticket):
         return None
+    owner = active.get("owner_session_id")
+    if not isinstance(owner, str) or not owner or owner != payload.get("session_id"):
+        return None                                   # owner-only: absent / empty / other session -> allow, no ledger or marker touch
     ctx.ticket = ticket
     lifecycle = registry_lifecycle(ctx.root, ticket)
     if lifecycle is None or lifecycle in TERMINAL or lifecycle in EXCLUDED_LIFECYCLES:

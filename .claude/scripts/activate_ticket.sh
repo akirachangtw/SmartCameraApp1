@@ -10,7 +10,8 @@
 # 參數含多個相異純票號 token 時，以首個為準，並印出 ⚠️ 提示。
 # 票號 token 以外之文字視為附帶指示，由呼叫端 skill 承接，本腳本僅回報字數不處理內容。
 # 成功時於 ✅ ACTIVATED 行前輸出 📄 <票檔路徑>，並同步原子寫入 tmp/verify/active.json
-# （七欄，與 qa/scripts/verify_checklist.sh write_active_json 同構；失敗僅 stderr 警示，不影響 exit 0）。
+# （八欄含 owner_session_id＝CLAUDE_CODE_SESSION_ID，本腳本為唯一 claim 入口；與 qa/scripts/verify_checklist.sh
+# write_active_json 同構；失敗僅 stderr 警示，不影響 exit 0）。取不到 SID → owner 寫空並輸出警示。
 #
 # Exit codes:
 #   0  ACTIVATED — tmp/verify_cmd.conf 已恆覆寫為指定票號之九欄值
@@ -186,12 +187,23 @@ HEAD_SHA_FULL=$(git rev-parse HEAD)
 ACTIVATED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 ACTIVE_JSON_DEST="tmp/verify/active.json"
 ACTIVE_JSON_TMP="${ACTIVE_JSON_DEST}.tmp.$$"
-if printf '{\n  "ticket_id": "%s",\n  "ticket_revision": "%s",\n  "repo_root": "%s",\n  "branch": "%s",\n  "head_sha": "%s",\n  "activated_at": "%s",\n  "activation_source": "%s"\n}\n' \
-  "$TICKET_ID" "rev-0" "$REPO_ROOT" "$BRANCH" "$HEAD_SHA_FULL" "$ACTIVATED_AT" "activate_ticket.sh" > "$ACTIVE_JSON_TMP" 2>/dev/null \
+OWNER_SID="${CLAUDE_CODE_SESSION_ID:-}"
+OLD_OWNER=""
+if [ -f "$ACTIVE_JSON_DEST" ]; then
+  OLD_OWNER=$(sed -n 's/.*"owner_session_id":[[:space:]]*"\([^"]*\)".*/\1/p' "$ACTIVE_JSON_DEST" 2>/dev/null | head -1)
+fi
+if printf '{\n  "ticket_id": "%s",\n  "ticket_revision": "%s",\n  "repo_root": "%s",\n  "branch": "%s",\n  "head_sha": "%s",\n  "activated_at": "%s",\n  "activation_source": "%s",\n  "owner_session_id": "%s"\n}\n' \
+  "$TICKET_ID" "rev-0" "$REPO_ROOT" "$BRANCH" "$HEAD_SHA_FULL" "$ACTIVATED_AT" "activate_ticket.sh" "$OWNER_SID" > "$ACTIVE_JSON_TMP" 2>/dev/null \
   && mv -f "$ACTIVE_JSON_TMP" "$ACTIVE_JSON_DEST" 2>/dev/null; then
   :
 else
   echo "⚠️ 無法寫入 tmp/verify/active.json（fail-open，不影響 activation）" >&2
+fi
+
+if [ -z "$OWNER_SID" ]; then
+  echo "⚠️ 取不到 CLAUDE_CODE_SESSION_ID：owner 未登記，票務 Stop guard 對 ${TICKET_ID} 不生效（請於可取得 session ID 的環境重跑 activation）"
+elif [ -n "$OLD_OWNER" ] && [ "$OLD_OWNER" != "$OWNER_SID" ]; then
+  echo "🔀 owner 移轉：${OLD_OWNER:0:8} → ${OWNER_SID:0:8}"
 fi
 
 ALLOWED_PREVIEW=$(printf '%s' "$ALLOWED" | cut -c1-60)
