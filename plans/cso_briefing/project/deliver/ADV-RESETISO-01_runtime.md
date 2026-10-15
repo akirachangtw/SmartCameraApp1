@@ -170,3 +170,11 @@ DEPENDENCY_DELTA=NONE
 - **reviews 回填**：`qa=PASS`、`sv=PASS`、`codex=PASS`〔依 Transition Table「ADVISORY 無 BLOCKER／FAIL finding 視同 PASS」映射；**實際 verdict＝ADVISORY**，記於 checkpoint `codex_verdict_actual`〕、`traycer=N_A`（`Traycer Workflow: N/A`）。
 - **作業觀察（如實）**：①`/sv` 進行中 registry Stop hook（ADV-OWNER-01 新增的 owner 核對）對本 session 觸發一次「AC 全勾但 lifecycle 仍 IN_PROGRESS」攔截——本 session 為 `active.json` owner，核對如設計生效；因 Cross-Review 尚未完成，未提前轉 `REVIEW`（不以推定補 PASS），攔截一次後 marker 已寫入；②為先產生 payload 而不呼叫 Codex，使用 PATH 上的 stub `codex`（`tmp/ADV-RESETISO-01/stubbin/codex`，僅 exit 1），未寫入 `.tmp/cross_review_state` 的 round／verdict；③本次未再發生 `tmp/verify_cmd.conf`／`.tmp/sv_report.md` 被外力刪除（本 session 為 owner，reset 隔離判定在位；單次觀察，不構成因果證明）；④`PROGRESS.md`／`PROGRESS_ARCHIVE.md` 同步、Done 標記為 `DEFERRED-TO-DOCSYNC`。
 - **未做（不變）**：真實 `/clear`／SessionStart 鏈、模型端遵守新 Boot 文字、變異驗證；官方契約非本地實測。
+
+## 終審收束附註（2026-10-15；Akira 終審通過，REVIEW → CLOSED；本節為轉 CLOSED 前之耐久載體）
+
+- **終審結論**：Akira 2026-10-15 核可依既有通道 REVIEW → CLOSED，並**不否決**已引用 D1 的 R0 CHECKPOINT-REQUIRED 處置（`.claude/CLAUDE.md` Boot 第 7 行單行）。`reviews` 保留不覆寫：`qa=PASS`、`sv=PASS`、`codex=PASS`、`traycer=N_A`。
+- **實際 Codex verdict（耐久紀錄，不因 checkpoint 於 CLOSED 清空而遺失）**：`codex_verdict_actual=ADVISORY`（首次即 ADVISORY，無 REPORT_FIX／BLOCKER）；`reviews.codex=PASS` 為 Transition Table 對 ADVISORY 且無 BLOCKER／FAIL finding 之映射值，非「Codex 判 PASS」（同見上節「SV／Cross-Review 實錄」）。
+- **限定交付**：stub／決定性子行程測試通過。**維持 UNVERIFIED**：真實 `/clear`／SessionStart 鏈、模型端是否遵循新 Boot 文字、變異驗證；官方契約非本地實測。終審不重跑驗證。
+- **不在本票處理（不阻擋收束、不另開票）**：F2（owner 登記時保護不比對 conf `TICKET_ID`，無參數 `/uc`／Ticket DONE 讀 conf 的綁定風險，已於 HC6 揭露並指定承接者）與 R-2（依 Akira 終審指示字面記錄，本票不修補）。
+- **DEFERRED-TO-DOCSYNC 維持**：`PROGRESS.md`／`PROGRESS_ARCHIVE.md` 同步與 Done 標記由 `/compact` 處理；不以另立決策文件或知識庫同步作為結案前置。
