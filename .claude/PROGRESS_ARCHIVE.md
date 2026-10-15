@@ -485,3 +485,6 @@ W1: T00→T01 / W2: T02→T03→T04→T06 / W3: T08→T09→T05 / W4: T07→T10�
 
 <!-- 2026-10-15 /compact checkpoint：自 PROGRESS.md 最近 Ticket 表輪替 -->
 | ADV-GATE-01 | ✅ **CLOSED**（2026-10-11，commit `2441aeba`+`470bf098`；冊面 lifecycle=CLOSED、reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}）· `rules/ssot-governance.md` 純新增 72 行：獨立 `## Autonomous Engineering Gate` 契約節（詞彙不外溢、最多 3 輪、`EXHAUSTED` 僅限三輪耗盡、`NO_AUTHORIZED_STRATEGY`、`evidence_ok` 僅可追溯、入口落點與覆蓋矩陣四軸）＋Table 回指一行；**只交付契約，helper／hook／機械停損尚不存在**。原歸 ACAGOV，Akira 裁決改歸 Advisor（`ACAGOV-GATE-01`→`ADV-GATE-01`）。Codex PASS；AC-8 重放 n=1 弱證據 |
+
+<!-- 2026-10-15 /compact checkpoint：自 PROGRESS.md 最近 Ticket 表輪替 -->
+| ADV-GATE-02 | ✅ **CLOSED**（2026-10-13，commit `cc541546`+`0452a579`+`b712fb3e`；reviews 同上）· 新增 `.claude/scripts/gate_ledger.py`（事件溯源 ledger：incident／最多 3 輪 CAS／PPSS 證據／`check`／`status`；lock＋Windows 存活判斷）＋39 unittest；PPSS 真實鏈 PASS-chain（`evidence_ok=false`）；豁免 AC1 probe 內容基線子項（無開工基線）；E2 失敗分支未實測 |
