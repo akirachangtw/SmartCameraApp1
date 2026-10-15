@@ -63,7 +63,7 @@ bash .claude/skills/sv/scripts/cross_review.sh .tmp/sv_report.md "a9558fc..c6548
 | `ADVISORY` | 0 | 有非阻斷觀察（含輕微措辭、無品質影響連結、含糊完備性；每項在回件列一行） | 記錄後可進入 Traycer 終審 |
 | `BLOCKER` | 1 | BLOCKER 判準表所列之真實契約、API、接線或行為違反（單一來源：`cross_review.sh`） | 修程式碼後重新 /qa → /sv |
 | `REPORT_FIX` | 3 | `.tmp/sv_report.md` 的決策相關主張與原始證據矛盾（輕微措辭、無品質影響連結、含糊完備性屬 ADVISORY；檔案清單由 Check A/B/C 確定性核對） | 符合 report-only 閉環條件者依 `sv/SKILL.md` 閉環（修報告→preflight→重跑）；否則修報告後停止回報，不需重跑 /qa |
-| ENV / FAIL BUDGET / REPORT_FIX 閉環上限 | 2 | codex、Git、輸入、fail budget 錯誤；或 `CHECKPOINT_REPORT_FIX_LIMIT`／`REPORT_FIX_ESCALATE` | 人工介入（LIMIT 為人工裁決 checkpoint，非 BLOCKER） |
+| ENV / FAIL BUDGET / REPORT_FIX 閉環上限 | 2 | codex、Git、輸入、fail budget 錯誤；或 `CHECKPOINT_REPORT_FIX_LIMIT`／`REPORT_FIX_ESCALATE` | 步驟級事件：記 step_limit，依 Gate 處置（LIMIT 為步驟級上限，非 BLOCKER） |
 
 `REPORT_FIX` 不得放行到 Traycer；它的目的就是避免用昂貴終審配額審一份不可信報告。
 
@@ -78,7 +78,7 @@ Cross-Review state 存在：
 內容包含 `TICKET`、`ROUND`（BLOCKER 輪次）、`REPORT_FIX_COUNT`、`LAST`。`MAX_BLOCKER_BUDGET` 從 `.claude/verify-policy.env` 讀取，預設為 `3`。
 
 - `BLOCKER` 到達 `MAX_BLOCKER_BUDGET - 1` 輪時輸出 checkpoint
-- `BLOCKER` 到達 `MAX_BLOCKER_BUDGET` 輪時 exit 2，要求人工裁決
+- `BLOCKER` 到達 `MAX_BLOCKER_BUDGET` 輪時 exit 2，為步驟級上限，依 Gate 處置
 - `REPORT_FIX` 不遞增 `ROUND`（不扣 blocker budget），但遞增 `REPORT_FIX_COUNT`（上限 2）；同票同一 state 週期（PASS／ADVISORY 清 state 前）第 3 次 REPORT_FIX 輸出 `CHECKPOINT_REPORT_FIX_LIMIT`（exit 2），停止自動閉環
 
 ## 降級策略

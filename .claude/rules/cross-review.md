@@ -10,7 +10,7 @@ description: Cross-Review pipeline 行為規範 — FAIL 處理 / Checkpoint / �
 
 **立即停 + Checkpoint 觸發條件**（任一觸發 → **MUST** 輸出 Checkpoint 格式，等待裁決）：
 
-- 修正涉及：PROGRESS.md / sv_report*.md / ssot_context.md / CLAUDE.md / SSOT*.md / *_Contract*.md（**例外**：符合 `ssot-governance.md` Transition Table「SV／Codex 判 REPORT_FIX」七條件、僅修改 `.tmp/sv_report*.md` 之 report-only 閉環不觸發本款）
+- 修正涉及：PROGRESS.md / sv_report*.md / ssot_context.md / CLAUDE.md / SSOT*.md / *_Contract*.md，且該檔未列於票面 `ALLOWED`，或該修改行為未被票面 Action Item／AC 明確授權（屬新 authority）→ MUST 經 Gate 本地取證＋Advisor 確認後 `HUMAN_REQUIRED(SCOPE)` 並輸出 Checkpoint；**`ALLOWED` 僅界定可觸碰檔案，不是行為授權**。該檔已列 `ALLOWED` **且**行為已被 Action Item／AC 明確授權（可指出對應 AI／AC 編號或具名裁決）者走 Gate 續作，不因檔名 Checkpoint（**例外**：符合 `ssot-governance.md` Transition Table「SV／Codex 判 REPORT_FIX」七條件、僅修改 `.tmp/sv_report*.md` 之 report-only 閉環不觸發本款）
 - 修正涉及既定 feature flag 預設值或 DI 綁定（FeatureFlags／@Inject／@Module／@Provides 的綁定與 scope）之變更，且票面未明確授權：屬新 authority → MUST 立即 Checkpoint／升報（HUMAN_REQUIRED，類別依 Gate，多為 SCOPE）。關鍵詞（FeatureFlags / gate / Gate / cooldown / @Inject / @Module / @Provides）僅作取證提示：命中後須讀 hunk 判定，不獨立觸發 Checkpoint；票面已明確授權、屬已授權 scope 內之契約修復者走 Gate，不因此再找人工。
 
 **次數限制**：第 2 次 FAIL（同票任何維度）屬步驟級事件，記 `step_limit` → 依 `ssot-governance.md` §Autonomous Engineering Gate 處置；第 1 次 FAIL 純 .kt fix **MAY** inline。report-only REPORT_FIX 閉環之重跑不計入，其上限由腳本於第 3 次輸出 `CHECKPOINT_REPORT_FIX_LIMIT`（exit 2）管制。
@@ -46,7 +46,11 @@ diff 跨三層 or 涉及 CameraViewModel.kt → `xhigh`。
   | /handoff | `Handoff/` |
 
 - **Pre-flight FORBIDDEN 比對維度**：票面 FORBIDDEN 清單 × 上表觸碰面——命中時票面 **MUST** 內建處置條款（`DEFERRED-TO-DOCSYNC` 或明示例外授權），留白即 Pre-flight FAIL（開票 lint，衝突消滅於起草時）。
-- **R0 路由**：`cross_review.sh` 產生 payload 後、`codex exec` 之前，**MUST** 先委派 `cross-reviewer` subagent（附 payload 路徑 `.tmp/cross_review_payload.md`）；R0 回報 FAIL / CHECKPOINT-REQUIRED → **MUST NOT** 送 Codex，直接進修正或 Checkpoint 裁決流程。
+- **R0 路由**：`cross_review.sh` 產生 payload 後、`codex exec` 之前，**MUST** 先委派 `cross-reviewer` subagent（附 payload 路徑 `.tmp/cross_review_payload.md`）；R0 回報 FAIL / CHECKPOINT-REQUIRED → **MUST NOT** 送 Codex；**主 agent** 為 R0 回件唯一承接者，於 R0 記錄落盤後 **MUST** 逐列依 R0 分類欄處置，**MUST NOT** 僅因 verdict 字樣即停車輸出 Checkpoint：
+  - `ACTIONABLE`（ALLOWED 內、修法可本地判定）：記 `gate_ledger.py consult --kind r0`（`--note` 填 R0 記錄檔名）→ 以該修法 `round start --layer r0` → 修復 → 局部驗證＝重跑 R0 並確認該列已消除 → `round end`；重跑後同列仍在＝該輪 fail（逐層計輪，每層最多 3 次）。r0 層三次用盡，或本層已無可行修法可提早升級 → 轉 `UNDECIDABLE` 路徑（本地取證→真實 Advisor），不停等 Akira；升級時攜帶同 incident 已試策略、結果與未解原因，Advisor 層不原樣重播。
+  - `UNDECIDABLE`（判準衝突、授權或語境無法判定）：先本地取證（`consult --kind local`）；仍不能判定 → 主 agent 呼叫原生 `advisor` 工具（R0 為唯讀 subagent，**不是** Advisor，不得代記 advisor consult）→ `consult --kind advisor` → `round start --layer advisor`；Advisor 確認之事實與一手依據附入重跑 R0 之委派 prompt。
+  - `AUTHORITY`（未獲票面授權之 feature flag 預設值／DI 綁定變更，或 file-class 命中而不具「ALLOWED 已列＋行為已被 AI／AC 明確授權」）：先本地取證，再經原生 Advisor 確認（含查證票面是否實有授權依據）；確認仍屬授權缺口 → `human --category SCOPE`，輸出 `HUMAN_REQUIRED` 單行，**僅此時**使用下方 Checkpoint 格式；確認已有授權依據 → 轉 `ACTIONABLE`／`FORWARD` 路徑並於 R0 記錄註明依據，不重問已裁決政策。
+  - 無分類欄之列（舊格式回件）一律視為 `UNDECIDABLE`；R0 重跑後仍判 FAIL 之列，主 agent **不得自判放行**（護欄二：僅 Akira 可 override R0 誤攔）；incident／round／consult／human 事件與前置條件以 `ssot-governance.md` §Autonomous Engineering Gate 為準，本條不複製。
 - **護欄一（無放行權）**：R0 任何結果（含 FORWARD）**MUST NOT** 計為正式 cross-review PASS；正式審查主體唯 Codex（gstack 跨家族紀律）。
 - **護欄二（否決申訴）**：Akira **MAY** override R0 誤攔直送 Codex；R0 誤攔事件 **MUST** 記錄（校準預過濾器）。
 - **事件三分類**：R0 事件分三類——`NORMAL`（無 override）／`_OVERRIDE`（誤攔，Akira 行使護欄二否決）／**`TRUE-POSITIVE-RULE-GAP`**（攔截忠實於現行規格、但規格本身缺分支之事件）。`TRUE-POSITIVE-RULE-GAP` **MUST NOT** 計入 `_OVERRIDE`（不消耗 CR-03 誤攔預算）；**MUST** 以承接票號記錄規則校準債。

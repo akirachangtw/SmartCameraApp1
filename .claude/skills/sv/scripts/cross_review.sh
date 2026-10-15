@@ -11,7 +11,7 @@
 # 退出碼：
 #   0 — PASS 或 ADVISORY（流程繼續）
 #   1 — BLOCKER（真實功能缺陷，修程式碼後重跑）
-#   2 — ENV 錯誤 或 FAIL BUDGET EXHAUSTED (依 MAX_BLOCKER_BUDGET)；或 REPORT_FIX 閉環上限（CHECKPOINT_REPORT_FIX_LIMIT）／closure 守門拒絕（REPORT_FIX_ESCALATE）— 人工介入
+#   2 — ENV 錯誤 或 FAIL BUDGET EXHAUSTED (依 MAX_BLOCKER_BUDGET)；或 REPORT_FIX 閉環上限（CHECKPOINT_REPORT_FIX_LIMIT）／closure 守門拒絕（REPORT_FIX_ESCALATE）— 步驟級事件，依 ssot-governance.md §Autonomous Engineering Gate 處置
 #   3 — REPORT_FIX（sv_report.md 問題，修報告後重跑）
 
 set -euo pipefail
@@ -48,7 +48,7 @@ fi
 # ═══════════════════════════════════════
 
 fail_env()        { echo "❌ ENV ERROR: $*" >&2; exit 2; }
-fail_budget()     { echo "⛔ FAIL BUDGET EXHAUSTED (R${CURRENT_ROUND}) — 人工介入必要"; exit 2; }
+fail_budget()     { echo "⛔ FAIL BUDGET EXHAUSTED (R${CURRENT_ROUND}) — 步驟級預算用盡，依 Gate 處置（記 step_limit）"; exit 2; }
 fail_blocker()    { echo "❌ BLOCKER → 修正程式碼後重新 /sv"; exit 1; }
 fail_report_fix() { echo "📋 REPORT_FIX → 修正 sv_report.md 後重新執行 cross_review"; exit 3; }
 
@@ -170,7 +170,7 @@ record_report_fix() {
   echo "REPORT_FIX_SOURCE=$1"
   if [[ $_limit -eq 1 ]]; then
     echo "CHECKPOINT_REPORT_FIX_LIMIT"
-    echo "⛔ 同票同一 state 週期（PASS／ADVISORY 清 state 前）已自動閉環 2 次 — 人工裁決 checkpoint（非 BLOCKER）；不得再自動重跑。"
+    echo "⛔ 同票同一 state 週期（PASS／ADVISORY 清 state 前）已自動閉環 2 次 — 步驟級上限（非 BLOCKER，記 step_limit），依 Gate 處置；不得再自動重跑。"
     exit 2
   fi
 }
@@ -179,7 +179,7 @@ record_report_fix() {
 if [[ "${REPORT_FIX_CLOSURE:-0}" == "1" ]]; then
   if [[ -n "$(git status --porcelain -- . ':!.tmp' 2>/dev/null)" ]]; then
     echo "REPORT_FIX_ESCALATE"
-    echo "   closure 模式：.tmp/ 以外偵測到工作樹變更，report-only 條件不成立 → 停止自動閉環，等待人工裁決。"
+    echo "   closure 模式：.tmp/ 以外偵測到工作樹變更，report-only 條件不成立 → 停止自動閉環（步驟級事件），依 Gate 處置。"
     exit 2
   fi
 fi
@@ -495,10 +495,10 @@ fi
 # Fail budget enforcement
 if [[ "$VERDICT" == "BLOCKER" ]]; then
   if [[ $CURRENT_ROUND -ge $MAX_BLOCKER_BUDGET ]]; then
-    echo "⛔ R${CURRENT_ROUND} BLOCKER — FAIL BUDGET EXHAUSTED. 人工介入必要。"
+    echo "⛔ R${CURRENT_ROUND} BLOCKER — FAIL BUDGET EXHAUSTED（步驟級預算），依 Gate 處置。"
     fail_budget
   elif [[ $CURRENT_ROUND -ge $((MAX_BLOCKER_BUDGET - 1)) ]]; then
-    echo "⚠️ R${CURRENT_ROUND} BLOCKER CHECKPOINT — R${MAX_BLOCKER_BUDGET} will hard-stop. 等待 Akira 裁決。"
+    echo "⚠️ R${CURRENT_ROUND} BLOCKER CHECKPOINT — R${MAX_BLOCKER_BUDGET} will hard-stop（步驟級預算），依 Gate 處置。"
   fi
 fi
 
