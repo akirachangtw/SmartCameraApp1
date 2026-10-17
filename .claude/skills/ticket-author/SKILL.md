@@ -190,6 +190,24 @@ Procedure:
     6. Verify the ticket is discoverable by the `ticket-run` equivalent query `registry_list(project=<PROFILE.PROJECT>, lifecycle="PENDING", fields=["id","title","file","lifecycle"], limit=50)`.
     A mismatch after the minimal safe retry → `STOP_WRITE_FAILED`.
 
+### Progress contract
+
+`ticket` mode only; `diag` and `plan` emit nothing. Report each event with `mcp__context-bar__progress_emit` (`workflowId: ticket-author`), one call per event, never batched, never a percent. If the tool is absent or a call fails, skip it: progress never affects a gate, a stop, or the response.
+
+| Event | When |
+|---|---|
+| `run.started` (`runId: tka-<UTC timestamp>`, `label: TKA ticket: <selected item>`) | Mode is `ticket`, before step 1 |
+| `stage.started` `bootstrap` → `checkpoint.completed` `templates-loaded` | Before step 1 → after step 2 |
+| `stage.started` `intake` → `parent-parsed` | Before step 3 → after step 4 |
+| `stage.started` `evidence` → `sources-located` → `load-bearing-verified` | Before step 5 → after step 7 → after step 11 |
+| `stage.started` `mapping` → `mapped` | Before step 12 → after step 14 |
+| `conflicts-resolved` (stage `evidence`) | After step 15 evidence gate PASS |
+| `stage.started` `draft` → `drafted` | Before step 16 → after compiling and the repeated-claim scan |
+| `stage.started` `rgr` → `rgr-passed` | Before the final-revision review → after step 17 authoring gate PASS (this Skill's own review/repair/rerun, not `ticket-rigor-gate`) |
+| `stage.started` `finalize` → `written` | Before step 18 → after step 18.6 passes |
+| `run.completed` | On the PASS response |
+| `run.failed` (`message: <Reason code>`) | On any STOP response |
+
 Evidence gate PASS requires:
 
 - Traceable parent source/decision and unambiguous ownership.
