@@ -1,5 +1,5 @@
 ---
-description: PROGRESS.md / SSOT 文件治理規則 — 確保儀表板精簡、歸檔紀律
+description: 治理規則 SSOT — Ticket 生命週期、Transition Table、Autonomous Engineering Gate、Closure、PROGRESS 紀律
 ---
 
 > RFC 2119 Keywords: **MUST** = 違反即 FAIL; **SHOULD** = 強烈建議，可附理由跳過; **MAY** = 純可選。
@@ -18,7 +18,7 @@ description: PROGRESS.md / SSOT 文件治理規則 — 確保儀表板精簡、�
 | `.claude/rules/*.md` | `[GOVERNANCE-SYNC]` | 執行者面治理規則載體（含本檔；目錄級表列，新增規則檔免再補表。Akira 2026-08-14 對話裁決：`.claude/rules/` 皆以 `[GOVERNANCE-SYNC]` 提交） |
 | `plans/cso_briefing/project/deliver/*.md` | `[GOVERNANCE-SYNC]` | 已交付票檔，`REVIEW`／`CLOSED` 之物理歸位產物（`ACAGOV-RUNTIME-TABLE-01`，§Session Persistence 邊界 AI-2 補列） |
 
-觸發來源：Akira 2026-07-30 對話裁決——`.gitignore` Registry 裁決記錄僅存於 PROGRESS.md 敘述文字/memory，未回寫進 `compact/SKILL.md` 執行邏輯，導致每次 `/compact` 仍以單檔硬編碼判斷 Scope 汙染；改為表驅動以杜絕「規則寫了但執行邏輯沒讀到」重演。
+（Akira 2026-07-30 對話裁決：以表驅動判斷 Scope 汙染。）
 
 **票檔目錄三分**：`plans/cso_briefing/project/Pending/`（活態未交付）／`deliver/`（已交付）／`void/`（已作廢，`lifecycle=VOID` 票檔之歸位目錄）三者並列，涵蓋票檔全生命週期落點。
 
@@ -69,7 +69,7 @@ PENDING → TICKET_RIGOR → IN_PROGRESS → EXECUTED → REVIEW → CLOSED
 
 **`file` 欄正規化前置**：APP 冊 `file` 欄現存兩種格式——短路徑（如 `Pending/INFRA-SV-GOV-01_SV_Governance_Fix.md`）與長路徑（如 `plans/cso_briefing/project/Pending/...md`）。比對前 **MUST** 先將兩者正規化至同一形式（取 basename 或統一去除 `plans/cso_briefing/project/` 前綴），**否則全部舊票將被誤判為落差**。
 
-**落差清單分類**（依現況快照產出，**MUST NOT** 代為處置任何一筆，處置屬後續裁決）：①`Pending/` 有檔而冊面查無（孤兒票檔）；②冊面活態未交付而 `Pending/` 無檔；③冊面 `file` 欄指標與實際落點不符；④`Pending/` 內非票檔文件。事件支撐：PLT 端 2026-08-30 實測發現四張票檔在 `docs/pending/` 而冊面查無，其中兩張為已 VOID 歸檔票之滯留副本；APP 端 2026-09-05 已知至少存在 `MEO-FIX-A`／`MEO-FIX-B` 系列孤兒檔與 `void/INFRA-CLAUDE-MERGE-01`（票檔在盤而主冊與歸檔冊皆查無）。
+**落差清單分類**（依現況快照產出，**MUST NOT** 代為處置任何一筆，處置屬後續裁決）：①`Pending/` 有檔而冊面查無（孤兒票檔）；②冊面活態未交付而 `Pending/` 無檔；③冊面 `file` 欄指標與實際落點不符；④`Pending/` 內非票檔文件。
 
 ### 五段觸發與寫入者
 
@@ -97,7 +97,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ### Traycer 產出物之票務地位（registry existence-first）
 
-（Akira 2026-09-09 裁決；事件：Traycer 對未入冊且已裁決不核准開立之 `INFRA-PREFLIGHT-CORE-01-FIX-D` 產出 T1 `Approach Drift` 判定，其存在性依據為 Traycer 自家 Epic 之 `Todo` 狀態）
+（Akira 2026-09-09 裁決）
 
 1. **草案地位**：Traycer 產出之 ticket 一律為**草案**，`TICKET_REGISTRY.json` 為票務存在與狀態之唯一 SSOT。草案經 SMTR `registry_upsert_ticket` 入冊後方為有效票；未入冊者不具票務效力，**MUST NOT** 派工、**MUST NOT** 作為他票之依賴或證據。
 2. **審查存在性前置**：ticket 級審查 **MUST** 以冊面 `ticket_id` 為錨（`registry_list(project, ticket_id)`，禁 `get_ticket`，同 §「治理載體↔存取工具對應圖譜」）。冊面查無此票者，該審查**無效**，**MUST NOT** 產生任何 Tier／verdict 裁決；正確處置為回報「審查對象不存在於冊面」。
@@ -110,7 +110,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 - **工具對應表**：治理冊面用 `registry_list`／`registry_upsert_ticket`／`registry_set_status`／`registry_set_checkpoint`／`registry_archive_tickets`，**均需 `project=SmartCameraApp1`**；執行審批票用 `create_ticket`／`get_ticket`／`list_tickets`／`approve_ticket`／`execute_approved_ticket`，**單鍵 `ticket_id`、無 `project` 參數**。
 - **機械判準**：查詢本規則所治理之票（`Pending/`／`deliver/` 下票檔所對應者）**MUST** 用 `registry_list`；**MUST NOT** 用 `get_ticket`。
 - **誤用簽名**：`get_ticket` 對治理冊面票**恆回 `NOT_FOUND`**——該回應為正確行為（查的是另一個資料庫），**MUST NOT** 被解讀為「該票未入冊」或「registry write-back 未完成」。
-- **APP 端專屬約束**：敘事註記可用 `registry_append_note` 或 `registry_set_checkpoint`；用後者時敘事欄位 **MUST** 置於 `checkpoint_data` 物件內——未列於該工具 schema 之參數（如頂層 `summary`）會被**靜默丟棄且仍回 `SUCCESS`**，故寫入後 **MUST** 以 `registry_list fields=["checkpoint"]` read-back 驗證（2026-09-02 實測：頂層 `summary` 寫入後 `checkpoint` 為 `{}`）。
+- **APP 端專屬約束**：敘事註記可用 `registry_append_note` 或 `registry_set_checkpoint`；用後者時敘事欄位 **MUST** 置於 `checkpoint_data` 物件內——未列於該工具 schema 之參數（如頂層 `summary`）會被**靜默丟棄且仍回 `SUCCESS`**，故寫入後 **MUST** 以 `registry_list fields=["checkpoint"]` read-back 驗證。
 - **深入參照**：`mcp-ticket-platform` repo 之 `docs/deliver/archive/OTHERS/tool-contracts.md` L404-406 與 L598 起（**跨 repo 唯讀參照**；本專案不持有該檔）。
 
 ## checkpoint 生命週期與 detail 檔
@@ -172,13 +172,12 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ## Autonomous Engineering Gate
 
-> 契約狀態：本節為契約文字。helper 與 ledger 已存在（ADV-GATE-02）；入口 `check` 呼叫已接入 qa／commit／sv／closeout／done，`resume` 讀 `status`（ADV-GATE-03）。呼叫路徑屬模型契約，不被機械阻擋；本 Gate 專用 Stop guard（`.claude/hooks/gate_stop_guard.py`）已註冊於 `.claude/settings.json` 的 Stop；升報通知對齊尚未實作。Advisor 採納之驗證限制（內容加密、不可驗）照實保留；agent **MUST NOT** 宣稱完整 Gate，**MUST NOT** 宣稱 hook 涵蓋途中違規。
+> 契約狀態：本節為契約文字；現況與宣告限制見 §實作狀態與宣告限制。入口 `check` 呼叫路徑屬模型契約，不被機械阻擋；agent **MUST NOT** 宣稱完整 Gate，**MUST NOT** 宣稱 hook 涵蓋途中違規。
 
 ### 詞彙域與不外溢條件
 
 - Gate 詞彙＝`HUMAN_REQUIRED` 及其類別與 `basis`、PPSS 證據三態（`RETRIEVED`／`SOURCE_READ`／`INVALID`）、ledger 事件型別（`finding`／`round`／`step_limit`／`consult`／`missed_check` 等），僅存活於 Gate 子系統。
 - 不外溢條件（僅針對 Gate 詞彙，非全檔枚舉之通用定義）：①不寫入 registry `lifecycle`／`reviews`／`file`／`checkpoint` 結構化欄位、不構成 registry schema（`checkpoint` 敘事摘要與票檔收尾實錄除外）；②不成為 Transition Table 控制詞或任一 Table 列之轉移條件（Table 節對本節之回指除外）；③不作為 approval／review verdict 於票或審查者之間交換。本節不新增 lifecycle 值、approval／review verdict 或 registry schema。
-- 一致性依據：Transition Table 節首引言（本檔 `:126`）之限制字面範圍為「本節」且該行未變；本節為獨立節並受上述不外溢條件約束。將該限制改為全檔通用屬另案修訂。
 
 ### Gate 適用條件與順序
 
@@ -221,8 +220,8 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ### 入口與覆蓋矩陣
 
-- 正常入口最小落點：入口 check 呼叫已接入（ADV-GATE-03）。`qa`＝`qa/SKILL.md` `## Step 0: Ticket Scope 驗證 (Scope Gate)`；`commit`＝同檔 `## Step 4.5: Ticket Auto Commit`；`sv`＝`sv/SKILL.md` `## 前置檢查：Ticket 已 Commit Gate`；`closeout`＝同檔 `## Step 11: Closeout Auto-Chain`；`done`＝`uc/SKILL.md` 規則 8；`resume`＝`.claude/CLAUDE.md` `## ⚡ Boot Sequence`（讀 `status`）。`check` 退出碼映射（單一來源，各入口呼叫處只回指）：0＝續行該入口動作；1＝ledger 已有待人工，依印出的類別、incident、basis 輸出 `HUMAN_REQUIRED`，不新造理由；2–6＝檢核未完成，不代表有待人工，不續行該入口動作，依原始錯誤在既有授權內排除後重跑，不得視為通過，同一入口同一原始錯誤重跑仍失敗 → 記 `step_limit`，依 Gate 處置，需權限或擴 scope 者依 Gate 升報；不與 `cross_review.sh` 的 exit 2 或 Gate 輪次合併計數；不得以偽造事件修復損毀 ledger。`resume` 讀 `status` 非 0：記原始錯誤與 ledger 狀態未知，可續行 Boot／讀取／取證，不得當作無 open incident，後續受 Gate 控制的動作須先通過第一個對應 `check`，不得偽造事件、重置 ledger 或繞過檢核。
-- 覆蓋矩陣四軸分開記錄：check 程式結果（確定性）／呼叫路徑（模型契約）／機械後盾／未覆蓋。決策點：pause、ask-user、commit、QA、SV、closeout、恢復義務、提前升報、Advisor、PPSS、權限被拒、subagent、headless、並行。現況（ADV-GATE-04 提交）：呼叫路徑（入口 `check`，模型契約）已接入 qa／commit／sv／closeout／done，`resume` 讀 `status`（ADV-GATE-03；`done` 見 `.claude/skills/uc/SKILL.md` 的 `check done` 呼叫）；機械後盾：pause（本 Gate Stop guard `gate_stop_guard.py`）、qa／commit／sv 的漏檢事後偵測（受 receipt 視窗限制，僅回合起點可得時）；無機械後盾：done（有入口 check，但無推進證據 producer）、closeout（漏檢偵測無此腳）及其餘決策點。
+- 正常入口最小落點：`qa`＝`qa/SKILL.md` `## Step 0: Ticket Scope 驗證 (Scope Gate)`；`commit`＝同檔 `## Step 4.5: Ticket Auto Commit`；`sv`＝`sv/SKILL.md` `## 前置檢查：Ticket 已 Commit Gate`；`closeout`＝同檔 `## Step 11: Closeout Auto-Chain`；`done`＝`uc/SKILL.md` 規則 8；`resume`＝`.claude/CLAUDE.md` `## ⚡ Boot Sequence`（讀 `status`）。`check` 退出碼映射（單一來源，各入口呼叫處只回指）：0＝續行該入口動作；1＝ledger 已有待人工，依印出的類別、incident、basis 輸出 `HUMAN_REQUIRED`，不新造理由；2–6＝檢核未完成，不代表有待人工，不續行該入口動作，依原始錯誤在既有授權內排除後重跑，不得視為通過，同一入口同一原始錯誤重跑仍失敗 → 記 `step_limit`，依 Gate 處置，需權限或擴 scope 者依 Gate 升報；不與 `cross_review.sh` 的 exit 2 或 Gate 輪次合併計數；不得以偽造事件修復損毀 ledger。`resume` 讀 `status` 非 0：記原始錯誤與 ledger 狀態未知，可續行 Boot／讀取／取證，不得當作無 open incident，後續受 Gate 控制的動作須先通過第一個對應 `check`，不得偽造事件、重置 ledger 或繞過檢核。
+- 覆蓋矩陣四軸分開記錄：check 程式結果（確定性）／呼叫路徑（模型契約）／機械後盾／未覆蓋。決策點：pause、ask-user、commit、QA、SV、closeout、恢復義務、提前升報、Advisor、PPSS、權限被拒、subagent、headless、並行。現況：呼叫路徑（入口 `check`，模型契約）已接入 qa／commit／sv／closeout／done，`resume` 讀 `status`（`done` 見 `.claude/skills/uc/SKILL.md` 的 `check done` 呼叫）；機械後盾：pause（本 Gate Stop guard `gate_stop_guard.py`）、qa／commit／sv 的漏檢事後偵測（受 receipt 視窗限制，僅回合起點可得時）；無機械後盾：done（有入口 check，但無推進證據 producer）、closeout（漏檢偵測無此腳）及其餘決策點。
 - 缺入口 receipt 之後盾屬事後漏檢偵測，不得回填成事前已通過；補跑 receipt 標 `late`，不得引為已發生動作之事前放行。
 - hook 連續 block 之預設上限（8 次）不是解題預算。
 
@@ -244,7 +243,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ### 實作狀態與宣告限制
 
-- 現況：helper 與 ledger 已存在（ADV-GATE-02），入口 `check` 呼叫已接入（ADV-GATE-03），本 Gate 專用 Stop guard（`gate_stop_guard.py`）已註冊於 Stop（ADV-GATE-04）；升報通知對齊尚未實作。Advisor 採納之驗證限制（內容加密、不可驗）照實保留；不宣稱完整 Gate，不宣稱 hook 涵蓋途中違規。
+- 現況：helper 與 ledger、入口 `check` 呼叫、本 Gate Stop guard（`gate_stop_guard.py`）均已落地；升報通知對齊尚未實作。Advisor 採納之驗證限制（內容加密、不可驗）照實保留；不宣稱完整 Gate，不宣稱 hook 涵蓋途中違規。
 - 「完整 Gate」僅為需求名稱；任何票或收尾實錄不得宣稱其「已完整」，只得陳述實際落地之入口控制與覆蓋矩陣各列實測現況；揭露未覆蓋項不能替代機械後盾條件。
 
 ## Session Persistence 邊界
@@ -257,7 +256,6 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
    - **軌道 A — 隨票即時**：以 `[<TICKET_ID>]` 單票前綴立即 commit。**MUST** 為單票，**MUST NOT** 混入他票 artifact（`compact/SKILL.md` 之多票合併禁令與 TPL 三分流 R2 之 commit 前綴歸因**不受本節修改**）。
    - **軌道 B — session 邊界**：延至 `/compact closeout`，走 `## Auto Commit: Governance Artifacts` 表驅動路徑；其 prefix、pathspec、逐檔處理、同 prefix 合併與 zero-diff SKIPPED 語義依 §Governance Artifact 清單與 `compact/SKILL.md` 既有規則執行。
    **唯一禁止**：將**無法歸屬於已收束 Ticket** 之 tracked dirty change 混入任一軌道之保存集合。除此之外本節**不新增任何提交授權**，亦 **MUST NOT** 擴義 `<TICKET_ID>` 佔位符值域為多票列舉。
-   **立法事由**：`ACAGOV-RUNTIME-TABLE-01` 自身收尾即走軌道 A（commit `2fbc017`），與原單軌 MUST 相衝；Akira 裁決不追罰、不 revert，改撤該 MUST——本地 commit 為最廉價之回退點，強制延後反降低可回復性（可逆優先）。
 6. **Governance Artifact 清單補列**：於 §Governance Artifact 清單表新增一列 `plans/cso_briefing/project/deliver/*.md` → `[GOVERNANCE-SYNC]`（說明欄：已交付票檔，`REVIEW`／`CLOSED` 之物理歸位產物）。依該表節首「新增 Governance Artifact 只需在此表加一行，**MUST NOT** 另開票或單獨改 SKILL.md 判斷邏輯」之既有授權執行（已於本檔 §Governance Artifact 清單表落地，見該表列）。**不補此列則票檔搬移將落在 `compact` Scope 盤點之表列外而永不提交，屬靜默失效。**
 
 ## Mid-Execution 回報前同步與自我核對義務
@@ -270,7 +268,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 **本義務不因對話模式而免除**——回指 §Ticket Runtime Transition Table 不變量①「對話模式非 lifecycle」之同一原則：模式僅決定回報語氣與詳略，不決定紀錄義務是否存在。僅完成軌 1（本地勾選）而未同步軌 2（registry），或完成軌 1／2 但未執行軌 3 核對即回報 → 對 Akira 而言等同「什麼都沒發生」或「回報與票面不一致」（TKR 系統視圖為其唯一可信來源），**MUST** 視為回報不完整，不得宣稱已如實揭露進度。
 
-觸發來源：`RGR-INTERACTIVE-CLOSURE-AUTH-01` 執行期間，Action Items 與 AC checkbox 僅勾入本地 untracked 票檔、未同步 registry checkpoint，導致 Akira 由 TKR 系統視角判讀為「全數未完成」，與執行端本地認知不同步（Akira 2026-09-25 對話裁決，免票直接授權補此條）。軌 3（回報前核對）為同日追加：僅要求「做兩件事」仍不足以防止漏做或做錯後未察覺就回報，故補一道獨立於軌 1／2 執行過程之事後核對步驟。
+（Akira 2026-09-25 對話裁決，免票直接授權補此條；軌 3 為同日追加。）
 
 ## Ticket Closure 紀律
 
@@ -286,9 +284,9 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
   **平台限制**：`registry_upsert_ticket` 對已歸檔票回 `REGISTRY_ARCHIVED_TICKET`，且 `registry_unarchive` 平台**未實作**（PLT `INFRA-REGISTRY-API-GAPS-01` 明示範圍收斂不實作）——故「開新票」非風格建議而是**平台強制**。
 - **Dashboard 慣例同步**：`.claude/PROGRESS.md`／`PROGRESS_ARCHIVE.md` 之例行 Dashboard 列更新得與實作同 commit 或以 `[COMPACT-SYNC]` 獨立提交，**不計入**票面「git diff --stat 僅涉 ALLOWED」AC 之違規判定（INFRA-GOVSYNC-01 定調，消解 RGR-APPDEPLOY-01 G2 帳實矛盾）。
 > **強制層級（誠實定性）**：本節「冊面轉態紀律」為**紀律層**條款，非機械閘。冊面轉態發生於 Desktop 治理 session，而 `verify_checklist.sh` / `structural_verify.sh` 執行於 Claude Code 端——**閘門位置與動作發生位置不重合**，腳本層對本失效型無攔截力（`INFRA-TPL-V32-01` 事故全程未經 Claude Code）。真正之機械強制須由 mcp-ticket-platform server 端提供（`lifecycle` 轉終態前 `file` 欄指標所指票檔 MUST 實際存在），屬 TKR-05 平台原語域，依前置資源恆存律**不得由本票預支**；在該閘落地前，本節效力等同宣告式紀律，違反不會被工具攔截。`checkpoint` 於終態轉換時被清空為 PLT 刻意設計（見「checkpoint 生命週期與 detail 檔」節），APP **MUST NOT** 反向要求其非空。
-- 觸發來源：INFRA-CLOSURE-SOP-01（Akira 2026-07-17 對話裁決：全票適用之標準收尾流程；實例缺口 INFRA-AGENTS-CR-02 Done 但票內 checkbox 全未勾）；即時勾選條款觸發來源：`INFRA-QA-COMMIT-EMPTYDIFF-01` + `-FIX-A`（碼閉環與 Codex PASS 數日後才因 Akira 詢問完成度而補勾，Akira 2026-07-19 對話裁決授權補訂）。
-- **FORBIDDEN 延後項免開票紀律**：票面 `FORBIDDEN` 命中 `.claude/PROGRESS.md` 導致的收尾延後項（Dashboard 同步／`PROGRESS_ARCHIVE.md` Done 標記／票檔 Pending→deliver 搬移／票內 AC checkbox 勾選）**MUST NOT** 另開獨立治理票（如 `*-DOCSYNC-01`）承接；此四項本屬標準 SOP 收尾流程，**MUST** 於下一輪 `/compact` 或後續 session 之正常收尾動作中處理即可。觸發來源：`INFRA-CONCURRENCY-01`（Akira 2026-07-19 對話裁決：「這本來就是標準的 SOP 執行票流程」，避免治理疊床架屋）。
-- **結構歧義停損律**(2026-08-01 CSO 確認決議):同一子系統下列任一**字面**成立,MUST 停止開立/受理新修補票並升報 CSO:①同一票修訂版次 ≥ 3(票面 Rev 直取);②結構性死結/自指阻塞 ≥ 2 種(決策檔/Handoff 記載筆數直取);③任一 workaround 額度制用量達上限 50%;④修補深度 ≥ 2(FIX 票之 FIX 票)。凍結僅及修補線,不及執行中之非修補工作;解除條件=外審回流+CSO 存廢三案(退役/降級/續修)裁決落檔。禁語義裁量(「此票很重要」不豁免)。觸發來源:MEO v1 十輪修補無停損。
+- 授權：Akira 2026-07-17 對話裁決（全票適用之標準收尾流程）；即時勾選條款由 Akira 2026-07-19 對話裁決授權補訂。
+- **FORBIDDEN 延後項免開票紀律**：票面 `FORBIDDEN` 命中 `.claude/PROGRESS.md` 導致的收尾延後項（Dashboard 同步／`PROGRESS_ARCHIVE.md` Done 標記／票檔 Pending→deliver 搬移／票內 AC checkbox 勾選）**MUST NOT** 另開獨立治理票（如 `*-DOCSYNC-01`）承接；此四項本屬標準 SOP 收尾流程，**MUST** 於下一輪 `/compact` 或後續 session 之正常收尾動作中處理即可。（Akira 2026-07-19 對話裁決）
+- **結構歧義停損律**(2026-08-01 CSO 確認決議):同一子系統下列任一**字面**成立,MUST 停止開立/受理新修補票並升報 CSO:①同一票修訂版次 ≥ 3(票面 Rev 直取);②結構性死結/自指阻塞 ≥ 2 種(決策檔/Handoff 記載筆數直取);③任一 workaround 額度制用量達上限 50%;④修補深度 ≥ 2(FIX 票之 FIX 票)。凍結僅及修補線,不及執行中之非修補工作;解除條件=外審回流+CSO 存廢三案(退役/降級/續修)裁決落檔。禁語義裁量(「此票很重要」不豁免)。
 
 ## Ticket Rigor Gate（按需工具，非常駐前置）
 
@@ -297,4 +295,4 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 - 報告與遙測一律落 `.tmp/rigor-gate/`（`RGR-APPDEPLOY-01` L2 裁決：執行期產物，KEEP_N=10 輪替）；**MUST NOT** 於任何票面 AC 引用 `.tmp/` 下 rigor 產物為長期證據——耐久結論唯一載體為票面／冊面收尾實錄。
 - 本節不新增任何 MUST 級派工前置；未跑 gate 之票不因此退件。
 
-**翻盤紀錄**：2026-08-27 治理減量裁決（APP 冊 lifecycle 維持 `PENDING / REVIEW / CLOSED / VOID` 四態之刻意裁剪）由 2026-09-06 Akira D-1 裁決推翻，翻盤型態＝明示 supersede：PLT／TKR 平台為 lifecycle、狀態轉換、registry 資料契約與共通票務流程之唯一語義權威，APP 自此採 PLT 五段語義（見 §Ticket 生命週期流程（五段）），採取最小必要之 consumer 實作而非重寫平台 enum 或移植全套 script。（`INFRA-LIFECYCLE-SSOT-01`）
+**翻盤紀錄**：2026-09-06 Akira D-1 裁決明示 supersede 2026-08-27 治理減量裁決（APP 冊 lifecycle 四態之刻意裁剪）：PLT／TKR 平台為 lifecycle、狀態轉換、registry 資料契約與共通票務流程之唯一語義權威，APP 自此採 PLT 五段語義（見 §Ticket 生命週期流程（五段））。
