@@ -178,6 +178,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 - Gate 詞彙＝`HUMAN_REQUIRED` 及其類別與 `basis`、PPSS 證據三態（`RETRIEVED`／`SOURCE_READ`／`INVALID`）、ledger 事件型別（`finding`／`round`／`step_limit`／`consult`／`missed_check` 等），僅存活於 Gate 子系統。
 - 不外溢條件（僅針對 Gate 詞彙，非全檔枚舉之通用定義）：①不寫入 registry `lifecycle`／`reviews`／`file`／`checkpoint` 結構化欄位、不構成 registry schema（`checkpoint` 敘事摘要與票檔收尾實錄除外）；②不成為 Transition Table 控制詞或任一 Table 列之轉移條件（Table 節對本節之回指除外）；③不作為 approval／review verdict 於票或審查者之間交換。本節不新增 lifecycle 值、approval／review verdict 或 registry schema。
+- 一致性依據：Transition Table 節首引言之限制字面範圍為其「本節」；本節為獨立節並受上述不外溢條件約束，將該限制改為全檔通用屬另案修訂。
 
 ### Gate 適用條件與順序
 
@@ -243,7 +244,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ### 實作狀態與宣告限制
 
-- 現況：helper 與 ledger、入口 `check` 呼叫、本 Gate Stop guard（`gate_stop_guard.py`）均已落地；升報通知對齊尚未實作。Advisor 採納之驗證限制（內容加密、不可驗）照實保留；不宣稱完整 Gate，不宣稱 hook 涵蓋途中違規。
+- 現況：helper 與 ledger、入口 `check` 呼叫均已落地；本 Gate Stop guard（`gate_stop_guard.py`）已註冊於 `.claude/settings.json` 之 Stop；升報通知對齊尚未實作。Advisor 採納之驗證限制（內容加密、不可驗）照實保留；不宣稱完整 Gate，不宣稱 hook 涵蓋途中違規。
 - 「完整 Gate」僅為需求名稱；任何票或收尾實錄不得宣稱其「已完整」，只得陳述實際落地之入口控制與覆蓋矩陣各列實測現況；揭露未覆蓋項不能替代機械後盾條件。
 
 ## Session Persistence 邊界
@@ -295,4 +296,4 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 - 報告與遙測一律落 `.tmp/rigor-gate/`（`RGR-APPDEPLOY-01` L2 裁決：執行期產物，KEEP_N=10 輪替）；**MUST NOT** 於任何票面 AC 引用 `.tmp/` 下 rigor 產物為長期證據——耐久結論唯一載體為票面／冊面收尾實錄。
 - 本節不新增任何 MUST 級派工前置；未跑 gate 之票不因此退件。
 
-**翻盤紀錄**：2026-09-06 Akira D-1 裁決明示 supersede 2026-08-27 治理減量裁決（APP 冊 lifecycle 四態之刻意裁剪）：PLT／TKR 平台為 lifecycle、狀態轉換、registry 資料契約與共通票務流程之唯一語義權威，APP 自此採 PLT 五段語義（見 §Ticket 生命週期流程（五段））。
+**翻盤紀錄**：2026-09-06 Akira D-1 裁決推翻 2026-08-27 治理減量裁決（APP 冊 lifecycle 四態之刻意裁剪）。PLT／TKR 平台為 lifecycle、狀態轉換、registry 資料契約與共通票務流程之唯一語義權威，APP 自此採 PLT 五段語義（見 §Ticket 生命週期流程（五段））。APP 採取最小必要之 consumer 實作，而非重寫平台 enum 或移植全套 script。
