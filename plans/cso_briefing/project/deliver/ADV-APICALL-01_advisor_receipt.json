@@ -1,0 +1,49 @@
+{
+  "advice": {
+    "authority_gap": false,
+    "authority_gap_reason": "修法僅變更 `backoff.py`，不修改 `check_backoff.py`、不新增依賴，完全落在既有授權內；`cap` 語義為上限已由參數名稱與檢查腳本 assert 明確表達，無需額外產品語義裁決。",
+    "evidence_needed": [],
+    "minimal_verification": "在僅含兩檔案的目錄執行 `python check_backoff.py`，預期 stdout 為 `OK` 且 exit code 為 0（可用 `python check_backoff.py; echo $?` 確認）。亦可局部執行 `python -c \"from backoff import next_backoff as f; print(f(0), f(3), f(10, base=1.0, cap=30.0))\"`，預期輸出 `1.0 8.0 30.0`。",
+    "steps": [
+      "修改 `backoff.py` 的 `next_backoff`：將 `return base * (2 ** attempt)` 改為 `return min(base * (2 ** attempt), cap)`。",
+      "保留函式簽名與預設值（`base: float = 1.0, cap: float = 30.0`）不變，避免影響其他呼叫端。",
+      "（可選，非本題必要）若 attempt 極大時擔心 `2 ** attempt` 產生巨大整數，可另行評估是否先截斷 attempt；此舉不影響本檢查結果，故不列為必要變更。"
+    ],
+    "strategy": "在 `next_backoff` 回傳前以 `min(..., cap)` 套用上限，使回傳值不超過呼叫端傳入的 `cap`。對 attempt=0、3 的既有結果（1.0、8.0，皆小於預設 cap 30.0）不受影響；attempt=10 時 1024.0 被截為 30.0，滿足 assert。僅改 `backoff.py`，不新增依賴，屬既有授權範圍內的本地修法。"
+  },
+  "created_at_utc": "2026-10-17T11:37:03Z",
+  "effort": "medium",
+  "error": null,
+  "estimated_cost_usd": 0.018304,
+  "exit_code": 0,
+  "kind": "advisor_api_receipt",
+  "max_tokens": 12000,
+  "model_requested": "claude-opus-5-5",
+  "model_returned": "claude-opus-5-5",
+  "payload": {
+    "bytes": 1634,
+    "path": ".claude/scripts/tests/fixtures/advisor_seed_payload.md",
+    "sha256": "4d1541186a02c86c6206abb674d1f54e21256819a5d7a8abe70251201b897f53"
+  },
+  "pricing_basis": "claude-opus-5-5 $4/$20 per MTok, cache read $0.20, 5m cache write $5; platform.claude.com/docs/en/about-claude/pricing last_updated 2026-10-16",
+  "raw_text": "{\"strategy\":\"在 `next_backoff` 回傳前以 `min(..., cap)` 套用上限，使回傳值不超過呼叫端傳入的 `cap`。對 attempt=0、3 的既有結果（1.0、8.0，皆小於預設 cap 30.0）不受影響；attempt=10 時 1024.0 被截為 30.0，滿足 assert。僅改 `backoff.py`，不新增依賴，屬既有授權範圍內的本地修法。\",\"steps\":[\"修改 `backoff.py` 的 `next_backoff`：將 `return base * (2 ** attempt)` 改為 `return min(base * (2 ** attempt), cap)`。\",\"保留函式簽名與預設值（`base: float = 1.0, cap: float = 30.0`）不變，避免影響其他呼叫端。\",\"（可選，非本題必要）若 attempt 極大時擔心 `2 ** attempt` 產生巨大整數，可另行評估是否先截斷 attempt；此舉不影響本檢查結果，故不列為必要變更。\"],\"minimal_verification\":\"在僅含兩檔案的目錄執行 `python check_backoff.py`，預期 stdout 為 `OK` 且 exit code 為 0（可用 `python check_backoff.py; echo $?` 確認）。亦可局部執行 `python -c \\\"from backoff import next_backoff as f; print(f(0), f(3), f(10, base=1.0, cap=30.0))\\\"`，預期輸出 `1.0 8.0 30.0`。\",\"authority_gap\":false,\"authority_gap_reason\":\"修法僅變更 `backoff.py`，不修改 `check_backoff.py`、不新增依賴，完全落在既有授權內；`cap` 語義為上限已由參數名稱與檢查腳本 assert 明確表達，無需額外產品語義裁決。\",\"evidence_needed\":[]}",
+  "request_id": "req_011Cg7jy3wgQgG8nDTQnXDeF",
+  "request_mode": "json_schema",
+  "schema_version": 1,
+  "sdk": {
+    "name": "anthropic",
+    "version": "0.105.2"
+  },
+  "sdk_max_retries": 0,
+  "status": "SUCCESS",
+  "stop_details": null,
+  "stop_reason": "end_turn",
+  "ticket": "ADV-APICALL-01",
+  "timeout_s": 600,
+  "usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "input_tokens": 1331,
+    "output_tokens": 649
+  }
+}
