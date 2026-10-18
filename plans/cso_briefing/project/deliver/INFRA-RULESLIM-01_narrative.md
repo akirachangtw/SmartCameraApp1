@@ -398,4 +398,6 @@ python -I -c 'import re,subprocess,collections as C,sys;sys.stdout.reconfigure(e
 
 **UNVERIFIED／未做**：①精簡後模型是否因此改變遵循行為——無確定性證明方法，不宣稱「行為不變已驗證」；僅宣稱「diff 範圍受限於列舉片段；規範性內容之語意承接以 AC 7b 逐行分類為準」；②實際 token 節省量（以字元數為度量）；③未跑 `/qa`、`/sv`、cross_review、RGR。
 
-**DEFERRED-TO-DOCSYNC（不另開票）**：`.claude/PROGRESS.md` 需於下一輪 `/compact` 更正三處——Dashboard 本票列（`規則關鍵詞句 126→125（差集三處預期）`、`28,614→27,058／−1,556／−5.44%／300→298` 改 Rev B 終值 `27,210／−1,404／−4.91%／299`、「`:211` 現應為 `:210`」撤回）、Last Updated 同句、Next Actions #30 增補同句；`projman` T03 與 `cli-advisor` T02 兩個 plan-local 工作項（見 Hard Constraint 10）現可讀 live 檔。
+**DEFERRED-TO-DOCSYNC（不另開票）**：`.claude/PROGRESS.md` 需於下一輪 `/compact` 更正三處——Dashboard 本票列（`規則關鍵詞句 126→125（差集三處預期）`、`28,614→27,058／−1,556／−5.44%／300→298` 改 Rev B 終值 `27,210／−1,404／−4.91%／299`、「`:211` 現應為 `:210`」撤回）、Last Updated 同句、Next Actions #30 增補同句；`20261017-projman-plan / T03 / 治理條款呼叫與 ssot-governance.md:11 一行修正` 與 `20261016-cli-advisor-plan / T02 / Advisor 契約放寬` 兩個 plan-local 工作項（見 Hard Constraint 10）現可讀 live 檔。
+
+**終審（CLOSED）**：2026-10-19，Akira 於對話明確授權將本票由 `REVIEW` 轉 `CLOSED`（`CLOSED` 原限審查方 SMTR／CSO 寫入，此次依該明示授權由執行端代為寫入冊面轉態）。轉態前核對：冊面無 `verification` 欄故無待核對項；`reviews` 四欄皆 `N_A`（豁免依據：2026-10-02 風險分級＋票面 Rigor Gate Waiver，已於 checkpoint 與本實錄揭露）；`file` 欄指向 `deliver/`；收尾實錄（含 Rev B 更正）已落票檔。`UNVERIFIED` 項（模型遵循行為、token 節省量）與 PROGRESS.md 三處待更正之 DEFERRED-TO-DOCSYNC 項不因 `CLOSED` 而消失，仍留於本實錄與下一輪 `/compact`。
