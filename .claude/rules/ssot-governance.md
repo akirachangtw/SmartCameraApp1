@@ -211,6 +211,14 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 - Advisor 由主 agent 承接，hook 不呼叫；`consult --kind advisor` 只能記錄實際原生 Advisor 調用，主 agent 自判不得以 advisor kind 記錄；回答內容加密不可驗。Advisor 不可達時：如實說明工具／環境缺口與原擬升報類別，不偽造 consult、不為滿足前置硬湊輪次；此時驗證先行類升報無法寫入 ledger，停止由 `NO_PROGRESS` 預算放行。Advisor 不可達時 `advisor` 層無法 engaged，`EXHAUSTED` 亦不可達（已知限制）。
 - PPSS 證據：`RETRIEVED` 僅表取回，`SOURCE_READ` 僅表已讀，`INVALID` 為空、缺 artifact 或網域不符。`evidence_ok` 僅表示來源閱讀與支持聲明可追溯，不表示語意被 helper 驗真；`SOURCE_READ` 單獨不使其成立；離題來源已讀仍不得算問題已獲支持；`evidence_ok` 為必要條件，非主張成立之充分條件。
 
+### 證據缺口與研究授權（Akira 2026-10-17 裁決）
+
+1. **付費授權**：符合本 Gate 既有授權、用途、成本預算與工具權限的必要諮詢與研究（含付費模型、PPSS）可自主執行，**MUST NOT** 僅因「可能產生費用」停下再問。不得無限呼叫、超出既有預算、繞過拒絕或重複研究同一缺口；觸及新權限、成本上限或不可逆操作才依本 Gate 升報。本條不將通用規則放寬為無限放行，Advisor 建議與研究結果仍不構成新增授權。
+2. **五種狀態不得互換**：①公開搜尋未命中；②資料可能存在但目前無合法存取（登入、訂閱、購買、授權後才可讀）；③官方文件未明說；④目前方法實測失敗；⑤已有直接證據顯示特定能力不支援。**MUST NOT** 把「查不到」寫成「不存在」、「未記載」寫成「不能做」、「某路線失敗」寫成「原成果應取消」。公開資料可見性不等於技術可行性。
+3. **研究未解時續作**：先如實標明查詢範圍、結果與未知事項，再選下一個有價值的動作：使用已合法取得的文件、SDK、原始碼或既有紀錄；尋找可信替代來源（不限官方公開頁）；在既有授權內做低成本、可逆的最小實驗；換實作方法但保留原使用者成果；繼續不依賴該缺口的合法工作。不為湊證據反覆重送 PPSS，不虛構成功，也不因缺文件預設失敗。
+4. **禁止無聲縮減**：PPSS 無結果、認證資料不可讀、官方文件缺席或工具不可達，單獨均不得作為下列行為的理由：刪除核心能力；將真實整合改 stub 後宣稱完成；將必要驗收移出範圍；降低成果表成功條件；以局部零件取代完整使用者場景；將未完成包裝成「只剩收尾」。確需變更成果時，**MUST** 明示變更前後、技術依據、可替代方案與交付影響，核心取捨由使用者確認。
+5. **升報時機**：僅在直接觀察到的技術限制、真正的權限／成本邊界、或合法有界路徑已無可行下一步時，才依本 Gate 說明影響並提出決策。
+
 ### 入口與覆蓋矩陣
 
 - 正常入口最小落點：入口 check 呼叫已接入（ADV-GATE-03）。`qa`＝`qa/SKILL.md` `## Step 0: Ticket Scope 驗證 (Scope Gate)`；`commit`＝同檔 `## Step 4.5: Ticket Auto Commit`；`sv`＝`sv/SKILL.md` `## 前置檢查：Ticket 已 Commit Gate`；`closeout`＝同檔 `## Step 11: Closeout Auto-Chain`；`done`＝`uc/SKILL.md` 規則 8；`resume`＝`.claude/CLAUDE.md` `## ⚡ Boot Sequence`（讀 `status`）。`check` 退出碼映射（單一來源，各入口呼叫處只回指）：0＝續行該入口動作；1＝ledger 已有待人工，依印出的類別、incident、basis 輸出 `HUMAN_REQUIRED`，不新造理由；2–6＝檢核未完成，不代表有待人工，不續行該入口動作，依原始錯誤在既有授權內排除後重跑，不得視為通過，同一入口同一原始錯誤重跑仍失敗 → 記 `step_limit`，依 Gate 處置，需權限或擴 scope 者依 Gate 升報；不與 `cross_review.sh` 的 exit 2 或 Gate 輪次合併計數；不得以偽造事件修復損毀 ledger。`resume` 讀 `status` 非 0：記原始錯誤與 ledger 狀態未知，可續行 Boot／讀取／取證，不得當作無 open incident，後續受 Gate 控制的動作須先通過第一個對應 `check`，不得偽造事件、重置 ledger 或繞過檢核。
