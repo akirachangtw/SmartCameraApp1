@@ -154,7 +154,7 @@ DEPENDENCY_DELTA=NONE
 ### AI-6: 條件式 `/projman update`（僅當存在真實修訂）
 - **檔案**: `plans/roadmap/projman-outcomes.md`（僅經 Skill 寫入）
 - **動作**: 開工與 AI-1～AI-5 期間檢查是否**已存在**經使用者確認的真實需求增補／澄清／規格修訂（含開發中自然出現者）。**有** → 以 `Skill` 呼叫 `projman` `update`，保存寫前基準（`git status --short -- <doc>` 與 `git show HEAD:<doc>`）、修訂依據與寫後結果；V1～V6 全跑（分母變動須有「已確認變更」同次一列）；新增項目不繼承完成狀態。**無** → 不執行 update、不製造修訂；在收尾實錄記「update 真實執行：未驗（無真實修訂）」，PM3-A 之 update 項維持未驗，PM3 不判完整，**不視為本票失敗**。
-- [x] 完成（2026-10-18；無真實修訂分支，update 未執行；證據見收尾實錄 §8）
+- [x] 完成（2026-10-18；無真實修訂分支，update 未執行；證據見收尾實錄 §8。**後續補記**：其後於 REVIEW 內經使用者 2026-10-18 裁決補驗，真實 `/projman update` 已實跑，見 §12）
 
 ### AI-7: 收尾實錄與保存（依既有流程）
 - **檔案**: 本票檔（收尾實錄）；`plans/roadmap/projman-outcomes.md`（由 `/qa` Step 4.5 Auto Commit 保存 align／update 產物）
@@ -212,13 +212,13 @@ DEPENDENCY_DELTA=NONE
 - [x] **[行為性]** align 寫入邊界：given `BASE_STAGE_COMMIT` 之文件；expect `git diff` 僅涉新格式允許寫入集合，未受檢 ID（`PM2-A`～`PM2-E`、`PM4-A`）摘要列與明細節、所有 `約定`、預期功能與規格、驗收方式與必要前提、核心能力、ID／階段／成果名稱、「已確認變更」表與基準版位元組相同（比對輸出為空）；V1、V3 自最終 `SKILL.md` 逐字抽出執行（不改寫 `HEAD`；前提 `git diff --quiet <BASE_STAGE_COMMIT> HEAD -- <doc>` 成立並記錄，Rev A.1）輸出為空；V2／V4／V5／V6 重跑為空；受檢 ID 之 `最近 align` 為 `<日期> <HEAD 全雜湊> 範圍 <ID>` 且 HEAD 等於 align 當下 `git rev-parse HEAD`。
 - [x] **[行為性]** 證據與計數紀律：given align 後文件；expect ①每個 `已驗收` 變動（相對基準版）有對應證據，標記為 `[已執行]`／`[靜態]`／`[文件]`／`[未驗]` 並可複核（指令或 `檔案:行號`），`已驗收`≤`約定`，`達成度` 由計數推導；②無任何 ID 僅以「檔案存在／commit／Ticket CLOSED」作為功能證據；③涉及 align 自身行為之約定項依 Hard Constraints 3 處理（無該次呼叫自身產出被計入）；④`PM2-A`～`PM2-E` 仍 `未盤點`、PM4-A 仍 `無約定`；⑤文件無跨階段平均、總計或合計百分比（V5 為空）。
 - [x] **[行為性]** align 直接回報：given align 呼叫；expect 對話正文含五項（單項結果〔ID／狀態／已驗收／約定／一行證據與限制〕、各階段 `已驗收／約定` 計數且 `無約定` 列另列、主要缺口、下一步、需使用者決策事項〔無則寫「無」〕）並回答「原定成果是什麼／現在實際能做什麼／證據支持到哪裡／是否有缺口、縮水或方向偏移／下一步怎麼處理」；回報全文逐字保存於票檔收尾實錄；回報未出現跨階段平均或總百分比。
-- [x] **[行為性][條件式]** update：若 AI-6 偵測到真實修訂 → given 寫前基準與修訂依據，expect `update` 後既有 ID 與證據保留、分母變動有「已確認變更」同次一列、新增項不繼承完成狀態、V1～V6 通過，並依證據更新驗證狀態；若無真實修訂 → 不執行，收尾實錄記「update 真實執行：未驗（無真實修訂）」，PM3-A 之 update 項維持未驗，PM3 不判完整。兩分支擇一並記錄，**皆不視為本票失敗**；不為此條製造修訂。
+- [x] **[行為性][條件式]** update：若 AI-6 偵測到真實修訂 → given 寫前基準與修訂依據，expect `update` 後既有 ID 與證據保留、分母變動有「已確認變更」同次一列、新增項不繼承完成狀態、V1～V6 通過，並依證據更新驗證狀態；若無真實修訂 → 不執行，收尾實錄記「update 真實執行：未驗（無真實修訂）」，PM3-A 之 update 項維持未驗，PM3 不判完整。兩分支擇一並記錄，**皆不視為本票失敗**；不為此條製造修訂。（**後續補記 2026-10-18**：REVIEW 內已走「有真實修訂」分支並實跑，證據與驗證見 §12。）
 - [x] **[存在性]** 階段性提交可定位：`git log --format='%H %s' <DIFF_REF>..HEAD -- plans/roadmap/projman-outcomes.md` 至少含 base 提交；各本票提交前綴為 `[PJMAN-OUTCOMES-01]`，`git show --name-only` 各僅涉該檔；`DIFF_REF` 未被階段性提交重設（`tmp/verify_cmd.conf` 與票面佔位回填值一致）。
 - [x] **[存在性]** 票檔收尾實錄（`deliver/` 耐久載體）含：基線與 AI-0 結果、各 Skill 呼叫記錄與回報全文、V 指令輸出逐字、`BASE_STAGE_COMMIT` 與 scoped diff、各受檢 ID `已驗收` 前後值與證據、偏差與處置、**證明範圍聲明**（transcript／git 可證 vs 自評／文件層 vs `UNAVAILABLE`），不依賴 `.tmp/` 或 `tmp/` 路徑引用。
 - [x] **[存在性]** 限定交付表述：收尾實錄與冊面 checkpoint 聲明「手動執行；不提升 PM2-E；`20261017-projman-plan / T03` caller 未接入、自動鏈未驗」；僅在 base／align 確已實跑後使用「三模式已實作；base／align 已實跑；update 真實執行待驗」（若 AI-6 已執行則依證據更新）；聲明本票按限定範圍交付、**不等於** Projman 全部自我驗證條件已完成；對成果文件與收尾實錄 `grep`「自動觸發驗證通過」「PM2-E 已驗」「PM3 完整」等字樣，命中處須逐一確認皆為否定／未驗語境，無肯定宣稱（票面自身的否定句不計）。
 - [x] **[存在性]** QA／SV／Cross-Review 依「審查要求」段全數執行並有 receipt（Cross-Review receipt 綁定 `DIFF_REF..DIFF_END` 之實際受審終點）；冊面 `reviews` 四欄各填實測值（`traycer=N_A`）；`CLOSED` 限審查方，執行端最高至 `REVIEW`。
 - [x] ~~`assembleDebug` PASS~~ (N/A: docs preset)
-- [x] `git diff --stat` 僅涉及 ALLOWED 檔案
+- [x] `git diff --stat` 僅涉及 ALLOWED 檔案（**讀法補記 2026-10-18**：此條於 `94ac7704..d720e995` 量測成立；整體範圍延伸後，`git diff --stat` 另含本票自己的收尾實錄檔，實作面仍僅 ALLOWED 檔，見 §12 第 7 點。）
 
 ## 收尾實錄（執行端；執行中逐步追加，結案前定稿）
 
@@ -534,3 +534,65 @@ VIOLATIONS=0  (checks=69)
 - **read-back（`registry_list`，最後一次）**：`id=PJMAN-OUTCOMES-01`、`topic=Projman`、`file=deliver/PJMAN-OUTCOMES-01_real-run.md`、`lifecycle=REVIEW`、`reviews={qa:PASS,sv:PASS,codex:PASS,traycer:N_A}`（`codex=PASS` 為映射，實際 verdict 於 checkpoint `codex_verdict_actual`＝第 1 次即 PASS）；checkpoint 為 closeout 版（含 `open_decision`、`limitations`）。Executor 最高寫入 `REVIEW`；`CLOSED` 限審查方 SMTR/CSO，由其核對 required reviews（qa／sv／codex PASS、traycer N_A）與票檔、冊面一致後轉態並 read-back。
 - **持久化**：軌道 A（隨票即時、`[PJMAN-OUTCOMES-01]` 單票前綴、僅本票檔）；Step 10 Done 標記與 PROGRESS Dashboard 同步延至下一輪 `/compact`。成果文件本身已隨 `825076db`／`d720e995` 提交。
 - **未連開**：`20261017-projman-plan / T03 / 治理條款呼叫` 未開票，依使用者後續指令另行處理。
+
+### 12. REVIEW 內補驗：真實 `/projman update`（2026-10-18；使用者裁決；後續補記，不改寫 §1–§11 已落檔事實）
+1. **裁決與範圍**：使用者 2026-10-18「REVIEW 內補驗裁決」——接受以真實 `/projman update` 澄清既定原則，**非新的產品取捨、不再詢問 A／B**；於〈基準〉明載「方法為可替換的實作選擇；可更換技術路線，但不得因此默默縮減原始使用者成果。」；由 `update` 記錄變更依據與影響；不新增 ID、不改約定數；保留既有證據與未受影響內容；**不重跑 align、不由 update 提升成果表驗收計數**；以本票前綴、明確 pathspec 保存；整體審查起點維持 AI-0 基線 `94ac7704`；`open_decision` 記為已依既定決策處置。
+2. **寫前基準**：`git status --short -- plans/roadmap/projman-outcomes.md` 為空、文件已追蹤、無合併衝突標記（`grep -cE '^(<<<<<<<|>>>>>>>)'`＝0）→ `git show HEAD:"$DOC"`（HEAD `6b0c15efa54f71cf486a14814ded9e406dd713bd`）即寫前狀態；ID 集合 13 個、`約定` 合計 35。
+3. **真實 Skill 呼叫（手動）**：session `e024aeab-3635-4b0f-afb9-36f87503110b`；`Skill(projman, "update plans/roadmap/projman-outcomes.md （修訂內容：…」")`＝transcript **行 3806**（2026-10-18T12:40:30Z）→ 對成果文件 `Edit` **行 3822**（12:40:42Z）、**行 3824**（12:40:43Z）。其後的 `Write`（行 3838）為本次核對用 scratchpad 腳本，不是成果文件。順序：update 呼叫 ＜ 兩次寫入 ＜ 提交。
+4. **寫入集合（僅兩處）**：①〈基準〉「規格／架構約束」該行原位追加上述澄清句；②〈已確認變更〉表新增 1 列（日期、變更前、變更後、影響、使用者確認依據；5 欄、無多餘豎線）。
+5. **update 後檢核（自最終 `SKILL.md`〔blob `a1c6440b`〕逐字抽出；V1／V3 以 `HEAD:doc` 為寫前基準；指令輸出）**：
+
+```text
+DOC=plans/roadmap/projman-outcomes.md  SKILL.md blob=a1c6440b
+---- V1 (exit=0) command:
+comm -23 <(git show HEAD:"$DOC" | ids | sort) <(ids < "$DOC" | sort)
+---- V1 output: (空)
+---- V2 (exit=0) command:
+comm -3 <(ids < "$DOC" | sort) <(awk '/^## /{s=(index($(0),"## 明細")==1)} s && /^### /{print $(2)}' "$DOC" | sort)
+---- V2 output: (空)
+---- V3 (exit=0) command:
+diff <(git show HEAD:"$DOC" | den | sort) <(den < "$DOC" | sort)
+---- V3 output: (空)
+---- V4 (exit=0) command:
+awk -F'|' '/^## /{s=(index($(0),"## 階段成果表")==1)} s && /^\| /{for(i=2;i<=NF;i++)gsub(/^ +| +$/,"",$(i)); id=$(2); if(id=="ID"||id ~ /^-+$/)next; a=$(5); d=$(6); p=$(7); st=$(8); bad=""; if(st !~ /^(未盤點|符合|部分符合|不符合|未驗|尚不具備驗收條件|無約定)$/){bad="狀態須屬七值集合"} else if(d=="—"){if(a!="—"||p!="—"||st!="無約定")bad="約定為—時須已驗收=達成度=—且狀態=無約定"} else if(d !~ /^[1-9][0-9]*$/){bad="約定須為正整數或—"} else if(st=="無約定"){bad="無約定只用於約定為—"} else if(a=="—"){if(p!="—"||st!="未盤點")bad="已驗收為—時須達成度=—且狀態=未盤點"} else if(a !~ /^[0-9]+$/||a+0>d+0){bad="已驗收須為整數且不得超過約定"} else if(st=="未盤點"){bad="已驗收為整數時狀態不得為未盤點"} else if(p!=(int(100*a/d+0.5) "%")){bad="達成度與計數不一致"} if(bad)print id": "bad}' "$DOC"
+---- V4 output: (空)
+---- V5 (exit=0) command:
+awk -F'|' '/^## /{s=(index($(0),"## 階段成果表")==1)} s && /^\| /{if($(2) ~ /平均|總計|合計|Total/)print $(0)}' "$DOC"
+---- V5 output: (空)
+---- V6 (exit=0) command:
+awk '/^\|/{l=$(0); gsub(/\\\|/,"",l); gsub(/`[^`]*`/,"",l); n=gsub(/\|/,"|",l); if(inb && n!=c)print NR": 欄數"n"≠"c; if(!inb){inb=1;c=n}; next} {inb=0}' "$DOC"
+---- V6 output: (空)
+
+NONEMPTY_CHECKS=0
+```
+
+   scoped diff `git diff --stat HEAD -- <doc>`：`plans/roadmap/projman-outcomes.md | 3 ++-`；`1 file changed, 2 insertions(+), 1 deletion(-)`（patch 9 行）。**寫入邊界（腳本，14 項）**：
+
+```text
+diff opcodes: [('replace', 10, 10, 10, 10), ('insert', 128, 127, 128, 128)]
+exactly two change hunks                                           OK 
+one in-place line replacement + one pure insertion                 OK 
+replaced exactly one line                                          OK 
+replaced line is the 規格／架構約束 bullet                                OK 
+new line = old line + the clarification sentence appended          OK 
+insertion is a single new row                                      OK 
+inserted row sits in ## 已確認變更 table                                OK 
+inserted row has 5 cells and no stray pipe                         OK 
+section 階段成果表 byte-identical                                       OK 
+section 明細 byte-identical                                          OK 
+same 13 IDs                                                        OK 
+約定 per ID unchanged, integer sum                                   OK (sum=35)
+已驗收／達成度／狀態 unchanged for all IDs                                   OK 
+其餘基準區（含最近 align 摘要行）byte-identical                                 OK 
+
+VIOLATIONS=0 (checks=14)
+```
+
+6. **保存**：`git commit -o -m "[PJMAN-OUTCOMES-01] docs(roadmap): 以 /projman update 於基準明載…" -- plans/roadmap/projman-outcomes.md` → **`51cc82ee`**（`51cc82eedf0ebb838e000c7d3ecaa2c250b3b0c3`，僅成果文件）。提交前 `gate_ledger.py check commit --ticket PJMAN-OUTCOMES-01` 回 exit 4（`not mutable (loc:deliver)`：票已 `REVIEW`，在 Gate 適用範圍外）——**記為「檢核未完成／範圍不適用」，不記為 PASS，未退票、未偽造事件**。
+7. **整體審查範圍與 scope 處置（如實）**：整體範圍 `94ac7704..` 涵蓋 base `825076db`／align `d720e995`／update `51cc82ee`。範圍延伸後，中間的本票收尾實錄提交 `6b0c15ef`（`deliver/*.md`，Governance Artifact，軌道 A）使 `verify_checklist.sh` 判 `FUTURE_CONTAMINATION`——此為 `concurrency.md` 待開票 #5 已登記之腳本（較嚴）與 `qa/SKILL.md` Anchor Drift（僅看 ALLOWED 檔）的校準落差。處置：①QA Step 0 於 conf 設 `EXCLUDED_PAYLOAD=PJMAN-OUTCOMES-01_real-run.md`（basename）後 PASS——**僅是 QA 腳本層對本票自身治理產物的分類，無具名授權，不宣稱任何 CSO 授權**；②**不**在 SV 報告使用 `## Excluded Payload`：`sv/SKILL.md:104` 定義其為「已授權排除出 Codex diff 的跨票檔案」，且 `cross_review.sh` 會對 Codex 陳述「已獲 CSO 授權排除」，對本票檔而言不實；R0 首次預審（CHECKPOINT-REQUIRED／UNDECIDABLE）即指出此點，本地取證屬實，已改正；③本票收尾實錄檔因此**進入 Codex 受審 diff**；④為使受審的票檔反映 update 事實，審查終點 `DIFF_END` 由 `51cc82ee` 延至本 §12 補記之提交（僅文件紀錄，實作面最後一個提交仍為 update `51cc82ee`）——此為對使用者「終點延伸至 update 提交」字面的小幅延伸，**已揭露、可逆**。⑤AC「`git diff --stat` 僅涉及 ALLOWED 檔案」之讀法：實作面僅 `plans/roadmap/projman-outcomes.md`；`git diff --stat` 於延伸範圍另含本票自己的收尾實錄檔（治理產物，非實作異動）；兄弟 AC（update 條件式、限定交付表述、階段提交可定位、收尾實錄齊備）已隨本節重驗並更新。
+8. **`open_decision` 處置**：PM0-A 約定③「方法為可替換實作選擇」未明載於〈基準〉之決策事項，**已依使用者 2026-10-18 既定決策處置**（以真實 `update` 澄清，不再詢問 A／B）。
+9. **區分兩件事（重要）**：
+   - **本次 `update` 已實跑**：〈基準〉已明載該句，〈已確認變更〉已記一列依據與影響；V1～V6 逐字全空、邊界 14 項 0 違規。
+   - **成果表仍是最近一次 `align`（`825076db` 範圍）的評估**：`update` 依裁決不改成果表；PM0-A 仍 2／3（部分符合）、PM1-A 與 PM3-A 的 update 項在成果文件內仍標 [未驗]、其餘 ID 計數不變。PM0-A 約定③是否因本次澄清而成立，須待**下一次 `align`** 重驗。**不宣稱所有約定功能均已驗收。**
+10. **更新後的限定交付聲明**：三模式已實作；**base／align／update 均已各實跑一次**（update 來源：transcript 行 3806、提交 `51cc82ee`，使用者裁決）；本次為**手動**執行，**不提升 PM2-E**；`20261017-projman-plan / T03 / 治理條款呼叫` 的 caller 未接入、自動鏈未驗；成果表驗收計數仍待下一次 align 重驗，PM3 仍不完整（update 項在成果表內尚未被 align 計入）。
+11. **本輪審查結果**：待 R0 重跑與 Codex Cross-Review 完成後以後續補記追加（§13），不在本節預填。
