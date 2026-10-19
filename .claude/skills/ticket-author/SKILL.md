@@ -160,7 +160,7 @@ Output the plan baseline, decisions, technical boundary, Ticket Map, dependency 
 
 ## Mode: ticket
 
-Purpose: collect complete live evidence for one atomic plan item and create one formal Ticket only after both evidence and authoring gates pass.
+Purpose: collect complete live evidence for one atomic plan item and create one formal Ticket only after both evidence and authoring gates pass. For a Plan-backed parent, several explicitly listed items may be handled in one call as separate serial single-item runs (see Selected items (batch form) below).
 
 Procedure:
 
@@ -189,6 +189,21 @@ Procedure:
     5. Read back with `registry_list(project=<PROFILE.PROJECT>, ticket_id=<ID>, fields=["id","lifecycle","file","topic"])` and verify ID, project, lifecycle, and file.
     6. Verify the ticket is discoverable by the `ticket-run` equivalent query `registry_list(project=<PROFILE.PROJECT>, lifecycle="PENDING", fields=["id","title","file","lifecycle"], limit=50)`.
     A mismatch after the minimal safe retry → `STOP_WRITE_FAILED`.
+
+### Selected items (batch form)
+
+`ticket` also accepts `Selected items: <ID>, <ID>, ...` for one Plan-backed parent (syntax and set resolution: `input-contract.md`). It adds no mode, lifecycle, Gate, reason code, ledger, or persistent batch artifact. `Selected item: <ID>` runs exactly as described above.
+
+1. Shared preflight, once: steps 1 and 2, the full parent read of step 3, and set resolution. A STOP here is a shared STOP: zero formal writes and no item started.
+2. Strict serial execution: each selected item then runs step 3's atomicity validation (the parent read is shared; re-read it only after compaction or resume, as below) through step 18.6 as its own single-item run, in the resolved order. Item N+1 starts only after item N has passed 18.6 or recorded its STOP receipt. Never run items in parallel and never fan out to subagents. Steps 4 and 18.1 and all live evidence are redone for every item and never reused from an earlier item, so a later item sees every Ticket the batch already wrote. After context compaction or resume, and before the next item, re-read the template and the parent.
+3. STOP routing, using only the existing reason codes and their Final states:
+   A STOP is shared only if it arises in the shared preflight or is named in the shared list below; every other STOP is item-local.
+   - Shared STOP — stop every item not yet started: any STOP in the shared preflight; `STOP_WRITE_FAILED`; `STOP_GOVERNANCE_UNAVAILABLE`; `STOP_ACCESS_BLOCKED` when the blocked resource is the parent, the Ticket template, or the Registry.
+   - Item-local STOP — record that item's STOP receipt and continue with the next item that does not depend on it: every other STOP, including `STOP_ACCESS_BLOCKED` on any resource other than the parent, the Ticket template, or the Registry (for example when only that item's own evidence target is blocked).
+   - Dependency STOP — an item whose `execution_dependency` or `coordination_dependency` names a selected item that STOPped, or that was itself dependency-blocked, is not run: no live evidence, no Ticket ID, no write. It outputs the existing `STOP_REPLAN_REQUIRED` stop response (`Decision or input needed`: resolve the named item's STOP, then rerun this item in a later call) and has its own progress run.
+4. Completed Tickets stay: a Ticket whose write and read-back passed is never rolled back. A later item may reference an already created sibling by its formal Ticket ID; it MUST NOT edit any Ticket file or Registry entry that an earlier item wrote.
+5. Progress: every item that starts has its own run with `runId: tka-<UTC timestamp>-<item>` and the events of the Progress contract below. Shared preflight events are reported on the first item's run (a shared preflight STOP is `run.failed` on that run, and no other run starts); a later item reports `templates-loaded` as reused from the shared preflight. Items not started after a shared STOP have no run.
+6. Receipts: every item that started yields its own existing completion or stop response. After the last one, an informational summary of exactly five lines follows: `Selected:` (the resolved item order), `Completed:` (item → Ticket ID and path), `Stopped:` (item → stop code, dependency STOPs included), `Not started:` (item → reason), and `Shared stop:` (the shared STOP code and the item that raised it, or `none`). The summary is not a Gate, state, or reason code: it carries no `Gate:` or `Final state:` line and no batch-level Gate or Final state, is never written to a file, and cannot claim an overall PASS.
 
 ### Progress contract
 
