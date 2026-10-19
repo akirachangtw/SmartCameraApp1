@@ -44,8 +44,10 @@ estimated_cost_usd is an estimate; a request that timed out may still have been 
 not zero even though no usage is known).
 
 A successful advisor reply is NOT a solved problem: the executor's local verification decides.
-Until the T02 contract relaxation takes effect, a receipt must not be recorded as
-`consult --kind advisor`.
+Whether a receipt may be recorded as `consult --kind advisor`, and under which
+conditions, is defined only by the current Gate (.claude/rules/ssot-governance.md,
+Autonomous Engineering Gate, the Advisor and PPSS clause); this docstring does not
+restate them.
 """
 from __future__ import annotations
 

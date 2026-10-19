@@ -189,7 +189,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 - incident 身分＝`ticket_id`×subject（根因對象）；verdict 類別與 gate point 為屬性，不入身分。verdict 改變不自動開新 incident，同根因續算；僅有獨立問題證據（獨立失敗輸出）且 subject 不重疊才分開。
 - 一輪＝以一個新且已授權策略完成之完整解題循環（取證→Advisor→PPSS→修復→局部驗證）。初次 finding、單純執行腳本、步驟級上限事件皆不是輪。
-- 逐層計輪：round 依**策略來源層**計入 `executor`、`r0`（僅 cross-review 路徑）、`advisor`，**每層最多 3 次**實質修復＋回驗；各層互不共用、互不重置；驗證通過即結案，不要求湊滿；某層有新且已授權策略時，任何其他機制不得提前截斷該層。本層無法判定下一個安全行動時，不必先用盡本層輪數即可升下一適用層（取證記 `consult --kind local`）；某層耗盡或回報無合法策略，**必須**升下一適用層，尚未 engaged 的 Advisor 不得視為已處理；提早升級後不要求回低層補滿。同 incident 首個 `--layer advisor` round 前須有至少一筆**同 incident** 的 `consult --kind advisor`（`--layer r0` 同理須 `--kind r0`）；後續該層 round 不要求新 consult，其他 incident 的 consult 不適用。機械檢查只證存在紀錄，不證真實調用；真實性與時序依 transcript 原生 `advisor` 調用與結果，策略與結論對應由模型負責，不新增 transcript 解析機制。最終適用層（`advisor`）3 次 fail 且無合法續作路徑→`EXHAUSTED`；`advisor` 層未耗盡而無可行已授權策略→`NO_AUTHORIZED_STRATEGY`。
+- 逐層計輪：round 依**策略來源層**計入 `executor`、`r0`（僅 cross-review 路徑）、`advisor`，**每層最多 3 次**實質修復＋回驗；各層互不共用、互不重置；驗證通過即結案，不要求湊滿；某層有新且已授權策略時，任何其他機制不得提前截斷該層。本層無法判定下一個安全行動時，不必先用盡本層輪數即可升下一適用層（取證記 `consult --kind local`）；某層耗盡或回報無合法策略，**必須**升下一適用層，尚未 engaged 的 Advisor 不得視為已處理；提早升級後不要求回低層補滿。同 incident 首個 `--layer advisor` round 前須有至少一筆**同 incident** 的 `consult --kind advisor`（`--layer r0` 同理須 `--kind r0`）；後續該層 round 不要求新 consult，其他 incident 的 consult 不適用。機械檢查只證存在紀錄，不證真實調用；真實性與時序依 transcript 原生 `advisor` 調用與結果（API 顧問則依其 receipt 檔、`receipt_sha256` 與 `request_id`），策略與結論對應由模型負責，不新增 transcript 解析機制。最終適用層（`advisor`）3 次 fail 且無合法續作路徑→`EXHAUSTED`；`advisor` 層未耗盡而無可行已授權策略→`NO_AUTHORIZED_STRATEGY`。
 - 工具使用（同一 incident）：Advisor 僅在本層無法判定時由主 agent 呼叫，新的不確定且附新證據才再諮詢，同一次結論可供不同合法策略使用；不允許自判掛名 Advisor，不以任意歷史 consult 開輪。PPSS 僅限外部事實缺口：同一 incident 同一缺口預設定向研究一次，消費已有證據，不重送同題；不因換查詢措辭或進下一 round 自動獲得研究額度；證據回流同一 incident，於後續 round 的策略引用消費，不新增或重置任何層額度。換策略、phase、模型或改名不重置額度，不同 incident 各自計。helper 允許的額外調用（例如第 2 次 PPSS 附新查詢策略）不等於本 Gate 授權使用。Advisor 建議與研究結果不構成新增授權；無新證據的相同命令、prompt、研究問題、patch 不重播。以上屬模型契約，不由機械控制強制（機械僅：per-layer 輪數上限、策略去重、首個 advisor／r0 層 round 前的同 incident consult 紀錄）；hook 僅於 reason 顯示用量。
 - Gate 的「輪」≠ `cross_review.sh` BLOCKER `ROUND` ≠ RGR review round／session-local closure iteration，各自獨立計。
 
@@ -208,7 +208,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ### Advisor 與 PPSS
 
-- Advisor 由主 agent 承接，hook 不呼叫；`consult --kind advisor` 只能記錄實際原生 Advisor 調用，主 agent 自判不得以 advisor kind 記錄；回答內容加密不可驗。Advisor 不可達時：如實說明工具／環境缺口與原擬升報類別，不偽造 consult、不為滿足前置硬湊輪次；此時驗證先行類升報無法寫入 ledger，停止由 `NO_PROGRESS` 預算放行。Advisor 不可達時 `advisor` 層無法 engaged，`EXHAUSTED` 亦不可達（已知限制）。
+- Advisor 由主 agent 承接，hook 不呼叫；`consult --kind advisor` 只能記錄實際工程顧問調用：原生 `advisor` 工具，或本 incident 新發之 `python .claude/scripts/advisor_call.py` 呼叫且 `exit 0`／`status=SUCCESS`（receipt 之 `ticket` 欄 MUST 為該 incident 所屬票號；`--note` MUST 附 receipt 路徑、`receipt_sha256` 與 `request_id`；非 SUCCESS、他 incident 或歷史 receipt 不得記）；主 agent 自判不得以 advisor kind 記錄；原生回答內容加密不可驗，API receipt 僅證識別與綁定（雜湊與 `request_id`），不證策略真實或問題解決，亦不構成新增授權。Advisor 不可達時：如實說明工具／環境缺口與原擬升報類別，不偽造 consult、不為滿足前置硬湊輪次；此時驗證先行類升報無法寫入 ledger，停止由 `NO_PROGRESS` 預算放行。Advisor 不可達時 `advisor` 層無法 engaged，`EXHAUSTED` 亦不可達（已知限制）。
 - PPSS 證據：`RETRIEVED` 僅表取回，`SOURCE_READ` 僅表已讀，`INVALID` 為空、缺 artifact 或網域不符。`evidence_ok` 僅表示來源閱讀與支持聲明可追溯，不表示語意被 helper 驗真；`SOURCE_READ` 單獨不使其成立；離題來源已讀仍不得算問題已獲支持；`evidence_ok` 為必要條件，非主張成立之充分條件。
 
 ### 證據缺口與研究授權（Akira 2026-10-17 裁決）
