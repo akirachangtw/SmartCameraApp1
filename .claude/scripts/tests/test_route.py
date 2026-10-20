@@ -704,7 +704,13 @@ class ConcurrencyTests(RouteCase):
         self.assertEqual(self.n_events(), n)
         self.assertEqual(lock.read_text(encoding="utf-8"), "999:other 0\n")           # someone else's lock is never removed
         old = time.time() - 300
-        os.utime(lock, (old, old))                                                    # stale: older than 120 s
+        os.utime(lock, (old, old))                                                    # aged lock: age alone never reclaims it
+        rc, o, _ = self.cli(["consult", "--incident", self.inc, "--source", "advisor.native", "--phase", "return", "--dispatch-id", did,
+                             "--purpose", "lock q", "--note", "ref", "--lock-wait-ms", "300"])
+        self.assertEqual((rc, o["reason"]), (5, "busy"))
+        self.assertEqual(self.n_events(), n)
+        self.assertEqual(lock.read_text(encoding="utf-8"), "999:other 0\n")
+        lock.unlink()                                                                 # operator removes an orphaned lock by hand
         rc, o, _ = self.cli(["consult", "--incident", self.inc, "--source", "advisor.native", "--phase", "return", "--dispatch-id", did,
                              "--purpose", "lock q", "--note", "ref"])
         self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
@@ -713,6 +719,22 @@ class ConcurrencyTests(RouteCase):
                              "--purpose", "lock q", "--note", "ref"])
         self.assertEqual((rc, o["reason"]), (5, "stale_or_duplicate_dispatch"))
         self.assertFalse(lock.exists())
+
+    def test_K5_concurrent_contenders_never_reclaim_an_aged_lock(self):
+        did = self.dispatch_native("aged lock q")
+        lock = self.lock_path()
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        lock.write_text("999:other 0\n", encoding="utf-8")
+        old = time.time() - 300
+        os.utime(lock, (old, old))
+        n = self.n_events()
+        cmd = self.cli_cmd(["consult", "--incident", self.inc, "--source", "advisor.native", "--phase", "return",
+                            "--dispatch-id", did, "--purpose", "aged lock q", "--note", "ref", "--lock-wait-ms", "400"])
+        res = self.spawn([cmd for _ in range(4)])
+        for rc, o in res:
+            self.assertEqual((rc, o["reason"]), (5, "busy"), res)
+        self.assertEqual(self.n_events(), n)                                          # no contender entered the critical section
+        self.assertEqual(lock.read_text(encoding="utf-8"), "999:other 0\n")           # nobody deleted the foreign lock
 
 
 if __name__ == "__main__":

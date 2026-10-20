@@ -48,8 +48,9 @@ checked). The tokens are the primary evidence binding; the question prose is nev
 Dispatch ids bind "ledger slot + concrete request": d2-<16hex> of sha256(ticket|incident|source|n|digest).
 n = advisor consults (native) / PPSS records (ppss) of the incident; digest = purpose (native) or the normalized
 query set recovered from the research artifact (ppss). Return/record re-computes with the CURRENT n inside a
-transient mutex (<git-common-dir>/gate/<ticket>.route.lock: pid+nonce only, not state, removed on exit, stale
-after 120 s) because the ledger's `consult` has no CAS. The mutex serializes only returns made THROUGH this entry.
+transient mutex (<git-common-dir>/gate/<ticket>.route.lock: pid+nonce only, not state, removed on exit; never
+reclaimed by age: a contender waits --lock-wait-ms, then refuses `busy`) because the ledger's `consult` has no CAS.
+A lock left by a killed process must be removed by hand. The mutex serializes only returns made THROUGH this entry.
 
 Limits: bypassing this entry (calling gate_ledger.py directly) is not mechanically blocked; it is visible only
 through `via=route.py` in advisor consult notes (PPSS ledger events carry no note, hence no marker). V2 (`next`,
@@ -88,7 +89,6 @@ DISPATCH_ID_RE = re.compile(r"^d2-[0-9a-f]{16}$")
 DOMAIN_RE = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
 EMPTY_SHA = hashlib.sha256(b"").hexdigest()
 PURPOSE_MAX = 500
-STALE_LOCK_SECONDS = 120
 LOCK_WAIT_MS_DEFAULT = 10000
 STALE_LOOKBACK = 8
 
@@ -338,14 +338,9 @@ def route_lock(root, ticket, wait_ms):
             held = True
             break
         except (FileExistsError, PermissionError):
-            try:
-                if time.time() - path.stat().st_mtime > STALE_LOCK_SECONDS:
-                    path.unlink()
-                    continue
-            except OSError:
-                pass
             if time.monotonic() >= deadline:
-                raise Stop(E_REFUSED, "REFUSED", "busy", f"{path.name} held by another process")
+                raise Stop(E_REFUSED, "REFUSED", "busy",
+                           f"{path.name} held by another process (if no route.py process is running, remove the file by hand)")
             time.sleep(0.03)
     try:
         yield
