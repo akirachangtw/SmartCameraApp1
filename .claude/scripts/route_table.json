@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "sources": {
+    "advisor.api":   {"kind": "script-call",   "role": "advisor",  "enabled": true, "adapter": "api_advisor",    "ledger_kind": "advisor"},
+    "advisor.native":{"kind": "model-dispatch", "role": "advisor",  "enabled": true, "adapter": "native_advisor", "ledger_kind": "advisor",
+                      "dispatch": {"tool": "advisor", "params": {}}},
+    "research.ppss": {"kind": "model-dispatch", "role": "research", "enabled": true, "adapter": "ppss",
+                      "dispatch": {"tool": "research_submit", "params": ["question", "queries", "task_type", "filters", "justification", "metadata"]}},
+    "advisor.rigor-repair":    {"kind": "domain-internal", "role": "advisor",  "note": "ticket-rigor-gate Advisor Repair Mode；非工程顧問來源，不可經入口呼叫"},
+    "research.rigor-fallback": {"kind": "domain-internal", "role": "research", "note": "ticket-rigor-gate Research Fallback；獨立軌、不入 ledger，不可經入口呼叫"}
+  }
+}
