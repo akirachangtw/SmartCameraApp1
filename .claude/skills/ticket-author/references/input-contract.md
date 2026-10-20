@@ -18,7 +18,7 @@ At least one of the following must identify the subject:
 
 - Problem, symptom, question, or requested capability.
 - Diagnosis, repair brief, technical specification, or Ticket Map.
-- Selected Ticket Map item (or, for a Plan-backed parent, an explicit list of items) with a traceable parent source.
+- Selected Ticket Map item (or an explicit list of items; a raw token count of 2 or more requires a Plan-backed parent) with a traceable parent source.
 
 Optional fields:
 
@@ -108,9 +108,9 @@ Produce the smallest ordered Ticket Map. Do not create formal Tickets.
 
 Required:
 
-- One selected Ticket Map item or equivalently atomic objective (`Selected item: <ID>`); or, for a Plan-backed parent only, an explicit comma-separated list of Ticket Map item IDs (`Selected items: <ID>, <ID>, ...`; see Selected items (batch form) below).
+- One selected Ticket Map item or equivalently atomic objective (`Selected item: <ID>`); or an explicit comma-separated list of Ticket Map item IDs (`Selected items: <ID>, <ID>, ...`; a raw token count of 2 or more requires a Plan-backed parent; see Selected items (batch form) below).
 - Traceable parent diagnosis/specification/approved plan (a readable file).
-- One observable Ticket goal (single item: provided by the invocation; in the `Selected items` form of two or more IDs: one per selected item, as stated in its Ticket Map item).
+- One observable Ticket goal (single item: provided by the invocation; in the `Selected items` form with a raw token count of 2 or more: one per selected item, as stated in its Ticket Map item).
 - Target project or enough information to locate it uniquely.
 
 Return to `plan` with `STOP_REPLAN_REQUIRED` when the request contains independently deployable outcomes, unrelated repositories, unresolved semantic decisions, atomicity cannot be proven, or the selected item still has multiple goals. In the `Selected items` form each condition of the preceding sentence applies to each selected item separately, never to the list as a whole; a list of atomic items is not by itself a request with independently deployable outcomes.
@@ -152,23 +152,23 @@ Collect live evidence first; create the Ticket only after both gates pass.
 
 ### Selected items (batch form)
 
-`Selected items: <ID>, <ID>, ...` is an additive input form of `ticket` mode for one Plan-backed parent. `Selected items: <ID>` with exactly one ID is routed to the existing `Selected item: <ID>` single-item flow: no batch set resolution, no batch progress, and no batch summary, so the two forms are fully equivalent. The batch rules below apply only to a list of two or more IDs. The form adds no mode, lifecycle, Gate, reason code, ledger, or persistent batch artifact.
+`Selected items: <ID>, <ID>, ...` is an additive input form of `ticket` mode. The raw token count is the number of comma-separated tokens exactly as written, counted before any normalization or deduplication. `Selected items: X` (raw token count 1) is routed in full to the existing `Selected item: X` single-item flow: no batch set resolution, no batch progress, and no batch summary, so the two forms are fully equivalent. The batch rules below apply only to a raw token count of 2 or more, which requires one Plan-backed parent. `Selected items: X, X` has a raw token count of 2: the duplicate rule below applies to it, and it is never deduplicated or downgraded to the single-item form. The form adds no mode, lifecycle, Gate, reason code, ledger, or persistent batch artifact.
 
-- Only item IDs of the Ticket Map of one Plan-backed parent are accepted. A Diag-backed or Spec-backed parent with `Selected items` returns `STOP_REPLAN_REQUIRED`. `all eligible` and any wildcard are not supported; a token that is not an item ID fails the Ticket Map check below.
+- For a raw token count of 2 or more, only item IDs of the Ticket Map of one Plan-backed parent are accepted. A Diag-backed or Spec-backed parent with such a list returns `STOP_REPLAN_REQUIRED`. `all eligible` and any wildcard are not supported; a token that is not an item ID fails the Ticket Map check below.
 - Set resolution belongs to the shared preflight and runs after parent classification and the full parent read. Every failure below is a shared STOP: zero formal writes, no Ticket ID, no `Pending/` write, no Registry write, and no item started.
 
 | Condition | Reason code |
 | --- | --- |
 | `Selected item` and `Selected items` both given with different content | `STOP_DECISION_REQUIRED` |
-| The list contains a duplicate ID (no normalization; the user corrects the list) | `STOP_DECISION_REQUIRED` |
+| The raw tokens contain a duplicate ID (no deduplication and no downgrade to the single-item form; the user corrects the list) | `STOP_DECISION_REQUIRED` |
 | A token is not an item of the parent Ticket Map | `STOP_MISSING_SUBJECT` |
 | A selected item's `evidence_dependency` names a plan-local item that has not been executed (no formal Ticket for this parent and that item at lifecycle `REVIEW` or `CLOSED`; determined over the Registry main and archive, `Pending/`, `deliver/` including `deliver/archive/`, and `void/`, matching each Ticket's embedded source section by parent path and plan-local item ID), whether or not that item is in the list | `STOP_REPLAN_REQUIRED` (name the item and the sibling; move the item out of the list, or run it after the sibling is executed) |
 | The `execution_dependency` references among the selected items form a cycle | `STOP_REPLAN_REQUIRED` |
-| A free-text `Goal:` is supplied together with a list of two or more IDs (an invocation must not override a Ticket Map item's goal) | `STOP_DECISION_REQUIRED` |
+| A free-text `Goal:` is supplied together with a raw token count of 2 or more (an invocation must not override a Ticket Map item's goal) | `STOP_DECISION_REQUIRED` |
 
 - `Selected item` and `Selected items` given together with identical content are accepted as one list (no STOP).
 - An `execution_dependency` that names another selected item is allowed. If an item names another selected item in its `execution_dependency`, the named item is processed first (topological order; ties keep the Ticket Map order). `coordination_dependency` is informational only: it does not order items, does not form cycles, and does not propagate a STOP. A reference to an item that is not selected behaves as in the single-item form. Whether an `execution_dependency` is satisfied is defined in `SKILL.md`, Mode: ticket, "Selected items (batch form)", Dependency STOP.
-- Each selected item's goal is the one stated in its Ticket Map item; an invocation-level `Goal:` is not accepted for a list of two or more IDs (see the table above). Each item's Ticket embeds its own plan-local item ID and the parent read timestamp of the shared preflight.
+- Each selected item's goal is the one stated in its Ticket Map item; an invocation-level `Goal:` is not accepted for a raw token count of 2 or more (see the table above). Each item's Ticket embeds its own plan-local item ID and the parent read timestamp of the shared preflight.
 - Execution (serial order, STOP routing, progress, receipts) is defined in `SKILL.md`, Mode: ticket, "Selected items (batch form)".
 
 Example:
