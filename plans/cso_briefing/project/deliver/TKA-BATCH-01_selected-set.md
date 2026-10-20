@@ -1,8 +1,17 @@
 # TKA-BATCH-01: ticket-author 的 ticket mode 接受明列的 `Selected items` 清單，以 shared preflight 加逐項嚴格串行方式建立多張正式票（兩份 Skill 契約同步修訂）
 
-**Revision**: **Rev A.3（2026-10-20；T2 功能審查核定「不得 CLOSED，同票 fix-forward」，Rev／4a 計數＝3）**。Rev A.2（2026-10-19；RGR cycle 1 修補，Rev／4a 計數＝2；報告 `.tmp/rigor-gate/RGR_TKA-BATCH-01_20261019.md`：F1 AI-2 第三處目標值改為「each condition of the preceding sentence applies to each selected item separately…」並明示原子項清單本身不算含獨立可交付成果之請求；F7 AI-7／HC8／Error Handling／coordination 依賴補 Gate `check commit`；F2 走查逐列附 `檔案:行號`；F3 新增 M4a（雙鍵相同即接受）；F4 刪除「same population as step 18.1」不實等同；F5 第 3 步僅 atomicity 逐 item、parent 讀取共用；F6 已知限制②具名觀察物；F8 AC 類型說明措辭更正。「已執行＝`REVIEW`／`CLOSED`」出處為 plan A17）。Rev A.1（2026-10-19；Akira 於 `STOP_DUPLICATE_TICKET` 後裁決選 B，授權就地修補本張尚未開工之 PENDING 票。修補：①決策 4 之 `STOP_ACCESS_BLOCKED` 改依受阻資源判定（parent／Ticket Template／Registry 受阻 → shared；僅單一 item 的 evidence target 受阻 → item-local），並自 AI-5 目標值與狀態矩陣移除 repository／worktree／共用工具之 shared 列舉；②撤回 `STOP_SOURCE_UNAVAILABLE` 為 shared 之字面推導（修正後 A18 未列舉 → 預設 item-local）；③HC4 與已知限制①之 `STOP_REPLAN_REQUIRED` 措辭改為「不改變其語義，僅定義於 selected-item collection 的觸發範圍與 per-item 套用方式」；④BASE_COMMIT／ANCHOR_PROBED 重探（HEAD `cb5a293e`，兩檔 blob 與錨點命中不變）；⑤parent plan 之 A18 同步為本版（僅 Akira 原文，推得部分另標）；⑥完整重審後補：HC6 明示本票自身收尾不在「不得修改既有票」之限、AC2／AI-6① 納入 plan G1、G2、G6–G11、已知限制①④⑤措辭更正與具名。修補後完整重跑 evidence／authoring gate。）
+**Revision**: **Rev A.4（2026-10-20；收束裁決，一次收斂：R1 execution 前置項 met 定義、R2 lookup 母體標籤、R3 raw token count；Akira 核定「4a 裁定續修，修畢後重置連續修訂計數」）**。Rev A.3（2026-10-20；T2 功能審查核定「不得 CLOSED，同票 fix-forward」，Rev／4a 計數＝3）。Rev A.2（2026-10-19；RGR cycle 1 修補，Rev／4a 計數＝2；報告 `.tmp/rigor-gate/RGR_TKA-BATCH-01_20261019.md`：F1 AI-2 第三處目標值改為「each condition of the preceding sentence applies to each selected item separately…」並明示原子項清單本身不算含獨立可交付成果之請求；F7 AI-7／HC8／Error Handling／coordination 依賴補 Gate `check commit`；F2 走查逐列附 `檔案:行號`；F3 新增 M4a（雙鍵相同即接受）；F4 刪除「same population as step 18.1」不實等同；F5 第 3 步僅 atomicity 逐 item、parent 讀取共用；F6 已知限制②具名觀察物；F8 AC 類型說明措辭更正。「已執行＝`REVIEW`／`CLOSED`」出處為 plan A17）。Rev A.1（2026-10-19；Akira 於 `STOP_DUPLICATE_TICKET` 後裁決選 B，授權就地修補本張尚未開工之 PENDING 票。修補：①決策 4 之 `STOP_ACCESS_BLOCKED` 改依受阻資源判定（parent／Ticket Template／Registry 受阻 → shared；僅單一 item 的 evidence target 受阻 → item-local），並自 AI-5 目標值與狀態矩陣移除 repository／worktree／共用工具之 shared 列舉；②撤回 `STOP_SOURCE_UNAVAILABLE` 為 shared 之字面推導（修正後 A18 未列舉 → 預設 item-local）；③HC4 與已知限制①之 `STOP_REPLAN_REQUIRED` 措辭改為「不改變其語義，僅定義於 selected-item collection 的觸發範圍與 per-item 套用方式」；④BASE_COMMIT／ANCHOR_PROBED 重探（HEAD `cb5a293e`，兩檔 blob 與錨點命中不變）；⑤parent plan 之 A18 同步為本版（僅 Akira 原文，推得部分另標）；⑥完整重審後補：HC6 明示本票自身收尾不在「不得修改既有票」之限、AC2／AI-6① 納入 plan G1、G2、G6–G11、已知限制①④⑤措辭更正與具名。修補後完整重跑 evidence／authoring gate。）
 
 **Rev A.2（2026-10-19）**：Akira 對話裁決與外審紀錄見票末「Decision Addendum」；該節優先於上文同名處，上文其餘不變。
+
+**Rev A.4 差分（逐點；收束裁決，Akira 2026-10-20）**：
+①冊面 `REVIEW→IN_PROGRESS`、`reviews` 重置為 `PENDING`、票檔自 `deliver/` 退回 `Pending/`；Verify Config 重錨：`DIFF_REF`＝`549ebe0d`、`BASE_COMMIT`＝`549ebe0d9d97b613f6369a0c9dcd1e7bb96d6c15`、`TARGET_BLOB` 為三檔當前 blob（`76c5e0b7`／`3a380788`／`be21436a`），`ANCHOR_PROBED`＝2026-10-20 10:41（Rev A.3 值保留於 Rev A.3 差分作歷史）；
+②**R1**：execution 前置項 met 定義改為「已讀回驗證存在同一 parent artifact＋同一 plan-local item ID 之可追溯、非 `VOID` 正式 Ticket（lifecycle 可為 `PENDING`、`IN_PROGRESS`、`REVIEW` 或 `CLOSED`），或本次 invocation 先前已完成 write／read-back 之該 Ticket」；`evidence_dependency` 維持 `REVIEW`／`CLOSED`；同步決策 12、矩陣 E3／E10／E11、AC A.3-2、§8 情境 B（3a／3b／4／變體 B'）、§12 第 2 點與所有 walkthrough；
+③**R2**：刪除 `SKILL.md` Dependency STOP 之「the step 18.1 population」標籤，直接列明 lookup 母體——Registry main＋archive、`Pending/`、`deliver/`（含 `deliver/archive/`）、`void/`；不宣稱等同 step 18.1；
+④**R3**：Plan-backed 限定僅適用 raw token count ≥ 2 之 `Selected items`；raw token count＝1 完整路由既有單項流程；`Selected items: X, X` 之 raw token count＝2，先依重複 token 規則回 `STOP_DECISION_REQUIRED`，不得去重、不得降級為單項；同步 `input-contract.md`、`SKILL.md`、walkthrough 與 AC；
+⑤F4／F6／F7／K3 僅列入收尾實錄 Completion Observation，不回修；此後非核心語義發現一律 Observation、不再開 Rev，僅錯票、誤寫、不可恢復死路可回修；
+⑥4a：裁定續修；作一次窄範圍 PPSS（idempotent retry 前置依賴、raw token count、dependency lookup source population），三案與推薦（續修）記於收尾實錄 §13，不新增 Gate、state、reason code、ledger；
+⑦新增 AI-13～AI-16、決策 16–19、AC A.4-x；原 AI-9／AI-10 之 R3／R2 目標值為 Rev A.3 已落地版本，Rev A.4 以 AI-14／AI-15 對其最小替換，**二者差異以 Rev A.4 為準**；修畢後僅對 Rev A.4 新 diff 重跑 `/qa`、`/sv`、cross-review，通過後走既有關票流程（`set_checkpoint(resolution)`→`set_status(CLOSED, reviews)`→`set_checkpoint(收尾實錄)`→read-back）；`DEFERRED-TO-DOCSYNC` 照舊。
 
 **Rev A.3 差分（逐點；T2 功能審查核定，Akira 2026-10-20）**：
 ①冊面 `REVIEW→IN_PROGRESS`（`lifecycle` 參數）、`reviews` 重置為 `PENDING`（traycer `N_A`）、票檔自 `deliver/` 退回 `Pending/`（先例：`INFRA-RULESLIM-01` Rev B）；
@@ -43,10 +52,14 @@
 9. 不改變既有 `STOP_REPLAN_REQUIRED` 的語義；若批次所需語義無法在既有 stop contract 下表達，STOP 並提出後續修訂需求。
 10. 範圍只限兩份 TKA 契約文件；若唯讀盤點發現其他現役 consumer 確實依賴 selected-item 單數語義，STOP 回報，不得擴大修改範圍。（Rev A.3 修訂：範圍增列 `.claude/CLAUDE.md` Rule 4e 單句，見決策 14）
 11. **（Rev A.3，F1）** Selected items 的拓撲排序、cycle detection、dependency-contagion 與 dependency STOP 只看 `execution_dependency`；`coordination_dependency` 僅供票務協調參考，不排序、不成環、不傳染 STOP。
-12. **（Rev A.3，F2）** execution 前置項若已存在可追溯正式票（同一 parent artifact＋plan-local item ID，lifecycle `REVIEW` 或 `CLOSED`），或已在同次 invocation 成功 write／read-back，視為依賴滿足；`STOP_DUPLICATE_TICKET` 不可直接阻塞後項，必須先驗證匹配正式票，驗證不到才走既有 dependency STOP。
+12. **（Rev A.3 F2；Rev A.4 R1 修訂）** execution 前置項視為依賴滿足，當且僅當：已讀回驗證存在同一 parent artifact＋同一 plan-local item ID 之可追溯、非 `VOID` 正式 Ticket（lifecycle 可為 `PENDING`、`IN_PROGRESS`、`REVIEW` 或 `CLOSED`），或本次 invocation 先前已完成 write／read-back 之該 Ticket；`evidence_dependency` 維持 `REVIEW`／`CLOSED`（決策 3）。`STOP_DUPLICATE_TICKET` 不可直接阻塞後項，必須先查找匹配正式票，查不到才走既有 dependency STOP。
 13. **（Rev A.3，F3）** `Selected items` 僅一個 ID 時直接路由至既有 `Selected item` 單項流程；不執行 batch set resolution，不產生 batch progress 或摘要；單數與單一 ID 複數完全等價。
 14. **（Rev A.3，F5 甲案縮小版）** `ALLOWED` 加入 `.claude/CLAUDE.md`，只改 Rule 4e 一句：單項要提供 Goal；批次由各 Selected Ticket Map item 的 goal 作為各自 Goal；批次附單一自由文字 `Goal:` → `STOP_DECISION_REQUIRED`；不允許以 invocation 覆寫 Map item goal。
 15. **（Rev A.3，F4／F6／F7）** 不修，列入收尾實錄 Observation；不建立新機制、不擴大 plan-series／parent-drift／telemetry 範圍。
+16. **（Rev A.4，R2）** `SKILL.md` 刪除「the step 18.1 population」標籤，直接列明 lookup 母體：Registry main＋archive、`Pending/`、`deliver/`（含 `deliver/archive/`）、`void/`；不得聲稱其等同 step 18.1。
+17. **（Rev A.4，R3）** Plan-backed 限定只適用 raw token count ≥ 2 之 `Selected items`；raw token count＝1 時 `Selected items: X` 完全路由既有單項流程；`Selected items: X, X` 之 raw token count＝2，先依重複 token 規則回 `STOP_DECISION_REQUIRED`，不得去重、不得降級為單項。
+18. **（Rev A.4，收束）** F4／F6／F7／K3 只列入 Completion Observation，不回修；此後非核心語義發現一律 Observation，不再開 Rev，僅錯票、誤寫、不可恢復死路可回修。
+19. **（Rev A.4，4a 與關票）** 4a 裁定續修，修畢後重置連續修訂計數；研究授權內作一次窄範圍 PPSS 並記三案與推薦；修畢後僅對 Rev A.4 新 diff 重跑 qa／sv／cross-review，通過後走既有關票流程（`set_checkpoint(resolution)`→`set_status(CLOSED, reviews)`→`set_checkpoint(收尾實錄)`→read-back）；`DEFERRED-TO-DOCSYNC` 照舊；不新增 Gate、state、reason code、ledger。
 
 **依修正後 A18 推得之兩點（隨票審查）**：①`STOP_SOURCE_UNAVAILABLE` 未列於決策 4 之 shared 列舉，依 item-local STOP 之預設（其餘 STOP 皆 item-local）為 item-local；②`STOP_ACCESS_BLOCKED` 之受阻資源若既非 parent／Ticket Template／Registry、亦非單一 item 的 evidence target（例如 repository／worktree 或多 item 共用的工具），決策未涵蓋，本票不新增判準，依「其餘 STOP 為 item-local」處理（後續每個 item 會各自遇到同一阻礙，見已知限制⑤）。
 
@@ -63,10 +76,10 @@ PRESET=docs
 ALLOWED=.claude/skills/ticket-author/SKILL.md,.claude/skills/ticket-author/references/input-contract.md,.claude/CLAUDE.md
 FORBIDDEN=.claude/skills/ticket-author/references/state-transitions.md,.claude/skills/ticket-author/references/stop-conditions.md,plans/cso_briefing/project/file/Unified_Ticket_Template_v3.md,plans/cso_briefing/project/file/TKAuthor_Protocol.md,plans/cso_briefing/project/TICKET_REGISTRY.json,plans/cso_briefing/project/TICKET_REGISTRY_ARCHIVE.json,.claude/rules/**,.claude/PROGRESS.md,.claude/PROGRESS_ARCHIVE.md
 MAX_LINES=100
-DIFF_REF=0caf3c7a
-ANCHOR_PROBED=2026-10-20 01:28
-BASE_COMMIT=0caf3c7adba0ec230c17943eb8d7167ef0f880ac
-TARGET_BLOB=.claude/skills/ticket-author/SKILL.md:7ec966aa;.claude/skills/ticket-author/references/input-contract.md:3248b6c0;.claude/CLAUDE.md:2e8b0cec
+DIFF_REF=549ebe0d
+ANCHOR_PROBED=2026-10-20 10:41
+BASE_COMMIT=549ebe0d9d97b613f6369a0c9dcd1e7bb96d6c15
+TARGET_BLOB=.claude/skills/ticket-author/SKILL.md:76c5e0b7;.claude/skills/ticket-author/references/input-contract.md:3a380788;.claude/CLAUDE.md:be21436a
 INTRODUCED_CAPABILITY=feature:ticket-selected-items
 DEPENDENCY_DELTA=NONE
 
@@ -209,6 +222,36 @@ Collect live evidence for each item in turn; create each Ticket only after both 
 - **動作**: ①三檔 token 封閉性與 diff 範圍（同 AI-6②⑦，改以 `0caf3c7a..` 增量與 ALLOWED 三檔）；②`grep` 逐處核對 `coordination_dependency` 無排序／成環／STOP 殘留；③`git diff -U0 -- .claude/CLAUDE.md` 恰一 hunk、行數 ≤ 150；④狀態矩陣新增／改動列逐列走查（first-hand `檔案:行號`），其中**真正 2-item batch**（A、B，B 的 `execution_dependency`＝A）與 **duplicate-retry**（A 觸發 `STOP_DUPLICATE_TICKET` 且已有 `REVIEW`／`CLOSED` 匹配票）兩情境完整走查；⑤收尾實錄新增 Observation（F4 plan-series、F6 parent-drift、F7 telemetry）與 4a 三案紀錄；⑥僅對新增 diff 重跑 `/qa`、`/sv`、Codex cross-review（DIFF_REF＝`0caf3c7a`），不重審 Rev A.2 已審範圍。**不得建立正式測試票模擬。**
 - [x] 完成（Rev A.3，見收尾實錄 §10；增量 QA／SV／R0／Codex 已跑，2-item batch 與 duplicate-retry 走查見 §8）
 
+### AI-13: Rev A.4 錨點與基線復驗（派工後、修改前）
+- **檔案**: `.claude/skills/ticket-author/SKILL.md`、`.claude/skills/ticket-author/references/input-contract.md`（`.claude/CLAUDE.md` 僅讀不改）
+- **動作**: 逐字確認 AI-14／AI-15 之「現值」於各檔命中數為 1（`grep -cF`；`SKILL.md` Dependency STOP 以行首 `   - Dependency STOP — ` 計為 1）；`git diff --name-only 549ebe0d9d97b613f6369a0c9dcd1e7bb96d6c15..HEAD -- <三檔>` 為空或依 Template 三分流分類；三檔 `git hash-object` 與 `TARGET_BLOB` 比對；`git check-ignore -v` 無命中；`Pending/` 與冊面無他票編輯 `ticket-author`；`.claude/CLAUDE.md` 行數仍 143。
+- **任一項不符 → 停止回報，禁自行推定等價位置。**
+- [x] 完成（Rev A.4 AI-13：三檔 hash 與 TARGET_BLOB 一致、BASE_COMMIT..HEAD 對 ALLOWED 為空、check-ignore 無命中、無他票編輯、CLAUDE.md 143 行；錨點命中 1 次）
+
+### AI-14: `input-contract.md` Rev A.4 替換（R1／R3；對 Rev A.3 已落地版本之最小替換）
+- **檔案**: `.claude/skills/ticket-author/references/input-contract.md`
+- **現值 → 目標值（逐處替換；現值於檔內各命中 1）**:
+  - L21：``- Selected Ticket Map item (or, for a Plan-backed parent, an explicit list of items) with a traceable parent source.`` → ``- Selected Ticket Map item (or an explicit list of items; a raw token count of 2 or more requires a Plan-backed parent) with a traceable parent source.``
+  - L111：``- One selected Ticket Map item or equivalently atomic objective (`Selected item: <ID>`); or, for a Plan-backed parent only, an explicit comma-separated list of Ticket Map item IDs (`Selected items: <ID>, <ID>, ...`; see Selected items (batch form) below).`` → ``- One selected Ticket Map item or equivalently atomic objective (`Selected item: <ID>`); or an explicit comma-separated list of Ticket Map item IDs (`Selected items: <ID>, <ID>, ...`; a raw token count of 2 or more requires a Plan-backed parent; see Selected items (batch form) below).``
+  - L113：``- One observable Ticket goal (single item: provided by the invocation; in the `Selected items` form of two or more IDs: one per selected item, as stated in its Ticket Map item).`` → ``- One observable Ticket goal (single item: provided by the invocation; in the `Selected items` form with a raw token count of 2 or more: one per selected item, as stated in its Ticket Map item).``
+  - L155：```Selected items: <ID>, <ID>, ...` is an additive input form of `ticket` mode for one Plan-backed parent. `Selected items: <ID>` with exactly one ID is routed to the existing `Selected item: <ID>` single-item flow: no batch set resolution, no batch progress, and no batch summary, so the two forms are fully equivalent. The batch rules below apply only to a list of two or more IDs. The form adds no mode, lifecycle, Gate, reason code, ledger, or persistent batch artifact.`` → ```Selected items: <ID>, <ID>, ...` is an additive input form of `ticket` mode. The raw token count is the number of comma-separated tokens exactly as written, counted before any normalization or deduplication. `Selected items: X` (raw token count 1) is routed in full to the existing `Selected item: X` single-item flow: no batch set resolution, no batch progress, and no batch summary, so the two forms are fully equivalent. The batch rules below apply only to a raw token count of 2 or more, which requires one Plan-backed parent. `Selected items: X, X` has a raw token count of 2: the duplicate rule below applies to it, and it is never deduplicated or downgraded to the single-item form. The form adds no mode, lifecycle, Gate, reason code, ledger, or persistent batch artifact.``
+  - L157：``- Only item IDs of the Ticket Map of one Plan-backed parent are accepted. A Diag-backed or Spec-backed parent with `Selected items` returns `STOP_REPLAN_REQUIRED`. `all eligible` and any wildcard are not supported; a token that is not an item ID fails the Ticket Map check below.`` → ``- For a raw token count of 2 or more, only item IDs of the Ticket Map of one Plan-backed parent are accepted. A Diag-backed or Spec-backed parent with such a list returns `STOP_REPLAN_REQUIRED`. `all eligible` and any wildcard are not supported; a token that is not an item ID fails the Ticket Map check below.``
+  - L163：``| The list contains a duplicate ID (no normalization; the user corrects the list) | `STOP_DECISION_REQUIRED` |`` → ``| The raw tokens contain a duplicate ID (no deduplication and no downgrade to the single-item form; the user corrects the list) | `STOP_DECISION_REQUIRED` |``
+  - L167：``| A free-text `Goal:` is supplied together with a list of two or more IDs (an invocation must not override a Ticket Map item's goal) | `STOP_DECISION_REQUIRED` |`` → ``| A free-text `Goal:` is supplied together with a raw token count of 2 or more (an invocation must not override a Ticket Map item's goal) | `STOP_DECISION_REQUIRED` |``
+  - L171：``an invocation-level `Goal:` is not accepted for a list of two or more IDs (see the table above).`` → ``an invocation-level `Goal:` is not accepted for a raw token count of 2 or more (see the table above).``
+- [x] 完成（Rev A.4 AI-14：input-contract.md 八處替換已落地並提交 a69152ff（替換前各現值命中 1））
+
+### AI-15: `SKILL.md` Rev A.4 替換（R1／R2／R3）
+- **檔案**: `.claude/skills/ticket-author/SKILL.md`
+- **現值 → 目標值**:
+  - 小節首段（R3）：```ticket` also accepts `Selected items: <ID>, <ID>, ...` for one Plan-backed parent (syntax and set resolution: `input-contract.md`). It adds no mode, lifecycle, Gate, reason code, ledger, or persistent batch artifact. `Selected item: <ID>` and `Selected items: <ID>` with exactly one ID run exactly as described above, with no batch rules, batch progress, or batch summary; the rules below apply to a list of two or more IDs.`` → ```ticket` also accepts `Selected items: <ID>, <ID>, ...` (syntax, raw token count, and set resolution: `input-contract.md`). It adds no mode, lifecycle, Gate, reason code, ledger, or persistent batch artifact. `Selected item: <ID>` and `Selected items: <ID>` with a raw token count of 1 run exactly as described above, with no batch rules, batch progress, or batch summary; `Selected items: X, X` has a raw token count of 2 and is never deduplicated or downgraded. The rules below apply to a raw token count of 2 or more, which requires one Plan-backed parent.``
+  - Dependency STOP 子項（R1／R2；現值＝行首 `   - Dependency STOP — ` 之整行，Rev A.3 已落地）→ 目標值整行：``- Dependency STOP — an item whose `execution_dependency` names a selected item that is not met is dependency-blocked and is not run: no live evidence, no Ticket ID, no write. A named item is met when (a) it passed 18.6 earlier in this invocation, or (b) a read-back lookup (for example `registry_list` by Ticket ID plus the Ticket file's embedded source section) verifies a traceable, non-`VOID` formal Ticket for the same parent artifact and the same plan-local item ID; its lifecycle may be `PENDING`, `IN_PROGRESS`, `REVIEW` or `CLOSED`. The lookup population is the Registry main and archive, `Pending/`, `deliver/` (including `deliver/archive/`), and `void/`; it is not claimed to equal the step 18.1 duplicate check. A later item references a met Ticket by its formal Ticket ID. A `STOP_DUPLICATE_TICKET` raised by the named item never blocks the dependent item by itself: look up the matching Ticket first, and only if none is found is the dependent item dependency-blocked. A named item that STOPped for any other reason, or was itself dependency-blocked, is not met unless such a Ticket exists. A dependency-blocked item outputs the existing `STOP_REPLAN_REQUIRED` stop response (`Decision or input needed`: resolve the named item's STOP, then rerun this item in a later call) and has its own progress run. `coordination_dependency` is informational only: it neither orders items nor propagates a STOP.``
+- [x] 完成（Rev A.4 AI-15：SKILL.md 小節首段與 Dependency STOP 整行替換已落地並提交 a69152ff）
+
+### AI-16: Rev A.4 檢核、走查、Observation、4a 紀錄、增量重跑與關票
+- **動作**: ①`git diff 549ebe0d..` 範圍僅兩檔、token 封閉性、`grep -c "step 18.1 population"` 為 0、`coordination_dependency` 無排序／成環／STOP 殘留；②狀態矩陣新增／改動列與 §8／§12 逐列走查（first-hand `檔案:行號`）；③收尾實錄新增 Completion Observation（F4／F6／F7／K3）與 4a 三案紀錄；④僅對 Rev A.4 新 diff 重跑 `/qa`、`/sv`、cross-review；⑤通過後依既有關票流程：`registry_set_checkpoint(resolution)`→`registry_set_status(CLOSED, reviews)`→`registry_set_checkpoint(收尾實錄)`→`registry_list` read-back；票檔搬回 `deliver/` 並提交；`DEFERRED-TO-DOCSYNC` 照舊。
+- [x] 完成（Rev A.4：增量 QA／SV／R0／Codex 已跑；關票流程已執行並 read-back，見 §17）
+
 ## Hard Constraints
 1. 僅修改 ALLOWED 三檔（Rev A.3 增列 `.claude/CLAUDE.md`，限 Rule 4e 單句，見 HC9）；不得修改 `state-transitions.md`、`stop-conditions.md`、Template、`TKAuthor_Protocol.md`、Registry 檔、`.claude/rules/`。
 2. 不得新增 mode（含 `btplan`／`btticket`）、lifecycle、Gate、reason code、ledger、state 名稱或持久 batch artifact；新增文字只能引用 `stop-conditions.md` 已存在之 `STOP_*`。
@@ -220,6 +263,7 @@ Collect live evidence for each item in turn; create each Ticket only after both 
 8. 本票提交若不經 `/qa` Step 4.5，提交前須先通過 `gate_ledger.py check commit --ticket TKA-BATCH-01`（Rev A.2）。
 9. （Rev A.3）`.claude/CLAUDE.md` 僅限 Rule 4e 一句（`ticket` 必須引用…之子句）改寫；其餘一字不動，檔案行數仍 ≤ 150，`git diff -U0` 於該檔僅一個 hunk。
 10. （Rev A.3）不得為落實 F1～F5 而新增 mode、lifecycle、Gate、state、reason code、ledger 或持久 artifact；F4／F6／F7 不處理。
+11. （Rev A.4）Rev A.4 僅動 `SKILL.md` 與 `input-contract.md`；`.claude/CLAUDE.md` 不再修改（Rule 4e 單句沿用 Rev A.3）。不得為落實 R1～R3 而新增 mode、lifecycle、Gate、state、reason code、ledger 或持久 artifact；F4／F6／F7／K3 不處理。
 
 ## Error Handling
 - AI-0 任一錨點命中數 ≠ 1，或 `check-ignore` 對 ALLOWED 檔命中 → 停止回報
@@ -236,13 +280,14 @@ Collect live evidence for each item in turn; create each Ticket only after both 
 | # | 輸入 | 預期 | 落點 |
 |---|---|---|---|
 | M1 | 僅 `Selected item: X` | 單項流程，行為不變 | AI-2／AI-5（「runs exactly as described above」） |
-| M2 | `Selected items: X`（單一 ID） | （Rev A.3）路由至既有單項流程；不執行 batch set resolution，不產生 batch progress 或摘要 | AI-9 R2 |
+| M2 | `Selected items: X`（raw token count＝1） | （Rev A.3／A.4）完整路由至既有單項流程；不執行 batch set resolution，不產生 batch progress 或摘要；任何 parent 類型皆依單項流程規則（Plan-backed 限定不適用） | AI-14 R3 |
 | M3 | `Selected items: X, Y`，Plan-backed，無依賴 | 通過解析，依 Ticket Map 順序處理 | AI-3 |
 | M4 | 兩形式並存且內容不同 | shared `STOP_DECISION_REQUIRED` | AI-3 表 |
 | M4a | 兩形式並存且內容相同（Rev A.2） | 接受為同一清單，不 STOP | AI-3（identical content 句） |
 | M5 | 清單含重複 ID | shared `STOP_DECISION_REQUIRED`，不 normalization | AI-3 表 |
 | M6 | 含非 Ticket Map 之 token（含 `all eligible`） | shared `STOP_MISSING_SUBJECT` | AI-3 |
-| M7 | Diag-backed／Spec-backed／Fixture parent 搭配 `Selected items` | shared `STOP_REPLAN_REQUIRED` | AI-3；Fixture 由既有第 1 步 |
+| M7 | Diag-backed／Spec-backed／Fixture parent 搭配 raw token count ≥ 2 之 `Selected items`（Rev A.4：僅 ≥ 2） | shared `STOP_REPLAN_REQUIRED` | AI-14 R3；Fixture 由既有第 1 步 |
+| M12 | `Selected items: X, X`（raw token count＝2，重複 token） | （Rev A.4）shared `STOP_DECISION_REQUIRED`；不得去重、不得降級為單項 | AI-14 R3 |
 | M8 | 某 item `evidence_dependency` 具名未執行 sibling（集合內或外） | shared `STOP_REPLAN_REQUIRED` | AI-3 表 |
 | M9 | `execution_dependency` 具名集合內 sibling，其 evidence 無此 sibling | 允許；被具名者先處理 | AI-3 |
 | M10 | `execution_dependency` 成環（Rev A.3：僅 execution） | shared `STOP_REPLAN_REQUIRED` | AI-9 R3 |
@@ -255,10 +300,10 @@ Collect live evidence for each item in turn; create each Ticket only after both 
 |---|---|---|---|
 | E1 | item 通過 18.6 | PASS receipt＋獨立 run；已寫票保留 | AI-5 第 2、4、5、6 點 |
 | E2 | item 的 gate 以 `DECISION_REQUIRED`／`REPAIR_EXHAUSTED` 類 STOP | item-local：記 STOP receipt，繼續不依賴它的下一項 | AI-5 第 3 點 |
-| E3 | 後項在 `execution_dependency` 具名 E2 的 item（或遞移），且該 item 無匹配 `REVIEW`／`CLOSED` 正式票 | dependency STOP：`STOP_REPLAN_REQUIRED` receipt＋run，不做 evidence、不分配 ID（Rev A.3：僅 execution） | AI-10 R2 |
+| E3 | 後項在 `execution_dependency` 具名 E2 的 item（或遞移），且該 item 無匹配的非 `VOID` 正式票（Rev A.4：met 不再要求 `REVIEW`／`CLOSED`） | dependency STOP：`STOP_REPLAN_REQUIRED` receipt＋run，不做 evidence、不分配 ID（Rev A.3：僅 execution） | AI-10 R2 |
 | E3a | 後項僅在 `coordination_dependency` 具名 E2 的 item | （Rev A.3）不受影響，照常處理 | AI-10 R2 |
-| E10 | duplicate-retry：前置項 A 觸發 `STOP_DUPLICATE_TICKET`，且已有同 parent＋同 plan-local item 之 `REVIEW`／`CLOSED` 正式票；後項 B `execution_dependency`＝A | （Rev A.3）A 記 item-local STOP；B 視依賴滿足，照常處理並引用該票正式 ID | AI-10 R2 |
-| E11 | 前置項 A 觸發 `STOP_DUPLICATE_TICKET`，但驗證不到匹配的 `REVIEW`／`CLOSED` 正式票（例如僅 `PENDING`） | （Rev A.3）B dependency STOP | AI-10 R2 |
+| E10 | duplicate-retry：前置項 A 觸發 `STOP_DUPLICATE_TICKET`，且已有同 parent＋同 plan-local item 之非 `VOID` 正式票（`PENDING`／`IN_PROGRESS`／`REVIEW`／`CLOSED` 皆可，Rev A.4）；後項 B `execution_dependency`＝A | （Rev A.3）A 記 item-local STOP；B 視依賴滿足，照常處理並引用該票正式 ID | AI-10 R2 |
+| E11 | 前置項 A 觸發 `STOP_DUPLICATE_TICKET`，但查不到匹配的非 `VOID` 正式票（無票、僅 `void/` 或 `VOID`、讀回驗證失敗；Rev A.4） | （Rev A.3）B dependency STOP | AI-10 R2 |
 | E12 | 前置項 A 於同次 invocation 通過 18.6 | （Rev A.3）B 視依賴滿足，引用 A 的正式 ID | AI-10 R2 |
 | E4 | `STOP_WRITE_FAILED`／`STOP_GOVERNANCE_UNAVAILABLE` | shared：未開始者 `not attempted`、不起 run；已完成者保留 | AI-5 第 3、4、5、6 點 |
 | E5 | `STOP_ACCESS_BLOCKED`，被擋者為 parent／Ticket Template／Registry | shared | AI-5 第 3 點 |
@@ -274,7 +319,7 @@ Collect live evidence for each item in turn; create each Ticket only after both 
 > **AC 類型說明**：本票為 docs preset 之 Skill 契約文字，不含 `app/src/main/` 之 Guard／gate／early-return／外生 runtime state，故 `[可達性]`、`[行為性]`、`[實機]` 不適用；批次行為於 runtime 由模型遵循；寫入路徑無法在不建立正式票（有寫入副作用）下以 production 路徑驅動，亦不得以合成 parent 充當核准（Fixture 規則）；零寫入之 shared STOP 路徑技術上可驅動，本票未納入（Rev A.2 措辭更正，見已知限制②）；故不偽稱 `[行為性]`，驗收止於 `[存在性]` 與文字走查（已知限制②）。
 
 - [x] **[存在性]** 兩檔皆含 `Selected items:` 與 `Selected item:` 字面；`input-contract.md` 含 `### Selected items (batch form)`、`SKILL.md` 含同名小節（`grep -c` 各為 1）
-- [x] **[存在性]** 決策 1–15（涵蓋 plan A1–A20）與 plan G1、G2、G6–G11 逐條於兩檔中可指出落點（AI-6①對照表，每條至少一個標題或行號；plan G3–G5 已升格為 A17–A19）
+- [x] **[存在性]** 決策 1–19（涵蓋 plan A1–A20）與 plan G1、G2、G6–G11 逐條於兩檔中可指出落點（AI-6①對照表，每條至少一個標題或行號；plan G3–G5 已升格為 A17–A19）
 - [x] **[存在性]** token 封閉性：ALLOWED 三檔 diff 新增行之 `STOP_*` 全數存在於 `stop-conditions.md`；新增行無 `btplan`／`btticket`；三模式程式碼區塊與 Procedure 第 1–18 步、Progress 事件表、Response shape 未被改動（`git diff -U0` 之刪除行僅為 AI-1／AI-2／AI-4 之現值）
 - [x] **[存在性]** `all eligible` 僅出現於「不支援」敘述；`input-contract.md` L116 現含 `applies to each selected item separately, never to the list as a whole`
 - [x] **[存在性]** 狀態矩陣 M1–M10（含 M4a）、E1–E9 逐列走查表（AI-6⑤）已保存，每列條文唯一指向預期處置與 receipt，且每列附最終兩檔之 `檔案:行號`（first-hand；無行號之列不計，Rev A.2）（文字走查，非 runtime 執行；見已知限制②）
@@ -284,13 +329,19 @@ Collect live evidence for each item in turn; create each Ticket only after both 
 - [x] **[存在性]** （Addendum A.2-6）`SKILL.md` 新增小節第 3 點含 shared／item-local 單句判準（`A STOP is shared only if it arises in the shared preflight or is named in the shared list below; every other STOP is item-local.`），且與該點兩份列舉不矛盾
 - ~~`assembleDebug` PASS~~ (N/A: docs preset)
 - [x] **[存在性]**（Rev A.3，A.3-1／F1）兩檔中拓撲排序、cycle、dependency STOP 皆僅提 `execution_dependency`；`coordination_dependency` 於兩檔皆明言 informational only（不排序、不成環、不傳染 STOP），且無任何句子仍把 `coordination_dependency` 當排序／成環／STOP 依據（`grep` 逐處核對）
-- [x] **[存在性]**（Rev A.3，A.3-2／F2）`SKILL.md` Dependency STOP 含「滿足」定義：同次 invocation 通過 18.6，或已有同 parent artifact＋plan-local item ID 之 `REVIEW`／`CLOSED` 正式票（母體含 Registry main／archive、`Pending/`、`deliver/`〔含 `deliver/archive/`〕、`void/`）；且明言 `STOP_DUPLICATE_TICKET` 不直接阻塞後項、須先驗證匹配正式票、驗證不到才 dependency STOP
+- [x] **[存在性]**（Rev A.3，A.3-2／F2）`SKILL.md` Dependency STOP 含「滿足」定義：同次 invocation 通過 18.6，或已讀回驗證存在同 parent artifact＋同 plan-local item ID 之可追溯、非 `VOID` 正式票（lifecycle 可為 `PENDING`／`IN_PROGRESS`／`REVIEW`／`CLOSED`，Rev A.4 R1 修訂；母體含 Registry main／archive、`Pending/`、`deliver/`〔含 `deliver/archive/`〕、`void/`）；且明言 `STOP_DUPLICATE_TICKET` 不直接阻塞後項、須先查找匹配正式票、查不到才 dependency STOP；`evidence_dependency` 維持 `REVIEW`／`CLOSED`（`input-contract.md` 表）
 - [x] **[存在性]**（Rev A.3，A.3-3／F3）兩檔皆明言 `Selected items` 單一 ID 路由至既有單項流程、不執行 batch set resolution、不產生 batch progress 或摘要、與單數完全等價；批次規則僅適用兩個以上 ID
 - [x] **[存在性]**（Rev A.3，A.3-4／F5）`input-contract.md` 表含「兩個以上 ID 附自由文字 `Goal:` → `STOP_DECISION_REQUIRED`」一列與各 Map item goal 為各自 Goal 之句
 - [x] **[存在性]**（Rev A.3，A.3-5／F5）`.claude/CLAUDE.md` 僅 Rule 4e 該子句變更：`git diff -U0 -- .claude/CLAUDE.md` 恰一個 hunk、僅該行；行數 ≤ 150；未新增 mode／state／reason code
 - [x] **[存在性]**（Rev A.3，A.3-6）狀態矩陣新增／改動列 M2、M10、M10a、M11、E3、E3a、E10、E11、E12 逐列走查表（含 first-hand `檔案:行號`）已保存，其中「真正 2-item batch」與「duplicate-retry」兩情境完整走查（文字級；不建立正式測試票）
 - [x] **[存在性]**（Rev A.3，A.3-7）收尾實錄含 F4／F6／F7 Observation 與 4a「續修／拆票／撤回」三案及推薦（PPSS `request_id=rsch-20261019-5118792f50`），且未新增 Gate、state、reason code 或 permanent artifact
-- [x] `git diff --stat` 僅涉及 ALLOWED 檔案（Rev A.3 增量 `0caf3c7a..abb97bcb`：3 files，+9／−8；Rev A.2 範圍 `cb5a293e..82a14d79` 為 2 files，+50／−5，已於前次審查）（2 files，+50／−5）
+- [x] **[存在性]**（Rev A.4，A.4-1／R1）`SKILL.md` Dependency STOP 之 met 定義含：(a) 本次 invocation 先前通過 18.6，或 (b) 讀回驗證之可追溯、非 `VOID` 正式 Ticket（同 parent artifact＋同 plan-local item ID；lifecycle 可為 `PENDING`／`IN_PROGRESS`／`REVIEW`／`CLOSED`）；`input-contract.md` 證據依賴表列仍為 `REVIEW`／`CLOSED`；`grep` 無殘留「met 須為 `REVIEW`／`CLOSED`」之句
+- [x] **[存在性]**（Rev A.4，A.4-2／R2）`SKILL.md` 不再含 `step 18.1 population` 字樣（`grep -c` 為 0），Dependency STOP 直接列明 lookup 母體（Registry main＋archive、`Pending/`、`deliver/` 含 `deliver/archive/`、`void/`），且明言「不宣稱等同 step 18.1」
+- [x] **[存在性]**（Rev A.4，A.4-3／R3）兩檔皆定義 raw token count（逐字計 comma-separated tokens，於任何正規化／去重之前）；Plan-backed 限定僅適用 raw token count ≥ 2；raw token count＝1 完整路由單項流程；`Selected items: X, X` 之 raw token count＝2 先依重複規則 `STOP_DECISION_REQUIRED`，不去重、不降級；`input-contract.md` L21／L111／L113／小節首段／Plan-backed 條／重複列／Goal 列與 `SKILL.md` 小節首段措辭一致
+- [x] **[存在性]**（Rev A.4，A.4-4）新增行之 `STOP_*` 全數存在於 `stop-conditions.md`；新增行無 `btplan`／`btticket`；`git diff --name-only 549ebe0d..` 僅 `SKILL.md`、`input-contract.md`（`.claude/CLAUDE.md` 零變更）
+- [x] **[存在性]**（Rev A.4，A.4-5）狀態矩陣新增／改動列 M2、M7、M12、E3、E10、E11 與 §8 情境 A／B（含 3a／3b／4／變體 B'）、§12 第 2 點已同步為 Rev A.4 語義並逐列附 first-hand `檔案:行號`
+- [x] **[存在性]**（Rev A.4，A.4-6）收尾實錄含 F4／F6／F7／K3 Completion Observation 與 4a 三案及推薦（PPSS `rsch-20261020-48856da9d7`），未新增 Gate、state、reason code、ledger
+- [x] `git diff --stat` 僅涉及 ALLOWED 檔案（Rev A.4 增量 `549ebe0d..a69152ff`：2 files，+10／−10；`.claude/CLAUDE.md` 零變更）
 
 ## Decision Addendum
 
@@ -449,11 +500,11 @@ Rev A.3 使本票版次達 3，觸發結構歧義停損律①。依 Akira 2026-1
 | --- | --- | --- |
 | 1 | 集合解析通過（同情境 A 步驟 2） | `input-contract.md:157-167` |
 | 2 | `TA` 的 step 4／18.1 查重命中既有正式票 → `STOP_DUPLICATE_TICKET`，屬「其餘 STOP」＝item-local，記 receipt、繼續不被其阻塞者 | `SKILL.md:200,202` |
-| 3a | 既有 `TA` 票 lifecycle 為 `REVIEW` 或 `CLOSED`、且內嵌 source 為同一 parent artifact＋plan-local item `TA`（母體含 Registry main／archive、`Pending/`、`deliver/`〔含 `deliver/archive/`〕、`void/`） → 驗證到匹配正式票 → 前置項視為滿足，**`STOP_DUPLICATE_TICKET` 不直接阻塞 `TB`**；`TB` 照常處理並引用該票正式 ID | `SKILL.md:203` |
-| 3b | 既有 `TA` 票僅為 `PENDING`／`IN_PROGRESS`／`EXECUTED`（驗證不到 `REVIEW`／`CLOSED`） → 前置項未滿足 → `TB` dependency STOP（`STOP_REPLAN_REQUIRED`＋run；`Decision or input needed`：先處理 `TA` 之 STOP，另行重跑 `TB`） | `SKILL.md:203` |
-| 4 | 摘要：3a 時 `Completed:` `TB`、`Stopped:` `TA`→`STOP_DUPLICATE_TICKET`；3b 時 `Completed: none`、`Stopped:` 含 `TA` 與 `TB` | `SKILL.md:206` |
+| 3a | （Rev A.4 R1）讀回驗證存在既有 `TA` 的可追溯、非 `VOID` 正式票——內嵌 source 為同一 parent artifact＋plan-local item `TA`，lifecycle 為 `PENDING`／`IN_PROGRESS`／`REVIEW`／`CLOSED` 皆可（母體 Registry main／archive、`Pending/`、`deliver/`〔含 `deliver/archive/`〕、`void/`）→ 前置項視為滿足，**`STOP_DUPLICATE_TICKET` 不直接阻塞 `TB`**；`TB` 照常處理並引用該票正式 ID | `SKILL.md:203` |
+| 3b | （Rev A.4 R1）查不到匹配的非 `VOID` 正式票（母體內無票、僅 `void/` 或 lifecycle `VOID`、或讀回驗證失敗）→ 前置項未滿足 → `TB` dependency STOP（`STOP_REPLAN_REQUIRED`＋run；`Decision or input needed`：先處理 `TA` 之 STOP，另行重跑 `TB`） | `SKILL.md:203` |
+| 4 | 摘要：3a 時 `Completed:` `TB`、`Stopped:` `TA`→`STOP_DUPLICATE_TICKET`；3b 時 `Completed: none`、`Stopped:` 含 `TA` 與 `TB`（Rev A.4） | `SKILL.md:206` |
 
-變體 B'（部分寫入後重試）：首次呼叫 `TA` 成功寫入（`PENDING`）而 `TB` 因 `STOP_WRITE_FAILED`（shared）未完成；重試時 `TA` 觸發 `STOP_DUPLICATE_TICKET` 且其票尚非 `REVIEW`／`CLOSED` → 3b。條文給出的處置即「另行重跑尚未完成之項（只列 `TB`）」：單獨 `Selected item: TB` 時，對未選定 sibling 的引用維持單項既有行為（`input-contract.md:170`），不受批次規則影響。
+變體 B'（部分寫入後重試；Rev A.4 更新）：首次呼叫 `TA` 成功寫入（`PENDING`）而 `TB` 因 `STOP_WRITE_FAILED`（shared）未完成；以全清單 `Selected items: TA, TB` 重試時，`TA` 觸發 `STOP_DUPLICATE_TICKET`，但讀回查得其非 `VOID` 正式票（`PENDING` 即可）→ 視為滿足（3a），`TB` 照常處理並引用該票正式 ID；僅查不到或僅 `VOID` 時才 3b。只列 `TB` 之 `Selected item: TB` 重試亦可：對未選定 sibling 的引用維持單項既有行為（`input-contract.md:170`）。
 
 其他矩陣新增／改動列：M2（單一 ID 路由，`input-contract.md:155`）、M10（execution-only 成環，`:166`）、M10a（僅 coordination 具名→忽略，`:170`）、M11（≥2 ID＋自由文字 `Goal:`→shared `STOP_DECISION_REQUIRED`，`:167,171`；`.claude/CLAUDE.md:77`）、E3／E3a／E10／E11／E12（`SKILL.md:203`）皆由上述條文唯一指向預期處置。
 
@@ -503,6 +554,75 @@ Rev A.3 使本票版次達 3，觸發結構歧義停損律①。依 Akira 2026-1
 ### 12. 殘餘與限制（Rev A.3）
 
 - 驗證仍止於文字層（存在性＋2-item batch／duplicate-retry 走查）；Codex 之 ADVISORY 解除條件＝首次真實 `Selected items` 呼叫提供 production-path 行為證據（觀察物：逐 item receipt 與五行摘要，對照狀態矩陣）。
-- 部分寫入後重試（變體 B'）之處置為「只重跑尚未完成之項」；多 ID 重試若前置項票尚非 `REVIEW`／`CLOSED` 則依 3b 走 dependency STOP——此為條文如實結果，非缺陷。
+- 部分寫入後重試（變體 B'；Rev A.4 修訂）：全清單重試可行——前置項已有非 `VOID` 正式票（含 `PENDING`）即視為滿足，`STOP_DUPLICATE_TICKET` 不阻塞後項；只重跑尚未完成之項亦可。僅查不到匹配票或僅 `VOID` 時才 dependency STOP（3b）。
 - F4／F6／F7 與 O1／O2 見 §9；4a 三案見 §7。
+
+## Rev A.4 收尾實錄（執行端；2026-10-20）
+
+### 13. 4a 紀錄：續修／拆票／撤回（窄範圍 PPSS，`request_id=rsch-20261020-48856da9d7`、`run_id=run-19d626589980`）
+
+Akira 2026-10-20 收束裁決：4a 裁定續修，修畢後重置連續修訂計數。研究授權內作一次窄範圍 PPSS（僅送去識別化通用問題；證據為通用公開文件，屬 `SUPPORTED`，不構成對本契約之驗證）。未新增 Gate、state、reason code、ledger。
+
+- **外部要點與本票對應**：
+  - idempotent retry 的前置依賴：批次部分失敗後重試，應「已成功項不重複建立、失敗項可重試」，重試前先查既有結果；決定重試行為的是項目級結果與可重試性（bulk 部分失敗測試指南，qaskills.sh；先前 AWS Agentic AI Lens AGENTREL06-BP04 亦同向）→ 支持 R1：前置項「已存在的非 `VOID` 正式票」足以視為滿足，不要求其已推進到 `REVIEW`／`CLOSED`。
+  - 批次內重複項：該指南的錯誤分類含 `DUPLICATE_IN_BATCH`（不重試、須移除或合併重複項）→ 與 R3「raw token 重複即 `STOP_DECISION_REQUIRED`、不去重不降級」方向相容；該指南範例以「重複項跳過」處理，與 Akira 之 fail-closed 不同，屬可接受之慣例差異，本票依核定。
+  - raw token count、lookup 母體是否含 archive：PPSS 未取得直接對應的外部來源（結果多為 fix-forward／roll-forward 通論與決定性 event id 去重），**外部證據在此兩點為 UNKNOWN**；本票改以第一手本地證據支持（`registry_list(ticket_id=TKA-ALIGN-01)` 對已歸檔票主冊回空，歸檔票僅存於 `TICKET_REGISTRY_ARCHIVE.json`／`deliver/archive/`，故 lookup 母體須含 archive）。
+  - 三案取捨：roll-forward 適用於「修法小而明確、可迅速安全上線」；反覆 fix-forward 若不設界會使 diff 糾纏（Vibe-coding 社群文章：連續修兩次仍不穩即考慮回到 known-good 並縮小任務）→ 對應 Akira 裁決之護欄：修畢後重置計數，此後非核心語義發現一律 Observation，僅錯票、誤寫、不可恢復死路可回修。
+
+| 方案 | 內容 | 評估 | 推薦 |
+| --- | --- | --- | --- |
+| 續修（fix-forward） | 同票 Rev A.4，一次收斂 R1／R2／R3 | 三點修法在手、純文字可逆、觸及面僅兩份契約檔；Rev A.3 已通過審查，Rev A.4 只針對三個定向缺陷 | **推薦**（Akira 已裁定） |
+| 拆票 | 將 R1、R2、R3 分成多張票 | 三點共改同兩份契約檔的同一段規則（Dependency STOP 與小節首段），拆開會產生中間不一致；無證據顯示需拆 | 不推薦 |
+| 撤回（revert） | `git revert` 批次相關提交（`82a14d79`…`a69152ff`） | 可行且低風險（純文字、可逆），但目前無實害可止損，且丟棄已通過審查的內容；列為後備 | 不推薦（保留為後備） |
+
+### 14. Rev A.4 增量 QA／SV／R0／Codex 結果（2026-10-20；僅審 `549ebe0d..a69152ff`）
+
+- **/qa**：`check qa` exit 0；Step 0 PASS；Gradle 三步 docs preset N/A；Step 4 SKIPPED — DEFERRED-TO-DOCSYNC（沿用）；Step 4.5 `check commit` exit 0，提交 `a69152ff`（2 files，+10／−10），`DIFF_END=a69152ff`。
+- **/sv**：`check sv` exit 0；Stage A 邊界＝僅兩實作檔，`.claude/CLAUDE.md` 零變更（143 行、blob `be21436a`）；token 封閉性＝`STOP_DECISION_REQUIRED`／`STOP_DUPLICATE_TICKET`／`STOP_REPLAN_REQUIRED` 皆存在於 `stop-conditions.md`；`btplan`／`btticket` 0；`step 18.1 population` 於 `SKILL.md` 0 次；Stage B 殘骸 0、Mock 無、無 UNREACHABLE GUARD、Integration Test 存在性＝⚠️ MISSING-INTEGRATION-TEST（如實，不建正式測試票）。
+- **R0 預審**：FORWARD（全為註記，無 ACTIONABLE／UNDECIDABLE／AUTHORITY），記錄 `.tmp/fail-advisor/R0_TKA-BATCH-01_20261020_104423.md`（`CLASSIFICATION: NORMAL`）。
+- **Codex Cross-Review**：R1 **ADVISORY**（exit 0；無 BLOCKER／REPORT_FIX）；唯一 ADVISORY＝缺批次契約真實整合驗證（首次真實 `Selected items` 執行可解除）；`REACHABILITY` token＝`dependency-met:SKILL.md:187`。機械輪次 R1；本輪無新 Gate incident（`INC-001` 仍 closed）。
+- **`structural_verify.sh --post`**：Verdict `ADVISORY`，exit 0（A/B/C/D/E/F/G）。`check closeout` exit 0。
+- 實際 verdict：Codex `ADVISORY`（無 BLOCKER／FAIL，視同 PASS；`reviews.codex` 映射 `PASS`，實際 verdict 記於 checkpoint `codex_verdict_actual`）。Traycer Workflow＝N/A → `reviews.traycer=N_A`。
+
+### 15. Rev A.4 逐字落地、決策對照與 walkthrough（first-hand 行號取自最終檔）
+
+- **逐字落地**：AI-14（`input-contract.md` 八處）、AI-15（`SKILL.md` 小節首段與 Dependency STOP 整行）以同一組字串常數程式替換；提交後 blob：`SKILL.md`＝`c374df58`、`input-contract.md`＝`a6aaaa3e`。
+
+| 項 | 落點 |
+| --- | --- |
+| 決策 12（R1 met 定義；`evidence_dependency` 維持 `REVIEW`／`CLOSED`） | `SKILL.md:203`；`input-contract.md:165` |
+| 決策 16（R2 lookup 母體直接列明、不稱等同 step 18.1） | `SKILL.md:203`（`step 18.1 population` 計 0） |
+| 決策 17（R3 raw token count） | `input-contract.md:21,111,113,155,157,163,167,171`；`SKILL.md:195` |
+| 決策 18（Completion Observation；此後非核心語義不再開 Rev） | 本節 §16 |
+| 決策 19（4a、關票流程、DEFERRED-TO-DOCSYNC 照舊） | 本節 §13、§17 |
+
+- **walkthrough（R3 raw token count）**：
+  - `Selected items: X`（count 1）→ 完整路由既有單項流程（`input-contract.md:155`；`SKILL.md:195`）；Plan-backed 限定僅對 count ≥ 2（`input-contract.md:157`），故任何 parent 類型皆依單項流程規則。
+  - `Selected items: X, X`（count 2）→ 批次規則適用；先檢查 count ≥ 2 須 Plan-backed（`input-contract.md:157`），再依重複列 shared `STOP_DECISION_REQUIRED`（`:163`），零寫入；不去重、不降級（`:155,163`；`SKILL.md:195`）。
+  - `Selected items: X, Y` 搭配 Diag-backed／Spec-backed parent → shared `STOP_REPLAN_REQUIRED`（`input-contract.md:157`）。
+  - `Selected items: X, Y` 附單一自由文字 `Goal:` → shared `STOP_DECISION_REQUIRED`（`input-contract.md:167,171`）。
+- **walkthrough（R1／R2，2-item batch 與 duplicate-retry）**：
+  - 2-item batch：`TB` 的 `execution_dependency`＝`TA`；`TA` 同次 invocation 通過 18.6 → met，`TB` 引用 `TA` 正式 ID（`SKILL.md:198,203`；`input-contract.md:170`）。
+  - duplicate-retry 3a：`TA` 觸發 `STOP_DUPLICATE_TICKET`，但讀回查得同 parent＋同 plan-local item 之非 `VOID` 正式票（`PENDING`／`IN_PROGRESS`／`REVIEW`／`CLOSED` 皆可）→ `TB` met，照常處理（`SKILL.md:203`）。
+  - duplicate-retry 3b：查不到匹配票、僅 `void/` 或 lifecycle `VOID`、或讀回驗證失敗 → `TB` dependency STOP（`STOP_REPLAN_REQUIRED`＋run，`SKILL.md:203`）。
+  - 部分寫入後全清單重試（變體 B'）：`TA` 已為 `PENDING` 正式票 → 3a，`TB` 照常（Rev A.3 時為 3b，Rev A.4 改變）。
+  - `coordination_dependency` 具名而前置項 STOP → 不受影響（`SKILL.md:203`；`input-contract.md:170`）。
+  - lookup 母體：Registry main＋archive、`Pending/`、`deliver/`（含 `deliver/archive/`）、`void/`，不稱等同 step 18.1（`SKILL.md:203`）。
+
+### 16. Completion Observation（不回修；此後非核心語義發現一律 Observation，不再開 Rev）
+
+- **F4（plan-series）、F6（parent-drift）、F7（telemetry）、K3**：依 Akira 2026-10-20 核定僅列 Observation，不修、不建新機制、不擴大範圍。原審查全文未隨本 session 提供，僅依核定所述標籤記錄，不另行詮釋細節。
+- **met 定義之 lifecycle 讀法**：主準則為「非 `VOID`」，票面列舉 `PENDING`／`IN_PROGRESS`／`REVIEW`／`CLOSED`；`EXECUTED`、`TICKET_RIGOR`、`BLOCKED` 等未逐一列舉之非 `VOID` lifecycle 依「非 VOID」字面亦視為滿足（`SKILL.md:203` 以 `may be …` 表述）。此為條文如實結果，若審查方要求僅限四值，屬 Observation 調整，不開 Rev。
+- **O1**（未明定資源之 `STOP_ACCESS_BLOCKED` 暫 item-local）、**O2**（壓縮後批次進度以 Registry／`Pending/` 為準）沿用；首次真實 `Selected items` 呼叫對照狀態矩陣與本節 walkthrough 核對。
+- **Codex ADVISORY 解除條件**：首次真實 `Selected items` 執行並驗證序列化、重複 token STOP 與 dependency 路由。
+- 修訂計數：Rev A.4 修畢後依核定重置連續修訂計數。
+
+### 17. 關票流程（Akira 2026-10-20 收束裁決授權；已執行並 read-back）
+
+1. `gate_ledger.py check closeout --ticket TKA-BATCH-01` exit 0（票仍在 `Pending/` 時執行）；票檔搬至 `deliver/`，冊面 `file` 改指 `deliver/TKA-BATCH-01_selected-set.md`。
+2. `registry_set_checkpoint(resolution=RESOLVED)` → checkpoint `state=RESOLVED`。
+3. `registry_set_status(CLOSED, reviews={qa:PASS, sv:PASS, codex:PASS, traycer:N_A})` → `lifecycle=CLOSED`、`closed_at=2026-10-20`。`reviews.codex` 為映射值，實際 verdict＝ADVISORY（Rev A.2 R2、Rev A.3 R1、Rev A.4 R1，皆無 BLOCKER／REPORT_FIX）；`reviews.qa` 僅涵蓋 Step 0 與 Step 4.5 提交，Gradle 三步 docs preset N/A。
+4. `registry_set_checkpoint(收尾實錄)`（置於 `set_status` 之後；`detail_content` 承載敘事、`checkpoint_data` 承載結構化欄）。
+5. `registry_list(ticket_id=TKA-BATCH-01, fields=[id,lifecycle,file,reviews,checkpoint])` read-back：`lifecycle=CLOSED`、`file=deliver/…`、`reviews` 如上、checkpoint 含 `summary`／`codex_verdict_actual`／`observations`／`deferred`／`unverified`。
+6. `DEFERRED-TO-DOCSYNC` 照舊：Dashboard 同步、`PROGRESS_ARCHIVE.md` Done 標記、checkbox 於下一輪 `/compact` 處理，不另開票。連續修訂計數依核定於本次修畢後重置。
 
