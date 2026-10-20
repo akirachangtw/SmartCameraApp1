@@ -11,7 +11,7 @@
 - 非目標：平台成果頁、專用 endpoint、新 MCP 工具、資料庫／watcher／同步器／雙向編輯、Registry schema 與逐票映射、跨 repo、Android 產品程式、付費模型呼叫。平台成果頁為後續、非本期前置。
 - 假設（尚未確認的技術或依賴）：自動鏈為模型契約、無機械後盾；Transition Table 為授權落點；`gate_stop_guard.py` 除 `decide()` 外未讀；收束後 `uc:54`→Step 11 的自動遵循待真實收束驗證；平台 runtime 與遠端部署未驗；自評無第二方。PM2 自動鏈尚未啟用。
 - 目前階段：PM1
-- 最近 align：2026-10-18 825076dbcf4ea4642ec0a7290005f88bc4316c65 PM0-A PM1-A PM1-B PM1-C PM1-D PM1-E PM3-A
+- 最近 align：2026-10-20 9315b48607927a085cdf076938ec9b3272a07040 PM2-A PM2-B PM2-C PM2-D PM2-E
 
 ## 階段成果表
 | ID | 階段 | 成果 | 已驗收 | 約定 | 達成度 | 狀態 |
@@ -22,11 +22,11 @@
 | PM1-C | PM1 | align 直接回報 | 0 | 2 | 0% | 未驗 |
 | PM1-D | PM1 | update 完整性核對 | 1 | 3 | 33% | 部分符合 |
 | PM1-E | PM1 | 相容與保留 | 1 | 2 | 50% | 部分符合 |
-| PM2-A | PM2 收束後自動 align | 治理授權與引用 | — | 2 | — | 未盤點 |
-| PM2-B | PM2 | 觸發與歸屬判定 | — | 4 | — | 未盤點 |
-| PM2-C | PM2 | 執行與回報 | — | 2 | — | 未盤點 |
-| PM2-D | PM2 | 邊界與失敗隔離 | — | 6 | — | 未盤點 |
-| PM2-E | PM2 | 真實觸發 | — | 1 | — | 未盤點 |
+| PM2-A | PM2 收束後自動 align | 治理授權與引用 | 2 | 2 | 100% | 符合 |
+| PM2-B | PM2 | 觸發與歸屬判定 | 2 | 4 | 50% | 部分符合 |
+| PM2-C | PM2 | 執行與回報 | 0 | 2 | 0% | 未驗 |
+| PM2-D | PM2 | 邊界與失敗隔離 | 2 | 6 | 33% | 部分符合 |
+| PM2-E | PM2 | 真實觸發 | 0 | 1 | 0% | 未驗 |
 | PM3-A | PM3 自我驗證 | 三模式實跑 | 1 | 3 | 33% | 部分符合 |
 | PM4-A | PM4 平台成果頁 | 後續獨立交付 | — | — | — | 無約定 |
 
@@ -76,37 +76,37 @@
 ### PM2-A
 - 預期功能與規格：治理授權與引用（2 項）：條款位於唯一 GO lane，以狹義授權句授予已唯一定位成果文件的讀寫及單檔保存，觸發事實與 QA／SV 是否省略無關；consumer 只引用不複製。
 - 驗收方式與必要前提：檢視治理條款與 consumer 引用的實際文字。前提：治理條款呼叫票尚未開票、尚未交付。
-- 實際成果與證據：未開始
-- 落差與下一步：—
-- 最近 align：無
+- 實際成果與證據：[已執行] 2026-10-20 檢視治理條款與 consumer 引用實際文字（驗收方式＝檢視文字）：①`.claude/rules/ssot-governance.md:159` 新列位於 Ticket Runtime Transition Table（唯一 GO lane，`:124`），含狹義授權句逐字「本票正常收束後……不修改其他檔案、產品需求、Registry 或 lifecycle」（該句於 `.claude/**/*.md` 僅此 1 處）、左欄含「觸發與 `/qa`、`/sv` 是否依風險分級省略無關」、控制詞僅 `MUST AUTO-CHAIN`（python 逐項字串檢查皆 True）→ 約定①成立；②`.claude/skills/sv/SKILL.md:213` 為唯一引用（`projman` 命中行＝[213]），`uc`／`qa`／`compact` 的 SKILL.md 命中 0，governance／sv 無 `grep -rl` 定位指令或 `^## 階段成果表` 字面（無 predicate／定位邏輯副本）→ 約定②成立。[文件] 交付提交 `93dd64f4`（範圍 499d583b..93dd64f4）；票檔 `plans/cso_briefing/project/deliver/PJMAN-AUTOALIGN-01_go-lane.md` §5（QA／SV PASS、R0 FORWARD、Codex 首次 REPORT_FIX 後 ADVISORY，receipt `TS=20261020_155026`）。限制：文字層驗收；條款是否被模型實際遵循屬 PM2-E；Codex ADVISORY 指出 `ssot-governance.md:159` 四態回報與 `projman/SKILL.md:250` 三態字面分歧，屬 PM2-D 與 Skill 後續修補，非 PM2-A 約定。
+- 落差與下一步：判斷：符合 — 已驗收 2/2（約定①②）。缺口：無（文字層）；限制見證據欄。下一步：—
+- 最近 align：2026-10-20 9315b48607927a085cdf076938ec9b3272a07040 範圍 PM2-A
 
 ### PM2-B
 - 預期功能與規格：觸發與歸屬判定（4 項）：①未盤點新交付且階段已可驗收才執行，未到點／無新成果／無對應基準／歸屬不明不猜測；②候選集合引用 Skill 定位規則（排除歸檔）、歸屬依任務已知文件／議題識別／實際成果，票前綴僅輔助，缺前綴舊文件不整類排除；③每階段最近 align 與實際校正範圍對應，校正某階段不消費他階段未檢查交付，從未 align 階段以文件首次提交為預設錨點；④git 前綴與目錄排除僅輔助，不整類排除 docs-only 或規則型成果。
 - 驗收方式與必要前提：以隔離案例或真實觸發逐項檢視。前提：治理條款呼叫票尚未交付。
-- 實際成果與證據：未開始
-- 落差與下一步：—
-- 最近 align：無
+- 實際成果與證據：[已執行] 約定③：首次提交錨點指令 `git log --diff-filter=A --follow --format=%H -- plans/roadmap/projman-outcomes.md | tail -1` ＝ `825076dbcf4ea4642ec0a7290005f88bc4316c65`（PM2-A～E 無列內 align 記錄，以此為預設錨點）；先前真實 align 提交 `d720e995`（僅檢查 PM0-A PM1-A～E PM3-A）對本文件的 diff 中 PM2 列零變更（`git show d720e995 -- 本文件 | grep PM2-` 無 +/- 行），印證校正某階段不消費他階段 → 成立。[已執行] 約定④：`git log --oneline 825076db..HEAD` 列示之候選交付涵蓋 docs／治理規則型提交（如 `93dd64f4`、`d720e995`、`8d14db59`），未因前綴或目錄被排除 → 成立。[未驗] 約定①（未到點／無新成果／無對應基準／歸屬不明不猜測）與約定②（候選集合引用 Skill 定位規則、三訊號歸屬、票前綴僅輔助、缺前綴舊文件不整類排除）：僅有 `[靜態]` 條文（`ssot-governance.md:159` 左欄與 MUST NOT）與 `[stub-equivalent]` 隔離推演（票檔 §4.2 C4–C7、C13，條款判讀由同一模型依條文推演、無工具輸出，非真實觸發）；本次觸發的歸屬判讀（`grep -rl '^## 階段成果表' plans/ --exclude-dir=archive` 得兩份文件，依三訊號取 projman-outcomes.md）為同一模型自評、屬本次呼叫自身行為，待審查確認，不計入。
+- 落差與下一步：判斷：部分符合 — 已驗收 2/4（約定③④）。缺口：約定①②缺獨立驗證或真實觸發審查的行為證據。下一步：REVIEW→CLOSED 審查方依 PM2-E 證據確認本次歸屬判讀（兩份結構標記文件並存、依三訊號唯一歸屬）；後續真實收束再觀察零／多候選不猜測的實際行為。
+- 最近 align：2026-10-20 9315b48607927a085cdf076938ec9b3272a07040 範圍 PM2-B
 
 ### PM2-C
 - 預期功能與規格：執行與回報（2 項）：顯示具體 align 提示詞並實際執行；回填後直接報告。
 - 驗收方式與必要前提：檢視一次被條款觸發的 align 之提示詞、實際呼叫與對話回報。前提：治理條款呼叫票尚未交付。
-- 實際成果與證據：未開始
-- 落差與下一步：—
-- 最近 align：無
+- 實際成果與證據：[未驗] 約定①顯示具體 align 提示詞並實際執行、約定②回填後直接報告：功能證據只能來自本次被條款觸發的 align 呼叫與其對話回報，即本次呼叫自身，依 PJMAN-OUTCOMES-01 Hard Constraints 3 先例不計入本次（呼叫紀錄見 PM2-E）。[靜態] 條文：`ssot-governance.md:159` 右欄「顯示具體 align 提示詞、實際執行」；`projman/SKILL.md:197` 起〈直接回報〉。規格存在不等於功能證據。
+- 落差與下一步：判斷：未驗 — 已驗收 0/2，無本次呼叫之前的 [已執行] 證據。下一步：本次呼叫之提示詞、Skill 呼叫與對話回報全文由 PJMAN-AUTOALIGN-01 收尾實錄 §10 保存；下一次 align 以其重驗，或由審查方於 REVIEW→CLOSED 確認。
+- 最近 align：2026-10-20 9315b48607927a085cdf076938ec9b3272a07040 範圍 PM2-C
 
 ### PM2-D
 - 預期功能與規格：邊界與失敗隔離（6 項）：①寫入授權與提交保存資格分離（align 自身以 `git commit -o <成果文件>` 單檔保存、軌道 A 先完成當次收尾提交、軌道 B 不為 align 提前 `/compact`）；②不繞過 FORBIDDEN（僅列檔名者預設票內排除，其他明確禁止與權限拒絕仍遵守）、不夾帶他 session 修改；③不遞迴；④align 失敗不回頭視為原票或下一張票未收束，失敗報告「已執行／已回填／未提交」與 dirty 路徑並如實列出已知限制；⑤只消費既有證據、不新增付費呼叫；⑥漏跑僅稱可能於後續相關收束補判。
 - 驗收方式與必要前提：以隔離案例逐項檢視，不得以文件自述代替。前提：治理條款呼叫票尚未交付。
-- 實際成果與證據：未開始
-- 落差與下一步：—
-- 最近 align：無
+- 實際成果與證據：[已執行]（暫存 repo 真實 git 輸出；僅 stub 層，非真實觸發）約定①：票檔 §4.1 C1 輸出 `git commit -o plans/roadmap/demo-outcomes.md` 後 `files=[plans/roadmap/demo-outcomes.md]`，他檔 staged 仍為 staged、未追蹤檔仍未追蹤；軌道 A 先於 align：本次觸發前已有 `[PJMAN-AUTOALIGN-01]` 收尾提交 `9315b486`（`git log`），軌道 B 未提前 `/compact`；條文 `ssot-governance.md:159` → 成立。約定④：C9 輸出 pre-commit exit 1 後文件仍 ` M`（可回報 dirty 路徑）、模擬原票狀態 hash 未變（`yes`）、無重試 → 成立。[未驗] 約定②（不繞過 FORBIDDEN／不夾帶他 session 修改：C1／C2 僅證 `-o` 不夾帶與 dirty 略過的機械面，FORBIDDEN 解讀屬模型判讀）、約定③不遞迴（僅條文與 `projman/SKILL.md:253`，真實行為待觀察）、約定⑤只消費既有證據不新增付費呼叫（僅條文；實際為本次呼叫自身）、約定⑥漏跑僅稱可能補判（僅用語檢查；驗收方式要求隔離案例逐項檢視、不得以文件自述代替）。Codex ADVISORY：`ssot-governance.md:159` 四態與 `projman/SKILL.md:250` 三態字面分歧，未證實造成行為影響。
+- 落差與下一步：判斷：部分符合 — 已驗收 2/6（約定①④）。缺口：約定②③⑤⑥缺獨立隔離案例或真實觸發證據；四態／三態字面分歧待 `projman` Skill 後續修補。下一步：後續真實收束觀察③⑤；Skill 對齊四態屬獨立修補（非本 align 範圍）。
+- 最近 align：2026-10-20 9315b48607927a085cdf076938ec9b3272a07040 範圍 PM2-D
 
 ### PM2-E
 - 預期功能與規格：真實觸發（1 項）：一次真實收束後自動 align 實際執行並報告；預設未驗，須有 session id 與依序工具呼叫證據證明同回合、收束寫入後、無新使用者訊息即呼叫 Skill，由治理條款呼叫票的 REVIEW→CLOSED 審查確認；手動、自填、僅有提交、無法核對或未觸發皆維持未驗。
 - 驗收方式與必要前提：核對該次觸發的 session id 與依序工具呼叫。前提：一次符合條件的真實收束觸發；治理條款呼叫票尚未交付。
-- 實際成果與證據：未開始
-- 落差與下一步：—
-- 最近 align：無
+- 實際成果與證據：[未驗] 約定①一次真實收束後自動 align 實際執行並報告：本次為首個**候選**觸發，以下為**自評，待審查確認**，不升級已驗收。①呼叫來源：PJMAN-AUTOALIGN-01 Agent closeout 本次呼叫實際完成後（`registry_set_status` REVIEW、`registry_set_checkpoint` 已 read-back、軌道 A 收尾提交 `9315b486`），依 `ssot-governance.md:159` 新列觸發；②Skill 實際呼叫：`Skill(projman)`，args 以 `align plans/roadmap/projman-outcomes.md PM2-A PM2-B PM2-C PM2-D PM2-E` 開頭；③session id：`4a678cbe-9cee-400a-8479-95de6747ac41`；④依序工具呼叫（transcript `~/.claude/projects/D--DevSources-AndroidProj-SmartCameraApp1/4a678cbe-9cee-400a-8479-95de6747ac41.jsonl`，行號 1 起算，UTC）：1092 `registry_set_status`（REVIEW，07:53:42）→ 1097 `registry_set_checkpoint`（summary 超過 200 字元被拒）→ 1111 `registry_set_checkpoint`（重寫成功）→ 1099／1113 `registry_list`（read-back）→ 1119 `Bash`（git status）→ 1125 `Bash`（軌道 A：git add／commit `9315b486`）→ 1137 `Bash`（候選／歸屬／錨點判讀）→ 1144 `Skill`（projman align，07:55:04）；⑤判別依據：1092 之後至 1144 間 jsonl 無 role=user 的使用者文字訊息（僅 1145 `tool_result` 與 1146 skill 載入注入），tool_result 同秒返回；⑥回填差分與保存結果：以本次提交為準，commit hash 與 `git diff --stat` 於對話回報（本文件不寫入自身提交 hash）。不能升級的原因：同一模型自評、無獨立第二方；`Skill(projman)` 不在 `permissions.allow`，是否出現權限提示無法由 transcript 判定（jsonl 無使用者介入痕跡）；模型是否依文字鏈遵循屬首次觀察。
+- 落差與下一步：判斷：未驗 — 已驗收 0/1。缺口：審查方尚未依 session id 與依序工具呼叫證據確認「同回合、收束寫入後、無新使用者訊息即呼叫 Skill」。下一步：由 PJMAN-AUTOALIGN-01 的 REVIEW→CLOSED 審查方核對上列 transcript；確認前維持未驗，未獲確認不需任何人補寫。
+- 最近 align：2026-10-20 9315b48607927a085cdf076938ec9b3272a07040 範圍 PM2-E
 
 ### PM3-A
 - 預期功能與規格：三模式實跑（3 項）：base 真實執行；align 真實執行；update 於首個真實修訂時真實執行（證據可複核，非手寫、非借用他議題；無真實修訂時此項維持未驗，PM3 不判完整）。
