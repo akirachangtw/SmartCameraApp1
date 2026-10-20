@@ -235,7 +235,7 @@ Evidence gate PASS requires:
 - Reachable population/source, entrypoint, and observer for every behavioral AC.
 - Bounded applicable readers, writers, and consumers.
 - Complete conditional state matrix and valid fixtures when triggered.
-- Consistent scope and no hidden semantic decision.
+- Consistent scope and no hidden semantic decision. For a load-bearing derivation that determines authorization, ordering, acceptance conditions, or a persistent side effect (for example an equivalence, compatibility, unchanged-behavior, or retry-outcome claim), name one concrete state that satisfies its premises but yields a different result or an unintended blocked path. If no state that satisfies its premises yields a different result, record the boundary states examined and why each yields the same result. If no approved decision settles the right result for that state, route it through `STOP_DECISION_REQUIRED` instead of choosing; a fail-closed STOP is not by itself a defect, only a block that contradicts the approved goal. Keep the counterexample or the states examined, with the disposition, in the evidence receipt, and let the applicable gate rerun after any repair recheck it.
 - Fresh evidence receipts.
 
 Authoring gate PASS requires:
