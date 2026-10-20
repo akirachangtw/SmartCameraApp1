@@ -209,7 +209,7 @@ Traycer 為封閉 VS Code plugin，**MUST NOT** 假設可由 agent／CLI／MCP �
 
 ### Advisor 與 PPSS
 
-- Advisor 由主 agent 承接，hook 不呼叫；`consult --kind advisor` 只能記錄實際工程顧問調用：原生 `advisor` 工具，或本 incident 新發之 `python .claude/scripts/advisor_call.py` 呼叫且 `exit 0`／`status=SUCCESS`（receipt 之 `ticket` 欄 MUST 為該 incident 所屬票號；`--note` MUST 附 receipt 路徑、`receipt_sha256` 與 `request_id`；非 SUCCESS、他 incident 或歷史 receipt 不得記）；主 agent 自判不得以 advisor kind 記錄；原生回答內容加密不可驗，API receipt 僅證識別與綁定（雜湊與 `request_id`），不證策略真實或問題解決，亦不構成新增授權。Advisor 不可達時：如實說明工具／環境缺口與原擬升報類別，不偽造 consult、不為滿足前置硬湊輪次；此時驗證先行類升報無法寫入 ledger，停止由 `NO_PROGRESS` 預算放行。Advisor 不可達時 `advisor` 層無法 engaged，`EXHAUSTED` 亦不可達（已知限制）。
+- Advisor 由主 agent 承接，hook 不呼叫；`consult --kind advisor` 只能記錄實際工程顧問調用：原生 `advisor` 工具，或本 incident 新發之 `python .claude/scripts/advisor_call.py` 呼叫且 `exit 0`／`status=SUCCESS`（receipt 之 `ticket` 欄 MUST 為該 incident 所屬票號；`--note` MUST 附 receipt 路徑、`receipt_sha256` 與 `request_id`；非 SUCCESS、他 incident 或歷史 receipt 不得記；API 路徑記帳前另 MUST 核對：①`receipt.payload.sha256` 等於為該次諮詢實際送出之 payload 檔之 sha256，②該 payload 載明目標 incident id 且與 `--incident` 一致，③該 payload 所附失敗證據（輸出全文之 sha256）歸屬該 incident、非同票他 incident 者；三項摘要併入同一 `--note`，任一不符不得記；此為模型契約核對，`cmd_consult` 不驗證，原生路徑無 payload 雜湊、不適用）；主 agent 自判不得以 advisor kind 記錄；原生回答內容加密不可驗，API receipt 僅證識別與綁定（雜湊與 `request_id`），不證策略真實或問題解決，亦不構成新增授權。Advisor 不可達時：如實說明工具／環境缺口與原擬升報類別，不偽造 consult、不為滿足前置硬湊輪次；此時驗證先行類升報無法寫入 ledger，停止由 `NO_PROGRESS` 預算放行。Advisor 不可達時 `advisor` 層無法 engaged，`EXHAUSTED` 亦不可達（已知限制）。
 - PPSS 證據：`RETRIEVED` 僅表取回，`SOURCE_READ` 僅表已讀，`INVALID` 為空、缺 artifact 或網域不符。`evidence_ok` 僅表示來源閱讀與支持聲明可追溯，不表示語意被 helper 驗真；`SOURCE_READ` 單獨不使其成立；離題來源已讀仍不得算問題已獲支持；`evidence_ok` 為必要條件，非主張成立之充分條件。
 
 ### 證據缺口與研究授權（Akira 2026-10-17 裁決）
