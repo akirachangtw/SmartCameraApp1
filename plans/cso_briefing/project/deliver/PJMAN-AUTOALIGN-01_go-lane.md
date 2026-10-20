@@ -186,7 +186,7 @@ Scope 汙染判斷式 **MUST** 以此表為準（表列外之 tracked dirty 檔�
 - **檔案**: 本票檔（`Pending/` → `deliver/`，依標準 SOP；不屬 ALLOWED 兩檔）
 - **動作**: 收尾實錄含：AI-0 結果與 `DIFF_REF`；AI-1／2／3 目標文字逐字比對；AI-4 核對輸出；AI-5 各案輸出與限定標記；U1／U2／U3 現況；External-review 欄最新狀態（6a 依 Gate 研究授權處理之實際結果：未發生外部事實缺口，或已研究之查詢與結論）；`Skill(projman)` 首次觸發觀察結果（U2）；Observation（Skill L248／L249 邊角）；`DIFF_END` 與審查範圍聲明；QA／SV／R0／Cross-Review 結果與 receipt；**收束觸發判讀**：Agent closeout 完成後，**僅依新列正常條件**判讀並如實記錄「觸發／未觸發（含一行原因）」，觸發時附呼叫來源、`Skill(projman)` 實際呼叫、回填差分、結果摘要、保存結果（commit hash 或未提交原因）、session id 與依序工具呼叫（取不到寫 `UNAVAILABLE`）；該判讀屬**純收尾紀錄提交**，不延伸成果審查範圍。冊面 `reviews` 四欄各填實測值（`traycer=N_A`）；執行端 lifecycle 最高至 `REVIEW`，`CLOSED` 限審查方。
 - **約束**: 勾選須於各項實際完成的同一回合內（`ssot-governance.md` Ticket Closure 紀律）；`[行為性]`／真實觸發相關項未實測者保留未勾並誠實揭露；MUST NOT 宣稱自動鏈已驗證、PM2-E 已升級或 Projman 全部自我驗證完成。
-- [ ] 完成
+- [x] 完成（2026-10-20；收尾實錄 §1–§10 已寫入；冊面 REVIEW＋reviews＋checkpoint 已 read-back；收束觸發判讀＝觸發，align 提交 `e2f77049`，見 §10；`CLOSED` 限審查方。）
 
 ## Hard Constraints
 1. **同票同 commit 落地**：Transition Table 新列與 sv 新第 3 項屬同一交付提交（`/qa` Step 4.5 單次 commit，stage 僅 ALLOWED 兩檔＋Pipeline Artifact），不得拆成「只有條款」或「只有引用」的中間狀態。
@@ -369,3 +369,21 @@ done
 - 示例推演＝非真實 Skill 執行、非真實自動觸發（`MISSING-INTEGRATION-TEST`，`[stub-equivalent]`）；自動鏈為模型契約、無機械後盾；漏跑僅得稱「可能於後續相關收束時補判」。
 - **不宣稱** PM2 通過、自動鏈已驗證，或 Projman 全部自我驗證條件已完成；本票按限定範圍交付。
 - U1／U2／U3 現況見 §6；Skill L248／L249 邊角列於 §6 Observation。
+
+### 9. Step 11 收尾與冊面（2026-10-20）
+
+`check closeout` exit 0；票檔 Pending→`deliver/`；`registry_upsert_ticket` `file=deliver/PJMAN-AUTOALIGN-01_go-lane.md`；`registry_set_status` `REVIEW`、`reviews={qa:PASS,sv:PASS,codex:PASS〔映射；實際 verdict＝ADVISORY〕,traycer:N_A}`；`registry_set_checkpoint`（首次因 summary 超過 200 字元被拒，縮短後成功）；`registry_list` read-back 驗證 `lifecycle=REVIEW`、`file`、`reviews`、`checkpoint`（`codex_verdict_actual=ADVISORY`）皆落地。軌道 A 單票收尾提交 `9315b486`。
+
+### 10. 收束觸發判讀與 align 呼叫紀錄（純收尾紀錄；自評，待審查確認）
+
+**判讀＝觸發**（僅依 `ssot-governance.md:159` 新列正常條件，未忽略、製造或繞過任一條件）：①closeout 本次呼叫實際完成（`registry_set_status` 達 `REVIEW`、票檔在 `deliver/`、checkpoint 已 read-back、`sv/SKILL.md:210` 未命中 RETURN）；②候選：`grep -rl '^## 階段成果表' plans/ --exclude-dir=archive` 得 `plans/roadmap/autonomous-engineering-gate-outcomes.md` 與 `plans/roadmap/projman-outcomes.md` 兩份；依三訊號僅 `projman-outcomes.md` 歸屬（本票文字明確指名 8 次；topic `Projman`／票前綴 `PJMAN-` 相符；交付對應 PM2-A～D；gate-outcomes 無任一訊號）→ 唯一合理候選；③PM2 各 ID 無列內 align 記錄，預設錨點＝首次提交 `825076dbcf4ea4642ec0a7290005f88bc4316c65`，其後有新交付 `93dd64f4`；④寫前 `git status --short -- plans/roadmap/projman-outcomes.md` 為空；⑤原票 FORBIDDEN 僅列該檔名、無其他限制語意；⑥軌道 A 收尾提交 `9315b486` 先完成。
+
+**呼叫紀錄**（來源 `4a678cbe-9cee-400a-8479-95de6747ac41` 的 transcript，行號 1 起算，UTC）：Skill 實際呼叫＝1144 `Skill(projman)`（07:55:04），args 首行 `align plans/roadmap/projman-outcomes.md PM2-A PM2-B PM2-C PM2-D PM2-E`；呼叫前於對話顯示具體 align 提示詞；其後本次 align 的工具序列＝1158 `Bash`（transcript 判別）→ 1166 `Bash`（PM2-A／D 條文與機械證據核對）→ 1178 `Bash`（歷史 align 對 PM2 列零變更、transcript 時戳核對）→ 1184 `Bash`（python 回填單檔＋V1～V6）→ 1196 `Bash`（`git commit -o`）→ 1202 `Bash`（序列核對）。
+
+**自動／手動判別**：1092 `registry_set_status`（REVIEW，07:53:42）之後至 1144 間，jsonl 無 role=user 的使用者文字訊息（僅 1145 `tool_result` 與 1146 skill 載入注入）；`Skill` 呼叫同一回合、收束寫入後。依 `projman/SKILL.md:252` 僅得記為**候選「自動」**，自評，待審查確認；PM2-E **維持未驗**，不升級。
+
+**回填差分與結果**：提交 `e2f77049c007b8316e2a98609694f2f2fac2e8db`（`[GOVERNANCE-SYNC]`，`git commit -o` 單檔），`plans/roadmap/projman-outcomes.md` 21 insertions／21 deletions；V1～V6 輸出全空（通過）；寫前 status 為空、提交後工作樹乾淨。各 ID 前後（`已驗收／約定`）：PM2-A —→2／2 符合；PM2-B —→2／4 部分符合；PM2-C —→0／2 未驗；PM2-D —→2／6 部分符合；PM2-E —→0／1 未驗；PM2 以外 ID 未改（基準區「最近 align」摘要行改為本次 PM2-A～E）。
+
+**U2 首次觸發觀察**：`Skill(projman)` 不在 `permissions.allow`，本次呼叫的 `tool_result` 於 `tool_use` 後 0.3 秒返回（`Launching skill: projman`），jsonl 無使用者介入痕跡；是否曾出現權限提示無法由 transcript 判定，不推定。U1：本次模型依文字鏈（`sv/SKILL.md:213`→新列→Skill）實際呼叫了一次，屬單次自評觀察。
+
+**不得讀作**：PM2-E 已通過、自動鏈已驗證、PM2 通過或 Projman 全部自我驗證完成。Observation：兩份結構標記文件並存時，唯一歸屬仰賴三訊號之模型判讀。
