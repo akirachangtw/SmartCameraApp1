@@ -310,6 +310,8 @@ class Layers(RepoCase):
         for want in LEGACY_STATUS["incidents"]:
             have = dict(got[want["id"]])
             layers = have.pop("layers")
+            self.assertEqual(have.pop("ppss_records"),         # additive field (ADV-ENTRY-01 Rev C): monotonic record count
+                             sum(1 for e in LEGACY_EVENTS if e.get("type") == "ppss_record" and e.get("incident") == want["id"]))
             consults = dict(have["consults"])
             self.assertEqual(consults.pop("r0"), 0)
             have["consults"] = consults
@@ -959,6 +961,93 @@ class Ppss(RepoCase):
         self.read(inc, "rsch-neg", "https://code.example.org/hooks", self.source("unrelated hooks page"), "none")
         rec = {p["request_id"]: p for p in self.status()["ppss"]}["rsch-neg"]
         self.assertEqual((rec["state"], rec["evidence_ok"]), ("SOURCE_READ", False))
+
+    # ---- ADV-ENTRY-01 Rev C (Traycer T2 F1): monotonic consumption counter and per-incident request id uniqueness
+    def test_ppss_records_is_monotonic_and_survives_round_end(self):
+        inc = self.open_incident()["incident"]
+        count = lambda: {i["id"]: i for i in self.status()["incidents"]}[inc]["ppss_records"]
+        self.assertEqual(count(), 0)
+        self.assertEqual(self.record(inc, self.artifact("rsch-1")).returncode, 0)
+        self.assertEqual(count(), 1)
+        self.assertEqual(self.record(inc, self.artifact("rsch-2", name="b.json"), new_query_strategy="s", reason="r").returncode, 0)
+        self.assertEqual(count(), 2)
+        self.assertEqual(self.round(inc, 0, "ex one", "fail").returncode, 0)             # round_end resets the window, not the counter
+        self.assertEqual(count(), 2)
+        self.assertEqual(self.record(inc, self.artifact("rsch-3", name="c.json")).returncode, 0)    # window reset: no strategy needed
+        self.assertEqual((count(), len(self.status()["ppss"])), (3, 3))
+
+    def test_a_request_id_already_recorded_for_the_incident_is_refused_even_with_a_new_strategy(self):
+        inc = self.open_incident()["incident"]
+        art = self.artifact("rsch-1")
+        self.assertEqual(self.record(inc, art).returncode, 0)
+        n = len(self.events())
+        for kw in ({}, {"new_query_strategy": "s", "reason": "r"}):
+            res = self.record(inc, art, **kw)
+            self.assertEqual(res.returncode, 5, res.err)
+            self.assertIn("already recorded", res.err)
+        self.assertEqual(self.round(inc, 0, "ex one", "fail").returncode, 0)             # still refused after the window reset
+        self.assertEqual(self.record(inc, art).returncode, 5)
+        self.assertEqual(len(self.events()), n + 2)                                      # only the round start/end were added
+        self.assertEqual(self.record(inc, self.artifact("rsch-9", name="n.json")).returncode, 0)
+
+    def test_request_id_uniqueness_is_per_incident(self):
+        a = self.open_incident()["incident"]
+        b = self.open_incident("test:b", independent_evidence="out.txt")["incident"]
+        art = self.artifact("rsch-1")
+        self.assertEqual(self.record(a, art).returncode, 0)
+        self.assertEqual(self.record(b, art).returncode, 0)                              # not a global ban
+
+    def test_concurrent_records_of_one_request_id_land_once(self):
+        inc = self.open_incident()["incident"]
+        art = self.artifact("rsch-1")
+        procs = [subprocess.Popen([sys.executable, str(SCRIPT), "--ticket", "ADV-TEST-01", "ppss", "record", "--incident", inc,
+                                   "--artifact", str(art)], cwd=self.repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  env=self.env()) for _ in range(5)]
+        codes = [p.wait(timeout=120) for p in procs]
+        for p in procs:
+            p.stdout.close()
+            p.stderr.close()
+        self.assertEqual(sorted(codes), [0, 5, 5, 5, 5])
+        self.assertEqual(len([e for e in self.events() if e["type"] == "ppss_record"]), 1)
+
+
+class ConsultNeedsOpenIncident(RepoCase):
+    """ADV-ENTRY-01 Rev C (Traycer T2 F2): the open check and the append share one write lock."""
+
+    def test_consult_on_a_closed_incident_is_refused(self):
+        inc = self.open_incident()["incident"]
+        self.consult(inc, "advisor")
+        self.assertEqual(self.round(inc, 0, "ex one", "pass").returncode, 0)             # closes the incident
+        n = len(self.events())
+        for kind in ("advisor", "local", "r0"):
+            res = self.run_cli("consult", "--incident", inc, "--kind", kind)
+            self.assertEqual(res.returncode, 5, res.err)
+            self.assertIn("consult not recorded", res.err)
+        self.assertEqual(len(self.events()), n)
+        st = {i["id"]: i for i in self.status()["incidents"]}[inc]
+        self.assertEqual((st["status"], st["consults"]["advisor"]), ("closed", 1))
+
+    def test_consults_racing_a_close_are_serialized_by_the_write_lock(self):
+        for k in range(3):
+            inc = self.open_incident(f"test:race{k}", **({"independent_evidence": "out.txt"} if k else {}))["incident"]
+            self.assertEqual(self.round(inc, 0, f"race strategy {k}").returncode, 0)     # round open, ready to be closed
+            argvs = [[sys.executable, str(SCRIPT), "--ticket", "ADV-TEST-01", "consult", "--incident", inc, "--kind", "advisor"]
+                     for _ in range(4)]
+            argvs.insert(2, [sys.executable, str(SCRIPT), "--ticket", "ADV-TEST-01", "round", "end", "--incident", inc,
+                             "--result", "pass"])
+            procs = [subprocess.Popen(a, cwd=self.repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self.env())
+                     for a in argvs]
+            codes = [p.wait(timeout=120) for p in procs]
+            for p in procs:
+                p.stdout.close()
+                p.stderr.close()
+            self.assertEqual(codes[2], 0)
+            ev = self.events()
+            end_seq = [e["seq"] for e in ev if e["type"] == "round_end" and e["incident"] == inc][0]
+            landed = [e for e in ev if e["type"] == "consult" and e["incident"] == inc]
+            self.assertTrue(all(e["seq"] < end_seq for e in landed), "a consult was appended after the incident closed")
+            self.assertEqual(len(landed), sum(1 for i, c in enumerate(codes) if i != 2 and c == 0))
+            self.assertTrue(all(c in (0, 5) for i, c in enumerate(codes) if i != 2), codes)
 
 
 class StaticChecks(unittest.TestCase):

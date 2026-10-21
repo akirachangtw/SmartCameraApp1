@@ -24,6 +24,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 SCRIPTS = Path(__file__).resolve().parent.parent
 ROUTE = SCRIPTS / "route.py"
@@ -474,8 +475,9 @@ class NativeTests(RouteCase):
 class PpssTests(RouteCase):
     QUERIES = ["Alpha Query", "beta query"]
 
-    def artifact(self, name="art.json", queries=None, results=True, rid="rsch-20261020-aaaaaaaaaa"):
-        data = {"request_id": rid, "captured_at": "2026-10-20T00:00:00+00:00",
+    def artifact(self, name="art.json", queries=None, results=True, rid="rsch-20261020-aaaaaaaaaa",
+                 captured="2026-10-20T09:45:00+00:00"):
+        data = {"request_id": rid, "captured_at": captured,
                 "queries": [q.casefold() for q in (queries if queries is not None else self.QUERIES)],
                 "results": ([{"title": "t", "url": "https://docs.example.com/a", "snippet": "hello world snippet", "date": None,
                               "last_updated": "2026-10-01"}] if results else [])}
@@ -508,9 +510,10 @@ class PpssTests(RouteCase):
         self.assertEqual(set(p), {"question", "queries", "task_type", "filters"})
         self.assertEqual(p["filters"], {"domains": ["docs.example.com"]})
         self.assertTrue(1 <= len(p["queries"]) <= 5)
-        rc, same, _ = self.dispatch(queries=[" alpha query ", "BETA QUERY", "alpha query"])
-        self.assertEqual(o["dispatch_id"], same["dispatch_id"])
-        rc, diff, _ = self.dispatch(queries=["different query"])
+        same_extra = ("--task-type", "t", "--domains", "docs.example.com")
+        rc, same, _ = self.dispatch(queries=[" alpha query ", "BETA QUERY", "alpha query"], extra=same_extra)
+        self.assertEqual(o["dispatch_id"], same["dispatch_id"])             # same whole request, normalised spelling
+        rc, diff, _ = self.dispatch(queries=["different query"], extra=same_extra)
         self.assertNotEqual(o["dispatch_id"], diff["dispatch_id"])
         self.assertEqual(self.n_events(), n)
 
@@ -684,7 +687,8 @@ class ConcurrencyTests(RouteCase):
             argv += ["--query", q]
         rc, d, _ = self.cli(argv)
         self.assertEqual(rc, 0)
-        art = self.write("art.json", json.dumps({"request_id": "rsch-20261020-cccccccccc", "queries": qs,
+        later = datetime.fromtimestamp(time.time() + 600, timezone.utc).isoformat()     # the CLI dispatch used the real clock
+        art = self.write("art.json", json.dumps({"request_id": "rsch-20261020-cccccccccc", "queries": qs, "captured_at": later,
                          "results": [{"url": "https://docs.example.com/a", "title": "t", "snippet": "s"}]}))
         cmd = self.cli_cmd(["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "record",
                             "--dispatch-id", d["dispatch_id"], "--artifact", str(art), "--new-query-strategy", "s", "--reason", "r"])
@@ -735,6 +739,198 @@ class ConcurrencyTests(RouteCase):
             self.assertEqual((rc, o["reason"]), (5, "busy"), res)
         self.assertEqual(self.n_events(), n)                                          # no contender entered the critical section
         self.assertEqual(lock.read_text(encoding="utf-8"), "999:other 0\n")           # nobody deleted the foreign lock
+
+
+class ChainTests(RouteCase):
+    """ADV-ENTRY-01 Rev C: Traycer T2 F1-F3 on the dispatch -> return -> record chain. Real route.main / CLI and the
+    public ledger CLI only; atomicity cases use real concurrent processes or a real ledger CLI action at the
+    interleaving point. Zero network."""
+    QUERIES = ["Alpha Query", "beta query"]
+    RA, RB, RC = "rsch-20261020-aaaaaaaaaa", "rsch-20261020-bbbbbbbbbb", "rsch-20261020-cccccccccc"
+    STRAT = ("--new-query-strategy", "s2", "--reason", "r2")
+
+    def art(self, name="art.json", rid=RA, captured="2026-10-20T09:45:00+00:00", queries=None):
+        return PpssTests.artifact(self, name, queries=queries, rid=rid, captured=captured)
+
+    def disp(self, **kw):
+        return PpssTests.dispatch(self, **kw)
+
+    def rec(self, did, art, extra=()):
+        return PpssTests.record(self, did, art, extra)
+
+    def inc_status(self):
+        rc, out, err = self.ledger("status", "--json")
+        self.assertEqual(rc, 0, err)
+        st = json.loads(out)
+        return {i["id"]: i for i in st["incidents"]}[self.inc], st
+
+    def ppss_events(self):
+        return [e for e in self.events() if e["type"] == "ppss_record"]
+
+    def record_cmd(self, did, art):
+        return self.cli_cmd(["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "record",
+                             "--dispatch-id", did, "--artifact", str(art), *self.STRAT])
+
+    # ------------------------------------------------------------- F1
+    def test_F1_slot_is_the_monotonic_record_count_and_request_ids_dedupe(self):
+        rc, d1, _ = self.disp()
+        rc, o, _ = self.rec(d1["dispatch_id"], self.art())
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+        inc, _ = self.inc_status()
+        self.assertEqual(inc["ppss_records"], 1)
+        self.assertEqual(PpssTests.read(self, self.RA)[0], 0)                       # consume the result
+        rc, d2, _ = self.disp(extra=self.STRAT)
+        self.assertNotEqual(d1["dispatch_id"], d2["dispatch_id"])                      # the slot advanced
+        n = self.n_events()
+        for _ in range(2):                                                             # same request id again, with a new strategy
+            rc, o, _ = self.rec(d2["dispatch_id"], self.art(), self.STRAT)
+            self.assertEqual((rc, o["reason"]), (5, "duplicate_request_id"), o)
+        rc, o, _ = self.rec(d1["dispatch_id"], self.art())                             # the consumed dispatch cannot be replayed
+        self.assertEqual((rc, o["reason"]), (5, "stale_or_duplicate_dispatch"), o)
+        self.assertEqual(self.n_events(), n)
+        rc, o, _ = self.rec(d2["dispatch_id"], self.art("b.json", rid=self.RB), self.STRAT)   # a genuinely new request id
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+        self.assertEqual(len(self.ppss_events()), 2)
+        inc, st = self.inc_status()                                                    # rebuilt from the file: still exact
+        self.assertEqual((inc["ppss_records"], len(st["ppss"])), (2, 2))
+        rc, o, _ = self.rec(d2["dispatch_id"], self.art("b.json", rid=self.RB), self.STRAT)   # and d2 is consumed too
+        self.assertEqual((rc, o["reason"]), (5, "stale_or_duplicate_dispatch"), o)
+        self.assertEqual(len(self.ppss_events()), 2)
+
+    def test_F1_slot_does_not_depend_on_the_distinct_request_index(self):
+        rc, d1, _ = self.disp()
+        self.assertEqual(self.rec(d1["dispatch_id"], self.art())[0], 0)
+        self.assertEqual(PpssTests.read(self, self.RA)[0], 0)
+        rc, d2, _ = self.disp(extra=self.STRAT)
+        # the ledger refuses the repeated request id, so the event count and status stay put and d2 stays usable
+        self.assertEqual(self.rec(d2["dispatch_id"], self.art(), self.STRAT)[0], 5)
+        inc, st = self.inc_status()
+        self.assertEqual((inc["ppss_records"], len(st["ppss"])), (1, 1))
+        rc, d2b, _ = self.disp(extra=self.STRAT)
+        self.assertEqual(d2["dispatch_id"], d2b["dispatch_id"])
+
+    def test_F1_concurrent_records_of_one_request_id_land_at_most_once(self):
+        rc, d1, _ = self.disp()
+        self.assertEqual(self.rec(d1["dispatch_id"], self.art())[0], 0)
+        self.assertEqual(PpssTests.read(self, self.RA)[0], 0)
+        rc, d2, _ = self.disp(extra=self.STRAT)
+        res = ConcurrencyTests.spawn(self, [self.record_cmd(d2["dispatch_id"], self.art("dup.json", rid=self.RA)) for _ in range(4)])
+        self.assertEqual(sum(1 for r in res if r[0] == 0), 0, res)                    # already recorded: nobody wins
+        self.assertEqual(len(self.ppss_events()), 1)
+        res = ConcurrencyTests.spawn(self, [self.record_cmd(d2["dispatch_id"], self.art("new.json", rid=self.RB)) for _ in range(4)])
+        self.assertEqual(sum(1 for r in res if r[0] == 0), 1, res)                    # a new id: exactly one wins
+        self.assertEqual(len(self.ppss_events()), 2)
+
+    # ------------------------------------------------------------- F2
+    def closing_client(self):
+        repo, ledger, inc = self.repo, str(LEDGER), self.inc
+
+        class ClosingClient(FakeClient):
+            def create(inner, **kw):
+                for args in (["round", "start", "--incident", inc, "--layer", "executor", "--expect", "0",
+                              "--authority", "t", "--strategy", "close while the call is in flight"],
+                             ["round", "end", "--incident", inc, "--result", "pass"]):
+                    r = subprocess.run([sys.executable, ledger, "--ticket", TICKET, *args], cwd=repo, capture_output=True)
+                    assert r.returncode == 0, r.stderr
+                return super().create(**kw)
+
+        return ClosingClient(make_resp())
+
+    def test_F2_incident_closed_during_the_api_call_keeps_the_receipt_and_records_nothing(self):
+        pl, ev = self.good_api()
+        client = self.closing_client()
+        fac = Factory(client)
+        rc, o, _ = self.run_main(self.api_args(pl, ev), factory=fac)
+        self.assertEqual((rc, o["disposition"], o["reason"]), (5, "REFUSED", "incident_closed_after_call"), o)
+        self.assertIs(o["recorded"], False)
+        self.assertIn("cost", o["detail"])
+        self.assertTrue(o["advice"])
+        self.assertEqual(sha((self.repo / o["receipt"]).read_bytes()), o["receipt_sha256"])    # receipt kept and intact
+        self.assertEqual(len(client.calls), 1)                                                # no second API call
+        self.assertEqual(len(self.consults()), 0)
+        inc, _ = self.inc_status()
+        self.assertEqual((inc["status"], inc["consults"]["advisor"]), ("closed", 0))         # closed stays closed
+        rc, o2, _ = self.run_main(self.api_args(pl, ev), factory=fac)                        # next time it stops before any API call
+        self.assertEqual((rc, o2["reason"]), (5, "incident_not_open"))
+        self.assertEqual(len(client.calls), 1)
+
+    def test_F2_native_return_closed_between_the_check_and_the_write(self):
+        d = NativeTests.dispatch(self)
+        real_precheck, closed = route.precheck, []
+
+        def precheck_then_close(root, ticket_arg, incident):
+            out = real_precheck(root, ticket_arg, incident)
+            if not closed:                                  # a real ledger action right after the entry's own check
+                closed.append(True)
+                for args in (["round", "start", "--incident", incident, "--layer", "executor", "--expect", "0",
+                              "--authority", "t", "--strategy", "close between check and write"],
+                             ["round", "end", "--incident", incident, "--result", "pass"]):
+                    self.assertEqual(self.ledger(*args)[0], 0)
+            return out
+
+        with mock.patch.object(route, "precheck", precheck_then_close):
+            rc, o, _ = NativeTests.ret(self, d["dispatch_id"])
+        self.assertEqual((rc, o["reason"]), (5, "incident_not_open"), o)
+        self.assertEqual(len(self.consults()), 0)
+        inc, _ = self.inc_status()
+        self.assertEqual((inc["status"], inc["consults"]["advisor"]), ("closed", 0))
+
+    # ------------------------------------------------------------- F3
+    def test_F3_each_request_dimension_changes_the_dispatch_id(self):
+        base = self.disp(question="Android observer leak")[1]["dispatch_id"]
+        variants = {
+            "question": self.disp(question="Android UI color")[1]["dispatch_id"],
+            "domains": self.disp(question="Android observer leak", extra=("--domains", "docs.example.com"))[1]["dispatch_id"],
+            "task_type": self.disp(question="Android observer leak", extra=("--task-type", "other_type"))[1]["dispatch_id"],
+            "justification": self.disp(question="Android observer leak",
+                                       extra=("--justification-json", json.dumps({"why": "x"})))[1]["dispatch_id"],
+        }
+        ids = [base, *variants.values()]
+        self.assertEqual(len(set(ids)), len(ids), variants)
+        again = self.disp(question="Android observer leak")[1]["dispatch_id"]
+        self.assertEqual(again, base)                                                   # same whole request: same id
+
+    def test_F3_artifact_of_dispatch_A_is_not_accepted_for_dispatch_B(self):
+        t_a = FIXED
+        t_b = datetime(2026, 10, 20, 9, 40, 0, tzinfo=timezone.utc)
+        argv = lambda q: ["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "dispatch",
+                          "--question", q, "--query", "Alpha Query", "--query", "beta query"]
+        rc, a, _ = self.run_main(argv("Android observer leak"), now=lambda: t_a)
+        rc, b, _ = self.run_main(argv("Android UI color"), now=lambda: t_b)
+        self.assertNotEqual(a["dispatch_id"], b["dispatch_id"])
+        art_a = self.art("a.json", captured="2026-10-20T09:35:00+00:00")                # research A ran between the two dispatches
+        n = self.n_events()
+        rc, o, _ = self.rec(b["dispatch_id"], art_a)
+        self.assertEqual((rc, o["reason"]), (5, "artifact_predates_dispatch"), o)
+        self.assertEqual(self.n_events(), n)
+        rc, o, _ = self.rec(a["dispatch_id"], art_a)                                      # it belongs to A
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+
+    def test_F3_cached_artifact_is_a_declared_override_not_a_silent_pass(self):
+        rc, d, _ = self.disp()
+        old = self.art(captured="2026-10-01T00:00:00+00:00")
+        rc, o, _ = self.rec(d["dispatch_id"], old)
+        self.assertEqual((rc, o["reason"]), (5, "artifact_predates_dispatch"))
+        rc, o, _ = self.rec(d["dispatch_id"], old, ("--cached-artifact",))
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+
+    def test_F3_missing_tampered_or_mismatching_descriptions_are_refused(self):
+        rc, d, _ = self.disp(extra=("--domains", "docs.example.com"))
+        did = d["dispatch_id"]
+        desc = self.repo / "tmp" / TICKET / "route" / f"dispatch_{did}.json"
+        self.assertTrue(desc.is_file())
+        n = self.n_events()
+        rc, o, _ = self.rec(did, self.art(), ("--domains", "other.example.org"))              # declared domains differ
+        self.assertEqual((rc, o["reason"]), (5, "dispatch_mismatch"), o)
+        body = json.loads(desc.read_text(encoding="utf-8"))
+        body["request"]["question"] = "tampered question"                                       # description edited after dispatch
+        desc.write_text(json.dumps(body), encoding="utf-8")
+        rc, o, _ = self.rec(did, self.art())
+        self.assertEqual((rc, o["reason"]), (5, "dispatch_mismatch"), o)
+        desc.unlink()                                                                            # never dispatched through this entry
+        rc, o, _ = self.rec(did, self.art())
+        self.assertEqual((rc, o["reason"]), (5, "dispatch_mismatch"), o)
+        self.assertEqual(self.n_events(), n)
 
 
 if __name__ == "__main__":

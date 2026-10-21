@@ -399,7 +399,7 @@ class Ledger:
 def _new_incident(iid: str) -> dict:
     return {"id": iid, "subjects": [], "status": "open", "rounds_started": 0, "results": [],
             "round_open": False, "strategies": [], "consults": {"local": 0, "advisor": 0, "r0": 0},
-            "scans": 0, "findings": 0, "step_limits": 0, "ppss_window": 0,
+            "scans": 0, "findings": 0, "step_limits": 0, "ppss_window": 0, "ppss_records": 0, "ppss_rids": [],
             "gate_points": [], "verdicts": [],
             "layers": {name: {"started": 0, "failed": 0} for name in LAYERS}, "round_layer": None}
 
@@ -455,6 +455,9 @@ def fold(events: list) -> dict:
             inc["scans"] += 1
         elif t == "ppss_record":
             inc["ppss_window"] += 1
+            inc["ppss_records"] += 1        # monotonic per incident: never reset by round_end, unlike ppss_window
+            if e.get("request_id"):
+                inc["ppss_rids"].append(e["request_id"])
             rid = e.get("request_id") or f"invalid-{e['seq']}"
             st["ppss"][rid] = {"request_id": rid, "incident": e["incident"], "state": e["state"],
                                "evidence_ok": False, "urls": e.get("urls", []),
@@ -532,7 +535,7 @@ def summarize(ctx: Ctx, st: dict) -> dict:
                           "layers": i["layers"],
                           "round_open": i["round_open"], "strategies": i["strategies"],
                           "pending_human": [p["category"] for p in pending_for(st, iid)],
-                          "consults": i["consults"], "strategy_scans": i["scans"],
+                          "consults": i["consults"], "ppss_records": i["ppss_records"], "strategy_scans": i["scans"],
                           "findings": i["findings"], "step_limits": i["step_limits"]})
     return {"ticket": ctx.tid, "ticket_source": ctx.source, "ticket_location": ctx.location,
             "ledger_exists": ctx.ledger.exists(), "ledger_path": str(ctx.ledger.path),
@@ -663,6 +666,8 @@ def cmd_consult(args) -> int:
     with ctx.ledger.locked():
         st = fold(ctx.ledger.read())
         inc = get_incident(st, args.incident)
+        if inc["status"] != "open":     # checked inside the write lock, immediately before the append
+            raise GateError(EXIT_CONTRACT, f"{inc['id']} is {inc['status']}: consult not recorded")
         ev = ctx.ledger.append(st["last_seq"], {"type": "consult", "incident": inc["id"],
                                                 "kind": args.kind, "note": args.note})
     emit({"ok": True, "incident": inc["id"], "seq": ev["seq"]})
@@ -718,6 +723,8 @@ def cmd_ppss_record(args) -> int:
     with ctx.ledger.locked():
         st = fold(ctx.ledger.read())
         inc = get_incident(st, args.incident)
+        if rid and rid in inc["ppss_rids"]:
+            raise GateError(EXIT_CONTRACT, f"ppss request_id {rid!r} already recorded for this incident")
         if inc["ppss_window"] >= 1:
             if not (args.new_query_strategy or "").strip() or not (args.reason or "").strip():
                 raise GateError(EXIT_CONTRACT, "second ppss record in this window needs "

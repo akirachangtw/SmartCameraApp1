@@ -13,7 +13,9 @@ Sources (route_table.json):
                     tool  ->  --phase return --dispatch-id ID --purpose TEXT --note REF (records the consult).
     research.ppss   model-dispatch: --phase dispatch (pre-flight judgement, then the concrete research_submit
                     params) -> main agent calls research_submit -> --phase record --dispatch-id ID --artifact PATH
-                    (pass-through of `ppss record`) -> --phase read ... (pass-through of `ppss read`).
+                    (checks the saved dispatch description, then pass-through of `ppss record`; the ledger refuses
+                    a request id already recorded for the incident; --cached-artifact is a DECLARED override for an
+                    artifact captured before the dispatch, e.g. a cache hit) -> --phase read ... (pass-through).
     Disabled source: SOURCE_DISABLED + `alternatives` (same role, callable, enabled). The entry never picks one
     for the caller. No enabled source of that role at all: MISSING_REQUIRED.
 
@@ -27,7 +29,8 @@ Exit codes (own set; not the ledger's, not advisor_call's):
     5 REFUSED (reason: incident_not_open ticket_not_mutable incident_token_missing|mismatch|ambiguous
        evidence_token_missing|ambiguous evidence_file_unreadable|empty evidence_hash_mismatch receipt_mismatch
        request_invalid dispatch_mismatch stale_or_duplicate_dispatch existing_results_unconsumed
-       prior_research_requires_strategy busy ledger_refused)
+       prior_research_requires_strategy busy ledger_refused duplicate_request_id incident_closed_after_call
+       artifact_predates_dispatch)
     6 CALL_FAILED (caller / infrastructure failure; advisor_exit carries the caller's exit code)
 
 Mechanical checks (the ONLY thing "constructed" by this entry; they compare DECLARED items with each other):
@@ -46,8 +49,12 @@ dispatched model tool was really called. `--purpose` is declarative (only its co
 checked). The tokens are the primary evidence binding; the question prose is never parsed or restricted.
 
 Dispatch ids bind "ledger slot + concrete request": d2-<16hex> of sha256(ticket|incident|source|n|digest).
-n = advisor consults (native) / PPSS records (ppss) of the incident; digest = purpose (native) or the normalized
-query set recovered from the research artifact (ppss). Return/record re-computes with the CURRENT n inside a
+n = advisor consults (native) / the incident's monotonic `ppss_records` event count (ppss; NOT the number of distinct
+request ids); digest = purpose (native) or the fingerprint of the whole research request (ppss: question, queries,
+task_type, filters.domains, justification; canonical JSON, see canon_request). The artifact only keeps `queries`, so
+a PPSS dispatch saves its minimal description in the per-ticket scratch tmp/<ticket>/route/dispatch_<id>.json and
+`record` loads it by --dispatch-id (declared, not proof that the model really called the tool with those
+parameters). Return/record re-computes with the CURRENT n inside a
 transient mutex (<git-common-dir>/gate/<ticket>.route.lock: pid+nonce only, not state, removed on exit; never
 reclaimed by age: a contender waits --lock-wait-ms, then refuses `busy`) because the ledger's `consult` has no CAS.
 A lock left by a killed process must be removed by hand. The mutex serializes only returns made THROUGH this entry.
@@ -136,12 +143,20 @@ def norm_queries(queries):
     return seen
 
 
-def digest_queries(queries):
-    return sha("\n".join(sorted(set(norm_queries(queries)))).encode("utf-8"))
-
-
 def digest_purpose(purpose):
     return sha(norm_text(purpose).encode("utf-8"))
+
+
+def canon_request(question, queries, task_type, domains, justification):
+    """Whole research request as it is actually sent to research_submit and can change the result."""
+    return {"v": 2, "question": norm_text(question), "queries": norm_queries(queries),
+            "task_type": norm_text(task_type),
+            "filters": ({"domains": sorted(set(domains))} if domains else {}),
+            "justification": justification}
+
+
+def digest_request(doc):
+    return sha(json.dumps(doc, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
 
 
 def dispatch_id(ticket, incident, source, n, digest):
@@ -321,6 +336,25 @@ def ledger_write(root, ticket, args):
     return parse_json(out) or {}
 
 
+def ledger_consult(root, ticket, incident, note, closed_extra=None, closed_detail=None):
+    """consult --kind advisor. The ledger checks `open` inside its write lock right before the append; if it
+    refuses because the incident is no longer open, report that precisely instead of a generic refusal."""
+    try:
+        return ledger_write(root, ticket, ["consult", "--incident", incident, "--kind", "advisor", "--note", note])
+    except Stop as stop:
+        if stop.reason != "ledger_refused":
+            raise
+        try:
+            inc = next((i for i in ledger_status(root, ticket).get("incidents", []) if i.get("id") == incident), None)
+        except Stop:
+            raise stop
+        if inc is not None and inc.get("status") != "open":
+            if closed_extra is not None:
+                raise Stop(E_REFUSED, "REFUSED", "incident_closed_after_call", closed_detail, **closed_extra)
+            raise Stop(E_REFUSED, "REFUSED", "incident_not_open", incident)
+        raise
+
+
 # ---------------------------------------------------------------- mutex
 @contextlib.contextmanager
 def route_lock(root, ticket, wait_ms):
@@ -457,7 +491,12 @@ def do_api(a, root, ticket_arg, client_factory, env, now):
                    receipt=str(rpath), receipt_sha256=rsha, request_id=receipt.get("request_id"))
     note = (f"source=advisor.api via={VIA} receipt={rel(root, rpath)} receipt_sha256={rsha} "
             f"request_id={receipt.get('request_id')} payload_sha256={psha} incident={a.incident} evidence={kind}:{h}")
-    led = ledger_write(root, ticket, ["consult", "--incident", a.incident, "--kind", "advisor", "--note", note])
+    led = ledger_consult(
+        root, ticket, a.incident, note,
+        closed_detail=("advisor reply obtained and its receipt kept (cost already incurred), but the target incident is no "
+                       "longer open: nothing was recorded, the API was not called again, the incident was not reopened"),
+        closed_extra={"receipt": rel(root, rpath), "receipt_sha256": rsha, "request_id": receipt.get("request_id"),
+                      "advice": receipt.get("advice"), "recorded": False})
     return {"ok": True, "disposition": "RECORDED", "receipt": rel(root, rpath), "receipt_sha256": rsha,
             "request_id": receipt.get("request_id"), "ledger_seq": led.get("seq"), "advice": receipt.get("advice"),
             "detail": "evidence=" + kind}
@@ -468,7 +507,61 @@ def native_slot(inc):
 
 
 def ppss_slot(st, incident):
-    return sum(1 for r in st.get("ppss", []) if r.get("incident") == incident)
+    """Monotonic per-incident ppss_record event count (ledger `incidents[].ppss_records`). status.ppss[] is a
+    result index keyed by request_id and must not be used as the consumption counter."""
+    inc = next((i for i in st.get("incidents", []) if i.get("id") == incident), None)
+    if inc is not None and isinstance(inc.get("ppss_records"), int):
+        return inc["ppss_records"]
+    return sum(1 for r in st.get("ppss", []) if r.get("incident") == incident)    # ledger without the field
+
+
+def desc_path(root, ticket, did):
+    return Path(root) / "tmp" / ticket / "route" / f"dispatch_{did}.json"
+
+
+def save_descriptor(root, ticket, did, doc, slot, when):
+    p = desc_path(root, ticket, did)
+    digest = digest_request(doc)
+    try:
+        old = json.loads(p.read_text(encoding="utf-8"))
+        if isinstance(old, dict) and old.get("digest") == digest and old.get("request") == doc:
+            return p                                    # same request again: keep the first dispatched_at
+    except (OSError, ValueError):
+        pass
+    body = {"dispatch_id": did, "ticket": ticket, "slot": slot, "digest": digest,
+            "dispatched_at": when.isoformat() if hasattr(when, "isoformat") else str(when),
+            "request": doc}
+    tmpf = p.with_name(p.name + f".{os.getpid()}.tmp")
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        tmpf.write_text(json.dumps(body, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+        os.replace(str(tmpf), str(p))
+    except OSError as exc:
+        try:
+            tmpf.unlink()
+        except OSError:
+            pass
+        raise Stop(E_FAILED, "CALL_FAILED", "scratch_unwritable", f"cannot save the dispatch description: {type(exc).__name__}")
+    return p
+
+
+def load_descriptor(root, ticket, did):
+    try:
+        d = json.loads(desc_path(root, ticket, did).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "no dispatch description for this id (dispatch through this entry first)")
+    req = d.get("request") if isinstance(d, dict) else None
+    if not isinstance(req, dict) or d.get("dispatch_id") != did or digest_request(req) != d.get("digest"):
+        raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "dispatch description is corrupt or does not belong to this id")
+    return d
+
+
+def parse_when(s):
+    try:
+        v = datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return v if v.tzinfo else v.replace(tzinfo=timezone.utc)
 
 
 def classify_mismatch(given, ticket, incident, source, n, digest):
@@ -513,7 +606,7 @@ def do_native(a, table_src, root, ticket_arg):
         verify_dispatch(a, st["ticket"], a.incident, a.source, native_slot(inc), digest)
         note = (f"source=advisor.native via={VIA} dispatch={a.dispatch_id} "
                 f"purpose_sha256={digest} ref={ref}")
-        led = ledger_write(root, st["ticket"], ["consult", "--incident", a.incident, "--kind", "advisor", "--note", note])
+        led = ledger_consult(root, st["ticket"], a.incident, note)
     return {"ok": True, "disposition": "RECORDED", "dispatch_id": a.dispatch_id, "ledger_seq": led.get("seq"),
             "detail": "recorded as a declaration: native tool execution and content are not verifiable here"}
 
@@ -527,7 +620,7 @@ def existing_summary(st, incident):
              "reads": len(r.get("reads", []))} for r in st.get("ppss", []) if r.get("incident") == incident]
 
 
-def do_ppss(a, table_src, root, ticket_arg):
+def do_ppss(a, table_src, root, ticket_arg, now):
     if a.phase == "read":
         for flag in ("request_id", "url", "source_file", "supports"):
             if not getattr(a, flag):
@@ -564,7 +657,10 @@ def do_ppss(a, table_src, root, ticket_arg):
         if prior and not (norm_text(a.new_query_strategy) and norm_text(a.reason)):
             raise Stop(E_REFUSED, "REFUSED", "prior_research_requires_strategy",
                        "this incident already has PPSS records: pass --new-query-strategy and --reason", existing=prior)
-        did = dispatch_id(st["ticket"], a.incident, a.source, ppss_slot(st, a.incident), digest_queries(queries))
+        doc = canon_request(question, queries, task_type, domains, justification)
+        slot = ppss_slot(st, a.incident)
+        did = dispatch_id(st["ticket"], a.incident, a.source, slot, digest_request(doc))
+        save_descriptor(root, st["ticket"], did, doc, slot, now())
         seen, params_queries = set(), []
         for q in queries:
             if q.casefold() not in seen:
@@ -584,26 +680,49 @@ def do_ppss(a, table_src, root, ticket_arg):
     # record
     if not a.artifact:
         raise Stop(E_USAGE, "USAGE", "usage", "--artifact is required for record")
+    given = a.dispatch_id or ""
+    if not DISPATCH_ID_RE.match(given):
+        raise Stop(E_REFUSED, "REFUSED", "request_invalid", "dispatch id missing or malformed")
     try:
         art = json.loads(Path(a.artifact).read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise Stop(E_REFUSED, "REFUSED", "request_invalid", f"artifact unreadable: {type(exc).__name__}")
     aq = art.get("queries") if isinstance(art, dict) else None
-    if not isinstance(aq, list) or not norm_queries([q for q in aq if isinstance(q, str)]):
+    anq = norm_queries([q for q in aq if isinstance(q, str)]) if isinstance(aq, list) else []
+    if not anq:
         raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "artifact has no usable queries field")
     ticket = ticket_of(root, ticket_arg)
     with route_lock(root, ticket, a.lock_wait_ms):
         st, _ = precheck(root, ticket_arg, a.incident)
-        verify_dispatch(a, st["ticket"], a.incident, a.source, ppss_slot(st, a.incident),
-                        digest_queries([q for q in aq if isinstance(q, str)]))
+        desc = load_descriptor(root, ticket, given)
+        req = desc["request"]
+        verify_dispatch(a, st["ticket"], a.incident, a.source, ppss_slot(st, a.incident), desc["digest"])
+        if set(anq) != set(req.get("queries") or []):
+            raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "artifact queries differ from the dispatched request")
+        want_domains = list((req.get("filters") or {}).get("domains") or [])
+        if a.domains and {d.strip().lower() for d in a.domains.split(",") if d.strip()} != set(want_domains):
+            raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "--domains differs from the dispatched request")
+        if not a.cached_artifact:
+            cap, sent = parse_when(art.get("captured_at")), parse_when(desc.get("dispatched_at"))
+            if cap is None or sent is None:
+                raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "artifact captured_at or dispatch time unreadable")
+            if cap < sent:
+                raise Stop(E_REFUSED, "REFUSED", "artifact_predates_dispatch",
+                           "artifact was captured before this dispatch; if research_submit reported a cache hit, "
+                           "repeat with --cached-artifact (declared, not verified)")
         args = ["ppss", "record", "--incident", a.incident, "--artifact", a.artifact]
-        if a.domains:
-            args += ["--domains", a.domains]
+        if want_domains:
+            args += ["--domains", ",".join(want_domains)]
         if a.new_query_strategy:
             args += ["--new-query-strategy", a.new_query_strategy]
         if a.reason:
             args += ["--reason", a.reason]
-        led = ledger_write(root, st["ticket"], args)
+        try:
+            led = ledger_write(root, st["ticket"], args)
+        except Stop as stop:
+            if stop.reason == "ledger_refused" and "already recorded" in (stop.detail or ""):
+                raise Stop(E_REFUSED, "REFUSED", "duplicate_request_id", stop.detail)
+            raise
     return {"ok": True, "disposition": "RECORDED", "dispatch_id": a.dispatch_id, "request_id": led.get("request_id"),
             "ledger_seq": led.get("seq"), "ledger": led}
 
@@ -624,7 +743,7 @@ def cmd_consult(a, client_factory, env, now):
     elif adapter == "native_advisor":
         body = do_native(a, src, root, a.ticket)
     else:
-        body = do_ppss(a, src, root, a.ticket)
+        body = do_ppss(a, src, root, a.ticket, now)
     return body
 
 
@@ -667,6 +786,7 @@ def build_parser():
     c.add_argument("--source-file", dest="source_file")
     c.add_argument("--supports")
     c.add_argument("--quote")
+    c.add_argument("--cached-artifact", dest="cached_artifact", action="store_true")
     c.add_argument("--lock-wait-ms", dest="lock_wait_ms", type=int, default=LOCK_WAIT_MS_DEFAULT)
     t = sub.add_parser("table")
     t.add_argument("action", choices=["check"])
