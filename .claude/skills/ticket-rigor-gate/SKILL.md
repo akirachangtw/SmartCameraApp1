@@ -332,6 +332,8 @@ For every critical guard, identify:
 
 If the evidence only covers helper code or grep-level existence, mark `Evidence Gap`.
 
+When the ticket claims that two variants (for example old and new logic, or two forms of the same input) are equivalent, compatible, or behave unchanged, and the claim is not covered by Migration-Lite Review, choose, within the entry-to-observer range the ticket already declares, one condition that would change a branch outcome, and confirm that both variants still yield the promised observable result, using the trace standard defined under Acceptance-Criteria Typology. The reviewer need not compare every variant one by one, trace undeclared paths, consumers, metadata, or internal implementation details; a comparison limited to the changed point is an `Evidence Gap`, and nothing beyond the ticket's declared range is traced.
+
 ### Step 6: Check ticket atomicity
 
 For each child or proposed child ticket, ask:
