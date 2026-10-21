@@ -100,6 +100,24 @@ No formal Ticket may be written before the current Ticket template is fully read
 
 Parent classification precedes `atomic item validated`: classify by header per `input-contract.md`; an ineligible parent ends with `STOP_REPLAN_REQUIRED`.
 
+### `close`
+
+```text
+INTAKE_PARSED
+→ registry observed
+→ preflight
+→ reviewer selected
+→ AC verdicts
+→ decision
+→ [supplement | fallback reviewer]*
+→ transition
+→ read-back
+→ final result
+→ COMPLETE
+```
+
+Mapping to existing states and receipts only (no new state): the preflight output is `LIVE_EVIDENCE`; verdicts and the decision are `MODE_ANALYSIS`/`MODE_GATE`; the transition and read-back are `OUTPUT_READY`. Re-entry is derived from observable state (Registry lifecycle, the final-result section in the Ticket, and an earlier `decision.json` while it still exists in the scratch directory); no manifest or state file is created.
+
 ## Regression transitions
 
 Return from `ticket` to `plan` when:

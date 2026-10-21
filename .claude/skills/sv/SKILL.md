@@ -205,12 +205,13 @@ Cross-Review PASS 且 Done 標記完成後：
 
 ## Step 11: Closeout Auto-Chain
 
-SV＋Codex PASS（或 RAPID MODE 豁免）後 **MUST AUTO-CHAIN**，依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table 與 §Ticket Closure 紀律執行 Agent closeout 至 `REVIEW`。本節為引用，**MUST NOT** 複製四要件、GO predicate 或 Traycer 判定表全文。
+SV＋Codex PASS（或 RAPID MODE 豁免）後 **MUST AUTO-CHAIN**，依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table 與 §Ticket Closure 紀律執行 Agent closeout 至 `REVIEW`，並於其後 `MUST AUTO-CHAIN` `/ticket-author close <TICKET_ID>`（該表 close 列）。本節為引用，**MUST NOT** 複製四要件、GO predicate 或 Traycer 判定表全文。
 
 1. **入口冪等**：先 `registry_list` 讀現值，命中 §Ticket Runtime Transition Table「最小冪等回傳」條件即 `MUST RETURN`（此路徑**不**呼叫 `check`）。
    - 入口冪等判定之後、第一個 registry／票檔寫入之前，**MUST** 先執行 `python .claude/scripts/gate_ledger.py check closeout --ticket <TICKET_ID>`（`<TICKET_ID>` 取自 `tmp/verify_cmd.conf`）；exit 0 續行，非 0 **不寫任何 registry／不搬移票檔**，退出碼映射見 `ssot-governance.md` 入口落點句。票在 `deliver/` 而冊面 `file` 仍指 `Pending/` 者不 RETURN、**不呼叫** `check`，交既有 Closure Gate 與「矛盾停止」，不新增恢復流程。
 2. **敘事寫入**：走 `registry_set_checkpoint`（`detail_content` 承載收尾實錄敘事、`checkpoint_data` 承載結構化欄），**MUST NOT** 用 `registry_append_note`；且 **MUST** 置於 `registry_set_status` **之後**（`set_status` 每次呼叫清空 checkpoint）。寫後 **MUST** read-back 驗證。
 3. **收束後成果校正**：第 1 項未命中 `MUST RETURN`、且第 2 項寫入與 read-back 完成（本次呼叫實際完成收束）後，是否呼叫 `Skill(projman)` align 唯一依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table 之「Agent closeout 於本次呼叫實際完成」列；判準、授權與保存規則以該列為唯一來源，此處**不複製**，亦不複製成果文件定位邏輯。
+4. **自主收束**：第 3 項之後（無論 align 是否觸發）**MUST AUTO-CHAIN** 呼叫 `/ticket-author close <TICKET_ID>`；第 1 項命中「已收束重入」且 `lifecycle = REVIEW` 者亦接續 close。close 的取證、reviewer、轉態與 read-back 由 `ticket-author` 的 `Mode: close` 規範，此處**不複製**。
 
 ## 回報格式
 

@@ -1,7 +1,7 @@
 ---
 name: ticket-author
-description: Diagnose an issue, turn an approved specification into a minimal Ticket Map, or author one evidence-backed formal Ticket. Manual modes: diag, plan, ticket.
-argument-hint: "diag|plan|ticket [task text and @sources]"
+description: Diagnose an issue, turn an approved specification into a minimal Ticket Map, author one evidence-backed formal Ticket, or close a REVIEW Ticket on mechanical evidence. Manual modes: diag, plan, ticket, close.
+argument-hint: "diag|plan|ticket [task text and @sources] | close <TICKET_ID>"
 disable-model-invocation: false
 ---
 
@@ -13,7 +13,7 @@ Run Akira's staged workflow:
 
 `Perplexity or Claude Desktop discussion → diagnosis/specification → Ticket Map → per-ticket live evidence → formal Ticket`
 
-This skill performs diagnosis, planning, evidence collection, and Ticket authoring. It MUST NOT implement production code, execute a Ticket, or treat AI-generated material as sufficient live proof.
+This skill performs diagnosis, planning, evidence collection, Ticket authoring, and (in close mode) evidence-based closing of a REVIEW Ticket. It MUST NOT implement production code, execute a Ticket, or treat AI-generated material as sufficient live proof.
 
 ## Invocation
 
@@ -29,6 +29,7 @@ Parse the first non-whitespace token as `MODE`. Accepted modes:
 /ticket-author diag
 /ticket-author plan
 /ticket-author ticket
+/ticket-author close <TICKET_ID>
 ```
 
 The mode selects the workflow stage; it is not the task description. Treat the remaining arguments, current user message, `@file` references, and attachments as the task payload.
@@ -246,7 +247,7 @@ Authoring gate PASS requires:
 - Evidence-tier wording is not overstated.
 - The complete Ticket was re-reviewed after final revision.
 
-On PASS, return Ticket path/ID, one-sentence goal, evidence baseline, both gate results, template path/version/dates, non-blocking limitations, the next action (the project's existing review path; do not unconditionally chain a rigor review), and `Final state: COMPLETE`. This skill only authors new Tickets.
+On PASS, return Ticket path/ID, one-sentence goal, evidence baseline, both gate results, template path/version/dates, non-blocking limitations, the next action (the project's existing review path; do not unconditionally chain a rigor review), and `Final state: COMPLETE`. In ticket mode this skill only authors new Tickets; closing an existing REVIEW Ticket is close mode.
 
 On non-PASS, do not create or partially register a Ticket. Return the exact stop code and smallest next action. For a parent-eligibility stop, route the `Decision or input needed` by the parent problem:
 
@@ -260,6 +261,42 @@ On non-PASS, do not create or partially register a Ticket. Return the exact stop
 | Partial artifact header | Regenerate the artifact with the complete required header |
 
 A source document with no artifact header at all is still Spec-backed; missing Plan/Diag fields alone never reject it.
+
+## Mode: close
+
+Purpose: take one formal Ticket at `REVIEW` through deterministic local evidence, reviewer-backed AC verification and, once its delivery goal is established, an autonomous transition to `CLOSED` with Registry read-back. Invocation: `/ticket-author close <TICKET_ID>`. The autonomous workflow's Agent MAY invoke it (Transition Table: after Agent closeout reaches `REVIEW`); no per-Ticket Owner approval is requested. `close` does not author Tickets, execute a Ticket, or modify production code.
+
+Scratch directory `<dir>` = `.tmp/ticket-author/close/<TICKET_ID>/`. Everything in `<dir>` (preflight output, AC detail, command output, raw reviewer responses, retries) is scratch: kept 7 days (cleaned by the helper when the command runs, not on a timer), never committed, never registered, never a dependency. The helper `close_helper.py` (standard library only) never calls the Registry or a model; the Agent reads and writes the Registry through the Registry tools and hands observations to the helper as JSON files in `<dir>`. The helper prints the next action.
+
+```close-dispatch
+python .claude/skills/ticket-author/scripts/close_helper.py preflight --ticket <ID> --registry <dir>/registry.json --dependents <dir>/dependents.json
+python .claude/skills/ticket-author/scripts/close_helper.py reviewer --ticket <ID>
+python .claude/skills/ticket-author/scripts/close_helper.py decide --ticket <ID> --registry <dir>/registry.json --verdicts <dir>/verdicts.json --round <N> --fallback-tried <0|1>
+python .claude/skills/ticket-author/scripts/close_helper.py readback --ticket <ID> --registry <dir>/registry_after.json
+python .claude/skills/ticket-author/scripts/close_helper.py finalize --ticket <ID> --registry <dir>/registry_after.json --verdicts <dir>/verdicts.json --summary <dir>/summary.txt --commits <h1,h2>
+```
+
+Procedure:
+
+1. Observe through the Registry tools (authoritative channel): `registry_list(project=SmartCameraApp1, ticket_id=<ID>, include_archive=true, fields=["id","lifecycle","file","reviews","checkpoint"])` → write the single ticket object to `<dir>/registry.json`; `registry_list` over the other non-closed tickets with fields `["id","lifecycle","file","depends_on","blocked_by"]` → `<dir>/dependents.json`. A Registry that cannot be read is `STOP_ACCESS_BLOCKED`; an unknown Ticket ID is `STOP_MISSING_SUBJECT`.
+2. Run `preflight`. Read its compact output, not raw files.
+3. Run `reviewer`. Documents, rules text, metadata and other low-risk Tickets go to Sonnet first, Claude-written code and load-bearing logic to Codex first; the helper classifies by the files the Ticket changes, not by its PRESET name (a Ticket whose ALLOWED files are all plain text, `.md`, `.txt` or `.rst`, is low-risk; any code or other non-text file makes it code, even when text files come with it); if the primary is unavailable the other reviewer is used and the actual reviewer and limitation are recorded.
+4. Verify each AC, evidence first. Read the mechanical evidence, rerun only cheap read-only commands that the evidence lacks, then compare it with the AC's meaning. Status per AC: `PASS` (direct, traceable mechanical evidence), `FAIL` (direct evidence it is not met), `N/A` (the Ticket itself strikes it out and the reason checks out), `UNVERIFIED` (cannot be safely rerun or evidence is insufficient; say so). An exit code supports only what the command actually checked; an implementation scope still `UNKNOWN` is not evidence that an AC about that scope passes; a checkbox, memory or an old prompt is never evidence; an AC that is hard to verify is not thereby non-core. Ask the selected reviewer with the compact evidence and the AC list only: Sonnet through the Agent tool with `model` set to `sonnet` (or inline when the session is already Sonnet); Codex by writing `<dir>/review_codex.md` and running `codex exec -c model="${CODEX_MODEL:-gpt-5.6-sol}" -c model_reasoning_effort="high" - < <dir>/review_codex.md`. Save raw responses to `<dir>/reviewer_<name>.txt`. Where mechanical evidence contradicts a reviewer, evidence wins and only the contradicting AC numbers go to the other reviewer (`reviewer --escalate`). Write `<dir>/verdicts.json` with exactly one entry for every AC that `preflight.json` lists (by `n`), each with `status`, `core` and a short evidence pointer; the complete AC text, including continuation lines, is in `preflight.json` and the stdout preview is only a preview. An optional reviewer being unavailable is not a defect, but a substantive core defect that any reviewer finds counts as evidence like any other. Core ACs and hard blockers are defined in `.claude/rules/ssot-governance.md` §Ticket Closure; this skill does not copy them.
+5. Run `decide`. `--round` (supplement rounds so far) and `--fallback-tried` (1 once the other reviewer has been used) are required; `decide` refuses to run without them.
+6. Act on `next`:
+   - `SUPPLEMENT` or `RECONCILE`: collect the missing evidence (missing or invalid verdicts, a contradiction between evidence and a reviewer, a core `UNVERIFIED` AC, a concrete dependency lead, an implementation scope that the helper reports as `UNKNOWN`), at most 2 rounds per Ticket in total, update `verdicts.json`, run `decide` again with the new `--round`. At the cap `decide` returns `NOT_CLOSED`: never repeat the same action beyond the cap, and never invoke `close` again from inside `close`.
+   - `FALLBACK_REVIEWER`: ask the other reviewer about the unresolved core ACs, update `verdicts.json`, run `decide` again with `--fallback-tried 1`.
+   - `BLOCKED`: stop. Write nothing to the Ticket. Respond `STOP_DECISION_REQUIRED` naming the blocker and what must change.
+   - `NOT_CLOSED`: the Ticket stays at `REVIEW`; write nothing to the Ticket; respond with the reason. Do not create a human-approval step.
+   - `CLOSE`: when the decision says to resolve an open checkpoint, call `registry_set_checkpoint` with a `resolution` only because its matter is genuinely resolved; then `registry_set_status(lifecycle="CLOSED")` (plus the `reviews` patch from the decision; the patch fills only absent fields, with a result recorded in `verdicts.json` `reviews_observed` when mechanical evidence of that review exists and with `N_A` otherwise, and never fills an optional external review with `PASS` without evidence; the `N_A` fields are disclosed in the final result).
+   - `ALREADY_CLOSED`: write nothing; go to step 7 for a read-back and respond.
+   - `WRITE_FINAL_ONLY`: the Ticket is already `CLOSED` from an earlier run of this command; go to step 7 and step 8 only.
+   - `PRECONDITION_FAILED`: respond `NOT_CLOSED` with the precondition (lifecycle other than `REVIEW`/`CLOSED`, Ticket file missing, ambiguous or contradicting the Registry); contradictions are `STOP_EVIDENCE_CONFLICT`.
+7. Read back: `registry_list` again → `<dir>/registry_after.json`, then run `readback`. A mismatch is reported as is, never as consistent, and is `STOP_WRITE_FAILED` only after one minimal safe retry.
+8. Only for a Ticket that is `CLOSED` in the read-back: write the 3-line delivery summary to `<dir>/summary.txt` and run `finalize`, which repeats the read-back check and the earlier-decision binding check itself and refuses to write when either fails. This minimal final result is the only thing kept on the original Ticket; a Ticket that was not closed gets nothing written.
+9. Respond with the existing completion shape (`Mode: close`, `Gate: PASS`, `Final state: COMPLETE`) plus `Close result: CLOSED | ALREADY_CLOSED | NOT_CLOSED(<reason>)`, the actual reviewer(s) and limitations, and one line each for what actually happened: transition done or not, read-back ok or mismatch, final result written or skipped. Partial success is reported as partial. `STOP_*` is used only for the cases named above.
+
+Re-entry is derived from observable state only (Registry lifecycle, the final-result section in the Ticket, and, when still present, an earlier `decision.json` in `<dir>` that is bound to this Ticket, its file and the implementation commit): a rerun after partial success updates the existing final-result section instead of appending; a `CLOSED` Ticket with no final-result section and no matching earlier close decision is left untouched and reported, so evidence lost after 7 days is never guessed back. Never batch-close or batch-edit closed Tickets. Losing `<dir>` after 7 days only means evidence is collected again.
 
 ## Conditional state matrix
 

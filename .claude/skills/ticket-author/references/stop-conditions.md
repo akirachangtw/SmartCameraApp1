@@ -8,7 +8,7 @@ Do not discard completed read-only evidence. Do not continue into a partial writ
 
 | Code | Trigger | Final state |
 |---|---|---|
-| `STOP_INVALID_MODE` | Mode absent or not `diag`, `plan`, `ticket` | `DECISION_REQUIRED` |
+| `STOP_INVALID_MODE` | Mode absent or not `diag`, `plan`, `ticket`, `close` | `DECISION_REQUIRED` |
 | `STOP_MISSING_SUBJECT` | No problem, goal, source, or selected item identifies work | `DECISION_REQUIRED` |
 | `STOP_SOURCE_UNAVAILABLE` | Load-bearing referenced source cannot be read | `CHANNEL_BLOCKED` |
 | `STOP_TARGET_AMBIGUOUS` | Multiple projects/components plausibly own the work | `DECISION_REQUIRED` |
@@ -54,6 +54,21 @@ Work that cannot be split safely is not a stop: return one coupled candidate and
 A runtime/behavior unknown that matches no hard risk and can be verified through an AI-0 probe plus a reachable observer is not a stop: record `Claim status: UNKNOWN` with the AI-0 probe, failure branch, and a `[行為性]` AC.
 
 HEAD, worktree state, Registry revision, and evidence time are diagnostic records only and never a stop condition. When content changes: re-read affected sources → update evidence → update the Ticket → rerun the complete gate.
+
+## `close` stops
+
+`close` completes (Gate PASS) with `Close result: CLOSED | ALREADY_CLOSED | NOT_CLOSED(<reason>)` in every case except the stops below; it adds no reason code.
+
+| Code | Trigger in `close` | Final state |
+|---|---|---|
+| `STOP_MISSING_SUBJECT` | Ticket ID missing, malformed, or not registered in the Registry (main or archive) | `DECISION_REQUIRED` |
+| `STOP_ACCESS_BLOCKED` | The Registry cannot be read or written | `CHANNEL_BLOCKED` |
+| `STOP_SOURCE_UNAVAILABLE` | A load-bearing source (the Ticket file) cannot be read | `CHANNEL_BLOCKED` |
+| `STOP_EVIDENCE_CONFLICT` | Registry and Ticket file location contradict each other, or the Ticket file name is ambiguous | `DECISION_REQUIRED` |
+| `STOP_DECISION_REQUIRED` | A hard blocker: a core AC is confirmed FAIL, a known security issue, irreversible damage or data-loss risk, or a contract that a dependent Ticket explicitly needs is not delivered | `DECISION_REQUIRED` |
+| `STOP_WRITE_FAILED` | The transition or read-back still mismatches after one minimal safe retry | `CHANNEL_BLOCKED` |
+
+A core AC that stays `UNVERIFIED` after supplementation and fallback, an unresolved checkpoint, and a lifecycle other than `REVIEW`/`CLOSED` are not stops: the Ticket stays as it is and the result is `NOT_CLOSED(<reason>)`.
 
 ## Decision-fork discipline
 

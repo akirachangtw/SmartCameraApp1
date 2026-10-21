@@ -181,6 +181,12 @@ Selected items: T01, T03
 Collect live evidence for each item in turn; create each Ticket only after both of its gates pass.
 ```
 
+## `close`
+
+Required: one formal Ticket ID registered in the target project's Registry (main or archive). `close` reads no parent artifact, plan item or `Fixture` header and never consults `diag`/`plan` artifacts. A missing or malformed ID stops with `STOP_MISSING_SUBJECT`.
+
+The caller may be an Agent in the autonomous workflow or a person; no per-Ticket Owner approval is part of the input. Scratch input and output live in `.tmp/ticket-author/close/<TICKET_ID>/` (see `SKILL.md`, Mode: close).
+
 ## Structured option
 
 For saved handoffs or automation, this optional shape is accepted:
