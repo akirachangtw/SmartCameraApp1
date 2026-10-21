@@ -536,6 +536,9 @@ def cmd_preflight(a):
     reg, err = load_json(a.registry)
     if err:
         return emit({"error": "registry_" + err, "ticket": tid}, 2)
+    if not isinstance(reg, dict) or reg.get("id") != tid:
+        return emit({"refused": "registry_id_mismatch", "ticket": tid,
+                     "registry_id": reg.get("id") if isinstance(reg, dict) else None}, 3)
     d = close_dir(repo, tid)
     d.mkdir(parents=True, exist_ok=True)
     pre = build_preflight(repo, tid, reg, a.dependents, a.now)
@@ -646,6 +649,8 @@ def expected_reviews(repo, tid):
 def verify_readback(repo, tid, after):
     mism = []
     after = after or {}
+    if after.get("id") != tid:
+        mism.append("id=%r (expected %r)" % (after.get("id"), tid))
     if after.get("lifecycle") != "CLOSED":
         mism.append("lifecycle=%s (expected CLOSED)" % after.get("lifecycle"))
     loc = locate_ticket(repo, tid, after)
@@ -718,6 +723,9 @@ def cmd_decide(a):
     if rerr or perr or not isinstance(pre, dict):
         return emit({"next": "PRECONDITION_FAILED", "reason": "registry_or_preflight_unavailable",
                      "detail": [rerr, perr]})
+    if not isinstance(reg, dict) or reg.get("id") != tid or pre.get("ticket") != tid:
+        return emit({"next": "PRECONDITION_FAILED", "reason": "registry_id_mismatch",
+                     "stop": "STOP_EVIDENCE_CONFLICT"})
     lifecycle = (reg or {}).get("lifecycle")
     loc = pre.get("locate", {})
     # P

@@ -993,5 +993,43 @@ class TestFinalResult(Base):
         self.assertEqual(tracked_dirty, [" M " + self.ticket_rel])
 
 
+class TestRegistrySubjectBinding(Base):
+    """A Registry JSON that belongs to another Ticket must never be bound to the CLI ticket id."""
+
+    def setUp(self):
+        super().setUp()
+        self.make_repo()
+        self.set_dependents()
+
+    def test_preflight_refuses_foreign_registry_object(self):
+        self.write_json("registry.json", dict(self.reg, id="OTHER-99"))
+        rc, d, _ = self.preflight()
+        self.assertEqual((rc, d["refused"]), (3, "registry_id_mismatch"))
+        self.assertFalse((self.dir / "preflight.json").exists())
+
+    def test_decide_rejects_foreign_registry_object(self):
+        self.assertEqual(self.preflight()[0], 0)
+        self.write_json("registry.json", dict(self.reg, id="OTHER-99"))
+        self.write_json("verdicts.json", self.verdicts())
+        rc, d, _ = self.decide()
+        self.assertEqual((d["next"], d["reason"], d["stop"]),
+                         ("PRECONDITION_FAILED", "registry_id_mismatch", "STOP_EVIDENCE_CONFLICT"))
+        self.assertFalse((self.dir / "decision.json").exists())
+
+    def test_readback_and_finalize_reject_foreign_registry_object(self):
+        self.to_close()
+        self.write_summary()
+        self.after()
+        after = self.read_json("registry_after.json")
+        self.write_json("registry_after.json", dict(after, id="OTHER-99"))
+        before = sha(self.ticket_path())
+        rc, rb, _ = self.h("readback", "--ticket", TID, "--registry", self.dir / "registry_after.json")
+        self.assertEqual((rc, rb["ok"]), (0, False))  # readback reports via `ok`, exit code stays 0
+        self.assertTrue(any(m.startswith("id=") for m in rb["mismatches"]))
+        rc, fin, _ = self.finalize()
+        self.assertEqual((rc, fin["refused"]), (3, "readback_mismatch"))
+        self.assertEqual(sha(self.ticket_path()), before)
+
+
 if __name__ == "__main__":
     unittest.main()
