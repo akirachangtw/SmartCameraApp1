@@ -61,7 +61,7 @@ Fixture mode MUST NOT: allocate a formal Ticket ID, create a formal Ticket, writ
 
 Location: `<PROFILE.REPO_ROOT>/.tmp/ticket-author/`; names `YYYYMMDD-<slug>-diag.md` and `YYYYMMDD-<slug>-plan.md`. Short-term hand-off only, not a long-term SSOT. No ledger, database, or cross-session state.
 
-`diag` replies in conversation by default; it writes an artifact when the work crosses sessions, the user asks to save, or `plan` references it. A `plan` PASS writes an artifact by default as the `ticket` parent. Artifact header (the leading `key: value` block before the first `#`/`##` heading) MUST contain `Fixture:`; `diag` also `Gate:` and `Verdict:`; `plan` also `Plan Gate:` and `Ticket mode eligibility:`. A provisional plan header: `Plan Gate: NOT PASSED`, `Status: PROVISIONAL`, `Formal Ticket IDs: FORBIDDEN`, `Ticket mode eligibility: FORBIDDEN`, `Fixture: <true|false>`.
+`diag` and `plan` write an artifact by default, in addition to replying in conversation (a provisional plan included); a `plan` PASS artifact is the `ticket` parent. An invocation that says read-only or not to modify files means tracked repo files, the Registry, and Tickets, not this scratch artifact. The artifact is editable scratch: a rerun or a newly approved decision updates it in place. Artifact header (the leading `key: value` block before the first `#`/`##` heading) MUST contain `Fixture:`; `diag` also `Gate:` and `Verdict:`; `plan` also `Plan Gate:` and `Ticket mode eligibility:`. A provisional plan header: `Plan Gate: NOT PASSED`, `Status: PROVISIONAL`, `Formal Ticket IDs: FORBIDDEN`, `Ticket mode eligibility: FORBIDDEN`, `Fixture: <true|false>`.
 
 ## `diag`
 
