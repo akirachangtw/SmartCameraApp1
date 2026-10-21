@@ -11,7 +11,7 @@
 - 非目標：平台成果頁、專用 endpoint、新 MCP 工具、資料庫／watcher／同步器／雙向編輯、Registry schema 與逐票映射、跨 repo、Android 產品程式、付費模型呼叫。平台成果頁為後續、非本期前置。
 - 假設（尚未確認的技術或依賴）：自動鏈為模型契約、無機械後盾；Transition Table 為授權落點；`gate_stop_guard.py` 除 `decide()` 外未讀；收束後 `uc:54`→Step 11 的自動遵循待真實收束驗證；平台 runtime 與遠端部署未驗；自評無第二方。2026-10-22 澄清過期敘述：PM2 自動鏈已啟用（`PJMAN-AUTOALIGN-01`，2026-10-20 CLOSED），並有一次經審查方確認為自動發起的候選觸發（`e2f77049`，見 PM2-E）；唯一寫入入口、共同自主保存、最終覆蓋確認與定位回報為 `PJMAN-CLOSELOOP-01`（2026-10-22 CLOSED）交付的模型契約，真實遵循待首次觀察（見 PM5-A～D）。
 - 目前階段：PM5（閉環補強；PM2 部分約定仍待真實觀察）
-- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 PM0-A PM1-A PM1-C PM1-D PM1-E PM2-B PM2-C PM2-D PM2-E PM3-A
+- 最近 align：2026-10-22 6ea5e2616bc1f84a80507a82f7a77174a32a9a55 PM2-D PM1-E PM5-A PM5-B PM5-C PM5-D
 
 ## 階段成果表
 | ID | 階段 | 成果 | 已驗收 | 約定 | 達成度 | 狀態 |
@@ -21,18 +21,18 @@
 | PM1-B | PM1 | 成果表呈現 | 4 | 4 | 100% | 符合 |
 | PM1-C | PM1 | align 直接回報 | 2 | 2 | 100% | 符合 |
 | PM1-D | PM1 | update 完整性核對 | 2 | 3 | 67% | 部分符合 |
-| PM1-E | PM1 | 相容與保留 | 1 | 2 | 50% | 部分符合 |
+| PM1-E | PM1 | 相容與保留 | 2 | 2 | 100% | 符合 |
 | PM2-A | PM2 收束後自動 align | 治理授權與引用 | 2 | 2 | 100% | 符合 |
 | PM2-B | PM2 | 觸發與歸屬判定 | 2 | 4 | 50% | 部分符合 |
 | PM2-C | PM2 | 執行與回報 | 2 | 2 | 100% | 符合 |
-| PM2-D | PM2 | 邊界與失敗隔離 | 5 | 6 | 83% | 部分符合 |
+| PM2-D | PM2 | 邊界與失敗隔離 | 4 | 6 | 67% | 部分符合 |
 | PM2-E | PM2 | 真實觸發 | 1 | 1 | 100% | 符合 |
 | PM3-A | PM3 自我驗證 | 三模式實跑 | 3 | 3 | 100% | 符合 |
 | PM4-A | PM4 平台成果頁 | 後續獨立交付 | — | — | — | 無約定 |
-| PM5-A | PM5 閉環補強 | 唯一寫入入口 | — | 3 | — | 未盤點 |
-| PM5-B | PM5 | 共同自主保存 | — | 5 | — | 未盤點 |
-| PM5-C | PM5 | 最終覆蓋確認 | — | 3 | — | 未盤點 |
-| PM5-D | PM5 | 不選回已確認錯誤的舊表 | — | 3 | — | 未盤點 |
+| PM5-A | PM5 閉環補強 | 唯一寫入入口 | 2 | 3 | 67% | 部分符合 |
+| PM5-B | PM5 | 共同自主保存 | 4 | 5 | 80% | 部分符合 |
+| PM5-C | PM5 | 最終覆蓋確認 | 2 | 3 | 67% | 部分符合 |
+| PM5-D | PM5 | 不選回已確認錯誤的舊表 | 2 | 3 | 67% | 部分符合 |
 
 ## 明細
 ### PM0-A
@@ -73,9 +73,9 @@
 ### PM1-E
 - 預期功能與規格：相容與保留（2 項）：舊格式文件可 align 不強制遷移；`disable-model-invocation: false` 保留。
 - 驗收方式與必要前提：對舊 5 欄格式文件實跑 align 並確認未被遷移；檢查 Skill frontmatter。前提：須有一份舊 5 欄格式文件可供實跑。
-- 實際成果與證據：[已執行] 約定②`disable-model-invocation: false` 保留：`grep -n '^disable-model-invocation:' .claude/skills/projman/SKILL.md` → 第 5 行 `false`；blob a1c6440b，最後觸及該檔之 commit 86521a8f。[未驗] 約定①舊 5 欄格式文件 align 不強制遷移：本議題未對舊格式文件實跑，且不借用他議題成果文件的既有執行紀錄。 [已執行] 2026-10-21 約定②複驗：`grep -n '^disable-model-invocation:' .claude/skills/projman/SKILL.md` ＝ 第 5 行 `false`，最後觸及該檔 commit `86521a8f`。[未驗] 約定①舊 5 欄文件 align 不強制遷移：相容回填已實作（`SKILL.md` 〈回填邊界〉舊 5 欄段）但本議題未對舊格式文件實跑；他議題文件（`plans/roadmap/autonomous-engineering-gate-outcomes.md`）已有一筆 align 提交 `a55ee9e3`，依先前「不借用他議題紀錄」規則未計入。
-- 落差與下一步：判斷：部分符合 — 已驗收 1/2。缺口：約定①已實作、未驗。下一步：使用者指定舊 5 欄文件並授權實跑，或裁決是否採納 `a55ee9e3` 作為 PM1-E 證據。
-- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM1-E
+- 實際成果與證據：[已執行] 約定②`disable-model-invocation: false` 保留：`grep -n '^disable-model-invocation:' .claude/skills/projman/SKILL.md` → 第 5 行 `false`；blob a1c6440b，最後觸及該檔之 commit 86521a8f。[未驗] 約定①舊 5 欄格式文件 align 不強制遷移：本議題未對舊格式文件實跑，且不借用他議題成果文件的既有執行紀錄。 [已執行] 2026-10-21 約定②複驗：`grep -n '^disable-model-invocation:' .claude/skills/projman/SKILL.md` ＝ 第 5 行 `false`，最後觸及該檔 commit `86521a8f`。[未驗] 約定①舊 5 欄文件 align 不強制遷移：相容回填已實作（`SKILL.md` 〈回填邊界〉舊 5 欄段）但本議題未對舊格式文件實跑；他議題文件（`plans/roadmap/autonomous-engineering-gate-outcomes.md`）已有一筆 align 提交 `a55ee9e3`，依先前「不借用他議題紀錄」規則未計入。 [已執行] 2026-10-22 align（Akira 2026-10-22 裁決指令）：約定②複驗：`grep -n '^disable-model-invocation:' .claude/skills/projman/SKILL.md` ＝ 第 5 行 `false`；最後觸及該檔 commit `3e92898f`（PJMAN-CLOSELOOP-01，frontmatter 未動）。約定①→採納既有相容證據 `a55ee9e3`（2026-10-21，[GOVERNANCE-SYNC]，他議題文件 `plans/roadmap/autonomous-engineering-gate-outcomes.md`，舊 5 欄格式，條款觸發之 align）：提交前後表頭同為 `階段／成果 ID｜預期功能與規格｜驗收方式與必要前提｜實際成果與證據｜落差與下一步`（`git show a55ee9e3^:` 與 `a55ee9e3:` 皆第 32 行），提交後該檔 `已驗收` 字串 0 次（未被遷移為新格式），diff 為 4+／4− 且僅證據與摘要文字更新 → 舊 5 欄文件經 align「不強制遷移」成立。**限定**：此證據只證明「舊格式文件 align 相容、不遷移」；**不證**該文件之定位正確——該文件已於 2026-10-21 被使用者確認過期且錯誤、列入作廢清單（`projman/SKILL.md` 〈成果文件定位規則〉第 2 項）；操作對象屬他議題文件，先前「不借用他議題紀錄」之保守處置由 Owner 2026-10-22 裁決覆寫為採納相容證據。
+- 落差與下一步：判斷：符合 — 已驗收 2/2。限制：約定①證據來自他議題舊格式文件與一次條款觸發之 align、自評，不證定位正確；本議題文件為新格式，未對本議題文件做舊格式實跑。下一步：—
+- 最近 align：2026-10-22 6ea5e2616bc1f84a80507a82f7a77174a32a9a55 範圍 PM1-E
 
 ### PM2-A
 - 預期功能與規格：治理授權與引用（2 項）：條款位於唯一 GO lane，以狹義授權句授予已唯一定位成果文件的讀寫及單檔保存，觸發事實與 QA／SV 是否省略無關；consumer 只引用不複製。
@@ -101,9 +101,9 @@
 ### PM2-D
 - 預期功能與規格：邊界與失敗隔離（6 項）：①寫入授權與提交保存資格分離（align 自身以 `git commit -o <成果文件>` 單檔保存、軌道 A 先完成當次收尾提交、軌道 B 不為 align 提前 `/compact`）；②不繞過 FORBIDDEN（僅列檔名者預設票內排除，其他明確禁止與權限拒絕仍遵守）、不夾帶他 session 修改；③不遞迴；④align 失敗不回頭視為原票或下一張票未收束，失敗報告依實際進度擇一「未完成呼叫」／「回填未完成」／「已回填未提交」（另「已提交」與「無差分」為非失敗結果）並附 dirty 路徑，且如實列出已知限制；⑤只消費既有證據、不新增付費呼叫；⑥漏跑僅稱可能於後續相關收束補判。
 - 驗收方式與必要前提：以隔離案例逐項檢視，不得以文件自述代替。前提：治理條款呼叫票 `PJMAN-AUTOALIGN-01` 已於 2026-10-20 交付並 CLOSED（2026-10-22 update 澄清過期前提；前提已滿足）。
-- 實際成果與證據：[已執行]（暫存 repo 真實 git 輸出；僅 stub 層，非真實觸發）約定①：票檔 §4.1 C1 輸出 `git commit -o plans/roadmap/demo-outcomes.md` 後 `files=[plans/roadmap/demo-outcomes.md]`，他檔 staged 仍為 staged、未追蹤檔仍未追蹤；軌道 A 先於 align：本次觸發前已有 `[PJMAN-AUTOALIGN-01]` 收尾提交 `9315b486`（`git log`），軌道 B 未提前 `/compact`；條文 `ssot-governance.md:159` → 成立。約定④：C9 輸出 pre-commit exit 1 後文件仍 ` M`（可回報 dirty 路徑）、模擬原票狀態 hash 未變（`yes`）、無重試 → 成立。[未驗] 約定②（不繞過 FORBIDDEN／不夾帶他 session 修改：C1／C2 僅證 `-o` 不夾帶與 dirty 略過的機械面，FORBIDDEN 解讀屬模型判讀）、約定③不遞迴（僅條文與 `projman/SKILL.md:253`，真實行為待觀察）、約定⑤只消費既有證據不新增付費呼叫（僅條文；實際為本次呼叫自身）、約定⑥漏跑僅稱可能補判（僅用語檢查；驗收方式要求隔離案例逐項檢視、不得以文件自述代替）。Codex ADVISORY：`ssot-governance.md:159` 四態與 `projman/SKILL.md:250` 三態字面分歧，未證實造成行為影響。 [已執行] 2026-10-21 消費真實觸發 `e2f77049` 的既有證據：約定①：`git show --stat e2f77049` 僅涉本文件（21+／21−）；順序為軌道 A 收尾提交 `9315b486` → 行 1144 align 呼叫 → 單檔 `git commit -o` 提交；該 session 無 `compact` Skill 呼叫（軌道 B 未提前）；約定③：e2f77049 之後至本次使用者直接呼叫（行 1618）間，session `4a678cbe-9cee-400a-8479-95de6747ac41` 的 `Skill(projman)` 呼叫為 0 次，無遞迴；約定⑤：該次 align 工具序列（行 1158–1202）僅唯讀 git／grep／transcript 讀取、單檔 python 寫入與 git commit，無建置、測試、研究、顧問或付費呼叫；約定⑥：`ssot-governance.md:159` 與 `projman/SKILL.md:254` 皆用「可能於後續相關收束時補判」，新列 `保證`／`自癒`／`必定補判` 命中 0，執行端回報（行 1221）稱自動鏈為模型契約、無機械後盾。約定④沿用 2026-10-20 stub 層證據（暫存 repo 提交失敗案；真實失敗路徑未發生）。[未驗] 約定②：不繞過 FORBIDDEN 僅「票內排除」半項有真實觀察（該票 FORBIDDEN 僅列本檔名且 align 照常執行），「其他明確禁止與權限拒絕仍遵守」與「不夾帶他 session 修改」（當時無他人 dirty 檔）無真實案例。
-- 落差與下一步：判斷：部分符合 — 已驗收 5/6。缺口：約定②已實作未驗；另約定④規格字面為三態「已執行／已回填／未提交」，治理列已為四態、`projman/SKILL.md:250` 仍三態（字面分歧，屬後續 update／Skill 對齊，非本次 align 範圍）。下一步：後續真實案例累積②；三態／四態對齊另案處理。
-- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM2-D
+- 實際成果與證據：[已執行]（暫存 repo 真實 git 輸出；僅 stub 層，非真實觸發）約定①：票檔 §4.1 C1 輸出 `git commit -o plans/roadmap/demo-outcomes.md` 後 `files=[plans/roadmap/demo-outcomes.md]`，他檔 staged 仍為 staged、未追蹤檔仍未追蹤；軌道 A 先於 align：本次觸發前已有 `[PJMAN-AUTOALIGN-01]` 收尾提交 `9315b486`（`git log`），軌道 B 未提前 `/compact`；條文 `ssot-governance.md:159` → 成立。約定④：C9 輸出 pre-commit exit 1 後文件仍 ` M`（可回報 dirty 路徑）、模擬原票狀態 hash 未變（`yes`）、無重試 → 成立。[未驗] 約定②（不繞過 FORBIDDEN／不夾帶他 session 修改：C1／C2 僅證 `-o` 不夾帶與 dirty 略過的機械面，FORBIDDEN 解讀屬模型判讀）、約定③不遞迴（僅條文與 `projman/SKILL.md:253`，真實行為待觀察）、約定⑤只消費既有證據不新增付費呼叫（僅條文；實際為本次呼叫自身）、約定⑥漏跑僅稱可能補判（僅用語檢查；驗收方式要求隔離案例逐項檢視、不得以文件自述代替）。Codex ADVISORY：`ssot-governance.md:159` 四態與 `projman/SKILL.md:250` 三態字面分歧，未證實造成行為影響。 [已執行] 2026-10-21 消費真實觸發 `e2f77049` 的既有證據：約定①：`git show --stat e2f77049` 僅涉本文件（21+／21−）；順序為軌道 A 收尾提交 `9315b486` → 行 1144 align 呼叫 → 單檔 `git commit -o` 提交；該 session 無 `compact` Skill 呼叫（軌道 B 未提前）；約定③：e2f77049 之後至本次使用者直接呼叫（行 1618）間，session `4a678cbe-9cee-400a-8479-95de6747ac41` 的 `Skill(projman)` 呼叫為 0 次，無遞迴；約定⑤：該次 align 工具序列（行 1158–1202）僅唯讀 git／grep／transcript 讀取、單檔 python 寫入與 git commit，無建置、測試、研究、顧問或付費呼叫；約定⑥：`ssot-governance.md:159` 與 `projman/SKILL.md:254` 皆用「可能於後續相關收束時補判」，新列 `保證`／`自癒`／`必定補判` 命中 0，執行端回報（行 1221）稱自動鏈為模型契約、無機械後盾。約定④沿用 2026-10-20 stub 層證據（暫存 repo 提交失敗案；真實失敗路徑未發生）。[未驗] 約定②：不繞過 FORBIDDEN 僅「票內排除」半項有真實觀察（該票 FORBIDDEN 僅列本檔名且 align 照常執行），「其他明確禁止與權限拒絕仍遵守」與「不夾帶他 session 修改」（當時無他人 dirty 檔）無真實案例。 [已執行] 2026-10-22 align（Akira 2026-10-22 裁決指令啟動，手動、非條款自動觸發；只消費既有證據）逐項重判，不預填計數：約定⑥→[未驗]：驗收方式要求「隔離案例逐項檢視，不得以文件自述代替」，先前僅以 `ssot-governance.md`／Skill 用語檢查（`保證`／`自癒`／`必定補判` 命中 0）與執行端回報用語作證，屬文件自述層級、無隔離案例；依 Owner 裁決維持未驗，已驗收由 5 降為 4（對 2026-10-21 計入⑥之較寬判讀的更正，非功能退化）。約定①→成立：沿用 `e2f77049` 真實觸發（已追蹤乾淨單檔 `git commit -o`、軌道 A 先行、軌道 B 未提前；覆蓋範圍僅此一種情境）；另 PJMAN-CLOSELOOP-01 之隔離 repo 真實 git 輸出（`tmp/PJMAN-CLOSELOOP-01/ai8_out.txt`，非版控）(a) 未追蹤新檔＋他檔 staged 時單檔提交不帶他檔、(e) 已知來源 dirty 單一提交，屬 stub-equivalent 補充，不計為真實觸發；base 新檔與失敗路徑無真實案例。約定③→成立：沿用 `e2f77049` 後至使用者直接呼叫間 `Skill(projman)` 0 次之一次觀察（規則未變：被條款呼叫節第 8 項）；新增的「最終覆蓋確認」路徑尚無遞迴觀察，屬 PM5-C。約定⑤→成立：沿用該次 align 工具序列僅唯讀 git／grep／transcript 讀取、單檔寫入與提交之觀察（被條款呼叫節第 2 項未變）；本次 2026-10-22 之 update／align 為使用者指令、非條款觸發，不計入。約定④→維持計入並標註：規格字面已於 2026-10-22 update 對齊四態（未完成呼叫／回填未完成／已回填未提交；「已提交」「無差分」為非失敗結果）；舊證據（C9 stub：pre-commit exit 1 後文件仍 ` M`、可回報 dirty 路徑、原票狀態 hash 未變、無重試）驗的是失敗路徑形狀，與標籤字面無涉，標籤字面為 [靜態]（`projman/SKILL.md` 〈寫入與保存〉第 5 項；舊三態字面於 `.claude/rules`、`.claude/skills` 全部 `.md` 命中 0）；真實失敗路徑未發生，仍僅 stub 層。約定②→維持 [未驗]（無新證據）。分層：PM5-B 之新路徑證據不計入本項（不互相升格）。
+- 落差與下一步：判斷：部分符合 — 已驗收 4/6。缺口：約定②已實作未驗（「其他明確禁止與權限拒絕仍遵守」「不夾帶他 session 修改」無真實案例）；約定⑥無隔離案例，維持未驗。限制：①③④⑤皆為單次觀察或 stub 層、自評；①未涵蓋 base 新檔與失敗路徑的真實觸發。下一步：後續真實案例累積②；⑥待隔離案例；不為驗證製造。
+- 最近 align：2026-10-22 6ea5e2616bc1f84a80507a82f7a77174a32a9a55 範圍 PM2-D
 
 ### PM2-E
 - 預期功能與規格：真實觸發（1 項）：一次真實收束後自動 align 實際執行並報告；預設未驗，須有 session id 與依序工具呼叫證據證明同回合、收束寫入後、無新使用者訊息即呼叫 Skill，由治理條款呼叫票的 REVIEW→CLOSED 審查確認；手動、自填、僅有提交、無法核對或未觸發皆維持未驗。
@@ -129,30 +129,30 @@
 ### PM5-A
 - 預期功能與規格：唯一寫入入口（3 項）：①`.claude/CLAUDE.md` Rule 4 f) 與 Skills 行指向 `/projman`，措辭為「不得繞過 Projman 直接寫入」並明許實際 Projman 呼叫內依模式與授權使用既有編輯工具，細則僅在 Projman Skill；②`base` 對既有檔的修訂規則轉向 `update`／`align`，手動 `update` dirty bullet 改為共同規則引用且無互斥授權句；③真實觀察：後續對成果文件的建立或內容異動確實僅經 Projman 對應模式。
 - 驗收方式與必要前提：①②以靜態檢視實際文字（grep 與 diff）；③以真實使用觀察。證據分層（靜態／隔離案例／文字推演／具名豁免／真實觀察）分別列示，不互相升格。前提：③須有後續對成果文件的真實異動案例；相關交付 `PJMAN-CLOSELOOP-01`（2026-10-22 CLOSED，實作 `3e92898f`）。
-- 實際成果與證據：待首次盤點
-- 落差與下一步：—
-- 最近 align：無
+- 實際成果與證據：[靜態] 2026-10-22 @HEAD `6ea5e261`：約定①：`.claude/CLAUDE.md` `^f\) ` 恰 1（Rule 4 f)），含「不得繞過 Projman 直接寫入」「`/projman`」與 `.claude/skills/projman/SKILL.md` 路徑；Skills 行含 `/projman` 專案成果對齊；細則僅在 `projman/SKILL.md` 〈寫入與保存〉（`^## 寫入與保存` 1）。約定②：`projman/SKILL.md` 〈base〉重新執行規則轉向 `update`／`align`，手動 `update` dirty bullet 改為〈寫入與保存〉第 1 項引用；舊句「授權依據是使用者對該指定文件的修訂授權」「不得無聲覆蓋原目標與核心能力」全倉命中 0（PJMAN-CLOSELOOP-01 `evidence.txt` AC-2，提交 `3e92898f`）。[文件] PJMAN-CLOSELOOP-01 AC-1／AC-2 PASS（close reviewer Sonnet，2026-10-22）。[隔離案例] 無。[具名豁免] 不適用（`AC6-AC7-SCOPED-ACCEPTANCE` 僅涉 AC-6／AC-7）。[未驗] 約定③真實觀察：本次 update／align 由使用者指令啟動並經 Projman 寫入，為單次觀察，不構成「後續異動確實僅經 Projman」的案例（無直接寫入被檢驗或被攔）；不推定 Rule 4 f) 會被遵循（模型契約、無機械後盾，自評）。
+- 落差與下一步：判斷：部分符合 — 已驗收 2/3（約定①②靜態成立）。缺口：約定③真實觀察未驗。限制：模型契約、無機械後盾；自評。下一步：待後續真實案例累積，不為驗證製造。
+- 最近 align：2026-10-22 6ea5e2616bc1f84a80507a82f7a77174a32a9a55 範圍 PM5-A
 
 ### PM5-B
 - 預期功能與規格：共同自主保存（5 項）：①寫前檢查以目前內容為基準；來源證明須「實際呼叫紀錄＋寫入紀錄＋內容識別」聯合（blob 相等僅輔助）；staged 之 index 版與工作樹版各自判定；來源不明或並行則略過（含手動 `update`）；②核對依模式與格式適用（舊 5 欄僅 V1／V6；`update` 的 V3 差異有同次「已確認變更」列為合法；`align` 的 V3 為空；`base` 新建檔無 V1／V3），已知來源 dirty 時 V1／V3 基準為寫前目前內容；③保存序列：未追蹤且未被 ignore 者先 `git add -- <doc>`，再 `git commit -o -m "[PROJMAN-SYNC] <摘要>" -- <doc>`，`base` 新檔可自主保存（必要能力）、已被拒絕的提交不自動重試、無差分不提交；④回報：四態（未完成呼叫／回填未完成／已回填未提交／已提交）與「無差分」僅單點定義於 Skill，治理列與 `sv` 僅引用，舊三態字面消除，每次寫入後報告記錄寫後 blob id；⑤真實接續：先前 Projman 報告所記 blob 與拒絕記載等 producer 實際存在，並有一次真實的自主保存案例。
 - 驗收方式與必要前提：①～④以靜態檢視、隔離 repo 真實 git 輸出（模擬報告輸入，`[stub-equivalent]`）與文字推演；⑤以真實觀察。證據分層分別列示，不互相升格；具名豁免只豁免特定阻擋效果，不升級任何真實接續項。前提：⑤須有首次經新路徑產生的真實 Projman 報告與其後續呼叫。
-- 實際成果與證據：待首次盤點
-- 落差與下一步：—
-- 最近 align：無
+- 實際成果與證據：[靜態] 2026-10-22 @HEAD `6ea5e261`：約定①～④：`projman/SKILL.md` 〈寫入與保存〉第 1–6 項存在；舊三態字面全倉 `.md` 命中 0；四態與「無差分」僅單點定義於第 5 項，`ssot-governance.md` L159 列與 `sv/SKILL.md` Step 11 僅引用（PJMAN-CLOSELOOP-01 AC-2／AC-3／AC-4／AC-9 PASS，close reviewer Sonnet 2026-10-22）。[隔離案例，stub-equivalent]（隔離 repo 真實 git 輸出；輸入為腳本變數模擬之報告 blob 與呼叫／寫入紀錄，**非真實 Projman 報告**；`tmp/PJMAN-CLOSELOOP-01/ai8_out.txt`，非版控、日後可能被清理）：(a) 未追蹤新檔＋他檔 staged：`add`、`commit -o` rc=0，提交僅含該檔；(b) base add 成功、git hook 令 commit rc=1，二版各自 PROVEN，恢復提交 rc=0、HEAD blob＝工作樹 blob；(c) staged 含額外不明內容／工作樹回到 HEAD 內容→UNKNOWN 略過；(d) blob 相等但缺呼叫或缺寫入紀錄→UNKNOWN，紀錄齊全且 blob 等→PROVEN；(e) 已追蹤 dirty 單一 commit；(f) 被 ignore 檔 `add` rc=1、未 add 檔 `commit -o` rc=1；(g) 無差分不提交。[文字推演] 票檔 AC-7 C11–C13（手動 update 來源不明略過、被拒絕提交不自動重試、V1／V3 基準）。[具名豁免] `AC6-AC7-SCOPED-ACCEPTANCE`（Akira 2026-10-21）：AC-6／AC-7 於票面明載範圍內成立，僅豁免「producer (C)→不得標完成」之阻擋效果，不提升為真實行為 PASS。[已執行，真實觀察，約定② 局部] 2026-10-22 `update` 對本文件：V1–V6 輸出，V3 差異僅 PM5-A..D 且有同次「已確認變更」列（合法差異、未被當作失敗），寫後 `git commit -o` 單檔提交 `6ea5e261`（寫前乾淨、已追蹤、44+／9−、他檔未帶入），寫後 blob `d65e10cb12a095b7a8d9829d7582c5fd0fbcb33b`；使用者指令啟動之單次觀察，非條款自動觸發。[未驗] 約定⑤真實接續（missing-wiring，Producer (C)）：source-proof（後續呼叫以先前 Projman 報告所記 blob 證明 dirty 來源）、rejected-commit-retry（先前報告載明提交被拒）、final-coverage、residual-save-continuation 四個 guard 之必要輸入路徑**未被實際走過**——本次 update 雖已於報告記寫後 blob，但 dirty 情境之後續消費未發生；無「已被拒絕的提交」真實案例；無 base 新檔真實自主保存案例；無自動化 integration test；`Skill(projman)` 未列 `permissions.allow`（是否出現權限提示無法判定）；跨 session transcript 可取得性未驗；`m3_family_audit.sh` 對 `[PROJMAN-SYNC]` 之處置未驗。以上皆未豁免、未提升。
+- 落差與下一步：判斷：部分符合 — 已驗收 4/5（約定①～④於靜態／隔離案例／文字推演層次成立，且為具名豁免範圍內成立）。缺口：約定⑤真實接續未驗；四個 guard 的 missing-wiring 未豁免、未提升。限制：①～④之來源證明輸入為模擬；模型契約、無機械後盾；自評。下一步：首次 dirty 情境後續呼叫以報告 blob 證明來源、首次被拒提交案例、首次 base 新檔自主保存，各待真實案例；不為驗證製造。
+- 最近 align：2026-10-22 6ea5e2616bc1f84a80507a82f7a77174a32a9a55 範圍 PM5-B
 
 ### PM5-C
 - 預期功能與規格：最終覆蓋確認（3 項）：①Transition Table 新列＋Skill〈最終覆蓋確認〉＋`sv` Step 11 第 5 項引用，判準單點在 Skill、控制詞僅封閉四值；②判斷分支：非最後一張票不做、有新證據才 align／無新證據回報「已涵蓋、無需重跑」、Registry 無 OPEN 票不構成完成、缺口只揭露不開票、重入時「最終交付總結前」獨立觸發僅讀票務事實、不遞迴；③真實觸發：本輪最後一張票 close 後或最終交付總結前，確實執行一次覆蓋確認並依結果回報。
 - 驗收方式與必要前提：①靜態檢視；②文字推演逐步附 `檔案:行號`；③真實觀察。證據分層分別列示，不互相升格。前提：③須有一次符合條件的真實「最後一張票」收束或最終交付；「最後一張」為綜合判斷、無機械 producer。
-- 實際成果與證據：待首次盤點
-- 落差與下一步：—
-- 最近 align：無
+- 實際成果與證據：[靜態] 2026-10-22 @HEAD `6ea5e261`：約定①：`ssot-governance.md` 新列（`^\| 本輪最後一張票的` 恰 1，位於 close 列與已收束重入列之間，控制詞僅 `MUST AUTO-CHAIN`）；`projman/SKILL.md` `### 最終覆蓋確認`（恰 1）；`sv/SKILL.md` Step 11 第 5 項（恰 1，僅引用）；判準單點在 Skill（PJMAN-CLOSELOOP-01 AC-2／AC-3／AC-4 PASS，close reviewer 2026-10-22）。[文字推演] 約定②：票檔 AC-7 C1–C7（含 C5 重入、C6 不遞迴、C7 缺口只揭露）逐步附 `檔案:行號`。[具名豁免] `AC6-AC7-SCOPED-ACCEPTANCE`：AC-7 範圍內成立，不提升；C2–C7 的「最後一張票」判斷輸入無機械 producer（Producer (C)／missing-wiring，未豁免）。[隔離案例] 無。[未驗] 約定③真實觸發：本輪最後一張票 close 後之覆蓋確認**未被自動觸發**——2026-10-22 PJMAN-CLOSELOOP-01 closeout 時 Agent 判定不觸發 align（成果文件須先 update）；其後的 update 與本次 align 由使用者指令啟動，**不得回填為前次 close 後已自主觸發**，亦不計入本項。
+- 落差與下一步：判斷：部分符合 — 已驗收 2/3（約定①②靜態與文字推演成立）。缺口：約定③真實觸發未驗；「最後一張票」判斷為 (C)／missing-wiring，未豁免。限制：模型契約、無機械後盾；自評。下一步：待一次真實「最後一張票」收束或最終交付總結前，確實執行覆蓋確認並依結果回報。
+- 最近 align：2026-10-22 6ea5e2616bc1f84a80507a82f7a77174a32a9a55 範圍 PM5-C
 
 ### PM5-D
 - 預期功能與規格：不選回已確認錯誤的舊表（3 項）：①定位規則加作廢清單（`plans/roadmap/autonomous-engineering-gate-outcomes.md`），使用者指定須來自當前對話，執行端自行於引數指名不得覆寫；②定位回報判讀：本議題原本無候選且無明示目標→不執行、不輸出；本議題相關候選被排除而無合法候選→「定位未完成」；使用者明示成果文件找不到→「定位未完成」；有候選但不能唯一歸屬→揭露歧義；全域排除不致使無關議題產生雜訊；③真實觀察：顧問議題真實收束時不選回舊表並回報「定位未完成」，且無關議題無雜訊。
 - 驗收方式與必要前提：①靜態檢視；②文字推演；③真實觀察。證據分層分別列示，不互相升格。前提：③須有顧問議題票真實收束；顧問成果文件之資料處置（定位／建立／搬移舊表）屬另線、本項不要求。
-- 實際成果與證據：待首次盤點
-- 落差與下一步：—
-- 最近 align：無
+- 實際成果與證據：[靜態] 2026-10-22 @HEAD `6ea5e261`：約定①：`projman/SKILL.md` 〈成果文件定位規則〉第 2 項載明作廢清單與 `plans/roadmap/autonomous-engineering-gate-outcomes.md`（`作廢清單` 命中 3）、第 1 項「指定須來自使用者於當前對話；執行端自行於引數或 payload 指名者不算且不得覆寫作廢清單」；〈被治理條款呼叫時〉第 1 項載明「定位未完成」與不輸出之分情形（`定位未完成` 命中 1）。[文字推演] 約定②：票檔 AC-7 C8（四情況）、C9（執行端指名舊表仍被排除；使用者當前對話明示可覆寫）、C10（全域排除不使無關議題產生雜訊）逐步附 `檔案:行號`。[具名豁免] `AC6-AC7-SCOPED-ACCEPTANCE`：AC-7 範圍內成立，不提升；定位回報依賴「相關候選」之議題判讀、無機械 producer（Producer (C)／missing-wiring，未豁免）。[隔離案例] 無。[未驗] 約定③真實觀察：顧問議題票真實收束時不選回舊表並回報「定位未完成」，且無關議題無雜訊——尚無顧問議題票於新規則下真實收束；本次手動 align 以使用者明示路徑定位本文件，未走自動搜尋排除路徑，不構成觀察。舊表之資料處置（定位／建立／搬移）屬另線、本項不要求，亦未執行。
+- 落差與下一步：判斷：部分符合 — 已驗收 2/3（約定①靜態、②文字推演成立）。缺口：約定③真實觀察未驗；定位回報判讀為 (C)／missing-wiring，未豁免。限制：模型契約、無機械後盾；自評。下一步：待顧問議題票真實收束累積案例，不為驗證製造。
+- 最近 align：2026-10-22 6ea5e2616bc1f84a80507a82f7a77174a32a9a55 範圍 PM5-D
 
 ## 已確認變更
 | 日期 | 變更前 | 變更後 | 影響 | 使用者確認 |
