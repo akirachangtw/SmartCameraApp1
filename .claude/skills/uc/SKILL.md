@@ -48,10 +48,10 @@ disable-model-invocation: false
    - Ticket 完成前，**MUST** 從 `tmp/verify_cmd.conf` 以 `grep/head/cut` 讀取 `TICKET_ID`，**MUST NOT** `source` 或猜測 Ticket ID。
    - 輸出 Ticket DONE 前，**MUST** 先執行 `python .claude/scripts/gate_ledger.py check done --ticket <TICKET_ID>`；exit 0 續行，非 0 **不輸出 Ticket DONE**，退出碼映射見 `ssot-governance.md` 入口落點句。
    - Ticket 完成格式：`✅ DONE | [TICKET_ID] [摘要] | [影響檔案數]F [影響行數]L`。
-   - 輸出 Ticket DONE 後，**MUST** 立即呼叫 `Skill(qa)`（等價 `/qa`），不得停下等待使用者確認。
+   - 輸出 Ticket DONE 後，**MUST** 立即呼叫 `Skill(qa)`（等價 `/qa`），不得停下等待使用者確認；低風險免 QA／SV 票（判準唯一依 `ssot-governance.md` Transition Table「低風險免 QA／SV」列）改為必要驗證完成後 Read 並執行 `/sv` Step 11 第 1–5 項，**MUST NOT** 呼叫 `Skill(qa)`／`Skill(sv)`。
    - `compile fix`、`git commit` 或其他非 Ticket DONE 僅為中間動作，**MUST NOT** 觸發 QA。
    - 依 `/qa` 現行 verification-config 讀取優先序解析當前 Ticket binding；僅當**所有**既有候選載體均不存在、`TICKET_ID` 空值、各載體 Ticket ID 不一致，或票檔 Header 無法解析時，**MUST STOP** 並回報 `⛔ UC Auto-Chain STOPPED: [原因]`。
-   - **收尾引用**：Ticket DONE 後之收尾由 `/sv` Step 11 Closeout Auto-Chain 承載，判準唯一依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table；模式切換（`/uc`／`/normal`／`/compact`）**不中斷** Ticket lifecycle。本檔不複製收尾子項或 GO predicate。
+   - **收尾引用**：Ticket DONE 後之收尾由 `/sv` Step 11 Closeout Auto-Chain 承載（低風險免 QA／SV 票亦由同節承載、不經 `/qa`／`/sv` 階段；收束一律以 `Skill(ticket-author)` 調用 TKA close），判準唯一依 `.claude/rules/ssot-governance.md` §Ticket Runtime Transition Table；模式切換（`/uc`／`/normal`／`/compact`）**不中斷** Ticket lifecycle。本檔不複製收尾子項或 GO predicate。
 9. **Auto-Chain ownership**：
    - `/uc` 只呼叫 QA，**MUST NOT** 直接呼叫 SV。
    - QA 全步驟 PASS 後，由 QA Skill 依既有契約自動進入 SV。

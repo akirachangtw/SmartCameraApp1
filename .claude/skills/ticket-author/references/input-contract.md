@@ -185,7 +185,7 @@ Collect live evidence for each item in turn; create each Ticket only after both 
 
 Required: one formal Ticket ID registered in the target project's Registry (main or archive). `close` reads no parent artifact, plan item or `Fixture` header and never consults `diag`/`plan` artifacts. A missing or malformed ID stops with `STOP_MISSING_SUBJECT`.
 
-The caller may be an Agent in the autonomous workflow or a person; no per-Ticket Owner approval is part of the input. Scratch input and output live in `.tmp/ticket-author/close/<TICKET_ID>/` (see `SKILL.md`, Mode: close).
+The caller is the autonomous workflow's Agent (through the Skill tool: `skill` = `ticket-author`, `args` = `close <TICKET_ID>`) or a person; no per-Ticket Owner approval is part of the input. An upstream Agent may start this mode but may not stand in for it: running the helper or the Registry tools by hand, filling verdicts itself, or answering as the reviewer inline is not a `close`. The Ticket ID comes from the current formal Ticket context and is checked against the Ticket file's `TICKET_ID` and the Registry id. Scratch input and output live in `.tmp/ticket-author/close/<TICKET_ID>/` (see `SKILL.md`, Mode: close).
 
 ## Structured option
 

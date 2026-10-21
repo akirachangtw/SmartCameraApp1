@@ -128,6 +128,11 @@ class Base(unittest.TestCase):
 
     def write_json(self, name, obj):
         put((self.dir / name), json.dumps(obj, ensure_ascii=False))
+        if name == "verdicts.json" and isinstance(obj, dict) and not obj.get("_no_reply"):
+            # the real flow saves the reviewer's raw reply; tests derive an equivalent reply from the claimed statuses
+            lines = ["AC%d: %s | e" % (e["n"], e["status"]) for e in obj.get("acs", [])
+                     if isinstance(e, dict) and isinstance(e.get("n"), int) and e.get("status")]
+            put(self.dir / "reviewer_reply.txt", "\n".join(lines) + "\n")
 
     def read_json(self, name):
         return json.loads((self.dir / name).read_text(encoding="utf-8"))
@@ -145,16 +150,21 @@ class Base(unittest.TestCase):
             args += ["--dependents", self.dir / "dependents.json"]
         return self.h(*args)
 
-    def decide(self, rnd=0, fb=0, extra=()):
+    def decide(self, rnd=0, fb=0, extra=(), replies=None):
+        reply_args = []
+        for r in (replies if replies is not None else ["reviewer_reply.txt"]):
+            reply_args += ["--reply", self.dir / r]
         return self.h("decide", "--ticket", TID, "--registry", self.dir / "registry.json",
-                      "--verdicts", self.dir / "verdicts.json", "--round", rnd, "--fallback-tried", fb, *extra)
+                      "--verdicts", self.dir / "verdicts.json", *reply_args,
+                      "--round", rnd, "--fallback-tried", fb, *extra)
 
     def set_dependents(self, tickets=None):
         self.write_json("dependents.json", {"tickets": tickets if tickets is not None else [{"id": TID}]})
 
     @staticmethod
     def verdicts(statuses=("PASS", "PASS", "N/A"), cores=(True, True, False), **kw):
-        v = {"reviewer": {"primary": "sonnet", "actual": "sonnet", "fallback_used": False, "limitation": ""},
+        v = {"reviewer": {"family": "codex", "actual_model": "gpt-6-sol", "tier": "heavy", "fallback_used": False,
+                          "fallback_reason": "", "independent_call": True, "inline": False, "limitation": ""},
              "acs": [{"n": i + 1, "status": s, "core": c, "evidence": "e", "note": ""}
                      for i, (s, c) in enumerate(zip(statuses, cores))],
              "security_issue": False, "irreversible_risk": False,
@@ -224,7 +234,9 @@ class TestStatic(unittest.TestCase):
     def test_residual_old_phrases_absent(self):
         old = ["限審查方 SMTR/CSO", "Traycer T2 另由 Akira", "等待最終 T2／CSO 複審", "等待人工 Traycer 複審與終審方轉",
                "HUMAN_GATE（Traycer T2／", "於 PROGRESS.md 誠實揭露（K5-Rule 29）", "停止勾選該項並列入修補票追蹤",
-               "Agent 最高可寫 lifecycle 為", "並於 checkpoint 揭露豁免依據"]
+               "Agent 最高可寫 lifecycle 為", "並於 checkpoint 揭露豁免依據",
+               "RAPID MODE", "ask the other reviewer", "FALLBACK_REVIEWER", "Manual modes: diag, plan, ticket, close",
+               "[supplement | fallback reviewer]*", "呼叫 `/ticket-author close"]
         files = [REAL_REPO / ".claude/rules/ssot-governance.md", REAL_REPO / ".claude/skills/sv/SKILL.md"]
         files += sorted(SKILL_DIR.glob("*.md")) + sorted((SKILL_DIR / "references").glob("*.md"))
         for f in files:
@@ -264,7 +276,7 @@ class TestDispatchIntegration(Base):
         rc, pre = self.exec(cmds[0])
         self.assertEqual((rc, pre["location"], pre["scope"]["status"], pre["ac_count"]), (0, "deliver", "PASS", 3))
         rc, rv = self.exec(cmds[1])
-        self.assertEqual((rc, rv["primary"], rv["actual"]), (0, "sonnet", "sonnet"))
+        self.assertEqual((rc, rv["class"], rv["actual"]["model"]), (0, "light", "gpt-6-luna"))
         self.write_json("verdicts.json", self.verdicts())
         rc, dec = self.exec(cmds[2], **{"<N>": 0, "<0|1>": 0})
         self.assertEqual((rc, dec["next"]), (0, "CLOSE"))
@@ -378,11 +390,13 @@ class TestDecisionTable(Base):
         v = self.verdicts(statuses=("PASS", "UNVERIFIED", "N/A"))
         self.assertEqual(self.d(v, rnd=0)["next"], "SUPPLEMENT")
         self.assertEqual(self.d(v, rnd=1)["next"], "SUPPLEMENT")
-        fb = self.d(v, rnd=2, fb=0, extra=("--codex-available", 1))
-        self.assertEqual((fb["next"], fb["reviewer"]), ("FALLBACK_REVIEWER", "codex"))
-        self.assertEqual(self.d(v, rnd=2, fb=1)["next"], "NOT_CLOSED")
-        self.assertEqual(self.d(v, rnd=2, fb=0, extra=("--codex-available", 0))["next"], "NOT_CLOSED")
+        # the default reviewer is already the strongest (gpt-6-sol): nothing to escalate to
+        self.assertEqual(self.d(v, rnd=2, fb=0)["next"], "NOT_CLOSED")
         self.assertEqual(self.d(v, rnd=2, fb=1)["reason"], "core_unverified")
+        luna = dict(v, reviewer=dict(v["reviewer"], actual_model="gpt-6-luna", tier="light"))
+        esc = self.d(luna, rnd=2, fb=0)
+        self.assertEqual((esc["next"], esc["reviewer"]), ("ESCALATE_REVIEWER", "gpt-6-sol"))
+        self.assertEqual(self.d(luna, rnd=2, fb=1)["next"], "NOT_CLOSED")
 
     def test_non_core_unverified_and_valid_na_do_not_block(self):
         v = self.verdicts(statuses=("PASS", "PASS", "UNVERIFIED"))
@@ -454,9 +468,8 @@ class TestScopeRows(Base):
         self.assertEqual((d["next"], d["reason"]), ("SUPPLEMENT", "scope_unknown"))
         self.assertEqual(self.run_decide(v, 2)["next"], "CLOSE")  # cap reached: no extra terminal state
         v = self.verdicts(statuses=("PASS", "UNVERIFIED", "N/A"))
-        self.write_json("verdicts.json", v)
-        rc, d, _ = self.decide(2, 0, ("--codex-available", 1))  # explicit flag: do not depend on codex being installed
-        self.assertEqual((rc, d["next"]), (0, "FALLBACK_REVIEWER"))
+        d = self.run_decide(v, 2)
+        self.assertEqual((d["next"], d["reason"]), ("NOT_CLOSED", "core_unverified"))  # strongest reviewer already used
 
     def test_whitespace_failure_reconciles(self):
         self.make_repo()
@@ -523,25 +536,40 @@ class TestReviewer(Base):
         self.assertEqual(rc, 0)
         return d
 
-    def test_classification_by_extension_not_preset(self):
-        d = self.reviewer("docs/a.md,docs/n.txt")
-        self.assertEqual((d["class"], d["primary"], d["actual"]), ("docs", "sonnet", "sonnet"))
-        d = self.reviewer("docs/a.md,scripts/x.py")
-        self.assertEqual((d["class"], d["primary"]), ("code", "codex"))
+    def test_codex_is_primary_for_every_ticket_type(self):
+        for allowed, tier, model in (("plans/x/note.md,docs/n.txt", "light", "gpt-6-luna"),
+                                     ("docs/a.md,scripts/x.py", "heavy", "gpt-6-sol"),
+                                     ("app/src/Main.kt", "heavy", "gpt-6-sol"),
+                                     (".claude/skills/x/SKILL.md", "heavy", "gpt-6-sol"),
+                                     (".claude/rules/r.md,plans/p.md", "heavy", "gpt-6-sol")):
+            d = self.reviewer(allowed, "--codex-available", "1")
+            self.assertEqual((d["class"], d["actual"]["family"], d["actual"]["model"], d["fallback_used"]),
+                             (tier, "codex", model, False), allowed)
 
-    def test_fallbacks(self):
-        d = self.reviewer("docs/a.md", "--sonnet-available", "0", "--codex-available", "1")
-        self.assertEqual((d["actual"], d["fallback_used"]), ("codex", True))
-        self.assertTrue(d["limitation"])
-        d = self.reviewer("x.py", "--codex-available", "0", "--sonnet-available", "1")
-        self.assertEqual((d["actual"], d["fallback_used"]), ("sonnet", True))
-        d = self.reviewer("x.py", "--codex-available", "0", "--sonnet-available", "0")
-        self.assertEqual(d["actual"], "none")
+    def test_force_heavy_raises_but_nothing_lowers(self):
+        d = self.reviewer("plans/p.md", "--codex-available", "1", "--force-heavy")
+        self.assertEqual((d["class"], d["actual"]["model"]), ("heavy", "gpt-6-sol"))
 
-    def test_escalate_names_other_reviewer_and_acs(self):
-        d = self.reviewer("docs/a.md", "--codex-available", "1", escalate="2,3")
-        self.assertEqual(d["escalation"], {"reviewer": "codex", "acs": [2, 3]})
-        d = self.reviewer("docs/a.md", "--codex-available", "0", escalate="2")
+    def test_claude_only_on_codex_fault(self):
+        d = self.reviewer("x.py", "--codex-available", "1")
+        self.assertFalse(d["fallback_used"])  # no fault: never switches family
+        d = self.reviewer("x.py", "--codex-fault", "quota")
+        self.assertEqual((d["actual"], d["fallback_used"], d["fallback_reason"]),
+                         ({"family": "claude", "model": "opus"}, True, "quota"))
+        self.assertIn("not Codex", d["limitation"])
+        d = self.reviewer("plans/p.md", "--codex-fault", "auth")
+        self.assertEqual(d["actual"], {"family": "claude", "model": "sonnet"})
+        d = self.reviewer("x.py", "--codex-available", "0")  # codex missing is a fault
+        self.assertEqual((d["actual"]["family"], d["fallback_reason"]), ("claude", "unavailable"))
+        d = self.reviewer("x.py", "--codex-fault", "network", "--claude-available", "0")
+        self.assertEqual(d["actual"]["family"], "none")
+        rc, bad, _ = self.h("reviewer", "--ticket", TID, "--codex-fault", "report_fix")
+        self.assertEqual(rc, 2)  # REPORT_FIX / finding / FAIL / LIMIT are not Codex faults
+
+    def test_escalate_luna_to_sol_only(self):
+        d = self.reviewer("plans/p.md", "--codex-available", "1", escalate="2,3")
+        self.assertEqual(d["escalation"], {"reviewer": "gpt-6-sol", "acs": [2, 3]})
+        d = self.reviewer("x.py", "--codex-available", "1", escalate="2")
         self.assertEqual(d["escalation"]["reviewer"], "none")
 
     def test_codex_stub_on_path_detected(self):
@@ -558,7 +586,7 @@ class TestReviewer(Base):
         self.preflight()
         env = dict(os.environ, PATH=str(stub_dir) + os.pathsep + os.environ.get("PATH", ""))
         rc, d, _ = self.h("reviewer", "--ticket", TID, env=env)
-        self.assertEqual((d["primary"], d["actual"]), ("codex", "codex"))
+        self.assertEqual((d["actual"]["family"], d["fallback_used"]), ("codex", False))
 
 
 # =============================================================================== 6. diff scope
@@ -1026,6 +1054,354 @@ class TestFinalResult(Base):
         self.finalize()
         tracked_dirty = self.git("status", "--porcelain").splitlines()
         self.assertEqual(tracked_dirty, [" M " + self.ticket_rel])
+
+
+def _is_human_text(rec):
+    """A message the human typed: not a tool_result carrier, not meta, not hook/system injected text."""
+    if rec.get("type") != "user" or rec.get("isMeta"):
+        return None
+    c = (rec.get("message") or {}).get("content")
+    texts = []
+    if isinstance(c, str):
+        texts = [c]
+    elif isinstance(c, list):
+        for b in c:
+            if not isinstance(b, dict):
+                continue
+            if b.get("type") == "tool_result":
+                return None
+            if b.get("type") == "text":
+                texts.append(b.get("text") or "")
+    t = "\n".join(x for x in texts if x and x.strip()).strip()
+    if not t:
+        return None
+    for pre in ("Stop hook", "<system-reminder>", "<task-notification>", "Base directory for this skill:",
+                "<local-command", "(Re-invocation"):
+        if t.startswith(pre):
+            return None
+    return t
+
+
+def scan_skill_calls(path):
+    """Structured scan of a transcript/stream jsonl: every Skill tool_use with the human message before it."""
+    out, last = [], None
+    with open(path, encoding="utf-8") as f:
+        for ln, line in enumerate(f, 1):
+            try:
+                rec = json.loads(line)
+            except ValueError:
+                continue
+            h = _is_human_text(rec)
+            if h is not None:
+                last = {"line": ln, "text": h}
+                continue
+            if rec.get("type") != "assistant":
+                continue
+            c = (rec.get("message") or {}).get("content")
+            if not isinstance(c, list):
+                continue
+            for b in c:
+                if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == "Skill":
+                    inp = b.get("input") or {}
+                    out.append({"line": ln, "skill": inp.get("skill"), "args": inp.get("args"), "prev_human": last})
+    return out
+
+
+def human_asked_for_close(call, tid):
+    t = ((call.get("prev_human") or {}).get("text") or "")
+    return bool(re.search(r"close\s+" + re.escape(tid), t) or "/ticket-author close" in t)
+
+
+class TestSkillCallParser(unittest.TestCase):
+    def jsonl(self, recs):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, True)
+        p = Path(d) / "t.jsonl"
+        p.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in recs) + "\n", encoding="utf-8")
+        return p
+
+    @staticmethod
+    def user(text):
+        return {"type": "user", "message": {"role": "user", "content": text}}
+
+    @staticmethod
+    def tool_result():
+        return {"type": "user", "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "x", "content": "close TKA-X-01 mentioned in a tool output"}]}}
+
+    @staticmethod
+    def skill_call(inp):
+        return {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "t1", "name": "Skill", "input": inp}]}}
+
+    def test_key_order_does_not_matter_and_fields_are_structured(self):
+        p = self.jsonl([self.user("please finish"), self.skill_call({"args": "close TKA-X-01", "skill": "ticket-author"})])
+        calls = scan_skill_calls(p)
+        self.assertEqual((calls[0]["skill"], calls[0]["args"]), ("ticket-author", "close TKA-X-01"))
+        self.assertFalse(human_asked_for_close(calls[0], "TKA-X-01"))
+
+    def test_tool_result_user_records_are_not_human_messages(self):
+        p = self.jsonl([self.user("go on"), self.tool_result(), self.skill_call({"skill": "ticket-author", "args": "close TKA-X-01"})])
+        c = scan_skill_calls(p)[0]
+        self.assertEqual(c["prev_human"]["text"], "go on")  # the tool_result mentioning close is not the prompt
+        self.assertFalse(human_asked_for_close(c, "TKA-X-01"))
+
+    def test_human_who_typed_close_is_detected(self):
+        p = self.jsonl([self.user("/ticket-author close TKA-X-01"), self.skill_call({"skill": "ticket-author", "args": "close TKA-X-01"})])
+        self.assertTrue(human_asked_for_close(scan_skill_calls(p)[0], "TKA-X-01"))
+
+    def test_hook_and_system_injections_are_not_human_prompts(self):
+        for inj in ("Stop hook blocking error from command: close TKA-X-01", "<system-reminder>close TKA-X-01</system-reminder>",
+                    "<task-notification>close TKA-X-01</task-notification>"):
+            p = self.jsonl([self.user("work on the ticket"), self.user(inj),
+                            self.skill_call({"skill": "ticket-author", "args": "close TKA-X-01"})])
+            c = scan_skill_calls(p)[0]
+            self.assertEqual(c["prev_human"]["text"], "work on the ticket", inj)
+            self.assertFalse(human_asked_for_close(c, "TKA-X-01"), inj)
+
+    def test_missing_args_other_tools_and_bad_lines(self):
+        p = self.jsonl([self.user("x"), {"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "name": "Bash", "input": {"command": "close TKA-X-01"}}]}},
+            self.skill_call({"skill": "qa"})])
+        with open(p, "a", encoding="utf-8") as f:
+            f.write("not json\n")
+        calls = scan_skill_calls(p)
+        self.assertEqual([(c["skill"], c["args"]) for c in calls], [("qa", None)])
+
+
+class TestReviewerReplyCoverage(Base):
+    def setUp(self):
+        super().setUp()
+        self.make_repo()
+        self.set_dependents()
+        self.preflight()
+
+    def d(self, verdicts, rnd=0, fb=0, reply_text=None, replies=None):
+        self.write_json("verdicts.json", verdicts)
+        if reply_text is not None:
+            put(self.dir / "reviewer_reply.txt", reply_text)
+        rc, data, err = self.decide(rnd, fb, replies=replies)
+        self.assertEqual(rc, 0, err)
+        return data
+
+    def test_reply_must_cover_every_ac_including_na_and_non_core(self):
+        v = self.verdicts()
+        d = self.d(v, reply_text="AC1: PASS | a\nAC2: PASS | b\n")  # AC3 (struck N/A, non-core) not judged
+        self.assertEqual((d["next"], d["reason"], d["missing"]), ("SUPPLEMENT", "reviewer_coverage", [3]))
+        d = self.d(v, rnd=2, reply_text="AC1: PASS | a\nAC2: PASS | b\n")
+        self.assertEqual((d["next"], d["reason"]), ("NOT_CLOSED", "reviewer_coverage_incomplete"))
+        self.assertEqual(self.d(v, reply_text="AC1: PASS\nAC2: PASS\nAC3: N/A\n")["next"], "CLOSE")
+
+    def test_duplicate_unknown_and_malformed_reply_lines(self):
+        v = self.verdicts()
+        d = self.d(v, reply_text="AC1: PASS\nAC1: PASS\nAC2: PASS\nAC3: N/A\n")
+        self.assertEqual((d["next"], d["duplicate"]), ("SUPPLEMENT", [1]))
+        d = self.d(v, reply_text="AC1: PASS\nAC2: PASS\nAC3: N/A\nAC9: PASS\n")
+        self.assertEqual((d["next"], d["unknown"]), ("SUPPLEMENT", [9]))
+        d = self.d(v, reply_text="all good, everything passes\n")
+        self.assertEqual((d["next"], d["missing"]), ("SUPPLEMENT", [1, 2, 3]))
+        d = self.d(v, reply_text="- **AC1**: PASS\n* AC2：PASS\nAC3: n/a\n")  # bold, bullets, full-width colon, case
+        self.assertEqual(d["next"], "CLOSE")
+
+    def test_no_reply_file_at_all_never_closes(self):
+        v = self.verdicts()
+        v["_no_reply"] = True
+        (self.dir / "reviewer_reply.txt").unlink(missing_ok=True)
+        self.write_json("verdicts.json", v)
+        rc, d, _ = self.decide()
+        self.assertEqual((d["next"], d["reason"]), ("SUPPLEMENT", "reviewer_coverage"))
+        self.assertTrue(d["unreadable"])
+        rc, d, _ = self.decide(2, 0)
+        self.assertEqual(d["next"], "NOT_CLOSED")
+
+    def test_reply_vs_claim_mismatch(self):
+        v = self.verdicts()
+        d = self.d(v, reply_text="AC1: FAIL | broke\nAC2: PASS\nAC3: N/A\n")
+        self.assertEqual((d["next"], d["kind"]), ("BLOCKED", "core_ac_fail"))  # judged on the reviewer's reply
+        d = self.d(v, reply_text="AC1: PASS\nAC2: UNVERIFIED | unsure\nAC3: N/A\n")
+        self.assertEqual((d["next"], d["reason"], d["acs"]), ("SUPPLEMENT", "reviewer_mismatch", [2]))
+        self.assertEqual(self.d(v, rnd=2, reply_text="AC1: PASS\nAC2: UNVERIFIED\nAC3: N/A\n")["next"], "NOT_CLOSED")
+        v2 = self.verdicts()
+        v2["acs"][1]["override_evidence"] = "git grep shows the string exists (mechanical)"
+        d = self.d(v2, reply_text="AC1: PASS\nAC2: UNVERIFIED | unsure\nAC3: N/A\n")
+        self.assertEqual((d["next"], d["overrides"]), ("CLOSE", [2]))
+
+    def test_reviewer_must_be_a_real_second_call(self):
+        for patch, code in (({"inline": True}, "reviewer_not_independent"),
+                            ({"independent_call": False}, "reviewer_not_independent"),
+                            ({"inline": None}, "reviewer_meta_invalid"),
+                            ({"actual_model": ""}, "reviewer_meta_invalid"),
+                            ({"actual_model": "gpt-9"}, "reviewer_model_unknown"),
+                            ({"family": "claude", "actual_model": "opus"}, "reviewer_fallback_unjustified"),
+                            ({"family": "claude", "actual_model": "opus", "fallback_used": True, "fallback_reason": "report_fix"},
+                             "reviewer_fallback_unjustified")):
+            v = self.verdicts()
+            v["reviewer"].update(patch)
+            d = self.d(v)
+            self.assertEqual((d["next"], d["reason"], d["detail"]), ("SUPPLEMENT", "reviewer_invalid", code), patch)
+            self.assertEqual(self.d(v, rnd=2)["next"], "NOT_CLOSED", patch)
+        v = self.verdicts()
+        v["reviewer"] = None
+        self.assertEqual(self.d(v)["detail"], "reviewer_meta_missing")
+        v = self.verdicts()
+        v["reviewer"] = {"family": "claude", "actual_model": "opus", "fallback_used": True, "fallback_reason": "quota",
+                         "independent_call": True, "inline": False}
+        self.assertEqual(self.d(v)["next"], "CLOSE")  # justified Claude fallback is a valid, separately recorded reviewer
+
+    def test_heavy_ticket_cannot_close_on_luna_and_light_may_escalate(self):
+        self.root = Path(tempfile.mkdtemp(dir=str(self.root)))
+        self.make_repo(allowed="x.py")
+        self.set_dependents()
+        self.preflight()
+        v = self.verdicts()
+        v["reviewer"].update(actual_model="gpt-6-luna", tier="light")
+        d = self.d(v)
+        self.assertEqual((d["next"], d["detail"]), ("SUPPLEMENT", "reviewer_tier_mismatch"))
+        # the escalation is not shadowed by the coverage cap on a light ticket
+        self.root = Path(tempfile.mkdtemp(dir=str(self.root)))
+        self.make_repo()
+        self.set_dependents()
+        self.preflight()
+        v = self.verdicts()
+        v["reviewer"].update(actual_model="gpt-6-luna", tier="light")
+        d = self.d(v, rnd=2, fb=0, reply_text="AC1: PASS\nAC2: UNVERIFIED\nAC3: N/A\n")
+        self.assertEqual((d["next"], d["reviewer"]), ("ESCALATE_REVIEWER", "gpt-6-sol"))
+        d = self.d(v, rnd=2, fb=1, reply_text="AC1: PASS\nAC2: UNVERIFIED\nAC3: N/A\n")
+        self.assertEqual(d["next"], "NOT_CLOSED")
+
+    def test_later_reply_overrides_earlier_for_the_acs_it_covers(self):
+        v = self.verdicts()
+        self.write_json("verdicts.json", v)
+        put(self.dir / "reviewer_reply.txt", "AC1: PASS\nAC2: UNVERIFIED\nAC3: N/A\n")
+        put(self.dir / "reviewer_reply2.txt", "AC2: PASS | escalated\n")
+        rc, d, _ = self.decide(0, 1, replies=["reviewer_reply.txt", "reviewer_reply2.txt"])
+        self.assertEqual((rc, d["next"]), (0, "CLOSE"))
+        self.assertEqual(self.read_json("decision.json")["coverage"], {"covered": 3, "total": 3})
+
+    def test_old_shaped_verdicts_without_reply_or_reviewer_fields_do_not_close(self):
+        old = {"reviewer": {"primary": "sonnet", "actual": "sonnet", "fallback_used": False, "limitation": ""},
+               "acs": self.verdicts()["acs"], "security_issue": False, "irreversible_risk": False,
+               "dependency_contract": {"status": "NONE_FOUND", "detail": ""}, "checkpoint_matter_resolved": None,
+               "_no_reply": True}
+        (self.dir / "reviewer_reply.txt").unlink(missing_ok=True)
+        self.write_json("verdicts.json", old)
+        rc, d, _ = self.decide()
+        self.assertNotEqual(d["next"], "CLOSE")
+
+    def test_finalize_discloses_model_tier_coverage_and_fallback(self):
+        self.write_summary()
+        v = self.verdicts()
+        v["reviewer"] = {"family": "claude", "actual_model": "opus", "tier": "heavy", "fallback_used": True,
+                         "fallback_reason": "quota", "independent_call": True, "inline": False, "limitation": "x"}
+        self.write_json("verdicts.json", v)
+        self.assertEqual(self.decide()[1]["next"], "CLOSE")
+        self.after()
+        self.assertEqual(self.finalize()[0], 0)
+        sec = self.ticket_path().read_text(encoding="utf-8").split("<!-- close-result:begin -->")[1]
+        for needle in ("claude/opus", "tier=heavy", "fallback:quota", "覆蓋 AC 3／3（全部）", "independent_call=True"):
+            self.assertIn(needle, sec)
+
+    def test_non_review_lifecycle_is_a_read_only_judgement(self):
+        self.root = Path(tempfile.mkdtemp(dir=str(self.root)))
+        self.make_repo(ticket_dir="Pending", pointer="Pending/TST-01_x.md", lifecycle="IN_PROGRESS")
+        self.preflight(dependents=False)
+        before = sha(self.ticket_path())
+        self.write_json("verdicts.json", self.verdicts())
+        rc, d, _ = self.decide()
+        self.assertEqual((d["next"], d["read_only"]), ("PRECONDITION_FAILED", True))
+        self.assertFalse((self.dir / "decision.json").exists())
+        self.assertEqual(sha(self.ticket_path()), before)
+
+
+class TestUpstreamWiring(unittest.TestCase):
+    """Contract layer only: text/grep checks of the real repo files. Not evidence of real Agent behaviour."""
+
+    @staticmethod
+    def text(rel):
+        return (REAL_REPO / rel).read_text(encoding="utf-8")
+
+    def test_skill_tool_form_and_no_slash_form(self):
+        sv, ssot = self.text(".claude/skills/sv/SKILL.md"), self.text(".claude/rules/ssot-governance.md")
+        for t in (sv, ssot):
+            self.assertIn("`Skill(ticket-author)`", t)
+            self.assertIn("close <", t)
+            self.assertNotIn("呼叫 `/ticket-author close", t)
+        step11 = sv.split("## Step 11")[1]
+        self.assertIn("Skill(ticket-author)", step11.split("4. **自主收束**")[1].split("5. **最終覆蓋確認**")[0])
+
+    def test_rapid_is_gone_and_low_risk_is_named_consistently(self):
+        for rel in (".claude/rules/ssot-governance.md", ".claude/skills/sv/SKILL.md", ".claude/skills/uc/SKILL.md",
+                    ".claude/hooks/gate_stop_guard.py"):
+            self.assertNotIn("RAPID", self.text(rel), rel)
+        ssot = self.text(".claude/rules/ssot-governance.md")
+        self.assertIn("低風險免 QA／SV 票", ssot)
+        self.assertIn("一般票（不符上列低風險條件）", ssot)
+        self.assertNotIn("低風險免審", ssot)
+        row = [ln for ln in ssot.splitlines() if ln.startswith("| 低風險免 QA／SV 票")][0]
+        for cond in ("①票面 `ALLOWED` 全為 `.md`", "②無 `app/` production code", "③票面無不可逆操作", "④可 `git revert`",
+                     "check commit", "Skill(qa)", "Skill(sv)", "Step 11 第 1–5 項"):
+            self.assertIn(cond, row)
+
+    def test_low_risk_condition_text_matches_claude_md_source(self):
+        claude = self.text(".claude/CLAUDE.md")
+        self.assertIn("低風險 docs／治理文本票（僅 `.md`、可 git revert）", claude)
+        self.assertIn("觸及 `app/` production code、腳本／pipeline 或不可逆操作之票維持全程序", claude)
+
+    def test_blocker_and_limit_rows_hand_over_to_tka(self):
+        ssot = self.text(".claude/rules/ssot-governance.md")
+        blocker = [ln for ln in ssot.splitlines() if ln.startswith("| SV 或 Codex 判 BLOCKER")][0]
+        for needle in ("Skill(ticket-author)", "唯讀", "不假轉 `REVIEW`", "lifecycle 不變"):
+            self.assertIn(needle, blocker)
+        rf = [ln for ln in ssot.splitlines() if ln.startswith("| SV／Codex 判 REPORT_FIX")][0]
+        self.assertIn("LIMIT 本身不是永久停車條件", rf)
+        self.assertIn("`reviews.codex` 填 `N_A` 不寫 `PASS`", rf)
+        self.assertNotIn("人工裁決 checkpoint", rf)
+        self.assertIn("6. **BLOCKER 交接**", self.text(".claude/skills/sv/SKILL.md"))
+
+    def test_uc_rule8_has_the_low_risk_branch(self):
+        uc = self.text(".claude/skills/uc/SKILL.md")
+        self.assertIn("低風險免 QA／SV 票", uc)
+        self.assertIn("Step 11 第 1–5 項", uc)
+        self.assertIn("Skill(ticket-author)", uc)
+
+    def test_ticket_id_source_is_not_only_verify_cmd_conf(self):
+        step11 = self.text(".claude/skills/sv/SKILL.md").split("## Step 11")[1]
+        self.assertIn("目前正式票上下文", step11)
+        self.assertIn("MUST NOT", step11.split("目前正式票上下文")[1][:300])
+        self.assertNotIn("（`<TICKET_ID>` 取自 `tmp/verify_cmd.conf`）；exit 0 續行", step11)
+
+    def test_skill_close_mode_contract(self):
+        sk = self.text(".claude/skills/ticket-author/SKILL.md")
+        head = sk.split("---", 2)[1]
+        self.assertNotIn("Manual modes: diag, plan, ticket, close", head)
+        mode = sk.split("## Mode: close")[1].split("## Conditional state matrix")[0]
+        for needle in ("EVERY AC", "reviewer_reply", "gpt-6-sol", "gpt-6-luna", "--codex-fault",
+                       "ESCALATE_REVIEWER", "never the implementing Agent answering inline", "`skill` = `ticket-author`",
+                       "read-only judgement", "Cross-Review verdict history"):
+            self.assertIn(needle, mode)
+        self.assertNotIn("ask the other reviewer", mode)
+        self.assertIn("--reply <dir>/reviewer_reply.txt", mode)
+
+    def test_light_classification_is_a_superset_of_the_low_risk_condition(self):
+        from importlib.util import module_from_spec, spec_from_file_location
+        spec = spec_from_file_location("close_helper_under_test", str(HELPER))
+        ch = module_from_spec(spec)
+        spec.loader.exec_module(ch)
+        self.assertEqual(ch.DOC_EXT, {".md", ".txt", ".rst"})
+        self.assertEqual(ch.classify(["plans/a.md"]), "light")
+        self.assertEqual(ch.classify(["docs/n.txt"]), "light")  # reviewer-light, but not low-risk (".md" only)
+        self.assertEqual(ch.classify([".claude/skills/x/SKILL.md"]), "heavy")
+        self.assertEqual((ch.CODEX_HEAVY, ch.CODEX_LIGHT), ("gpt-6-sol", "gpt-6-luna"))
+
+    def test_guard_prompt_no_longer_allows_stopping_before_close(self):
+        g = self.text(".claude/hooks/gate_stop_guard.py")
+        self.assertIn("Skill(ticket-author)", g)
+        self.assertNotIn("可停止", g)
+
+    def test_state_transitions_names_escalated_and_fault_reviewers(self):
+        st = self.text(".claude/skills/ticket-author/references/state-transitions.md")
+        self.assertIn("escalated reviewer", st)
+        self.assertNotIn("fallback reviewer", st)
 
 
 class TestRegistrySubjectBinding(Base):

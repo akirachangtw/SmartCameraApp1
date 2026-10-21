@@ -409,7 +409,7 @@ def build_check_reason(ctx: Ctx, unchecked, qa_clue: bool, local_pending: bool) 
     if qa_clue:
         parts.append("ledger 有 `qa` receipt 而其後無 `sv` receipt：請核對 `/qa` 最終結果與本票義務——"
                      "QA PASS 且本票要求 SV 則續接 `/sv`；FAIL 則依 Gate 記 finding 並自修／取證；"
-                     "RAPID 豁免或票面不要求 SV 則如實說明後可停止。")
+                     "票面不要求 SV（低風險免 QA／SV）則依 Transition Table 該列續行 closeout，並以 `Skill(ticket-author)` 調用 close，不得以此停止。")
     if local_pending:
         parts.append("部分 incident 已升報待人工；請判斷上述項目是否與其無關，無關者續作。")
     parts.append(BOUNDARY)

@@ -109,7 +109,7 @@ INTAKE_PARSED
 → reviewer selected
 → AC verdicts
 → decision
-→ [supplement | fallback reviewer]*
+→ [supplement | escalated reviewer | Codex-fault Claude reviewer]*
 → transition
 → read-back
 → final result
