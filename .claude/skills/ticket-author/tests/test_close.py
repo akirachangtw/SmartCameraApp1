@@ -1016,6 +1016,17 @@ class TestRegistrySubjectBinding(Base):
                          ("PRECONDITION_FAILED", "registry_id_mismatch", "STOP_EVIDENCE_CONFLICT"))
         self.assertFalse((self.dir / "decision.json").exists())
 
+    def test_registry_file_pointing_to_another_tickets_file_is_a_conflict(self):
+        text = self.ticket_path().read_text(encoding="utf-8").replace("TICKET_ID=TST-01", "TICKET_ID=OTHER-99")
+        put(self.ticket_path(), text)
+        rc, pre, _ = self.preflight()
+        self.assertEqual((rc, pre["consistency"]["status"]), (0, "FAIL"))
+        self.assertIn("ticket_file_id=OTHER-99", pre["consistency"]["detail"])
+        self.write_json("verdicts.json", self.verdicts())
+        rc, d, _ = self.decide()
+        self.assertEqual((d["next"], d["stop"]), ("PRECONDITION_FAILED", "STOP_EVIDENCE_CONFLICT"))
+        self.assertFalse((self.dir / "decision.json").exists())
+
     def test_readback_and_finalize_reject_foreign_registry_object(self):
         self.to_close()
         self.write_summary()

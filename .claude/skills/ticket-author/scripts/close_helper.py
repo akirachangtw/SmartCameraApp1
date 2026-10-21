@@ -510,9 +510,13 @@ def build_preflight(repo, tid, reg, dep_path, now):
     pre["acs_status"] = "OK" if acs else "UNAVAILABLE"
     pre["acs"] = acs
     pre["final_result_present"] = bool(text and MARK_BEGIN in text)
-    lc_ok = lifecycle in ("REVIEW", "CLOSED") and loc["location"] in ("deliver", "deliver/archive") and not loc["pointer_conflict"]
+    file_tid = cfg.get("TICKET_ID")
+    id_ok = not file_tid or file_tid == tid
+    lc_ok = (lifecycle in ("REVIEW", "CLOSED") and loc["location"] in ("deliver", "deliver/archive")
+             and not loc["pointer_conflict"] and id_ok)
     pre["consistency"] = {"status": "PASS" if lc_ok else "FAIL",
-                          "detail": "lifecycle=%s location=%s pointer_conflict=%s" % (lifecycle, loc["location"], loc["pointer_conflict"])}
+                          "detail": "lifecycle=%s location=%s pointer_conflict=%s ticket_file_id=%s"
+                                    % (lifecycle, loc["location"], loc["pointer_conflict"], file_tid or "-")}
     ev = range_evidence(repo, tid, cfg, loc["path"], allowed, forbidden) if text else {
         "base": None, "impl_end": None, "binding_ref": None, "commits": [],
         "scope": {"status": "UNKNOWN", "reason": "no_ticket_file", "violations": []},
