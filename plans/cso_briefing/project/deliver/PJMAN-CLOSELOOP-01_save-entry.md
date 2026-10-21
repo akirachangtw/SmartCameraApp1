@@ -344,3 +344,12 @@ f) 專案成果文件（含 `## 階段成果表` 的 outcomes 文件）的建立
 - [x] `/mdlint` 對五檔無新增 warning（MD022/025/040/055/060 等）；五檔 `git ls-files --eol` 仍為 `i/lf w/lf`。（2026-10-21：以腳本對各檔 diff 變更行檢 MD012／MD022／MD026／MD040，五檔皆無新增；提交後 eol 仍 lf）
 - ~~`assembleDebug` PASS~~ (N/A: docs preset)
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案（綁定 `DIFF_REF..DIFF_END`，`DIFF_END` 定義同 AC-8）（2026-10-21：`5f996ccb..3e92898f` 5 files changed, 45 insertions(+), 12 deletions(-)，全為 ALLOWED）
+
+<!-- close-result:begin -->
+## 收束結果（close）
+- 交付摘要: 交付：五檔規則／Skill 同批替換（實作 3e92898f）——Projman 成為成果文件唯一入口、base／update／align 共同寫前檢查＋核對＋自主單檔提交 [PROJMAN-SYNC]、最終覆蓋確認、作廢清單排除；PJMAN-AUTOALIGN-01 remaining ① 三態／四態分歧已解除。 / 驗收：13 條 AC 於各自明載範圍內成立；AC-6／AC-7 為限定範圍成立＋具名豁免 AC6-AC7-SCOPED-ACCEPTANCE，非真實行為 PASS。Codex 實際 verdict＝ADVISORY（REPORT_FIX×3＋LIMIT 後經 Akira 裁決 B 一次例外重審），reviews.codex=PASS 為映射值。 / 限定：模型契約、無機械後盾；四個 guard missing-wiring／Producer (C)、無自動化 integration test、真實 Skill 自動呼叫、Skill(projman) 權限、跨 session transcript、m3_family_audit.sh（U1／U3／U4）均未驗；Dashboard 類同步依 DEFERRED-TO-DOCSYNC 延後。
+- 最終驗收結論: 核心 AC 7 條皆為 PASS 或有效 N/A；非核心 PASS 6／N/A 0／UNVERIFIED 0
+- 實作提交: 3e92898f
+- 實際收束結果: 2026-10-22 轉 CLOSED，lifecycle／file／reviews 讀回一致；reviewer: sonnet
+- 披露: reviewer limitation: Sonnet 主審（docs 類）；整體建議可 CLOSE；Codex 實際 verdict=ADVISORY（SV 例外重審）
+<!-- close-result:end -->
