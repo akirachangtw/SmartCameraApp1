@@ -375,7 +375,7 @@ def incident_lines(st: dict, incidents) -> list:
 
 ROUTER = ("依 Gate 順序走 Router：R1 已授權可做者直接做並驗證；R2 未知先本地取證（`consult --kind local`）；"
           "R3 仍不能判定下一個安全行動才取得 Advisor（來源、核對與記帳依 Gate「Advisor 與 PPSS」條文，一律經入口 `route.py consult`；`consult --kind advisor` 由入口寫入；本層不確定即可升層，"
-          "不必先用完本層輪數）；R4 缺必要外部事實才用 PPSS（經入口 `route.py consult --source research.ppss`：派發→`research_submit`→record／read）；"
+          "不必先用完本層輪數）；R4 缺必要外部事實才用 PPSS（經入口 `route.py consult --source research.ppss`：派發→`research_submit`→bind→record／read）；"
           "R5 PPSS 證據回流同一 incident，於後續 round 策略引用並消費；同缺口不重送、不新增研究額度；"
           "R6 以新且已授權策略 `round start`（`--layer` 依策略來源層；advisor 層首輪前須有同 incident "
           "`consult --kind advisor`）→修復→局部驗證→`round end`。")

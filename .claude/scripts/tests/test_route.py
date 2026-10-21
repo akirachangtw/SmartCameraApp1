@@ -489,9 +489,22 @@ class PpssTests(RouteCase):
             argv += ["--query", q]
         return self.run_main(argv + list(extra))
 
-    def record(self, did, art, extra=()):
+    def bind_args(self, did, art, rid=None, extra=()):
+        if rid is None:
+            rid = json.loads(Path(art).read_text(encoding="utf-8")).get("request_id", "none") if Path(art).is_file() else "none"
+        return ["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "bind",
+                "--dispatch-id", did, "--request-id", rid, "--artifact", str(art), *extra]
+
+    def record(self, did, art, extra=(), bind=True):
+        extra = list(extra)
+        bind_extra = [x for x in extra if x == "--cached-artifact"]        # the time exemption belongs to bind only
+        rec_extra = [x for x in extra if x != "--cached-artifact"]
+        if bind:
+            rc, o, e = self.run_main(self.bind_args(did, art, extra=bind_extra))
+            if rc != 0:
+                return rc, o, e
         return self.run_main(["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "record",
-                              "--dispatch-id", did, "--artifact", str(art), *extra])
+                              "--dispatch-id", did, "--artifact", str(art), *rec_extra])
 
     def read(self, rid="rsch-20261020-aaaaaaaaaa", supports="none", quote=None, src="hello world snippet"):
         sf = self.write("src.txt", src)
@@ -690,6 +703,9 @@ class ConcurrencyTests(RouteCase):
         later = datetime.fromtimestamp(time.time() + 600, timezone.utc).isoformat()     # the CLI dispatch used the real clock
         art = self.write("art.json", json.dumps({"request_id": "rsch-20261020-cccccccccc", "queries": qs, "captured_at": later,
                          "results": [{"url": "https://docs.example.com/a", "title": "t", "snippet": "s"}]}))
+        rc, b, _ = self.cli(["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "bind",
+                             "--dispatch-id", d["dispatch_id"], "--request-id", "rsch-20261020-cccccccccc", "--artifact", str(art)])
+        self.assertEqual((rc, b["disposition"]), (0, "BOUND"), b)
         cmd = self.cli_cmd(["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "record",
                             "--dispatch-id", d["dispatch_id"], "--artifact", str(art), "--new-query-strategy", "s", "--reason", "r"])
         res = self.spawn([cmd for _ in range(4)])
@@ -742,12 +758,13 @@ class ConcurrencyTests(RouteCase):
 
 
 class ChainTests(RouteCase):
-    """ADV-ENTRY-01 Rev C: Traycer T2 F1-F3 on the dispatch -> return -> record chain. Real route.main / CLI and the
-    public ledger CLI only; atomicity cases use real concurrent processes or a real ledger CLI action at the
+    """ADV-ENTRY-01 Rev C / C.1: Traycer T2 F1-F3 on the dispatch -> bind -> record chain. Real route.main / CLI and
+    the public ledger CLI only; atomicity cases use real concurrent processes or a real ledger CLI action at the
     interleaving point. Zero network."""
     QUERIES = ["Alpha Query", "beta query"]
     RA, RB, RC = "rsch-20261020-aaaaaaaaaa", "rsch-20261020-bbbbbbbbbb", "rsch-20261020-cccccccccc"
     STRAT = ("--new-query-strategy", "s2", "--reason", "r2")
+    OLD = "2026-10-01T00:00:00+00:00"                      # predates every dispatch of these tests (FIXED = 2026-10-20 09:30)
 
     def art(self, name="art.json", rid=RA, captured="2026-10-20T09:45:00+00:00", queries=None):
         return PpssTests.artifact(self, name, queries=queries, rid=rid, captured=captured)
@@ -755,8 +772,14 @@ class ChainTests(RouteCase):
     def disp(self, **kw):
         return PpssTests.dispatch(self, **kw)
 
-    def rec(self, did, art, extra=()):
-        return PpssTests.record(self, did, art, extra)
+    def rec(self, did, art, extra=(), bind=True):
+        return PpssTests.record(self, did, art, extra, bind)
+
+    def bind(self, did, art, rid=None, extra=(), now=None):
+        return self.run_main(PpssTests.bind_args(self, did, art, rid, extra), now=now)
+
+    def read_it(self, rid=None):
+        return PpssTests.read(self, rid or self.RA)
 
     def inc_status(self):
         rc, out, err = self.ledger("status", "--json")
@@ -767,9 +790,12 @@ class ChainTests(RouteCase):
     def ppss_events(self):
         return [e for e in self.events() if e["type"] == "ppss_record"]
 
-    def record_cmd(self, did, art):
-        return self.cli_cmd(["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "record",
-                             "--dispatch-id", did, "--artifact", str(art), *self.STRAT])
+    def desc_file(self, did):
+        return self.repo / "tmp" / TICKET / "route" / f"dispatch_{did}.json"
+
+    def cmd(self, phase, did, art, *more):
+        return self.cli_cmd(["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", phase,
+                             "--dispatch-id", did, "--artifact", str(art), *more])
 
     # ------------------------------------------------------------- F1
     def test_F1_slot_is_the_monotonic_record_count_and_request_ids_dedupe(self):
@@ -778,13 +804,13 @@ class ChainTests(RouteCase):
         self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
         inc, _ = self.inc_status()
         self.assertEqual(inc["ppss_records"], 1)
-        self.assertEqual(PpssTests.read(self, self.RA)[0], 0)                       # consume the result
+        self.assertEqual(self.read_it()[0], 0)                                          # consume the result
         rc, d2, _ = self.disp(extra=self.STRAT)
         self.assertNotEqual(d1["dispatch_id"], d2["dispatch_id"])                      # the slot advanced
         n = self.n_events()
-        for _ in range(2):                                                             # same request id again, with a new strategy
+        for _ in range(2):                                                             # the same response again, even with a new strategy
             rc, o, _ = self.rec(d2["dispatch_id"], self.art(), self.STRAT)
-            self.assertEqual((rc, o["reason"]), (5, "duplicate_request_id"), o)
+            self.assertEqual((rc, o["reason"]), (5, "artifact_bound_elsewhere"), o)
         rc, o, _ = self.rec(d1["dispatch_id"], self.art())                             # the consumed dispatch cannot be replayed
         self.assertEqual((rc, o["reason"]), (5, "stale_or_duplicate_dispatch"), o)
         self.assertEqual(self.n_events(), n)
@@ -797,28 +823,41 @@ class ChainTests(RouteCase):
         self.assertEqual((rc, o["reason"]), (5, "stale_or_duplicate_dispatch"), o)
         self.assertEqual(len(self.ppss_events()), 2)
 
-    def test_F1_slot_does_not_depend_on_the_distinct_request_index(self):
+    def test_F1_a_refused_repeat_keeps_the_slot_and_the_dispatch_usable(self):
         rc, d1, _ = self.disp()
         self.assertEqual(self.rec(d1["dispatch_id"], self.art())[0], 0)
-        self.assertEqual(PpssTests.read(self, self.RA)[0], 0)
+        self.assertEqual(self.read_it()[0], 0)
         rc, d2, _ = self.disp(extra=self.STRAT)
-        # the ledger refuses the repeated request id, so the event count and status stay put and d2 stays usable
         self.assertEqual(self.rec(d2["dispatch_id"], self.art(), self.STRAT)[0], 5)
         inc, st = self.inc_status()
         self.assertEqual((inc["ppss_records"], len(st["ppss"])), (1, 1))
         rc, d2b, _ = self.disp(extra=self.STRAT)
         self.assertEqual(d2["dispatch_id"], d2b["dispatch_id"])
 
-    def test_F1_concurrent_records_of_one_request_id_land_at_most_once(self):
+    def test_F1_ledger_duplicate_request_id_is_reported_when_the_binding_layer_is_bypassed(self):
+        art = self.art()
+        rc, out, err = self.ledger("ppss", "record", "--incident", self.inc, "--artifact", str(art))     # public ledger CLI, no route
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(self.read_it()[0], 0)
+        rc, d, _ = self.disp(extra=self.STRAT)
+        self.assertEqual(rc, 0)
+        n = self.n_events()
+        rc, o, _ = self.rec(d["dispatch_id"], art, self.STRAT)
+        self.assertEqual((rc, o["reason"]), (5, "duplicate_request_id"), o)
+        self.assertEqual(self.n_events(), n)
+
+    def test_F1_concurrent_records_land_at_most_once(self):
         rc, d1, _ = self.disp()
         self.assertEqual(self.rec(d1["dispatch_id"], self.art())[0], 0)
-        self.assertEqual(PpssTests.read(self, self.RA)[0], 0)
+        self.assertEqual(self.read_it()[0], 0)
         rc, d2, _ = self.disp(extra=self.STRAT)
-        res = ConcurrencyTests.spawn(self, [self.record_cmd(d2["dispatch_id"], self.art("dup.json", rid=self.RA)) for _ in range(4)])
-        self.assertEqual(sum(1 for r in res if r[0] == 0), 0, res)                    # already recorded: nobody wins
-        self.assertEqual(len(self.ppss_events()), 1)
-        res = ConcurrencyTests.spawn(self, [self.record_cmd(d2["dispatch_id"], self.art("new.json", rid=self.RB)) for _ in range(4)])
-        self.assertEqual(sum(1 for r in res if r[0] == 0), 1, res)                    # a new id: exactly one wins
+        new = self.art("new.json", rid=self.RB)
+        self.assertEqual(self.bind(d2["dispatch_id"], new)[0], 0)
+        res = ConcurrencyTests.spawn(self, [self.cmd("record", d2["dispatch_id"], new, *self.STRAT) for _ in range(4)])
+        self.assertEqual(sum(1 for r in res if r[0] == 0), 1, res)                    # exactly one wins
+        self.assertEqual(len(self.ppss_events()), 2)
+        res = ConcurrencyTests.spawn(self, [self.cmd("bind", d2["dispatch_id"], new, "--request-id", self.RB) for _ in range(4)])
+        self.assertEqual({r[0] for r in res}, {5}, res)                               # d2 is consumed: nobody binds or records again
         self.assertEqual(len(self.ppss_events()), 2)
 
     # ------------------------------------------------------------- F2
@@ -890,37 +929,13 @@ class ChainTests(RouteCase):
         again = self.disp(question="Android observer leak")[1]["dispatch_id"]
         self.assertEqual(again, base)                                                   # same whole request: same id
 
-    def test_F3_artifact_of_dispatch_A_is_not_accepted_for_dispatch_B(self):
-        t_a = FIXED
-        t_b = datetime(2026, 10, 20, 9, 40, 0, tzinfo=timezone.utc)
-        argv = lambda q: ["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "dispatch",
-                          "--question", q, "--query", "Alpha Query", "--query", "beta query"]
-        rc, a, _ = self.run_main(argv("Android observer leak"), now=lambda: t_a)
-        rc, b, _ = self.run_main(argv("Android UI color"), now=lambda: t_b)
-        self.assertNotEqual(a["dispatch_id"], b["dispatch_id"])
-        art_a = self.art("a.json", captured="2026-10-20T09:35:00+00:00")                # research A ran between the two dispatches
-        n = self.n_events()
-        rc, o, _ = self.rec(b["dispatch_id"], art_a)
-        self.assertEqual((rc, o["reason"]), (5, "artifact_predates_dispatch"), o)
-        self.assertEqual(self.n_events(), n)
-        rc, o, _ = self.rec(a["dispatch_id"], art_a)                                      # it belongs to A
-        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
-
-    def test_F3_cached_artifact_is_a_declared_override_not_a_silent_pass(self):
-        rc, d, _ = self.disp()
-        old = self.art(captured="2026-10-01T00:00:00+00:00")
-        rc, o, _ = self.rec(d["dispatch_id"], old)
-        self.assertEqual((rc, o["reason"]), (5, "artifact_predates_dispatch"))
-        rc, o, _ = self.rec(d["dispatch_id"], old, ("--cached-artifact",))
-        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
-
     def test_F3_missing_tampered_or_mismatching_descriptions_are_refused(self):
-        rc, d, _ = self.disp(extra=("--domains", "docs.example.com"))
+        rc, d = self.disp(extra=("--domains", "docs.example.com"))[:2]
         did = d["dispatch_id"]
-        desc = self.repo / "tmp" / TICKET / "route" / f"dispatch_{did}.json"
+        desc = self.desc_file(did)
         self.assertTrue(desc.is_file())
         n = self.n_events()
-        rc, o, _ = self.rec(did, self.art(), ("--domains", "other.example.org"))              # declared domains differ
+        rc, o, _ = self.rec(did, self.art(), ("--domains", "other.example.org"))              # declared domains differ at record
         self.assertEqual((rc, o["reason"]), (5, "dispatch_mismatch"), o)
         body = json.loads(desc.read_text(encoding="utf-8"))
         body["request"]["question"] = "tampered question"                                       # description edited after dispatch
@@ -931,6 +946,148 @@ class ChainTests(RouteCase):
         rc, o, _ = self.rec(did, self.art())
         self.assertEqual((rc, o["reason"]), (5, "dispatch_mismatch"), o)
         self.assertEqual(self.n_events(), n)
+
+    # ------------------------------------------------------------- C.1: bind the tool response to the dispatch
+    def test_B1_the_response_is_bound_to_the_dispatch_and_record_checks_the_association(self):
+        rc, d, _ = self.disp()
+        did = d["dispatch_id"]
+        art = self.art()
+        n = self.n_events()
+        rc, o, _ = self.rec(did, art, bind=False)                                                # nothing bound yet
+        self.assertEqual((rc, o["reason"]), (5, "unbound_dispatch"), o)
+        rc, o, _ = self.bind(did, art)
+        self.assertEqual((rc, o["disposition"], o["request_id"]), (0, "BOUND", self.RA), o)
+        b = json.loads(self.desc_file(did).read_text(encoding="utf-8"))["binding"]
+        self.assertEqual((b["request_id"], b["artifact_sha256"], b["artifact_path"]),
+                         (self.RA, sha(art.read_bytes()), Path(os.path.abspath(art)).as_posix()))
+        self.assertEqual(self.bind(did, art)[0], 0)                                              # idempotent for the same response
+        rc, o, _ = self.bind(did, self.art("other.json", rid=self.RB))                           # a different response for the same dispatch
+        self.assertEqual((rc, o["reason"]), (5, "dispatch_already_bound"), o)
+        moved = self.write("copy.json", art.read_bytes())                                       # same content, another path
+        rc, o, _ = self.rec(did, moved, bind=False)
+        self.assertEqual((rc, o["reason"]), (5, "binding_mismatch"), o)
+        art.write_text(art.read_text(encoding="utf-8") + " ", encoding="utf-8")                  # content changed after binding
+        rc, o, _ = self.rec(did, art, bind=False)
+        self.assertEqual((rc, o["reason"]), (5, "binding_mismatch"), o)
+        self.assertEqual(self.n_events(), n)
+        art.write_text(art.read_text(encoding="utf-8").rstrip(" "), encoding="utf-8")            # restored: the association holds again
+        rc, o, _ = self.rec(did, art, bind=False)
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+
+    def test_B2_same_queries_different_requests_cannot_swap_responses(self):
+        argv = lambda q: ["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "dispatch",
+                          "--question", q, "--query", "Alpha Query", "--query", "beta query"]
+        rc, a, _ = self.run_main(argv("Android observer leak"))
+        rc, b, _ = self.run_main(argv("Android UI color"))
+        self.assertNotEqual(a["dispatch_id"], b["dispatch_id"])                        # distinguishable dispatches, same slot
+        art_a, art_b = self.art("a.json", rid=self.RA), self.art("b.json", rid=self.RB)
+        self.assertEqual(self.bind(a["dispatch_id"], art_a)[0], 0)                      # A's response is bound to A right away
+        n = self.n_events()
+        rc, o, _ = self.bind(b["dispatch_id"], art_a)                                   # B cannot claim A's response
+        self.assertEqual((rc, o["reason"]), (5, "artifact_bound_elsewhere"), o)
+        rc, o, _ = self.rec(b["dispatch_id"], art_a, bind=False)                        # nor record it without a binding of its own
+        self.assertEqual((rc, o["reason"]), (5, "unbound_dispatch"), o)
+        rc, o, _ = self.bind(b["dispatch_id"], art_a, rid=self.RB)                      # nor relabel it with B's request id
+        self.assertEqual((rc, o["reason"]), (5, "request_id_mismatch"), o)
+        self.assertEqual(self.n_events(), n)
+        self.assertEqual(self.bind(b["dispatch_id"], art_b)[0], 0)                      # B's own response binds fine
+        rc, o, _ = self.rec(a["dispatch_id"], art_a, bind=False)
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+        rc, o, _ = self.rec(b["dispatch_id"], art_b, bind=False)                        # B lost its slot to A: stale, not silently recorded
+        self.assertEqual((rc, o["reason"]), (5, "stale_or_duplicate_dispatch"), o)
+        self.assertEqual(len(self.ppss_events()), 1)
+
+    def test_B3_a_response_older_than_the_dispatch_needs_the_declared_cache_flag(self):
+        t_a = FIXED
+        t_b = datetime(2026, 10, 20, 9, 40, 0, tzinfo=timezone.utc)
+        argv = lambda q: ["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "dispatch",
+                          "--question", q, "--query", "Alpha Query", "--query", "beta query"]
+        rc, a, _ = self.run_main(argv("Android observer leak"), now=lambda: t_a)
+        rc, b, _ = self.run_main(argv("Android UI color"), now=lambda: t_b)
+        art_a = self.art("a.json", captured="2026-10-20T09:35:00+00:00")                # research A ran between the two dispatches
+        n = self.n_events()
+        rc, o, _ = self.bind(b["dispatch_id"], art_a)
+        self.assertEqual((rc, o["reason"]), (5, "artifact_predates_dispatch"), o)
+        self.assertEqual(self.n_events(), n)
+        rc, o, _ = self.rec(a["dispatch_id"], art_a)                                      # it belongs to A
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+
+    def test_B4_the_request_id_of_the_response_must_match_the_artifact(self):
+        rc, d, _ = self.disp()
+        art = self.art()
+        rc, o, _ = self.bind(d["dispatch_id"], art, rid="rsch-20261020-zzzzzzzzzz")
+        self.assertEqual((rc, o["reason"]), (5, "request_id_mismatch"), o)
+        rc, o, _ = self.bind(d["dispatch_id"], art, rid="rsch-20261020-zzzzzzzzzz", extra=("--cached-artifact",))
+        self.assertEqual((rc, o["reason"]), (5, "request_id_mismatch"), o)               # the cache flag does not excuse a fresh artifact
+
+    def test_B5_cached_artifact_exempts_only_the_time_condition(self):
+        old = self.art("old.json", captured=self.OLD)
+        rc, d, _ = self.disp()
+        did = d["dispatch_id"]
+        rc, o, _ = self.bind(did, old, rid="rsch-20261020-hit0000001")
+        self.assertEqual((rc, o["reason"]), (5, "artifact_predates_dispatch"), o)       # without the flag the time rule holds
+        self.assertEqual(PpssTests.dispatch(self, extra=())[0], 0)
+        # the flag lets a cache hit (new tool request id, older artifact) through the time rule only
+        rc, o, _ = self.bind(did, old, rid="rsch-20261020-hit0000001", extra=("--cached-artifact",))
+        self.assertEqual((rc, o["disposition"]), (0, "BOUND"), o)
+        self.assertEqual(o["artifact_request_id"], self.RA)
+        # ... but never the uniqueness of the response: a second dispatch cannot take the same response
+        rc, d2, _ = self.disp(question="a different question")
+        rc, o, _ = self.bind(d2["dispatch_id"], old, rid="rsch-20261020-hit0000001", extra=("--cached-artifact",))
+        self.assertEqual((rc, o["reason"]), (5, "artifact_bound_elsewhere"), o)
+        rc, o, _ = self.bind(d2["dispatch_id"], old, rid="rsch-20261020-hit0000002", extra=("--cached-artifact",))
+        self.assertEqual((rc, o["reason"]), (5, "artifact_bound_elsewhere"), o)          # nor the same artifact in the same incident
+        # record does not accept the flag
+        rc, o, _ = self.run_main(["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "record",
+                                  "--dispatch-id", did, "--artifact", str(old), "--cached-artifact"])
+        self.assertEqual(rc, 2)
+        # the binding, the slot and the ledger de-duplication still apply: record it once, then nothing repeats
+        rc, o, _ = self.rec(did, old, bind=False)
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+        n = self.n_events()
+        rc, o, _ = self.bind(did, old, rid="rsch-20261020-hit0000001", extra=("--cached-artifact",))   # dispatch consumed: slot moved on
+        self.assertEqual((rc, o["reason"]), (5, "stale_or_duplicate_dispatch"), o)
+        self.assertEqual(self.n_events(), n)
+
+    def test_B6_cache_flag_does_not_exempt_ledger_deduplication(self):
+        old = self.art("old.json", captured=self.OLD)
+        rc, out, err = self.ledger("ppss", "record", "--incident", self.inc, "--artifact", str(old))   # this artifact was recorded before
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(self.read_it()[0], 0)
+        rc, d, _ = self.disp(extra=self.STRAT)
+        self.assertEqual(self.bind(d["dispatch_id"], old, rid="rsch-20261020-hit0000009", extra=("--cached-artifact",))[0], 0)
+        n = self.n_events()
+        rc, o, _ = self.run_main(["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "record",
+                                  "--dispatch-id", d["dispatch_id"], "--artifact", str(old), *self.STRAT])
+        self.assertEqual((rc, o["reason"]), (5, "duplicate_request_id"), o)
+        self.assertEqual(self.n_events(), n)
+
+    def test_B7_a_ledger_without_ppss_records_is_refused_not_approximated(self):
+        rc, d, _ = self.disp()
+        art = self.art()
+        self.assertEqual(self.bind(d["dispatch_id"], art)[0], 0)
+        n = self.n_events()
+        real = route.ledger_status
+
+        def old_ledger_status(root, ticket_arg):
+            st = real(root, ticket_arg)
+            for i in st.get("incidents", []):
+                i.pop("ppss_records", None)                  # what an older gate_ledger.py reports
+            return st
+
+        with mock.patch.object(route, "ledger_status", old_ledger_status):
+            for argv in (["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "dispatch",
+                          "--question", "q?", "--query", "x"],
+                         self.bind_args(d["dispatch_id"], art),
+                         ["consult", "--incident", self.inc, "--source", "research.ppss", "--phase", "record",
+                          "--dispatch-id", d["dispatch_id"], "--artifact", str(art)]):
+                rc, o, _ = self.run_main(argv)
+                self.assertEqual((rc, o["reason"]), (5, "ledger_incompatible"), (argv, o))
+        self.assertEqual(self.n_events(), n)
+        self.assertEqual(len(self.ppss_events()), 0)
+
+    def bind_args(self, did, art, rid=None, extra=()):
+        return PpssTests.bind_args(self, did, art, rid, extra)
 
 
 if __name__ == "__main__":

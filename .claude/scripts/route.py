@@ -12,10 +12,15 @@ Sources (route_table.json):
     advisor.native  model-dispatch: --phase dispatch --purpose TEXT  ->  the main agent calls the native `advisor`
                     tool  ->  --phase return --dispatch-id ID --purpose TEXT --note REF (records the consult).
     research.ppss   model-dispatch: --phase dispatch (pre-flight judgement, then the concrete research_submit
-                    params) -> main agent calls research_submit -> --phase record --dispatch-id ID --artifact PATH
-                    (checks the saved dispatch description, then pass-through of `ppss record`; the ledger refuses
-                    a request id already recorded for the incident; --cached-artifact is a DECLARED override for an
-                    artifact captured before the dispatch, e.g. a cache hit) -> --phase read ... (pass-through).
+                    params) -> main agent calls research_submit -> --phase bind --dispatch-id ID --request-id R
+                    --artifact PATH (R and PATH are the tool response's request_id and artifact_path; the entry
+                    stores request_id, artifact path and sha256 in the saved dispatch description and refuses a
+                    response already bound elsewhere) -> --phase record --dispatch-id ID --artifact PATH (needs the
+                    binding, same path and same sha256; then pass-through of `ppss record`; the ledger refuses a
+                    request id already recorded for the incident) -> --phase read ... (pass-through).
+                    --cached-artifact (bind only) is a DECLARED exemption of the captured-at-or-after-dispatch
+                    time condition for a cache hit; it never exempts the binding, the uniqueness, the ledger
+                    de-duplication or the dispatch slot checks.
     Disabled source: SOURCE_DISABLED + `alternatives` (same role, callable, enabled). The entry never picks one
     for the caller. No enabled source of that role at all: MISSING_REQUIRED.
 
@@ -24,13 +29,14 @@ Envelope: {ok, verb, disposition, source?, phase?, via:"route.py", reason?, deta
            dispatch_id?, existing?, alternatives?, ledger_seq?, receipt?, receipt_sha256?, request_id?,
            advisor_exit?, advice?, ledger?}
 Exit codes (own set; not the ledger's, not advisor_call's):
-    0 OK (DISPATCHED | RECORDED)   2 usage   3 route table missing/invalid
+    0 OK (DISPATCHED | BOUND | RECORDED)   2 usage   3 route table missing/invalid
     4 UNKNOWN_SOURCE | NOT_CALLABLE | SOURCE_DISABLED | MISSING_REQUIRED
     5 REFUSED (reason: incident_not_open ticket_not_mutable incident_token_missing|mismatch|ambiguous
        evidence_token_missing|ambiguous evidence_file_unreadable|empty evidence_hash_mismatch receipt_mismatch
        request_invalid dispatch_mismatch stale_or_duplicate_dispatch existing_results_unconsumed
        prior_research_requires_strategy busy ledger_refused duplicate_request_id incident_closed_after_call
-       artifact_predates_dispatch)
+       artifact_predates_dispatch request_id_mismatch artifact_bound_elsewhere dispatch_already_bound unbound_dispatch
+       binding_mismatch ledger_incompatible)
     6 CALL_FAILED (caller / infrastructure failure; advisor_exit carries the caller's exit code)
 
 Mechanical checks (the ONLY thing "constructed" by this entry; they compare DECLARED items with each other):
@@ -508,11 +514,14 @@ def native_slot(inc):
 
 def ppss_slot(st, incident):
     """Monotonic per-incident ppss_record event count (ledger `incidents[].ppss_records`). status.ppss[] is a
-    result index keyed by request_id and must not be used as the consumption counter."""
+    result index keyed by request_id and must not be used as the consumption counter, so a ledger that does not
+    report the count is refused outright instead of falling back to counting the index."""
     inc = next((i for i in st.get("incidents", []) if i.get("id") == incident), None)
-    if inc is not None and isinstance(inc.get("ppss_records"), int):
-        return inc["ppss_records"]
-    return sum(1 for r in st.get("ppss", []) if r.get("incident") == incident)    # ledger without the field
+    if inc is None or isinstance(inc.get("ppss_records"), bool) or not isinstance(inc.get("ppss_records"), int):
+        raise Stop(E_REFUSED, "REFUSED", "ledger_incompatible",
+                   "ledger status has no incidents[].ppss_records (older gate_ledger.py): PPSS dispatch/bind/record refused, "
+                   "no fallback to the request-id index")
+    return inc["ppss_records"]
 
 
 def desc_path(root, ticket, did):
@@ -531,6 +540,11 @@ def save_descriptor(root, ticket, did, doc, slot, when):
     body = {"dispatch_id": did, "ticket": ticket, "slot": slot, "digest": digest,
             "dispatched_at": when.isoformat() if hasattr(when, "isoformat") else str(when),
             "request": doc}
+    write_descriptor(p, body)
+    return p
+
+
+def write_descriptor(p, body):
     tmpf = p.with_name(p.name + f".{os.getpid()}.tmp")
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -542,7 +556,13 @@ def save_descriptor(root, ticket, did, doc, slot, when):
         except OSError:
             pass
         raise Stop(E_FAILED, "CALL_FAILED", "scratch_unwritable", f"cannot save the dispatch description: {type(exc).__name__}")
-    return p
+
+
+def norm_path(s):
+    try:
+        return Path(os.path.abspath(str(s))).as_posix()
+    except (OSError, ValueError):
+        return str(s)
 
 
 def load_descriptor(root, ticket, did):
@@ -674,42 +694,41 @@ def do_ppss(a, table_src, root, ticket_arg, now):
         extra = (" --new-query-strategy <同派發> --reason <同派發>" if prior else "")
         return {"ok": True, "disposition": "DISPATCHED", "dispatch_id": did,
                 "action": {"type": "model_tool", "tool": table_src["dispatch"]["tool"], "params": params},
-                "return_with": f"{cli_prefix(a.source, a.incident)} --phase record --dispatch-id {did} "
-                               f"--artifact <research_submit 回件之 artifact_path>{extra}",
+                "return_with": (f"{cli_prefix(a.source, a.incident)} --phase bind --dispatch-id {did} "
+                                f"--request-id <research_submit 回件之 request_id> --artifact <回件之 artifact_path>"
+                                f" [--cached-artifact 僅當回件 cache 欄為 hit]；再 {cli_prefix(a.source, a.incident)} "
+                                f"--phase record --dispatch-id {did} --artifact <同一 artifact_path>{extra}"),
                 "detail": "dispatch only: this entry cannot call the MCP tool nor observe its cost"}
+    if a.phase == "bind":
+        return ppss_bind(a, root, ticket_arg, now)
     # record
+    if a.cached_artifact:
+        raise Stop(E_USAGE, "USAGE", "usage", "--cached-artifact belongs to --phase bind (it only exempts the time condition)")
     if not a.artifact:
         raise Stop(E_USAGE, "USAGE", "usage", "--artifact is required for record")
     given = a.dispatch_id or ""
     if not DISPATCH_ID_RE.match(given):
         raise Stop(E_REFUSED, "REFUSED", "request_invalid", "dispatch id missing or malformed")
-    try:
-        art = json.loads(Path(a.artifact).read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        raise Stop(E_REFUSED, "REFUSED", "request_invalid", f"artifact unreadable: {type(exc).__name__}")
-    aq = art.get("queries") if isinstance(art, dict) else None
-    anq = norm_queries([q for q in aq if isinstance(q, str)]) if isinstance(aq, list) else []
-    if not anq:
-        raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "artifact has no usable queries field")
     ticket = ticket_of(root, ticket_arg)
     with route_lock(root, ticket, a.lock_wait_ms):
         st, _ = precheck(root, ticket_arg, a.incident)
         desc = load_descriptor(root, ticket, given)
         req = desc["request"]
         verify_dispatch(a, st["ticket"], a.incident, a.source, ppss_slot(st, a.incident), desc["digest"])
-        if set(anq) != set(req.get("queries") or []):
-            raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "artifact queries differ from the dispatched request")
+        bound = desc.get("binding")
+        if not isinstance(bound, dict):
+            raise Stop(E_REFUSED, "REFUSED", "unbound_dispatch",
+                       "no research_submit response is bound to this dispatch: run --phase bind first")
+        try:
+            sha_now = sha(Path(a.artifact).read_bytes())
+        except OSError as exc:
+            raise Stop(E_REFUSED, "REFUSED", "request_invalid", f"artifact unreadable: {type(exc).__name__}")
+        if norm_path(a.artifact) != bound.get("artifact_path") or sha_now != bound.get("artifact_sha256"):
+            raise Stop(E_REFUSED, "REFUSED", "binding_mismatch",
+                       "the artifact path or content differs from what was bound to this dispatch")
         want_domains = list((req.get("filters") or {}).get("domains") or [])
         if a.domains and {d.strip().lower() for d in a.domains.split(",") if d.strip()} != set(want_domains):
             raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "--domains differs from the dispatched request")
-        if not a.cached_artifact:
-            cap, sent = parse_when(art.get("captured_at")), parse_when(desc.get("dispatched_at"))
-            if cap is None or sent is None:
-                raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "artifact captured_at or dispatch time unreadable")
-            if cap < sent:
-                raise Stop(E_REFUSED, "REFUSED", "artifact_predates_dispatch",
-                           "artifact was captured before this dispatch; if research_submit reported a cache hit, "
-                           "repeat with --cached-artifact (declared, not verified)")
         args = ["ppss", "record", "--incident", a.incident, "--artifact", a.artifact]
         if want_domains:
             args += ["--domains", ",".join(want_domains)]
@@ -727,7 +746,78 @@ def do_ppss(a, table_src, root, ticket_arg, now):
             "ledger_seq": led.get("seq"), "ledger": led}
 
 
-PHASES = {"api_advisor": (None, "call"), "native_advisor": ("dispatch", "return"), "ppss": ("dispatch", "record", "read")}
+def ppss_bind(a, root, ticket_arg, now):
+    """Bind the research_submit response (request_id, artifact path, artifact sha256) to one dispatch description.
+    No ledger event. Declared inputs are compared with each other and with the saved description; whether the model
+    really called the tool with the dispatched parameters is not proven."""
+    given = a.dispatch_id or ""
+    if not DISPATCH_ID_RE.match(given):
+        raise Stop(E_REFUSED, "REFUSED", "request_invalid", "dispatch id missing or malformed")
+    tool_rid = norm_text(a.request_id)
+    if not tool_rid or not a.artifact:
+        raise Stop(E_USAGE, "USAGE", "usage", "--request-id and --artifact are required for bind")
+    try:
+        raw = Path(a.artifact).read_bytes()
+        art = json.loads(raw.decode("utf-8"))
+    except (OSError, ValueError) as exc:
+        raise Stop(E_REFUSED, "REFUSED", "request_invalid", f"artifact unreadable: {type(exc).__name__}")
+    aq = art.get("queries") if isinstance(art, dict) else None
+    anq = norm_queries([q for q in aq if isinstance(q, str)]) if isinstance(aq, list) else []
+    art_rid = art.get("request_id") if isinstance(art, dict) else None
+    if not anq or not isinstance(art_rid, str) or not art_rid.strip():
+        raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "artifact has no usable queries or request_id field")
+    art_sha, art_path = sha(raw), norm_path(a.artifact)
+    ticket = ticket_of(root, ticket_arg)
+    with route_lock(root, ticket, a.lock_wait_ms):
+        st, _ = precheck(root, ticket_arg, a.incident)
+        desc = load_descriptor(root, ticket, given)
+        req = desc["request"]
+        verify_dispatch(a, st["ticket"], a.incident, a.source, ppss_slot(st, a.incident), desc["digest"])
+        if set(anq) != set(req.get("queries") or []):
+            raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "artifact queries differ from the dispatched request")
+        cap, sent = parse_when(art.get("captured_at")), parse_when(desc.get("dispatched_at"))
+        if cap is None or sent is None:
+            raise Stop(E_REFUSED, "REFUSED", "dispatch_mismatch", "artifact captured_at or dispatch time unreadable")
+        predates = cap < sent
+        if predates and not a.cached_artifact:
+            raise Stop(E_REFUSED, "REFUSED", "artifact_predates_dispatch",
+                       "artifact was captured before this dispatch; if research_submit reported cache=hit, bind again "
+                       "with --cached-artifact (declared; it exempts only this time condition)")
+        if art_rid != tool_rid and not (a.cached_artifact and predates):
+            raise Stop(E_REFUSED, "REFUSED", "request_id_mismatch",
+                       "--request-id differs from the artifact's request_id (only a declared cache hit, whose artifact "
+                       "predates the dispatch, may carry an older artifact request_id)")
+        for other in desc_path(root, ticket, given).parent.glob("dispatch_d2-*.json"):
+            if other.name == desc_path(root, ticket, given).name:
+                continue
+            try:
+                ob = (json.loads(other.read_text(encoding="utf-8")) or {}).get("binding")
+            except (OSError, ValueError):
+                continue
+            if not isinstance(ob, dict):
+                continue
+            if ob.get("request_id") == tool_rid or (ob.get("artifact_sha256") == art_sha and ob.get("incident") == a.incident):
+                raise Stop(E_REFUSED, "REFUSED", "artifact_bound_elsewhere",
+                           "this research response (request_id or artifact) is already bound to another dispatch")
+        new = {"request_id": tool_rid, "artifact_path": art_path, "artifact_sha256": art_sha,
+               "artifact_request_id": art_rid, "incident": a.incident, "cached_declared": bool(a.cached_artifact),
+               "bound_at": now().isoformat()}
+        old = desc.get("binding")
+        if isinstance(old, dict):
+            same = all(old.get(k) == new[k] for k in ("request_id", "artifact_path", "artifact_sha256"))
+            if not same:
+                raise Stop(E_REFUSED, "REFUSED", "dispatch_already_bound",
+                           "this dispatch is already bound to a different research response")
+        else:
+            body = dict(desc)
+            body["binding"] = new
+            write_descriptor(desc_path(root, ticket, given), body)
+    return {"ok": True, "disposition": "BOUND", "dispatch_id": given, "request_id": tool_rid,
+            "artifact_sha256": art_sha, "artifact_request_id": art_rid,
+            "detail": "bound only: no ledger event; the next step is --phase record with the same --artifact"}
+
+
+PHASES = {"api_advisor": (None, "call"), "native_advisor": ("dispatch", "return"), "ppss": ("dispatch", "bind", "record", "read")}
 
 
 def cmd_consult(a, client_factory, env, now):
