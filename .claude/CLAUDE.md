@@ -75,6 +75,7 @@ b) 不基於 MEMORY.md / PROGRESS.md / TODO / FIXME 自主決定下一步。本�
 c) /qa /sv /compact /dream 是驗收工具，本身不構成新增實作授權；無 Ticket 授權之問題 → 回報，不自行修復。本條**不適用於**當前已啟動 Ticket 之 ALLOWED 內可自修問題：該類問題依 `.claude/rules/ssot-governance.md` §Autonomous Engineering Gate 修復、局部驗證並揭露；確需新增權限、經取證與 Advisor 確認須擴 scope，或涉及不可逆操作者，依該節升報。
 d) Session 首訊無 Ticket → 詢問後停止。
 e) 正式開票僅可在目標專案 Claude Code session 經 `/ticket-author` 執行。一律自 `plan` 起步；根因未明時先 `diag`，再依診斷結果執行 `plan`。`ticket` 僅可對 plan artifact 的選定 item 執行，且該 artifact 必須同時為：`Plan Gate: PASS`、`Ticket mode eligibility: ALLOWED`、`Fixture: false`。`plan` 必須提供可讀的 Source、Goal、Constraints 與 Decisions；`ticket` 必須引用 plan artifact 與 Selected item（單項須提供 Goal；Selected items 兩個以上時，以各 Selected Ticket Map item 的 goal 作為各自 Goal，附單一自由文字 Goal 則 `STOP_DECISION_REQUIRED`）。正式 ticket ID 僅能由 ticket mode 對既有 Registry（含 archive、Pending、deliver、void）查重後分配；不得由上游預留或宣稱已建立。plan 內的 `T01`／`T02`／`T03` 僅是 plan 階段的 plan-local 取樣項（類似 P0／P2／P3 的工作編號），不是票名也不是正式 Ticket ID，不入 Registry；未開票時跨 plan 引用一律寫 `<parent plan> / <plan-local item> / <item 摘要>`，不得裸寫 T02／T03；正式開票時 MUST 配發正式 Ticket ID，此後 Registry、ledger、checkpoint、QA、SV、commit、closeout 一律用正式 Ticket ID，plan-local item 只留在票面來源／provenance 區（Akira 2026-10-18 裁決）。禁止手工建立 Pending 票檔、直接寫入 Pending Registry，或繞過 `/ticket-author` 正式登冊。本條只規範正式 Pending ticket 的建立與登冊；任何下游 routing 後的執行、審查與狀態規則，依接手流程自身的 SSOT 辦理。
+f) 專案成果文件（含 `## 階段成果表` 的 outcomes 文件）的建立與內容異動僅可經 `/projman` 對應模式：新建用 `base`、需求或驗收修訂用 `update`、成果判定用 `align`；既有文件不得以 `base` 繞過修訂紀錄或重設成果，不得繞過 Projman 直接寫入；實際 Projman 呼叫內依模式與授權使用既有編輯工具屬正常路徑。細則、寫入與保存、例外見 `.claude/skills/projman/SKILL.md`（本條不複製）。
 
 ### 5. 寫之前先讀
 
@@ -123,7 +124,7 @@ Intent-Driven／確定性用代碼／測試驗 intent／每步 Checkpoint／衝�
 
 ## Skills
 
-`/sv` 語意審查 · `/qa` Build+Test+靜態掃描 · `/uc` 臥底模式 · `/compact` 壓縮交接 · `/dream` KAIROS 回顧(D2/D6/D10/D13/D15) · `/mdlint` .md 格式修復
+`/sv` 語意審查 · `/qa` Build+Test+靜態掃描 · `/uc` 臥底模式 · `/compact` 壓縮交接 · `/dream` KAIROS 回顧(D2/D6/D10/D13/D15) · `/mdlint` .md 格式修復 · `/projman` 專案成果對齊(base/update/align)
 
 ## SSOT
 

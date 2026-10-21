@@ -63,6 +63,7 @@ commit-hook=^\[[A-Z][A-Z0-9]*(-[A-Z0-9]+)+\]
 | `CLEANUP-` | `CLEANUP-01` | `CLEANUP-01`（無票檔，純行政清理） | 無票檔——Akira 於對話中直接指示以 `CLEANUP-NN` 前綴提交根目錄過期文檔刪除（`995a18d` `CLEANUP-01`／`09b64d3` `CLEANUP-02`），非 Pending/deliver 票務流程標的 | 2026-09-13 | Akira 對話直接授權（非 Ticket 派工，純行政性文檔刪除 commit 前綴）；結構文法既已涵蓋，**不改 regex**；本 family 無對應票檔，補登為忠實記錄授權事實，非追溯創造票務存在性 |
 | `TKA-` | `TKA-ALIGN-01` | `TKA-ALIGN-01` | `plans/cso_briefing/project/Pending/TKA-ALIGN-01_retro.md` | 2026-10-06 | Akira 2026-10-06 裁決立 TKAuthor 議題線（ticket-author Skill：diag／plan／ticket 三模式開票入口之建置與維護）；TKA 為 TKAuthor 登記縮寫（Rule 4a／TPL v3.6 縮寫規則，3 字母合 2–6 上限）。結構文法既已涵蓋，**不改 regex** |
 | `PJMAN-` | `PJMAN-SKILL-01` | `PJMAN-SKILL-01` | `plans/cso_briefing/project/Pending/PJMAN-SKILL-01_modes.md` | 2026-10-17 | Akira 2026-10-17 於 `/ticket-author plan`／`ticket` 指令指定議題 Projman 與正式票前綴 PJMAN（projman Skill：專案成果對齊 base／update／align）；PJMAN 為 Projman 登記縮寫（Rule 4a／TPL v3.6 縮寫規則，5 字母合 2–6 上限；全冊 grep 查重 0 命中）。結構文法既已涵蓋，**不改 regex** |
+| `PROJMAN-` | `PROJMAN-SYNC`（提交前綴，非票 ID） | `PROJMAN-SYNC`（無票檔，成果文件單檔保存之提交前綴） | 無票檔——`.claude/skills/projman/SKILL.md`〈寫入與保存〉定義之提交前綴，由 `PJMAN-CLOSELOOP-01` 引入 | 2026-10-21 | Akira 2026-10-21 於 `/ticket-author plan` 指示（`[PROJMAN-SYNC] <摘要>`）；提交前綴非票 ID，故不適用票號 2–6 字母縮寫規則（`PROJMAN` 為 7 字母）；結構文法既已涵蓋，**不改 regex**；與票族 `PJMAN-` 用途不同（提交前綴 vs 票號前綴）；前例 `CLEANUP-`（無票檔提交前綴） |
 
 ## 票據模板規範
 
