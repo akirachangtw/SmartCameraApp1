@@ -1,0 +1,271 @@
+# ADV-ENTRY-01: 建立 route.py 單一中央入口與共用接線表，使 Advisor（API 呼叫＋核對＋記帳、native 派發／回交）與 PPSS（派發／記錄／讀取）經入口取得；Gate 證據核對（含無失敗輸出之不確定性情境）、R0 回指與 Stop Router 字面與入口切換同批完成，既有計數、授權、成本與停損語義不變
+
+**Revision**: Rev B.1（2026-10-21；Akira 2026-10-20 INC-001 收束裁決之原地同步，Rev=2；僅同步互斥鎖語義、AC 證據與限定聲明，`ALLOWED` 六檔、AI 項數（7）與能力邊界不變）；Rev B（2026-10-20；開票期原地修訂，Rev=1；票號、`ALLOWED` 六檔、AI 項數（7）與能力邊界不變；不為維持 Rev=0 保留錯誤設計）。Rev A（2026-10-20；首次開票，Rev=0）。
+**Rev B.1 差分（Akira 2026-10-20 INC-001 收束裁決：維持 D override，不再追加 Cross-Review；歷史各輪結果照實保留）**：①互斥鎖語義：既有鎖**不依鎖齡自動刪除**，逾 `--lock-wait-ms` 回 `busy`；本行程正常退出釋放**自身**之鎖；行程被強殺遺留之鎖須確認無執行中持有者後人工處理（同步 AI-2 §7b、AI-3 K4／K5、AC 7、AC 15 計數、限定交付聲明⑨；歷史 ADVISORY「回收交錯未測」改註已由取消自動回收處置）。②程式碼／測試落地於 `795117e5`（`route.py` 取消鎖齡 `unlink`；`test_route.py` K4 改寫、K5 新增，49 案）。③AC 14（[可達性]）依裁決 D 之輸入來源分類恢復勾選（M1 追溯 `gate_ledger.py:537`；M4／M5＝呼叫端 CLI 檔案輸入），不冒稱真實模型 session 全鏈已驗。④SV Stage B 第 7 項（來源解析 guard）補 producer→consumer 說明。**不變**：ALLOWED 六檔、AI 項數、能力邊界、HC、其餘 AC。
+**Rev B 差分（逐點；使用者 2026-10-20 審查「有條件通過」之必修 1–5；PPSS 單次取證接受，不追加外審、不重送缺來源之查詢）**：①**派發關聯契約修正**：`dispatch_id` 由「下一記帳槽位」改為「槽位＋具體請求描述摘要」（native＝`--purpose` 文字摘要；PPSS＝查詢集合正規化摘要，回交時由 artifact 之 `queries` 回驗），不新增 DB／queue／長期 registry（AI-2 §6–8、HC 4／13、AC 5）。②**N6 改寫**：驗「不同派發可區分」「錯配拒絕」「重放不增事件」；「相同 ID、首回接受」不得作為關聯需求之通過證據（AI-3 native 案例 N2–N7、AC 5）。③**真正 CLI 並行回交測試**：入口內暫態互斥（`<git-common-dir>/gate/<ticket>.route.lock`，非狀態檔）使「重算 id→記帳」不可交錯，並以 `subprocess` 並行回交證明單一成功，不以序列重放推論（AI-2 §7b、AI-3 K1–K4、HC 4、AC 7）。④**PPSS 付費呼叫前消費既有結果與可判定限制**：派發階段即拒絕「既有結果未消費」「已有紀錄而未附新查詢策略」與請求形狀違規，不只在 record 階段事後拒絕（AI-2 §8、AI-3 P2–P4、HC 14、AC 6）。⑤**N=0 理由改述**：為證據與成本之限定選擇，非「隔離整合違反不製造失敗」（證據分級 HYPOTHESIS ③、AC 15 ⑤）。同步：Gate 目標值（AI-4）、AC 編號後移（原 AC 13／15 現為 AC 15／17）、`ANCHOR_PROBED`。**不變**：ALLOWED 六檔、原有能力邊界、不擴張平台、6a 取證結果（防遞歸律，Rev B 不重觸發）、V1 不宣稱 V2／全面機械防繞過。
+
+**檔案治理/來源說明**：本票為 Plan-backed 單票（plan-local item `T01`；非票號）。Parent 類型＝Plan-backed；Parent 絕對路徑＝`D:\DevSources\AndroidProj\SmartCameraApp1\.tmp\ticket-author\20261020-routing-entry-plan.md`（`.tmp` 非長期載體，下列內容使本票獨立成立；plan 之 parent diag＝`D:\DevSources\AndroidProj\SmartCameraApp1\.tmp\ticket-author\20261019-routing-entry-diag.md` Rev A.1，Fixture false／Gate PASS／Verdict PARTIALLY_CONFIRMED）；Parent artifact status＝`Fixture: false`／`Plan Gate: PASS`／`Ticket mode eligibility: ALLOWED`（Rev A.1，使用者 2026-10-20 通過）；plan-local item＝`T01`；Parent read timestamp＝2026-10-20 16:5x–17:0x（+08:00，plan 全文 187 行實讀）。Template 實讀：`D:\DevSources\AndroidProj\SmartCameraApp1\plans\cso_briefing\project\file\Unified_Ticket_Template_v3.md`，版本 v3.11，文件產出日期 2026-05-29，最近有效修訂日 2026-09-14（Revision 歷史末筆 v3.11；全文 322 行實讀）。
+
+**Selected item 原文（T01 goal，摘要不改義）**：建立 `route.py`＋接線表（`sources`）＋測試；`advisor.api`（script-call）、`advisor.native`／`research.ppss`（model-dispatch 派發／回交）經入口；Gate Advisor／PPSS 條之證據核對（R1：失敗輸出或不確定性紀錄）與入口切換同批完成；`cross-review.md:51-52` 與 ROUTER R3／R4 字面對齊；移除 B1–B5（舊旁路：手動 `advisor_call.py`＋手動 `consult --kind advisor`〔B1〕；原生手動記帳〔B2〕；手動 `ppss record`／`ppss read`〔B3〕；`cross-review.md:51-52` 原生限定字面〔B4〕；ROUTER R3／R4 直接指令字面〔B5〕）。
+
+**使用者開票指示之界線（2026-10-20，Rev A.1 通過後；優先於 plan 中對應措辭，不另開治理票）**：
+- **令牌是主要證據綁定，不限制問題內容**：入口對 payload 僅檢查 `incident=`、`failure_sha256=`／`uncertainty_sha256=` 令牌與其雜湊一致性，**不解析、不限制、不評價問題敘述**；caller（`advisor_call.py`）固定標題規則（含 `## 失敗證據`，`advisor_call.py:218-236`）照舊——無失敗輸出之不確定性情境，該標題下**如實**放不確定性紀錄摘錄，不製造失敗。
+- **測試必須經真正入口**：行為測試一律經 `route.main(argv, …)` 或 `subprocess` 執行 `route.py` CLI；**禁**直接呼叫內部 adapter／檢查函式、禁手寫 ledger 事件作為被測行為（測試前置之 incident 建立得用 ledger CLI）。
+- **native／PPSS 回交須關聯原派發之「具體請求」並避免重複記帳**（Rev B 修正）：派發回傳 `dispatch_id`，綁定「記帳槽位＋最小派發描述」（native＝`--purpose`；PPSS＝查詢集合，回交時由 artifact 之 `queries` 回驗），**不得只識別下一個記帳槽位**；回交須帶且須與當下槽位及描述重算相符；過期、錯配、重放一律拒絕、零事件；經入口之並行回交由入口暫態互斥確保僅記一次。不新增 DB、queue 或長期 registry。
+- **PPSS 付費呼叫前消費既有結果與可判定限制**（Rev B 追加）：派發階段即判定請求形狀、既有結果須先消費、已有紀錄須附新查詢策略與理由；ledger 之 `record` 視窗規則仍為最終權威，入口不放寬亦不替代。
+- **`NEEDS_JUDGMENT` 由中央主 loop 判斷**：屬 V2（`next`）詞彙，本票不實作；V1 遇需選擇之情境（如 `SOURCE_DISABLED` 之替代來源）只回傳候選，**入口不替主 loop 選擇**。
+- **`SOURCE_DISABLED` 有合法替代時自主選擇續作**：條文與測試須體現——有 `alternatives` 者主 loop 自主選擇並續作（不停等人工）；無啟用來源者（`MISSING_REQUIRED`）依 Gate「Advisor 不可達」處置，**不一律 STOP**。
+- **native 呼叫形狀依本地工具介面核對**：派發 `params` 以執行 session 之 `advisor` 工具定義為準（本 session 實讀：無參數物件、`additionalProperties:false`，轉送完整對話）；AI-0 須於執行 session 重讀該定義，不符→停止回報，不憑本票文字假設。
+- **Gate 的 R1 證據核對修正與入口切換同批完成**：同一提交集；不得出現「入口已存在而 Gate 仍允許手動」或「Gate 已改而入口未驗收」之中間態。
+- **V1 不宣稱 V2 或全面機械防繞過已交付**：ledger 職責不變、`cmd_consult` 不驗證，旁路僅可由 `via=route.py` 事後辨識（PPSS 事件無 note 欄，連此標記亦無）；Skill 後繼／predicate 之 `next` 屬必要後續 V2，未交付。
+- 只開票，不執行實作；不重跑 diag／plan；不追加泛用外審（見 External-review decision：僅 §6a 機械觸發之單次取證，已執行）。
+
+**現值漂移紀錄（local-live vs plan，2026-10-20 重驗）**：①plan 稱 Gate Advisor 句在 `ssot-governance.md:212`、PPSS 句在 `:213`——live 一致；②plan §1 稱 F1③僅寫失敗輸出——live 一致（commit `48d1f047`），本票擴充；③**plan 未列、live 新增事實**：`advisor_call.py` 之固定標題 `## 失敗證據` 為必要（`:218-236`），故「無失敗輸出」情境之 payload 仍須含該標題（內容如實放不確定性紀錄）；④**plan 未列、live 新增事實**：`cross-review.md:51` UNDECIDABLE 句含直接記帳指令「`consult --kind advisor`」，與「原生 `advisor` 工具」同句，本票一併改為回指（plan 僅稱「兩處原生字面」）；⑤`gate_stop_guard.py` 工作樹為 CRLF（`git ls-files --eol`：`i/lf w/crlf`，CR 計 529），blob 為 LF，編輯須保留 CRLF；⑥HEAD 自 plan 之 `27b58d43` 前進至 `3f9b2849`（僅他 session 之 PROGRESS 同步，錨點檔案未動）；⑦其餘 plan 事實 live 一致，無實質衝突；⑧**Rev B（審查指出之契約缺陷，非現值漂移）**：Rev A 之 `dispatch_id` 僅綁定記帳槽位計數 `n`，無法區分同槽之不同請求，亦未處理並行回交之檢查／記帳非原子——已於 Rev B 修正（見 Rev B 差分①③）。
+
+**證據分級**（2026-10-20 16:5x–17:1x live；HEAD `3f9b2849`，工作樹 clean；registry IN_PROGRESS＝0；`tmp/verify/active.json` 指 `PJMAN-AUTOALIGN-01`〔該票 lifecycle 為 REVIEW，非活態；`/uc ADV-ENTRY-01` 之正常 activation 可接手，見 Error Handling〕）：
+- **CONFIRMED（本地原始碼／工具輸出／本 session 工具定義）**：①repo 無程式碼層路由（`def route|route_table|dispatch|successor|next_skill` 於 `.claude/**` 非測試命中 0）；`route.py`／`route_table.json` 不存在；全冊與 vault corpus 無 `route-entry`、`route.py`、`ADV-ENTRY` 字面命中。②ledger 公開 CLI：`consult --incident --kind --note`（`gate_ledger.py:661-667` 只存 `kind`／`note`、不驗內容）、`ppss record|read` 參數（`:700-770`；二次 record 須 `--new-query-strategy`＋`--reason`，`:721-724`）、`status --json` 欄位（`ticket`／`ticket_location`／`incidents[].{id,status,consults}`／`ppss[]`，**無 note 與時間戳**）、退出碼 0–6（`:81`；契約拒絕＝5）、非 executor 層首輪 round 須同 incident 有該層 consult（`:617-619`）。③`advisor_call.py`：`main(argv=None, *, client_factory=None, env=None, now=None)`（`:450`）；`_check_payload` 要求固定標題（`HEADINGS`：`## 目標`／`## 失敗證據`／`## 相關內容`／`## 已試策略與結果`／`## 既有授權`／`## 要求輸出`）並拒含 `sk-ant-` 之 payload（`:218-236`）；成功時先印一行 JSON 摘要（`status`／`exit_code`／`receipt`／`receipt_sha256`／`request_id`／`estimated_cost_usd`，`:505-508`）再印 advice 行；receipt 欄位 `ticket`／`created_at_utc`／`payload.sha256`／`request_id`（`:300-322`，`:337`）；**探測（2026-10-20，`python -I`）**：以 `importlib` 自檔案路徑載入並 `redirect_stdout` 擷取 `main([... "--dry-run"])` → rc 0、可解析摘要 JSON；`-I` 下 cwd 不在 `sys.path`。④本 session 工具介面：原生 `advisor` 工具＝無參數（`properties:{}`、`additionalProperties:false`，轉送全部對話）；`research_submit`（MCP）＝必填 `question`／`queries`（1–5）／`task_type`，選填 `filters`／`justification`／`metadata`；PLT 服務端 `SubmitResearchRequest`（`research_service.py:50-59`）`task_type` 為自由字串、`filters.domains` 為字串清單（`:139`）、回件含 `artifact_path`（`_response`，`:543-565`）。⑤`gate_stop_guard.py` ROUTER（`:376-381`）；`gate_stop_guard_test.py:312-316` 斷言 token（`R1`／`R3`／`R4`／`R6`／`consult --kind advisor`／`PPSS 已用 0`…）並禁止出現 `PPSS 已用 0／1`／`初判`／`reconcile`／`僅允許升報`；全檔 ROUTER 僅 `:376-381` 一處。⑥三處 Gate／R0／ROUTER 現值錨點於其檔內各唯一（命中數＝1，見 AI-0）；`ssot-governance.md`／`cross-review.md` 為 `text eol=lf`、`gate_stop_guard.py` 工作樹 CRLF；三檔皆無 `Revision` 修訂歷史欄。⑦`ADV` family 已於 `ticket_pattern.md` Family Provenance 登記（`ADV-`，2026-08-13）；`ADV-ENTRY`／`ADV-ROUTE-` 於冊面、`deliver/`、`void/`、`Pending/` 皆無；`topic=Advisor` 現有 2 票（`ADV-APICALL-01`、`ADV-APIGATE-01`，皆 CLOSED）。⑧新檔路徑與三個既有 ALLOWED 檔 `git check-ignore -v` 皆無命中。⑨`ADV-APIGATE-01` 離線 R1 判準預跑（`tmp/ADV-APIGATE-01/case/r1_offline_check.out`，非版控，結論已複製於本票 AI-3 測試案例清單）：9 組皆符預期。⑩**（Rev B 追加）** `status --json` 之 `ppss[]` 僅含 `request_id`／`incident`／`state`／`evidence_ok`／`urls`／`reason`／`reads`（`gate_ledger.py:457-461,536-540`），**無 artifact 路徑、無 queries**；PPSS 視窗計數於 `ppss_record` 遞增（`:457`）、於 `round_end` 歸零（`:447`），不在 `status` 公開；真實 artifact 含 `request_id`／`captured_at`／`queries`／`results[]`（PLT 實檔 `rsch-20261011-66f685d4c6.json`），`queries` 經 PLT 正規化（`strip`＋`casefold`＋去重，`research_service.py:62-72`）；ledger 對 `consult` 無 CAS／期望值參數（`:661-667`），故「重算 id→記帳」非原子，並行去重須入口自備互斥；ledger 自身鎖檔名為 `<TICKET>.jsonl.lock`（`gate_ledger.py:8`），入口之互斥鎖檔 `<TICKET>.route.lock` 與之不衝突。
+- **SUPPORTED（外部，頁面級；PPSS `rsch-20261020-ba0277564b`，2026-10-20，3 條查詢，$0.005，artifact `D:\DevSources\workflow\mcp-ticket-platform\data\research\2026-10\rsch-20261020-ba0277564b.json` 為 runtime 衍生物，**結論以本票為準**）**：官方 Claude API 文件（`https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview`，頁面 last_updated 2026-10-11；`https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works`，last_updated 2026-10-02）：client tools 之往返＝模型回 `stop_reason: "tool_use"` 與帶 id 之 `tool_use` 區塊，應用端執行後以 `tool_result`（含 `tool_use_id`）回送；「模型自身不執行任何東西」。→ 支持本票「派發具體動作→主 executor 執行→以 id 關聯回交」之形態；**差異**：官方模式之 id 由發起端（模型）簽發，本票由入口簽發並以 ledger 計數綁定，屬類比而非同構。
+- **HYPOTHESIS／UNKNOWN**：①「以 ledger 既有計數＋請求描述摘要導出 dispatch id、配合入口暫態互斥以拒絕過期／錯配／重複回交」之冪等與並行正確性——查詢 2、3（冪等鍵、雜湊綁定之證明力限度）**未取得相關來源**，標 HYPOTHESIS；bounded probe＝AI-3 之離線測試（錯配、重放、期間他路徑記帳，及**真正 CLI 並行回交 K1–K4**）。依防遞歸律，同 capability 完成一次外審後**不因來源不足重觸發**（使用者 2026-10-20 接受，不重送）。②模型是否一律經入口、並依回傳續行（模型契約，無機械後盾）。③真實 session 中「入口派發→真實 `advisor`／`research_submit` 呼叫→回交」之端到端，本票 **N＝0，為證據與成本之限定選擇**：形狀證據已由本地工具介面（`advisor` 無參數、`research_submit` schema）、PLT 服務端請求模型與官方 client-tool 文件支持；真實 native 呼叫轉送全部對話、PPSS 每次付費，且對 V1 驗收（入口之派發／回交契約）非決策關鍵。**此選擇與「不製造失敗」無涉**（隔離整合驗證如 `ADV-APIGATE-01` 先例並不違反該原則），日後如需端到端須另行授權執行並如實記錄。④令牌格式實務相容性（原案例僅含 `failure_sha256=`，已於離線預跑證明相容；`uncertainty_sha256=` 為新增）。
+
+**External-review decision**（條文：`D:\DevSources\Smarter-Project\file\Instructions_for_Claude.md` §6 與「外審查詢包」「分流順序與發送通道」節，2026-10-20 live 直讀；分項記錄）：
+- **6a（成立；取證 EXECUTED）**：`INTRODUCED_CAPABILITY=feature:route-entry`，token 於固定 corpus（vault 決策檔目錄、`Pending/` `deliver/` `void/`、`TICKET_REGISTRY.json` 與 ARCHIVE）無完整字面命中 → 依條文取證。**範圍**：單次 PPSS（觸發碼 `6a`），3 條查詢，內容限於本 capability 之實作面（client-tool 往返關聯、冪等去重、雜湊綁定之證明力），**非架構選型之泛用外審**；綁定欄位隨 `metadata` 送出。**硬風險判準①–⑥皆未命中**：①官方 contract 禁止——未命中；②provider hard contract 未確認——未命中（不改 `advisor_call` 之 request 形狀，不新增 provider 面）；③新公開網路面／既有安全邊界——未命中（入口僅經既有 caller／ledger CLI）；④不可逆資料寫入／刪除——未命中（git 可回復；ledger 僅追加既有事件型別）；⑤實質費用無上限——未命中（沿用 caller 之 `--max-tokens`／`--timeout` 上限，每次入口呼叫至多一次網路嘗試）；⑥bounded probe 明確失敗——未命中。**EXECUTED 不代表品質 PASS，不豁免 Cross-Review。** **Rev B**：使用者 2026-10-20 接受本次單次取證結果，不追加外審、不重送查詢 2、3（防遞歸律）。
+- **bounded probe**：AI-3 離線測試（HYPOTHESIS ① 之失敗形狀，含真正 CLI 並行回交 K1–K4）；狀態 **PLANNED**（執行於本票 AI-3）。
+- **6b①** 不成立：`ALLOWED` 首層 path segment 皆為 `.claude`，distinct＝1；**6b②** 不成立：`### AI-[1-9][0-9]*:` 標題數＝7；**6b③** 不成立：`DEPENDENCY_DELTA=NONE`；**6c** 不成立：三檔皆無 `Revision` 修訂歷史。計數讀取（O1）：`Rev=2 ｜ AI 標題數=7 ｜ AI 深度=1 ｜ 4a/4d/6b 狀態=未成立（6a 已成立並已取證，Rev B 不重觸發）`。
+- **Cross-Review**：**不豁免**。
+
+**簽發日期**: 2026-10-20
+**簽發者**: Claude
+**來源議題**: Advisor
+**Mode**: uc  ||  **Effort**: High
+**Traycer Workflow**: N/A
+**前置依賴（依賴三分）**：
+- `execution_dependency`: 無（`ADV-APICALL-01`、`ADV-APIGATE-01` 皆已 CLOSED，產物就位）
+- `evidence_dependency`: ADV-APIGATE-01（Gate 現行 Advisor 條與 F1 三核對、離線 R1 預跑、接點確認結論）、ADV-APICALL-01（`advisor_call.py` 介面、固定標題與 receipt 契約）、ADV-R0ROUTE-01（`cross-review.md` R0 承接字面）——皆 `CLOSED`，僅作字面判準與介面來源，本票錨點皆 live 直查
+- `coordination_dependency`: 與任何編輯 `ssot-governance.md`／`cross-review.md`／`gate_stop_guard.py`／`.claude/scripts/` 之票串行（`concurrency.md` §2）；`PJMAN-AUTOALIGN-01`（REVIEW；曾動 `ssot-governance.md` Transition Table）——開工時重驗其是否仍有未提交異動；PROGRESS／Registry 單一寫入者；`tmp/verify_cmd.conf`／`active.json` 現屬 `PJMAN-AUTOALIGN-01`（REVIEW），`/uc` 開工之 activation 覆寫為本票屬正常交接（見 Error Handling 之活態例外）
+
+## Verify Config
+TICKET_ID=ADV-ENTRY-01
+CREATED=2026-10-20
+PRESET=feature
+ALLOWED=.claude/scripts/route.py,.claude/scripts/route_table.json,.claude/scripts/tests/test_route.py,.claude/rules/ssot-governance.md,.claude/rules/cross-review.md,.claude/hooks/gate_stop_guard.py
+FORBIDDEN=.claude/scripts/gate_ledger.py,.claude/scripts/advisor_call.py,.claude/scripts/activate_ticket.sh,.claude/scripts/m3_family_audit.sh,.claude/scripts/tests/test_gate_ledger.py,.claude/scripts/tests/test_advisor_call.py,.claude/scripts/tests/fixtures/advisor_seed_payload.md,.claude/scripts/tests/owner_writer_test.sh,.claude/hooks/registry_review_stop_guard.py,.claude/hooks/session_start.sh,.claude/hooks/stop.sh,.claude/hooks/telegram_stop.sh,.claude/hooks/telegram_ask.sh,.claude/hooks/notify.sh,.claude/hooks/snapshot_cueshot_memory.py,.claude/hooks/tests/gate_stop_guard_test.py,.claude/rules/concurrency.md,.claude/rules/ticket_pattern.md,.claude/rules/engineering-discipline.md,.claude/rules/kairos-lessons.md,.claude/rules/decommission.md,.claude/rules/critical-files.md,.claude/rules/mcp-service-safety.md,.claude/rules/phase0-lessons.md,.claude/rules/state-machine.md,.claude/rules/android-conventions.md,.claude/rules/camera-constraints.md,.claude/rules/compose-ui.md,.claude/rules/ptf-rules.md,.claude/agents/cross-reviewer.md,.claude/skills/sv/scripts/cross_review.sh,.claude/skills/sv/SKILL.md,.claude/skills/sv/CROSS_REVIEW.md,.claude/skills/sv/ssot_context.md,.claude/skills/qa/SKILL.md,.claude/skills/uc/SKILL.md,.claude/skills/normal/SKILL.md,.claude/skills/compact/SKILL.md,.claude/skills/projman/SKILL.md,.claude/skills/ticket-author/SKILL.md,.claude/skills/ticket-run/SKILL.md,.claude/skills/ticket-rigor-gate/SKILL.md,.claude/settings.json,.claude/settings.local.json,.claude/CLAUDE.md,CLAUDE.md,CLAUDE.local.md,.claude/PROGRESS.md,.claude/PROGRESS_ARCHIVE.md,.codex/**,.agents/**,tools/**,app/**,plans/roadmap/**
+MAX_LINES=N/A
+DIFF_REF=<開工時 git rev-parse --short HEAD 回填>
+ANCHOR_PROBED=2026-10-20 18:42
+BASE_COMMIT=3f9b2849
+TARGET_BLOB=.claude/scripts/route.py:NEW;.claude/scripts/route_table.json:NEW;.claude/scripts/tests/test_route.py:NEW;.claude/rules/ssot-governance.md:44bd5a81;.claude/rules/cross-review.md:2bd4f647;.claude/hooks/gate_stop_guard.py:abce8279
+INTRODUCED_CAPABILITY=feature:route-entry
+DEPENDENCY_DELTA=NONE
+
+> PRESET=feature（新增入口腳本、接線表、測試，並修訂治理條文與一個 hook 字串；無 `.kt`／`.xml`／gradle，`assembleDebug` N/A）。`MAX_LINES=N/A`：含授權／守門判定類不變量（核對拒絕、重複記帳防護），失敗形狀為審查發現式，不可先驗估算（TPL v3.5 R3）；MAX_LINES 非 execution gate。`TARGET_BLOB`：既有三檔為開票時 `git hash-object` 之 sha8（`autocrlf` 過濾後值，資訊性診斷值），新檔 `NEW`（V1 跳過比對）。`DIFF_REF` 為字面佔位，開工時依 `qa/SKILL.md` Step 0 三原子動作回填。`Traycer Workflow: N/A`：純 `.claude/`＋治理條文，不觸 `app/`；審查走 SV＋Cross-Review。`FORBIDDEN` 使用字面路徑（避開 `verify_checklist.sh` 對含 `/` token 之 glob 字面比對缺陷；末段 `.codex/**`、`.agents/**`、`tools/**`、`app/**`、`plans/roadmap/**` 為 glob 型，沿 `ADV-APIGATE-01` 先例保留，**受該缺陷影響為靜默 no-op**，實際由 AC 17 之 `git diff --stat` 人工核對）；`gate_ledger.py`、`advisor_call.py`、其測試與 `gate_stop_guard_test.py` 僅表示**不得修改**，仍可**執行**作回歸與被呼叫（入口以 `subprocess`／`importlib` 使用之，不改其內容）。**EOL**：`ssot-governance.md`、`cross-review.md` 為 `text eol=lf`（編輯後維持 LF）；`gate_stop_guard.py` **工作樹為 CRLF**（blob 為 LF），編輯 MUST 保留 CRLF（以 `newline=''` 讀寫、替換字串不含換行）；新檔以 LF 建立。**DEFERRED-TO-DOCSYNC（不開票）**：FORBIDDEN 命中 `.claude/PROGRESS.md`／`PROGRESS_ARCHIVE.md`，Dashboard 同步與 Done 標記依標準 SOP 於下一輪 `/compact` 處理（Akira 2026-07-19 裁決，不另開 DOCSYNC 票）。
+
+## Action Items
+
+### AI-0: 錨點復驗（派工後、修改前；唯讀）
+- **檔案**: 見各 AI
+- **動作**: 逐字確認各 AI「現值」於檔內命中數與票面相符（標示「唯一」者恰 1 次）；任一項不符 → 依 TPL「基線漂移三分流」分類（資訊性分類記錄後以現值續作，`ALREADY_EXECUTED_PENDING_CLOSURE` 停止），**禁自行推定等價位置**。另須逐項取證並記入收尾實錄：
+  1. `ssot-governance.md` Gate 條現值錨點（AI-4 `現值` 之起訖與 PPSS 句尾）、`cross-review.md` 兩錨點（AI-5）、`gate_stop_guard.py` 兩錨點（AI-6）各唯一；`git ls-files --eol` 三檔狀態與本票所載一致。
+  2. `advisor_call.py`：`main` 簽章含 `client_factory`／`env`／`now`；`HEADINGS` 含 `## 失敗證據`；成功時先印單行 JSON 摘要；於 `python -I` 下以 `importlib` 載入並 `redirect_stdout` 擷取 `main([... "--dry-run"])` 成功（重做本票之探測）。
+  3. `gate_ledger.py` 公開面：`status --json`（`ticket`／`ticket_location`／`incidents[].status|consults`／`ppss[]`）、`consult`、`ppss record|read` 參數與退出碼 0–6 與本票所載一致；**不得**依賴 `status --json` 之 note、時間戳、PPSS 之 artifact 路徑或 queries（皆無；`ppss[]` 僅有 `request_id`／`incident`／`state`／`evidence_ok`／`urls`／`reason`／`reads`）；`consult` 無 CAS 參數。
+  4. **工具介面核對（本地）**：讀取執行 session 之 `advisor` 工具定義，確認為無參數物件；讀取 `research_submit` 之工具 schema，確認必填 `question`／`queries`／`task_type`、選填 `filters`／`justification`／`metadata`；與接線表 `dispatch` 樣板（AI-1）逐項一致。不符 → 停止回報。
+  5. 基線回歸（修改前）於 `python -I` 下全綠：`gate_stop_guard_test.py`（54）、`test_gate_ledger.py`（53）、`test_advisor_call.py`（25）；任一失敗 → 停止回報（非本票造成，須先處置）。
+  6. 並行與狀態：`git status --short` clean；registry 無 IN_PROGRESS 票觸及 ALLOWED 檔；`gate_ledger.py check` 之入口檢核依 `ssot-governance.md` 入口落點句。
+  7. **（Rev B）PPSS／互斥取證**：讀一份真實 research artifact（PLT `data/research/**`）確認含 `queries` 且為正規化形式（不可取得時以 `research_service.py:62-72` 為準並於收尾實錄標明）；確認 `<git-common-dir>/gate/` 下無與 `<TICKET>.route.lock` 衝突之既有檔名，且 ledger 之 `.jsonl.lock` 命名未變。
+- **任一項不符 → 停止回報，禁自行推定等價位置。**
+- [x] 完成
+
+### AI-1: 新建接線表 `.claude/scripts/route_table.json`
+- **檔案**: `.claude/scripts/route_table.json`（新建；LF；UTF-8；單檔、`json.load` 可讀）
+- **現值**: 無（新檔）
+- **目標值**: 以下結構（值為初始內容；欄位語意由 `route.py` 實作並於 `table check` 驗證）：
+  ```json
+  {
+    "schema": 1,
+    "sources": {
+      "advisor.api":   {"kind": "script-call",    "role": "advisor",  "enabled": true, "adapter": "api_advisor",    "ledger_kind": "advisor"},
+      "advisor.native":{"kind": "model-dispatch",  "role": "advisor",  "enabled": true, "adapter": "native_advisor", "ledger_kind": "advisor",
+                        "dispatch": {"tool": "advisor", "params": {}}},
+      "research.ppss": {"kind": "model-dispatch",  "role": "research", "enabled": true, "adapter": "ppss",
+                        "dispatch": {"tool": "research_submit", "params": ["question", "queries", "task_type", "filters", "justification", "metadata"]}},
+      "advisor.rigor-repair":    {"kind": "domain-internal", "role": "advisor",  "note": "ticket-rigor-gate Advisor Repair Mode；非工程顧問來源，不可經入口呼叫"},
+      "research.rigor-fallback": {"kind": "domain-internal", "role": "research", "note": "ticket-rigor-gate Research Fallback；獨立軌、不入 ledger，不可經入口呼叫"}
+    }
+  }
+  ```
+- 說明：`kind`∈{`script-call`,`model-dispatch`,`domain-internal`,`external-ssot`}；`domain-internal`／`external-ssot` 列僅登記命名空間、不可呼叫；`alternatives` 僅計 `kind` 為 `script-call`／`model-dispatch` 且 `enabled` 之同 `role` 來源。表**不含**任何政策敘述或 predicate；`successors`／`facts` 節屬 V2，本票**不建**。
+- [x] 完成
+
+### AI-2: 新建入口 `.claude/scripts/route.py`
+- **檔案**: `.claude/scripts/route.py`（新建；LF；Python 3 標準庫；`python -I` 可執行；stdout `reconfigure(encoding="utf-8")`）
+- **現值**: 無（新檔）
+- **目標值**（行為規格；實作細節於不違反下列約束下自定）：
+  1. **CLI**：`route.py [--ticket ID] [--table PATH] consult --incident INC --source NAME [--phase P] [來源專屬旗標]`；`route.py [--table PATH] table check`。`main(argv=None, *, client_factory=None, env=None, now=None) -> int` 為真正入口（與 `advisor_call.main` 同形之注入縫，供測試經入口驅動）。stdout **恆為單一 JSON 物件**（含錯誤情形）；人類可讀訊息僅走 stderr；**不得**輸出環境變數值或金鑰。
+  2. **envelope**：`{ok, verb, disposition, source?, phase?, via:"route.py", reason?, detail?, action?, return_with?, dispatch_id?, existing?, alternatives?, ledger_seq?, receipt?, receipt_sha256?, request_id?, advisor_exit?, advice?}`。**退出碼**自成一組：`0` 成功（`disposition`∈`DISPATCHED`｜`RECORDED`）；`2` 用法錯誤；`3` 接線表缺失／無效；`4` 來源未知／停用／不可呼叫／缺席（`UNKNOWN_SOURCE`｜`NOT_CALLABLE`｜`SOURCE_DISABLED`｜`MISSING_REQUIRED`）；`5` 前置或核對拒絕（`REFUSED`，`reason` 為碼：如 `incident_not_open`、`ticket_not_mutable`、`incident_token_missing|mismatch|ambiguous`、`evidence_token_missing|ambiguous`、`evidence_file_unreadable|empty`、`evidence_hash_mismatch`、`receipt_mismatch`、`request_invalid`、`dispatch_mismatch`、`stale_or_duplicate_dispatch`、`existing_results_unconsumed`、`prior_research_requires_strategy`、`busy`、`ledger_refused`）；`6` 呼叫或基礎設施失敗（`CALL_FAILED`，附 `advisor_exit`）。
+  3. **來源解析（先於一切 ledger／網路）**：載表（失敗→3）→來源未知→4；`kind` 為 `domain-internal`／`external-ssot`→`NOT_CALLABLE`（4）；`enabled:false`→`SOURCE_DISABLED`（4），`alternatives`＝同 `role`、可呼叫且啟用之來源名清單（可為空）；同 `role` 無任何可呼叫且啟用來源→`MISSING_REQUIRED`（4）。**入口不替主 loop 選擇替代來源，亦不自動 fallback。**
+  4. **前置（M1）**：以 ledger 公開 CLI（`[sys.executable, <本檔同目錄>/gate_ledger.py, --ticket T, status, --json]`，`cwd`＝`git rev-parse --show-toplevel`）取得 `ticket`、`ticket_location`、incident 之 `status` 與 `consults`／`ppss`；incident 須 `open` 且 `ticket_location=="loc:pending"`，否則 `REFUSED`、零事件。入口**不 import** `gate_ledger` 內部，不讀 ledger 原檔。
+  5. **`advisor.api`（script-call，單階段）**：旗標 `--payload PATH --evidence PATH [--effort … --max-tokens … --timeout … --request-mode …]`（原樣透傳 caller，**上限與預設全沿用 caller**，入口不放寬）。順序：前置 M1 → 讀 payload bytes 計 sha256 → **M4**（payload 恰宣告一個 `incident=<ID>` 令牌且等於 `--incident`；邊界精確，`INC-001` 不匹配 `INC-0011`；皆缺或多個相異→拒絕）→ **M5**（payload 含**恰一個**證據令牌：`failure_sha256=<64hex>` 或 `uncertainty_sha256=<64hex>`；`--evidence` 檔須可讀、**非空**，其 sha256 等於令牌值且**不等於空輸入之 sha256**；兩令牌並存、皆缺、重複→拒絕）→（以上任一失敗＝零網路、零事件、client 不被建立）→ 以 `importlib` 自檔案路徑載入同目錄 `advisor_call.py`，擷取其 stdout，呼叫 `main(["--ticket",T,"--payload",P,"--out-dir",<root>/tmp/<T>/advisor,…], client_factory, env, now)`（**至多一次網路嘗試**，不重試、不切 `request_mode`）→ 非 0 → `CALL_FAILED`（6，附 `advisor_exit` 與 receipt 路徑〔若有〕，**不記帳**）→ 0 → 解析首行 JSON 摘要、讀 receipt 並核 `receipt_sha256`＝檔 sha256、**M2**（`receipt.ticket`＝ledger 票號）、**M3**（`receipt.payload.sha256`＝入口先前計得之 payload sha256）、**M6**（`status=="SUCCESS"`、`exit_code==0`、`created_at_utc` 不早於入口開始時間〔秒級，與注入之 `now` 同源〕；入口不接受外部 receipt 路徑）→ 任一失敗＝`REFUSED`（已付費，回 receipt 路徑供稽核）→ 通過才以 ledger CLI 記 `consult --incident INC --kind advisor --note <M7>`；`<M7>`＝`source=advisor.api via=route.py receipt=<repo 相對路徑> receipt_sha256=<h> request_id=<id> payload_sha256=<h> incident=<ID> evidence=<failure|uncertainty>:<h>`。回 envelope（含 `advice`、`ledger_seq`）。
+  6. **`advisor.native`（model-dispatch，兩階段）**：`--phase dispatch --purpose TEXT` → `DISPATCHED`，`action={type:"model_tool", tool:"advisor", params:{}}`（取自表之 `dispatch`）、`dispatch_id`、`return_with`（回交指令樣板，含須再帶之 `--purpose`）；`--purpose` 為**最小派發描述**（NFC 正規化、去頭尾空白後非空且 ≤500 字元），**零 ledger 事件、無狀態**。`--phase return --dispatch-id ID --purpose TEXT --note REF` → 於互斥鎖內（見 7b）以**當下**槽位 `n` 與回交所帶 `--purpose` 之摘要重算 `dispatch_id`：不符→`REFUSED`——若該 id 等於以近 8 個較早槽位（`n-8…n-1`）與同一 `--purpose` 算得之值則 `stale_or_duplicate_dispatch`（槽位已被消耗：重放、期間他路徑記帳），否則 `dispatch_mismatch`（描述或 id 不符）；`--purpose`／`--note` 為空或 id 格式錯→`REFUSED(request_invalid)`；通過→記 `consult --kind advisor --note "source=advisor.native via=route.py dispatch=<ID> purpose_sha256=<h> ref=<REF>"`。**入口無法確認原生工具是否被呼叫、亦不可驗內容，且 `--purpose` 為聲明式（入口只驗其與派發一致）**；envelope 之 `detail` 如實標示。
+  7. **`dispatch_id`（關聯具體請求）**：`"d2-"`＋sha256(`{ticket}|{incident}|{source}|{n}|{request_digest}`) 前 16 hex。`n`＝記帳槽位（`advisor.native`：該 incident `consults.advisor` 計數；`research.ppss`：`status.ppss[]` 中屬該 incident 之紀錄數）；`request_digest`＝**具體請求描述摘要**（`advisor.native`＝`--purpose` 正規化文字之 sha256；`research.ppss`＝「查詢集合」之 sha256，查詢集合＝各查詢 `strip`＋`casefold` 後去重、排序、以 `\n` 連接，與 PLT 正規化一致）。故 id 同時識別「哪一槽」與「哪一個請求」：不同請求→不同 id；同槽同描述→同 id（確定性，只被接受一次由槽位消耗＋互斥鎖保證）。回交時於互斥鎖內以**當下** `n` 與**回交端可驗之描述**重算：native＝回交所帶 `--purpose`；PPSS＝**artifact 內之 `queries` 欄**（取自回件、非執行者聲明；缺欄或空→`REFUSED(dispatch_mismatch)`）。成功記帳後 `n` 遞增，同 id 重放即拒絕。**不新增 DB、queue 或長期 registry，不儲存描述原文於任何檔；不讀 note、不新增 ledger 事件型別。**
+  7b. **回交互斥（並行去重）**：ledger 對 `consult` 無 CAS，「重算 id→記帳」若不互斥則並行回交可雙雙通過。入口於 `--phase return`／`--phase record` 之「前置 M1→讀 `status`→重算 id→呼叫 ledger 記帳」全程持有**暫態互斥鎖** `<git-common-dir>/gate/<TICKET>.route.lock`（`os.open(O_CREAT|O_EXCL)` 取得，內容僅 pid 與時戳，**非狀態**；本行程正常或拒絕離開時刪除**自身**之鎖〔以 pid＋nonce 比對，不刪他人之鎖〕；**既有鎖不依鎖齡自動刪除**：等待至多 `--lock-wait-ms`〔預設 10000〕，逾時→`REFUSED(busy)`；行程被強殺遺留之鎖須確認無執行中持有者後**人工移除**，入口不提供自動回收〔Rev B.1，取代 Rev B「鎖檔 mtime 超過 120 秒視為殘留可回收」〕）。該鎖僅序列化**經入口**之回交；旁路（直接 `gate_ledger.py`）不受其保護，屬已揭露限制。命名與 ledger 之 `<TICKET>.jsonl.lock` 不同、不取其鎖。`dispatch` 階段與 `advisor.api` 不取鎖。
+  8. **`research.ppss`（model-dispatch，三階段）**：`--phase dispatch --question Q --query Q1 [--query Q2 …] [--task-type T] [--domains d1,d2] [--justification-json J] [--new-query-strategy S --reason R]` → **付費呼叫前先判定**（皆零網路、零事件、不回 `action`）：(a) **請求形狀**：`question` 非空、查詢正規化去重後 1–5 條、`task_type` 非空（預設 `gate_ppss`）、`--domains` 為合法網域字串→否則 `REFUSED(request_invalid)`；(b) **消費既有結果**：該 incident 於 `status.ppss[]` 已有 `state==RETRIEVED` 而未被讀取（`reads` 空且 `evidence_ok` 為 false）之紀錄→`REFUSED(existing_results_unconsumed)`，回傳 `existing`（`request_id`／`state`／`urls`／`reads` 數）——須先以 `--phase read` 消費；(c) **研究限制（同缺口不重送、不新增額度）**：該 incident 已有任何 PPSS 紀錄而未附 `--new-query-strategy` 與 `--reason`→`REFUSED(prior_research_requires_strategy)`（回傳 `existing`；此為派發前之**保守前置**，ledger 於 `record` 之視窗規則〔`gate_ledger.py:721-724`〕仍為最終權威，入口不放寬亦不替代）；通過→`DISPATCHED`，`action={type:"model_tool", tool:"research_submit", params:{question, queries, task_type, filters:{domains:[…]}(僅在給定時), justification(僅在給定時)}}`、`dispatch_id`（含查詢集合摘要）。`--phase record --dispatch-id ID --artifact PATH [--domains …] [--new-query-strategy S --reason R]` → 於互斥鎖內重算（描述取自 artifact 之 `queries`）不符→拒絕；通過→**原樣透傳** `ledger ppss record`（ledger 之拒絕以 `REFUSED(ledger_refused)` 與原 stderr 摘要回傳），回 ledger 之 `state`／`request_id`（`INVALID` 如實回傳）。`--phase read --request-id RID --url U --source-file F --supports X [--quote Q]` → 原樣透傳 `ledger ppss read`。入口**不**新增研究額度、不判斷證據語意、不呼叫 MCP、無法觀察研究成本（成本控制仍為 Gate 既有規則）。
+  9. **語義不變**：入口**僅**呼叫 ledger 之 `status`、`consult`、`ppss record|read`；**不**呼叫 `round`、`human`、`step-limit`、`strategy-scan`、`incident`、`check`；不新增事件型別或 `kind`；`NEEDS_JUDGMENT` 與 `next` 不實作。
+  10. **`table check`**：驗 `schema==1`、`sources` 為物件、名稱形如 `<role>.<name>`、`kind` 合法、可呼叫來源之 `adapter` 已知（`api_advisor`｜`native_advisor`｜`ppss`）、`dispatch.tool` 與 `dispatch.params` 型別正確、`enabled` 為布林；輸出 JSON 並以 0／3 結束。
+  11. 檔頭 docstring 須含：用法、envelope／退出碼表、M1–M7 清單、**不在 M 內**之聲明（因果歸屬、payload 敘述忠實、是否需要諮詢、建議品質、native／PPSS 內容真偽均不由入口證明）、旁路僅可由 `via=route.py` 事後辨識（PPSS 事件無此標記）之限制。
+- [x] 完成
+
+### AI-3: 新建測試 `.claude/scripts/tests/test_route.py`（先於 AI-4～6 通過）
+- **檔案**: `.claude/scripts/tests/test_route.py`（新建；標準庫 `unittest`；`python -I` 可執行）
+- **現值**: 無（新檔）
+- **目標值**：沿用 `test_gate_ledger.py` 之暫存 git repo 先例（`.gitignore`、`plans/cso_briefing/project/{Pending,deliver,void}`、票檔、`tmp/verify/active.json` 非必要；以 `--ticket` 顯式指定）；ledger 前置（開 incident、`consult --kind local`）僅經 ledger CLI；假 client 沿 `test_advisor_call.py` 之 `FakeClient` 形態（**複製其形狀，不 import 該測試模組、不修改之**）；**全部零網路、`ADVISOR_ANTHROPIC_API_KEY` 以假值注入且斷言不出現於任何輸出**。所有行為案例**經 `route.main(argv, client_factory=…, now=…)` 或 `subprocess` 執行 `route.py` CLI**；禁直接呼叫內部 adapter／檢查函式。案例（given/expect）：
+  - **來源狀態**：S1 未知來源→4、零事件；S2 `advisor.api` 停用且 `advisor.native` 啟用→4、`alternatives==["advisor.native"]`、零事件、client 未被建立，**並以 harness 取 `alternatives[0]` 再呼叫（native dispatch→return）完成續作**；S3 同 role 全停→`MISSING_REQUIRED`；S4 `domain-internal` 來源→`NOT_CALLABLE`；S5 表壞（非 JSON／schema≠1／缺鍵）→3、零副作用；S6 真實 `route_table.json` 之 `table check`→0。
+  - **API 與 R1（含離線正向／跨 incident 錯配）**：A1 失敗輸出路徑正向（`failure_sha256`＋非空失敗輸出檔）→`RECORDED`、恰一筆 `consult advisor`、`--note` 含 `via=route.py`／`receipt_sha256`／`request_id`／`payload_sha256`／`incident`／`evidence=failure:<h>`；A2 **無失敗輸出之不確定性正向**（`uncertainty_sha256`＋非空不確定性紀錄，payload 仍含 `## 失敗證據` 標題並如實放紀錄摘錄）→`RECORDED`；A3 跨 incident 錯配（payload 宣告 INC-003、目標 INC-004）→`REFUSED(incident_token_mismatch)`、**client 未被呼叫**、零事件；A4 incident 正確但證據檔換成他 incident 之紀錄→`evidence_hash_mismatch`；A5 空 hash 充數（令牌為空輸入之 sha256，證據檔為空）→`REFUSED`；A6 空 hash 令牌配非空檔→`REFUSED`；A7 令牌皆缺→`REFUSED`；A8 兩令牌並存→`REFUSED`；A9 payload 於呼叫期間被改（假 client 副作用改檔）→`M3` 失敗→`REFUSED`（receipt 路徑回傳、零 consult）；A10 incident 已關閉／不存在→`REFUSED`、零網路；A11 票檔在 `deliver/`→`ticket_not_mutable`；A12 API 錯誤（假 client 擲 5xx）→`CALL_FAILED`(6)、client 恰被呼叫 1 次（**無重試**）、零 consult；A13 非 SUCCESS（截斷／拒答）→`CALL_FAILED`、零 consult；A14 令牌為主要綁定：問題敘述任意（含中英文、長短）不影響判定（同令牌下兩種敘述皆通過）。
+  - **native 派發／回交（關聯具體請求）**：N1 dispatch（帶 `--purpose`）→`params=={}`、`tool=="advisor"`、`dispatch_id` 形如 `d2-<16hex>`、零事件；N2 **不同派發可區分**：同槽、不同 `--purpose` 之兩次 dispatch→兩個不同 `dispatch_id`；同槽同 `--purpose`→同 id（確定性）；N3 **錯配拒絕**：以派發 A 之 id 帶派發 B 之 `--purpose` 回交→`REFUSED(dispatch_mismatch)`、零事件；N4 正確回交（A 之 id＋A 之 `--purpose`＋非空 `--note`）→`RECORDED`、`--note` 含 `dispatch=<ID>`、`purpose_sha256`；N5 **重放不增事件**：同一回交再送→`REFUSED(stale_or_duplicate_dispatch)`、ledger 事件數不變；N6 槽位被他路徑消耗：dispatch 後以 `advisor.api` 先記帳→原 id 回交被拒；N7 缺 id／格式錯／空 `--purpose`／空 `--note`→`REFUSED(request_invalid)`；**驗收口徑**：N2＋N3＋N5 共同構成「關聯具體請求」之證據，**不得以「相同 ID、首次回交被接受」（N4）單獨作為通過依據**。
+  - **PPSS 派發／記錄／讀取（付費呼叫前判定）**：P1 dispatch→`params` 僅含 `question`／`queries`／`task_type`（及給定之 `filters.domains`／`justification`）、查詢 1–5、`dispatch_id` 含查詢集合摘要（查詢大小寫／空白／重複不同寫法得同 id，不同查詢集合得不同 id）、零事件；P2 **既有結果未消費**：先以 `record` 寫入一筆 `RETRIEVED` 且未 `read`→再 dispatch→`REFUSED(existing_results_unconsumed)`、回傳 `existing`、**無 `action`**、零新事件；P3 **研究限制**：已有紀錄（已消費）而未附 `--new-query-strategy`／`--reason`→`REFUSED(prior_research_requires_strategy)`；附上→`DISPATCHED`；P4 **請求形狀**：空問題、0 條查詢、>5 條（去重後）、非法網域→`REFUSED(request_invalid)`，皆零網路零事件；P5 record 離線 artifact 夾具（`queries` 與派發相符）→`RECORDED`、`ppss_record` 事件 `state==RETRIEVED`；P6 **錯配**：artifact 之 `queries` 與派發不符或缺欄→`REFUSED(dispatch_mismatch)`、零事件；P7 同視窗二次 record 未於 record 帶新策略→`REFUSED(ledger_refused)`（ledger 原拒絕透傳）；P8 read（`--quote` 為來源子字串）→`ppss_read` 事件 `evidence_ok==true`；P9 空 `results` artifact→入口如實回 `INVALID`（不隱藏）。
+  - **真正 CLI 並行回交（不以序列重放推論）**：K1 準備一筆 native 派發→同時啟動 ≥6 個 `subprocess` 執行 `route.py consult --phase return`（同 id、同 `--purpose`）→**恰一個** exit 0、ledger **恰增一筆** `consult advisor`，其餘 exit 5（`stale_or_duplicate_dispatch` 或 `busy`），無一因非預期原因失敗；K2 同槽兩個不同派發（A、B）各以真實 CLI 並行回交→恰一筆被記、另一筆被拒（槽位已消耗），ledger 僅一筆新 `consult`；K3 PPSS：≥4 個並行 `--phase record`（同 id、同 artifact、皆附新策略以繞過 ledger 視窗）→恰一筆 `ppss_record`；K4 **確定性互斥**：預建鎖檔模擬他行程持鎖→`--lock-wait-ms` 內回 `REFUSED(busy)`、零事件、不刪他人之鎖；**鎖齡 300 s 之舊鎖同樣 `busy`、內容不變（不依鎖齡自動回收）**；人工移除後回交成功；正常與拒絕離開後自身鎖檔皆已刪除；K5 **並行 contender 不回收舊鎖**：≥4 個並行 `subprocess` 對鎖齡 300 s 之外來鎖回交→全數 `busy`、零事件、外來鎖未被刪。並行啟動用真實子行程（非執行緒），並記錄各行程啟動／結束時戳作為重疊證據。
+  - **語義不變**：M-1 入口寫入之 `consult` 事件與 ledger CLI 手動寫入者除 `note` 外同形（`type`／`incident`／`kind` 鍵集一致）；M-2 全部案例後 ledger 無 `round_*`／`human`／`step_limit`／新型別事件；M-3 `advisor.api` 之 caller 呼叫次數＝1、`--max-tokens`／`--timeout` 未傳時沿用 caller 預設（斷言傳入 argv 不含放寬值）；M-4 stdout 恆為單一 JSON 物件、成功時 stderr 為空、任何輸出不含假金鑰值。
+  - **新增／替換／停用（接線表層）**：F1 於暫存表新增一列重用 `native_advisor` adapter（名 `advisor.native2`）→可 dispatch／return，**其餘檔案零變更**（比對暫存目錄檔案雜湊集合，僅表檔不同）；F2 停用／啟用切換 → S2 同路徑；F3 `table check` 偵測重名、未知 adapter、非法 `kind`。
+  - **真正 CLI**：C1 `subprocess` 執行 `python -I route.py table check`（cwd 於暫存 repo）→0；C2 `subprocess` 執行 native dispatch／return 全流程（含重放拒絕）並核對 ledger 檔事件；C3 缺必要旗標→2 且 stdout 為 JSON。
+- **bounded probe（HYPOTHESIS ① 之失敗形狀）**：N2、N3、N5、N6、P2–P6、K1–K4、A3–A9 即該 probe；結果（通過／失敗形狀）如實記入收尾實錄，**不通過則停止，不改為 stub**。
+- [x] 完成
+
+### AI-4: 修訂 Gate「Advisor 與 PPSS」條（`ssot-governance.md`；與入口切換同批，須在 AI-3 全綠後）
+- **檔案**: `.claude/rules/ssot-governance.md`（LF）
+- **現值**（兩處，各唯一）：
+  1. 第一處＝Advisor 條自「`consult --kind advisor` 只能記錄實際工程顧問調用」起至「；主 agent 自判不得以 advisor kind 記錄；」止之連續片段（568 字元，見下，須逐字命中 1 次）：
+
+     ```text
+     `consult --kind advisor` 只能記錄實際工程顧問調用：原生 `advisor` 工具，或本 incident 新發之 `python .claude/scripts/advisor_call.py` 呼叫且 `exit 0`／`status=SUCCESS`（receipt 之 `ticket` 欄 MUST 為該 incident 所屬票號；`--note` MUST 附 receipt 路徑、`receipt_sha256` 與 `request_id`；非 SUCCESS、他 incident 或歷史 receipt 不得記；API 路徑記帳前另 MUST 核對：①`receipt.payload.sha256` 等於為該次諮詢實際送出之 payload 檔之 sha256，②該 payload 載明目標 incident id 且與 `--incident` 一致，③該 payload 所附失敗證據（輸出全文之 sha256）歸屬該 incident、非同票他 incident 者；三項摘要併入同一 `--note`，任一不符不得記；此為模型契約核對，`cmd_consult` 不驗證，原生路徑無 payload 雜湊、不適用）；主 agent 自判不得以 advisor kind 記錄；
+     ```
+  2. 第二處＝PPSS 條句尾：`` `evidence_ok` 為必要條件，非主張成立之充分條件。 ``（命中 1 次）
+- **目標值**：
+  1. 第一處替換為：
+
+     ```text
+     `consult --kind advisor` 只能記錄實際工程顧問調用，且一律經入口 `python .claude/scripts/route.py consult --incident <INC> --source <advisor.api｜advisor.native>`，不得直接以 `gate_ledger.py consult --kind advisor` 記帳（入口寫入之 `--note` 含 `via=route.py`；旁路無機械阻擋、僅可由該標記事後辨識，仍屬模型契約）。`advisor.api`＝本 incident 新發之 `advisor_call.py` 呼叫：入口於同一次呼叫內先核對、再呼叫（至多一次網路嘗試，不重試、不自動換模式），`exit 0`／`status=SUCCESS` 才記帳；`advisor.native`＝入口派發（`--phase dispatch --purpose <描述>`）→主 agent 呼叫原生 `advisor` 工具→`--phase return` 回交（須帶派發所得 `--dispatch-id` 與同一 `--purpose`；id 綁定記帳槽位與具體請求描述，錯配、過期或重複回交拒絕，經入口之並行回交由入口互斥確保僅記一次；`--purpose` 為聲明式、入口僅驗其與派發一致），入口無法確認工具是否真被呼叫、亦不可驗其內容，此為派發／回交而非完整路由。API 路徑記帳前 MUST 核對（入口機械檢查下列①②③與 receipt `ticket` 欄＝該 incident 所屬票號、`status=SUCCESS`、receipt 由本次呼叫產生）：①`receipt.payload.sha256` 等於實際送出之 payload 檔 sha256；②payload 載明目標 incident id（令牌 `incident=<INC>`）；③payload 以恰一個令牌綁定證據——`failure_sha256=<h>`（失敗輸出全文之 sha256）或 `uncertainty_sha256=<h>`（無失敗輸出時之非空不確定性紀錄之 sha256）——且 `<h>` 等於 `--evidence` 檔之 sha256；不得製造失敗，亦不得以空輸入之 sha256 充數；令牌為主要證據綁定，不限制問題內容；核對摘要併入同一 `--note`。入口檢查宣告項之間的一致性，**不**證明證據在因果上屬該 incident、payload 敘述忠實、是否需要諮詢或建議品質，此部分仍由執行者負責。非 SUCCESS、他 incident 或歷史 receipt 不得記。來源被停用時入口回 `SOURCE_DISABLED` 與 `alternatives`：有合法替代者，主 agent 依本 Gate 順序自主選擇並續作，不停等人工；同 role 無任何啟用來源（`MISSING_REQUIRED`）依下列「Advisor 不可達」處置；主 agent 自判不得以 advisor kind 記錄；
+     ```
+  2. 第二處替換為原句尾後接：
+
+     ```text
+     `evidence_ok` 為必要條件，非主張成立之充分條件。 PPSS 之取得與回記一律經入口 `python .claude/scripts/route.py consult --incident <INC> --source research.ppss`：`--phase dispatch`（付費呼叫前入口先判定：請求形狀、既有結果須先消費、已有紀錄須附新查詢策略與理由；通過才回 `research_submit` 之具體參數，無狀態、不計用量）→主 agent 呼叫 `research_submit`→`--phase record --dispatch-id <ID> --artifact <回件 artifact_path>`（描述自回件 `queries` 回驗；原樣透傳 `ppss record`，視窗與重送規則仍由 ledger 強制）→`--phase read …`（原樣透傳 `ppss read`）；入口不新增研究額度、不判斷證據語意、無法觀察 MCP 呼叫；經 ledger 之 PPSS 事件不帶 `via` 標記，旁路無法由 ledger 事後辨識，屬模型契約。
+     ```
+- **保留與刪除（R5）**：Gate 之核對**要求**（payload 雜湊、incident 綁定、證據歸屬、非 SUCCESS／他 incident／歷史 receipt 不得記、原生內容不可驗、「主 agent 自判不得記」）全數保留；刪除者僅為「執行者手動組裝呼叫與記帳之步驟敘述」。本條其餘文字（「Advisor 由主 agent 承接，hook 不呼叫；」前綴、「原生回答內容加密不可驗…」起至句尾）**逐字不變**；`ssot-governance.md` 其餘行零變更（含 `:193` 之「API 顧問則依其 receipt 檔…」真實性依據句）。
+- [x] 完成
+
+### AI-5: `cross-review.md` R0 兩處改回指（D4；不改 R0 內部政策）
+- **檔案**: `.claude/rules/cross-review.md`（LF）
+- **現值**（各唯一）：
+  1. `` 主 agent 呼叫原生 `advisor` 工具（R0 為唯讀 subagent，**不是** Advisor，不得代記 advisor consult）→ `consult --kind advisor` → `round start --layer advisor` ``
+  2. `` 再經原生 Advisor 確認（含查證票面是否實有授權依據） ``
+- **目標值**：
+  1. `` 主 agent 依 Gate「Advisor 與 PPSS」條文取得 Advisor 並經入口記帳（R0 為唯讀 subagent，**不是** Advisor，不得代記 advisor consult）→ `round start --layer advisor` ``
+  2. `` 再依 Gate「Advisor 與 PPSS」條文取得 Advisor 確認（含查證票面是否實有授權依據） ``
+- 說明：僅此兩處；`consult --kind r0` 記帳指令、R0 分類／輪次／護欄／事件三分類／Budget 隔離等**逐字不變**；不綁入 D-b 或 review LIMIT 恢復。
+- [x] 完成
+
+### AI-6: ROUTER R3／R4 字面對齊（僅字串常數；保留 CRLF）
+- **檔案**: `.claude/hooks/gate_stop_guard.py`（工作樹 CRLF；以 `newline=''` 讀寫）
+- **現值**（各唯一）：
+  1. `` R3 仍不能判定下一個安全行動才呼叫 Advisor（來源與記帳條件以 Gate「Advisor 與 PPSS」條文為準；`consult --kind advisor`；本層不確定即可升層， ``
+  2. `` R4 缺必要外部事實才用 PPSS（`research_submit`→`ppss record`／`ppss read`）； ``
+- **目標值**：
+  1. `` R3 仍不能判定下一個安全行動才取得 Advisor（來源、核對與記帳依 Gate「Advisor 與 PPSS」條文，一律經入口 `route.py consult`；`consult --kind advisor` 由入口寫入；本層不確定即可升層， ``
+  2. `` R4 缺必要外部事實才用 PPSS（經入口 `route.py consult --source research.ppss`：派發→`research_submit`→record／read）； ``
+- 約束：替換字串**不含換行**；保留 `gate_stop_guard_test.py:312-316` 之 token（`R1`／`R3`／`R4`／`R6`／`consult --kind advisor`…）且**不得**引入其禁字（`PPSS 已用 0／1`／`初判`／`reconcile`／`僅允許升報`）；除 `ROUTER` 常數外 AST 相同；CR 數不變（529）。
+- [x] 完成
+
+### AI-7: 全量驗證、範圍核對與收尾實錄
+- **檔案**: 票檔收尾實錄（`/sv` Step 11 後搬 `deliver/`）；不改其他檔
+- **動作**:
+  1. `python -I` 下全綠：新 `test_route.py`（全案例）、`gate_stop_guard_test.py`（54）、`test_gate_ledger.py`（53）、`test_advisor_call.py`（25）；`python -I .claude/scripts/route.py table check` 於真實 repo 輸出 `ok:true`。
+  2. 差異範圍：`git diff --name-only DIFF_REF..` 僅含 ALLOWED 六檔；`ssot-governance.md` diff 僅 AI-4 兩處（其餘行零變更；標題集合不變）；`cross-review.md` diff 僅 AI-5 兩處；`gate_stop_guard.py` 除 ROUTER 常數外 AST 相同且 CR 數不變；FORBIDDEN 零變更。
+  3. **切換一致性（無雙軌）**：確認 Gate 條已改為「API／native 一律經入口」且手動組裝敘述已刪、`cross-review.md` 不再有原生限定字面、ROUTER 不再含 `ppss record／ppss read` 直接指令字面；`rg` 結果記入收尾實錄（**資訊性**，非完成判準——完成以 AC 行為測試為準）。
+  4. 收尾實錄 MUST 含：AI-0 取證結果（含工具介面核對）、測試輸出與案例清單、bounded probe 結果、`[可達性]` producer 證據欄回填、偏差清單、**限定交付聲明**（見 AC 15）。
+- [x] 完成
+
+## Hard Constraints
+1. **不改** `gate_ledger.py`、`advisor_call.py`、receipt schema、既有 hook 邏輯與其測試；`gate_stop_guard.py` 僅改 `ROUTER` 字串常數（AI-6）。
+2. **語義不變**：入口不呼叫 `round`／`human`／`step-limit`／`strategy-scan`／`incident`／`check`；`ppss` 僅原樣透傳；不新增 ledger 事件型別或 `kind`；不改計數、輪數上限、停損、LIMIT、授權、成本上限；`advisor.api` 沿用 caller 之全部上限與預設，**每次入口呼叫至多一次網路嘗試**，不重試、不切 `request_mode`、不自動 fallback。
+3. 入口僅用標準庫；以 `importlib` 載入同目錄 `advisor_call.py`、以 `subprocess`＋`sys.executable` 呼叫 ledger 公開 CLI；**不 import `gate_ledger` 內部、不讀 ledger 原檔**；入口自身不讀 `ADVISOR_ANTHROPIC_API_KEY`（僅 caller 讀），任何輸出不得含金鑰值。
+4. **不新增**狀態檔、DB、queue、第二套 ledger、plugin 平台或簽章驗真；`dispatch_id` 僅由 ledger 既有計數與請求描述摘要導出；入口自身除 caller 既有之 `tmp/<ticket>/advisor/` receipt，及回交互斥用之**暫態鎖檔** `<git-common-dir>/gate/<ticket>.route.lock`（內容僅 pid／時戳、離開即刪、非狀態）外，不寫任何檔。
+5. **令牌是主要證據綁定，不限制問題內容**；入口不解析問題敘述；**不製造失敗**，不接受空輸入雜湊；`## 失敗證據` 標題為 caller 既有要求，不放寬亦不修改 caller。
+6. **入口切換與 Gate／R0／ROUTER 字面修訂同批**：AI-4～6 僅在 AI-3 全綠後執行，並與 AI-1～3 同一提交集（由 `/qa` Step 4.5 單一提交）；**禁止**出現「手動與入口皆合法」之中間態；失敗＝整票 revert。
+7. **如實揭露**：`advisor.native`／`research.ppss` 為「派發／回交」而非完整路由；入口無法觀察模型工具之執行、native 內容不可驗；旁路無機械阻擋，僅可由 `via=route.py` 事後辨識（PPSS 事件無 note 欄，連標記亦無）；**不宣稱** V2（Skill 後繼／predicate／`next`）、Skill 模組化、全面機械防繞過、或模型必遵循入口已交付。
+8. `NEEDS_JUDGMENT` 屬 V2，本票不實作；入口遇 `SOURCE_DISABLED` 僅回 `alternatives`，**不替主 loop 選擇**。
+9. 不修改 R0 內部政策、不綁入 D-b／review LIMIT 恢復、不含 credential 類修復、不改任何 Skill（`sv`／`qa`／`uc`／`normal`…）。
+10. **測試完整性**：行為測試經 `route.main`／CLI；禁直接呼叫內部函式、禁手寫 ledger 事件作被測行為；全部零網路、不得發起任何付費呼叫；不得以修改 FORBIDDEN 檔、跳過或標記 `expectedFailure` 使測試轉綠。
+11. **EOL**：`ssot-governance.md`／`cross-review.md` 維持 LF；`gate_stop_guard.py` 維持工作樹 CRLF；新檔 LF。
+12. 範圍僅 ALLOWED 六檔；不改 `.gitattributes`；`PROGRESS.md`／`PROGRESS_ARCHIVE.md` 依 DEFERRED-TO-DOCSYNC 不於本票處理。
+13. **派發描述最小化（Rev B）**：`dispatch_id` 僅綁定「記帳槽位＋請求描述摘要」（native＝`--purpose`、PPSS＝查詢集合）；不儲存描述原文於任何檔；不新增 DB、queue 或長期 registry；不得退化為只識別槽位。
+14. **PPSS 付費前判定（Rev B）**：派發階段之判定（請求形狀、既有結果須先消費、已有紀錄須附新策略與理由）皆為零網路零事件之前置；不放寬、不替代 ledger 之 `record` 視窗規則；成本控制仍屬 Gate 既有規則，入口不承擔。
+
+## Error Handling
+- AI-0 任一錨點命中數≠1、`advisor_call.main` 簽章缺 `client_factory`／`env`／`now`、`HEADINGS` 不含 `## 失敗證據`、工具介面核對不符（`advisor` 非無參數、`research_submit` 參數與表不符）→ 停止回報（不憑票面假設）。
+- 基線回歸（修改前）任一失敗 → 停止回報（先處置非本票之失敗）。
+- ledger 公開面與本票所載不符（`status --json` 欄位、`consult`／`ppss` 參數、退出碼）→ 停止回報；**不得**以讀 ledger 原檔或 import 內部補位。
+- 需要修改 `gate_ledger.py`／`advisor_call.py`／`gate_stop_guard_test.py` 或其他 FORBIDDEN 檔才能使測試或 ROUTER 通過 → 停止回報，不得越權。
+- AI-6 後 `gate_stop_guard_test.py` 任一失敗，或 ROUTER 出現禁字／缺 token → 還原 AI-6 並停止回報。
+- 任一測試案例需要真實網路、真實金鑰或真實付費呼叫 → 停止回報（本票全程離線）。
+- AI-4／5／6 之 diff 超出目標行（其他行變動、CR 數變動、標題集合變動）→ 還原並停止回報。
+- 開工 activation 衝突：`tmp/verify/active.json` 之 owner 為他 session 且該票處於**活態**（PENDING／TICKET_RIGOR／IN_PROGRESS／EXECUTED，非 REVIEW／CLOSED／VOID）→ 不覆寫、停止回報（`activate_ticket.sh` 為唯一 claim 入口，不手改）；該票為 REVIEW 以後者，正常 activation。
+- 工作樹有非本票 dirty、或 registry 有 IN_PROGRESS 票觸及 ALLOWED 檔 → 停止回報（並行串行律）。
+- 「手動與入口皆合法」之中間態無法避免（例如 AI-3 未全綠即需合併 AI-4～6）→ 停止回報，不得分批提交。
+- **[標配]** 令含 commit／版控標的時，`git check-ignore -v <標的路徑>` 命中 → 停止回報（gitignore 死結律，候選 #20）。
+
+## Acceptance Criteria
+- [x] **[存在性]** `route.py`、`route_table.json`、`test_route.py` 存在；`python -I .claude/scripts/route.py table check` 輸出 `ok:true` 並 exit 0；`route_table.json` 不含 `successors`／`facts`／任何政策或 predicate 敘述。
+- [x] **[行為性]** given 暫存 repo＋開啟之 incident＋非空失敗輸出檔與含 `incident=<INC>`／`failure_sha256=<h>` 之合規 payload／expect 經 `route.main` 呼叫 `advisor.api`（假 client）→ `RECORDED`、恰一筆 `consult advisor`、`--note` 含 `via=route.py`、`receipt_sha256`、`request_id`、`payload_sha256`、`incident`、`evidence=failure:<h>`；**無失敗輸出**改以 `uncertainty_sha256`＋非空不確定性紀錄亦 `RECORDED`（payload 仍含 `## 失敗證據` 標題）；兩路徑問題敘述任意（令牌為主要綁定）。
+- [x] **[行為性]** given 同環境／expect 下列錯配皆 `REFUSED`、**client 未被呼叫**、零 ledger 事件：跨 incident 錯配、證據檔被換、空 hash 充數（空檔與非空檔兩型）、令牌皆缺、兩令牌並存；incident 非 open 或票非 `loc:pending` 同樣零網路零事件；呼叫期間 payload 被改→`M3` 失敗→`REFUSED` 且零 consult。
+- [x] **[行為性]** given `advisor.api` 假 client 擲 5xx 或回非 SUCCESS／expect `CALL_FAILED`（exit 6）、client 恰被呼叫 1 次（無重試）、零 consult。
+- [x] **[行為性]** given `advisor.native` 派發與回交／expect（關聯具體請求）：dispatch 回 `params=={}` 與形如 `d2-<16hex>` 之 `dispatch_id`、零事件；**不同派發可區分**（同槽不同 `--purpose`→不同 id）；**錯配拒絕**（A 之 id 配 B 之 `--purpose`→`dispatch_mismatch`、零事件）；正確回交→`RECORDED`（`--note` 含 `dispatch=<ID>`、`purpose_sha256`）；**重放不增事件**（再送→`stale_or_duplicate_dispatch`、事件數不變）；槽位被他路徑消耗、缺／錯 id、空 `--purpose`／`--note` 一律拒絕；**「相同 ID、首次回交被接受」不得單獨作為通過依據**。
+- [x] **[行為性]** given `research.ppss` 派發前判定與回記／expect：付費呼叫前即拒絕——請求形狀違規（空問題、0 或 >5 條查詢、非法網域）、**既有結果未消費**（回 `existing`、無 `action`）、**已有紀錄而未附新查詢策略與理由**，皆零網路零事件；通過之 dispatch 回合於 `research_submit` 介面之 `params` 與含查詢集合摘要之 id；record 以 artifact 之 `queries` 回驗（不符／缺欄→`dispatch_mismatch`）並原樣透傳 `ppss record`（視窗拒絕、`INVALID` 如實回傳）；read 原樣透傳。
+- [x] **[行為性]** given 真正 CLI 並行回交（≥6 個 `subprocess` 同時回交同一派發；兩個不同派發同槽並行回交；≥4 個並行 PPSS record）／expect 每組**恰一次**成功記帳、ledger 僅增一筆對應事件、其餘 exit 5；預置鎖檔（含鎖齡 >120 s 者）→`busy` 零事件、不刪他人鎖、不依鎖齡自動回收；≥4 個並行 contender 對舊鎖全數 `busy`（K5）；人工移除後成功；離開後自身鎖檔已刪；**不以序列重放推論並行去重**。
+- [x] **[行為性]** given 來源狀態／expect 未知→4；`SOURCE_DISABLED` 附 `alternatives` 且 harness 取 `alternatives[0]` 即可**續作成功**；同 role 全停→`MISSING_REQUIRED`；`domain-internal`→`NOT_CALLABLE`；表壞→3 零副作用——**皆零 ledger 事件、零網路**，且不一律 STOP。
+- [x] **[行為性]** given 暫存表新增一列重用既有 adapter／expect 僅表檔變動即可 dispatch／return；停用／啟用切換生效；`table check` 偵測重名、未知 adapter、非法 `kind`。
+- [x] **[行為性]** given 真正 CLI（`subprocess`、`python -I`、cwd 於暫存 repo）／expect `table check`、native 全流程（含重放拒絕）與缺旗標皆得單一 JSON 物件＋文件所載退出碼；成功時 stderr 空；任何輸出不含假金鑰。
+- [x] **[行為性]** given 全部案例執行後之 ledger／expect 入口寫入之 `consult` 事件與手動事件除 `note` 外同形；無 `round`／`human`／`step_limit`／新型別事件；`advisor_call` 之上限與預設未被放寬；既有回歸 54／53／25 全綠。
+- [x] **[存在性]** Gate「Advisor 與 PPSS」條已依 AI-4 修訂：API／native 一律經入口（native 派發須帶 `--purpose`、回交須帶 id 與同一 `--purpose`、錯配／過期／重複拒絕、經入口並行由入口互斥）、核對**要求**（含 R1：失敗輸出或不確定性紀錄、不製造失敗、不以空輸入雜湊充數、令牌為主要綁定、入口機械檢查範圍與「不證明」聲明）保留、`SOURCE_DISABLED` 自主續作規則存在、PPSS 經入口句存在（含派發前判定：請求形狀、既有結果須先消費、已有紀錄須附新策略與理由）；手動組裝敘述已刪；`ssot-governance.md` 除該兩處外 diff 為零（標題集合與行數不變）。
+- [x] **[存在性]** `cross-review.md` diff 僅 AI-5 兩處，R0 分類／輪次／護欄／`consult --kind r0` 等逐字不變；`gate_stop_guard.py` 除 `ROUTER` 常數外 AST 相同、CR 數不變，`gate_stop_guard_test.py` 全綠，ROUTER 含 `route.py consult` 回指且保留測試 token。
+- [x] **[可達性]**（Akira 2026-10-20 裁決 D：M1 追溯 `gate_ledger.py:537` status producer；M4／M5 為呼叫端 CLI 檔案輸入，不判 missing-wiring；不冒稱真實模型 session 全鏈已驗）條文→入口→ledger→Router 鏈之 producer／consumer 附 `檔案:行號`（執行後回填）：Gate 條（`ssot-governance.md` Advisor／PPSS 條）→`route.py consult`（producer：入口寫 `consult`／`ppss`）→`gate_ledger.py` `cmd_consult`（`:661-667`）／`cmd_round_start`（`:617-619`）／`cmd_ppss_record`（`:700`）／`cmd_ppss_read`（`:734`）（consumer）；入口→`advisor_call.main`（`:450`，producer：receipt 與摘要 `:505-508`）；`research_submit` 回件 `artifact_path` 與 `queries`（PLT `research_service.py` `_response`／artifact）→入口 `--artifact`（描述回驗）→`ppss record`；入口互斥鎖（`<TICKET>.route.lock`）→回交序列化；ROUTER（`gate_stop_guard.py:376-381`）→Gate 條。producer 證據欄（2026-10-20 回填）：Gate 條（`ssot-governance.md:212`／`:213`）→入口 `route.py` `main`（`:681`）／`do_api`（`:410`）／`do_native`（`:499`）／`do_ppss`（`:535`）；入口寫 `consult`（producer）：`route.py:465`（API）、`:521`（native）；`ppss record`／`ppss read` 透傳：`:611`、`:545`；consumer：`gate_ledger.py` `cmd_consult`（`:661-667`）、`cmd_round_start`（`:617-619`）、`cmd_ppss_record`（`:700`）、`cmd_ppss_read`（`:734`）；入口→caller：`do_api` 內呼叫 `advisor_call.main`（`advisor_call.py:450`）；互斥 `route_lock`（`route.py:326`）；id `dispatch_id`（`:147`）、`verify_dispatch`（`:486`）；artifact `queries` 之正規化與 `artifact_path`：PLT `research_service.py:62-72`、`:543-565`；ROUTER（`gate_stop_guard.py:376-381`）→Gate 條。
+- [x] **[存在性]** 收尾實錄含：AI-0 取證（含工具介面核對、PPSS／互斥取證與探測重做）、全部測試輸出與案例清單（含並行 K1–K5 之行程時戳）、bounded probe 結果（N2／N3／N5／N6／P2–P6／K1–K5／A3–A9）、`[可達性]` 證據欄回填、偏差清單，以及**限定交付聲明**：①V1 不含 V2（Skill 後繼／predicate／`next`／Skill 模組化）；②`advisor.native`／`research.ppss` 為派發／回交、入口無法觀察模型工具執行、native 內容與 `--purpose` 不可驗（聲明式）；③旁路無機械阻擋，僅可由 `via=route.py` 事後辨識（PPSS 事件無標記）；入口互斥僅序列化**經入口**之回交，旁路不受保護；④模型是否經入口並依回傳續行＝UNKNOWN（模型契約）；⑤真實 session 端到端（派發→真實工具→回交）N＝0，為**證據與成本之限定選擇**（形狀證據＝本地工具介面＋PLT 請求模型＋官方文件；真實 native 呼叫轉送全對話、PPSS 每次付費，且對 V1 驗收非決策關鍵），**與「不製造失敗」無涉**，未做真實付費呼叫；⑥dispatch_id 冪等與並行正確性為 HYPOTHESIS，僅以離線測試（含真正 CLI 並行）支持；⑦PPSS 派發前判定為保守前置、成本控制仍屬 Gate；⑧D-b／R0 內部政策／credential／簽章驗真未交付。
+- [ ] ~~assembleDebug PASS~~ (N/A: feature preset 之治理文字／hook 字串／入口腳本與離線測試，無 `app/`／gradle 變更)
+- [x] `git diff --stat` 僅涉及 ALLOWED 檔案（`<DIFF_REF>..<DIFF_END>`，附 `DIFF_END` 範圍核對輸出；FORBIDDEN 零變更；含 glob 型 FORBIDDEN token 之人工核對）
+
+## 收尾實錄（UC 執行，2026-10-20）
+
+**AI-0 取證**：①七處錨點（Gate 起訖與 PPSS 句尾、`cross-review.md` 兩處、`gate_stop_guard.py` 兩處）各命中 1；EOL：`ssot-governance.md`／`cross-review.md`＝`text eol=lf`、`gate_stop_guard.py`＝`i/lf w/crlf`（CR 529）；新檔路徑 `git check-ignore -v` 無命中；`route.py`／`route_table.json` 於開工前不存在。②`advisor_call.py`：`main(argv=None, *, client_factory=None, env=None, now=None)`、`HEADINGS` 含 `## 失敗證據`；`python -I` 下 `importlib` 載入並擷取 stdout 於測試套件實際運行中成立（`python -I test_route.py`）。③ledger 公開面與票面一致（`status --json` 欄位、`consult`／`ppss`、退出碼 0–6、無 note／時間戳／PPSS artifact 與 queries）。④**工具介面核對（執行 session，2026-10-20）**：原生 `advisor` 工具定義＝無參數物件（`properties:{}`、`additionalProperties:false`）；`research_submit` schema＝必填 `question`／`queries`／`task_type`、選填 `filters`／`justification`／`metadata`——與接線表 `dispatch` 樣板一致。⑤**基線回歸（修改前）**：`gate_stop_guard_test.py` 54、`test_gate_ledger.py` 53、`test_advisor_call.py` 25，皆 OK（`tmp/ADV-ENTRY-01_base_*.out`，非版控）。⑥`git status` clean、registry 無他 IN_PROGRESS 票；`activate_ticket.sh` 切票成功（owner 自 `PJMAN-AUTOALIGN-01` 之 REVIEW 票移轉）。⑦PLT 真實 artifact（`rsch-20261011-66f685d4c6.json`）含 `request_id`／`captured_at`／`queries`／`results[]`，`queries` 正規化依 `research_service.py:62-72`；`<git-common-dir>/gate/` 無 `*.route.lock` 既有檔，ledger 鎖檔名為 `<TICKET>.jsonl.lock`（`gate_ledger.py:8`）。
+
+**實作與範圍**：新增 `route.py`（721 行）、`route_table.json`（12 行，僅 `schema`＋`sources`）、`tests/test_route.py`（719 行、48 案；皆 LF）；修訂 `ssot-governance.md`（僅 `:212`、`:213`，300 行與 36 個標題不變）、`cross-review.md`（僅 `:51`、`:52`，62 行不變，「原生」字樣殘留 0）、`gate_stop_guard.py`（僅 `ROUTER` 常數兩段，除其以外 AST 相同、CR 數維持 529）。`gate_ledger.py`／`advisor_call.py`／receipt schema／hook 邏輯／FORBIDDEN 檔零變更。入口僅呼叫 ledger 之 `status`／`consult`／`ppss record|read`；原始碼無 `ANTHROPIC` 金鑰環境變數字樣、無 `round`／`human`／`step-limit`／`strategy-scan`／`incident`／`check` 子命令字面。
+
+**測試輸出（`python -I`，AI-4～6 前後各一輪）**：`test_route.py` 48 案 OK（連跑 3 輪全綠；修改後再跑 1 輪 OK）；`gate_stop_guard_test.py` 54 OK；`test_gate_ledger.py` 53 OK；`test_advisor_call.py` 25 OK。AI-4～6 於 AI-3 全綠後才執行，並與 AI-1～3 同一提交集（由 `/qa` Step 4.5 單一提交）。
+
+**案例清單與 bounded probe 結果**：來源狀態 S1–S6；API A1–A15（A1 失敗路徑正向、A2 **無失敗輸出之不確定性正向**、A3 跨 incident 錯配、A4 證據換檔、A5／A6 空 hash 兩型、A7 令牌皆缺、A8／A8b 令牌並存／incident 令牌缺失與前綴邊界、A9 payload 於入口雜湊後被改→`receipt_mismatch`、A10 incident 不存在／已關閉、A11 票非 `loc:pending`、A12 API 錯誤恰一次呼叫無重試、A13 非 SUCCESS 不記帳、A14 三種問題敘述皆通過〔令牌為主要綁定〕、A15 caller 上限與預設未被放寬）；native N1–N7（N2 不同派發可區分、N3 錯配拒絕、N5 重放不增事件、N6 槽位被他路徑消耗）；PPSS P1–P9（P2 既有結果未消費即拒絕且無 `action`、P3 已有紀錄須附策略與理由、P4 請求形狀、P6 artifact `queries` 錯配、P7 ledger 視窗拒絕透傳、P9 `INVALID` 如實回傳）；新增／替換／停用 F1、F3＋S2 續作；CLI C1–C3、M4；語義 M1／M2；**並行 K1–K4（真實子行程）**。bounded probe（HYPOTHESIS ①）結果：N2／N3／N5／N6／P2–P6／K1–K4／A3–A9 **全數通過**，無需停止。**並行證據**：K1＝6 個並行回交，6 行程於 17 ms 內全數啟動、首個行程結束前已全數啟動（重疊約 995 ms），結果＝1 成功＋5 `stale_or_duplicate_dispatch`；K2＝4 個並行（2 派發×2），1 成功＋3 拒絕；K3＝4 個並行 PPSS record，1 成功＋3 拒絕、`ppss_record` 事件僅 1 筆。**測試敏感度（突變探測）**：於暫存副本停用 `route_lock` 後重跑 K1／K3，K1 得 6／6 成功記帳（預期 1）、K3 得 4／4（預期 1）——兩案皆被殺死，證明並行去重由互斥鎖達成而非巧合；真實 repo 之 `route.py` 未被改動。**〔Rev B.1 補註，歷史紀錄不改〕** 上述 K4 之「殘留鎖 >120 s 回收」為 `54f5624a` 時之行為，已於 `795117e5` 取消（現行 K4／K5見 AI-3；K5 並行 contender 對舊鎖全數 `busy`）。
+
+**偏差與如實揭露**：(1) 測試開第二個 incident 須 `--independent-evidence`（ledger 規則），已在測試夾具處理。(2) 固定時鐘＋相同 `request_id` 會使 caller 之 receipt 檔名相同而觸發其「不覆寫」保護（`FileExistsError`），測試以不同 `request_id` 避開——入口行為正確，非缺陷。(3) A9 之竄改點改為「入口雜湊 payload 後、caller 讀檔前」（以 `now` 注入縫之第一次時鐘讀取觸發），因 caller 於建立 client 前即已雜湊，無法於 client 副作用中竄改。(4) 票面 Rev B 修訂發生於開工前（`ADV-ENTRY-01` Rev B），本實作依 Rev B 執行，無 Rev C。(5) `dispatch_id` 診斷近 8 槽之設計為本實作細節（票面 AI-2 §6 已載）。
+
+**限定交付聲明**：①V1 不含 V2（Skill 後繼／predicate／`next`／Skill 模組化），`route_table.json` 無 `successors`／`facts`；②`advisor.native`／`research.ppss` 為派發／回交，入口無法觀察模型工具之執行，native 內容與 `--purpose` 不可驗（聲明式，僅驗與派發一致）；③旁路無機械阻擋，僅可由 `via=route.py` 事後辨識（PPSS 事件無標記）；入口互斥僅序列化**經入口**之回交，旁路不受保護；④模型是否經入口並依回傳續行＝UNKNOWN（模型契約，無機械後盾）；⑤真實 session 端到端（派發→真實 `advisor`／`research_submit`→回交）N＝0，為**證據與成本之限定選擇**（形狀證據＝本地工具介面＋PLT 請求模型＋官方文件；真實 native 呼叫轉送全對話、PPSS 每次付費，且對 V1 驗收非決策關鍵），**與「不製造失敗」無涉**；本票全程離線、零付費呼叫；⑥`dispatch_id` 冪等與並行正確性為 HYPOTHESIS，僅以離線測試（含真實 CLI 並行與突變探測）支持；⑦PPSS 派發前判定為保守前置（ledger 之 `record` 視窗規則仍為最終權威），成本控制仍屬 Gate；⑧D-b／R0 內部政策／credential／簽章驗真未交付；⑨（Rev B.1）互斥鎖不依鎖齡自動回收：既有鎖逾 `--lock-wait-ms` 回 `busy`，行程被強殺遺留之鎖須確認無執行中持有者後人工移除，期間經入口之回交皆 `busy`。
+
+**QA／Commit 記錄（`/qa`，2026-10-20）**：
+- `/qa` Step 0：`check qa` exit 0；`verify_checklist.sh` PASS（工作樹尚未提交，`DIFF_REF..HEAD` 為空→「無變更」；並於提交後以下列範圍核對補強）。Step 1–3（`assembleDebug`／`testDebugUnitTest`／`lint`）N/A（無 `app/`／gradle 變更）；回歸 `test_route` 48／`gate_stop_guard_test` 54／`test_gate_ledger` 53／`test_advisor_call` 25 於 AI-4～6 後全 OK。Step 3.5 靜態盲區掃描之 ⚠️（`TapFocusRing.kt`、`HDRWarningOverlay.kt`、`CameraPreview.kt`、`SettingsScreen.kt` 之既有 UI 字串／dp）皆為**既有 `app/` 項目、與本票 diff 無關**，不豁免亦不處理。Step 4（PROGRESS.md）`SKIPPED — DEFERRED-TO-DOCSYNC`（FORBIDDEN 命中 PROGRESS.md）。
+- Step 4.5：`check commit` exit 0；`git status` 僅六個 ALLOWED 路徑；`git add` 逐路徑 stage；提交 **`54f5624a`**（`[ADV-ENTRY-01]` 單票前綴，6 files、+1458／−6）；`DIFF_END=54f5624a` 寫入 `tmp/verify_cmd.conf`（`DIFF_REF=3f9b2849`）。blob EOL：三新檔 `i/lf w/lf`、`gate_stop_guard.py` `i/lf w/crlf`（維持）。
+- **AC 17（範圍核對，唯讀）**：`git diff --name-only 3f9b2849..54f5624a`＝六個 ALLOWED 檔，無其他；`git diff --stat` 6 files changed, 1458 insertions(+), 6 deletions(-)；`54f5624a` 為 `3f9b2849` 之後裔；FORBIDDEN 54 個 token（含 glob 型 `.codex/**`、`.agents/**`、`tools/**`、`app/**`、`plans/roadmap/**`）逐檔 `fnmatch` 比對，命中 0。per-ticket 快照 `tmp/verify/ADV-ENTRY-01.rev-0.conf` 於 Step 0 建立（`DIFF_END` 為空，未手改；`/sv`、`cross_review.sh`、`structural_verify.sh` 以 `tmp/verify_cmd.conf` 為準）。
+
+## SV／Cross-Review 紀錄（2026-10-20，停於 HUMAN_REQUIRED）
+
+- R0：FORWARD（NORMAL，記錄 `.tmp/fail-advisor/R0_ADV-ENTRY-01_20261020_190218.md`）。
+- Codex：REPORT_FIX ×3（R1 M4／M5 producer 缺 `檔案:行號`；R2 於 PARTIAL 重分類後仍判 missing-wiring；R3 指 PARTIAL＋AC 全勾自相矛盾、incident status producer 應標 (B)〔已更正〕），第 3 次觸發 `CHECKPOINT_REPORT_FIX_LIMIT`（exit 2）；`codex_verdict_actual`＝REPORT_FIX（未得 PASS／ADVISORY）。ADVISORY：stale-lock 回收交錯（`route.py:337-339`）未測，列後續加固。〔Rev B.1 註：該 ADVISORY 之「回收交錯未測」已由 `795117e5` 取消自動回收處置，K5 為針對性測試；歷史 verdict 不改。〕
+- Gate INC-001：executor 2 輪 fail（皆 Codex 判定）＋`step_limit`＋本地取證＋原生 Advisor（經入口 `route.py consult`，dispatch `d2-f73927c812101d5a`）→ `NO_AUTHORIZED_STRATEGY`。
+- 如實揭露：repo 內確無 payload／令牌／證據檔／`ticket_location` 落點之程式 writer（僅 `advisor_call.py:77` 標題契約與測試夾具）；AC 14（[可達性]）暫改未勾，標「裁決中＜Akira＞」；AC 2／3 之行為測試僅用測試構造輸入，不主張 production 輸入由程式產出。
+- 待裁：A 接受 Codex 判定（M1-location／M4／M5 標 (C)，撤依賴 AC PASS，production 接線交後續 plan）／D 視為規則缺口誤判（類比 ADV-APICALL-01 override D，僅先例非自動授權）。票留 `Pending/`，不轉 REVIEW。
+- **2026-10-20 Akira 裁決（對話）**：採 D（限定本票輸入來源分類）；原地最小修補 stale-lock（取消僅憑鎖齡 `unlink`，改有界 busy；commit `795117e5`，K4 改寫＋K5 新增，`test_route.py` 49 案、對舊行為實測失敗＝被殺死）；授權**一次**額外 Cross-Review（不重設 state、不更改 LIMIT、不重複爭論同一 producer 判準）；通過後 AUTO-CHAIN closeout 至 REVIEW，實際 verdict、override 與未驗範圍如實保存。AC 14 恢復勾選。`gate_ledger human resolve`（seq 21）已記。
+
+## Rev B.1 同步核對與收尾補錄（2026-10-21，Akira 2026-10-20 INC-001 收束裁決）
+
+- **裁決**：維持 D override（限定本票輸入來源分類）；不再追加 Cross-Review；歷史各輪結果照實保留；原地完成票面 Rev B.1、Stage B#7 補齊與 closeout 至 REVIEW。
+- **Rev B.1 同步項**：AI-2 §7b（鎖不依鎖齡自動刪除、逾 `--lock-wait-ms` 回 `busy`、離開僅刪自身鎖、強殺遺留須確認無持有者後人工處理）、AI-3 K4／K5、AC 7、AC 15 計數（K1–K5）、限定交付聲明⑨、歷史 ADVISORY 註記、Revision 頭與 Rev B.1 差分行、O1 計數（Rev=2）。歷史敘述（收尾實錄 K4 之「>120 s 回收」、Codex ADVISORY 原文）保留並以〔Rev B.1 補註〕標明現行行為，不刪除。
+- **120／mtime／回收 grep 逐項核對（有效規格無矛盾）**：票面命中——Rev B.1 差分（現行）、AI-2 §7b（已改）、AI-3 K4／K5（已改）、AC 7（已改）、收尾實錄 K 案例（歷史＋補註）、Codex ADVISORY 行（歷史＋補註）、Akira 裁決行（現行）；`stale_or_duplicate_dispatch` 為派發錯配 reason，與鎖無關；`route.py` 僅 docstring `:51-52`（已為「never reclaimed by age」）與 reason 常數；`test_route.py` 僅 K4／K5 與 reason 斷言；`cross-review.md:58,61`（mtime 排序 FIFO、Budget 行）與 `gate_stop_guard.py` 之 `_mtime` 為無關用途；`ssot-governance.md` 對鎖僅言「由入口互斥確保僅記一次」，無鎖齡語意。硬約束 4（暫態鎖檔「離開即刪」）與現行語意一致。**未要求字詞零命中。**
+- **新 AC 證據核對**：AC 7（鎖語義）對應已存在之針對性測試 K4（`test_K4_lock_semantics_are_deterministic`：鎖齡 300 s 之舊鎖仍 `busy`、內容不變、人工移除後成功）與 K5（`test_K5_concurrent_contenders_never_reclaim_an_aged_lock`：4 並行 contender 全 `busy`、零事件、外來鎖未被刪）；輸出 `tmp/ADV-ENTRY-01/k_tests_795117e5.out`（`ConcurrencyTests` 5／5 OK，非版控）；整套 `test_route.py` 49 OK ×3 於 `795117e5` 當日已跑；對修補前版 `route.py` 實測 K4／K5 皆失敗（被殺死）。**未新增測試、未重跑整套驗收或付費 probe。**
+- **SV Stage B#7**：已補 producer（`route_table.json:4-10` 現值逐列）→consumer（`validate_table :169-209`、`load_table :212-221`、`resolve_source :224-236`，呼叫點 `:615-616`／`:632`）→覆蓋（S1–S6、F1、F3）；SV 報告因共用槽位 `.tmp/sv_report.md` 被並行 session 覆寫且快照遭輪替，依對話內全文重建並持久化於 `tmp/ADV-ENTRY-01/sv_report_final.md`。
+- **範圍歸因（Excluded Payload）**：`DIFF_REF..DIFF_END`（`3f9b2849..795117e5`）共 7 檔＝本票 6 檔＋`deliver/PJMAN-AUTOALIGN-01_go-lane.md`；後者唯一提交 `d226f5ee`（並行 session，`54f5624a` 之後、+251 行、單檔），本票 ALLOWED 六檔無引用（grep 0），列 Excluded Payload；本票實際依賴之共用程式／規則差分（`route.py`、`route_table.json`、`test_route.py`、`ssot-governance.md`、`cross-review.md`、`gate_stop_guard.py`）全數保留於審查 diff。AC 17 之「僅涉 ALLOWED」於本票六檔成立，他票檔已揭露而非夾帶。
+- **QA／Commit 補錄**：`795117e5`（`route.py`＋`test_route.py`，+28／−11）；`DIFF_END` 自 `54f5624a` 更新為 `795117e5`；`check commit` exit 0（提交前）。
+- **SV 終局（如實）**：R0 FORWARD；Codex 實際回件 REPORT_FIX×4（含 Akira 授權之額外一次），`REPORT_FIX_COUNT=2`（實讀 `.tmp/cross_review_state/ADV-ENTRY-01`，未重設）；**無 PASS／ADVISORY**；以 Akira 2026-10-20 裁決 D override 收束；`reviews.codex` 依 Transition Table 映射 `PASS` enum，實際 verdict＝REPORT_FIX＋Akira override D，落 checkpoint `codex_verdict_actual`。`structural_verify.sh --post`（E 檢查）因無 Codex PASS 不適用。
+- **未驗範圍**：真實模型 session 全鏈（派發→真實 `advisor`／`research_submit`→回交）N＝0；`uncertainty_sha256` 路徑無 production 實跑；旁路無機械阻擋；V2（`next`／predicate／Skill 模組化）未交付；stale-lock 遺留鎖須人工處理；Codex 未對最終報告（含 Stage B#7 補齊）重新確認。
