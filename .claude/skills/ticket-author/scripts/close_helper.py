@@ -883,6 +883,8 @@ def build_result_section(pre, reg_after, verdicts, summary_lines, commits, now, 
         disc.append("reviewer limitation: " + str(rev["limitation"])[:120])
     if pre.get("scope", {}).get("status") == "UNKNOWN":
         disc.append("實作 diff 範圍為 UNKNOWN: " + str(pre["scope"].get("reason"))[:100])
+    if pre.get("diff_check", {}).get("status") == "UNKNOWN":
+        disc.append("git diff --check 為 UNKNOWN: " + str(pre["diff_check"].get("reason"))[:100])
     if disc:
         lines.append("- 披露: " + "；".join(disc[:5]))
     lines.append(MARK_END)

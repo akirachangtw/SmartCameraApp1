@@ -983,6 +983,23 @@ class TestFinalResult(Base):
         self.assertIn("UNVERIFIED", section)
         self.assertIn("dependency", section)
 
+    def test_unknown_scope_and_diff_check_are_disclosed(self):
+        self.make_repo(impl=False)  # no own implementation commit -> scope and diff_check UNKNOWN
+        self.write_summary()
+        self.to_close_at_cap()
+        self.after()
+        self.assertEqual(self.finalize(commits="")[0], 0)
+        section = self.ticket_path().read_text(encoding="utf-8").split("<!-- close-result:begin -->")[1]
+        self.assertIn("實作 diff 範圍為 UNKNOWN", section)
+        self.assertIn("git diff --check 為 UNKNOWN", section)
+
+    def to_close_at_cap(self):
+        self.set_dependents()
+        self.assertEqual(self.preflight()[0], 0)
+        self.write_json("verdicts.json", self.verdicts())
+        rc, d, _ = self.decide(2, 0)
+        self.assertEqual((rc, d["next"]), (0, "CLOSE"))
+
     def test_no_report_file_enters_tracked_paths(self):
         self.make_repo()
         self.write_summary()
