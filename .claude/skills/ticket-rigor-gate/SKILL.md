@@ -313,6 +313,8 @@ For each normative clause, ask whether the ticket explicitly covers:
 
 If not, mark `Missing Contract Expansion`.
 
+For a load-bearing derivation in the ticket that determines authorization, ordering, acceptance conditions, or a persistent side effect (for example an equivalence, compatibility, unchanged-behavior, or retry-outcome claim), also check that the ticket records either one concrete state that satisfies the derivation's premises but yields a different result or an unintended blocked path, or the boundary states examined and why each yields the same result. If neither record is present, mark `Missing Contract Expansion`; if no approved decision settles the right result for the recorded state, treat it as a `Decision-Fork` finding. The reviewer is not required to produce the counterexample, and a fail-closed block is not by itself a defect, only a block that contradicts the approved goal.
+
 ### Step 4: Identify canonical sources
 
 Locate the authoritative source for enums, schema versions, state vocabularies, and contract definitions.
