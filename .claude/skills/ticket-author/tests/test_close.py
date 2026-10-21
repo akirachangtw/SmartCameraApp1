@@ -454,7 +454,9 @@ class TestScopeRows(Base):
         self.assertEqual((d["next"], d["reason"]), ("SUPPLEMENT", "scope_unknown"))
         self.assertEqual(self.run_decide(v, 2)["next"], "CLOSE")  # cap reached: no extra terminal state
         v = self.verdicts(statuses=("PASS", "UNVERIFIED", "N/A"))
-        self.assertEqual(self.run_decide(v, 2)["next"], "FALLBACK_REVIEWER")
+        self.write_json("verdicts.json", v)
+        rc, d, _ = self.decide(2, 0, ("--codex-available", 1))  # explicit flag: do not depend on codex being installed
+        self.assertEqual((rc, d["next"]), (0, "FALLBACK_REVIEWER"))
 
     def test_whitespace_failure_reconciles(self):
         self.make_repo()
