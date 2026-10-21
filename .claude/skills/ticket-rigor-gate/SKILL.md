@@ -310,6 +310,7 @@ For each normative clause, ask whether the ticket explicitly covers:
 - sibling path differences
 - producer path differences
 - legal-but-borderline values
+- (conditional) the result of rerunning after an interruption, when the ticket defines two or more ordered persistent effects and an interruption after the k-th leaves a reachable intermediate state: whether the rerun resumes, duplicates, is blocked, or contradicts the earlier run, and whether that matches the approved goal; if no approved decision settles it, treat it as a `Decision-Fork` finding; a ticket that states the operation is atomic or not rerunnable, and names an assignee for the residual window, is covered
 
 If not, mark `Missing Contract Expansion`.
 
