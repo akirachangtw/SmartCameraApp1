@@ -46,7 +46,7 @@ CODEX_LIGHT = "gpt-6-luna"
 CLAUDE_FALLBACK = {"heavy": "opus", "light": "sonnet"}
 CODEX_FAULTS = ("auth", "network", "quota", "unavailable", "model_unavailable", "recovery_exhausted")
 AC_REPLY_RE = re.compile(
-    r"^[ \t]*(?:[-*][ \t]+)?\**[ \t]*AC[ \t]*(\d+)[ \t]*\**[ \t]*[:\uff1a][ \t]*\**[ \t]*(PASS|FAIL|N/A|UNVERIFIED)\b",
+    r"^[ \t]*(?:[-*][ \t]+)?\**[ \t]*AC[ \t]*(\d+)[ \t]*\**[ \t]*[:\uff1a][ \t]*\**[ \t]*(PASS|FAIL|N/A|UNVERIFIED)\b[ \t]*\**[ \t]*(?:\|[ \t]*([^\n]*))?",
     re.I | re.M)
 MAX_ROUNDS = 2
 MAX_CANDIDATE_ENTRIES = 5000
@@ -731,7 +731,7 @@ def validate_verdicts(verdicts, n_acs):
 
 def parse_reviewer_replies(paths, n_acs):
     """Parse the reviewer's raw reply files (later files override earlier ones for the ACs they cover)."""
-    status, dup, unknown, unreadable = {}, [], [], []
+    status, dup, unknown, unreadable, no_evidence = {}, [], [], [], []
     for p in paths or []:
         try:
             text = read_text(p)
@@ -748,10 +748,14 @@ def parse_reviewer_replies(paths, n_acs):
                 dup.append(n)
                 continue
             here.add(n)
+            ev = (m.group(3) or "").strip(" \t*")
+            if not ev:
+                no_evidence.append(n)  # a status without evidence is not a judgement: the AC stays uncovered
+                continue
             status[n] = st
     missing = [n for n in range(1, n_acs + 1) if n not in status]
     return status, {"missing": missing, "duplicate": sorted(set(dup)), "unknown": sorted(set(unknown)),
-                    "unreadable": unreadable}
+                    "unreadable": unreadable, "no_evidence": sorted(set(no_evidence))}
 
 
 def validate_reviewer_meta(rev, tier):
@@ -773,6 +777,8 @@ def validate_reviewer_meta(rev, tier):
     else:
         if rev.get("fallback_used") is not True or rev.get("fallback_reason") not in CODEX_FAULTS:
             return "reviewer_fallback_unjustified"
+        if model != CLAUDE_FALLBACK[tier]:
+            return "reviewer_model_unknown"
     return None
 
 
@@ -840,6 +846,8 @@ def cmd_decide(a):
     scope_st = pre.get("scope", {}).get("status")
     dc_st = pre.get("diff_check", {}).get("status")
     tier = classify(pre.get("verify", {}).get("allowed", []))
+    if isinstance(verdicts.get("reviewer"), dict) and verdicts["reviewer"].get("tier") == "heavy":
+        tier = "heavy"  # the Agent may raise the tier, never lower it
     reviewer_model = (verdicts.get("reviewer") or {}).get("actual_model") if isinstance(verdicts.get("reviewer"), dict) else None
 
     def finish(obj, save=True):

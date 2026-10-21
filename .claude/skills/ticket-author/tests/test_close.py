@@ -1190,17 +1190,17 @@ class TestReviewerReplyCoverage(Base):
         self.assertEqual((d["next"], d["reason"], d["missing"]), ("SUPPLEMENT", "reviewer_coverage", [3]))
         d = self.d(v, rnd=2, reply_text="AC1: PASS | a\nAC2: PASS | b\n")
         self.assertEqual((d["next"], d["reason"]), ("NOT_CLOSED", "reviewer_coverage_incomplete"))
-        self.assertEqual(self.d(v, reply_text="AC1: PASS\nAC2: PASS\nAC3: N/A\n")["next"], "CLOSE")
+        self.assertEqual(self.d(v, reply_text="AC1: PASS | e\nAC2: PASS | e\nAC3: N/A | e\n")["next"], "CLOSE")
 
     def test_duplicate_unknown_and_malformed_reply_lines(self):
         v = self.verdicts()
-        d = self.d(v, reply_text="AC1: PASS\nAC1: PASS\nAC2: PASS\nAC3: N/A\n")
+        d = self.d(v, reply_text="AC1: PASS | e\nAC1: PASS | e\nAC2: PASS | e\nAC3: N/A | e\n")
         self.assertEqual((d["next"], d["duplicate"]), ("SUPPLEMENT", [1]))
-        d = self.d(v, reply_text="AC1: PASS\nAC2: PASS\nAC3: N/A\nAC9: PASS\n")
+        d = self.d(v, reply_text="AC1: PASS | e\nAC2: PASS | e\nAC3: N/A | e\nAC9: PASS | e\n")
         self.assertEqual((d["next"], d["unknown"]), ("SUPPLEMENT", [9]))
         d = self.d(v, reply_text="all good, everything passes\n")
         self.assertEqual((d["next"], d["missing"]), ("SUPPLEMENT", [1, 2, 3]))
-        d = self.d(v, reply_text="- **AC1**: PASS\n* AC2：PASS\nAC3: n/a\n")  # bold, bullets, full-width colon, case
+        d = self.d(v, reply_text="- **AC1**: PASS | e\n* AC2：PASS | e\nAC3: n/a | e\n")  # bold, bullets, full-width colon, case
         self.assertEqual(d["next"], "CLOSE")
 
     def test_no_reply_file_at_all_never_closes(self):
@@ -1216,14 +1216,14 @@ class TestReviewerReplyCoverage(Base):
 
     def test_reply_vs_claim_mismatch(self):
         v = self.verdicts()
-        d = self.d(v, reply_text="AC1: FAIL | broke\nAC2: PASS\nAC3: N/A\n")
+        d = self.d(v, reply_text="AC1: FAIL | broke\nAC2: PASS | e\nAC3: N/A | e\n")
         self.assertEqual((d["next"], d["kind"]), ("BLOCKED", "core_ac_fail"))  # judged on the reviewer's reply
-        d = self.d(v, reply_text="AC1: PASS\nAC2: UNVERIFIED | unsure\nAC3: N/A\n")
+        d = self.d(v, reply_text="AC1: PASS | e\nAC2: UNVERIFIED | unsure\nAC3: N/A | e\n")
         self.assertEqual((d["next"], d["reason"], d["acs"]), ("SUPPLEMENT", "reviewer_mismatch", [2]))
-        self.assertEqual(self.d(v, rnd=2, reply_text="AC1: PASS\nAC2: UNVERIFIED\nAC3: N/A\n")["next"], "NOT_CLOSED")
+        self.assertEqual(self.d(v, rnd=2, reply_text="AC1: PASS | e\nAC2: UNVERIFIED | e\nAC3: N/A | e\n")["next"], "NOT_CLOSED")
         v2 = self.verdicts()
         v2["acs"][1]["override_evidence"] = "git grep shows the string exists (mechanical)"
-        d = self.d(v2, reply_text="AC1: PASS\nAC2: UNVERIFIED | unsure\nAC3: N/A\n")
+        d = self.d(v2, reply_text="AC1: PASS | e\nAC2: UNVERIFIED | unsure\nAC3: N/A | e\n")
         self.assertEqual((d["next"], d["overrides"]), ("CLOSE", [2]))
 
     def test_reviewer_must_be_a_real_second_call(self):
@@ -1244,8 +1244,8 @@ class TestReviewerReplyCoverage(Base):
         v["reviewer"] = None
         self.assertEqual(self.d(v)["detail"], "reviewer_meta_missing")
         v = self.verdicts()
-        v["reviewer"] = {"family": "claude", "actual_model": "opus", "fallback_used": True, "fallback_reason": "quota",
-                         "independent_call": True, "inline": False}
+        v["reviewer"] = {"family": "claude", "actual_model": "opus", "tier": "heavy", "fallback_used": True,
+                         "fallback_reason": "quota", "independent_call": True, "inline": False}
         self.assertEqual(self.d(v)["next"], "CLOSE")  # justified Claude fallback is a valid, separately recorded reviewer
 
     def test_heavy_ticket_cannot_close_on_luna_and_light_may_escalate(self):
@@ -1264,15 +1264,30 @@ class TestReviewerReplyCoverage(Base):
         self.preflight()
         v = self.verdicts()
         v["reviewer"].update(actual_model="gpt-6-luna", tier="light")
-        d = self.d(v, rnd=2, fb=0, reply_text="AC1: PASS\nAC2: UNVERIFIED\nAC3: N/A\n")
+        d = self.d(v, rnd=2, fb=0, reply_text="AC1: PASS | e\nAC2: UNVERIFIED | e\nAC3: N/A | e\n")
         self.assertEqual((d["next"], d["reviewer"]), ("ESCALATE_REVIEWER", "gpt-6-sol"))
-        d = self.d(v, rnd=2, fb=1, reply_text="AC1: PASS\nAC2: UNVERIFIED\nAC3: N/A\n")
+        d = self.d(v, rnd=2, fb=1, reply_text="AC1: PASS | e\nAC2: UNVERIFIED | e\nAC3: N/A | e\n")
         self.assertEqual(d["next"], "NOT_CLOSED")
+
+    def test_status_without_evidence_is_not_a_judgement(self):
+        v = self.verdicts()
+        d = self.d(v, reply_text="AC1: PASS\nAC2: PASS | \nAC3: N/A | **\n")
+        self.assertEqual((d["next"], d["reason"], d["no_evidence"]), ("SUPPLEMENT", "reviewer_coverage", [1, 2, 3]))
+        self.assertEqual(self.d(v, rnd=2, reply_text="AC1: PASS\nAC2: PASS\nAC3: N/A\n")["next"], "NOT_CLOSED")
+
+    def test_claude_fallback_model_must_match_the_tier(self):
+        v = self.verdicts()
+        v["reviewer"] = {"family": "claude", "actual_model": "sonnet", "tier": "heavy", "fallback_used": True,
+                         "fallback_reason": "quota", "independent_call": True, "inline": False}
+        d = self.d(v)
+        self.assertEqual((d["next"], d["detail"]), ("SUPPLEMENT", "reviewer_model_unknown"))
+        v["reviewer"]["actual_model"] = "opus"
+        self.assertEqual(self.d(v)["next"], "CLOSE")
 
     def test_later_reply_overrides_earlier_for_the_acs_it_covers(self):
         v = self.verdicts()
         self.write_json("verdicts.json", v)
-        put(self.dir / "reviewer_reply.txt", "AC1: PASS\nAC2: UNVERIFIED\nAC3: N/A\n")
+        put(self.dir / "reviewer_reply.txt", "AC1: PASS | e\nAC2: UNVERIFIED | e\nAC3: N/A | e\n")
         put(self.dir / "reviewer_reply2.txt", "AC2: PASS | escalated\n")
         rc, d, _ = self.decide(0, 1, replies=["reviewer_reply.txt", "reviewer_reply2.txt"])
         self.assertEqual((rc, d["next"]), (0, "CLOSE"))
