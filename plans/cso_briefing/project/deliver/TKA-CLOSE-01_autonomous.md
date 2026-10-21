@@ -621,8 +621,8 @@ Mapping to existing states and receipts only (no new state): the preflight outpu
 
 ### 5. 未驗證項與限制（如實揭露，皆非本票或其他票之關票前置）
 
-- 真實 Sonnet／Codex 判讀品質未驗；測試中 reviewer 以替身（旗標／PATH stub）表示，**stub 通過≠真實模型行為**。
-- 真實 Agent 是否依 `Mode: close` 調度未驗；測試扮演 Agent 並實際執行 `close-dispatch` 區塊命令，只證明命令可執行、各步 `next` 與副作用正確，不證明 Agent 必定遵守 Skill。
+- 模型限制：本票已有真實模型調用（Codex 三次審查、Sonnet 一次判讀、Advisor 一次）及一次實際 close；尚未全面證明其他票型、長期模型品質與完全無人工介入的 AUTO-CHAIN。單元測試中的 reviewer 以替身（旗標／PATH stub）表示，**stub 通過≠真實模型行為**。
+- Agent 依 `Mode: close` 調度的長期遵守度未驗（本票僅一次實際 close）；單元測試扮演 Agent 並實際執行 `close-dispatch` 區塊命令，只證明命令可執行、各步 `next` 與副作用正確，不證明 Agent 必定遵守 Skill。
 - 使用者層級權限（`defaultMode=auto` 未列入全部 registry 寫入工具）：被拒時 close 精確回報缺口，未繞過；本票未改任何 settings。
 - 6a 實作級外審（`INTRODUCED_CAPABILITY` 機械觸發）：本次**未執行**付費研究呼叫；依已知限制 5 其性質為取證而非 close 的 gate，不阻擋本票。
 - 票檔 Pending 草稿先於 authoring gate 之偏差（已知限制 8）依 Owner 裁決保留。
@@ -631,7 +631,7 @@ Mapping to existing states and receipts only (no new state): the preflight outpu
 ### 6. QA／SV／Cross-Review（2026-10-21；範圍 `c8385e64..eb5413af`）
 
 - `/qa`：`check qa`／`check commit` exit 0；Step 0 PASS（提交前工作樹差異為空）；Build／Lint N/A（無 app 變更）；Dashboard 同步延至下一輪 `/compact`。提交：`25af6b6e`（實作）、`2ded9afa`（X3 fallback 測試不依賴本機 codex）、`6c4972e5`（registry 物件 id 綁定）。
-- `/sv`：`check sv` exit 0；structural 預檢 PASS。Codex（gpt-5.6-sol）**連續 3 次 REPORT_FIX**，皆為不同細節缺陷（R1 報告未揭露 X3 達上限不另立終局之設計行為；R2 報告誤述 `readback` 以 `ok` 而非 exit code 表達，並附 ADVISORY：registry 物件 `id` 未綁 CLI 票號→已採納為程式修正＋3 案測試；R3 報告把 `decision.json` 誤列為 `decide` 輸入，實為輸出→已更正）。第 3 次輸出 `CHECKPOINT_REPORT_FIX_LIMIT`（exit 2）；Codex 另提 ADVISORY（`file` 指向他票既存檔時未驗票檔歸屬）**未處理**。
+- `/sv`：`check sv` exit 0；structural 預檢 PASS。Codex（gpt-5.6-sol）**連續 3 次 REPORT_FIX**，皆為不同細節缺陷（R1 報告未揭露 X3 達上限不另立終局之設計行為；R2 報告誤述 `readback` 以 `ok` 而非 exit code 表達，並附一項建議：registry 物件 `id` 未綁 CLI 票號→已採納為程式修正＋3 案測試；R3 報告把 `decision.json` 誤列為 `decide` 輸入，實為輸出→已更正）。第 3 次輸出 `CHECKPOINT_REPORT_FIX_LIMIT`（exit 2）；Codex 另提一項建議（`file` 指向他票既存檔時未驗票檔歸屬），其後已採納（見 §7）。三次皆為 finding，非終局 verdict；Codex 確實執行了三次，故 `N_A` 不表示未曾執行。
 - Gate：INC-001（executor 1 輪 fail、`step_limit` 已記）；Advisor（API，`req_011CgEz2WKuo9M7SAGiAaudS`，另一次 `TRUNCATED` 失敗未記帳）結論＝無已授權自動續行策略 → 曾升報 `HUMAN_REQUIRED: NO_AUTHORIZED_STRATEGY`；Owner 其後裁決（不再送同一 Codex 迴圈、不重設次數、LIMIT 不等於 blocker 亦不是 PASS，定點處置 X3）後該項已於 ledger resolve。**未取得 Cross-Review 終局 PASS／ADVISORY；本票 SV 如實記為「Codex 3×REPORT_FIX＋LIMIT，未重審」，不改寫為 PASS／ADVISORY。**
 
 ### 7. Owner 裁決後的 X3 定點處置（2026-10-21）
@@ -639,13 +639,13 @@ Mapping to existing states and receipts only (no new state): the preflight outpu
 - **X3 具體主張與位置**：Codex R1 稱「`SKILL.md:284` 要求 scope 仍 `UNKNOWN` 且補證達上限時 `decide` 回 `NOT_CLOSED`，但 `close_helper.py` 達上限後落入 K 區回 `CLOSE`」。對照：票面〈close 決策表〉X3 列與其後說明（`TKA-CLOSE-01_autonomous.md:524,534`）明文「達上限後不另立終局、不新增 hard blocker；涉及範圍之核心 AC 維持 `UNVERIFIED` 走 U 列」；程式 `close_helper.py` `cmd_decide` 的 `scope_unknown` 分支僅在 `rnd < MAX_ROUNDS` 觸發；測試 `test_x3_scope_unknown_then_cap` 三側斷言（round 0＝`SUPPLEMENT(scope_unknown)`；round 2＋全 PASS＝`CLOSE`；round 2＋核心 `UNVERIFIED`＝`FALLBACK_REVIEWER`）。
 - **判定＝報告／文字措辭問題，非核心缺陷或安全問題**：helper 從不把 `UNKNOWN` scope 判為 PASS，也不把 scope 狀態映射到任一 AC；「不得以 UNKNOWN 範圍判 PASS」由 `verdicts.json` 作者（Agent）承擔，屬票面明文設計與模型契約。唯一確實的不一致是 `SKILL.md` 步驟 6 一句「達上限 `decide` returns `NOT_CLOSED`」過寬 → 已改為「達上限不再要求補證：回 `NOT_CLOSED`，但 scope 仍 `UNKNOWN` 不自成終局，由 AC 判定決定，涉及範圍之 AC 維持 `UNVERIFIED`」（`316faa12`）。`sv_report` 另已補揭露此設計與其限定。
 - **另一 reviewer 一次定點判讀**（Sonnet，唯讀，僅讀票面決策表、`cmd_decide`、`SKILL.md` 步驟 5–6 與 X3 測試）：`MATCHES_SPEC`，四件產物無矛盾；並指出一處輕微缺口——`diff_check` 仍為 `UNKNOWN` 時最終結果未披露 → 已採納修正（`eb5413af`，最終結果披露行新增 `git diff --check 為 UNKNOWN`，並加測試）。reviewer 為模型判讀，**不構成 PASS，亦不取代 Codex 終局**。
-- Codex 另提 ADVISORY 皆已採納並加測試：registry 物件 `id` 綁 CLI 票號（`6c4972e5`）、票檔 `TICKET_ID` 綁 CLI 票號（`316faa12`）。測試：`Ran 67 tests … OK`（零 skip）。
-- **核心 AC／hard blocker 判定**：本票無 FAIL 之核心 AC、無安全問題、無不可逆風險、`TKA-BATCH-01`／`TKA-EVGATE-01` 等相依票未被修改；`[實機]`／真實 Agent 調度類項目屬已知限制 1，非核心缺件。故不成立 hard blocker，依 Owner 裁決接續 closeout 至 `REVIEW` 並自主 close。
+- Codex 提出的兩項建議皆已採納並加測試：registry 物件 `id` 綁 CLI 票號（`6c4972e5`）、票檔 `TICKET_ID` 綁 CLI 票號（`316faa12`）。測試：`Ran 67 tests … OK`（零 skip）。
+- **核心 AC／hard blocker 判定**：本票無 FAIL 之核心 AC、無安全問題、無不可逆風險、`TKA-BATCH-01`／`TKA-EVGATE-01` 等相依票未被修改；`[實機]`／真實 Agent 調度類項目屬已知限制 1，非核心缺件。故不成立 hard blocker，依 Owner 裁決接續 closeout 至 `REVIEW` 並自主 close。scope 為 `UNKNOWN` 不等於 PASS：本票關票依據是已補足的逐提交歸屬（本票 6 個實作提交僅觸及 ALLOWED、他票提交不計為越界，scope 與 `git diff --check` 皆為 PASS 而非 UNKNOWN）與核心 AC 證據，不是靠披露未知放行。
 - 其餘如實限制：Codex 終局 verdict 缺席（冊面 `reviews.codex` 以 `N_A` 填寫並於本節揭露實際為 `REPORT_FIX×3`＋LIMIT，不填 `PASS`）；Dashboard 同步與 `PROGRESS_ARCHIVE` Done 標記延至下一輪 `/compact`。
 
 <!-- close-result:begin -->
 ## 收束結果（close）
-- 交付摘要: ticket-author 新增 `close` 子命令（`close_helper.py` 6 子命令＋68 項隔離 unittest），Agent 可對 REVIEW 票自主取證、判定並 CLOSED，中間產物僅存 .tmp 七天。 / ssot-governance.md 以 R1–R10 直接替換阻擋自主閉環的舊條款（CLOSED 改由 close 寫入、Traycer T2 降為可選外審）；sv/SKILL.md Step 11 接續 close。 / Codex Cross-Review 連續 3×REPORT_FIX 觸 LIMIT 無終局（reviews.codex=N_A，非 PASS）；X3 經 Owner 裁決定點處置，真實 Agent／模型判讀未驗。
+- 交付摘要: ticket-author 新增 `close` 子命令（`close_helper.py` 6 子命令＋68 項隔離 unittest），Agent 可對 REVIEW 票自主取證、判定並 CLOSED，中間產物僅存 .tmp 七天。 / ssot-governance.md 以 R1–R10 直接替換阻擋自主閉環的舊條款（CLOSED 改由 close 寫入、Traycer T2 降為可選外審）；sv/SKILL.md Step 11 接續 close。 / Codex Cross-Review 連續 3×REPORT_FIX 觸 LIMIT 無終局（reviews.codex=N_A，非 PASS）；X3 經 Owner 裁決定點處置；已有真實模型調用與一次實際 close，其他票型、長期品質與完全無人工介入的 AUTO-CHAIN 尚未全面證明。
 - 最終驗收結論: 核心 AC 15 條皆為 PASS 或有效 N/A；非核心 PASS 3／N/A 1／UNVERIFIED 0
 - 實作提交: 25af6b6e, 2ded9afa, 6c4972e5, 316faa12, eb5413af, 95995373
 - 實際收束結果: 2026-10-21 轉 CLOSED，lifecycle／file／reviews 讀回一致；reviewer: sonnet（fallback）
