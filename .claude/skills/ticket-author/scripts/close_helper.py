@@ -509,7 +509,7 @@ def build_preflight(repo, tid, reg, dep_path, now):
     acs = parse_acs(text) if text else []
     pre["acs_status"] = "OK" if acs else "UNAVAILABLE"
     pre["acs"] = acs
-    pre["final_result_present"] = bool(text and MARK_BEGIN in text)
+    pre["final_result_present"] = bool(text and find_section(text))
     file_tid = cfg.get("TICKET_ID")
     id_ok = not file_tid or file_tid == tid
     lc_ok = (lifecycle in ("REVIEW", "CLOSED") and loc["location"] in ("deliver", "deliver/archive")
@@ -891,18 +891,32 @@ def build_result_section(pre, reg_after, verdicts, summary_lines, commits, now, 
     return lines[:20]
 
 
+def find_section(text):
+    """Span of the whole-line close-result section, or None. Inline mentions of the marker are ignored."""
+    begins = list(re.finditer(r"(?m)^" + re.escape(MARK_BEGIN) + r"[ \t]*\r?$", text))
+    if not begins:
+        return None
+    b = begins[-1]
+    e = re.compile(r"(?m)^" + re.escape(MARK_END) + r"[ \t]*\r?$").search(text, b.end())
+    if not e:
+        return None
+    end = e.end()
+    if text[end:end + 2] == "\r\n":
+        end += 2
+    elif text[end:end + 1] == "\n":
+        end += 1
+    return b.start(), end
+
+
 def upsert_section(text, lines):
-    block = "\n".join(lines) + "\n"
-    i = text.find(MARK_BEGIN)
-    j = text.find(MARK_END)
-    if i != -1 and j != -1 and j > i:
-        end = j + len(MARK_END)
-        if end < len(text) and text[end] == "\n":
-            end += 1
-        return text[:i] + block + text[end:], True
+    eol = "\r\n" if "\r\n" in text else "\n"
+    block = eol.join(lines) + eol
+    span = find_section(text)
+    if span:
+        return text[:span[0]] + block + text[span[1]:], True
     if not text.endswith("\n"):
-        text += "\n"
-    return text + "\n" + block, False
+        text += eol
+    return text + eol + block, False
 
 
 def cmd_finalize(a):

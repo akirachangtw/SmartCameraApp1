@@ -993,6 +993,24 @@ class TestFinalResult(Base):
         self.assertIn("實作 diff 範圍為 UNKNOWN", section)
         self.assertIn("git diff --check 為 UNKNOWN", section)
 
+    def test_inline_marker_mentions_are_not_a_result_section_and_crlf_is_kept(self):
+        self.make_repo()
+        self.write_summary()
+        text = self.ticket_path().read_text(encoding="utf-8")
+        text = text.replace("- [x] done", "- [x] done (spec quotes `<!-- close-result:begin -->` and `<!-- close-result:end -->` inline)")
+        put(self.ticket_path(), text.replace("\n", "\r\n"))
+        self.to_close()
+        self.assertFalse(self.read_json("preflight.json")["final_result_present"])
+        self.after()
+        self.assertEqual(self.finalize()[0], 0)
+        data = self.ticket_path().read_bytes().decode("utf-8")
+        self.assertIn("spec quotes `<!-- close-result:begin -->`", data)  # inline text untouched
+        self.assertEqual(data.count("\n"), data.count("\r\n"))  # no bare LF introduced
+        self.assertEqual(self.finalize()[0], 0)  # idempotent: replaces its own section only
+        again = self.ticket_path().read_bytes().decode("utf-8")
+        self.assertEqual(again, data)
+        self.assertEqual(again.count("收束結果（close）"), 1)
+
     def to_close_at_cap(self):
         self.set_dependents()
         self.assertEqual(self.preflight()[0], 0)
