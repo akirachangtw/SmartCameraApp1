@@ -11,39 +11,39 @@
 - 非目標：平台成果頁、專用 endpoint、新 MCP 工具、資料庫／watcher／同步器／雙向編輯、Registry schema 與逐票映射、跨 repo、Android 產品程式、付費模型呼叫。平台成果頁為後續、非本期前置。
 - 假設（尚未確認的技術或依賴）：自動鏈為模型契約、無機械後盾；Transition Table 為授權落點；`gate_stop_guard.py` 除 `decide()` 外未讀；收束後 `uc:54`→Step 11 的自動遵循待真實收束驗證；平台 runtime 與遠端部署未驗；自評無第二方。PM2 自動鏈尚未啟用。
 - 目前階段：PM1
-- 最近 align：2026-10-20 9315b48607927a085cdf076938ec9b3272a07040 PM2-A PM2-B PM2-C PM2-D PM2-E
+- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 PM0-A PM1-A PM1-C PM1-D PM1-E PM2-B PM2-C PM2-D PM2-E PM3-A
 
 ## 階段成果表
 | ID | 階段 | 成果 | 已驗收 | 約定 | 達成度 | 狀態 |
 | --- | --- | --- | --- | --- | --- | --- |
-| PM0-A | PM0 基準 | 需求基準與非目標明列 | 2 | 3 | 67% | 部分符合 |
-| PM1-A | PM1 Skill 與成果呈現 | 三模式可用 | 1 | 3 | 33% | 部分符合 |
+| PM0-A | PM0 基準 | 需求基準與非目標明列 | 3 | 3 | 100% | 符合 |
+| PM1-A | PM1 Skill 與成果呈現 | 三模式可用 | 3 | 3 | 100% | 符合 |
 | PM1-B | PM1 | 成果表呈現 | 4 | 4 | 100% | 符合 |
-| PM1-C | PM1 | align 直接回報 | 0 | 2 | 0% | 未驗 |
-| PM1-D | PM1 | update 完整性核對 | 1 | 3 | 33% | 部分符合 |
+| PM1-C | PM1 | align 直接回報 | 2 | 2 | 100% | 符合 |
+| PM1-D | PM1 | update 完整性核對 | 2 | 3 | 67% | 部分符合 |
 | PM1-E | PM1 | 相容與保留 | 1 | 2 | 50% | 部分符合 |
 | PM2-A | PM2 收束後自動 align | 治理授權與引用 | 2 | 2 | 100% | 符合 |
 | PM2-B | PM2 | 觸發與歸屬判定 | 2 | 4 | 50% | 部分符合 |
-| PM2-C | PM2 | 執行與回報 | 0 | 2 | 0% | 未驗 |
-| PM2-D | PM2 | 邊界與失敗隔離 | 2 | 6 | 33% | 部分符合 |
-| PM2-E | PM2 | 真實觸發 | 0 | 1 | 0% | 未驗 |
-| PM3-A | PM3 自我驗證 | 三模式實跑 | 1 | 3 | 33% | 部分符合 |
+| PM2-C | PM2 | 執行與回報 | 2 | 2 | 100% | 符合 |
+| PM2-D | PM2 | 邊界與失敗隔離 | 5 | 6 | 83% | 部分符合 |
+| PM2-E | PM2 | 真實觸發 | 1 | 1 | 100% | 符合 |
+| PM3-A | PM3 自我驗證 | 三模式實跑 | 3 | 3 | 100% | 符合 |
 | PM4-A | PM4 平台成果頁 | 後續獨立交付 | — | — | — | 無約定 |
 
 ## 明細
 ### PM0-A
 - 預期功能與規格：需求基準與非目標明列（3 項）：①目標／場景／核心能力／約束／非目標已寫入；②平台成果頁標為後續、非前置；③方法為可替換實作選擇。
 - 驗收方式與必要前提：讀本文件〈基準〉各欄，逐項對照三項約定。前提：無。
-- 實際成果與證據：[已執行] 2026-10-18 以 awk 取本文件 `## 基準` 區（至下一個 `##`）逐字串 grep：專案目標／最小成功場景／不可默默刪減的核心能力／規格／架構約束／非目標各 1 命中，「平台成果頁為後續、非本期前置」1 命中 → 約定①②成立。[已執行] 同區「可替換」0 命中；全文「可替換」僅 1 處（PM0-A 約定描述，第 35 行）→ 約定③未見於基準區。[文件] 基準由 base 依 PJMAN-OUTCOMES-01 附錄 A 寫入（提交 825076db）。
-- 落差與下一步：判斷：部分符合 — 已驗收 2/3（約定①②）；缺口：約定③「方法為可替換實作選擇」未明載於〈基準〉，僅出現在約定項描述。下一步：由使用者決定是否以 update（澄清）於基準明載該句；align 不自行補寫，也不降低約定。
-- 最近 align：2026-10-18 825076dbcf4ea4642ec0a7290005f88bc4316c65 範圍 PM0-A
+- 實際成果與證據：[已執行] 2026-10-18 以 awk 取本文件 `## 基準` 區（至下一個 `##`）逐字串 grep：專案目標／最小成功場景／不可默默刪減的核心能力／規格／架構約束／非目標各 1 命中，「平台成果頁為後續、非本期前置」1 命中 → 約定①②成立。[已執行] 同區「可替換」0 命中；全文「可替換」僅 1 處（PM0-A 約定描述，第 35 行）→ 約定③未見於基準區。[文件] 基準由 base 依 PJMAN-OUTCOMES-01 附錄 A 寫入（提交 825076db）。 [已執行] 2026-10-21 重驗約定③：取 `## 基準` 區逐字 grep「方法為可替換的實作選擇」命中 1（第 10 行，由真實 update 提交 `51cc82ee` 寫入；`git diff d720e995 51cc82ee` hunk 為 `@@ -10 +10 @@` 與 `@@ -127,0 +128 @@`），「平台成果頁為後續」命中 1 → 約定③成立；約定①②沿用 2026-10-18 證據。
+- 落差與下一步：判斷：符合 — 已驗收 3/3。限制：文字層驗收、執行端自評（同一模型），無獨立第二方。下一步：—
+- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM0-A
 
 ### PM1-A
 - 預期功能與規格：三模式可用（3 項）：base 產出新格式；update 保留 ID／證據／分母；align 回填同一份。
 - 驗收方式與必要前提：base 為實際 Skill 執行並產出新格式文件；update 在真實修訂時執行並檢查 ID／證據／分母保留；align 為實際 Skill 執行並回填同一份文件。前提：update 項須存在真實修訂；證據須可複核（非手寫、非借用他議題）。
-- 實際成果與證據：[已執行] 約定①base 產出新格式：`Skill(projman, base …)`（session e024aeab-3635-4b0f-afb9-36f87503110b 的 transcript 行 3276）→ `Write` 本文件（行 3292）→ 階段提交 825076db；V2／V4／V5／V6 對本文件輸出皆為空（13 ID、約定合計 35）。[未驗] 約定②update 保留 ID／證據／分母：無真實修訂，依規不為驗證製造修訂。[未驗] 約定③align 回填同一份：其證據只能來自本次 align 呼叫自身的產出，依 PJMAN-OUTCOMES-01 Hard Constraints 3 不計入本次。
-- 落差與下一步：判斷：部分符合 — 已驗收 1/3；缺 update（前提＝真實修訂尚不存在）與 align 自證項。下一步：首個真實修訂出現時執行 update 並補驗約定②；約定③於下一次 align 以 PJMAN-OUTCOMES-01 收尾實錄所存之本次呼叫紀錄重驗。
-- 最近 align：2026-10-18 825076dbcf4ea4642ec0a7290005f88bc4316c65 範圍 PM1-A
+- 實際成果與證據：[已執行] 約定①base 產出新格式：`Skill(projman, base …)`（session e024aeab-3635-4b0f-afb9-36f87503110b 的 transcript 行 3276）→ `Write` 本文件（行 3292）→ 階段提交 825076db；V2／V4／V5／V6 對本文件輸出皆為空（13 ID、約定合計 35）。[未驗] 約定②update 保留 ID／證據／分母：無真實修訂，依規不為驗證製造修訂。[未驗] 約定③align 回填同一份：其證據只能來自本次 align 呼叫自身的產出，依 PJMAN-OUTCOMES-01 Hard Constraints 3 不計入本次。 [已執行] 2026-10-21 消費既有證據：約定②：真實 update（session `e024aeab-3635-4b0f-afb9-36f87503110b`，transcript 行 3807〔行號 1 起算；先前票檔以 0 起算記 3806，同一事件〕）→ 寫入提交 `51cc82ee`；`git diff --stat d720e995 51cc82ee` ＝ +2／−1，僅基準一行與「已確認變更」一列；`## 階段成果表`、`## 明細` 兩區段在 update 前後雜湊相同；V1～V6 輸出皆空（`plans/cso_briefing/project/deliver/archive/PJMAN/PJMAN-OUTCOMES-01_real-run.md` §12.5）；ID 13 個、`約定` 合計 35 不變；修訂內容為使用者對基準缺漏的澄清裁決（update 的合法輸入，非為驗證製造）→ 成立。約定③：align 真實執行（行 3397 → `d720e995`、行 1144〔session `4a678cbe-9cee-400a-8479-95de6747ac41`〕→ `e2f77049`）皆回填同一份文件，repo 內僅此一份 projman 結構標記文件、無平行副本 → 成立。約定①沿用。限制：update 僅一次、修訂未涉及分母（見 PM1-D）。
+- 落差與下一步：判斷：符合 — 已驗收 3/3。缺口：無。限制：執行端自評；update 僅單次觀察。下一步：—
+- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM1-A
 
 ### PM1-B
 - 預期功能與規格：成果表呈現（4 項）：摘要置前固定短欄；已驗收與約定獨立數值欄；百分比衍生且未盤點≠0；明細於表後以 ID 對應。
@@ -55,23 +55,23 @@
 ### PM1-C
 - 預期功能與規格：align 直接回報（2 項）：逐項結果與階段數量；主要缺口與下一步。
 - 驗收方式與必要前提：實際執行 align，檢視對話正文回報是否含上述各項。前提：須有一次 align 實際執行。
-- 實際成果與證據：[未驗] 約定①逐項結果與階段數量、②主要缺口與下一步：功能證據只能來自 align 自身的對話回報，依 PJMAN-OUTCOMES-01 Hard Constraints 3 不計入本次呼叫。[靜態] `.claude/skills/projman/SKILL.md` 197 行起〈直接回報〉規格存在；規格存在不等於功能證據。
-- 落差與下一步：判斷：未驗 — 已驗收 0/2，無本次呼叫之前的 [已執行] 證據。下一步：本次回報已於對話正文提出並逐字存入 PJMAN-OUTCOMES-01 收尾實錄；下一次 align 以該回報全文重驗。
-- 最近 align：2026-10-18 825076dbcf4ea4642ec0a7290005f88bc4316c65 範圍 PM1-C
+- 實際成果與證據：[未驗] 約定①逐項結果與階段數量、②主要缺口與下一步：功能證據只能來自 align 自身的對話回報，依 PJMAN-OUTCOMES-01 Hard Constraints 3 不計入本次呼叫。[靜態] `.claude/skills/projman/SKILL.md` 197 行起〈直接回報〉規格存在；規格存在不等於功能證據。 [已執行] 2026-10-21 消費先前 align 的實際回報：2026-10-18 align 直接回報逐字存於 `plans/cso_briefing/project/deliver/archive/PJMAN/PJMAN-OUTCOMES-01_real-run.md` §6（約 357–401 行），含單項結果表（7 個 ID 的狀態、已驗收／約定、一行證據）、各階段計數（明列不給平均或總百分比）、主要缺口、下一步、待決策事項與五個摘要問題 → 約定①逐項結果與階段數量、②主要缺口與下一步皆成立。另 `e2f77049` 後對話回報（session `4a678cbe-9cee-400a-8479-95de6747ac41` 行 1221）同樣列 PM2 單項結果與計數、限制與留意事項。證據來自先前呼叫、由本次後續 align 消費，非自證。限制：行 1221 的回報未採五段格式；自評。
+- 落差與下一步：判斷：符合 — 已驗收 2/2。缺口：無。下一步：—
+- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM1-C
 
 ### PM1-D
 - 預期功能與規格：update 完整性核對（3 項）：ID 集合保留；分母變動有確認列；表格格式核對。
 - 驗收方式與必要前提：完整性核對指令（V1、V3、V6）對真實文件執行並檢視輸出。前提：V1、V3 需有寫前基準（已追蹤的版本或寫前摘要）。
-- 實際成果與證據：[已執行] 約定③表格格式核對：V6 對本文件輸出為空（另 V2 輸出為空）。[未驗] 約定①ID 集合保留（V1）與②分母變動有確認列（V3）：兩者須對「align 後差分」比對，其結果在本次呼叫之後才存在，依 PJMAN-OUTCOMES-01 Hard Constraints 3 不計入本次；對未變動文件預跑只會得到 HEAD 與工作樹相同的空洞輸出，不採為證據。
-- 落差與下一步：判斷：部分符合 — 已驗收 1/3；缺 V1／V3 於真實變動後的執行證據。下一步：PJMAN-OUTCOMES-01 AI-5 事後執行並存入收尾實錄；下一次 align 重驗約定①②。
-- 最近 align：2026-10-18 825076dbcf4ea4642ec0a7290005f88bc4316c65 範圍 PM1-D
+- 實際成果與證據：[已執行] 約定③表格格式核對：V6 對本文件輸出為空（另 V2 輸出為空）。[未驗] 約定①ID 集合保留（V1）與②分母變動有確認列（V3）：兩者須對「align 後差分」比對，其結果在本次呼叫之後才存在，依 PJMAN-OUTCOMES-01 Hard Constraints 3 不計入本次；對未變動文件預跑只會得到 HEAD 與工作樹相同的空洞輸出，不採為證據。 [已執行] 2026-10-21 約定①：真實 update 後 V1 輸出為空，update 前後 ID 同為 13 個（`plans/cso_briefing/project/deliver/archive/PJMAN/PJMAN-OUTCOMES-01_real-run.md` §12.5 逐字輸出）→ 成立；約定③沿用（V6 空）。[未驗] 約定②分母變動有確認列：V3 在三次真實修訂（`d720e995`、`51cc82ee`、`e2f77049`）後輸出皆空，但三次皆未變動任何 `約定` 分母，V3 從未在「分母確實變動」情境產生差異並對應確認列；僅有 PJMAN-SKILL-01 的隔離示例推演（非真實 Skill 執行）。空輸出只證明沒有無聲變動，不證明偵測路徑有效。
+- 落差與下一步：判斷：部分符合 — 已驗收 2/3。缺口：約定②缺真實的分母變動案例（功能已實作〔`SKILL.md` V3〕但未驗）。下一步：首個真實的分母變動 update 時補驗；不為驗證製造修訂。
+- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM1-D
 
 ### PM1-E
 - 預期功能與規格：相容與保留（2 項）：舊格式文件可 align 不強制遷移；`disable-model-invocation: false` 保留。
 - 驗收方式與必要前提：對舊 5 欄格式文件實跑 align 並確認未被遷移；檢查 Skill frontmatter。前提：須有一份舊 5 欄格式文件可供實跑。
-- 實際成果與證據：[已執行] 約定②`disable-model-invocation: false` 保留：`grep -n '^disable-model-invocation:' .claude/skills/projman/SKILL.md` → 第 5 行 `false`；blob a1c6440b，最後觸及該檔之 commit 86521a8f。[未驗] 約定①舊 5 欄格式文件 align 不強制遷移：本議題未對舊格式文件實跑，且不借用他議題成果文件的既有執行紀錄。
-- 落差與下一步：判斷：部分符合 — 已驗收 1/2；缺舊格式實跑。下一步：經使用者指定一份舊 5 欄文件並授權實跑時補驗。
-- 最近 align：2026-10-18 825076dbcf4ea4642ec0a7290005f88bc4316c65 範圍 PM1-E
+- 實際成果與證據：[已執行] 約定②`disable-model-invocation: false` 保留：`grep -n '^disable-model-invocation:' .claude/skills/projman/SKILL.md` → 第 5 行 `false`；blob a1c6440b，最後觸及該檔之 commit 86521a8f。[未驗] 約定①舊 5 欄格式文件 align 不強制遷移：本議題未對舊格式文件實跑，且不借用他議題成果文件的既有執行紀錄。 [已執行] 2026-10-21 約定②複驗：`grep -n '^disable-model-invocation:' .claude/skills/projman/SKILL.md` ＝ 第 5 行 `false`，最後觸及該檔 commit `86521a8f`。[未驗] 約定①舊 5 欄文件 align 不強制遷移：相容回填已實作（`SKILL.md` 〈回填邊界〉舊 5 欄段）但本議題未對舊格式文件實跑；他議題文件（`plans/roadmap/autonomous-engineering-gate-outcomes.md`）已有一筆 align 提交 `a55ee9e3`，依先前「不借用他議題紀錄」規則未計入。
+- 落差與下一步：判斷：部分符合 — 已驗收 1/2。缺口：約定①已實作、未驗。下一步：使用者指定舊 5 欄文件並授權實跑，或裁決是否採納 `a55ee9e3` 作為 PM1-E 證據。
+- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM1-E
 
 ### PM2-A
 - 預期功能與規格：治理授權與引用（2 項）：條款位於唯一 GO lane，以狹義授權句授予已唯一定位成果文件的讀寫及單檔保存，觸發事實與 QA／SV 是否省略無關；consumer 只引用不複製。
@@ -83,37 +83,37 @@
 ### PM2-B
 - 預期功能與規格：觸發與歸屬判定（4 項）：①未盤點新交付且階段已可驗收才執行，未到點／無新成果／無對應基準／歸屬不明不猜測；②候選集合引用 Skill 定位規則（排除歸檔）、歸屬依任務已知文件／議題識別／實際成果，票前綴僅輔助，缺前綴舊文件不整類排除；③每階段最近 align 與實際校正範圍對應，校正某階段不消費他階段未檢查交付，從未 align 階段以文件首次提交為預設錨點；④git 前綴與目錄排除僅輔助，不整類排除 docs-only 或規則型成果。
 - 驗收方式與必要前提：以隔離案例或真實觸發逐項檢視。前提：治理條款呼叫票尚未交付。
-- 實際成果與證據：[已執行] 約定③：首次提交錨點指令 `git log --diff-filter=A --follow --format=%H -- plans/roadmap/projman-outcomes.md | tail -1` ＝ `825076dbcf4ea4642ec0a7290005f88bc4316c65`（PM2-A～E 無列內 align 記錄，以此為預設錨點）；先前真實 align 提交 `d720e995`（僅檢查 PM0-A PM1-A～E PM3-A）對本文件的 diff 中 PM2 列零變更（`git show d720e995 -- 本文件 | grep PM2-` 無 +/- 行），印證校正某階段不消費他階段 → 成立。[已執行] 約定④：`git log --oneline 825076db..HEAD` 列示之候選交付涵蓋 docs／治理規則型提交（如 `93dd64f4`、`d720e995`、`8d14db59`），未因前綴或目錄被排除 → 成立。[未驗] 約定①（未到點／無新成果／無對應基準／歸屬不明不猜測）與約定②（候選集合引用 Skill 定位規則、三訊號歸屬、票前綴僅輔助、缺前綴舊文件不整類排除）：僅有 `[靜態]` 條文（`ssot-governance.md:159` 左欄與 MUST NOT）與 `[stub-equivalent]` 隔離推演（票檔 §4.2 C4–C7、C13，條款判讀由同一模型依條文推演、無工具輸出，非真實觸發）；本次觸發的歸屬判讀（`grep -rl '^## 階段成果表' plans/ --exclude-dir=archive` 得兩份文件，依三訊號取 projman-outcomes.md）為同一模型自評、屬本次呼叫自身行為，待審查確認，不計入。
-- 落差與下一步：判斷：部分符合 — 已驗收 2/4（約定③④）。缺口：約定①②缺獨立驗證或真實觸發審查的行為證據。下一步：REVIEW→CLOSED 審查方依 PM2-E 證據確認本次歸屬判讀（兩份結構標記文件並存、依三訊號唯一歸屬）；後續真實收束再觀察零／多候選不猜測的實際行為。
-- 最近 align：2026-10-20 9315b48607927a085cdf076938ec9b3272a07040 範圍 PM2-B
+- 實際成果與證據：[已執行] 約定③：首次提交錨點指令 `git log --diff-filter=A --follow --format=%H -- plans/roadmap/projman-outcomes.md | tail -1` ＝ `825076dbcf4ea4642ec0a7290005f88bc4316c65`（PM2-A～E 無列內 align 記錄，以此為預設錨點）；先前真實 align 提交 `d720e995`（僅檢查 PM0-A PM1-A～E PM3-A）對本文件的 diff 中 PM2 列零變更（`git show d720e995 -- 本文件 | grep PM2-` 無 +/- 行），印證校正某階段不消費他階段 → 成立。[已執行] 約定④：`git log --oneline 825076db..HEAD` 列示之候選交付涵蓋 docs／治理規則型提交（如 `93dd64f4`、`d720e995`、`8d14db59`），未因前綴或目錄被排除 → 成立。[未驗] 約定①（未到點／無新成果／無對應基準／歸屬不明不猜測）與約定②（候選集合引用 Skill 定位規則、三訊號歸屬、票前綴僅輔助、缺前綴舊文件不整類排除）：僅有 `[靜態]` 條文（`ssot-governance.md:159` 左欄與 MUST NOT）與 `[stub-equivalent]` 隔離推演（票檔 §4.2 C4–C7、C13，條款判讀由同一模型依條文推演、無工具輸出，非真實觸發）；本次觸發的歸屬判讀（`grep -rl '^## 階段成果表' plans/ --exclude-dir=archive` 得兩份文件，依三訊號取 projman-outcomes.md）為同一模型自評、屬本次呼叫自身行為，待審查確認，不計入。 [已執行] 2026-10-21 約定②部分證據：真實觸發 `e2f77049` 時，`grep -rl '^## 階段成果表' plans/ --exclude-dir=archive` 得兩份候選（`autonomous-engineering-gate-outcomes.md` 與本文件），依三訊號唯一歸屬本文件（`PJMAN-AUTOALIGN-01` 收尾實錄 §10）。[未驗] 約定②其餘：本例票前綴恰與文件相符，「前綴僅輔助」「缺前綴舊文件不整類排除」未被真實案例檢驗（舊文件被排除是因三訊號皆不成立）；約定①拒絕分支（未到點／無新成果／無對應基準／歸屬不明不猜測）僅有 stub 層推演（同票 §4.2 C4–C7、C13），無真實案例。約定③④沿用 2026-10-20 證據。
+- 落差與下一步：判斷：部分符合 — 已驗收 2/4。缺口：約定①②已實作未驗（正向路徑有一次真實觀察，拒絕與前綴／缺前綴情境無）。下一步：待後續真實收束累積案例，不為驗證製造。
+- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM2-B
 
 ### PM2-C
 - 預期功能與規格：執行與回報（2 項）：顯示具體 align 提示詞並實際執行；回填後直接報告。
 - 驗收方式與必要前提：檢視一次被條款觸發的 align 之提示詞、實際呼叫與對話回報。前提：治理條款呼叫票尚未交付。
-- 實際成果與證據：[未驗] 約定①顯示具體 align 提示詞並實際執行、約定②回填後直接報告：功能證據只能來自本次被條款觸發的 align 呼叫與其對話回報，即本次呼叫自身，依 PJMAN-OUTCOMES-01 Hard Constraints 3 先例不計入本次（呼叫紀錄見 PM2-E）。[靜態] 條文：`ssot-governance.md:159` 右欄「顯示具體 align 提示詞、實際執行」；`projman/SKILL.md:197` 起〈直接回報〉。規格存在不等於功能證據。
-- 落差與下一步：判斷：未驗 — 已驗收 0/2，無本次呼叫之前的 [已執行] 證據。下一步：本次呼叫之提示詞、Skill 呼叫與對話回報全文由 PJMAN-AUTOALIGN-01 收尾實錄 §10 保存；下一次 align 以其重驗，或由審查方於 REVIEW→CLOSED 確認。
-- 最近 align：2026-10-20 9315b48607927a085cdf076938ec9b3272a07040 範圍 PM2-C
+- 實際成果與證據：[未驗] 約定①顯示具體 align 提示詞並實際執行、約定②回填後直接報告：功能證據只能來自本次被條款觸發的 align 呼叫與其對話回報，即本次呼叫自身，依 PJMAN-OUTCOMES-01 Hard Constraints 3 先例不計入本次（呼叫紀錄見 PM2-E）。[靜態] 條文：`ssot-governance.md:159` 右欄「顯示具體 align 提示詞、實際執行」；`projman/SKILL.md:197` 起〈直接回報〉。規格存在不等於功能證據。 [已執行] 2026-10-21 約定①：session `4a678cbe-9cee-400a-8479-95de6747ac41` 行 1144 `Skill(projman)` 實際呼叫，args 為具體 align 提示詞（`align plans/roadmap/projman-outcomes.md PM2-A … PM2-E` 加來源與限制註記）；審查方 SKAD 2026-10-20 於 PJMAN-AUTOALIGN-01 結案審查確認本次為自動發起（registry checkpoint `reviewer_disposition`）。提示詞經工具呼叫參數呈現，未另以對話正文單獨顯示。約定②：回填後對話直接回報存在（行 1221，2026-10-20T07:58:50Z；列 PM2-A～E 單項結果與計數、限制與請留意事項），保存提交 `e2f77049` 僅涉本文件。結案審查未逐項確認報告內容；報告存在性由本次讀取 transcript 核對。證據來自先前呼叫、由本次後續 align 消費，非自證。
+- 落差與下一步：判斷：符合 — 已驗收 2/2。缺口：無。限制：單次觀察、執行端自評；行 1221 回報未採五段格式。下一步：—
+- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM2-C
 
 ### PM2-D
 - 預期功能與規格：邊界與失敗隔離（6 項）：①寫入授權與提交保存資格分離（align 自身以 `git commit -o <成果文件>` 單檔保存、軌道 A 先完成當次收尾提交、軌道 B 不為 align 提前 `/compact`）；②不繞過 FORBIDDEN（僅列檔名者預設票內排除，其他明確禁止與權限拒絕仍遵守）、不夾帶他 session 修改；③不遞迴；④align 失敗不回頭視為原票或下一張票未收束，失敗報告「已執行／已回填／未提交」與 dirty 路徑並如實列出已知限制；⑤只消費既有證據、不新增付費呼叫；⑥漏跑僅稱可能於後續相關收束補判。
 - 驗收方式與必要前提：以隔離案例逐項檢視，不得以文件自述代替。前提：治理條款呼叫票尚未交付。
-- 實際成果與證據：[已執行]（暫存 repo 真實 git 輸出；僅 stub 層，非真實觸發）約定①：票檔 §4.1 C1 輸出 `git commit -o plans/roadmap/demo-outcomes.md` 後 `files=[plans/roadmap/demo-outcomes.md]`，他檔 staged 仍為 staged、未追蹤檔仍未追蹤；軌道 A 先於 align：本次觸發前已有 `[PJMAN-AUTOALIGN-01]` 收尾提交 `9315b486`（`git log`），軌道 B 未提前 `/compact`；條文 `ssot-governance.md:159` → 成立。約定④：C9 輸出 pre-commit exit 1 後文件仍 ` M`（可回報 dirty 路徑）、模擬原票狀態 hash 未變（`yes`）、無重試 → 成立。[未驗] 約定②（不繞過 FORBIDDEN／不夾帶他 session 修改：C1／C2 僅證 `-o` 不夾帶與 dirty 略過的機械面，FORBIDDEN 解讀屬模型判讀）、約定③不遞迴（僅條文與 `projman/SKILL.md:253`，真實行為待觀察）、約定⑤只消費既有證據不新增付費呼叫（僅條文；實際為本次呼叫自身）、約定⑥漏跑僅稱可能補判（僅用語檢查；驗收方式要求隔離案例逐項檢視、不得以文件自述代替）。Codex ADVISORY：`ssot-governance.md:159` 四態與 `projman/SKILL.md:250` 三態字面分歧，未證實造成行為影響。
-- 落差與下一步：判斷：部分符合 — 已驗收 2/6（約定①④）。缺口：約定②③⑤⑥缺獨立隔離案例或真實觸發證據；四態／三態字面分歧待 `projman` Skill 後續修補。下一步：後續真實收束觀察③⑤；Skill 對齊四態屬獨立修補（非本 align 範圍）。
-- 最近 align：2026-10-20 9315b48607927a085cdf076938ec9b3272a07040 範圍 PM2-D
+- 實際成果與證據：[已執行]（暫存 repo 真實 git 輸出；僅 stub 層，非真實觸發）約定①：票檔 §4.1 C1 輸出 `git commit -o plans/roadmap/demo-outcomes.md` 後 `files=[plans/roadmap/demo-outcomes.md]`，他檔 staged 仍為 staged、未追蹤檔仍未追蹤；軌道 A 先於 align：本次觸發前已有 `[PJMAN-AUTOALIGN-01]` 收尾提交 `9315b486`（`git log`），軌道 B 未提前 `/compact`；條文 `ssot-governance.md:159` → 成立。約定④：C9 輸出 pre-commit exit 1 後文件仍 ` M`（可回報 dirty 路徑）、模擬原票狀態 hash 未變（`yes`）、無重試 → 成立。[未驗] 約定②（不繞過 FORBIDDEN／不夾帶他 session 修改：C1／C2 僅證 `-o` 不夾帶與 dirty 略過的機械面，FORBIDDEN 解讀屬模型判讀）、約定③不遞迴（僅條文與 `projman/SKILL.md:253`，真實行為待觀察）、約定⑤只消費既有證據不新增付費呼叫（僅條文；實際為本次呼叫自身）、約定⑥漏跑僅稱可能補判（僅用語檢查；驗收方式要求隔離案例逐項檢視、不得以文件自述代替）。Codex ADVISORY：`ssot-governance.md:159` 四態與 `projman/SKILL.md:250` 三態字面分歧，未證實造成行為影響。 [已執行] 2026-10-21 消費真實觸發 `e2f77049` 的既有證據：約定①：`git show --stat e2f77049` 僅涉本文件（21+／21−）；順序為軌道 A 收尾提交 `9315b486` → 行 1144 align 呼叫 → 單檔 `git commit -o` 提交；該 session 無 `compact` Skill 呼叫（軌道 B 未提前）；約定③：e2f77049 之後至本次使用者直接呼叫（行 1618）間，session `4a678cbe-9cee-400a-8479-95de6747ac41` 的 `Skill(projman)` 呼叫為 0 次，無遞迴；約定⑤：該次 align 工具序列（行 1158–1202）僅唯讀 git／grep／transcript 讀取、單檔 python 寫入與 git commit，無建置、測試、研究、顧問或付費呼叫；約定⑥：`ssot-governance.md:159` 與 `projman/SKILL.md:254` 皆用「可能於後續相關收束時補判」，新列 `保證`／`自癒`／`必定補判` 命中 0，執行端回報（行 1221）稱自動鏈為模型契約、無機械後盾。約定④沿用 2026-10-20 stub 層證據（暫存 repo 提交失敗案；真實失敗路徑未發生）。[未驗] 約定②：不繞過 FORBIDDEN 僅「票內排除」半項有真實觀察（該票 FORBIDDEN 僅列本檔名且 align 照常執行），「其他明確禁止與權限拒絕仍遵守」與「不夾帶他 session 修改」（當時無他人 dirty 檔）無真實案例。
+- 落差與下一步：判斷：部分符合 — 已驗收 5/6。缺口：約定②已實作未驗；另約定④規格字面為三態「已執行／已回填／未提交」，治理列已為四態、`projman/SKILL.md:250` 仍三態（字面分歧，屬後續 update／Skill 對齊，非本次 align 範圍）。下一步：後續真實案例累積②；三態／四態對齊另案處理。
+- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM2-D
 
 ### PM2-E
 - 預期功能與規格：真實觸發（1 項）：一次真實收束後自動 align 實際執行並報告；預設未驗，須有 session id 與依序工具呼叫證據證明同回合、收束寫入後、無新使用者訊息即呼叫 Skill，由治理條款呼叫票的 REVIEW→CLOSED 審查確認；手動、自填、僅有提交、無法核對或未觸發皆維持未驗。
 - 驗收方式與必要前提：核對該次觸發的 session id 與依序工具呼叫。前提：一次符合條件的真實收束觸發；治理條款呼叫票尚未交付。
-- 實際成果與證據：[未驗] 約定①一次真實收束後自動 align 實際執行並報告：本次為首個**候選**觸發，以下為**自評，待審查確認**，不升級已驗收。①呼叫來源：PJMAN-AUTOALIGN-01 Agent closeout 本次呼叫實際完成後（`registry_set_status` REVIEW、`registry_set_checkpoint` 已 read-back、軌道 A 收尾提交 `9315b486`），依 `ssot-governance.md:159` 新列觸發；②Skill 實際呼叫：`Skill(projman)`，args 以 `align plans/roadmap/projman-outcomes.md PM2-A PM2-B PM2-C PM2-D PM2-E` 開頭；③session id：`4a678cbe-9cee-400a-8479-95de6747ac41`；④依序工具呼叫（transcript `~/.claude/projects/D--DevSources-AndroidProj-SmartCameraApp1/4a678cbe-9cee-400a-8479-95de6747ac41.jsonl`，行號 1 起算，UTC）：1092 `registry_set_status`（REVIEW，07:53:42）→ 1097 `registry_set_checkpoint`（summary 超過 200 字元被拒）→ 1111 `registry_set_checkpoint`（重寫成功）→ 1099／1113 `registry_list`（read-back）→ 1119 `Bash`（git status）→ 1125 `Bash`（軌道 A：git add／commit `9315b486`）→ 1137 `Bash`（候選／歸屬／錨點判讀）→ 1144 `Skill`（projman align，07:55:04）；⑤判別依據：1092 之後至 1144 間 jsonl 無 role=user 的使用者文字訊息（僅 1145 `tool_result` 與 1146 skill 載入注入），tool_result 同秒返回；⑥回填差分與保存結果：以本次提交為準，commit hash 與 `git diff --stat` 於對話回報（本文件不寫入自身提交 hash）。不能升級的原因：同一模型自評、無獨立第二方；`Skill(projman)` 不在 `permissions.allow`，是否出現權限提示無法由 transcript 判定（jsonl 無使用者介入痕跡）；模型是否依文字鏈遵循屬首次觀察。
-- 落差與下一步：判斷：未驗 — 已驗收 0/1。缺口：審查方尚未依 session id 與依序工具呼叫證據確認「同回合、收束寫入後、無新使用者訊息即呼叫 Skill」。下一步：由 PJMAN-AUTOALIGN-01 的 REVIEW→CLOSED 審查方核對上列 transcript；確認前維持未驗，未獲確認不需任何人補寫。
-- 最近 align：2026-10-20 9315b48607927a085cdf076938ec9b3272a07040 範圍 PM2-E
+- 實際成果與證據：[未驗] 約定①一次真實收束後自動 align 實際執行並報告：本次為首個**候選**觸發，以下為**自評，待審查確認**，不升級已驗收。①呼叫來源：PJMAN-AUTOALIGN-01 Agent closeout 本次呼叫實際完成後（`registry_set_status` REVIEW、`registry_set_checkpoint` 已 read-back、軌道 A 收尾提交 `9315b486`），依 `ssot-governance.md:159` 新列觸發；②Skill 實際呼叫：`Skill(projman)`，args 以 `align plans/roadmap/projman-outcomes.md PM2-A PM2-B PM2-C PM2-D PM2-E` 開頭；③session id：`4a678cbe-9cee-400a-8479-95de6747ac41`；④依序工具呼叫（transcript `~/.claude/projects/D--DevSources-AndroidProj-SmartCameraApp1/4a678cbe-9cee-400a-8479-95de6747ac41.jsonl`，行號 1 起算，UTC）：1092 `registry_set_status`（REVIEW，07:53:42）→ 1097 `registry_set_checkpoint`（summary 超過 200 字元被拒）→ 1111 `registry_set_checkpoint`（重寫成功）→ 1099／1113 `registry_list`（read-back）→ 1119 `Bash`（git status）→ 1125 `Bash`（軌道 A：git add／commit `9315b486`）→ 1137 `Bash`（候選／歸屬／錨點判讀）→ 1144 `Skill`（projman align，07:55:04）；⑤判別依據：1092 之後至 1144 間 jsonl 無 role=user 的使用者文字訊息（僅 1145 `tool_result` 與 1146 skill 載入注入），tool_result 同秒返回；⑥回填差分與保存結果：以本次提交為準，commit hash 與 `git diff --stat` 於對話回報（本文件不寫入自身提交 hash）。不能升級的原因：同一模型自評、無獨立第二方；`Skill(projman)` 不在 `permissions.allow`，是否出現權限提示無法由 transcript 判定（jsonl 無使用者介入痕跡）；模型是否依文字鏈遵循屬首次觀察。 [已執行] 2026-10-21 審查方確認：PJMAN-AUTOALIGN-01 結案審查（registry checkpoint `reviewer_disposition`，SKAD 2026-10-20，Akira 明示授權）判定本次為自動發起：transcript 行 1092–1197 的 user 事件 promptId 相同＝同一回合，起點為 `registry_set_status(REVIEW)` 的 tool_result，`Skill(projman)`（行 1144）在其後且在軌道 A 收尾提交 `9315b486` 之後，其餘為 tool_result，唯一文字事件為 Skill 載入注入文字＝無新使用者訊息。審查方自述未比對原始 transcript（摘錄為執行端產出）；本次已獨立重讀原始 transcript（session `4a678cbe-9cee-400a-8479-95de6747ac41` 行 1092–1197）：user 事件 15 筆全屬同一 promptId，其中 14 筆 tool_result、1 筆 Skill 載入文字（行 1146）；審查方記 14 筆，差 1 筆 tool_result，來源未釐清，不影響結論。權限介入：transcript 無權限事件類型，無法判定（`Skill(projman)` 不在 `permissions.allow`），不宣稱無人值守。session id 與依序工具呼叫見 2026-10-20 自評明細（PJMAN-AUTOALIGN-01 收尾實錄 §10、§11）。
+- 落差與下一步：判斷：符合 — 已驗收 1/1。限制：僅一次觀察，不推及所有場景；權限介入未判定；自動鏈為模型契約、無機械後盾。下一步：後續真實收束累積觀察。
+- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM2-E
 
 ### PM3-A
 - 預期功能與規格：三模式實跑（3 項）：base 真實執行；align 真實執行；update 於首個真實修訂時真實執行（證據可複核，非手寫、非借用他議題；無真實修訂時此項維持未驗，PM3 不判完整）。
 - 驗收方式與必要前提：以 Skill 實際呼叫紀錄（工具序列）與 git 提交／差分核對三項。前提：update 項須存在真實修訂。
-- 實際成果與證據：[已執行] 約定①base 真實執行：`Skill(projman, base …)`（transcript 行 3276）→ `Write` 本文件（行 3292）→ 階段提交 825076db（`git show --name-only` 僅此檔）；非手寫、非借用他議題。[未驗] 約定②align 真實執行：其證據為本次呼叫自身，依 PJMAN-OUTCOMES-01 Hard Constraints 3 不計入本次。[未驗] 約定③update 於首個真實修訂時真實執行：目前無真實修訂，不為驗證製造。
-- 落差與下一步：判斷：部分符合 — 已驗收 1/3；PM3 不判完整。下一步：下一次 align 以 PJMAN-OUTCOMES-01 收尾實錄所存之 align 呼叫紀錄（transcript 序列與 scoped diff）重驗約定②；update 待首個真實修訂。
-- 最近 align：2026-10-18 825076dbcf4ea4642ec0a7290005f88bc4316c65 範圍 PM3-A
+- 實際成果與證據：[已執行] 約定①base 真實執行：`Skill(projman, base …)`（transcript 行 3276）→ `Write` 本文件（行 3292）→ 階段提交 825076db（`git show --name-only` 僅此檔）；非手寫、非借用他議題。[未驗] 約定②align 真實執行：其證據為本次呼叫自身，依 PJMAN-OUTCOMES-01 Hard Constraints 3 不計入本次。[未驗] 約定③update 於首個真實修訂時真實執行：目前無真實修訂，不為驗證製造。 [已執行] 2026-10-21 消費既有證據：約定②align 真實執行：行 3397（2026-10-18T11:41:51Z）→ 提交 `d720e995`；行 1144（session `4a678cbe-9cee-400a-8479-95de6747ac41`，2026-10-20）→ 提交 `e2f77049`。約定③update 於首個真實修訂時真實執行：行 3807（2026-10-18T12:40:30Z）→ 兩次 Edit → 提交 `51cc82ee`；修訂為使用者對基準缺漏的澄清裁決（update 的合法輸入，非為驗證製造）。約定①沿用（base：行 3277 → `825076db`）。行號 1 起算（先前票檔以 0 起算記 3276／3396／3806，同一事件）。證據可由 transcript 與 git 複核，非手寫、非借用他議題。
+- 落差與下一步：判斷：符合 — 已驗收 3/3。限制：update 僅一次、修訂未涉分母；執行端自評（同一模型）。下一步：—
+- 最近 align：2026-10-21 6c4972e5254a5a6c902012f8daa4b9a435a26938 範圍 PM3-A
 
 ### PM4-A
 - 預期功能與規格：後續獨立交付（不在本期範圍；本期僅格式可銜接）。無約定項。
