@@ -129,7 +129,7 @@ DEPENDENCY_DELTA=NONE
 ### AI-8: 真實 reviewer 驗證與收尾
 - **檔案**: `.claude/skills/ticket-author/SKILL.md`、`.claude/skills/ticket-author/scripts/close_helper.py`（僅於驗證發現語義缺口時修正）
 - **目標值**: 本票自身依正常路徑 closeout 至 `REVIEW` 後，由 `Skill(ticket-author)` `close TKA-TRUST-01` 以真實 `codex exec`（heavy→`gpt-6-sol`）取得逐 AC 回覆；檢查原始回覆行符合單一格式（含 `core=Y|N` 與非空 evidence）、`decide` 解析覆蓋 N/N、最終結果取自 snapshot。發現 reviewer 不依格式回覆等語義缺口時，於本票內修正 prompt／解析後重驗；任一不成立如實記未達成與最小修補，不以手動 close 補寫為已驗證。
-- [ ] 完成
+- [x] 完成（真實 `codex exec` `gpt-6-sol` 對 13 條 AC 回覆 status／core／非空 evidence，`decide` 解析 13/13，CLOSE 後 `finalize` 由 snapshot 寫出結果段；過程與限定見「收尾實錄 §5」）
 
 ## Hard Constraints
 1. 不重開 TKA-WIRE-01／TKA-CLOSE-01；不改雙路徑上游接線（`sv`／`uc`／`ssot-governance.md`／`gate_stop_guard.py`）。
@@ -159,8 +159,8 @@ DEPENDENCY_DELTA=NONE
 - [x] **[行為性]** F5 given 承重文件（`plans/architecture/*.md`、`.claude/rules/*.md`、`SSOT*.md`）帶任意 `--simple-basis` expect 仍 `heavy`／`gpt-6-sol`；given 非承重簡單 docs 無 basis expect `heavy`、有 basis expect `light`；Luna 回覆 `TIER: UPGRADE` expect `ESCALATE_REVIEWER`；heavy 票收 Luna 回覆 expect `reviewer_tier_mismatch`（證據：`test_f5_*` 四測試）
 - [x] **[行為性]** 正常 `CLOSE`→`finalize` 寫入；`CLOSED` 且無最終結果段 + 有效 snapshot expect `WRITE_FINAL_ONLY` 補寫成功；`decision.json` 清空（模擬七天）expect 不寫入、不虛報（證據：`to_close`→`finalize` 既有測試＋`test_f1_partial_success_resumes_from_the_snapshot_even_without_verdicts`＋`decision.json` 清空測試）
 - [x] **[行為性]** 每項 F1–F5 至少一個原反例回歸測試，且收尾實錄（觀察者）逐項列出「測試名＋該測試對 base 版 `close_helper.py`（以 `git show <BASE_COMMIT>:.claude/skills/ticket-author/scripts/close_helper.py` 取出置於暫存目錄執行）失敗之輸出摘要＋對修改後版本通過」；缺任一項的回歸不計入；既有 `unittest discover` 全綠，與新契約衝突之舊斷言已同票更新為行為斷言（非還原舊規則）（證據：18 項新測試對 base 版 helper 皆失敗（`.tmp/ticket-author/trust/red_vs_base_helper.txt`）、對新版 114 OK；舊斷言已更新為行為斷言（見 sv_report Stage A）；收尾實錄逐項列於「收尾實錄」）
-- [ ] **[行為性]** 真實 reviewer：本票自身 close 之 `codex exec`（`gpt-6-sol`）原始回覆存於 `.tmp/ticket-author/close/TKA-TRUST-01/`，逐 AC 行符合單一格式（含 `core=` 與非空 evidence），`decide` 解析覆蓋 N/N，最終結果取自 snapshot；不成立則如實記未達成與最小修補
-- [ ] **[存在性]** 收尾實錄如實分層（機械測試／真實 reviewer／未驗項），不宣稱跨票型長期遵守度已驗證
+- [x] **[行為性]** 真實 reviewer：本票自身 close 之 `codex exec`（`gpt-6-sol`）原始回覆存於 `.tmp/ticket-author/close/TKA-TRUST-01/`，逐 AC 行符合單一格式（含 `core=` 與非空 evidence），`decide` 解析覆蓋 N/N，最終結果取自 snapshot；不成立則如實記未達成與最小修補（證據：`.tmp/ticket-author/close/TKA-TRUST-01/reviewer_reply.txt`＋`reviewer_reply2.txt`；`codex_err.txt` 標 `model: gpt-6-sol`；`decide` 回 CLOSE、coverage 13/13；`finalize` 寫出之結果段取自 `decision.json` snapshot；限定：reviewer 因本機 Codex 工具環境無法讀檔，以自足證據包判讀，AC11 末句於轉態前以暫存 clone 彩排取證）
+- [x] **[存在性]** 收尾實錄如實分層（機械測試／真實 reviewer／未驗項），不宣稱跨票型長期遵守度已驗證（證據：下「收尾實錄」§1–§5＋「尚未證明／限定」）
 - ~~`assembleDebug` PASS~~ (N/A: 非 Android 編譯產物之 Skill／腳本票；以 `unittest discover` 取代)
 - [x] `git diff --stat` 僅涉及 ALLOWED 檔案（證據：`git diff --name-only ccae4dff..0aa98afa` ＝ ALLOWED 三檔）
 
@@ -191,7 +191,14 @@ DEPENDENCY_DELTA=NONE
 
 3. **舊斷言更新（行為斷言取代舊字面，未還原舊規則）**：`test_reply_vs_claim_mismatch`、`test_unverified_sequence`、`test_heavy_ticket_cannot_close_on_luna_and_light_may_escalate`、`TestReviewer` 三測試、`test_full_flow_from_skill_block`；測試夾具的假 reviewer 回覆加 `core=Y|N`。
 4. **QA／SV**：`/qa` Step 0 PASS（重定基線後）、Step 1–3 N/A（無 gradle 標的）、Step 3.5 僅 `app/` 既有警示、Step 4 Dashboard 同步延至 `/compact`；`/sv` Cross-Review（`cross_review.sh`，Codex）R1 `REPORT_FIX`（`TIER: UPGRADE` 第二回覆盲區，屬實，已修）→ 重跑 `PASS`；`structural_verify --post` PASS [ADVISORY]。
-5. **C 真實 reviewer（AI-8）**：由本票自身之 `Skill(ticket-author)` `close TKA-TRUST-01` 取得——真實 `codex exec`（heavy→`gpt-6-sol`）逐 AC 回覆須含 `core=` 與非空 evidence、`decide` 解析覆蓋 N/N、最終結果取自 snapshot。**結果見 close 最終結果區段與下方 close 後補記；在此之前此項標「未驗」。**
+5. **C 真實 reviewer（AI-8）——實際發生的經過（如實）**：
+   - 調用 1、2：`codex exec -c model="gpt-6-sol"`（先 `-s read-only`，再預設沙箱）皆因本機 Codex 工具環境無法啟動執行程序（`helper_unknown_error: setup refresh had errors`）而無法讀檔，13 條 AC 全部回 `UNVERIFIED`（屬環境故障；依本機同一故障於 TKA-WIRE-01 的處置，改用自足證據包，不改走 Claude 備援）。
+   - 調用 3（自足證據包：diff、新測試原始碼、`-v` 測試輸出、對 base 失敗輸出、收尾實錄）：給出實質判決——AC1 `FAIL`(core=N)：回覆行格式字面在 parser docstring 與 SKILL.md 不一致；AC3 `UNVERIFIED`(core=Y)：缺「改 snapshot 後輸出隨之改變」的 trace；AC10 `FAIL`(core=N)：收尾實錄未逐項列測試名與 base 失敗摘要；AC11 `UNVERIFIED`(core=Y)；其餘 PASS。三項屬實並在票內處理：`f771997a`（統一回覆行字面為 `<short evidence>`，新增 `test_f1_result_follows_the_snapshot_values` 並加字面一致斷言）與 `40692965`／`6b660453`（收尾實錄逐項對照表）。因交付版本由 `26440e8a` 變為 `f771997a`，依 `preflight_stale`／過期回覆規則重跑 preflight。
+   - 調用 4（同版 `f771997a` 全 13 AC 重審，`reviewer_reply.txt`）：AC1–AC10、AC12、AC13 `PASS`，AC11 `UNVERIFIED`(core=Y)。`decide` 解析覆蓋 13/13，回 `SUPPLEMENT core_unverified [11]`。
+   - 調用 5、6（AC11 定點重審，`reviewer_reply2.txt`，只覆蓋 AC11）：第一次附「回覆已存檔＋解析 13/13」仍 `UNVERIFIED`（理由：尚未產生 CLOSE／finalize）；第二次附 E8「真實產物彩排」（暫存 clone 內以真實回覆、真實 preflight 跑 `decide→CLOSE→readback→finalize`，彩排專用改動僅 AC11 行與 verdicts）→ `PASS`（reviewer 並註明真實 Registry 轉態仍待 close 後續）。
+   - 之後 `decide --round 1` 回 `CLOSE`（核心 10、非核心 3、13/13）；`registry_set_status(CLOSED)`＋read-back 一致；`readback` ok；`finalize` 寫出結果段，內容取自 `decision.json` snapshot。
+   - **證明了什麼／沒證明什麼**：證明一次真實 `gpt-6-sol` 能依單一格式對全部 AC 回覆含 `core=` 與非空 evidence，且 `decide`／`finalize` 在真實產物上接得起來，並且 reviewer 的實質發現確實改變了票內修復。**沒證明**：reviewer 直接讀 repo（環境不允許，判讀依自足證據包）；AC11 末句的「轉態前」證據是彩排（stub 等價度：用真實回覆與 preflight，但 AC11 行為替換）而非真實 close；`TIER: UPGRADE`／Luna 路徑未經真實 Luna 驗證；跨票型與長期遵守度。
+   - 流程限定：Cross-Review（`/sv`）範圍止於 `26440e8a`，其後 `f771997a` 為 close 內追加、未再經 `/sv`；票已在 `deliver/` 時 `gate_ledger.py check commit` 回 `not mutable (loc:deliver)`（既有限制，TKA-WIRE-01 同），其後的提交（`f771997a`、文件提交）仍依單票前綴 `[TKA-TRUST-01]` 進行並如實揭露。
 
 ### 尚未證明／限定
 
@@ -199,3 +206,12 @@ DEPENDENCY_DELTA=NONE
 - 同版核對僅為 mtime＋`binding_ref` 重算，不證明 reviewer 實際做了目標比對（以 prompt 引述一句話目標與 AC 全文約束）。
 - helper 不證明「簡單性」；未列入已知承重集合卻實際承重者依賴 Luna `TIER: UPGRADE` 與升級規則。
 - 跨票型、長期、跨 session 遵守度未驗；`gradle`／Android 層未跑（N/A）。
+
+<!-- close-result:begin -->
+## 收束結果（close）
+- 交付摘要: 交付：TKA close 決策完整性——decide 寫 snapshot、finalize 僅讀 snapshot；移除 override 放行；核心性由 reviewer 每輪確認；非核心 FAIL 全數披露；承重位置預設 Sol（實作 0aa98afa／26440e8a／f771997a，unittest 115 OK） / 驗收：真實 Codex gpt-6-sol 逐 AC（13/13）回覆 status／core／evidence，AC11 經定點重審 PASS；前兩次調用因本機 Codex 工具環境失敗（UNVERIFIED），第三次以自足證據包得實質發現並於票內修復後對同版重審 / 限定：Cross-Review 範圍止於 26440e8a（f771997a 之後未再 /sv）；AC11「最終結果取自 snapshot」於轉態前以暫存 clone 彩排取證；core=／TIER: UPGRADE 之真實遵守度僅觀察到 core= 路徑，Luna 路徑未驗
+- 最終驗收結論: 核心 AC 10 條皆為 PASS 或有效 N/A；非核心 PASS 3／N/A 0／UNVERIFIED 0／FAIL 0（共 13 條 AC）
+- 實作提交: 0aa98afa, 26440e8a, f771997a
+- 實際收束結果: 2026-10-22 轉 CLOSED，lifecycle／file／reviews 讀回一致；reviewer: codex/gpt-6-sol（tier=heavy）；覆蓋 AC 13／13（全部），independent_call=True
+- 披露: reviewer limitation: 本機 Codex 工具環境無法啟動執行程序（helper_unknown_error）：前兩次調用全數 UNVERIFIED；第三、四次以自足證據包（diff、測試原始碼、測試輸出、收尾實錄）完成，reviewer 未直接讀 repo 檔案
+<!-- close-result:end -->
