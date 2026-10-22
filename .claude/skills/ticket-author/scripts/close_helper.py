@@ -802,7 +802,7 @@ def parse_reviewer_replies(paths, n_acs, fresh_after=None):
     Returns (status, problems, info) with info = {core: {n: 'Y'|'N'}, ev: {n: short text}, upgrade: bool}."""
     status, dup, unknown, unreadable, no_evidence, stale = {}, [], [], [], [], []
     info = {"core": {}, "ev": {}, "upgrade": False}
-    for idx, p in enumerate(paths or []):
+    for p in paths or []:
         try:
             if fresh_after is not None and Path(p).stat().st_mtime < fresh_after:
                 stale.append(posix(p))
@@ -811,7 +811,7 @@ def parse_reviewer_replies(paths, n_acs, fresh_after=None):
         except OSError:
             unreadable.append(posix(p))
             continue
-        if idx == 0 and TIER_UPGRADE_RE.search(text):
+        if TIER_UPGRADE_RE.search(text):  # any fresh reply file: a Luna point re-check may carry it too (decide gates on fb=0 + Luna)
             info["upgrade"] = True
         here = set()
         for m in AC_REPLY_RE.finditer(text):

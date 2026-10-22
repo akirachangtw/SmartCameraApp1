@@ -1818,6 +1818,8 @@ class TestTrustBoundary(Base):
         self.assertEqual((d["next"], d["reviewer"]), ("ESCALATE_REVIEWER", "gpt-6-sol"), d)
         d = self.dec(v, up, fb=1, reply2=faithful)  # the stronger reviewer already judged: the line is ignored
         self.assertEqual(d["next"], "CLOSE", d)
+        d = self.dec(v, faithful, reply2=up)  # a Luna point re-check that only carries the line in reply 2 still escalates
+        self.assertEqual((d["next"], d["reviewer"]), ("ESCALATE_REVIEWER", "gpt-6-sol"), d)
         sol = self.verdicts()
         d = self.dec(sol, up)  # not a Luna reply: ignored
         self.assertEqual(d["next"], "CLOSE", d)
