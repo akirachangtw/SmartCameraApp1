@@ -1478,7 +1478,7 @@ NOW = 1_800_000_000
 
 
 def L(n, st, core=None, ev="e"):
-    """One reviewer reply line in the single contract format: AC<n>: STATUS | core=Y|N | evidence."""
+    """One reviewer reply line in the single contract format: `AC<n>: PASS|FAIL|N/A|UNVERIFIED | core=Y|N | <short evidence>`."""
     if core is None:
         return "AC%d: %s | %s\n" % (n, st, ev)
     return "AC%d: %s | core=%s | %s\n" % (n, st, core, ev)
@@ -1530,6 +1530,9 @@ class TestTrustBoundary(Base):
                        "snapshot", "core_disagreement", "preflight_stale", "never counted as evidence"):
             self.assertIn(needle, mode)
         self.assertNotIn("override_evidence", mode)
+        fmt = "AC<n>: PASS|FAIL|N/A|UNVERIFIED | core=Y|N | <short evidence>"
+        self.assertIn(fmt, HELPER.read_text(encoding="utf-8"))  # parser docstring
+        self.assertIn(fmt, HERE.read_text(encoding="utf-8"))  # the test helper that builds the reply lines
         self.assertNotIn("override_evidence", HELPER.read_text(encoding="utf-8"))
         finalize = [ln for ln in mode.splitlines() if "close_helper.py finalize" in ln][0]
         self.assertNotIn("--verdicts", finalize)
@@ -1566,6 +1569,45 @@ class TestTrustBoundary(Base):
             self.assertEqual(rc, 0, (variant, fin))
             self.assertEqual(self.ticket_path().read_bytes(), expected, variant)
         self.assertNotIn("swapped-in", self.ticket_path().read_text(encoding="utf-8"))
+
+    def test_f1_result_follows_the_snapshot_values(self):
+        """Reachability trace: decide's snapshot is finalize's only source - editing it moves the result, editing verdicts does not."""
+        self.setup_ticket()
+        self.to_close()
+        self.after_and_summary()
+        pristine = self.ticket_path().read_bytes()
+        snap_path = self.dir / "decision.json"
+        orig = json.loads(snap_path.read_text(encoding="utf-8"))
+        rc, fin, _ = self.fin()
+        self.assertEqual(rc, 0, fin)
+        base_section = self.section()
+        self.assertIn("核心 AC 2 條皆為 PASS", base_section)
+        self.assertIn("非核心 PASS 0／N/A 1／UNVERIFIED 0／FAIL 0（共 3 條 AC）", base_section)
+        edits = {
+            "status": lambda d: d["snapshot"]["acs"][2].update(status="FAIL", ev="snapshot-only secondary-path fact"),
+            "core": lambda d: d["snapshot"]["acs"][2].update(core=True, status="PASS"),
+        }
+        for name, edit in edits.items():
+            dec = json.loads(json.dumps(orig))
+            edit(dec)
+            put(snap_path, json.dumps(dec))
+            self.ticket_path().write_bytes(pristine)
+            rc, fin, _ = self.fin()
+            self.assertEqual(rc, 0, (name, fin))
+            sec = self.section()
+            self.assertNotEqual(sec, base_section, name)
+            if name == "status":
+                self.assertIn("非核心 FAIL 1 條: AC3 snapshot-only secondary-path fact", sec)
+                self.assertIn("FAIL 1（共 3 條 AC）", sec)
+            else:
+                self.assertIn("核心 AC 3 條皆為 PASS", sec)
+        # verdicts.json edits are invisible to the result
+        put(snap_path, json.dumps(orig))
+        self.ticket_path().write_bytes(pristine)
+        put(self.dir / "verdicts.json", json.dumps(self.verdicts(statuses=("FAIL", "FAIL", "FAIL"), cores=(True, True, True))))
+        rc, fin, _ = self.fin()
+        self.assertEqual(rc, 0, fin)
+        self.assertEqual(self.section(), base_section)
 
     def test_f1_invalid_snapshot_or_binding_refuses_and_leaves_ticket_untouched(self):
         self.setup_ticket()

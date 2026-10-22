@@ -796,7 +796,7 @@ def validate_verdicts(verdicts, n_acs):
 def parse_reviewer_replies(paths, n_acs, fresh_after=None):
     """Parse the reviewer's raw reply files (later files override earlier ones for the ACs they cover).
 
-    One line format: `AC<n>: PASS|FAIL|N/A|UNVERIFIED | core=Y|N | <evidence>`. The core marker is optional for
+    One line format: `AC<n>: PASS|FAIL|N/A|UNVERIFIED | core=Y|N | <short evidence>`. The core marker is optional for
     backward compatibility and is never evidence: once it is stripped, an empty evidence leaves the AC uncovered.
     A reply file older than `fresh_after` (the current preflight.json) judged another delivery version: not used.
     Returns (status, problems, info) with info = {core: {n: 'Y'|'N'}, ev: {n: short text}, upgrade: bool}."""
