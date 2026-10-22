@@ -18,9 +18,12 @@ Sources (route_table.json):
                     response already bound elsewhere) -> --phase record --dispatch-id ID --artifact PATH (needs the
                     binding, same path and same sha256; then pass-through of `ppss record`; the ledger refuses a
                     request id already recorded for the incident) -> --phase read ... (pass-through).
-                    --cached-artifact (bind only) is a DECLARED exemption of the captured-at-or-after-dispatch
-                    time condition for a cache hit; it never exempts the binding, the uniqueness, the ledger
-                    de-duplication or the dispatch slot checks.
+                    --cached-artifact (bind only) is a DECLARED flag for a cache hit with two separate, narrow
+                    exceptions: (1) the captured-at-or-after-dispatch time condition is waived; (2) only when the
+                    artifact really predates the dispatch, the response request_id may differ from the artifact's
+                    own request_id (a cache hit returns a new response id with an old artifact). It never exempts
+                    the binding, the sha256, the uniqueness, the ledger de-duplication or the dispatch slot checks,
+                    and a request_id mismatch on an artifact captured after the dispatch is still refused.
     Disabled source: SOURCE_DISABLED + `alternatives` (same role, callable, enabled). The entry never picks one
     for the caller. No enabled source of that role at all: MISSING_REQUIRED.
 
