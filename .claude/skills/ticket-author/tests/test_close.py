@@ -130,7 +130,8 @@ class Base(unittest.TestCase):
         put((self.dir / name), json.dumps(obj, ensure_ascii=False))
         if name == "verdicts.json" and isinstance(obj, dict) and not obj.get("_no_reply"):
             # the real flow saves the reviewer's raw reply; tests derive an equivalent reply from the claimed statuses
-            lines = ["AC%d: %s | e" % (e["n"], e["status"]) for e in obj.get("acs", [])
+            lines = ["AC%d: %s | core=%s | e" % (e["n"], e["status"], "Y" if e.get("core") else "N")
+                     for e in obj.get("acs", [])
                      if isinstance(e, dict) and isinstance(e.get("n"), int) and e.get("status")]
             put(self.dir / "reviewer_reply.txt", "\n".join(lines) + "\n")
 
@@ -276,7 +277,7 @@ class TestDispatchIntegration(Base):
         rc, pre = self.exec(cmds[0])
         self.assertEqual((rc, pre["location"], pre["scope"]["status"], pre["ac_count"]), (0, "deliver", "PASS", 3))
         rc, rv = self.exec(cmds[1])
-        self.assertEqual((rc, rv["class"], rv["actual"]["model"]), (0, "light", "gpt-6-luna"))
+        self.assertEqual((rc, rv["class"], rv["actual"]["model"]), (0, "heavy", "gpt-6-sol"))  # no explicit simple basis: Sol
         self.write_json("verdicts.json", self.verdicts())
         rc, dec = self.exec(cmds[2], **{"<N>": 0, "<0|1>": 0})
         self.assertEqual((rc, dec["next"]), (0, "CLOSE"))
@@ -393,7 +394,7 @@ class TestDecisionTable(Base):
         # the default reviewer is already the strongest (gpt-6-sol): nothing to escalate to
         self.assertEqual(self.d(v, rnd=2, fb=0)["next"], "NOT_CLOSED")
         self.assertEqual(self.d(v, rnd=2, fb=1)["reason"], "core_unverified")
-        luna = dict(v, reviewer=dict(v["reviewer"], actual_model="gpt-6-luna", tier="light"))
+        luna = dict(v, reviewer=dict(v["reviewer"], actual_model="gpt-6-luna", tier="light", tier_basis="plain wording fix"))
         esc = self.d(luna, rnd=2, fb=0)
         self.assertEqual((esc["next"], esc["reviewer"]), ("ESCALATE_REVIEWER", "gpt-6-sol"))
         self.assertEqual(self.d(luna, rnd=2, fb=1)["next"], "NOT_CLOSED")
@@ -537,12 +538,14 @@ class TestReviewer(Base):
         return d
 
     def test_codex_is_primary_for_every_ticket_type(self):
-        for allowed, tier, model in (("plans/x/note.md,docs/n.txt", "light", "gpt-6-luna"),
-                                     ("docs/a.md,scripts/x.py", "heavy", "gpt-6-sol"),
-                                     ("app/src/Main.kt", "heavy", "gpt-6-sol"),
-                                     (".claude/skills/x/SKILL.md", "heavy", "gpt-6-sol"),
-                                     (".claude/rules/r.md,plans/p.md", "heavy", "gpt-6-sol")):
-            d = self.reviewer(allowed, "--codex-available", "1")
+        basis = ("--simple-basis", "plain wording fix")
+        for allowed, tier, model, flags in (("plans/x/note.md,docs/n.txt", "light", "gpt-6-luna", basis),
+                                            ("plans/x/note.md,docs/n.txt", "heavy", "gpt-6-sol", ()),  # uncertain: Sol
+                                            ("docs/a.md,scripts/x.py", "heavy", "gpt-6-sol", basis),
+                                            ("app/src/Main.kt", "heavy", "gpt-6-sol", basis),
+                                            (".claude/skills/x/SKILL.md", "heavy", "gpt-6-sol", basis),
+                                            (".claude/rules/r.md,plans/p.md", "heavy", "gpt-6-sol", basis)):
+            d = self.reviewer(allowed, "--codex-available", "1", *flags)
             self.assertEqual((d["class"], d["actual"]["family"], d["actual"]["model"], d["fallback_used"]),
                              (tier, "codex", model, False), allowed)
 
@@ -557,7 +560,7 @@ class TestReviewer(Base):
         self.assertEqual((d["actual"], d["fallback_used"], d["fallback_reason"]),
                          ({"family": "claude", "model": "opus"}, True, "quota"))
         self.assertIn("not Codex", d["limitation"])
-        d = self.reviewer("plans/p.md", "--codex-fault", "auth")
+        d = self.reviewer("plans/p.md", "--codex-fault", "auth", "--simple-basis", "plain wording fix")
         self.assertEqual(d["actual"], {"family": "claude", "model": "sonnet"})
         d = self.reviewer("x.py", "--codex-available", "0")  # codex missing is a fault
         self.assertEqual((d["actual"]["family"], d["fallback_reason"]), ("claude", "unavailable"))
@@ -567,7 +570,7 @@ class TestReviewer(Base):
         self.assertEqual(rc, 2)  # REPORT_FIX / finding / FAIL / LIMIT are not Codex faults
 
     def test_escalate_luna_to_sol_only(self):
-        d = self.reviewer("plans/p.md", "--codex-available", "1", escalate="2,3")
+        d = self.reviewer("plans/p.md", "--codex-available", "1", "--simple-basis", "plain wording fix", escalate="2,3")
         self.assertEqual(d["escalation"], {"reviewer": "gpt-6-sol", "acs": [2, 3]})
         d = self.reviewer("x.py", "--codex-available", "1", escalate="2")
         self.assertEqual(d["escalation"]["reviewer"], "none")
@@ -1224,7 +1227,9 @@ class TestReviewerReplyCoverage(Base):
         v2 = self.verdicts()
         v2["acs"][1]["override_evidence"] = "git grep shows the string exists (mechanical)"
         d = self.d(v2, reply_text="AC1: PASS | e\nAC2: UNVERIFIED | unsure\nAC3: N/A | e\n")
-        self.assertEqual((d["next"], d["overrides"]), ("CLOSE", [2]))
+        # TKA-TRUST-01 F2: free-text override_evidence carries no authority; only a reviewer re-check can change the status
+        self.assertEqual((d["next"], d["reason"], d["acs"]), ("SUPPLEMENT", "reviewer_mismatch", [2]))
+        self.assertNotIn("overrides", d)
 
     def test_reviewer_must_be_a_real_second_call(self):
         for patch, code in (({"inline": True}, "reviewer_not_independent"),
@@ -1254,7 +1259,7 @@ class TestReviewerReplyCoverage(Base):
         self.set_dependents()
         self.preflight()
         v = self.verdicts()
-        v["reviewer"].update(actual_model="gpt-6-luna", tier="light")
+        v["reviewer"].update(actual_model="gpt-6-luna", tier="light", tier_basis="plain wording fix")
         d = self.d(v)
         self.assertEqual((d["next"], d["detail"]), ("SUPPLEMENT", "reviewer_tier_mismatch"))
         # the escalation is not shadowed by the coverage cap on a light ticket
@@ -1263,7 +1268,7 @@ class TestReviewerReplyCoverage(Base):
         self.set_dependents()
         self.preflight()
         v = self.verdicts()
-        v["reviewer"].update(actual_model="gpt-6-luna", tier="light")
+        v["reviewer"].update(actual_model="gpt-6-luna", tier="light", tier_basis="plain wording fix")
         d = self.d(v, rnd=2, fb=0, reply_text="AC1: PASS | e\nAC2: UNVERIFIED | e\nAC3: N/A | e\n")
         self.assertEqual((d["next"], d["reviewer"]), ("ESCALATE_REVIEWER", "gpt-6-sol"))
         d = self.d(v, rnd=2, fb=1, reply_text="AC1: PASS | e\nAC2: UNVERIFIED | e\nAC3: N/A | e\n")
@@ -1466,6 +1471,356 @@ class TestRegistrySubjectBinding(Base):
         rc, fin, _ = self.finalize()
         self.assertEqual((rc, fin["refused"]), (3, "readback_mismatch"))
         self.assertEqual(sha(self.ticket_path()), before)
+
+
+# =============================================================================== 12. trust boundary (TKA-TRUST-01)
+NOW = 1_800_000_000
+
+
+def L(n, st, core=None, ev="e"):
+    """One reviewer reply line in the single contract format: AC<n>: STATUS | core=Y|N | evidence."""
+    if core is None:
+        return "AC%d: %s | %s\n" % (n, st, ev)
+    return "AC%d: %s | core=%s | %s\n" % (n, st, core, ev)
+
+
+class TestTrustBoundary(Base):
+    """Original counterexamples of F1-F5 plus the normal/recovery regressions. Mechanical tests: they prove helper
+    decisions and side effects, not the semantic quality of a real reviewer."""
+
+    def setup_ticket(self, acs=DEFAULT_ACS, allowed="docs/a.md"):
+        self.make_repo(allowed=allowed, acs=acs)
+        self.set_dependents()
+        self.assertEqual(self.preflight()[0], 0)
+
+    def dec(self, v, reply=None, rnd=0, fb=0, reply2=None):
+        """decide with an explicit raw reply (reply=None: the harness derives a faithful reply from the claims)."""
+        if reply is None:
+            self.write_json("verdicts.json", v)
+            replies = ["reviewer_reply.txt"]
+        else:
+            self.write_json("verdicts.json", dict(v, _no_reply=True))
+            put(self.dir / "reviewer_reply.txt", reply)
+            replies = ["reviewer_reply.txt"]
+        if reply2 is not None:
+            put(self.dir / "reviewer_reply2.txt", reply2)
+            replies.append("reviewer_reply2.txt")
+        rc, d, err = self.decide(rnd, fb, replies=replies)
+        self.assertEqual(rc, 0, err)
+        return d
+
+    def after_and_summary(self):
+        self.after()
+        self.write_summary()
+
+    def fin(self):
+        return self.h("finalize", "--ticket", TID, "--registry", self.dir / "registry_after.json",
+                      "--verdicts", self.dir / "verdicts.json", "--summary", self.dir / "summary.txt",
+                      "--commits", self.impl or "", now=NOW)
+
+    def section(self):
+        text = self.ticket_path().read_text(encoding="utf-8")
+        a, b = text.index("<!-- close-result:begin -->"), text.index("<!-- close-result:end -->")
+        return text[a:b]
+
+    def test_contract_text_has_one_reply_format_and_no_override_path(self):
+        sk = SKILL_MD.read_text(encoding="utf-8")
+        mode = sk.split("## Mode: close")[1].split("## Conditional state matrix")[0]
+        for needle in ("AC<n>: PASS|FAIL|N/A|UNVERIFIED | core=Y|N | <short evidence>", "TIER: UPGRADE", "--simple-basis",
+                       "snapshot", "core_disagreement", "preflight_stale", "never counted as evidence"):
+            self.assertIn(needle, mode)
+        self.assertNotIn("override_evidence", mode)
+        self.assertNotIn("override_evidence", HELPER.read_text(encoding="utf-8"))
+        finalize = [ln for ln in mode.splitlines() if "close_helper.py finalize" in ln][0]
+        self.assertNotIn("--verdicts", finalize)
+        sample = "AC7: FAIL | core=N | regression in the secondary path\n"  # the documented form parses to status+core+evidence
+        put(self.root / "r.txt", sample)
+        spec = __import__("importlib.util").util.spec_from_file_location("close_helper_fmt", str(HELPER))
+        ch = __import__("importlib.util").util.module_from_spec(spec)
+        spec.loader.exec_module(ch)
+        st, prob, info = ch.parse_reviewer_replies([self.root / "r.txt"], 9)
+        self.assertEqual((st[7], info["core"][7], info["ev"][7]), ("FAIL", "N", "regression in the secondary path"))
+
+    # ---------------------------------------------------------------- F1
+    def test_f1_finalize_is_snapshot_only(self):
+        self.setup_ticket()
+        self.to_close()
+        self.after_and_summary()
+        before = self.ticket_path().read_bytes()
+        rc, fin, _ = self.fin()
+        self.assertEqual(rc, 0, fin)
+        expected = self.ticket_path().read_bytes()
+        self.assertNotEqual(expected, before)
+        swapped = self.verdicts(statuses=("FAIL", "FAIL", "FAIL"), cores=(True, True, True))
+        swapped["reviewer"]["limitation"] = "swapped-in text that must not appear"
+        for variant in ("missing", "empty", "swapped"):
+            self.ticket_path().write_bytes(before)
+            vp = self.dir / "verdicts.json"
+            if variant == "missing":
+                vp.unlink()
+            elif variant == "empty":
+                put(vp, "{}")
+            else:
+                put(vp, json.dumps(swapped))
+            rc, fin, _ = self.fin()
+            self.assertEqual(rc, 0, (variant, fin))
+            self.assertEqual(self.ticket_path().read_bytes(), expected, variant)
+        self.assertNotIn("swapped-in", self.ticket_path().read_text(encoding="utf-8"))
+
+    def test_f1_invalid_snapshot_or_binding_refuses_and_leaves_ticket_untouched(self):
+        self.setup_ticket()
+        self.to_close()
+        self.after_and_summary()
+        orig = (self.dir / "decision.json").read_text(encoding="utf-8")
+        cases = {
+            "no_snapshot": lambda d: d.pop("snapshot"),
+            "ac_dropped": lambda d: d["snapshot"]["acs"].pop(),
+            "ac_duplicated": lambda d: d["snapshot"]["acs"].append(dict(d["snapshot"]["acs"][0])),
+            "bad_status": lambda d: d["snapshot"]["acs"][0].__setitem__("status", "MAYBE"),
+            "core_fail": lambda d: d["snapshot"]["acs"][0].update(status="FAIL", core=True),
+            "core_not_bool": lambda d: d["snapshot"]["acs"][0].__setitem__("core", "yes"),
+            "inline": lambda d: d["snapshot"]["reviewer"].__setitem__("inline", True),
+            "not_independent": lambda d: d["snapshot"]["reviewer"].__setitem__("independent_call", False),
+            "no_reviewer": lambda d: d["snapshot"].pop("reviewer"),
+            "not_close": lambda d: d.__setitem__("next", "SUPPLEMENT"),
+            "binding": lambda d: d.__setitem__("binding_ref", "0" * 40),
+        }
+        for name, fn in cases.items():
+            dec = json.loads(orig)
+            fn(dec)
+            put(self.dir / "decision.json", json.dumps(dec))
+            before = sha(self.ticket_path())
+            rc, fin, _ = self.fin()
+            self.assertEqual(rc, 3, (name, fin))
+            self.assertEqual(sha(self.ticket_path()), before, name)
+        (self.dir / "decision.json").unlink()  # the 7-day scratch is gone: never claim success
+        before = sha(self.ticket_path())
+        rc, fin, _ = self.fin()
+        self.assertEqual(rc, 3, fin)
+        self.assertEqual(sha(self.ticket_path()), before)
+        self.assertNotIn("close-result:begin", self.ticket_path().read_text(encoding="utf-8"))
+
+    def test_f1_snapshot_content_and_single_reviewer_producer(self):
+        self.setup_ticket()
+        v = self.verdicts()
+        v["reviewer"]["tier_basis"] = "n/a for heavy"
+        d = self.dec(v, L(1, "PASS", "Y", "first fact") + L(2, "PASS", "Y", "second fact") + L(3, "N/A", "N", "struck"))
+        self.assertEqual(d["next"], "CLOSE", d)
+        snap = self.read_json("decision.json")["snapshot"]
+        self.assertEqual([a["n"] for a in snap["acs"]], [1, 2, 3])
+        self.assertEqual([(a["status"], a["core"]) for a in snap["acs"]], [("PASS", True), ("PASS", True), ("N/A", False)])
+        self.assertEqual(snap["acs"][0]["ev"], "first fact")
+        rev = snap["reviewer"]
+        for key in ("family", "actual_model", "tier", "fallback_used", "fallback_reason", "independent_call", "inline",
+                    "limitation", "tier_basis"):
+            self.assertIn(key, rev)
+        self.assertEqual((rev["actual_model"], rev["inline"], rev["independent_call"]), ("gpt-6-sol", False, True))
+        self.assertEqual(snap["dependency_status"], "NONE_FOUND")
+
+    def test_f1_legacy_decision_without_snapshot_is_not_resumed(self):
+        self.setup_ticket()
+        self.to_close()
+        self.after_and_summary()
+        dec = self.read_json("decision.json")
+        dec.pop("snapshot")
+        put(self.dir / "decision.json", json.dumps(dec))
+        self.assertNotIn("snapshot", self.read_json("decision.json"))  # starting shape: legacy, below the normalized writer
+        self.reg["lifecycle"] = "CLOSED"
+        self.write_json("registry.json", self.reg)
+        self.preflight()
+        d = self.decide()[1]
+        self.assertEqual(d["next"], "ALREADY_CLOSED", d)
+        self.assertIn("snapshot", d["binding_check"])
+        before = sha(self.ticket_path())
+        rc, fin, _ = self.fin()
+        self.assertEqual(rc, 3, fin)
+        self.assertEqual(sha(self.ticket_path()), before)
+
+    def test_f1_partial_success_resumes_from_the_snapshot_even_without_verdicts(self):
+        self.setup_ticket()
+        self.to_close()
+        self.after_and_summary()
+        self.reg["lifecycle"] = "CLOSED"
+        self.write_json("registry.json", self.reg)
+        self.preflight()
+        self.assertEqual(self.decide()[1]["next"], "WRITE_FINAL_ONLY")
+        (self.dir / "verdicts.json").unlink()
+        rc, fin, _ = self.fin()
+        self.assertEqual((rc, fin["written"]), (0, True), fin)
+        self.assertIn("核心 AC 2 條皆為 PASS", self.section())
+
+    # ---------------------------------------------------------------- F2
+    def test_f2_override_evidence_cannot_release_core_fail_or_unverified(self):
+        self.setup_ticket()
+        for st in ("FAIL", "UNVERIFIED"):
+            v = self.verdicts()  # claims AC2 PASS (core)
+            v["acs"][1]["override_evidence"] = "git grep shows the string exists (free text)"
+            d = self.dec(v, L(1, "PASS", "Y") + L(2, st, "Y") + L(3, "N/A", "N"))
+            self.assertNotEqual(d["next"], "CLOSE", st)
+            if st == "FAIL":
+                self.assertEqual((d["next"], d["kind"], d["acs"]), ("BLOCKED", "core_ac_fail", [2]))
+            else:
+                self.assertEqual((d["next"], d["reason"], d["acs"]), ("SUPPLEMENT", "reviewer_mismatch", [2]))
+                self.assertNotIn("overrides", d)
+
+    def test_f2_point_recheck_updates_only_covered_ac_and_rejects_stale_replies(self):
+        self.setup_ticket()
+        v = self.verdicts()
+        r1 = L(1, "PASS", "Y") + L(2, "UNVERIFIED", "Y") + L(3, "N/A", "N")
+        self.assertEqual(self.dec(v, r1)["reason"], "reviewer_mismatch")
+        r2 = L(2, "PASS", "Y", "re-verified against the new evidence")
+        d = self.dec(v, r1, reply2=r2)
+        self.assertEqual(d["next"], "CLOSE", d)  # AC1/AC3 stay as judged in the first reply
+        pre_mtime = (self.dir / "preflight.json").stat().st_mtime
+        old = pre_mtime - 100
+        os.utime(self.dir / "reviewer_reply2.txt", (old, old))
+        rc, d, _ = self.decide(replies=["reviewer_reply.txt", "reviewer_reply2.txt"])
+        self.assertEqual((d["next"], d["reason"]), ("SUPPLEMENT", "reviewer_reply_stale"), d)
+
+    def test_f2_preflight_stale_when_delivery_changed_after_preflight(self):
+        self.setup_ticket()
+        put(self.repo / "docs" / "a.md", "alpha changed after preflight\n")
+        self.commit("[TST-01] more", "docs/a.md")
+        d = self.dec(self.verdicts())  # replies are newer than preflight.json, but the delivery moved on
+        self.assertEqual((d["next"], d["reason"]), ("SUPPLEMENT", "preflight_stale"), d)
+        d = self.dec(self.verdicts(), rnd=2)
+        self.assertEqual((d["next"], d["reason"]), ("NOT_CLOSED", "preflight_stale"), d)
+        self.assertEqual(self.preflight()[0], 0)
+        d = self.dec(self.verdicts())  # fresh preflight + fresh replies
+        self.assertEqual(d["next"], "CLOSE", d)
+
+    # ---------------------------------------------------------------- F3
+    def test_f3_core_downgrade_requires_reviewer_confirmation(self):
+        self.setup_ticket()
+        v = self.verdicts(statuses=("PASS", "FAIL", "N/A"), cores=(True, False, False))  # agent says AC2 is non-core
+        for mark in (None, "Y"):
+            r = L(1, "PASS", "Y") + L(2, "FAIL", mark, "regression found") + L(3, "N/A", "N")
+            d = self.dec(v, r)
+            self.assertEqual((d["next"], d["reason"], d["acs"]), ("SUPPLEMENT", "core_disagreement", [2]), mark)
+            d = self.dec(v, r, rnd=2)
+            self.assertEqual((d["next"], d["kind"], d["acs"]), ("BLOCKED", "core_ac_fail", [2]), mark)
+        r = L(1, "PASS", "Y") + L(2, "FAIL", "N", "cosmetic path only, not the delivery goal") + L(3, "N/A", "N")
+        d = self.dec(v, r)
+        self.assertEqual(d["next"], "CLOSE", d)  # reviewer-confirmed non-core FAIL does not block
+        snap = self.read_json("decision.json")["snapshot"]
+        self.assertEqual((snap["acs"][1]["status"], snap["acs"][1]["core"]), ("FAIL", False))
+
+    def test_f3_reviewer_noncore_vs_agent_core_is_a_disagreement_until_synced(self):
+        self.setup_ticket()
+        v = self.verdicts(statuses=("PASS", "FAIL", "N/A"), cores=(True, True, False))
+        r = L(1, "PASS", "Y") + L(2, "FAIL", "N", "not the delivery goal") + L(3, "N/A", "N")
+        d = self.dec(v, r)
+        self.assertEqual((d["next"], d["reason"], d["acs"]), ("SUPPLEMENT", "core_disagreement", [2]))
+        d = self.dec(v, r, rnd=2)
+        self.assertEqual((d["next"], d["kind"]), ("BLOCKED", "core_ac_fail"))  # unresolved: treated as core
+        v["acs"][1]["core"] = False  # synchronised after the reviewer's pointed confirmation
+        self.assertEqual(self.dec(v, r)["next"], "CLOSE")
+        v["acs"][1]["core"] = False  # the Agent flips alone while the reviewer says core=Y: no downgrade
+        r_y = L(1, "PASS", "Y") + L(2, "FAIL", "Y", "goal not met") + L(3, "N/A", "N")
+        self.assertEqual(self.dec(v, r_y)["reason"], "core_disagreement")
+
+    def test_f3_core_marker_is_not_evidence(self):
+        self.setup_ticket()
+        v = self.verdicts(statuses=("PASS", "FAIL", "N/A"), cores=(True, False, False))
+        r = L(1, "PASS", "Y") + "AC2: FAIL | core=N\n" + L(3, "N/A", "N")
+        d = self.dec(v, r)
+        self.assertEqual((d["next"], d["reason"], d["missing"]), ("SUPPLEMENT", "reviewer_coverage", [2]), d)
+        r_legacy = "AC1: PASS | e\nAC2: PASS | e\nAC3: N/A | e\n"  # legacy lines without marker still parse
+        self.assertEqual(self.dec(self.verdicts(), r_legacy)["next"], "CLOSE")
+
+    # ---------------------------------------------------------------- F4
+    @staticmethod
+    def acs_n(n_noncore):
+        lines = ["- [ ] **[存在性]** core one\n"]
+        lines += ["- [ ] **[行為性]** non-core %d\n" % (i + 2) for i in range(n_noncore)]
+        lines.append("- [ ] ~~`assembleDebug` PASS~~ (N/A: docs only)\n")
+        return "".join(lines)
+
+    def close_with_noncore_fails(self, n_noncore):
+        self.setup_ticket(acs=self.acs_n(n_noncore))
+        statuses = ("PASS",) + ("FAIL",) * n_noncore + ("N/A",)
+        cores = (True,) + (False,) * n_noncore + (False,)
+        reply = L(1, "PASS", "Y")
+        for i in range(n_noncore):
+            reply += L(i + 2, "FAIL", "N", "does not handle empty input case number %d in the secondary path" % (i + 2))
+        reply += L(n_noncore + 2, "N/A", "N")
+        d = self.dec(self.verdicts(statuses=statuses, cores=cores), reply)
+        self.assertEqual(d["next"], "CLOSE", d)
+        self.after_and_summary()
+        rc, fin, _ = self.fin()
+        self.assertEqual(rc, 0, fin)
+        return self.section()
+
+    def test_f4_noncore_fail_count_numbers_and_short_facts_are_disclosed(self):
+        sec = self.close_with_noncore_fails(2)
+        self.assertIn("非核心 FAIL 2", sec)
+        self.assertIn("AC2", sec)
+        self.assertIn("AC3", sec)
+        self.assertIn("FAIL 2", sec)
+        self.assertIn("共 4 條 AC", sec)
+        self.assertIn("核心 AC 1 條", sec)
+        self.assertNotIn("does not handle empty input case number 2 in the secondary path", sec)  # compact, not verbatim
+
+    def test_f4_many_noncore_fails_are_never_silently_truncated(self):
+        sec = self.close_with_noncore_fails(10)
+        for n in range(2, 12):
+            self.assertIn("AC%d" % n, sec, n)
+        self.assertIn("非核心 FAIL 10", sec)
+        self.assertIn("共 12 條 AC", sec)
+
+    # ---------------------------------------------------------------- F5
+    def reviewer_for(self, allowed, *flags):
+        self.root = Path(tempfile.mkdtemp(dir=str(self.root)))
+        self.make_repo(allowed=allowed)
+        self.set_dependents()
+        self.preflight()
+        rc, d, err = self.h("reviewer", "--ticket", TID, "--codex-available", "1", *flags)
+        self.assertEqual(rc, 0, err)
+        return d
+
+    def test_f5_load_bearing_documents_stay_on_sol_whatever_the_basis(self):
+        for allowed in ("plans/architecture/x.md", ".claude/rules/r.md", "docs/SSOT_v4.md", "docs/api_Contract.md",
+                        "plans/cso_briefing/project/file/T.md"):
+            d = self.reviewer_for(allowed, "--simple-basis", "trivial typo fix, nothing load-bearing")
+            self.assertEqual((d["class"], d["actual"]["model"]), ("heavy", "gpt-6-sol"), allowed)
+
+    def test_f5_light_needs_structural_simplicity_and_an_explicit_basis(self):
+        d = self.reviewer_for("plans/x/note.md")
+        self.assertEqual((d["class"], d["actual"]["model"]), ("heavy", "gpt-6-sol"))  # uncertain: Sol
+        d = self.reviewer_for("plans/x/note.md", "--simple-basis", "   ")
+        self.assertEqual(d["class"], "heavy")
+        d = self.reviewer_for("plans/x/note.md", "--simple-basis", "single typo in prose")
+        self.assertEqual((d["class"], d["actual"]["model"]), ("light", "gpt-6-luna"))
+        self.assertIn("single typo", d["tier_basis"])
+        d = self.reviewer_for("plans/x/note.md", "--simple-basis", "single typo", "--force-heavy")
+        self.assertEqual(d["class"], "heavy")  # nothing lowers a raised tier
+
+    def test_f5_decide_rejects_luna_without_a_basis_or_on_load_bearing_documents(self):
+        self.setup_ticket(allowed="docs/a.md")
+        v = self.verdicts()
+        v["reviewer"].update(actual_model="gpt-6-luna", tier="light")
+        d = self.dec(v)
+        self.assertEqual((d["next"], d["reason"], d["detail"]), ("SUPPLEMENT", "reviewer_invalid", "reviewer_tier_mismatch"), d)
+        v["reviewer"]["tier_basis"] = "plain wording fix"
+        self.assertEqual(self.dec(v)["next"], "CLOSE")
+        self.root = Path(tempfile.mkdtemp(dir=str(self.root)))
+        self.setup_ticket(allowed="plans/architecture/x.md")
+        d = self.dec(v)  # any basis string, load-bearing document
+        self.assertEqual((d["next"], d["detail"]), ("SUPPLEMENT", "reviewer_tier_mismatch"), d)
+
+    def test_f5_luna_tier_upgrade_report_escalates_to_sol_only_in_the_valid_state(self):
+        self.setup_ticket(allowed="docs/a.md")
+        v = self.verdicts()
+        v["reviewer"].update(actual_model="gpt-6-luna", tier="light", tier_basis="plain wording fix")
+        faithful = L(1, "PASS", "Y") + L(2, "PASS", "Y") + L(3, "N/A", "N")
+        up = "TIER: UPGRADE | the ticket changes acceptance-gate semantics\n" + faithful
+        d = self.dec(v, up)
+        self.assertEqual((d["next"], d["reviewer"]), ("ESCALATE_REVIEWER", "gpt-6-sol"), d)
+        d = self.dec(v, up, fb=1, reply2=faithful)  # the stronger reviewer already judged: the line is ignored
+        self.assertEqual(d["next"], "CLOSE", d)
+        sol = self.verdicts()
+        d = self.dec(sol, up)  # not a Luna reply: ignored
+        self.assertEqual(d["next"], "CLOSE", d)
 
 
 if __name__ == "__main__":

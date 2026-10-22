@@ -12,10 +12,10 @@ Writes  : only the scratch directory and, in `finalize`, one minimal result sect
 
 Sub-commands
   preflight --ticket ID --registry F [--dependents F]
-  reviewer  --ticket ID [--codex-fault KIND] [--codex-available 0|1] [--claude-available 0|1] [--force-heavy] [--escalate n1,n2]
+  reviewer  --ticket ID [--codex-fault KIND] [--codex-available 0|1] [--claude-available 0|1] [--force-heavy] [--simple-basis TEXT] [--escalate n1,n2]
   decide    --ticket ID --registry F --verdicts F --reply F [--reply F2] --round N --fallback-tried 0|1
   readback  --ticket ID --registry F
-  finalize  --ticket ID --registry F --verdicts F --summary F --commits h1,h2
+  finalize  --ticket ID --registry F --summary F --commits h1,h2   (reads only the decision.json snapshot; --verdicts is accepted and ignored)
   sweep     [--root R] [--days 7] [--exclude DIR] [--max 200]
 Global      --repo ROOT   --now EPOCH
 
@@ -41,6 +41,11 @@ CLOSE_ROOT = ".tmp/ticket-author/close"
 MARK_BEGIN = "<!-- close-result:begin -->"
 MARK_END = "<!-- close-result:end -->"
 DOC_EXT = {".md", ".txt", ".rst"}
+# Known load-bearing locations: fixed paths / file-name tokens only (no content keywords, no classifier).
+LOAD_BEARING_DIRS = (".claude/", "plans/architecture/", "plans/cso_briefing/project/file/")
+LOAD_BEARING_NAME_RE = re.compile(r"ssot|contract", re.I)
+CORE_MARK_RE = re.compile(r"^core[ \t]*=[ \t]*([YyNn])\b[ \t]*(?:\|[ \t]*)?(.*)$", re.S)
+TIER_UPGRADE_RE = re.compile(r"^[ \t]*(?:[-*][ \t]+)?\**[ \t]*TIER[ \t]*\**[ \t]*[:\uff1a][ \t]*\**[ \t]*UPGRADE\b", re.I | re.M)
 CODEX_HEAVY = "gpt-6-sol"
 CODEX_LIGHT = "gpt-6-luna"
 CLAUDE_FALLBACK = {"heavy": "opus", "light": "sonnet"}
@@ -574,22 +579,36 @@ def cmd_preflight(a):
 
 # --------------------------------------------------------------------------- reviewer
 def classify(allowed):
-    """light = every ALLOWED file is plain text outside .claude/; everything else is heavy (never lowered here)."""
+    """Structural precondition for the light tier only: every ALLOWED file is plain text outside the known
+    load-bearing locations. Never sufficient by itself (see select_reviewer: an explicit basis is also required)."""
     if not allowed:
         return "heavy"
     for tok in allowed:
         t = posix(tok)
         if os.path.splitext(t)[1].lower() not in DOC_EXT or t.startswith(".claude/") or "/.claude/" in t:
             return "heavy"
+        if any(t.startswith(d) or ("/" + d) in t for d in LOAD_BEARING_DIRS):
+            return "heavy"
+        if LOAD_BEARING_NAME_RE.search(os.path.basename(t)):
+            return "heavy"
     return "light"
 
 
-def select_reviewer(allowed, codex_fault, codex_ok, claude_ok, force_heavy=False):
-    tier = "heavy" if force_heavy else classify(allowed)
+def select_reviewer(allowed, codex_fault, codex_ok, claude_ok, force_heavy=False, simple_basis=""):
+    basis = (simple_basis or "").strip()
+    structural = classify(allowed)
+    if force_heavy:
+        tier, why = "heavy", "default heavy: force-heavy"
+    elif structural != "light":
+        tier, why = "heavy", "default heavy: load-bearing or non-text scope"
+    elif not basis:
+        tier, why = "heavy", "default heavy: no explicit simple basis"
+    else:
+        tier, why = "light", basis[:80]
     model = CODEX_HEAVY if tier == "heavy" else CODEX_LIGHT
     primary = {"family": "codex", "model": model}
     fault = codex_fault or ("" if codex_ok else "unavailable")
-    res = {"class": tier, "primary": primary, "actual": dict(primary), "fallback_used": False,
+    res = {"class": tier, "tier_basis": why, "primary": primary, "actual": dict(primary), "fallback_used": False,
            "fallback_reason": "", "escalate_to": CODEX_HEAVY if model == CODEX_LIGHT else "none", "limitation": ""}
     if fault:
         res["fallback_reason"] = fault
@@ -615,7 +634,7 @@ def cmd_reviewer(a):
     codex_ok = (shutil.which("codex") is not None) if a.codex_available is None else a.codex_available == 1
     claude_ok = True if a.claude_available is None else a.claude_available == 1
     sel = select_reviewer(pre.get("verify", {}).get("allowed", []), a.codex_fault or "", codex_ok, claude_ok,
-                          bool(a.force_heavy))
+                          bool(a.force_heavy), a.simple_basis or "")
     if a.escalate:
         nums = [int(x) for x in a.escalate.split(",") if x.strip().isdigit()]
         act = sel["actual"]
@@ -628,6 +647,51 @@ def cmd_reviewer(a):
 
 
 # --------------------------------------------------------------------------- binding / read-back
+def reviewer_record(rev, basis):
+    """The single producer of the reviewer fields kept in the decision snapshot."""
+    rev = rev if isinstance(rev, dict) else {}
+    return {"family": rev.get("family"), "actual_model": rev.get("actual_model"), "tier": rev.get("tier"),
+            "fallback_used": rev.get("fallback_used"), "fallback_reason": rev.get("fallback_reason") or "",
+            "independent_call": rev.get("independent_call"), "inline": rev.get("inline"),
+            "limitation": str(rev.get("limitation") or "")[:200], "tier_basis": (basis or "")[:80]}
+
+
+def build_snapshot(seen, eff, ev, n_acs, rev, dep, coverage):
+    basis = str(rev.get("tier_basis") or "").strip() if isinstance(rev, dict) else ""
+    acs = [{"n": n, "status": seen[n]["status"], "core": bool(eff.get(n, True)), "ev": (ev.get(n) or "")[:80]}
+           for n in range(1, n_acs + 1)]
+    return {"acs": acs, "reviewer": reviewer_record(rev, basis), "dependency_status": dep, "coverage": coverage}
+
+
+def snapshot_ok(dec, n_acs):
+    snap = (dec or {}).get("snapshot")
+    if not isinstance(snap, dict):
+        return False, "snapshot_missing"
+    acs = snap.get("acs")
+    if not isinstance(acs, list) or not n_acs or len(acs) != n_acs:
+        return False, "snapshot_ac_count_mismatch"
+    seen = set()
+    for e in acs:
+        if not isinstance(e, dict):
+            return False, "snapshot_ac_invalid"
+        n = e.get("n")
+        if not isinstance(n, int) or isinstance(n, bool) or n < 1 or n > n_acs or n in seen:
+            return False, "snapshot_ac_numbers_invalid"
+        seen.add(n)
+        if e.get("status") not in AC_STATUS or not isinstance(e.get("core"), bool):
+            return False, "snapshot_ac_invalid"
+        if e["core"] and e["status"] in ("FAIL", "UNVERIFIED"):
+            return False, "snapshot_core_not_passing"
+    rev = snap.get("reviewer")
+    tier = rev.get("tier") if isinstance(rev, dict) else None
+    if tier not in ("heavy", "light"):
+        return False, "snapshot_reviewer_invalid"
+    bad = validate_reviewer_meta(rev, tier)  # the same check decide applies to the live reviewer record
+    if bad:
+        return False, "snapshot_" + bad
+    return True, ""
+
+
 def verify_binding(repo, tid, pre):
     d = close_dir(repo, tid)
     dec, err = load_json(d / "decision.json")
@@ -645,7 +709,7 @@ def verify_binding(repo, tid, pre):
     rc, _ = git(repo, "merge-base", "--is-ancestor", ref, "HEAD")
     if rc != 0:
         return False, "binding_ref_not_ancestor_of_head"
-    return True, ""
+    return snapshot_ok(dec, len(pre.get("acs") or []))
 
 
 def expected_reviews(repo, tid):
@@ -729,15 +793,26 @@ def validate_verdicts(verdicts, n_acs):
     return seen, {"missing": missing, "duplicate": sorted(set(dup)), "unknown": unknown, "invalid": invalid}
 
 
-def parse_reviewer_replies(paths, n_acs):
-    """Parse the reviewer's raw reply files (later files override earlier ones for the ACs they cover)."""
-    status, dup, unknown, unreadable, no_evidence = {}, [], [], [], []
-    for p in paths or []:
+def parse_reviewer_replies(paths, n_acs, fresh_after=None):
+    """Parse the reviewer's raw reply files (later files override earlier ones for the ACs they cover).
+
+    One line format: `AC<n>: PASS|FAIL|N/A|UNVERIFIED | core=Y|N | <evidence>`. The core marker is optional for
+    backward compatibility and is never evidence: once it is stripped, an empty evidence leaves the AC uncovered.
+    A reply file older than `fresh_after` (the current preflight.json) judged another delivery version: not used.
+    Returns (status, problems, info) with info = {core: {n: 'Y'|'N'}, ev: {n: short text}, upgrade: bool}."""
+    status, dup, unknown, unreadable, no_evidence, stale = {}, [], [], [], [], []
+    info = {"core": {}, "ev": {}, "upgrade": False}
+    for idx, p in enumerate(paths or []):
         try:
+            if fresh_after is not None and Path(p).stat().st_mtime < fresh_after:
+                stale.append(posix(p))
+                continue
             text = read_text(p)
         except OSError:
             unreadable.append(posix(p))
             continue
+        if idx == 0 and TIER_UPGRADE_RE.search(text):
+            info["upgrade"] = True
         here = set()
         for m in AC_REPLY_RE.finditer(text):
             n, st = int(m.group(1)), m.group(2).upper()
@@ -749,13 +824,22 @@ def parse_reviewer_replies(paths, n_acs):
                 continue
             here.add(n)
             ev = (m.group(3) or "").strip(" \t*")
+            mark = None
+            cm = CORE_MARK_RE.match(ev)
+            if cm:
+                mark, ev = cm.group(1).upper(), cm.group(2).strip(" \t*|")
             if not ev:
-                no_evidence.append(n)  # a status without evidence is not a judgement: the AC stays uncovered
+                no_evidence.append(n)  # a status or marker without evidence is not a judgement: the AC stays uncovered
                 continue
             status[n] = st
+            if mark:
+                info["core"][n] = mark
+            else:
+                info["core"].pop(n, None)  # a later reply without a marker supersedes an earlier marker
+            info["ev"][n] = re.sub(r"\s+", " ", ev)[:80]
     missing = [n for n in range(1, n_acs + 1) if n not in status]
     return status, {"missing": missing, "duplicate": sorted(set(dup)), "unknown": sorted(set(unknown)),
-                    "unreadable": unreadable, "no_evidence": sorted(set(no_evidence))}
+                    "unreadable": unreadable, "no_evidence": sorted(set(no_evidence)), "stale": stale}, info
 
 
 def validate_reviewer_meta(rev, tier):
@@ -780,6 +864,19 @@ def validate_reviewer_meta(rev, tier):
         if model != CLAUDE_FALLBACK[tier]:
             return "reviewer_model_unknown"
     return None
+
+
+def live_binding_ref(repo, tid, pre):
+    """Re-derive the delivery version (binding_ref) the way preflight did, from the live repository."""
+    ticket_rel = pre.get("ticket_file")
+    if not ticket_rel:
+        return pre.get("binding_ref")
+    try:
+        cfg = parse_verify_config(read_text(Path(repo) / ticket_rel))
+    except OSError:
+        return pre.get("binding_ref")
+    v = pre.get("verify", {})
+    return range_evidence(repo, tid, cfg, ticket_rel, v.get("allowed", []), v.get("forbidden", []))["binding_ref"]
 
 
 def cmd_decide(a):
@@ -821,16 +918,16 @@ def cmd_decide(a):
     n_acs = len(pre.get("acs", []))
     seen, problems = validate_verdicts(verdicts, n_acs)
     claimed = {n: e.get("status") for n, e in seen.items()}
-    reply_status, rprob = parse_reviewer_replies(a.reply, n_acs)
-    overrides, mism = [], []
+    try:
+        fresh_after = (d / "preflight.json").stat().st_mtime
+    except OSError:
+        fresh_after = None
+    reply_status, rprob, rinfo = parse_reviewer_replies(a.reply, n_acs, fresh_after)
+    mism = []
     for n, e in seen.items():
         if n in reply_status and claimed[n] != reply_status[n]:
-            ev = e.get("override_evidence")
-            if isinstance(ev, str) and ev.strip():
-                overrides.append(n)
-            else:
-                mism.append(n)
-                e["status"] = reply_status[n]  # hard-blocker rows judge on the reviewer's reply, not the claim
+            mism.append(n)
+            e["status"] = reply_status[n]  # judged on the reviewer's reply; free text carries no override authority
     struck = {x["n"]: x["struck"] for x in pre.get("acs", [])}
     downgraded = []
     for n, e in seen.items():
@@ -845,10 +942,23 @@ def cmd_decide(a):
         dep = "UNKNOWN"
     scope_st = pre.get("scope", {}).get("status")
     dc_st = pre.get("diff_check", {}).get("status")
-    tier = classify(pre.get("verify", {}).get("allowed", []))
-    if isinstance(verdicts.get("reviewer"), dict) and verdicts["reviewer"].get("tier") == "heavy":
-        tier = "heavy"  # the Agent may raise the tier, never lower it
-    reviewer_model = (verdicts.get("reviewer") or {}).get("actual_model") if isinstance(verdicts.get("reviewer"), dict) else None
+    rev_in = verdicts.get("reviewer") if isinstance(verdicts.get("reviewer"), dict) else {}
+    basis = str(rev_in.get("tier_basis") or "").strip()
+    # light needs the structural precondition AND an explicit basis; the Agent may raise the tier, never lower it
+    tier = "light" if (classify(pre.get("verify", {}).get("allowed", [])) == "light" and basis) else "heavy"
+    if rev_in.get("tier") == "heavy":
+        tier = "heavy"
+    reviewer_model = rev_in.get("actual_model") if rev_in else None
+    meta_bad = validate_reviewer_meta(verdicts.get("reviewer"), tier)
+    # effective core, recomputed every round: claimed core OR not explicitly confirmed non-core by the reviewer
+    eff, dis = {}, []
+    for n, e in seen.items():
+        if e.get("status") not in AC_STATUS or not isinstance(e.get("core"), bool):
+            continue
+        claim, mk = e["core"], rinfo["core"].get(n)
+        eff[n] = claim or (n in reply_status and mk != "N")  # an AC the reviewer did not judge is a coverage matter (R)
+        if n in reply_status and e["status"] in ("FAIL", "UNVERIFIED") and ((claim and mk == "N") or (not claim and mk != "N")):
+            dis.append(n)
 
     def finish(obj, save=True):
         obj.setdefault("downgraded_na", downgraded)
@@ -859,7 +969,7 @@ def cmd_decide(a):
                 rec["reviews_patch"] = obj.get("reviews_patch", {})
                 rec["reviews_na_fields"] = obj.get("reviews_na_fields", [])
                 rec["coverage"] = {"covered": len(reply_status), "total": n_acs}
-                rec["overrides"] = overrides
+                rec["snapshot"] = build_snapshot(seen, eff, rinfo["ev"], n_acs, verdicts.get("reviewer"), dep, rec["coverage"])
             try:
                 d.mkdir(parents=True, exist_ok=True)
                 with open(d / "decision.json", "w", encoding="utf-8", newline="\n") as f:
@@ -868,8 +978,21 @@ def cmd_decide(a):
                 obj["decision_saved"] = False
         return emit(obj)
 
-    core = {n: e for n, e in seen.items() if e.get("core") is True and e.get("status") in AC_STATUS}
+    core = {n: e for n, e in seen.items() if eff.get(n) and e.get("status") in AC_STATUS}
+    # S: the evidence bundle and every reply must describe the current delivery version
+    live_ref = live_binding_ref(repo, tid, pre)
+    if live_ref != pre.get("binding_ref"):
+        if rnd < MAX_ROUNDS:
+            return finish({"next": "SUPPLEMENT", "reason": "preflight_stale", "preflight_binding_ref": pre.get("binding_ref"),
+                           "current_binding_ref": live_ref})
+        return finish({"next": "NOT_CLOSED", "reason": "preflight_stale"})
+    # T: a Luna reply that reports a load-bearing / tier mismatch is answered by the stronger reviewer
+    if rinfo["upgrade"] and reviewer_model == CODEX_LIGHT and fb == 0 and not meta_bad:
+        return finish({"next": "ESCALATE_REVIEWER", "reviewer": CODEX_HEAVY, "reason": "tier_upgrade"})
     # B
+    hard = verdicts.get("security_issue") is True or verdicts.get("irreversible_risk") is True or dep == "MISSING"
+    if dis and rnd < MAX_ROUNDS and not hard:
+        return finish({"next": "SUPPLEMENT", "reason": "core_disagreement", "acs": sorted(dis)})
     if any(e["status"] == "FAIL" for e in core.values()):
         return finish({"next": "BLOCKED", "kind": "core_ac_fail",
                        "acs": sorted(n for n, e in core.items() if e["status"] == "FAIL"), "stop": "STOP_DECISION_REQUIRED"})
@@ -887,18 +1010,19 @@ def cmd_decide(a):
             return finish({"next": "SUPPLEMENT", "reason": "verdicts_incomplete", **problems})
         return finish({"next": "NOT_CLOSED", "reason": "verdicts_incomplete", **problems})
     # R: the reviewer must be a real second call and cover every AC (parsed from its raw reply files)
-    meta_bad = validate_reviewer_meta(verdicts.get("reviewer"), tier)
-    cov_bad = bool(rprob["missing"] or rprob["duplicate"] or rprob["unknown"] or rprob["unreadable"])
+    cov_bad = bool(rprob["missing"] or rprob["duplicate"] or rprob["unknown"] or rprob["unreadable"] or rprob["stale"])
     if meta_bad or cov_bad or mism:
         if meta_bad:
             reason, term, detail = "reviewer_invalid", "reviewer_invalid", {"detail": meta_bad}
+        elif rprob["stale"]:
+            reason, term, detail = "reviewer_reply_stale", "reviewer_reply_stale", {"stale": rprob["stale"]}
         elif cov_bad:
             reason, term, detail = "reviewer_coverage", "reviewer_coverage_incomplete", dict(rprob)
         else:
             reason, term, detail = "reviewer_mismatch", "reviewer_mismatch", {"acs": sorted(mism)}
         if rnd < MAX_ROUNDS:
             return finish({"next": "SUPPLEMENT", "reason": reason, **detail})
-        if reviewer_model == CODEX_LIGHT and fb == 0 and not meta_bad:
+        if reviewer_model == CODEX_LIGHT and fb == 0 and not meta_bad and not rprob["stale"]:
             return finish({"next": "ESCALATE_REVIEWER", "reviewer": CODEX_HEAVY, "reason": reason, **detail})
         return finish({"next": "NOT_CLOSED", "reason": term, **detail})
     # X
@@ -926,7 +1050,7 @@ def cmd_decide(a):
     # K
     patch, na = reviews_patch(reg, verdicts)
     cp_state = pre.get("checkpoint", {}).get("state")
-    base = {"reviews_patch": patch, "reviews_na_fields": na, "dependency_status": dep, "overrides": overrides}
+    base = {"reviews_patch": patch, "reviews_na_fields": na, "dependency_status": dep}
     if cp_state == "OPEN":
         if verdicts.get("checkpoint_matter_resolved") is True:
             return finish({"next": "CLOSE", "checkpoint_action": "resolve", **base})
@@ -935,41 +1059,45 @@ def cmd_decide(a):
 
 
 # --------------------------------------------------------------------------- finalize
-def build_result_section(pre, reg_after, verdicts, summary_lines, commits, now, na_fields, dec=None):
-    accs = {e["n"]: e for e in (verdicts.get("acs") or []) if isinstance(e, dict) and isinstance(e.get("n"), int)}
-    struck = {x["n"]: x["struck"] for x in pre.get("acs", [])}
-    core_n = sum(1 for e in accs.values() if e.get("core"))
-    nc = {"PASS": 0, "N/A": 0, "UNVERIFIED": 0}
-    unv_nc = []
-    for n, e in accs.items():
-        if e.get("core"):
+def short_fact(ev, limit=40):
+    s = re.sub(r"\s+", " ", str(ev or "")).strip()
+    return s[:limit] if s else "未載明"
+
+
+def build_result_section(pre, reg_after, snap, summary_lines, commits, now, na_fields, dec=None):
+    """Only the validated decision snapshot feeds the result: nothing mutable (verdicts.json) is read."""
+    accs = {e["n"]: e for e in snap["acs"]}
+    core_n = sum(1 for e in accs.values() if e["core"])
+    nc = {"PASS": 0, "N/A": 0, "UNVERIFIED": 0, "FAIL": 0}
+    unv_nc, fail_nc = [], []
+    for n in sorted(accs):
+        e = accs[n]
+        if e["core"]:
             continue
-        st = e.get("status")
-        if st == "N/A" and not struck.get(n):
-            st = "UNVERIFIED"
-        if st in nc:
-            nc[st] += 1
-        if st == "UNVERIFIED":
+        nc[e["status"]] += 1
+        if e["status"] == "UNVERIFIED":
             unv_nc.append(n)
-    rev = verdicts.get("reviewer") or {}
+        elif e["status"] == "FAIL":
+            fail_nc.append(n)
+    rev = snap.get("reviewer") or {}
     date = datetime.fromtimestamp(now).strftime("%Y-%m-%d")
     lines = [MARK_BEGIN, "## 收束結果（close）"]
     lines.append("- 交付摘要: " + " / ".join(summary_lines[:3]))
-    lines.append("- 最終驗收結論: 核心 AC %d 條皆為 PASS 或有效 N/A；非核心 PASS %d／N/A %d／UNVERIFIED %d"
-                 % (core_n, nc["PASS"], nc["N/A"], nc["UNVERIFIED"]))
+    lines.append("- 最終驗收結論: 核心 AC %d 條皆為 PASS 或有效 N/A；非核心 PASS %d／N/A %d／UNVERIFIED %d／FAIL %d（共 %d 條 AC）"
+                 % (core_n, nc["PASS"], nc["N/A"], nc["UNVERIFIED"], nc["FAIL"], len(accs)))
+    if fail_nc:  # required failure facts are never cut by a line or item cap
+        lines.append("- 非核心 FAIL %d 條: " % len(fail_nc)
+                     + "；".join("AC%d %s" % (n, short_fact(accs[n].get("ev"))) for n in fail_nc))
     lines.append("- 實作提交: " + (", ".join(c for c in commits if c) or "（無可考本票實作提交）"))
-    ind = rev.get("independent_call")
-    cov = (dec or {}).get("coverage") or {}
+    cov = snap.get("coverage") or {}
     fb_txt = "，fallback:%s" % rev.get("fallback_reason") if rev.get("fallback_used") else ""
-    ov = (dec or {}).get("overrides") or []
-    lines.append("- 實際收束結果: %s 轉 CLOSED，lifecycle／file／reviews 讀回一致；reviewer: %s/%s（tier=%s%s）；覆蓋 AC %s／%s（全部），independent_call=%s%s"
+    lines.append("- 實際收束結果: %s 轉 CLOSED，lifecycle／file／reviews 讀回一致；reviewer: %s/%s（tier=%s%s）；覆蓋 AC %s／%s（全部），independent_call=%s"
                  % (date, rev.get("family") or "未記錄", rev.get("actual_model") or "未記錄", rev.get("tier") or "未記錄",
-                    fb_txt, cov.get("covered", "未記錄"), cov.get("total", "未記錄"),
-                    ind if isinstance(ind, bool) else "未記錄", "；overrides=%d" % len(ov) if ov else ""))
+                    fb_txt, cov.get("covered", "未記錄"), cov.get("total", "未記錄"), rev.get("independent_call")))
     disc = []
     if unv_nc:
         disc.append("非核心 UNVERIFIED AC: " + ",".join(map(str, sorted(unv_nc))))
-    dep = (verdicts.get("dependency_contract") or {}).get("status")
+    dep = snap.get("dependency_status")
     if dep in ("UNKNOWN", "LEAD") or (dep == "NONE_FOUND" and pre.get("dependents", {}).get("status") != "CHECKED"):
         disc.append("dependency contract: 未知（未宣稱已確認無缺件）")
     if (reg_after.get("reviews") or {}).get("traycer") == "PENDING":
@@ -983,9 +1111,10 @@ def build_result_section(pre, reg_after, verdicts, summary_lines, commits, now, 
     if pre.get("diff_check", {}).get("status") == "UNKNOWN":
         disc.append("git diff --check 為 UNKNOWN: " + str(pre["diff_check"].get("reason"))[:100])
     if disc:
-        lines.append("- 披露: " + "；".join(disc[:5]))
+        extra = "（另 %d 項未列）" % (len(disc) - 5) if len(disc) > 5 else ""
+        lines.append("- 披露: " + "；".join(disc[:5]) + extra)
     lines.append(MARK_END)
-    return lines[:20]
+    return lines
 
 
 def find_section(text):
@@ -1030,9 +1159,9 @@ def cmd_finalize(a):
         raise Refuse({"refused": "preflight_" + perr})
     bok, why = verify_binding(repo, tid, pre)
     if not bok:
+        if why.startswith("snapshot_"):
+            raise Refuse({"refused": "decision_snapshot_invalid", "reason": why})
         raise Refuse({"refused": "binding_check_failed", "reason": why})
-    verdicts, _ = load_json(a.verdicts)
-    verdicts = verdicts if isinstance(verdicts, dict) else {}
     try:
         summary_lines = [ln.strip() for ln in read_text(a.summary).splitlines() if ln.strip()][:3]
     except OSError:
@@ -1042,7 +1171,7 @@ def cmd_finalize(a):
     dec, _ = load_json(d / "decision.json")
     na = list((dec or {}).get("reviews_na_fields") or [])
     commits = [c.strip() for c in (a.commits or "").split(",") if c.strip()]
-    lines = build_result_section(pre, after, verdicts, summary_lines, commits, a.now, na, dec)
+    lines = build_result_section(pre, after, dec["snapshot"], summary_lines, commits, a.now, na, dec)
     path = Path(repo) / pre["ticket_file"]
     text = read_text(path)
     new_text, replaced = upsert_section(text, lines)
@@ -1075,6 +1204,7 @@ def build_parser():
     s.add_argument("--codex-available", type=int, choices=(0, 1))
     s.add_argument("--claude-available", type=int, choices=(0, 1))
     s.add_argument("--force-heavy", action="store_true")
+    s.add_argument("--simple-basis", default="")
     s.add_argument("--escalate")
 
     s = sub.add_parser("decide")
@@ -1092,7 +1222,7 @@ def build_parser():
     s = sub.add_parser("finalize")
     s.add_argument("--ticket", required=True)
     s.add_argument("--registry", required=True)
-    s.add_argument("--verdicts", required=True)
+    s.add_argument("--verdicts", default=None)  # accepted for older dispatch lines; finalize reads only the snapshot
     s.add_argument("--summary", required=True)
     s.add_argument("--commits", default="")
 
