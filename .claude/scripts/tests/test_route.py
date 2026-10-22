@@ -353,6 +353,18 @@ class ApiTests(RouteCase):
         self.assertEqual(len(fac.client.calls), 1)
         self.assertEqual(self.n_events(), n)
 
+    def test_A12b_http_5xx_is_not_retried_and_not_recorded(self):
+        req = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+        err = anthropic.InternalServerError("upstream failure", response=httpx.Response(500, request=req), body=None)
+        fac = Factory(FakeClient(err))
+        pl, ev = self.good_api()
+        n = self.n_events()
+        rc, o, _, _ = self.run_api(pl, ev, factory=fac)
+        self.assertEqual((rc, o["disposition"]), (6, "CALL_FAILED"), o)
+        self.assertEqual(len(fac.client.calls), 1)                                       # one network attempt, no retry
+        self.assertEqual(self.n_events(), n)
+        self.assertEqual(len(self.consults()), 0)
+
     def test_A13_non_success_is_not_recorded(self):
         fac = Factory(FakeClient(make_resp(stop="max_tokens")))
         pl, ev = self.good_api()
@@ -456,6 +468,10 @@ class NativeTests(RouteCase):
         tbl = self.table_copy(mut)
         rc, o, _ = self.run_main(["consult", "--incident", self.inc, "--source", "advisor.native2", "--phase", "dispatch", "--purpose", "x"], table=tbl)
         self.assertEqual((rc, o["disposition"]), (0, "DISPATCHED"))
+        rc, r, _ = self.run_main(["consult", "--incident", self.inc, "--source", "advisor.native2", "--phase", "return",     # the new row also returns
+                                  "--dispatch-id", o["dispatch_id"], "--purpose", "x", "--note", "ref"], table=tbl)
+        self.assertEqual((rc, r["disposition"]), (0, "RECORDED"), r)
+        self.assertEqual(len(self.consults()), 1)
         rc, c, _ = self.run_main(["table", "check"], table=tbl)
         self.assertIn("advisor.native2", c["enabled"])
         self.assertEqual(before, {p.name: sha(p.read_bytes()) for p in SCRIPTS.glob("*") if p.is_file()})

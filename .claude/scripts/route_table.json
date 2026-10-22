@@ -6,7 +6,7 @@
                       "dispatch": {"tool": "advisor", "params": {}}},
     "research.ppss": {"kind": "model-dispatch", "role": "research", "enabled": true, "adapter": "ppss",
                       "dispatch": {"tool": "research_submit", "params": ["question", "queries", "task_type", "filters", "justification", "metadata"]}},
-    "advisor.rigor-repair":    {"kind": "domain-internal", "role": "advisor",  "note": "ticket-rigor-gate Advisor Repair Mode；非工程顧問來源，不可經入口呼叫"},
-    "research.rigor-fallback": {"kind": "domain-internal", "role": "research", "note": "ticket-rigor-gate Research Fallback；獨立軌、不入 ledger，不可經入口呼叫"}
+    "advisor.rigor-repair":    {"kind": "domain-internal", "role": "advisor",  "note": "ticket-rigor-gate Advisor Repair Mode"},
+    "research.rigor-fallback": {"kind": "domain-internal", "role": "research", "note": "ticket-rigor-gate Research Fallback"}
   }
 }
