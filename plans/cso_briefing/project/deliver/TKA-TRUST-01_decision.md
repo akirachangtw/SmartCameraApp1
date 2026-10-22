@@ -124,7 +124,7 @@ DEPENDENCY_DELTA=NONE
 - **檔案**: `.claude/skills/ticket-author/tests/test_close.py`
 - **現值**: `test_reply_vs_claim_mismatch` 以 override 斷言 `CLOSE`；`test_non_core_fail_is_not_a_blocker` 以宣稱 `core:false` 斷言可行；`test_codex_is_primary_for_every_ticket_type` 之 light 列不帶 basis；`test_light_classification_is_a_superset_of_the_low_risk_condition` 以位置／副檔名斷言 light；若干 finalize 測試依賴 `verdicts.json`。
 - **目標值**: 以真實 `decide`／`finalize`／`reviewer` 子命令（機械測試，不 mock 模型品質，不保護錯誤舊字面；衝突舊斷言於同票改為新契約斷言，**不還原舊規則**）：F1 `verdicts.json` 缺失／`{}`／被替換為相反內容 → `finalize` 輸出與完整 verdicts 時**逐字相同**；snapshot 缺失／AC 條數被改／狀態非法／reviewer 欄位 `inline:true`／`independent_call:false`／`decision.json` 缺失／binding 不符 → exit 3 且票檔 bytes 不變，且絕不出現「核心 AC 0 條」；F2 原 override 反例改斷言不放行；F3 宣稱 `core:false` 之 FAIL：回覆無標記或 `core=Y` → 分歧補證、上限後阻擋；`core=N` 且 Agent 同步宣稱 → 可 `CLOSE`；僅 Agent 改宣稱而回覆未標 `core=N` → 仍阻擋；`core=N` 單獨無 evidence → 視為未涵蓋；點重審只改其涵蓋之 AC；過期回覆（早於 `preflight.json`）不採用；F4 多條非核心 FAIL 之數量／全部編號／短事實全保留，披露不被行數上限截斷，各狀態合計＝總數，核心 FAIL 不進 `CLOSED`；F5 承重文件（`plans/architecture/x.md`、`.claude/rules/r.md`、`SSOT_*.md`）帶**任意** basis 仍 `heavy`/`gpt-6-sol`，非承重簡單 docs 無 basis → `heavy`、有 basis → `light`，Luna 回覆 `TIER: UPGRADE` → `ESCALATE_REVIEWER`，heavy 票收 Luna 回覆被拒；另含正常 `CLOSE`→`finalize`、部分成功補寫（`WRITE_FINAL_ONLY`）、`.tmp` 清空不虛報；`binding_ref` 重算反例（`preflight` 後新增 ALLOWED 內提交、未重跑 `preflight`、回覆較新）→ `SUPPLEMENT` `preflight_stale`。舊形狀 fixture（無 `snapshot` 之 `decision.json`、無 `core=` 標記之回覆行）一律在正規化 writer 之下以直接寫檔種入，並於操作前先斷言其起始形狀（無 `snapshot` 鍵／無標記），再驗證處置為「不判 `WRITE_FINAL_ONLY`／視為核心性未確認」。
-- [x] 完成（AI-7：新增 `TestTrustBoundary` 18 測試＋既有 8 測試改為新契約行為斷言；`unittest discover` 114 OK；18 項新測試對 base 版 helper 皆失敗（`.tmp/ticket-author/trust/red_vs_base_helper.txt`））
+- [x] 完成（AI-7：新增 `TestTrustBoundary` 19 測試＋既有 8 測試改為新契約行為斷言；`unittest discover` 115 OK；19 項新測試對 base 版 helper 皆失敗（`.tmp/ticket-author/trust/red_vs_base_helper.txt`））
 
 ### AI-8: 真實 reviewer 驗證與收尾
 - **檔案**: `.claude/skills/ticket-author/SKILL.md`、`.claude/skills/ticket-author/scripts/close_helper.py`（僅於驗證發現語義缺口時修正）
@@ -172,13 +172,14 @@ DEPENDENCY_DELTA=NONE
 
 ### 驗收分層（各自證明什麼）
 
-1. **A 機械測試（`unittest discover` 114 OK；開工基線 96）**：新增 `TestTrustBoundary` 18 測試。證明 helper 的決策與副作用（snapshot-only finalize、拒寫條件、override 不放行、核心性真值表、`preflight_stale`／`reviewer_reply_stale`、非核心 FAIL 披露、tier 與 `TIER: UPGRADE`、部分成功補寫、暫存消失不虛報、舊形狀 fixture）。**不證明** 真實 reviewer 的語義判讀品質。
-2. **原反例回歸（AC 觀察者：逐項「測試名＋對 base 版失敗摘要＋對新版通過」）**：新版 helper 下 `TestTrustBoundary` 全數通過；同一份測試檔對 `e89fc6fe` 版 `close_helper.py`（`git show` 取出置暫存 skill 樹）執行結果為 `Ran 18 … FAILED (failures=8, errors=10)`，18 項全失敗（輸出 `.tmp/ticket-author/trust/red_vs_base_helper.txt`，七天暫存）。逐項對照如下（「base 失敗摘要」取自該輸出）：
+1. **A 機械測試（`unittest discover` 115 OK；開工基線 96）**：新增 `TestTrustBoundary` 19 測試（含真實 reviewer 第一輪回饋後補的 `test_f1_result_follows_the_snapshot_values` 可達性 trace 測試）。證明 helper 的決策與副作用（snapshot-only finalize、拒寫條件、override 不放行、核心性真值表、`preflight_stale`／`reviewer_reply_stale`、非核心 FAIL 披露、tier 與 `TIER: UPGRADE`、部分成功補寫、暫存消失不虛報、舊形狀 fixture）。**不證明** 真實 reviewer 的語義判讀品質。
+2. **原反例回歸（AC 觀察者：逐項「測試名＋對 base 版失敗摘要＋對新版通過」）**：新版 helper 下 `TestTrustBoundary` 全數通過；同一份測試檔對 `e89fc6fe` 版 `close_helper.py`（`git show` 取出置暫存 skill 樹）執行結果為 `Ran 19 … FAILED (failures=9, errors=10)`，19 項全失敗（輸出 `.tmp/ticket-author/trust/red_vs_base_helper_v2.txt`，七天暫存；補測前的 18 項版本輸出為 `red_vs_base_helper.txt`）。逐項對照如下（「base 失敗摘要」取自該輸出）：
 
 | Finding | 測試名（`TestTrustBoundary.`） | base 版失敗摘要 | 新版 |
 | --- | --- | --- | --- |
 | F1 | `test_f1_finalize_is_snapshot_only` | AssertionError：verdicts 缺失時 `finalize` 寫出「核心 AC 0 條皆為 PASS 或有效 N/A」，與完整 verdicts 時的結果 bytes 不同 | 通過 |
 | F1 | `test_f1_partial_success_resumes_from_the_snapshot_even_without_verdicts` | AssertionError：補寫結果缺「核心 AC 2 條皆為 PASS」（同為 0 條） | 通過 |
+| F1 | `test_f1_result_follows_the_snapshot_values` | KeyError `snapshot`：舊 helper 的 decision.json 無 snapshot，無法以 snapshot 驅動最終結果 | 通過 |
 | F1 | `test_f1_invalid_snapshot_or_binding_refuses_and_leaves_ticket_untouched`／`..._snapshot_content_and_single_reviewer_producer`／`..._legacy_decision_without_snapshot_is_not_resumed` | KeyError `snapshot`：decision.json 無 snapshot、無效 snapshot 不被拒 | 通過 |
 | F2 | `test_f2_override_evidence_cannot_release_core_fail_or_unverified` | AssertionError：核心 UNVERIFIED 帶 `override_evidence` 時 `next=CLOSE`（斷言為非 CLOSE） | 通過 |
 | F2 | `test_f2_point_recheck_...`／`test_f2_preflight_stale_...` | KeyError `reason`：無 `reviewer_reply_stale`／`preflight_stale` 處置 | 通過 |
