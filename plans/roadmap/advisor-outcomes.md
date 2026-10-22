@@ -12,14 +12,14 @@
 - 非目標：企業級 orchestrator 平台、DB、queue、第二套 ledger、簽章系統；為每個小修增加研究、審查或後補票；自動擴張到未授權的產品需求、發布或不可逆操作。
 - 假設（尚未確認的技術或依賴）：P2 沿用既有 route.py 與共用接線表；具體接續介面、facts 與模型判斷的銜接方式待實作取證確認，不重新選擇平行框架；既有回報中的「真實全鏈未驗／N＝0」為歷史限制，待首次盤點核對，本次不重新判定；`ADV-ENTRY-01` 為限定交付回報，其範圍與本表各約定項的對應待首次盤點確認。
 - 目前階段：P1
-- 最近 align：無
+- 最近 align：2026-10-22 a189bcef66c4d2bf6ff7274a6e3860a7c40945db P1-A P1-B P1-C
 
 ## 階段成果表
 | ID | 階段 | 成果 | 已驗收 | 約定 | 達成度 | 狀態 |
 | --- | --- | --- | --- | --- | --- | --- |
-| P1-A | P1 能力共用入口 | Advisor／PPSS 取得與返回 | — | 4 | — | 未盤點 |
-| P1-B | P1 | 派發、回件與記帳正確性 | — | 5 | — | 未盤點 |
-| P1-C | P1 | 消費結果、修驗與返回原工作 | — | 5 | — | 未盤點 |
+| P1-A | P1 能力共用入口 | Advisor／PPSS 取得與返回 | 0 | 4 | 0% | 未驗 |
+| P1-B | P1 | 派發、回件與記帳正確性 | 4 | 5 | 80% | 部分符合 |
+| P1-C | P1 | 消費結果、修驗與返回原工作 | 1 | 5 | 20% | 部分符合 |
 | P2-A | P2 工作流中央接續 | 中央決策與實際接續 | — | 4 | — | 未盤點 |
 | P2-B | P2 | Skill 新增、替換與停用 | — | 5 | — | 未盤點 |
 | P2-C | P2 | 有界自主續作、局部隔離與最終總結 | — | 5 | — | 未盤點 |
@@ -28,23 +28,23 @@
 ### P1-A
 - 預期功能與規格：Advisor／PPSS 取得與返回（4 項）：①Advisor API 經共同入口取得並返回 executor；②native Advisor 經共同入口派發與回交取得並返回 executor；③PPSS 經共同入口取得並返回 executor；④僅在無法判定的工程問題（Advisor）或外部事實缺口（PPSS）才取得，知道且安全可做的直接執行，不為每個小修增加諮詢或研究。
 - 驗收方式與必要前提：以自然工作案例或明確標示的受控代表案例（語義見基準〈規格／架構約束〉驗收案例語義），經目前共同入口（`route.py` 及其接線）對 Advisor API、native Advisor、PPSS 各做一次真實取得，並確認回件到達 executor；④以「已知可做」與「無法判定」兩種情境對照。證據標記分開寫；歷史隔離案例、舊入口與目前入口的真實全鏈不互相替代。前提：目前入口與所需能力可用。
-- 實際成果與證據：待首次盤點（P1 已有 `ADV-ENTRY-01` 限定交付回報，見 `plans/cso_briefing/project/deliver/ADV-ENTRY-01_route.md`；此僅為進度線索，未轉成驗收通過）。
-- 落差與下一步：— （待首次 align 盤點）
-- 最近 align：無
+- 實際成果與證據：[已執行] 2026-10-22 @HEAD a189bcef：`python -I .claude/scripts/tests/test_route.py` 65 案 OK（A1–A15、N1–N7、P1–P9 等，經 `route.main`／子行程執行真實入口與真實 ledger CLI）；`python -I .claude/scripts/route.py table check` 回 ok:true，callable＝advisor.api／advisor.native／research.ppss。限制：API 以注入替身 client、native／PPSS 以派發／回交夾具，**僅 stub 層通過**，不是真實取得。[文件] `plans/cso_briefing/project/deliver/ADV-ENTRY-01_route.md` 收束結果載明真實 session 端到端 N＝0。[靜態] `git log bdc4595d..HEAD -- .claude/scripts` 為空，票內證據仍對應現行腳本。約定①②③[未驗]：未對 Advisor API、native Advisor、PPSS 各做真實取得（API 與 PPSS 為付費呼叫，本次未獲授權；native 需於 ledger 開 incident，會寫入進行中票的共用 ledger）。約定④[未驗]：無「已知可做」與「無法判定」兩情境的對照案例，僅 Gate 條文（`.claude/rules/ssot-governance.md:214`）為模型契約，無機械後盾。
+- 落差與下一步：判斷：未驗 — 已驗收 0/4（①②③缺真實取得，④缺對照案例；離線 stub 通過不計入）。下一步：經使用者授權成本與 ledger 寫入範圍後，以明標的受控代表案例經目前入口對 Advisor API、native Advisor、PPSS 各實取一次（PPSS 先定查詢上限），並在同案例留「已知可做」對照以驗④；不以等待自然事故為前提。
+- 最近 align：2026-10-22 a189bcef66c4d2bf6ff7274a6e3860a7c40945db 範圍 P1-A
 
 ### P1-B
 - 預期功能與規格：派發、回件與記帳正確性（5 項）：①派發、回件、票與 incident 正確關聯；②重複回交不重複記帳；③incident 在呼叫期間被關閉的交錯情境不隱藏失敗；④快取例外（cache hit）情境不隱藏失敗、不誤判；⑤版本不相容與必要資料缺失不隱藏失敗。
 - 驗收方式與必要前提：對各情境做實際執行或可重現的案例，確認結果為明確的成功或失敗回報而非靜默通過；記帳以 ledger 現況對照。登記事件不證明其中調用的真實性，案例分層（隔離案例／目前入口真實案例）分開記。前提：目前入口可執行，ledger 可讀。
-- 實際成果與證據：待首次盤點（P1 已有 `ADV-ENTRY-01` 限定交付回報；進度線索，不直接轉成驗收通過）。
-- 落差與下一步：— （待首次 align 盤點）
-- 最近 align：無
+- 實際成果與證據：[已執行] 2026-10-22 @HEAD a189bcef：`python -I` 執行 `test_route.py` 65 OK、`test_gate_ledger.py` 59 OK、`test_advisor_call.py` 25 OK（路徑 `.claude/scripts/tests/`；經真實入口 CLI 與真實 ledger CLI，工具端為注入替身）。計入四項：①關聯＝A3、N2、N3、F3、B1、B2；②重複回交不重複記帳＝N5、K1、F1 系列、B6；③incident 關閉交錯＝A10、F2 兩案（API 呼叫中被關閉：保留 receipt、不記帳；native 檢查與寫入之間被關閉：ledger 拒絕）；⑤版本不相容與必要資料缺失＝B7（缺 `ppss_records` 之舊 ledger 一律拒絕）、A5–A7、N7、P9。約定④快取例外[未驗]：B3–B6 離線案例通過，但輸入形狀依 PLT 契約與先前回報，本次未觀察真實 PPSS 快取命中，不計入。限制：測試與實作同票同作者；Rev C 差分有真實 Codex PASS（`3e92898f..d7ed267c`），Rev C.1 起為聚焦測試與終審接受（`ADV-ENTRY-01_route.md` Rev C.2 第 3 點），非 Codex 審查；ledger 登記不證明工具調用真實性。
+- 落差與下一步：判斷：部分符合 — 已驗收 4/5。缺口：約定④真實快取命中未觀察。下一步：下一次真實 PPSS 呼叫若自然出現快取命中（`--cached-artifact` 情境），以其回件與 artifact 核對 B3–B5 之假設；不為驗收製造快取命中。
+- 最近 align：2026-10-22 a189bcef66c4d2bf6ff7274a6e3860a7c40945db 範圍 P1-B
 
 ### P1-C
 - 預期功能與規格：消費結果、修驗與返回原工作（5 項）：①executor 消費該情境實際需要的 Advisor 建議及／或 PPSS 證據，採取適用處置，而非只記錄；不強迫無外部事實缺口的問題呼叫 PPSS；②修復後執行局部驗證，由驗證結果判斷問題是否解決（取得回答或記帳成功不等於解決）；③驗證後返回原工作流程，不停在「已諮詢」「建議下一步」；④修復循環沿用既有授權、成本、計輪與停損語義，不另設一套；⑤目前入口的真實全鏈（取得→消費→修驗→返回）有獨立證據，不以歷史隔離案例或舊入口冒充。
 - 驗收方式與必要前提：以自然工作案例或明確標示的受控代表案例走完整鏈（語義見基準〈規格／架構約束〉驗收案例語義；不要求同一案例同時呼叫 Advisor 與 PPSS，各適用分支分別觀察），檢視 transcript 與 ledger 中取得、消費、處置、驗證、返回各步；④對照既有授權／計輪／停損語義的現行條文；⑤證據明寫所屬入口與案例層級。前提：具備可實際執行的自然工作案例或受控代表案例，且目前入口與所需能力可用。
-- 實際成果與證據：待首次盤點（既有回報中的「真實全鏈未驗／N＝0」保留為待首次盤點核對的歷史限制，本次不重新判定；`ADV-ENTRY-01` 限定交付為進度線索）。
-- 落差與下一步：— （待首次 align 盤點）
-- 最近 align：無
+- 實際成果與證據：[靜態] 約定④（入口側）：`.claude/scripts/route.py` 對 ledger 只呼叫 `status --json`、`consult`、`ppss record|read`（`:317`、`:352`、`:735`、`:652`），無 `round start|end`／`human`／`step-limit`／`ANTHROPIC` 字樣（`grep -c` 命中 1，為 docstring 的 "human note"）；輪數上限仍在 `.claude/scripts/gate_ledger.py:618-622`（逐層上限與 advisor／r0 層須同 incident consult），入口未另設計輪、成本或停損。範圍：入口與 ledger 兩檔，不證 executor 行為。[未驗] 約定①②③⑤：executor 消費、修驗、返回原工作屬模型契約（`ADV-ENTRY-01_route.md` 限定交付聲明④：模型是否經入口並依回傳續行＝UNKNOWN）；目前入口真實全鏈 N＝0 沿用該票收束結果，為歷史限制，本次未重新判定，也未找到可作 N≥1 的目前入口真實紀錄（`grep -rl "via=route.py" tmp .tmp` 僅命中票檔、報告、stderr 文字，非 ledger 事件；僅限本次檢查範圍，不宣稱全域不存在）。歷史隔離案例、舊入口與目前入口證據分開，未互相升格。
+- 落差與下一步：判斷：部分符合 — 已驗收 1/5。缺口：①②③⑤無真實全鏈證據。下一步：以明標的受控代表案例或下一個自然出現的「無法判定」工程問題，經目前入口實走一次取得→消費→處置→驗證→返回，留 transcript 與 ledger 片段為證；成本與 ledger 寫入範圍須先經使用者授權。
+- 最近 align：2026-10-22 a189bcef66c4d2bf6ff7274a6e3860a7c40945db 範圍 P1-C
 
 ### P2-A
 - 預期功能與規格：中央決策與實際接續（4 項）：①Skill 保留專業執行責任，返回結果與必要 facts，可以提出建議、缺口與協助需求；不自行維護或執行全域後繼政策，跨 Skill 的最終接續由共同 Routing／中央主 loop 決定（「中央主 loop」指共同決策責任，不限定須用常駐程序、daemon 或特定框架）；②跨 Skill 的下一步政策集中在共同 Routing 決策入口；③executor 依決策實際呼叫後繼 Skill，完成後接回共同流程，而不只輸出建議；④已遷移的舊決策路徑移除，無雙軌。
