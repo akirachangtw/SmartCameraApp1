@@ -173,7 +173,21 @@ DEPENDENCY_DELTA=NONE
 ### 驗收分層（各自證明什麼）
 
 1. **A 機械測試（`unittest discover` 114 OK；開工基線 96）**：新增 `TestTrustBoundary` 18 測試。證明 helper 的決策與副作用（snapshot-only finalize、拒寫條件、override 不放行、核心性真值表、`preflight_stale`／`reviewer_reply_stale`、非核心 FAIL 披露、tier 與 `TIER: UPGRADE`、部分成功補寫、暫存消失不虛報、舊形狀 fixture）。**不證明** 真實 reviewer 的語義判讀品質。
-2. **原反例回歸（AC 觀察者）**：18 項新測試對 `e89fc6fe` 版 `close_helper.py`（`git show` 取出置暫存 skill 樹）全數失敗（`failures=8, errors=10`，輸出 `.tmp/ticket-author/trust/red_vs_base_helper.txt`），對新版全數通過。原反例現象：F1 `verdicts` 缺失時最終結果出現「核心 AC 0 條皆為 PASS」；F2 以 `override_evidence` 把核心 UNVERIFIED 判 `CLOSE`；F3 宣稱 `core:false` 的 FAIL 判 `CLOSE`；F4 兩條非核心 FAIL 未揭露；F5 `plans/architecture/*.md` 判 Luna。R1 修正的「僅 reply2 帶 `TIER: UPGRADE`」斷言對 `0aa98afa` 版 helper 實跑 ERROR、對新版通過。
+2. **原反例回歸（AC 觀察者：逐項「測試名＋對 base 版失敗摘要＋對新版通過」）**：新版 helper 下 `TestTrustBoundary` 全數通過；同一份測試檔對 `e89fc6fe` 版 `close_helper.py`（`git show` 取出置暫存 skill 樹）執行結果為 `Ran 18 … FAILED (failures=8, errors=10)`，18 項全失敗（輸出 `.tmp/ticket-author/trust/red_vs_base_helper.txt`，七天暫存）。逐項對照如下（「base 失敗摘要」取自該輸出）：
+
+| Finding | 測試名（`TestTrustBoundary.`） | base 版失敗摘要 | 新版 |
+| --- | --- | --- | --- |
+| F1 | `test_f1_finalize_is_snapshot_only` | AssertionError：verdicts 缺失時 `finalize` 寫出「核心 AC 0 條皆為 PASS 或有效 N/A」，與完整 verdicts 時的結果 bytes 不同 | 通過 |
+| F1 | `test_f1_partial_success_resumes_from_the_snapshot_even_without_verdicts` | AssertionError：補寫結果缺「核心 AC 2 條皆為 PASS」（同為 0 條） | 通過 |
+| F1 | `test_f1_invalid_snapshot_or_binding_refuses_and_leaves_ticket_untouched`／`..._snapshot_content_and_single_reviewer_producer`／`..._legacy_decision_without_snapshot_is_not_resumed` | KeyError `snapshot`：decision.json 無 snapshot、無效 snapshot 不被拒 | 通過 |
+| F2 | `test_f2_override_evidence_cannot_release_core_fail_or_unverified` | AssertionError：核心 UNVERIFIED 帶 `override_evidence` 時 `next=CLOSE`（斷言為非 CLOSE） | 通過 |
+| F2 | `test_f2_point_recheck_...`／`test_f2_preflight_stale_...` | KeyError `reason`：無 `reviewer_reply_stale`／`preflight_stale` 處置 | 通過 |
+| F3 | `test_f3_core_downgrade_requires_reviewer_confirmation`／`..._reviewer_noncore_vs_agent_core_...`／`..._core_marker_is_not_evidence` | KeyError `reason`：宣稱 `core:false` 的 FAIL 直接 CLOSE，無 `core_disagreement`；`core=N` 無證據仍算已涵蓋 | 通過 |
+| F4 | `test_f4_noncore_fail_count_numbers_and_short_facts_are_disclosed`／`..._many_noncore_fails_are_never_silently_truncated` | AssertionError：最終結果缺「非核心 FAIL 2」與 AC 編號，結論列無 FAIL 計數 | 通過 |
+| F5 | `test_f5_load_bearing_documents_stay_on_sol_whatever_the_basis`／`..._light_needs_structural_simplicity_...` | AssertionError：`plans/architecture/*.md` 判 `light`／`gpt-6-luna`；`--simple-basis` 為未知參數（exit 2） | 通過 |
+| F5 | `test_f5_decide_rejects_luna_...`／`..._luna_tier_upgrade_report_...` | KeyError `reason`／`reviewer`：無 basis 要求、無 `TIER: UPGRADE` 處置 | 通過 |
+| 契約 | `test_contract_text_has_one_reply_format_and_no_override_path` | AssertionError：helper 仍含 `override_evidence`、無單一回覆行格式 | 通過 |
+
 3. **舊斷言更新（行為斷言取代舊字面，未還原舊規則）**：`test_reply_vs_claim_mismatch`、`test_unverified_sequence`、`test_heavy_ticket_cannot_close_on_luna_and_light_may_escalate`、`TestReviewer` 三測試、`test_full_flow_from_skill_block`；測試夾具的假 reviewer 回覆加 `core=Y|N`。
 4. **QA／SV**：`/qa` Step 0 PASS（重定基線後）、Step 1–3 N/A（無 gradle 標的）、Step 3.5 僅 `app/` 既有警示、Step 4 Dashboard 同步延至 `/compact`；`/sv` Cross-Review（`cross_review.sh`，Codex）R1 `REPORT_FIX`（`TIER: UPGRADE` 第二回覆盲區，屬實，已修）→ 重跑 `PASS`；`structural_verify --post` PASS [ADVISORY]。
 5. **C 真實 reviewer（AI-8）**：由本票自身之 `Skill(ticket-author)` `close TKA-TRUST-01` 取得——真實 `codex exec`（heavy→`gpt-6-sol`）逐 AC 回覆須含 `core=` 與非空 evidence、`decide` 解析覆蓋 N/N、最終結果取自 snapshot。**結果見 close 最終結果區段與下方 close 後補記；在此之前此項標「未驗」。**
