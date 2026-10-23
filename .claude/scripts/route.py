@@ -3,6 +3,7 @@
 
 Usage:
     python .claude/scripts/route.py [--ticket ID] [--table PATH] consult --incident INC --source NAME [--phase P] [...]
+    python .claude/scripts/route.py [--table PATH] consult --no-ticket --source advisor.claude-cli --payload PATH
     python .claude/scripts/route.py [--table PATH] table check
 
 Sources (route_table.json):
@@ -11,6 +12,24 @@ Sources (route_table.json):
                     flags: --payload PATH --evidence PATH [--effort E --max-tokens N --timeout S --request-mode M]
     advisor.native  model-dispatch: --phase dispatch --purpose TEXT  ->  the main agent calls the native `advisor`
                     tool  ->  --phase return --dispatch-id ID --purpose TEXT --note REF (records the consult).
+    advisor.claude-cli  script-call: ONE launch of `claude -p` (Claude subscription CLI; model and effort come from the
+                    table `cli` block; fixed flags, --tools "", --strict-mcp-config, --no-session-persistence,
+                    stream-json; the three API-key env vars are removed from the child; wall-clock timeout; no retry,
+                    no fallback, no switch to another channel or to the billing API). Ticketed (default): needs
+                    --incident --payload --evidence, runs M1/M4/M5 before launching and records ONE `consult --kind
+                    advisor` only on success. Ticketless (--no-ticket, explicit, never a downgrade): needs --payload
+                    only, no ledger read or write. `apiKeySource` none/null proves only "no API-key source", not the
+                    subscription billing; the effort flag is reported, never claimed effective; hooks/plugins still
+                    start (--tools "" only guarantees no tool execution). Every launched call leaves a git-ignored
+                    local execution record (tmp/<ticket>/advisor_cli/ or tmp/_advisor_cli_ticketless/): not billing
+                    or provider-side proof. Success needs result.is_error == false (boolean), modelUsage keys == {the
+                    requested model} == init.model, and a non-blank string answer.
+                    reasons - REFUSED: auth_unreported api_key_source model_unreported model_mismatch multiple_models
+                    empty_answer incident_closed_after_call; CALL_FAILED: cli_unavailable (detail bin_not_found
+                    cwd_not_directory cwd_inside_repo cwd_prepare_failed launch failed) timeout init_missing
+                    nonzero_exit unparseable (detail is_error_invalid model_usage_invalid answer_invalid) not_logged_in
+                    model_unavailable cli_error. A timeout is final: leftover output is diagnostic only (never a
+                    success, never an answer, never recorded).
     research.ppss   model-dispatch: --phase dispatch (pre-flight judgement, then the concrete research_submit
                     params) -> main agent calls research_submit -> --phase bind --dispatch-id ID --request-id R
                     --artifact PATH (R and PATH are the tool response's request_id and artifact_path; the entry
@@ -82,8 +101,11 @@ import io
 import json
 import os
 import re
+import shutil
+import signal
 import subprocess
 import sys
+import tempfile
 import time
 import unicodedata
 import uuid
@@ -99,7 +121,13 @@ SCHEMA = 1
 KINDS = ("script-call", "model-dispatch", "domain-internal", "external-ssot")
 CALLABLE_KINDS = ("script-call", "model-dispatch")
 ROLES = ("advisor", "research")
-ADAPTERS = ("api_advisor", "native_advisor", "ppss")
+ADAPTERS = ("api_advisor", "native_advisor", "claude_cli", "ppss")
+CLI_EFFORTS = ("low", "medium", "high", "xhigh", "max")
+CLI_STRIP_ENV = ("ANTHROPIC_API_KEY", "ADVISOR_ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
+CLI_PAYLOAD_MAX = 200000
+CLI_CWD_NAME = "cueshot_advisor_cli_cwd"
+CLI_PREAMBLE = ("你是諮詢顧問：只回答問題，不操作任何任務、不改檔、不呼叫工具；"
+                "請求端 executor 會自行評估你的回答並決定如何做。")
 NAME_RE = re.compile(r"^[a-z]+\.[a-z0-9][a-z0-9-]*$")
 DISPATCH_ID_RE = re.compile(r"^d2-[0-9a-f]{16}$")
 DOMAIN_RE = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
@@ -190,6 +218,24 @@ def _no_dups(pairs):
     return out
 
 
+def _cli_block_errors(name, c):
+    if not isinstance(c, dict):
+        return [f"{name}: cli must be an object"]
+    errs = []
+    for k in ("bin", "model"):
+        if not isinstance(c.get(k), str) or not c.get(k).strip():
+            errs.append(f"{name}: cli.{k} must be a non-empty string")
+    pa = c.get("prefix_args")
+    if not isinstance(pa, list) or any(not isinstance(x, str) for x in pa):
+        errs.append(f"{name}: cli.prefix_args must be a list of strings")
+    if c.get("effort") not in CLI_EFFORTS:
+        errs.append(f"{name}: cli.effort must be one of {list(CLI_EFFORTS)}")
+    ts = c.get("timeout_s")
+    if isinstance(ts, bool) or not isinstance(ts, int) or not 30 <= ts <= 600:
+        errs.append(f"{name}: cli.timeout_s must be an integer in 30..600")
+    return errs
+
+
 def validate_table(t):
     errs = []
     if not isinstance(t, dict):
@@ -223,8 +269,10 @@ def validate_table(t):
                 errs.append(f"{name}: enabled must be boolean")
             if s.get("adapter") not in ADAPTERS:
                 errs.append(f"{name}: unknown adapter {s.get('adapter')!r}")
-            if s.get("adapter") in ("api_advisor", "native_advisor") and s.get("ledger_kind") != "advisor":
+            if s.get("adapter") in ("api_advisor", "native_advisor", "claude_cli") and s.get("ledger_kind") != "advisor":
                 errs.append(f"{name}: ledger_kind must be 'advisor'")
+            if s.get("adapter") == "claude_cli":
+                errs.extend(_cli_block_errors(name, s.get("cli")))
         if kind == "model-dispatch":
             d = s.get("dispatch")
             if not isinstance(d, dict) or not isinstance(d.get("tool"), str) or not d.get("tool") \
@@ -511,6 +559,321 @@ def do_api(a, root, ticket_arg, client_factory, env, now):
             "detail": "evidence=" + kind}
 
 
+# ---------------------------------------------------------------- claude_cli adapter (ADV-CLAUDECLI-01)
+def _cli_env(env):
+    out = dict(env if env is not None else os.environ)
+    for k in list(out):
+        if k.upper() in CLI_STRIP_ENV:
+            del out[k]
+    return out
+
+
+def prepare_cli_cwd(root):
+    """Fixed git-initialised directory under the system temp dir, never inside the repo. Any failure is zero-launch."""
+    def fail(detail):
+        raise Stop(E_FAILED, "CALL_FAILED", "cli_unavailable", detail)
+    try:
+        parent = Path(tempfile.gettempdir()).resolve()
+        root_r = Path(root).resolve()
+    except OSError:
+        fail("cwd_prepare_failed")
+    base = parent / CLI_CWD_NAME
+    if base.exists() and not base.is_dir():
+        fail("cwd_not_directory")
+    if base == root_r or root_r in base.parents:
+        fail("cwd_inside_repo")
+    try:
+        base.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        fail("cwd_prepare_failed")
+    if not (base / ".git").exists():
+        try:
+            res = subprocess.run(["git", "init", "-q"], cwd=str(base), capture_output=True, timeout=30)
+        except (OSError, subprocess.SubprocessError):
+            fail("cwd_prepare_failed")
+        if res.returncode != 0:
+            fail("cwd_prepare_failed")
+    return base
+
+
+def kill_cli_tree(proc):
+    """Kill the whole process tree, then reap. Bounded: one escalation (Popen.kill), every wait has a ceiling."""
+    failed = False
+    try:
+        if os.name == "nt":
+            res = subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True, timeout=15)
+            failed = res.returncode != 0
+        else:
+            os.killpg(proc.pid, signal.SIGKILL)
+    except (OSError, subprocess.SubprocessError):
+        failed = True
+    if failed and proc.poll() is None:
+        try:
+            proc.kill()
+        except OSError:
+            pass
+    try:
+        proc.wait(timeout=10)
+        return True
+    except subprocess.TimeoutExpired:
+        return False
+
+
+def _close_pipes(proc):
+    for f in (proc.stdin, proc.stdout, proc.stderr):
+        try:
+            if f:
+                f.close()
+        except OSError:
+            pass
+
+
+def parse_cli_stream(text):
+    p = {"events": 0, "init": None, "hooks": {}, "retries": 0, "retry_error": None, "assistant_error": None, "result": None}
+    for line in (text or "").splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(e, dict):
+            continue
+        p["events"] += 1
+        t, st = e.get("type"), e.get("subtype")
+        if t == "system" and st == "init":
+            if p["init"] is None:
+                p["init"] = e
+        elif t == "system" and st in ("hook_started", "hook_response"):
+            h = p["hooks"].setdefault(e.get("hook_id") or f"#{len(p['hooks'])}",
+                                      {"event": e.get("hook_event"), "name": e.get("hook_name"),
+                                       "outcome": None, "exit_code": None, "stdout": ""})
+            if st == "hook_response":
+                h["outcome"], h["exit_code"] = e.get("outcome"), e.get("exit_code")
+                h["stdout"] = e.get("stdout") if isinstance(e.get("stdout"), str) else ""
+        elif t == "system" and st == "api_retry":
+            p["retries"] += 1
+            p["retry_error"] = e.get("error")
+        elif t == "assistant":
+            if p["assistant_error"] is None and e.get("error"):
+                p["assistant_error"] = e.get("error")
+        elif t == "result":
+            p["result"] = e
+    return p
+
+
+def cli_key_source_text(init):
+    if init is None or "apiKeySource" not in init:
+        return "<absent>"
+    v = init["apiKeySource"]
+    if v is None:
+        return "<null>"
+    return scrub(one_line(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False), 200))
+
+
+def judge_cli_stream(p, rc, model):
+    """First hit wins. None = success. Otherwise (exit code, disposition, reason, detail)."""
+    def fail(reason, detail=None):
+        return E_FAILED, "CALL_FAILED", reason, detail
+
+    def refuse(reason, detail=None):
+        return E_REFUSED, "REFUSED", reason, detail
+    init, res = p["init"], p["result"]
+    if p["events"] == 0:
+        return fail("nonzero_exit" if rc else "unparseable", "no parseable JSON event on stdout")
+    if init is None:
+        return fail("init_missing", "no system/init event")
+    if "apiKeySource" not in init:
+        return refuse("auth_unreported", "system/init carries no apiKeySource key")
+    if init["apiKeySource"] is not None and init["apiKeySource"] != "none":
+        return refuse("api_key_source", cli_key_source_text(init))
+    if res is None:
+        return fail("nonzero_exit" if rc else "unparseable", "no result event")
+    is_error = res.get("is_error")
+    if not isinstance(is_error, bool):
+        return fail("unparseable", "is_error_invalid")
+    if is_error:
+        cat = p["assistant_error"]
+        detail = one_line(f"error={cat} terminal_reason={res.get('terminal_reason')}", 300)
+        if cat in ("authentication_failed", "oauth_org_not_allowed", "cloud_credential_error"):
+            return fail("not_logged_in", detail)
+        if cat == "model_not_found":
+            return fail("model_unavailable", detail)
+        return fail("cli_error", detail)
+    if rc:
+        return fail("nonzero_exit", f"exit code {rc} with a successful result event")
+    mu = res.get("modelUsage")
+    if mu is not None and not isinstance(mu, dict):
+        return fail("unparseable", "model_usage_invalid")
+    used = set(mu or {})
+    if not used:
+        return refuse("model_unreported", "result.modelUsage is empty or missing")
+    if model not in used or init.get("model") != model:
+        return refuse("model_mismatch", f"requested={model} init={init.get('model')} used={sorted(used)}")
+    if len(used) > 1:
+        return refuse("multiple_models", f"used={sorted(used)}")
+    ans = res.get("result")
+    if not isinstance(ans, str):
+        return fail("unparseable", "answer_invalid")
+    if not ans.strip():
+        return refuse("empty_answer", "result.result is blank")
+    return None
+
+
+def cli_info(p, mode, cli, ms, reaped=None, diagnostic=False):
+    res = p["result"] or {}
+    mu = res.get("modelUsage") if isinstance(res.get("modelUsage"), dict) else {}
+    keys = ("inputTokens", "outputTokens", "cacheReadInputTokens", "cacheCreationInputTokens")
+    hooks, warns = [], []
+    for h in p["hooks"].values():
+        hooks.append({k: h[k] for k in ("event", "name", "outcome", "exit_code")})
+        if h["exit_code"] not in (0, None):
+            warns.append(f"hook_nonzero_exit name={h['name']} exit_code={h['exit_code']}")
+        if h["stdout"].strip():
+            warns.append(f"hook_stdout_nonempty name={h['name']}")
+    if p["retries"]:
+        warns.append(f"api_retry count={p['retries']} last_error={p['retry_error']}")
+    init = p["init"] or {}
+    info = {"mode": mode, "channel": "claude-subscription-cli", "requested_model": cli["model"],
+            "models_used": {m: {k: (v or {}).get(k) for k in keys} for m, v in mu.items()},
+            "effort_flag": cli["effort"], "api_key_source": cli_key_source_text(p["init"]),
+            "session_id": res.get("session_id") or init.get("session_id"),
+            "usage": res.get("usage") if isinstance(res.get("usage"), dict) else None,
+            "cost_reported_usd": res.get("total_cost_usd"),
+            "cost_note": "CLI list-price figure, not billing", "duration_ms": ms,
+            "cli_internal_retries": p["retries"], "hooks": hooks, "warnings": warns}
+    if reaped is not None:
+        info["reaped"] = reaped
+    if diagnostic:
+        info["diagnostic"] = True
+    return info
+
+
+def write_cli_record(dirp, doc, stamp):
+    """Bounded, non-fatal. Returns (path | None, error class name | None)."""
+    try:
+        dirp.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        return None, type(exc).__name__
+    text = scrub(json.dumps(doc, ensure_ascii=False, sort_keys=True))
+    err = "FileExistsError"
+    for _ in range(3):
+        path = dirp / f"advisor_cli_{stamp}_{uuid.uuid4().hex[:8]}.json"
+        try:
+            with open(path, "x", encoding="utf-8") as fh:
+                fh.write(text)
+            return path, None
+        except FileExistsError:
+            continue
+        except OSError as exc:
+            return None, type(exc).__name__
+    return None, err
+
+
+def do_claude_cli(a, src, root, ticket_arg, env, now):
+    cli = src["cli"]
+    ticketless = bool(a.no_ticket)
+    if ticketless:
+        if a.incident or a.evidence or ticket_arg:
+            raise Stop(E_USAGE, "USAGE", "usage", "--no-ticket cannot be combined with --incident, --evidence or --ticket")
+        if not a.payload:
+            raise Stop(E_USAGE, "USAGE", "usage", f"{a.source} needs --payload")
+        ticket = None
+    else:
+        if not (a.incident and a.payload and a.evidence):
+            raise Stop(E_USAGE, "USAGE", "usage", f"{a.source} needs --incident, --payload and --evidence (or --no-ticket with --payload)")
+        st, _ = precheck(root, ticket_arg, a.incident)
+        ticket = st["ticket"]
+    try:
+        pbytes = Path(a.payload).read_bytes()
+    except OSError as exc:
+        raise Stop(E_REFUSED, "REFUSED", "request_invalid", f"payload unreadable: {type(exc).__name__}")
+    if len(pbytes) > CLI_PAYLOAD_MAX:
+        raise Stop(E_REFUSED, "REFUSED", "request_invalid", f"payload larger than {CLI_PAYLOAD_MAX} bytes")
+    try:
+        ptext = pbytes.decode("utf-8")
+    except UnicodeDecodeError:
+        raise Stop(E_REFUSED, "REFUSED", "request_invalid", "payload is not UTF-8")
+    psha = sha(pbytes)
+    kind = h = None
+    if not ticketless:
+        kind, h = check_tokens(ptext, a.incident, a.evidence)            # M4, M5 (before any launch)
+    exe = shutil.which(cli["bin"])
+    if not exe:
+        raise Stop(E_FAILED, "CALL_FAILED", "cli_unavailable", f"bin_not_found: {cli['bin']}")
+    cwd = prepare_cli_cwd(root)
+    argv = [exe] + list(cli["prefix_args"]) + [
+        "-p", "--model", cli["model"], "--effort", cli["effort"], "--tools", "", "--strict-mcp-config",
+        "--disable-slash-commands", "--no-session-persistence", "--output-format", "stream-json", "--verbose"]
+    prompt = (CLI_PREAMBLE + "\n\n" + ptext).encode("utf-8")
+    flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+    mode = "ticketless" if ticketless else "ticketed"
+    t0 = time.monotonic()
+    try:
+        proc = subprocess.Popen(argv, cwd=str(cwd), env=_cli_env(env), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, creationflags=flags, start_new_session=(os.name != "nt"))
+    except OSError as exc:
+        raise Stop(E_FAILED, "CALL_FAILED", "cli_unavailable", f"launch failed: {type(exc).__name__}")
+    timed_out, reaped = False, None
+    try:
+        out_b, err_b = proc.communicate(input=prompt, timeout=cli["timeout_s"])
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        reaped = kill_cli_tree(proc)
+        out_b = err_b = b""
+        if reaped:
+            try:
+                out_b, err_b = proc.communicate(timeout=5)
+            except (subprocess.TimeoutExpired, OSError, ValueError):
+                out_b = err_b = b""
+        _close_pipes(proc)
+    ms = int((time.monotonic() - t0) * 1000)
+    out_t = (out_b or b"").decode("utf-8", "replace")
+    err_t = (err_b or b"").decode("utf-8", "replace")
+    p = parse_cli_stream(out_t)
+    info = cli_info(p, mode, cli, ms, reaped=reaped, diagnostic=timed_out)
+    if timed_out:
+        verdict = (E_FAILED, "CALL_FAILED", "timeout", f"no result within {cli['timeout_s']}s; process tree killed")
+        if reaped is False:
+            verdict = (E_FAILED, "CALL_FAILED", "timeout",
+                       f"no result within {cli['timeout_s']}s; process pid={proc.pid} not reaped")
+            info["warnings"].append(f"process_not_reaped pid={proc.pid}")
+    else:
+        verdict = judge_cli_stream(p, proc.returncode, cli["model"])
+    stamp = now().strftime("%Y%m%dT%H%M%SZ")
+    rdir = (root / "tmp" / ticket / "advisor_cli") if ticket else (root / "tmp" / "_advisor_cli_ticketless")
+    rec_doc = {"verdict": "SUCCESS" if verdict is None else {"disposition": verdict[1], "reason": verdict[2], "detail": verdict[3]},
+               "payload_sha256": psha, "returncode": proc.returncode, "source": a.source, "envelope": dict(info),
+               "answer": ((p["result"] or {}).get("result") if verdict is None else None),
+               "stream": out_t[:100000], "stderr": err_t[:4000],
+               "note": "local execution record; not billing or provider-side proof"}
+    rec_path, rec_err = write_cli_record(rdir, rec_doc, stamp)
+    info["record"] = rel(root, rec_path) if rec_path else None
+    if rec_err:
+        info["record_error"] = rec_err
+        info["warnings"].append(f"record_error {rec_err}")
+    if verdict is not None:
+        code, disp, reason, detail = verdict
+        info = json.loads(scrub(json.dumps(info, ensure_ascii=False)))
+        raise Stop(code, disp, reason, scrub(detail or ""), **info)
+    answer = p["result"]["result"]
+    info["model"] = cli["model"]
+    info["answer"] = answer
+    info = json.loads(scrub(json.dumps(info, ensure_ascii=False)))
+    if ticketless:
+        return dict(info, ok=True, disposition="ANSWERED", detail="ticketless: no ledger event was written")
+    note = (f"source={a.source} via={VIA} channel=claude-subscription-cli model={cli['model']} effort_flag={cli['effort']} "
+            f"api_key_source={info['api_key_source']} session_id={info['session_id'] or 'none'} payload_sha256={psha} "
+            f"incident={a.incident} evidence={kind}:{h} record={info['record'] or 'none'}")
+    led = ledger_consult(
+        root, ticket, a.incident, note,
+        closed_detail=("advisor reply obtained and its execution record kept (cost already incurred), but the target incident is "
+                       "no longer open: nothing was recorded, the CLI was not called again, the incident was not reopened"),
+        closed_extra=dict(info, recorded=False))
+    return dict(info, ok=True, disposition="RECORDED", ledger_seq=led.get("seq"), detail="evidence=" + kind)
+
+
 def native_slot(inc):
     return int((inc.get("consults") or {}).get("advisor", 0))
 
@@ -627,7 +990,7 @@ def do_native(a, table_src, root, ticket_arg):
         st, inc = precheck(root, ticket_arg, a.incident)
         digest = digest_purpose(purpose)
         verify_dispatch(a, st["ticket"], a.incident, a.source, native_slot(inc), digest)
-        note = (f"source=advisor.native via={VIA} dispatch={a.dispatch_id} "
+        note = (f"source={a.source} via={VIA} dispatch={a.dispatch_id} "
                 f"purpose_sha256={digest} ref={ref}")
         led = ledger_consult(root, st["ticket"], a.incident, note)
     return {"ok": True, "disposition": "RECORDED", "dispatch_id": a.dispatch_id, "ledger_seq": led.get("seq"),
@@ -820,7 +1183,8 @@ def ppss_bind(a, root, ticket_arg, now):
             "detail": "bound only: no ledger event; the next step is --phase record with the same --artifact"}
 
 
-PHASES = {"api_advisor": (None, "call"), "native_advisor": ("dispatch", "return"), "ppss": ("dispatch", "bind", "record", "read")}
+PHASES = {"api_advisor": (None, "call"), "native_advisor": ("dispatch", "return"), "claude_cli": (None, "call"),
+          "ppss": ("dispatch", "bind", "record", "read")}
 
 
 def cmd_consult(a, client_factory, env, now):
@@ -830,11 +1194,18 @@ def cmd_consult(a, client_factory, env, now):
     phases = PHASES[adapter]
     if a.phase not in phases:
         raise Stop(E_USAGE, "USAGE", "usage", f"{a.source}: --phase must be one of {[p for p in phases if p]}")
+    if adapter != "claude_cli":
+        if a.no_ticket:
+            raise Stop(E_USAGE, "USAGE", "usage", f"--no-ticket is only valid for the claude_cli source, not {a.source}")
+        if not a.incident:
+            raise Stop(E_USAGE, "USAGE", "usage", f"--incident is required for {a.source}")
     root = repo_root()
     if adapter == "api_advisor":
         body = do_api(a, root, a.ticket, client_factory, env, now)
     elif adapter == "native_advisor":
         body = do_native(a, src, root, a.ticket)
+    elif adapter == "claude_cli":
+        body = do_claude_cli(a, src, root, a.ticket, env, now)
     else:
         body = do_ppss(a, src, root, a.ticket, now)
     return body
@@ -854,7 +1225,8 @@ def build_parser():
     p.add_argument("--table")
     sub = p.add_subparsers(dest="verb", required=True, parser_class=_Parser)
     c = sub.add_parser("consult")
-    c.add_argument("--incident", required=True)
+    c.add_argument("--incident")
+    c.add_argument("--no-ticket", dest="no_ticket", action="store_true")
     c.add_argument("--source", required=True)
     c.add_argument("--phase")
     c.add_argument("--payload")

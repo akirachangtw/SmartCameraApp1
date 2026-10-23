@@ -4,6 +4,8 @@
     "advisor.api":   {"kind": "script-call",   "role": "advisor",  "enabled": true, "adapter": "api_advisor",    "ledger_kind": "advisor"},
     "advisor.native":{"kind": "model-dispatch", "role": "advisor",  "enabled": true, "adapter": "native_advisor", "ledger_kind": "advisor",
                       "dispatch": {"tool": "advisor", "params": {}}},
+    "advisor.claude-cli": {"kind": "script-call", "role": "advisor", "enabled": true, "adapter": "claude_cli", "ledger_kind": "advisor",
+                           "cli": {"bin": "claude", "prefix_args": [], "model": "claude-opus-5-5", "effort": "high", "timeout_s": 180}},
     "research.ppss": {"kind": "model-dispatch", "role": "research", "enabled": true, "adapter": "ppss",
                       "dispatch": {"tool": "research_submit", "params": ["question", "queries", "task_type", "filters", "justification", "metadata"]}},
     "advisor.rigor-repair":    {"kind": "domain-internal", "role": "advisor",  "note": "ticket-rigor-gate Advisor Repair Mode"},

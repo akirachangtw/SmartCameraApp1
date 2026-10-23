@@ -195,7 +195,7 @@ class SourceStateTests(RouteCase):
         fac = Factory(FakeClient(make_resp()))
         n = self.n_events()
         rc, o, _ = self.run_main(self.api_args(pl, ev), factory=fac, table=tbl)
-        self.assertEqual((rc, o["disposition"], o["alternatives"]), (4, "SOURCE_DISABLED", ["advisor.native"]))
+        self.assertEqual((rc, o["disposition"], o["alternatives"]), (4, "SOURCE_DISABLED", ["advisor.native", "advisor.claude-cli"]))
         self.assertFalse(fac.called)
         self.assertEqual(self.n_events(), n)
         alt = o["alternatives"][0]                                   # main loop picks the legal alternative and continues
@@ -210,6 +210,7 @@ class SourceStateTests(RouteCase):
         def mut(t):
             t["sources"]["advisor.api"]["enabled"] = False
             t["sources"]["advisor.native"]["enabled"] = False
+            t["sources"]["advisor.claude-cli"]["enabled"] = False
         rc, o, _ = self.run_main(["consult", "--incident", self.inc, "--source", "advisor.api", "--phase", "call"], table=self.table_copy(mut))
         self.assertEqual((rc, o["disposition"], o["reason"]), (4, "MISSING_REQUIRED", "required_capability_absent"))
         self.assertEqual(o["alternatives"], [])
@@ -1104,6 +1105,520 @@ class ChainTests(RouteCase):
 
     def bind_args(self, did, art, rid=None, extra=()):
         return PpssTests.bind_args(self, did, art, rid, extra)
+
+
+# ---------------------------------------------------------------- ADV-CLAUDECLI-01: advisor.claude-cli
+R_MODEL = "claude-opus-5-5"
+SID = "7cf532d0-8802-4348-a4a1-b8305c2df91b"
+ABSENT = object()
+CLI_STUB = r'''
+import json, os, subprocess, sys, time
+sys.stdout.reconfigure(encoding="utf-8")
+d = os.environ["STUB_DIR"]
+sc = json.loads(os.environ["STUB_SCENARIO"])
+data = sys.stdin.buffer.read().decode("utf-8")
+with open(os.path.join(d, "launches.txt"), "a") as f:
+    f.write("x\n")
+with open(os.path.join(d, "seen.jsonl"), "a", encoding="utf-8") as f:
+    f.write(json.dumps({"argv": sys.argv[1:], "env_keys": sorted(k.upper() for k in os.environ), "cwd": os.getcwd(),
+                        "stdin": data, "pid": os.getpid(), "echo_key": os.environ.get("ANTHROPIC_API_KEY")}) + "\n")
+if sc.get("close_incident"):
+    L = [sys.executable, os.environ["STUB_LEDGER"], "--ticket", os.environ["STUB_TICKET"]]
+    inc = os.environ["STUB_INCIDENT"]
+    subprocess.run(L + ["round", "start", "--incident", inc, "--expect", "0", "--strategy", "s", "--authority", "a"],
+                   cwd=os.environ["STUB_REPO"], capture_output=True)
+    subprocess.run(L + ["round", "end", "--incident", inc, "--result", "pass"], cwd=os.environ["STUB_REPO"], capture_output=True)
+if sc.get("grandchild"):
+    subprocess.Popen([sys.executable, "-c", "import os,sys,time;open(sys.argv[1],'w').write(str(os.getpid()));time.sleep(600)",
+                      os.path.join(d, "grandchild.pid")])
+    with open(os.path.join(d, "stub.pid"), "w") as f:
+        f.write(str(os.getpid()))
+if sc.get("raw_stdout") is not None:
+    sys.stdout.write(sc["raw_stdout"])
+for e in sc.get("events", []):
+    sys.stdout.write(json.dumps(e, ensure_ascii=False) + "\n")
+    sys.stdout.flush()
+if sc.get("sleep"):
+    time.sleep(sc["sleep"])
+sys.exit(sc.get("rc", 0))
+'''
+
+
+def cli_ok(answer="先在 backoff.py 加上限，再重跑 check.py", key="none", init_model=R_MODEL, used=ABSENT, hooks=((0, ""), (0, ""))):
+    """Event sequence with the field names of the real `claude -p --output-format stream-json --verbose` output
+    (2.1.304; evidence classes C3/C5/C6 of the ticket). Built from the field description, not a recorded stream."""
+    evs = []
+    for i, (code, out) in enumerate(hooks):
+        base = {"hook_id": f"h{i}", "hook_name": "SessionStart:startup", "hook_event": "SessionStart", "session_id": SID}
+        evs.append({"type": "system", "subtype": "hook_started", **base})
+        evs.append({"type": "system", "subtype": "hook_response", **base, "output": out, "stdout": out, "stderr": "",
+                    "exit_code": code, "outcome": "success" if code == 0 else "error"})
+    init = {"type": "system", "subtype": "init", "session_id": SID, "tools": [], "mcp_servers": [], "model": init_model,
+            "claude_code_version": "2.1.304"}
+    if key is not ABSENT:
+        init["apiKeySource"] = key
+    evs.append(init)
+    evs.append({"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": str(answer)}]},
+                "session_id": SID})
+    tokens = {"inputTokens": 2, "outputTokens": 783, "cacheReadInputTokens": 1559, "cacheCreationInputTokens": 4281,
+              "costUSD": 0.0502}
+    evs.append({"type": "result", "subtype": "success", "is_error": False, "result": answer, "session_id": SID,
+                "total_cost_usd": 0.0502, "usage": {"input_tokens": 2, "output_tokens": 783},
+                "modelUsage": {R_MODEL: tokens} if used is ABSENT else used, "terminal_reason": "completed",
+                "duration_ms": 13654, "api_error_status": None})
+    return evs
+
+
+def cli_unauth():
+    return [{"type": "system", "subtype": "init", "session_id": SID, "tools": [], "model": R_MODEL, "apiKeySource": "none"},
+            {"type": "assistant", "error": "authentication_failed", "session_id": SID,
+             "message": {"role": "assistant", "content": [{"type": "text", "text": "Not logged in · Please run /login"}]}},
+            {"type": "result", "subtype": "success", "is_error": True, "result": "Not logged in · Please run /login",
+             "session_id": SID, "total_cost_usd": 0, "usage": {"input_tokens": 0, "output_tokens": 0}, "modelUsage": {},
+             "terminal_reason": "api_error"}]
+
+
+def pid_alive(pid):
+    if os.name == "nt":
+        out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True).stdout.decode("utf-8", "replace")
+        return str(pid) in out.split()
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+class ClaudeCliTests(RouteCase):
+    SRC = "advisor.claude-cli"
+
+    def setUp(self):
+        super().setUp()
+        self.stub_dir = self.tmp / "stub"
+        self.stub_dir.mkdir()
+        self.stub = self.tmp / "stub_claude.py"
+        self.stub.write_text(CLI_STUB, encoding="utf-8")
+
+    # ---------------- drivers
+    def cli_table(self, mutate=None, timeout_s=None):
+        def mut(t):
+            c = t["sources"][self.SRC]["cli"]
+            c["bin"], c["prefix_args"] = sys.executable, [str(self.stub)]
+            if timeout_s:
+                c["timeout_s"] = timeout_s
+            if mutate:
+                mutate(t)
+        return self.table_copy(mut)
+
+    def stub_env(self, scenario, extra=None):
+        env = dict(os.environ)
+        env.update({"STUB_DIR": str(self.stub_dir), "STUB_SCENARIO": json.dumps(scenario, ensure_ascii=False),
+                    "STUB_LEDGER": str(LEDGER), "STUB_REPO": str(self.repo), "STUB_TICKET": TICKET, "STUB_INCIDENT": self.inc})
+        env.update(extra or {})
+        return env
+
+    def launches(self):
+        p = self.stub_dir / "launches.txt"
+        return len(p.read_text(encoding="utf-8").split()) if p.exists() else 0
+
+    def seen(self):
+        p = self.stub_dir / "seen.jsonl"
+        return [json.loads(x) for x in p.read_text(encoding="utf-8").splitlines() if x.strip()] if p.exists() else []
+
+    def ticketed(self, scenario, *, pl=None, ev=None, table=None, env=None, incident=None, name="p"):
+        if pl is None:
+            pl, ev = self.good_api(name=name)
+        argv = ["consult", "--incident", incident or self.inc, "--source", self.SRC, "--payload", str(pl), "--evidence", str(ev)]
+        return self.run_main(argv, env=env if env is not None else self.stub_env(scenario), table=table or self.cli_table())
+
+    def drive(self, argv, *, ticket=None, cwd=None, env=None, table=None):
+        pre = (["--ticket", ticket] if ticket else []) + (["--table", str(table)] if table else [])
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.chdir(cwd or self.repo), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            rc = route.main([*pre, *argv], env=env if env is not None else dict(os.environ), now=lambda: FIXED)
+        return rc, json.loads(out.getvalue()), err.getvalue()
+
+    def ticketless(self, scenario, *, cwd=None, payload=None, extra=(), ticket=None, table=None):
+        pl = payload or self.write("tl.md", payload_text("no tokens needed", "無票問題"))
+        return self.drive(["consult", "--no-ticket", "--source", self.SRC, "--payload", str(pl), *extra], ticket=ticket,
+                          cwd=cwd, env=self.stub_env(scenario), table=table or self.cli_table())
+
+    def fresh_repo(self):
+        r = self.tmp / "repo2"
+        r.mkdir()
+        git(r, "init", "-q")
+        (r / "README.md").write_text("x", encoding="utf-8")
+        git(r, "add", "README.md")
+        git(r, "commit", "-q", "-m", "init")
+        return r
+
+    def records(self, repo=None, ticketless=False):
+        d = (repo or self.repo) / "tmp" / ("_advisor_cli_ticketless" if ticketless else f"{TICKET}/advisor_cli")
+        return sorted(d.glob("advisor_cli_*.json")) if d.exists() else []
+
+    # ---------------- table (AC 1)
+    def test_K1_real_table_has_the_source(self):
+        rc, o, _ = self.run_main(["table", "check"])
+        self.assertEqual(rc, 0)
+        self.assertIn(self.SRC, o["callable"])
+        self.assertIn(self.SRC, o["enabled"])
+        c = json.loads(TABLE_REAL.read_text(encoding="utf-8"))["sources"][self.SRC]
+        self.assertEqual((c["adapter"], c["ledger_kind"], c["cli"]["bin"], c["cli"]["prefix_args"], c["cli"]["model"],
+                          c["cli"]["effort"]), ("claude_cli", "advisor", "claude", [], R_MODEL, "high"))
+
+    def test_K2_cli_block_is_validated(self):
+        muts = {"missing cli": lambda s: s.pop("cli"), "cli not object": lambda s: s.update(cli=[]),
+                "empty model": lambda s: s["cli"].update(model=""), "bad effort": lambda s: s["cli"].update(effort="ultra"),
+                "timeout low": lambda s: s["cli"].update(timeout_s=29), "timeout high": lambda s: s["cli"].update(timeout_s=601),
+                "timeout str": lambda s: s["cli"].update(timeout_s="180"), "timeout bool": lambda s: s["cli"].update(timeout_s=True),
+                "empty bin": lambda s: s["cli"].update(bin=""), "prefix not list": lambda s: s["cli"].update(prefix_args="x"),
+                "prefix not str": lambda s: s["cli"].update(prefix_args=[1]),
+                "wrong ledger_kind": lambda s: s.update(ledger_kind="ppss")}
+        for label, m in muts.items():
+            rc, o, _ = self.run_main(["table", "check"], table=self.table_copy(lambda t, m=m: m(t["sources"][self.SRC])))
+            self.assertEqual((rc, o["disposition"]), (3, "TABLE_INVALID"), (label, o))
+            self.assertIn(self.SRC, o["detail"], label)
+
+    # ---------------- success (AC 2, 3)
+    def test_K3_ticketed_success_records_once(self):
+        pl, ev = self.good_api()
+        rc, o, err = self.ticketed({"events": cli_ok()}, pl=pl, ev=ev)
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+        self.assertEqual((o["mode"], o["channel"], o["model"], o["effort_flag"], o["api_key_source"], o["session_id"]),
+                         ("ticketed", "claude-subscription-cli", R_MODEL, "high", "none", SID))
+        self.assertEqual(o["answer"], cli_ok()[-1]["result"])
+        self.assertEqual(o["models_used"][R_MODEL]["outputTokens"], 783)
+        self.assertEqual((o["cli_internal_retries"], o["hooks"][0]["event"], o["warnings"]), (0, "SessionStart", []))
+        self.assertIn("cost_reported_usd", o)
+        self.assertEqual(self.launches(), 1)
+        cs = self.consults()
+        self.assertEqual(len(cs), 1)
+        note = cs[0]["note"]
+        rec = self.records()
+        self.assertEqual(len(rec), 1)
+        for needle in ("via=route.py", f"source={self.SRC}", f"model={R_MODEL}", "effort_flag=high", "api_key_source=none",
+                       f"session_id={SID}", f"payload_sha256={sha(pl.read_bytes())}", f"incident={self.inc}", "evidence=failure:",
+                       "channel=claude-subscription-cli", f"record={o['record']}"):
+            self.assertIn(needle, note)
+        self.assertEqual(o["record"], f"tmp/{TICKET}/advisor_cli/{rec[0].name}")
+        doc = json.loads(rec[0].read_text(encoding="utf-8"))
+        self.assertEqual((doc["verdict"], doc["payload_sha256"]), ("SUCCESS", sha(pl.read_bytes())))
+
+    def test_K4_api_key_source_null_is_noted_as_null(self):
+        rc, o, _ = self.ticketed({"events": cli_ok(key=None)})
+        self.assertEqual((rc, o["disposition"], o["api_key_source"]), (0, "RECORDED", "<null>"), o)
+        self.assertIn("api_key_source=<null>", self.consults()[0]["note"])
+        self.assertNotIn("api_key_source=none", self.consults()[0]["note"])
+
+    def test_K5_ticketless_success_touches_no_ledger(self):
+        r2 = self.fresh_repo()
+        gate = r2 / ".git" / "gate"
+        self.assertFalse(gate.exists())
+        rc, o, _ = self.ticketless({"events": cli_ok()}, cwd=r2)
+        self.assertEqual((rc, o["disposition"], o["mode"]), (0, "ANSWERED", "ticketless"), o)
+        self.assertEqual(o["answer"], cli_ok()[-1]["result"])
+        self.assertFalse(gate.exists() and any(gate.iterdir()))
+        self.assertEqual(len(self.records(r2, ticketless=True)), 1)
+        self.assertEqual(self.launches(), 1)
+        n = self.n_events()                                           # the main repo has a ledger: still untouched
+        rc, o, _ = self.ticketless({"events": cli_ok()})
+        self.assertEqual((rc, o["disposition"]), (0, "ANSWERED"))
+        self.assertEqual(self.n_events(), n)
+
+    def test_K6_ticketless_misuse_and_no_downgrade(self):
+        pl = self.write("tl.md", payload_text("x", "q"))
+        ev, _h = self.evidence("e.txt")
+        n = self.n_events()
+        base = ["consult", "--no-ticket", "--source", self.SRC, "--payload", str(pl)]
+        for extra, ticket in ((["--incident", self.inc], None), (["--evidence", str(ev)], None), ([], TICKET)):
+            rc, o, _ = self.drive(base + extra, ticket=ticket, env=self.stub_env({"events": cli_ok()}), table=self.cli_table())
+            self.assertEqual((rc, o["reason"]), (2, "usage"), (extra, ticket, o))
+        rc, o, _ = self.drive(["consult", "--no-ticket", "--source", self.SRC], env=self.stub_env({}), table=self.cli_table())
+        self.assertEqual((rc, o["reason"]), (2, "usage"))
+        nogit = self.tmp / "nogit"
+        nogit.mkdir()
+        rc, o, _ = self.drive(base, cwd=nogit, env=self.stub_env({"events": cli_ok()}), table=self.cli_table())
+        self.assertEqual((rc, o["reason"]), (2, "not_a_git_repo"), o)
+        pl2, ev2 = self.good_api(name="nd")                          # no --no-ticket + unresolvable ticket: never downgraded
+        r2 = self.fresh_repo()
+        rc, o, _ = self.drive(["consult", "--incident", self.inc, "--source", self.SRC, "--payload", str(pl2), "--evidence", str(ev2)],
+                              ticket="NOPE-01", cwd=r2, env=self.stub_env({"events": cli_ok()}), table=self.cli_table())
+        self.assertEqual((rc, o["disposition"], o["reason"]), (5, "REFUSED", "ledger_refused"), o)
+        for argv in (["consult", "--source", "advisor.native", "--phase", "dispatch", "--purpose", "x"],
+                     ["consult", "--no-ticket", "--source", "advisor.native", "--phase", "dispatch", "--purpose", "x"]):
+            rc, o, _ = self.run_main(argv)
+            self.assertEqual((rc, o["reason"]), (2, "usage"), o)
+        self.assertEqual(self.launches(), 0)
+        self.assertEqual(self.n_events(), n)
+
+    # ---------------- zero-launch refusals (AC 4)
+    def test_K7_pre_launch_refusals_never_start_the_cli(self):
+        env, tbl = self.stub_env({"events": cli_ok()}), self.cli_table()
+        pl, ev = self.good_api()
+        src = ["--source", self.SRC]
+
+        def run(argv, table=tbl):
+            return self.run_main(["consult", *argv], env=env, table=table)
+        full = [*src, "--incident", self.inc, "--payload", str(pl), "--evidence", str(ev)]
+        other = self.write("other.md", payload_text("incident=INC-077 failure_sha256=" + sha(ev.read_bytes())))
+        none = self.write("none.md", payload_text("no token here"))
+        bad = self.write("bad.md", payload_text(f"incident={self.inc} failure_sha256={'0' * 64}"))
+        nonutf = self.write("nonutf.md", b"\xff\xfe\xfa not utf8")
+        big = self.write("big.md", b"a" * 200001)
+        nobin = self.cli_table(lambda t: t["sources"][self.SRC]["cli"].update(bin="no-such-binary-xyz-123", prefix_args=[]))
+        n = self.n_events()
+        cases = [
+            (run([*src, "--incident", self.inc, "--evidence", str(ev)]), 2, "usage"),
+            (run([*src, "--payload", str(pl), "--evidence", str(ev)]), 2, "usage"),
+            (run([*src, "--incident", self.inc, "--payload", str(pl)]), 2, "usage"),
+            (run([*src, "--incident", "INC-099", "--payload", str(pl), "--evidence", str(ev)]), 5, "incident_not_open"),
+            (run([*src, "--incident", self.inc, "--payload", str(other), "--evidence", str(ev)]), 5, "incident_token_mismatch"),
+            (run([*src, "--incident", self.inc, "--payload", str(none), "--evidence", str(ev)]), 5, "incident_token_missing"),
+            (run([*src, "--incident", self.inc, "--payload", str(bad), "--evidence", str(ev)]), 5, "evidence_hash_mismatch"),
+            (run([*src, "--incident", self.inc, "--payload", str(self.tmp / "nope.md"), "--evidence", str(ev)]), 5, "request_invalid"),
+            (run([*src, "--incident", self.inc, "--payload", str(nonutf), "--evidence", str(ev)]), 5, "request_invalid"),
+            (run([*src, "--incident", self.inc, "--payload", str(big), "--evidence", str(ev)]), 5, "request_invalid"),
+            (run(full, table=nobin), 6, "cli_unavailable"),
+        ]
+        for (rc, o, _), want_rc, reason in cases:
+            self.assertEqual((rc, o["reason"]), (want_rc, reason), o)
+        moved = self.repo.joinpath(*PROJECT, "deliver", self.ticket_file.name)
+        shutil.move(str(self.ticket_file), str(moved))
+        rc, o, _ = run(full)
+        self.assertEqual((rc, o["reason"]), (5, "ticket_not_mutable"), o)
+        shutil.move(str(moved), str(self.ticket_file))
+        self.assertEqual(self.n_events(), n)
+        self.ledger("round", "start", "--incident", self.inc, "--expect", "0", "--strategy", "s", "--authority", "a")
+        self.ledger("round", "end", "--incident", self.inc, "--result", "pass")
+        n = self.n_events()
+        rc, o, _ = run(full)
+        self.assertEqual((rc, o["reason"]), (5, "incident_not_open"), o)
+        self.assertEqual(self.launches(), 0)
+        self.assertEqual(self.n_events(), n)
+        self.assertEqual(self.records(), [])
+
+    # ---------------- post-launch failures (AC 5, 6, 7)
+    def assert_failed_once(self, scenario, rc_want, reason, *, detail=None, table=None):
+        n, l0, r0, c0 = self.n_events(), self.launches(), len(self.records()), len(self.consults())
+        rc, o, _ = self.ticketed(scenario, table=table, name=f"f{l0}")
+        self.assertEqual((rc, o["reason"]), (rc_want, reason), o)
+        if detail:
+            self.assertIn(detail, o.get("detail", ""), o)
+        self.assertEqual(self.launches(), l0 + 1, "exactly one launch, no restart")
+        self.assertEqual(self.n_events(), n)
+        self.assertEqual(len(self.consults()), c0)
+        self.assertEqual(len(self.records()), r0 + 1)
+        return o
+
+    def test_K8_post_launch_failures_are_classified_and_never_recorded(self):
+        def res(**kw):
+            e = cli_ok()
+            e[-1].update(kw)
+            return e
+
+        def drop(key):
+            e = cli_ok()
+            e[-1].pop(key)
+            return e
+        err_model = cli_unauth()
+        err_model[1]["error"] = "model_not_found"
+        err_rate = cli_unauth()
+        err_rate[1]["error"] = "rate_limit"
+        o = self.assert_failed_once({"events": cli_unauth(), "rc": 1}, 6, "not_logged_in", detail="authentication_failed")
+        self.assertEqual(o["models_used"], {})                                   # C5 shape: empty modelUsage
+        self.assert_failed_once({"events": err_model, "rc": 1}, 6, "model_unavailable")
+        self.assert_failed_once({"events": err_rate, "rc": 1}, 6, "cli_error", detail="rate_limit")
+        self.assert_failed_once({"events": [cli_ok()[-1]]}, 6, "init_missing")
+        self.assert_failed_once({"events": cli_ok()[:-1], "rc": 1}, 6, "nonzero_exit")
+        self.assert_failed_once({"events": cli_ok()[:-1]}, 6, "unparseable")
+        self.assert_failed_once({"raw_stdout": "garbage, not json\n"}, 6, "unparseable")
+        self.assert_failed_once({"events": cli_ok(), "rc": 3}, 6, "nonzero_exit")
+        for label, ev in (("missing", drop("is_error")), ("null", res(is_error=None)), ("string", res(is_error="false")),
+                          ("zero", res(is_error=0))):
+            self.assert_failed_once({"events": ev}, 6, "unparseable", detail="is_error_invalid")
+        self.assert_failed_once({"events": res(modelUsage=[])}, 6, "unparseable", detail="model_usage_invalid")
+
+    def test_K9_api_key_source_three_states(self):
+        for i, (key, shown) in enumerate(((None, "<null>"), ("none", "none"))):
+            rc, o, _ = self.ticketed({"events": cli_ok(key=key)}, name=f"ok{i}")
+            self.assertEqual((rc, o["disposition"], o["api_key_source"]), (0, "RECORDED", shown), o)
+        o = self.assert_failed_once({"events": cli_ok(key=ABSENT)}, 5, "auth_unreported")
+        self.assertEqual(o["api_key_source"], "<absent>")
+        for key in ("user", "project", "ANTHROPIC_API_KEY", "", 5, {"a": 1}):
+            o = self.assert_failed_once({"events": cli_ok(key=key)}, 5, "api_key_source")
+            self.assertEqual(o["api_key_source"], key if isinstance(key, str) else json.dumps(key))
+        o = self.assert_failed_once({"events": cli_ok(key="sk-ant-abc123secret")}, 5, "api_key_source")
+        self.assertNotIn("abc123secret", json.dumps(o))
+        self.assertIn("sk-ant-***", o["detail"])
+
+    def test_K10_model_judgement(self):
+        t = {"inputTokens": 1, "outputTokens": 2, "cacheReadInputTokens": 0, "cacheCreationInputTokens": 0}
+        rc, o, _ = self.ticketed({"events": cli_ok(used={R_MODEL: t})}, name="okm")
+        self.assertEqual((rc, o["disposition"], o["model"]), (0, "RECORDED", R_MODEL))
+        o = self.assert_failed_once({"events": cli_ok(used={R_MODEL: t, "claude-haiku-5-5": t})}, 5, "multiple_models")
+        self.assertEqual(set(o["models_used"]), {R_MODEL, "claude-haiku-5-5"})
+        self.assert_failed_once({"events": cli_ok(used={"claude-haiku-5-5": t})}, 5, "model_mismatch")
+        self.assert_failed_once({"events": cli_ok(used={})}, 5, "model_unreported")
+        gone = cli_ok()
+        gone[-1].pop("modelUsage")
+        self.assert_failed_once({"events": gone}, 5, "model_unreported")
+        self.assert_failed_once({"events": cli_ok(init_model="claude-haiku-5-5")}, 5, "model_mismatch")
+
+    # ---------------- timeout (AC 8)
+    def test_K11_timeout_kills_the_tree_and_leftovers_are_diagnostic_only(self):
+        init = [e for e in cli_ok() if e.get("subtype") == "init"]
+        retry = [{"type": "system", "subtype": "api_retry", "attempt": i, "max_retries": 10, "retry_delay_ms": 500,
+                  "error_status": None, "error": "unknown", "session_id": SID} for i in (1, 2)]
+        n = self.n_events()
+        rc, o, _ = self.ticketed({"events": init + retry, "grandchild": True, "sleep": 120}, table=self.cli_table(timeout_s=30))
+        self.assertEqual((rc, o["disposition"], o["reason"]), (6, "CALL_FAILED", "timeout"), o)
+        self.assertEqual((o["reaped"], o["diagnostic"], o["cli_internal_retries"]), (True, True, 2))
+        self.assertNotIn("answer", o)
+        self.assertEqual((self.launches(), len(self.consults()), self.n_events()), (1, 0, n))
+        for name in ("stub.pid", "grandchild.pid"):
+            pid_file = self.stub_dir / name
+            self.assertTrue(pid_file.exists(), name)
+            self.assertFalse(pid_alive(int(pid_file.read_text())), f"{name} still running")
+
+    def test_K12_timeout_is_final_even_after_a_complete_success_stream(self):
+        n = self.n_events()
+        rc, o, _ = self.ticketed({"events": cli_ok(), "sleep": 120}, table=self.cli_table(timeout_s=30))
+        self.assertEqual((rc, o["reason"], o["reaped"]), (6, "timeout", True), o)
+        self.assertNotIn("answer", o)
+        self.assertEqual((o["session_id"], o["diagnostic"]), (SID, True))
+        self.assertEqual((self.launches(), len(self.consults()), self.n_events()), (1, 0, n))
+        doc = json.loads(self.records()[0].read_text(encoding="utf-8"))
+        self.assertEqual(doc["verdict"]["reason"], "timeout")
+        self.assertIsNone(doc["answer"])
+
+    # ---------------- empty answer / invalid answer / incident closed during the call (AC 9)
+    def test_K13_blank_answers_and_invalid_answers(self):
+        for ans in ("", "   \n\t"):
+            o = self.assert_failed_once({"events": cli_ok(answer=ans)}, 5, "empty_answer")
+            self.assertEqual(o["session_id"], SID)
+            self.assertIn("usage", o)
+            self.assertIn("cost_reported_usd", o)
+        gone = cli_ok()
+        gone[-1].pop("result")
+        for ev in (cli_ok(answer=None), cli_ok(answer=5), gone):
+            self.assert_failed_once({"events": ev}, 6, "unparseable", detail="answer_invalid")
+
+    def test_K14_incident_closed_during_the_call(self):
+        rc, o, _ = self.ticketed({"events": cli_ok(), "close_incident": True})
+        self.assertEqual((rc, o["disposition"], o["reason"]), (5, "REFUSED", "incident_closed_after_call"), o)
+        self.assertEqual((o["recorded"], o["session_id"], o["answer"]), (False, SID, cli_ok()[-1]["result"]))
+        self.assertTrue((self.repo / o["record"]).exists())
+        self.assertEqual((self.launches(), len(self.consults())), (1, 0))
+        rc, out, _ = self.ledger("status", "--json")
+        inc = next(i for i in json.loads(out)["incidents"] if i["id"] == self.inc)
+        self.assertNotEqual(inc["status"], "open")                        # not reopened
+
+    # ---------------- hooks / api_retry / warnings (AC 10)
+    def test_K15_hooks_and_retries_are_reported_without_changing_success(self):
+        evs = cli_ok(hooks=((0, ""), (2, "boom"), (0, "noise")))
+        retry = {"type": "system", "subtype": "api_retry", "attempt": 1, "max_retries": 10, "retry_delay_ms": 500,
+                 "error_status": None, "error": "unknown", "session_id": SID}
+        evs.insert(len(evs) - 1, retry)
+        evs.insert(len(evs) - 1, dict(retry, attempt=2))
+        rc, o, _ = self.ticketed({"events": evs})
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+        self.assertEqual([h["exit_code"] for h in o["hooks"]], [0, 2, 0])
+        self.assertEqual([h["outcome"] for h in o["hooks"]], ["success", "error", "success"])
+        w = " | ".join(o["warnings"])
+        self.assertIn("hook_nonzero_exit", w)
+        self.assertEqual(w.count("hook_stdout_nonempty"), 2)
+        self.assertIn("api_retry count=2", w)
+        self.assertEqual(o["cli_internal_retries"], 2)
+        self.assertEqual(len(self.consults()), 1)
+
+    # ---------------- argv / env / cwd / stdin / secrets / records (AC 11)
+    def test_K16_argv_env_cwd_stdin_and_secrets(self):
+        secrets = {"ANTHROPIC_API_KEY": KEY, "ADVISOR_ANTHROPIC_API_KEY": KEY, "ANTHROPIC_AUTH_TOKEN": KEY}
+        env = self.stub_env({"events": cli_ok(answer="見 sk-ant-secretvalue123 的處理")}, secrets)
+        before = dict(env)
+        pl, ev = self.good_api()
+        rc, o, _ = self.ticketed(None, pl=pl, ev=ev, env=env)
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+        self.assertEqual(env, before, "the caller's env object must not be touched")
+        seen = self.seen()[-1]
+        self.assertEqual(seen["argv"], ["-p", "--model", R_MODEL, "--effort", "high", "--tools", "", "--strict-mcp-config",
+                                        "--disable-slash-commands", "--no-session-persistence", "--output-format",
+                                        "stream-json", "--verbose"])
+        for k in secrets:
+            self.assertNotIn(k, seen["env_keys"])
+        self.assertIn("STUB_DIR", seen["env_keys"])                       # everything else is passed on
+        self.assertIsNone(seen["echo_key"])
+        want_cwd = Path(tempfile.gettempdir()).resolve() / "cueshot_advisor_cli_cwd"
+        self.assertEqual(Path(seen["cwd"]).resolve(), want_cwd)
+        self.assertTrue((want_cwd / ".git").exists())
+        self.assertNotIn(self.repo.resolve(), want_cwd.parents)
+        self.assertTrue(seen["stdin"].startswith("你是諮詢顧問"))
+        self.assertIn(pl.read_text(encoding="utf-8"), seen["stdin"])
+        self.assertIn("sk-ant-***", o["answer"])
+        blob = json.dumps(o) + self.records()[0].read_text(encoding="utf-8") + self.consults()[0]["note"]
+        self.assertNotIn("secretvalue123", blob)
+        self.assertNotIn(KEY, blob)
+
+    def test_K17_record_names_are_unique_and_record_failure_is_not_fatal(self):
+        for i in range(2):
+            rc, o, _ = self.ticketed({"events": cli_ok()}, name=f"u{i}")
+            self.assertEqual(rc, 0, o)
+        names = [p.name for p in self.records()]
+        self.assertEqual(len(names), 2)
+        self.assertEqual(len(set(names)), 2)                              # same frozen clock second, still distinct
+        shutil.rmtree(self.repo / "tmp" / TICKET / "advisor_cli")
+        (self.repo / "tmp" / TICKET / "advisor_cli").write_text("a regular file in the way", encoding="utf-8")
+        rc, o, _ = self.ticketed({"events": cli_ok()}, name="rf1")
+        self.assertEqual((rc, o["disposition"], o["record"], o["record_error"]), (0, "RECORDED", None, "FileExistsError"), o)
+        self.assertTrue(any("record_error" in w for w in o["warnings"]))
+        self.assertIn("record=none", self.consults()[-1]["note"])
+        n = len(self.consults())
+        rc, o, _ = self.ticketed({"events": cli_unauth(), "rc": 1}, name="rf2")
+        self.assertEqual((rc, o["reason"], o["record"]), (6, "not_logged_in", None), o)   # classification unchanged
+        self.assertEqual(len(self.consults()), n)
+
+    def sub_cli(self, tdir, scenario=None):
+        env = self.stub_env(scenario or {"events": cli_ok()}, {"TEMP": str(tdir), "TMP": str(tdir), "TMPDIR": str(tdir)})
+        pl, ev = self.good_api(name=f"s{tdir.name}")
+        res = subprocess.run([sys.executable, "-I", str(ROUTE), "--ticket", TICKET, "--table", str(self.cli_table()),
+                              "consult", "--incident", self.inc, "--source", self.SRC, "--payload", str(pl), "--evidence", str(ev)],
+                             cwd=self.repo, capture_output=True, env=env)
+        return res.returncode, json.loads(res.stdout.decode("utf-8", "replace"))
+
+    def test_K18_cwd_preparation_branches(self):
+        t1 = self.tmp / "t1"
+        t1.mkdir()
+        (t1 / "cueshot_advisor_cli_cwd").write_text("a file", encoding="utf-8")
+        rc, o = self.sub_cli(t1)
+        self.assertEqual((rc, o["reason"], o["detail"]), (6, "cli_unavailable", "cwd_not_directory"), o)
+        t2 = self.repo / "tt"
+        t2.mkdir()
+        rc, o = self.sub_cli(t2)
+        self.assertEqual((rc, o["reason"], o["detail"]), (6, "cli_unavailable", "cwd_inside_repo"), o)
+        self.assertFalse((t2 / "cueshot_advisor_cli_cwd").exists(), "nothing may be created inside the repo")
+        self.assertEqual(self.launches(), 0)
+        t3 = self.tmp / "t3"
+        (t3 / "cueshot_advisor_cli_cwd").mkdir(parents=True)               # exists, but has no .git: initialised, not refused
+        rc, o = self.sub_cli(t3)
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+        self.assertTrue((t3 / "cueshot_advisor_cli_cwd" / ".git").exists())
+        self.assertEqual(self.launches(), 1)
+
+    # ---------------- do_native source label (AC 13)
+    def test_K19_native_note_records_the_actual_source(self):
+        alias = self.table_copy(lambda t: t["sources"].update({"advisor.alias": dict(t["sources"]["advisor.native"])}))
+        for i, (source, tbl) in enumerate((("advisor.alias", alias), ("advisor.native", None))):
+            purpose = f"second opinion {i}"
+            rc, d, _ = self.run_main(["consult", "--incident", self.inc, "--source", source, "--phase", "dispatch",
+                                      "--purpose", purpose], table=tbl)
+            self.assertEqual(rc, 0, d)
+            rc, r, _ = self.run_main(["consult", "--incident", self.inc, "--source", source, "--phase", "return",
+                                      "--dispatch-id", d["dispatch_id"], "--purpose", purpose, "--note", "native advisor called"],
+                                     table=tbl)
+            self.assertEqual((rc, r["disposition"]), (0, "RECORDED"), r)
+            self.assertIn(f"source={source} via=route.py", self.consults()[-1]["note"])
 
 
 if __name__ == "__main__":
