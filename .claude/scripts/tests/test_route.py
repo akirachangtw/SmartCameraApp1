@@ -1439,6 +1439,8 @@ class ClaudeCliTests(RouteCase):
                           ("zero", res(is_error=0))):
             self.assert_failed_once({"events": ev}, 6, "unparseable", detail="is_error_invalid")
         self.assert_failed_once({"events": res(modelUsage=[])}, 6, "unparseable", detail="model_usage_invalid")
+        for bad in ({R_MODEL: 1}, {R_MODEL: None}, {R_MODEL: "x"}):             # inner value must be an object too
+            self.assert_failed_once({"events": res(modelUsage=bad)}, 6, "unparseable", detail="model_usage_invalid")
 
     def test_K9_api_key_source_three_states(self):
         for i, (key, shown) in enumerate(((None, "<null>"), ("none", "none"))):
@@ -1532,6 +1534,21 @@ class ClaudeCliTests(RouteCase):
         self.assertIn("api_retry count=2", w)
         self.assertEqual(o["cli_internal_retries"], 2)
         self.assertEqual(len(self.consults()), 1)
+
+    def test_K15b_malformed_hook_ids_and_inner_usage_do_not_crash_the_entry(self):
+        evs = cli_ok()
+        evs[0]["hook_id"] = ["not", "a", "string"]                         # unhashable id must not raise
+        evs[1]["hook_id"] = None
+        rc, o, _ = self.ticketed({"events": evs})
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+        self.assertGreaterEqual(len(o["hooks"]), 2)
+        timeout_like = cli_ok()[:-1]                                       # diagnostics path with junk usage never crashes
+        junk = cli_ok()[-1]
+        junk["modelUsage"] = {R_MODEL: 7}
+        rc, o, _ = self.ticketed({"events": timeout_like + [junk]}, name="kj")
+        self.assertEqual((rc, o["reason"]), (6, "unparseable"), o)
+        self.assertEqual(o["models_used"], {R_MODEL: {"inputTokens": None, "outputTokens": None,
+                                                      "cacheReadInputTokens": None, "cacheCreationInputTokens": None}})
 
     # ---------------- argv / env / cwd / stdin / secrets / records (AC 11)
     def test_K16_argv_env_cwd_stdin_and_secrets(self):

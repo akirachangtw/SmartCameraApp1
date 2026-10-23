@@ -648,7 +648,8 @@ def parse_cli_stream(text):
             if p["init"] is None:
                 p["init"] = e
         elif t == "system" and st in ("hook_started", "hook_response"):
-            h = p["hooks"].setdefault(e.get("hook_id") or f"#{len(p['hooks'])}",
+            hid = e.get("hook_id")
+            h = p["hooks"].setdefault(hid if isinstance(hid, str) and hid else f"#{len(p['hooks'])}",
                                       {"event": e.get("hook_event"), "name": e.get("hook_name"),
                                        "outcome": None, "exit_code": None, "stdout": ""})
             if st == "hook_response":
@@ -708,6 +709,8 @@ def judge_cli_stream(p, rc, model):
     mu = res.get("modelUsage")
     if mu is not None and not isinstance(mu, dict):
         return fail("unparseable", "model_usage_invalid")
+    if mu and any(not isinstance(v, dict) for v in mu.values()):
+        return fail("unparseable", "model_usage_invalid")
     used = set(mu or {})
     if not used:
         return refuse("model_unreported", "result.modelUsage is empty or missing")
@@ -738,7 +741,7 @@ def cli_info(p, mode, cli, ms, reaped=None, diagnostic=False):
         warns.append(f"api_retry count={p['retries']} last_error={p['retry_error']}")
     init = p["init"] or {}
     info = {"mode": mode, "channel": "claude-subscription-cli", "requested_model": cli["model"],
-            "models_used": {m: {k: (v or {}).get(k) for k in keys} for m, v in mu.items()},
+            "models_used": {m: {k: (v.get(k) if isinstance(v, dict) else None) for k in keys} for m, v in mu.items()},
             "effort_flag": cli["effort"], "api_key_source": cli_key_source_text(p["init"]),
             "session_id": res.get("session_id") or init.get("session_id"),
             "usage": res.get("usage") if isinstance(res.get("usage"), dict) else None,
