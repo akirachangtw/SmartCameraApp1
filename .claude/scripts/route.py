@@ -20,8 +20,10 @@ Sources (route_table.json):
                     advisor` only on success. Ticketless (--no-ticket, explicit, never a downgrade): needs --payload
                     only, no ledger read or write. `apiKeySource` none/null proves only "no API-key source", not the
                     subscription billing; the effort flag is reported, never claimed effective; hooks/plugins still
-                    start (--tools "" only guarantees no tool execution). Every launched call leaves a git-ignored
-                    local execution record (tmp/<ticket>/advisor_cli/ or tmp/_advisor_cli_ticketless/): not billing
+                    start (--tools "" only guarantees no tool execution). Every launched call ATTEMPTS to leave a
+                    git-ignored local execution record (tmp/<ticket>/advisor_cli/ or tmp/_advisor_cli_ticketless/; a write
+                    failure is bounded and non-fatal: it shows as record_error / record=none and never changes the
+                    verdict, a ticketed success is still recorded in the ledger): not billing
                     or provider-side proof. Success needs result.is_error == false (boolean), modelUsage keys == {the
                     requested model} == init.model, and a non-blank string answer.
                     reasons - REFUSED: auth_unreported api_key_source model_unreported model_mismatch multiple_models
