@@ -820,7 +820,7 @@ def do_claude_cli(a, src, root, ticket_arg, env, now):
                                 stderr=subprocess.PIPE, creationflags=flags, start_new_session=(os.name != "nt"))
     except OSError as exc:
         raise Stop(E_FAILED, "CALL_FAILED", "cli_unavailable", f"launch failed: {type(exc).__name__}")
-    timed_out, reaped = False, None
+    timed_out, reaped, diag_lost = False, None, False
     try:
         out_b, err_b = proc.communicate(input=prompt, timeout=cli["timeout_s"])
     except subprocess.TimeoutExpired:
@@ -832,12 +832,17 @@ def do_claude_cli(a, src, root, ticket_arg, env, now):
                 out_b, err_b = proc.communicate(timeout=5)
             except (subprocess.TimeoutExpired, OSError, ValueError):
                 out_b = err_b = b""
+                diag_lost = True
+        else:
+            diag_lost = True
         _close_pipes(proc)
     ms = int((time.monotonic() - t0) * 1000)
     out_t = (out_b or b"").decode("utf-8", "replace")
     err_t = (err_b or b"").decode("utf-8", "replace")
     p = parse_cli_stream(out_t)
     info = cli_info(p, mode, cli, ms, reaped=reaped, diagnostic=timed_out)
+    if timed_out:
+        info["diagnostics_unavailable"] = diag_lost
     if timed_out:
         verdict = (E_FAILED, "CALL_FAILED", "timeout", f"no result within {cli['timeout_s']}s; process tree killed")
         if reaped is False:

@@ -1477,6 +1477,7 @@ class ClaudeCliTests(RouteCase):
         rc, o, _ = self.ticketed({"events": init + retry, "grandchild": True, "sleep": 120}, table=self.cli_table(timeout_s=30))
         self.assertEqual((rc, o["disposition"], o["reason"]), (6, "CALL_FAILED", "timeout"), o)
         self.assertEqual((o["reaped"], o["diagnostic"], o["cli_internal_retries"]), (True, True, 2))
+        self.assertIs(o["diagnostics_unavailable"], False)               # leftovers were obtained and parsed
         self.assertNotIn("answer", o)
         self.assertEqual((self.launches(), len(self.consults()), self.n_events()), (1, 0, n))
         for name in ("stub.pid", "grandchild.pid"):
