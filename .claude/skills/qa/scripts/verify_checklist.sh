@@ -514,6 +514,21 @@ if [[ -n "$FORBIDDEN" ]]; then
     while IFS= read -r _changed; do
       [[ -z "$_changed" ]] && continue
       if token_matches_file "$fb_trimmed" "$_changed"; then
+        # ADV-FORBIDEXCL-01: 比照 [0.1]——已授權之 EXCLUDED_PAYLOAD 具名檔不判 FORBIDDEN
+        # （同一 token_matches_file 比對；EXCLUDED_PAYLOAD 為空時此段不影響原行為）。
+        _FB_EXCL=0
+        if [[ -n "$EXCLUDED_PAYLOAD" ]]; then
+          IFS=',' read -ra _FB_EXCL_ARR <<< "$EXCLUDED_PAYLOAD"
+          for _fx in "${_FB_EXCL_ARR[@]}"; do
+            if token_matches_file "$_fx" "$_changed"; then
+              _FB_EXCL=1; break
+            fi
+          done
+        fi
+        if [[ $_FB_EXCL -eq 1 ]]; then
+          echo "  📋 Excluded Payload (FORBIDDEN, authorized): $(basename "$_changed")"
+          continue
+        fi
         _FORBIDDEN_FILE="$_changed"
         break
       fi
