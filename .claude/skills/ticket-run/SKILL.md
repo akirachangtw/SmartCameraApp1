@@ -93,7 +93,7 @@ description: 列出目前 PENDING 票並依序號選取派工開工，取代直�
 9. 呼叫 `registry_append_note(<id>, "<YYYY-MM-DD hh:mm> 執行起始｜來源：手機 Remote Control（Claude Code @<PROFILE.PROJECT>）")`。
    - 本 note 之語義為**執行溯源**（記錄本次執行之發起環境與時間），非派工動作紀錄。冊面 `updated_at` 僅日級精度，`lifecycle` 僅表狀態，二者均不承載「何時、自何處發起」。
 10. **交棒**（次序固定，`10.1` MUST 早於 `10.3`）：
-    - **10.1 同步 `tmp/verify_cmd.conf`**：以 `grep_files(paths=[<PROFILE.TICKET_FILE_BASE> + "/" + <選中票之 file 欄>], query="^(TICKET_ID|CREATED|PRESET|ALLOWED|FORBIDDEN|MAX_LINES|ANCHOR_PROBED|BASE_COMMIT|TARGET_BLOB)=", regex=True, max_matches=12)` 自票面擷取各欄位；`DIFF_REF` 以 `git rev-parse --short HEAD`（cwd 為 `PROFILE.REPO_ROOT`）之**實際輸出**回填（MUST NOT 沿用票面之 `<開工時…回填>` 佔位字面）；以 `write_file_safe(path=<PROFILE.VERIFY_CONF>, mode="overwrite")` 寫入。
+    - **10.1 同步 `tmp/verify_cmd.conf`**：以 `grep_files(paths=[<PROFILE.TICKET_FILE_BASE> + "/" + <選中票之 file 欄>], query="^(TICKET_ID|CREATED|PRESET|ALLOWED|FORBIDDEN|MAX_LINES|ANCHOR_PROBED|BASE_COMMIT|TARGET_BLOB|EXCLUDED_PAYLOAD)=", regex=True, max_matches=13)` 自票面擷取各欄位（`EXCLUDED_PAYLOAD` 為可選欄：票面有非空首行才於 conf 追加同值一行，缺席或空值不寫；與 `activate_ticket.sh` 字面一致）；`DIFF_REF` 以 `git rev-parse --short HEAD`（cwd 為 `PROFILE.REPO_ROOT`）之**實際輸出**回填（MUST NOT 沿用票面之 `<開工時…回填>` 佔位字面）；以 `write_file_safe(path=<PROFILE.VERIFY_CONF>, mode="overwrite")` 寫入。
       - **MUST 明文絕對路徑，MUST NOT 傳相對路徑**：實測（`MOBCD-04` AI-4）相對路徑被解析至 **`D:/DevSources/ObsidianVault/tmp/verify_cmd.conf`**——即 allowed roots 之首者——且 `ok:true` 不報錯、不警告。
     - **10.2 read-back 驗證**：重讀 `<PROFILE.VERIFY_CONF>`，確認 `TICKET_ID` 等於本次選中之票號。不符 → **停止並告知，MUST NOT 續出選單**。
     - **10.3 輸出交棒選單**，恰五項：

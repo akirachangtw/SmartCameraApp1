@@ -134,4 +134,53 @@ out="$(run_hook sid-A)"; expect "e2e handoff: old owner sid-A allowed" "" "$out"
 out="$(run_hook sid-B)"; [[ "$out" == *'"decision": "block"'* ]] && ok "e2e handoff: new owner sid-B controlled" || bad "e2e handoff: new owner sid-B not blocked ($out)"
 [[ -f "$S/tmp/.stop_guard/sid-A_E2E-01.blocked" ]] && ok "e2e handoff: old owner's marker not deleted by new owner's block" || bad "e2e handoff: old owner's marker deleted"
 
+# ── ADV-EXCLCONF-01: EXCLUDED_PAYLOAD 轉錄進 tmp/verify_cmd.conf（可選第十欄） ──────────────
+mkticket_cfg() { # mkticket_cfg <id> <extra Verify Config lines (printf %b)>
+    printf '# %s\nTICKET_ID=%s\nCREATED=2026-10-24\nPRESET=feature\nALLOWED=a.txt\nFORBIDDEN=f.txt\nMAX_LINES=N/A\nANCHOR_PROBED=t\nBASE_COMMIT=b\nTARGET_BLOB=N/A\n%b\n## Acceptance Criteria\n- [x] a\n' \
+        "$1" "$1" "$2" > "$S/$PROJ/Pending/${1}_t.md"
+}
+expected_nine() { # expected_nine <id> — the nine-field conf exactly as before this ticket
+    printf 'TICKET_ID=%s\nCREATED=2026-10-24\nPRESET=feature\nALLOWED=a.txt\nFORBIDDEN=f.txt\nMAX_LINES=N/A\nDIFF_REF=%s\nANCHOR_PROBED=t\nBASE_COMMIT=b\nTARGET_BLOB=N/A\n' \
+        "$1" "$(cd "$S" && git rev-parse --short HEAD)"
+}
+conf_text() { cat "$S/tmp/verify_cmd.conf"; }
+conf_key_count() { grep -c "^EXCLUDED_PAYLOAD=" "$S/tmp/verify_cmd.conf"; }
+
+setup; mkticket_cfg X1-A 'EXCLUDED_PAYLOAD=x.md'
+claim X1-A sid-A
+expect "excl (a): value present -> conf has the line after TARGET_BLOB" "$(expected_nine X1-A)"$'\n'"EXCLUDED_PAYLOAD=x.md" "$(conf_text)"
+expect "excl (a): other nine fields unchanged" "$(expected_nine X1-A)" "$(grep -v '^EXCLUDED_PAYLOAD=' "$S/tmp/verify_cmd.conf")"
+
+setup; mkticket_cfg X1-B ''
+claim X1-B sid-A
+expect "excl (b): no line -> conf byte-identical to the nine-field form" "$(expected_nine X1-B)" "$(conf_text)"
+expect "excl (b): no EXCLUDED_PAYLOAD key written" "0" "$(conf_key_count)"
+expect "excl (b): activation exit 0" "0" "$CLAIM_RC"
+
+setup; mkticket_cfg X1-C 'EXCLUDED_PAYLOAD='
+claim X1-C sid-A
+expect "excl (c): empty value -> same as absent" "$(expected_nine X1-C)" "$(conf_text)"
+expect "excl (c): no EXCLUDED_PAYLOAD key written" "0" "$(conf_key_count)"
+
+setup; mkticket_cfg X1-D 'EXCLUDED_PAYLOAD=x.md\nEXCLUDED_PAYLOAD=y.md'
+claim X1-D sid-A
+expect "excl (d): multiple lines -> first line only" "$(expected_nine X1-D)"$'\n'"EXCLUDED_PAYLOAD=x.md" "$(conf_text)"
+expect "excl (d): exactly one EXCLUDED_PAYLOAD key" "1" "$(conf_key_count)"
+
+# end-to-end: the transcribed conf makes verify_checklist.sh [0.2] treat the named FORBIDDEN file as authorized
+e2e_excl() { # e2e_excl <id> <extra lines> → sets E2E_OUT / E2E_RC
+    setup; printf 'tmp/\n.tmp/\n' > "$S/.gitignore"; mkdir -p "$S/.claude/skills/qa/scripts"; cp "$VERIFY" "$S/.claude/skills/qa/scripts/"
+    (cd "$S" && echo base > a.txt && echo base > f.txt && git add -A && git -c user.email=t@t -c user.name=t commit -q -m base)
+    mkticket_cfg "$1" "$2"
+    claim "$1" sid-A
+    (cd "$S" && echo change >> a.txt && echo change >> f.txt && git add a.txt f.txt && git -c user.email=t@t -c user.name=t commit -q -m "[$1] change")
+    E2E_OUT="$(cd "$S" && bash .claude/skills/qa/scripts/verify_checklist.sh tmp/verify_cmd.conf 2>&1)"; E2E_RC=$?
+}
+e2e_excl X2-A 'EXCLUDED_PAYLOAD=f.txt'
+[[ "$E2E_OUT" == *"Excluded Payload (FORBIDDEN, authorized): f.txt"* ]] && ok "excl e2e: [0.2] authorized exclusion takes effect from the activated conf" || bad "excl e2e: [0.2] exclusion not applied ($E2E_OUT)"
+[[ "$E2E_OUT" != *"⛔ FORBIDDEN FILE"* ]] && ok "excl e2e: no FORBIDDEN FILE failure with the line" || bad "excl e2e: FORBIDDEN FILE reported despite EXCLUDED_PAYLOAD"
+e2e_excl X2-B ''
+[[ "$E2E_OUT" == *"⛔ FORBIDDEN FILE: f.txt"* ]] && ok "excl e2e: without the line the same change is still a FORBIDDEN FILE failure" || bad "excl e2e: no failure without the line ($E2E_OUT)"
+[[ "$E2E_RC" -ne 0 ]] && ok "excl e2e: without the line exit non-zero" || bad "excl e2e: exit 0 without the line"
+
 if [[ "$fail_count" -eq 0 ]]; then echo "ALL PASS"; exit 0; else echo "${fail_count} case(s) FAILED"; exit 1; fi

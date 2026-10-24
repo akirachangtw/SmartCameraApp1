@@ -127,8 +127,8 @@ if [ "$CANDIDATE_COUNT" -ge 2 ]; then
 fi
 TICKET_FILE="$CANDIDATES"
 
-# 九欄擷取：regex 與 ticket-run/SKILL.md L96 字面一致（禁另立欄位集）
-FIELDS=$(grep -E '^(TICKET_ID|CREATED|PRESET|ALLOWED|FORBIDDEN|MAX_LINES|ANCHOR_PROBED|BASE_COMMIT|TARGET_BLOB)=' "$TICKET_FILE")
+# 九欄＋可選 EXCLUDED_PAYLOAD 擷取：regex 與 ticket-run/SKILL.md L96 字面一致（禁另立欄位集）
+FIELDS=$(grep -E '^(TICKET_ID|CREATED|PRESET|ALLOWED|FORBIDDEN|MAX_LINES|ANCHOR_PROBED|BASE_COMMIT|TARGET_BLOB|EXCLUDED_PAYLOAD)=' "$TICKET_FILE")
 TICKET_ID=$(printf '%s\n' "$FIELDS" | grep '^TICKET_ID=' | head -1 | cut -d= -f2-)
 CREATED=$(printf '%s\n' "$FIELDS" | grep '^CREATED=' | head -1 | cut -d= -f2-)
 PRESET=$(printf '%s\n' "$FIELDS" | grep '^PRESET=' | head -1 | cut -d= -f2-)
@@ -138,6 +138,7 @@ MAX_LINES=$(printf '%s\n' "$FIELDS" | grep '^MAX_LINES=' | head -1 | cut -d= -f2
 ANCHOR_PROBED=$(printf '%s\n' "$FIELDS" | grep '^ANCHOR_PROBED=' | head -1 | cut -d= -f2-)
 BASE_COMMIT=$(printf '%s\n' "$FIELDS" | grep '^BASE_COMMIT=' | head -1 | cut -d= -f2-)
 TARGET_BLOB=$(printf '%s\n' "$FIELDS" | grep '^TARGET_BLOB=' | head -1 | cut -d= -f2-)
+EXCLUDED_PAYLOAD=$(printf '%s\n' "$FIELDS" | grep '^EXCLUDED_PAYLOAD=' | head -1 | cut -d= -f2-)
 
 if [ -z "$TICKET_ID" ] || [ -z "$ALLOWED" ]; then
   echo "ticket file missing TICKET_ID or ALLOWED field: ${TICKET_FILE}" >&2
@@ -169,6 +170,7 @@ DIFF_REF=$(git rev-parse --short HEAD)
   echo "ANCHOR_PROBED=${ANCHOR_PROBED}"
   echo "BASE_COMMIT=${BASE_COMMIT}"
   echo "TARGET_BLOB=${TARGET_BLOB}"
+  [ -n "$EXCLUDED_PAYLOAD" ] && echo "EXCLUDED_PAYLOAD=${EXCLUDED_PAYLOAD}"
 } > tmp/verify_cmd.conf
 
 mkdir -p tmp/verify
