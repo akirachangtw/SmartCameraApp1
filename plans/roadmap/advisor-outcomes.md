@@ -4,7 +4,7 @@
 | ID | 階段 | 成果 | 已驗收 | 約定 | 達成度 | 狀態 |
 | --- | --- | --- | --- | --- | --- | --- |
 | P1-A | P1 能力共用入口 | 顧問（Claude 訂閱 CLI）與 PPSS 取得與返回 | 5 | 5 | 100% | 符合 |
-| P1-B | P1 | 派發、回件與記帳正確性 | 4 | 5 | 80% | 部分符合 |
+| P1-B | P1 | 派發、回件與記帳正確性 | 5 | 5 | 100% | 符合 |
 | P1-C | P1 | 消費結果、修驗與返回原工作 | 5 | 5 | 100% | 符合 |
 
 ## 基準
@@ -22,7 +22,7 @@
 - 非目標：企業級 orchestrator 平台、DB、queue、第二套 ledger、簽章系統；為每個小修增加研究、審查或後補票；自動擴張到未授權的產品需求、發布或不可逆操作；完整自動備援與錯誤切換政策、訂閱轉計費 API、API／native 全通道必驗、各 Skill 機制調整與介接維護、全域後繼政策與遷移（皆已移出本輪成果表，不在本輪交付）。
 - 假設（尚未確認的技術或依賴）：通道接線形式已落地（見〈主要 AI 模型〉，沿用既有 route.py 與共用接線表）；「真實全鏈未驗／N＝0」為 2026-10-22 當時之歷史限制，已由 2026-10-24 現版受控案例證據取代（見 P1-A、P1-C 明細；自然事故仍為 0）；`ADV-ENTRY-01` 之限定交付範圍與各約定項之對應已於 align 盤點（見各 ID 明細）。
 - 目前階段：P1
-- 最近 align：2026-10-24 af5cda1cf58310207f674feea515446947bfbc47 P1-A,P1-C
+- 最近 align：2026-10-24 1ff118710716cd35ea175355b30b3b8802d0a128 P1-B
 
 ## 明細
 ### P1-A
@@ -35,9 +35,9 @@
 ### P1-B
 - 預期功能與規格：派發、回件與記帳正確性（5 項）：①派發、回件、票與 incident 正確關聯；②重複回交不重複記帳；③incident 在呼叫期間被關閉的交錯情境不隱藏失敗；④快取例外（cache hit）情境不隱藏失敗、不誤判；⑤版本不相容與必要資料缺失不隱藏失敗。
 - 驗收方式與必要前提：對各情境做實際執行或可重現的案例，確認結果為明確的成功或失敗回報而非靜默通過；記帳以 ledger 現況對照。登記事件不證明其中調用的真實性，案例分層（隔離案例／目前入口真實案例）分開記。前提：目前入口可執行，ledger 可讀。
-- 實際成果與證據：[已執行] 2026-10-22 @HEAD a189bcef：`python -I` 執行 `test_route.py` 65 OK、`test_gate_ledger.py` 59 OK、`test_advisor_call.py` 25 OK（路徑 `.claude/scripts/tests/`；經真實入口 CLI 與真實 ledger CLI，工具端為注入替身）。計入四項：①關聯＝A3、N2、N3、F3、B1、B2；②重複回交不重複記帳＝N5、K1、F1 系列、B6；③incident 關閉交錯＝A10、F2 兩案（API 呼叫中被關閉：保留 receipt、不記帳；native 檢查與寫入之間被關閉：ledger 拒絕）；⑤版本不相容與必要資料缺失＝B7（缺 `ppss_records` 之舊 ledger 一律拒絕）、A5–A7、N7、P9。約定④快取例外[未驗]：B3–B6 離線案例通過，但輸入形狀依 PLT 契約與先前回報，本次未觀察真實 PPSS 快取命中，不計入。限制：測試與實作同票同作者；Rev C 差分有真實 Codex PASS（`3e92898f..d7ed267c`），Rev C.1 起為聚焦測試與終審接受（`ADV-ENTRY-01_route.md` Rev C.2 第 3 點），非 Codex 審查；ledger 登記不證明工具調用真實性。**補（2026-10-22 @HEAD 1d8a1fe8，真實接線；計數不變仍為 4/5）：**[已執行] 約定①②之真實工具層佐證：隔離 ledger 的同一 incident `INC-001` 內，PPSS 一次、Codex 別名一次、Claude 別名一次，各自派發→回交，ledger 事件 seq 2–5 與派發 id 一一對應（`d2-90022a788b532dbe`、`d2-9271a85bf714453f`、`d2-34292ec1b3a07b49`）；對 Codex 回交重放同一 `--dispatch-id` 得 `REFUSED stale_or_duplicate_dispatch`（exit 5），事件數不增。本次 cache＝miss，未走 `--cached-artifact`，約定④仍無真實命中。**偏差（具體未接通處）**：兩個別名來源的 consult 在 ledger note 都寫成 `source=advisor.native`（`.claude/scripts/route.py:630` 把來源字面寫死），只有 `ref=` 欄可分辨 Codex 與 Claude；ticket、incident、dispatch 的關聯成立，來源名稱無法由 note 辨識。約定③⑤本次未新增證據。 **補（2026-10-24 @HEAD 9a4fc213，ADV-CLAUDECLI-01；計數不變 4/5）：**[已執行] 約定外缺陷『別名來源在 ledger note 被記成 `advisor.native`』已修：`route.py` note 改為 `source={a.source}`（`781dcd49`），`test_route.py` K19 以別名來源驗證 note 記實際來源名（僅 stub 層）；`python -I` `test_route.py` 87 OK（既有 65 案僅 S2／S3 具名同步）。約定③於新通道另有 K14（stub 於回答前經真實 ledger CLI 關閉 incident→`incident_closed_after_call`，回答與記錄檔路徑保留、ledger 零新增 consult、不重開），僅 stub 層。約定④快取例外、⑤版本不相容與必要資料缺失無新增證據。
-- 落差與下一步：判斷：部分符合 — 已驗收 4/5。缺口：約定④真實快取命中未觀察。已知缺陷（別名來源 ledger note）已修（K19，僅 stub 層）。下一步：快取命中待自然出現，不為驗收製造。
-- 最近 align：2026-10-24 9a4fc213808760b8fe92f8e2e83bcab1cb06cf81 範圍 P1-B
+- 實際成果與證據：[已執行] 2026-10-22 @HEAD a189bcef：`python -I` 執行 `test_route.py` 65 OK、`test_gate_ledger.py` 59 OK、`test_advisor_call.py` 25 OK（路徑 `.claude/scripts/tests/`；經真實入口 CLI 與真實 ledger CLI，工具端為注入替身）。計入四項：①關聯＝A3、N2、N3、F3、B1、B2；②重複回交不重複記帳＝N5、K1、F1 系列、B6；③incident 關閉交錯＝A10、F2 兩案（API 呼叫中被關閉：保留 receipt、不記帳；native 檢查與寫入之間被關閉：ledger 拒絕）；⑤版本不相容與必要資料缺失＝B7（缺 `ppss_records` 之舊 ledger 一律拒絕）、A5–A7、N7、P9。約定④快取例外[未驗]：B3–B6 離線案例通過，但輸入形狀依 PLT 契約與先前回報，本次未觀察真實 PPSS 快取命中，不計入。限制：測試與實作同票同作者；Rev C 差分有真實 Codex PASS（`3e92898f..d7ed267c`），Rev C.1 起為聚焦測試與終審接受（`ADV-ENTRY-01_route.md` Rev C.2 第 3 點），非 Codex 審查；ledger 登記不證明工具調用真實性。**補（2026-10-22 @HEAD 1d8a1fe8，真實接線；計數不變仍為 4/5）：**[已執行] 約定①②之真實工具層佐證：隔離 ledger 的同一 incident `INC-001` 內，PPSS 一次、Codex 別名一次、Claude 別名一次，各自派發→回交，ledger 事件 seq 2–5 與派發 id 一一對應（`d2-90022a788b532dbe`、`d2-9271a85bf714453f`、`d2-34292ec1b3a07b49`）；對 Codex 回交重放同一 `--dispatch-id` 得 `REFUSED stale_or_duplicate_dispatch`（exit 5），事件數不增。本次 cache＝miss，未走 `--cached-artifact`，約定④仍無真實命中。**偏差（具體未接通處）**：兩個別名來源的 consult 在 ledger note 都寫成 `source=advisor.native`（`.claude/scripts/route.py:630` 把來源字面寫死），只有 `ref=` 欄可分辨 Codex 與 Claude；ticket、incident、dispatch 的關聯成立，來源名稱無法由 note 辨識。約定③⑤本次未新增證據。 **補（2026-10-24 @HEAD 9a4fc213，ADV-CLAUDECLI-01；計數不變 4/5）：**[已執行] 約定外缺陷『別名來源在 ledger note 被記成 `advisor.native`』已修：`route.py` note 改為 `source={a.source}`（`781dcd49`），`test_route.py` K19 以別名來源驗證 note 記實際來源名（僅 stub 層）；`python -I` `test_route.py` 87 OK（既有 65 案僅 S2／S3 具名同步）。約定③於新通道另有 K14（stub 於回答前經真實 ledger CLI 關閉 incident→`incident_closed_after_call`，回答與記錄檔路徑保留、ledger 零新增 consult、不重開），僅 stub 層。約定④快取例外、⑤版本不相容與必要資料缺失無新增證據。 **再補（2026-10-24 @HEAD `1ff11871`，核對約定④之實際驗收口徑；不新增模型呼叫、不製造快取命中）：**[靜態] 〈驗收方式〉原文為『對各情境做實際執行或可重現的案例，確認結果為明確的成功或失敗回報而非靜默通過；…案例分層（隔離案例／目前入口真實案例）分開記』，前提僅『目前入口可執行，ledger 可讀』——**未要求真實 PPSS 快取命中**；先前以『本次未觀察真實 PPSS 快取命中』為不計入理由，超出該驗收口徑，且與①②③⑤皆以同層（真實入口 CLI＋真實 ledger CLI、工具端為注入替身）可重現案例計入之口徑不一致，故更正為依原文口徑計入並分層標示。[已執行] `python -I .claude/scripts/tests/test_route.py -k test_B3 -k test_B4 -k test_B5 -k test_B6`（@HEAD `41d1fd5c`）4 案 OK：B3 回件早於派發須宣告 `--cached-artifact`、B4 回件 request_id 與 artifact 不符則拒絕、B5 `--cached-artifact` 僅豁免時間條件、B6 該旗標不豁免 ledger 去重（皆經真實入口 CLI 與真實 ledger CLI，給出明確成功／拒絕回報，非靜默通過）。[靜態] 案例輸入形狀之依據：PLT 原始碼 `core/services/research_service.py:163`（每次請求產生新 `request_id`）、`:181-193`（命中時回傳新 request_id＋快取 run 之舊 `artifact_path`、回應標 `hit`；該檔 sha256 前 16 碼 `9e1a0a3e87e07f47`，PLT HEAD `4588721`，跨 repo 唯讀）。**證明範圍與限制（分層）**：隔離案例層＝通過（注入替身，**僅 stub 層**）；目前入口真實案例層＝**未觀察**（無真實 PPSS 快取命中，不可製造，亦不為驗收製造）；PLT 原始碼為靜態證據，不證 runtime 回應形狀；測試與實作同票同作者。
+- 落差與下一步：判斷：符合 — 已驗收 5/5（①②③④⑤）。④ 依〈驗收方式〉『可重現案例＋分層分開記』以隔離案例層（B3–B6，**僅 stub 層**）計入；目前入口真實案例層（真實 PPSS 快取命中）未觀察，不製造。限制：測試與實作同票同作者；①②③⑤ 同為注入替身層；案例輸入形狀僅有靜態佐證。已知缺陷（別名來源 ledger note）已修（K19，僅 stub 層）。下一步：快取命中若自然出現可補『真實案例層』證據；不為驗收製造。
+- 最近 align：2026-10-24 1ff118710716cd35ea175355b30b3b8802d0a128 範圍 P1-B
 
 ### P1-C
 - 預期功能與規格：消費結果、修驗與返回原工作（5 項）：①executor 消費該情境實際需要的 Advisor 建議及／或 PPSS 證據，採取適用處置，而非只記錄；不強迫無外部事實缺口的問題呼叫 PPSS；②修復後執行局部驗證，由驗證結果判斷問題是否解決（取得回答或記帳成功不等於解決）；③驗證後返回原工作流程，不停在「已諮詢」「建議下一步」；④修復循環沿用既有授權、成本、計輪與停損語義，不另設一套；⑤經 Routing 以 Claude 訂閱 CLI 為顧問通道的真實全鏈（取得→消費→修驗→返回）有獨立證據，不以歷史隔離案例、別名來源或舊入口冒充。
