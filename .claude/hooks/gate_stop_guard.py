@@ -486,7 +486,23 @@ def decide(ctx: Ctx):
     return None
 
 
+# Task-type labels (documented Stop input `background_tasks[].type`, filled by Claude Code itself) that count as
+# legitimate waiting for background agent work. shell / monitor / cloud session / MCP task do not.
+WAIT_TASK_TYPES = frozenset({"subagent", "workflow", "teammate"})
+
+
+def waiting_on_agent_work(payload) -> bool:
+    """True only when the platform-filled `background_tasks` lists an in-flight subagent / workflow / teammate.
+    Every other shape (absent, non-list, malformed entries, other types, empty list) is False: counting continues."""
+    tasks = payload.get("background_tasks") if isinstance(payload, dict) else None
+    if not isinstance(tasks, list):
+        return False
+    return any(isinstance(t, dict) and isinstance(t.get("type"), str) and t["type"] in WAIT_TASK_TYPES for t in tasks)
+
+
 def persistent_block(ctx: Ctx, st: dict, router, escalate, missed, other_pending):
+    if waiting_on_agent_work(ctx.payload):
+        return None                                   # legitimate wait: no block, no count, no `blocks` event, no seq change
     _, checked = scan_ticket(ticket_file(ctx.root, ctx.ticket))
     vector = progress_vector(st, checked)
     previous = load_seq(ctx)

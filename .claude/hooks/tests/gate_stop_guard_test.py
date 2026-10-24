@@ -627,5 +627,84 @@ class ProgressAndFailures(Base):
         self.assertAllow(self.env.payload())
 
 
+class BackgroundWait(Base):
+    """ADV-STOPWAIT-01: a Stop while subagent / workflow / teammate work is in flight is a legitimate wait."""
+
+    SUBAGENT = {"id": "t1", "type": "subagent", "status": "running", "description": "R0 pre-screen", "agent_type": "cross-reviewer"}
+
+    def _seq(self, env=None):
+        return json.loads((env or self.env).marker("seq").read_text(encoding="utf-8"))
+
+    @staticmethod
+    def _task(kind):
+        return {"id": "x", "type": kind, "status": "running", "description": "d"}
+
+    def test_subagent_wait_is_allowed_without_counting_and_resumes_from_old_count(self):
+        self.env.incident("s-a")
+        self.block(self.env.payload())
+        self.block(self.env.payload())
+        self.assertEqual(self._seq()["count"], 2)
+        blocks_before = self.env.status()["blocks"]
+        for _ in range(10):
+            self.assertAllow(self.env.payload(background_tasks=[self.SUBAGENT], session_crons=[]))
+        self.assertEqual(self._seq()["count"], 2)                          # seq marker untouched
+        st = self.env.status()
+        self.assertEqual(st["blocks"], blocks_before)                       # no new `blocks` event
+        self.assertEqual(st["pending_human"], [])                           # no NO_PROGRESS
+        self.block(self.env.payload(background_tasks=[]))                   # wait over: counting resumes
+        self.assertEqual(self._seq()["count"], 3)
+
+    def test_workflow_and_teammate_also_count_as_waiting(self):
+        self.env.incident("s-a")
+        for kind in ("workflow", "teammate"):
+            self.assertAllow(self.env.payload(background_tasks=[self._task(kind)]))
+        self.assertFalse(self.env.marker("seq").exists())
+        self.assertEqual(self.env.status()["blocks"], 0)
+
+    def test_mixed_shell_and_subagent_is_waiting(self):
+        self.env.incident("s-a")
+        self.assertAllow(self.env.payload(background_tasks=[self._task("shell"), self.SUBAGENT]))
+        self.assertEqual(self.env.status()["blocks"], 0)
+
+    def test_non_agent_task_types_keep_counting_and_still_reach_no_progress(self):
+        self.env.incident("s-a")
+        for kind in ("shell", "monitor", "cloud session", "MCP task"):
+            self.block(self.env.payload(background_tasks=[self._task(kind)]))
+        self.assertEqual(self._seq()["count"], 4)
+        self.block(self.env.payload(background_tasks=[self._task("shell")]))
+        self.assertAllow(self.env.payload(background_tasks=[self._task("shell")]))   # 6th evaluation escalates as before
+        self.assertEqual([p["category"] for p in self.env.status()["pending_human"]], ["NO_PROGRESS"])
+
+    def test_malformed_or_missing_background_tasks_fail_closed(self):
+        variants = [None, "subagent", {"type": "subagent"}, [], [None], [1, "x"], [{"id": "x"}], [{"type": None}],
+                    [{"type": ["subagent"]}], [{"type": "Subagent"}], [{"type": "subagent "}], [{"type": 7}]]
+        for v in variants:
+            with self.subTest(background_tasks=v):
+                env = Env()
+                self.addCleanup(env.close)
+                env.incident("s-a")
+                reason = self.block(env.payload(background_tasks=v), env=env)
+                self.assertIn("INC-", reason)
+                self.assertEqual(self._seq(env)["count"], 1)
+        env = Env()
+        self.addCleanup(env.close)
+        env.incident("s-a")
+        self.block(env.payload(), env=env)                                  # key absent entirely
+        self.assertEqual(self._seq(env)["count"], 1)
+
+    def test_waiting_on_agent_work_function_table(self):
+        spec = importlib.util.spec_from_file_location("gsg_mod_wait", HOOK)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        f = mod.waiting_on_agent_work
+        self.assertTrue(f({"background_tasks": [{"type": "subagent"}]}))
+        self.assertTrue(f({"background_tasks": [{"type": "shell"}, {"type": "workflow"}]}))
+        self.assertTrue(f({"background_tasks": [{"type": "teammate"}]}))
+        for bad in ({}, {"background_tasks": None}, {"background_tasks": []}, {"background_tasks": [{"type": "shell"}]},
+                    {"background_tasks": "subagent"}, {"background_tasks": [{"type": "SUBAGENT"}]}, None, [], "x"):
+            self.assertFalse(f(bad), bad)
+        self.assertFalse(hasattr(mod, "K_WAIT_PAUSE_MAX"))                   # no new self-made wait budget
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
