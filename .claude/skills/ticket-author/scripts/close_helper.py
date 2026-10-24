@@ -8,7 +8,8 @@ object on stdout whose `next` / `ok` fields tell the Agent what to do.
 
 Scratch : <repo>/.tmp/ticket-author/close/<TICKET_ID>/   (kept 7 days, never committed)
 Writes  : only the scratch directory and, in `finalize`, one minimal result section of the
-          target Ticket file. Git is used read-only. Nothing else is touched.
+          target Ticket file. Git is read-only everywhere except `persist`, which add/commits that one
+          Ticket file under `deliver/` (pathspec-limited, never `-A`, never `--allow-empty`). Nothing else is touched.
 
 Sub-commands
   preflight --ticket ID --registry F [--dependents F]
@@ -16,10 +17,12 @@ Sub-commands
   decide    --ticket ID --registry F --verdicts F --reply F [--reply F2] --round N --fallback-tried 0|1
   readback  --ticket ID --registry F
   finalize  --ticket ID --registry F --summary F --commits h1,h2   (reads only the decision.json snapshot; --verdicts is accepted and ignored)
+  persist   --ticket ID --registry F [--recover]   (only for a Ticket read back as CLOSED: one `[ID]` commit of its deliver/ file;
+            --recover = explicit, scratch-free verification for re-entry after the 7-day scratch sweep; never selected automatically)
   sweep     [--root R] [--days 7] [--exclude DIR] [--max 200]
 Global      --repo ROOT   --now EPOCH
 
-Exit codes  0 result produced | 2 usage error | 3 refused (precondition not met)
+Exit codes  0 result produced | 2 usage error | 3 refused (precondition not met); `persist` exits 3 on every `saved: false`
 """
 from __future__ import annotations
 
@@ -1179,6 +1182,96 @@ def cmd_finalize(a):
         f.write(new_text)
     return emit({"written": True, "replaced": replaced, "lines": len(lines), "ticket_file": pre["ticket_file"]})
 
+# --------------------------------------------------------------------------- persist command
+def git_err(repo, *args, timeout=60):
+    try:
+        r = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return 127, "", str(exc)
+    return r.returncode, r.stdout.decode("utf-8", "replace"), r.stderr.decode("utf-8", "replace")
+
+
+def persist_out(obj, saved):
+    obj["saved"] = bool(saved)
+    return emit(obj, 0 if saved else 3)
+
+
+def verify_recover(repo, tid, after):
+    """Scratch-free verification for re-entry after the close scratch was swept: observable state only."""
+    after = after or {}
+    mism = []
+    if after.get("id") != tid:
+        mism.append("id=%r (expected %r)" % (after.get("id"), tid))
+    if after.get("lifecycle") != "CLOSED":
+        mism.append("lifecycle=%s (expected CLOSED)" % after.get("lifecycle"))
+    loc = locate_ticket(repo, tid, after)
+    if loc["status"] != "found":
+        mism.append("ticket file not resolvable (%s)" % loc["status"])
+    elif loc["location"] not in ("deliver", "deliver/archive"):
+        mism.append("ticket file location=%s" % loc["location"])
+    got = after.get("reviews") or {}
+    for f in REVIEW_FIELDS:
+        if got.get(f) not in REVIEW_ENUM:
+            mism.append("reviews.%s=%r (missing or invalid)" % (f, got.get(f)))
+    if loc["status"] == "found":
+        try:
+            text = read_text(Path(repo) / loc["path"])
+        except OSError:
+            text = ""
+        span = find_section(text)
+        if not span or "轉 CLOSED" not in text[span[0]:span[1]]:
+            mism.append("close-result section missing or without the CLOSED result line")
+    return (not mism), mism, loc
+
+
+def cmd_persist(a):
+    repo, tid = a.repo, a.ticket
+    after, err = load_json(a.registry)
+    if err:
+        return persist_out({"refused": "registry_after_" + err}, False)
+    d = close_dir(repo, tid)
+    if a.recover:
+        mode = "recover"
+        ok, mism, loc = verify_recover(repo, tid, after)
+    else:
+        mode = "full"
+        if not (d / "registry.json").is_file() or not (d / "decision.json").is_file():
+            return persist_out({"refused": "scratch_missing_use_recover", "verification": mode}, False)
+        ok, mism, _exp, loc = verify_readback(repo, tid, after)
+    if not ok:
+        return persist_out({"refused": "readback_mismatch", "mismatches": mism, "verification": mode}, False)
+    rel = loc["path"]
+    base = {"path": rel, "verification": mode}
+    rc, _o, _e = git_err(repo, "check-ignore", "-q", "--", rel)
+    if rc == 0:
+        return persist_out({**base, "reason": "ignored"}, False)
+    if rc != 1:
+        return persist_out({**base, "reason": "git_query_failed", "stderr_head": _e[:200]}, False)
+    rc, _o, _e = git_err(repo, "ls-files", "--error-unmatch", "--", rel)
+    if rc not in (0, 1):
+        return persist_out({**base, "reason": "git_query_failed", "stderr_head": _e[:200]}, False)
+    tracked = rc == 0
+    if tracked:
+        rc, out, _e = git_err(repo, "status", "--porcelain", "--", rel)
+        if rc != 0:
+            return persist_out({**base, "reason": "git_query_failed", "stderr_head": _e[:200]}, False)
+        if not out.strip():
+            return persist_out({**base, "reason": "no_diff"}, True)
+    else:
+        rc, _o, _e = git_err(repo, "add", "--", rel)
+        if rc != 0:
+            return persist_out({**base, "reason": "add_failed", "stderr_head": _e[:200]}, False)
+    msg = "[%s] docs(ticket): persist closeout record (TKA close persist)" % tid
+    rc, _o, _e = git_err(repo, "commit", "-o", "-m", msg, "--", rel)
+    if rc != 0:
+        extra = {}
+        if not tracked:  # leave nothing half-done: the file was untracked before this call
+            rrc, _ro, _re = git_err(repo, "reset", "-q", "--", rel)
+            extra["unstaged"] = rrc == 0
+        return persist_out({**base, "reason": "commit_failed", "stderr_head": _e[:200], **extra}, False)
+    rc, out, _e = git_err(repo, "rev-parse", "HEAD")
+    return persist_out({**base, "commit": out.strip() if rc == 0 else None}, True)
+
 
 # --------------------------------------------------------------------------- sweep command
 def cmd_sweep(a):
@@ -1226,6 +1319,11 @@ def build_parser():
     s.add_argument("--summary", required=True)
     s.add_argument("--commits", default="")
 
+    s = sub.add_parser("persist")
+    s.add_argument("--ticket", required=True)
+    s.add_argument("--registry", required=True)
+    s.add_argument("--recover", action="store_true")
+
     s = sub.add_parser("sweep")
     s.add_argument("--root")
     s.add_argument("--days", type=float, default=7)
@@ -1245,7 +1343,8 @@ def main(argv=None):
         a.repo = out.strip() if rc == 0 and out.strip() else os.getcwd()
     a.now = a.now if a.now is not None else time.time()
     handler = {"preflight": cmd_preflight, "reviewer": cmd_reviewer, "decide": cmd_decide,
-               "readback": cmd_readback, "finalize": cmd_finalize, "sweep": cmd_sweep}[a.cmd]
+               "readback": cmd_readback, "finalize": cmd_finalize, "persist": cmd_persist,
+               "sweep": cmd_sweep}[a.cmd]
     try:
         return handler(a)
     except Refuse as r:

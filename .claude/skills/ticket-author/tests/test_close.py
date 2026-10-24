@@ -271,7 +271,11 @@ class TestDispatchIntegration(Base):
     def test_full_flow_from_skill_block(self):
         self.make_repo()
         cmds = self.dispatch_commands()
-        self.assertEqual(len(cmds), 5)
+        self.assertEqual(len(cmds), 7)
+        self.assertEqual([shlex.split(c)[2] for c in cmds],
+                         ["preflight", "reviewer", "decide", "readback", "finalize", "persist", "persist"])
+        self.assertNotIn("--recover", cmds[5])
+        self.assertIn("--recover", cmds[6])
         self.set_dependents()
         head_before = self.git("rev-parse", "HEAD")
         rc, pre = self.exec(cmds[0])
@@ -292,6 +296,227 @@ class TestDispatchIntegration(Base):
         self.assertEqual(text.count("<!-- close-result:end -->"), 1)
         self.assertEqual(self.git("rev-parse", "HEAD"), head_before)
         self.assertEqual(self.git("status", "--porcelain"), " M " + self.ticket_rel)
+        # integration reachability: the documented last dispatch step saves the Ticket record
+        rc, per = self.exec(cmds[5])
+        self.assertEqual((rc, per["saved"], per["verification"]), (0, True, "full"), per)
+        self.assertNotEqual(self.git("rev-parse", "HEAD"), head_before)
+        self.assertEqual(self.git("status", "--porcelain"), "")
+        self.assertEqual(self.git("diff", "--name-only", head_before, "HEAD"), self.ticket_rel)
+        self.assertTrue(self.git("log", "-1", "--format=%s").startswith("[TST-01] "))
+
+
+# =============================================================================== 1b. persist
+class TestPersist(Base):
+    """ADV-SAVE-01: deterministic save of the Ticket record, honest failures, scratch-free recovery."""
+
+    def closed_repo(self, finalize=True, **kw):
+        self.make_repo(**kw)
+        self.to_close()
+        self.after()
+        if finalize:
+            self.write_summary()
+            self.assertEqual(self.finalize()[0], 0)
+
+    def persist(self, recover=False, registry="registry_after.json"):
+        args = ["persist", "--ticket", TID, "--registry", self.dir / registry]
+        if recover:
+            args.append("--recover")
+        return self.h(*args)
+
+    def untrack_ticket(self):
+        keep = self.ticket_path().read_bytes()
+        self.git("rm", "-q", "--cached", "--", self.ticket_rel)
+        self.git("commit", "-q", "-m", "untrack ticket")
+        self.assertEqual(self.ticket_path().read_bytes(), keep)
+
+    def sweep_scratch(self):
+        shutil.rmtree(self.dir)
+        self.dir.mkdir(parents=True)
+
+    def head(self):
+        return self.git("rev-parse", "HEAD")
+
+    def status(self):
+        return self.git("status", "--porcelain", "--untracked-files=all")
+
+    # ---- full verification
+    def test_untracked_new_file_commits_only_that_file(self):
+        self.closed_repo()
+        self.untrack_ticket()
+        put(self.repo / "other.md", "someone else's dirty file\n")
+        put(self.repo / "README.md", "init changed\n")
+        before = self.head()
+        self.git("add", "--", "README.md")  # a foreign staged change must stay staged
+        rc, d, _ = self.persist()
+        self.assertEqual((rc, d["saved"], d["verification"]), (0, True, "full"), d)
+        self.assertEqual(self.git("rev-list", "--count", before + "..HEAD"), "1")
+        self.assertEqual(self.git("log", "-1", "--format=%s"), "[TST-01] docs(ticket): persist closeout record (TKA close persist)")
+        self.assertEqual(self.git("diff", "--name-only", before, "HEAD"), self.ticket_rel)
+        self.assertIn("?? other.md", self.status())
+        self.assertIn("M  README.md", self.status())
+
+    def test_tracked_modified_commits_one_file(self):
+        self.closed_repo()
+        put(self.repo / "other.md", "dirty\n")
+        before = self.head()
+        rc, d, _ = self.persist()
+        self.assertEqual((rc, d["saved"]), (0, True), d)
+        self.assertEqual(self.git("diff", "--name-only", before, "HEAD"), self.ticket_rel)
+        self.assertEqual(d["commit"], self.head())
+        self.assertIn("?? other.md", self.status())
+
+    def test_tracked_no_diff_is_saved_without_commit_and_reentry_adds_nothing(self):
+        self.closed_repo()
+        self.assertEqual(self.persist()[0], 0)
+        head = self.head()
+        rc, d, _ = self.persist()
+        self.assertEqual((rc, d["saved"], d["reason"]), (0, True, "no_diff"), d)
+        self.assertEqual(self.head(), head)
+
+    def test_non_closed_registry_is_refused_with_zero_writes(self):
+        self.closed_repo()
+        self.untrack_ticket()
+        self.after(lifecycle="REVIEW")
+        head = self.head()
+        rc, d, _ = self.persist()
+        self.assertEqual((rc, d["saved"], d["refused"]), (3, False, "readback_mismatch"), d)
+        self.assertEqual(self.head(), head)
+        self.assertEqual(self.status(), "?? " + self.ticket_rel)  # not even `git add`
+
+    def test_ticket_not_under_deliver_is_refused_with_zero_writes(self):
+        self.closed_repo()
+        moved = "%s/Pending/%s" % (PROJECT, self.name)
+        (self.repo / PROJECT / "Pending").mkdir(parents=True, exist_ok=True)
+        shutil.move(str(self.ticket_path()), str(self.repo / moved))
+        self.after(file="Pending/" + self.name)
+        head = self.head()
+        rc, d, _ = self.persist()
+        self.assertEqual((rc, d["saved"], d["refused"]), (3, False, "readback_mismatch"), d)
+        self.assertEqual(self.head(), head)
+        self.assertEqual(self.git("diff", "--cached", "--name-only"), "")
+
+    def test_ignored_ticket_file_is_not_saved_and_not_forced(self):
+        self.closed_repo()
+        self.git("rm", "-q", "--cached", "--", self.ticket_rel)
+        put(self.repo / ".gitignore", ".tmp/\n" + self.ticket_rel + "\n")
+        self.git("add", "--", ".gitignore")
+        self.git("commit", "-q", "-m", "ignore ticket")
+        head = self.head()
+        rc, d, _ = self.persist()
+        self.assertEqual((rc, d["saved"], d["reason"]), (3, False, "ignored"), d)
+        self.assertEqual(self.head(), head)
+        self.assertEqual(self.git("ls-files", "--", self.ticket_rel), "")
+
+    def test_commit_hook_failure_is_reported_not_saved_and_leaves_nothing_staged(self):
+        self.closed_repo()
+        self.untrack_ticket()
+        hook = self.repo / ".git" / "hooks" / "commit-msg"
+        put(hook, "#!/bin/sh\necho blocked >&2\nexit 1\n")
+        os.chmod(hook, 0o755)
+        head = self.head()
+        rc, d, _ = self.persist()
+        self.assertEqual((rc, d["saved"], d["reason"]), (3, False, "commit_failed"), d)
+        self.assertNotIn('"saved": true', json.dumps(d))
+        self.assertEqual(self.head(), head)
+        self.assertEqual(self.status(), "?? " + self.ticket_rel)
+
+    def test_add_failure_is_reported_not_saved(self):
+        self.closed_repo()
+        self.untrack_ticket()
+        lock = self.repo / ".git" / "index.lock"
+        put(lock, "")
+        self.addCleanup(lambda: lock.exists() and lock.unlink())
+        head = self.head()
+        rc, d, _ = self.persist()
+        self.assertEqual((rc, d["saved"], d["reason"]), (3, False, "add_failed"), d)
+        self.assertEqual(self.head(), head)
+
+    # ---- scratch swept: explicit recovery
+    def test_scratch_missing_requires_explicit_recover_and_writes_nothing(self):
+        self.closed_repo()
+        self.untrack_ticket()
+        reg_after = (self.dir / "registry_after.json").read_bytes()
+        self.sweep_scratch()
+        put(self.dir / "registry_after.json", reg_after.decode("utf-8"))
+        head = self.head()
+        rc, d, _ = self.persist()
+        self.assertEqual((rc, d["saved"], d["refused"]), (3, False, "scratch_missing_use_recover"), d)
+        self.assertEqual(self.head(), head)
+        self.assertEqual(self.status(), "?? " + self.ticket_rel)
+
+    def test_recover_commits_after_scratch_sweep(self):
+        self.closed_repo()
+        self.untrack_ticket()
+        reg_after = (self.dir / "registry_after.json").read_bytes()
+        self.sweep_scratch()
+        put(self.dir / "registry_after.json", reg_after.decode("utf-8"))
+        before = self.head()
+        rc, d, _ = self.persist(recover=True)
+        self.assertEqual((rc, d["saved"], d["verification"]), (0, True, "recover"), d)
+        self.assertEqual(self.git("diff", "--name-only", before, "HEAD"), self.ticket_rel)
+
+    def recover_refusal(self, mutate):
+        self.closed_repo()
+        self.untrack_ticket()
+        reg_after = json.loads((self.dir / "registry_after.json").read_text(encoding="utf-8"))
+        self.sweep_scratch()
+        mutate(reg_after)
+        put(self.dir / "registry_after.json", json.dumps(reg_after, ensure_ascii=False))
+        head = self.head()
+        rc, d, _ = self.persist(recover=True)
+        self.assertEqual((rc, d["saved"], d["refused"]), (3, False, "readback_mismatch"), d)
+        self.assertEqual(self.head(), head)
+        self.assertEqual(self.git("diff", "--cached", "--name-only"), "")
+        return d
+
+    def test_recover_refuses_without_close_result_section(self):
+        self.closed_repo(finalize=False)
+        self.untrack_ticket()
+        reg_after = (self.dir / "registry_after.json").read_bytes()
+        self.sweep_scratch()
+        put(self.dir / "registry_after.json", reg_after.decode("utf-8"))
+        rc, d, _ = self.persist(recover=True)
+        self.assertEqual((rc, d["saved"]), (3, False))
+        self.assertTrue(any("close-result section" in m for m in d["mismatches"]), d)
+
+    def test_recover_refuses_non_closed_registry(self):
+        d = self.recover_refusal(lambda r: r.update(lifecycle="REVIEW"))
+        self.assertTrue(any("lifecycle" in m for m in d["mismatches"]), d)
+
+    def test_recover_refuses_ticket_outside_deliver(self):
+        self.closed_repo()
+        moved = "%s/Pending/%s" % (PROJECT, self.name)
+        (self.repo / PROJECT / "Pending").mkdir(parents=True, exist_ok=True)
+        shutil.move(str(self.ticket_path()), str(self.repo / moved))
+        reg_after = json.loads((self.dir / "registry_after.json").read_text(encoding="utf-8"))
+        reg_after["file"] = "Pending/" + self.name
+        self.sweep_scratch()
+        put(self.dir / "registry_after.json", json.dumps(reg_after, ensure_ascii=False))
+        head = self.head()
+        rc, d, _ = self.persist(recover=True)
+        self.assertEqual((rc, d["saved"]), (3, False))
+        self.assertTrue(any("location" in m or "resolvable" in m for m in d["mismatches"]), d)
+        self.assertEqual(self.head(), head)
+        self.assertEqual(self.git("diff", "--cached", "--name-only"), "")
+
+    def test_recover_refuses_missing_or_invalid_reviews(self):
+        for bad in ({"qa": "PASS", "sv": "PASS", "codex": "PASS"}, {"qa": "PASS", "sv": "PASS", "codex": "PASS", "traycer": "MAYBE"}):
+            with self.subTest(reviews=bad):
+                self.root = Path(tempfile.mkdtemp(dir=self.tmp.name))
+                d = self.recover_refusal(lambda r, b=bad: r.update(reviews=b))
+                self.assertTrue(any("reviews." in m for m in d["mismatches"]), d)
+
+
+    # ---- SKILL wording that Agents follow (documented rules, checked by text)
+    def test_skill_documents_honest_failure_and_recovery_rules(self):
+        text = SKILL_MD.read_text(encoding="utf-8")
+        for needle in ("persist: saved <hash> | already_saved | NOT SAVED(<reason>) | not_run(<why>)",
+                       "when it is false never write saved or committed",
+                       "report the close as partial success",
+                       "persist --recover", "not_run(no_final_result_section)",
+                       "Nothing is persisted for `NOT_CLOSED`, `PRECONDITION_FAILED`, `BLOCKED` or any `STOP_*`",
+                       "no `check commit`, no `-A`, no `--allow-empty`"):
+            self.assertIn(needle, text)
 
 
 # =============================================================================== 2. AC completeness
