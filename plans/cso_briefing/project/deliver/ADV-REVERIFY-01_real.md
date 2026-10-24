@@ -297,3 +297,12 @@ after2(呼叫B後):                    {"git_gate": {"CASE-REV-01.jsonl": "2619d
 - **QA／SV／Cross-Review**：依風險分級（ALLOWED 全為 `.md`、無 `app/`／腳本／hook、無不可逆操作、可 `git revert`）省略；`reviews` 四欄 `N_A`。
 - **偏差**：首次案例建置因工具層吃掉反斜線致案例檔語法錯誤，於零模型呼叫階段發現並棄用（`rev1case/`），重建為 `revcase/`；其間一次修正命令被權限層拒絕、未改道重試同一動作。
 - **成果表**：未寫入；P1-A／P1-C 之回填由 `Skill(projman)` align 處理。PROGRESS Dashboard 同步屬 FORBIDDEN 延後項，待 `/compact`。
+
+<!-- close-result:begin -->
+## 收束結果（close）
+- 交付摘要: 交付：以現版 advisor.claude-cli（route.py blob e2215d2f／route_table.json blob 6140a413）兩次真實訂閱 CLI 呼叫（A 有票 RECORDED、B 無票 ANSWERED，啟動總數 2、無第三次）重驗 P1-A①②④⑤ 與 P1-C⑤，證據逐字嵌入票檔；實作提交 bf918bd6（僅票檔）；成果表已由 projman align 回填（380e1ec4）。 / 驗收：close reviewer gpt-6-sol 7 條 AC：AC1–4、7 PASS、AC6 N/A；AC5 首輪 FAIL（括號要求 sv_report 之 ZERO-DIFF-DECLARED），經一次點對點複核判 PASS（低風險路徑無 sv_report，且 diff 非空不得宣告）；scope=UNKNOWN（本票交付提交即票檔本身）。 / 限制：受控代表案例、同一 executor、各 N=1；P1-A④ 失敗回報半部分僅 stub 層；check closeout exit 4（票檔先搬 deliver，已揭露）；qa/sv/codex/traycer 均 N_A（低風險 docs 路徑）；PROGRESS Dashboard 同步待 /compact。
+- 最終驗收結論: 核心 AC 5 條皆為 PASS 或有效 N/A；非核心 PASS 1／N/A 1／UNVERIFIED 0／FAIL 0（共 7 條 AC）
+- 實作提交: bf918bd6
+- 實際收束結果: 2026-10-24 轉 CLOSED，lifecycle／file／reviews 讀回一致；reviewer: codex/gpt-6-sol（tier=heavy）；覆蓋 AC 7／7（全部），independent_call=True
+- 披露: dependency contract: 未知（未宣稱已確認無缺件）；reviewer limitation: reviewer 無法讀檔，票檔全文嵌入 prompt；sha256 原件不可重算；AC5 經一次點對點複核（reply2）由 FAIL 轉 PASS；實作 diff 範圍為 UNKNOWN: no_own_implementation_commit；git diff --check 為 UNKNOWN: no_own_implementation_commit
+<!-- close-result:end -->
