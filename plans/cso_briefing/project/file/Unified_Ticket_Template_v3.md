@@ -1,6 +1,6 @@
 # 統一 Ticket 模板（CSO + Pipeline v1.6 合併版）
 
-**版本**: v3.11
+**版本**: v3.12
 **產出日期**: 2026-05-29
 **完整 Revision 歷史**：見文末「Revision 歷史」章節
 **來源**: CSO 裁決官 Ticket 格式 + TRA Ticket v2 合併，消除冗餘
@@ -86,6 +86,12 @@ DEPENDENCY_DELTA=[NONE | BUILD:<coordinate>@<version> | TOOL:<name>@<version|N/A
 >    - **關聯性**：問題之標的、需求源或產物落在該議題領域內（該議題之專屬管線／模組／規格）。
 >    - **相依性**：該議題之票對本問題存在 `execution`／`evidence`／`coordination` 依賴（見「前置依賴（依賴三分）」），或本問題之修復落點在該議題標的內、改動會傳導至該議題之交付面。
 > 2. **二維皆不成立 → 歸 `INFRA`**：問題實質為工作流本身之設計邏輯問題者，`MUST` 歸 `INFRA`。`INFRA` 為**獨立歸屬線**，不隸屬任何產品議題，亦為無關聯亦無相依時之歸屬線。
+>
+> **發起議題律**（v3.12，Akira 2026-10-24 直接裁決；**優先於**上列二階判定）：在某議題之對話（session）中由開票方發起之票，票號**一律**掛**該發起議題**之前綴，票面 `**來源議題**` 與冊面 `topic` 同源；**MUST NOT** 依修改落點（他議題之 Skill、腳本、規則檔等）另分前綴。立法目的：日後查找問題或對話歷史時，依票號前綴即可回到發起該票之議題對話；若掛他議題前綴，該議題線與其對話視窗從未開過、亦不知有此票，造成錯亂。
+>
+> - **例外——他議題仍在開發中**：所觸及區域屬於另一個**仍在開發中**之議題時，Akira **MAY** 將問題分析報告轉交該原議題對話處理，由該對話依其前綴開票。轉交與否由 Akira 決定；開票方 **SHOULD** 於 plan 揭露所觸及之開發中議題，**MUST NOT** 自行改掛他議題前綴。未轉交者，一律掛發起議題前綴。
+> - **開錯之處置**：已開出之票前綴不符本律者，**MUST** 以 `registry_rename_ticket` 改名並同步票檔名、檔內 ID、`來源議題`、冊面 `topic`／`file`；無法改名者作廢刪除，**MUST NOT** 留下分散前綴之票。
+> - **二階判定之適用範圍**：上列「發現來源 ≠ 歸屬」二階判定僅適用於**無發起議題對話**之開票（例如獨立治理作業、外部轉入之問題）。
 >
 > **排除項**：「發現地」不成立歸屬；「話題上沾到」不成立歸屬——沾附而無關聯亦無相依者，MUST NOT 據以主張歸屬（否則歸屬爭議僅換形式復現）。正向取證先例：`INFRA-MAXLINES-GATE-01`／`-EVIDENCE-01` 於他議題 session 中發現，經二維檢驗均不成立（缺陷在既有工作流 MAX_LINES 閘之設計邏輯、修復落點在 `verify_checklist.sh`，非任何產品議題之專屬管線，亦無議題票對其存在依賴三分關係），故歸 `INFRA`。
 >
@@ -318,5 +324,7 @@ Effort 決定 Claude Code 的思考深度（`--effort` 參數等效）。
 **Revision**: v3.10（2026-09-08，INFRA-TPL-V310-01）— Verify Config 增列 `INTRODUCED_CAPABILITY` 與 `DEPENDENCY_DELTA` 二欄（實作級外審觸發之機械輸入），並立 fail-closed 判定：欄位缺失／空值／格式非法一律視為觸發，禁靜默視為 `NONE`。立法來源：`Instructions_for_Claude.md` v2.8.7「6. 實作級外審」a 款與 b③ 款；本票為該二款之生效前提（前置資源恆存律）。**forward-only**：既有在途票免補填。
 
 **Revision**: v3.11（2026-09-14，Akira 免票直接授權——可逆優先裁決）— ①基線漂移三分流之 `ANCHOR_STALE_SCOPE_INTACT`／`CANDIDATE_SUPERSEDED` 降為資訊性分類（記錄歸因後以現值續作，MUST NOT 單獨停工／廢票／升裁）；`BLOCKED_UNATTRIBUTED_STATE` 之停止限觸及 `app/` production code；②`BASE_COMMIT`／`ANCHOR_PROBED`／`TARGET_BLOB` 明定為資訊性診斷值，MUST NOT 作為實作／QA／SV／Cross-Review／closeout／archive 之 gate，`ANCHOR_PROBED` 過期之重跑預檢由 MUST 降為 SHOULD；③`TARGET_BLOB` Desktop fallback 正式化——開票端無合法 blob-hash producer 者得標 `N/A`，`BASE_COMMIT` 必填＋AI-0 逐檔現值錨點為替代控制，`N/A` 不豁免 AI-0／scope／evidence 驗證。立法來源：`Instructions_for_Claude.md` §「獨立開發者：MVP 優先、反過度治理」第 4 條（只有高風險或不可逆操作才提高驗證強度）＋ 2026-09-14 ACAGOV 可逆優先草案審查。**forward-only**：既有在途票免補填。
+
+**Revision**: v3.12（2026-10-24，Akira 免票直接授權）— 於「票號議題前綴律」立「發起議題律」，優先於「發現來源 ≠ 歸屬」二階判定：在某議題對話中由開票方發起之票，票號一律掛該發起議題前綴（`來源議題`／冊面 `topic` 同源），不依修改落點另分前綴；例外為所觸及區域屬仍在開發中之他議題時，Akira 得將問題分析報告轉交該原議題對話處理（轉交與否由 Akira 決定，開票方不得自行改掛）；開錯者改名或作廢刪除，不留分散前綴。二階判定改為僅適用於無發起議題對話之開票。事件支撐：2026-10-24「工程師自主閉環」議題（源自 ADV-CLAUDECLI-01）原依落點開出 TKA／ACAGOV／INFRA 前綴五票，經 Akira 指正全數以 `registry_rename_ticket` 改名為 `ADV-SAVE-01`／`ADV-COMPACT-01`／`ADV-CKPTDOC-01`／`ADV-FORBIDEXCL-01`／`ADV-EVEMBED-01`。**forward-only**：既有票號不追溯改號（同 v3.6「不追溯」條）。
 
 **End of 統一 Ticket 模板**
