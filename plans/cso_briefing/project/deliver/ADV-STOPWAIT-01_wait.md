@@ -94,3 +94,9 @@ DEPENDENCY_DELTA=NONE
 - 實際收束結果: 2026-10-24 轉 CLOSED，lifecycle／file／reviews 讀回一致；reviewer: codex/gpt-6-sol（tier=heavy）；覆蓋 AC 6／6（全部），independent_call=True
 - 披露: dependency contract: 未知（未宣稱已確認無缺件）；reviewer limitation: reviewer 無法讀檔，證據嵌入 prompt；AC2 僅文件契約，真實 Stop 輸入未驗
 <!-- close-result:end -->
+
+## 收束後一致性校正（2026-10-24；使用者「八票既有交付，窄範圍一致性校正」指示；不重開本票、不改 lifecycle／reviews、不新增模型呼叫）
+- **矛盾**：上方〈收束結果（close）〉稱「close reviewer gpt-6-sol 6 條 AC 全 PASS」，而 AC2（`[可達性]`）勾選框維持未勾、且〈已知限制〉載明「真實 Stop 輸入樣本未取得」。兩者並存易被誤讀為「真實 Stop 輸入已驗證」。
+- **釐清（不補造實測、不降級要求）**：reviewer 對 AC2 判 PASS，依據的是 AC2 **票面文字之證據門檻**——該 AC 明定 producer 證據欄「若僅文件契約則如實標『未取真實輸入』」，本票已據實標示並附官方 §Stop input 第一手引文與文件形狀測試。該 PASS **僅表示票面所要求的證據標示已完成**，**不**表示平台之真實 Stop 輸入已被觀察。必要核心要求「`background_tasks` 之實際形狀與行為於真實平台輸入下成立」**仍為 `[未驗]`**：官方文件未載 `status` 值域，亦未載 Stop 是否於背景任務期間被延後；本票未取得真實輸入樣本（取樣須改 `settings.json` 或在 hook 加擷取，超出 ALLOWED／HC2）。AC2 勾選框因此**維持未勾**，不為對齊「全 PASS」而補勾。
+- **規範用語**：本票結論應讀為「6 條 AC 無 FAIL／UNVERIFIED；AC2 為文件契約層 PASS（真實輸入未驗）；Codex Cross-Review 終局 ADVISORY（`reviews.codex=PASS` 為 enum 映射）」，**不得**讀為「真實 Stop 輸入已驗證」或「全 AC 皆經實測」。
+- **未驗範圍**：真實 Stop 輸入形狀；Stop 於背景任務期間是否被延後；「合法等待時不計 NO_PROGRESS」於 live 平台之端到端行為（僅有文件形狀之子程序測試 60 OK）。取得真實樣本屬後續獨立工作，本次不開票、不預支。
