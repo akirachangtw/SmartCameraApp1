@@ -24,12 +24,12 @@ Sources (route_table.json):
                     git-ignored local execution record (tmp/<ticket>/advisor_cli/ or tmp/_advisor_cli_ticketless/; a write
                     failure is bounded and non-fatal: it shows as record_error / record=none and never changes the
                     verdict, a ticketed success is still recorded in the ledger): not billing
-                    or provider-side proof. Success needs result.is_error == false (boolean), modelUsage keys == {the
+                    or provider-side proof. Success needs init.tools == [] (--tools "" honoured), result.is_error == false (boolean), modelUsage keys == {the
                     requested model} == init.model, and a non-blank string answer.
-                    reasons - REFUSED: auth_unreported api_key_source model_unreported model_mismatch multiple_models
+                    reasons - REFUSED: auth_unreported api_key_source tools_unreported tools_enabled model_unreported model_mismatch multiple_models
                     empty_answer incident_closed_after_call; CALL_FAILED: cli_unavailable (detail bin_not_found
                     cwd_not_directory cwd_inside_repo cwd_prepare_failed launch failed) timeout init_missing
-                    nonzero_exit unparseable (detail is_error_invalid model_usage_invalid answer_invalid) not_logged_in
+                    nonzero_exit unparseable (detail is_error_invalid tools_invalid model_usage_invalid answer_invalid) not_logged_in
                     model_unavailable cli_error. A timeout is final: leftover output is diagnostic only (never a
                     success, never an answer, never recorded).
     research.ppss   model-dispatch: --phase dispatch (pre-flight judgement, then the concrete research_submit
@@ -580,22 +580,32 @@ def prepare_cli_cwd(root):
     except OSError:
         fail("cwd_prepare_failed")
     base = parent / CLI_CWD_NAME
+
+    def inside(p):
+        return p == root_r or root_r in p.parents
     if base.exists() and not base.is_dir():
         fail("cwd_not_directory")
-    if base == root_r or root_r in base.parents:
+    try:
+        real = base.resolve()                      # follows a junction / symlink planted at the fixed path
+    except OSError:
+        fail("cwd_prepare_failed")
+    if inside(base) or inside(real):
         fail("cwd_inside_repo")
     try:
         base.mkdir(parents=True, exist_ok=True)
+        real = base.resolve()
     except OSError:
         fail("cwd_prepare_failed")
-    if not (base / ".git").exists():
+    if inside(real):                               # the FINAL path is what the child runs in
+        fail("cwd_inside_repo")
+    if not (real / ".git").exists():
         try:
-            res = subprocess.run(["git", "init", "-q"], cwd=str(base), capture_output=True, timeout=30)
+            res = subprocess.run(["git", "init", "-q"], cwd=str(real), capture_output=True, timeout=30)
         except (OSError, subprocess.SubprocessError):
             fail("cwd_prepare_failed")
         if res.returncode != 0:
             fail("cwd_prepare_failed")
-    return base
+    return real
 
 
 def kill_cli_tree(proc):
@@ -691,6 +701,12 @@ def judge_cli_stream(p, rc, model):
         return refuse("auth_unreported", "system/init carries no apiKeySource key")
     if init["apiKeySource"] is not None and init["apiKeySource"] != "none":
         return refuse("api_key_source", cli_key_source_text(init))
+    if "tools" not in init:
+        return refuse("tools_unreported", "system/init carries no tools key")
+    if not isinstance(init["tools"], list):
+        return fail("unparseable", "tools_invalid")
+    if init["tools"]:                              # --tools "" must leave the tool list empty
+        return refuse("tools_enabled", one_line(scrub(json.dumps(init["tools"], ensure_ascii=False)), 300))
     if res is None:
         return fail("nonzero_exit" if rc else "unparseable", "no result event")
     is_error = res.get("is_error")

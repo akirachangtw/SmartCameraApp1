@@ -1365,6 +1365,10 @@ class ClaudeCliTests(RouteCase):
         other = self.write("other.md", payload_text("incident=INC-077 failure_sha256=" + sha(ev.read_bytes())))
         none = self.write("none.md", payload_text("no token here"))
         bad = self.write("bad.md", payload_text(f"incident={self.inc} failure_sha256={'0' * 64}"))
+        hh = sha(ev.read_bytes())
+        two_inc = self.write("two_inc.md", payload_text(f"incident={self.inc} incident=INC-088 failure_sha256={hh}"))
+        both_ev = self.write("both_ev.md", payload_text(f"incident={self.inc} failure_sha256={hh} uncertainty_sha256={hh}"))
+        no_ev = self.write("no_ev.md", payload_text(f"incident={self.inc} only prose, no evidence token"))
         nonutf = self.write("nonutf.md", b"\xff\xfe\xfa not utf8")
         big = self.write("big.md", b"a" * 200001)
         nobin = self.cli_table(lambda t: t["sources"][self.SRC]["cli"].update(bin="no-such-binary-xyz-123", prefix_args=[]))
@@ -1377,6 +1381,9 @@ class ClaudeCliTests(RouteCase):
             (run([*src, "--incident", self.inc, "--payload", str(other), "--evidence", str(ev)]), 5, "incident_token_mismatch"),
             (run([*src, "--incident", self.inc, "--payload", str(none), "--evidence", str(ev)]), 5, "incident_token_missing"),
             (run([*src, "--incident", self.inc, "--payload", str(bad), "--evidence", str(ev)]), 5, "evidence_hash_mismatch"),
+            (run([*src, "--incident", self.inc, "--payload", str(two_inc), "--evidence", str(ev)]), 5, "incident_token_ambiguous"),
+            (run([*src, "--incident", self.inc, "--payload", str(both_ev), "--evidence", str(ev)]), 5, "evidence_token_ambiguous"),
+            (run([*src, "--incident", self.inc, "--payload", str(no_ev), "--evidence", str(ev)]), 5, "evidence_token_missing"),
             (run([*src, "--incident", self.inc, "--payload", str(self.tmp / "nope.md"), "--evidence", str(ev)]), 5, "request_invalid"),
             (run([*src, "--incident", self.inc, "--payload", str(nonutf), "--evidence", str(ev)]), 5, "request_invalid"),
             (run([*src, "--incident", self.inc, "--payload", str(big), "--evidence", str(ev)]), 5, "request_invalid"),
@@ -1454,6 +1461,22 @@ class ClaudeCliTests(RouteCase):
         o = self.assert_failed_once({"events": cli_ok(key="sk-ant-abc123secret")}, 5, "api_key_source")
         self.assertNotIn("abc123secret", json.dumps(o))
         self.assertIn("sk-ant-***", o["detail"])
+
+    def test_K9b_init_tools_must_be_an_empty_list(self):
+        def with_tools(value=None, drop=False):
+            e = cli_ok()
+            init = next(x for x in e if x.get("subtype") == "init")
+            if drop:
+                init.pop("tools")
+            else:
+                init["tools"] = value
+            return e
+        rc, o, _ = self.ticketed({"events": with_tools([])}, name="tl0")                  # the real shape: tools == []
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+        self.assert_failed_once({"events": with_tools(drop=True)}, 5, "tools_unreported")
+        self.assert_failed_once({"events": with_tools(["Bash", "Read"])}, 5, "tools_enabled", detail="Bash")
+        for bad in ("Bash", {"a": 1}, None, 7):
+            self.assert_failed_once({"events": with_tools(bad)}, 6, "unparseable", detail="tools_invalid")
 
     def test_K10_model_judgement(self):
         t = {"inputTokens": 1, "outputTokens": 2, "cacheReadInputTokens": 0, "cacheCreationInputTokens": 0}
@@ -1623,6 +1646,34 @@ class ClaudeCliTests(RouteCase):
         self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
         self.assertTrue((t3 / "cueshot_advisor_cli_cwd" / ".git").exists())
         self.assertEqual(self.launches(), 1)
+
+    def make_dir_link(self, link, target):
+        if os.name == "nt":
+            return subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(target)], capture_output=True).returncode == 0
+        try:
+            os.symlink(str(target), str(link), target_is_directory=True)
+            return True
+        except (OSError, NotImplementedError):
+            return False
+
+    def test_K18b_final_cwd_path_is_resolved_junction_or_symlink_into_the_repo_is_refused(self):
+        for name, target in (("t4", self.repo), ("t4b", self.repo / "plans")):
+            tdir = self.tmp / name
+            tdir.mkdir()
+            if not self.make_dir_link(tdir / "cueshot_advisor_cli_cwd", target):
+                self.skipTest("cannot create a junction/symlink in this environment")
+            rc, o = self.sub_cli(tdir)
+            self.assertEqual((rc, o["reason"], o["detail"]), (6, "cli_unavailable", "cwd_inside_repo"), (name, o))
+            self.assertEqual(self.launches(), 0)
+        outside = self.tmp / "outside_cwd"                                  # a legitimate link to a directory OUTSIDE the repo still works
+        outside.mkdir()
+        t5 = self.tmp / "t5"
+        t5.mkdir()
+        self.assertTrue(self.make_dir_link(t5 / "cueshot_advisor_cli_cwd", outside))
+        rc, o = self.sub_cli(t5)
+        self.assertEqual((rc, o["disposition"]), (0, "RECORDED"), o)
+        self.assertEqual(Path(self.seen()[-1]["cwd"]).resolve(), outside.resolve())
+        self.assertTrue((outside / ".git").exists())
 
     # ---------------- do_native source label (AC 13)
     def test_K19_native_note_records_the_actual_source(self):
