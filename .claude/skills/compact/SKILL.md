@@ -89,22 +89,15 @@ disable-model-invocation: false
 
 - **MUST** 更新 `.claude/PROGRESS.md`。
 - **MUST** 於每次 `checkpoint` 產出 handoff 檔（Akira 2026-10-12 裁決，取代原 SHOULD＋條件清單）：下一步是否與本議題相關無法預判，**MUST NOT** 以「議題已結束」「PROGRESS 已最新」「無人接手」為由省略。
-- **MUST** 於 PROGRESS 寫入後執行「當前票 artifacts ＋ PROGRESS」兩段式 scoped commit（Akira 2026-09-12 裁決；取代原單檔 PROGRESS-only 版本。目的：解 QASV 清場——`verify_checklist.sh` 未指定 `DIFF_END` 時以 `git diff --name-only "$DIFF_REF"` 計算 changed paths，含工作樹未提交異動，故前票殘留會被判為次票 scope 汙染）：
+- **MUST** 於 PROGRESS 寫入後執行 scoped commit，**提交集合僅限 compact 自身產物**：`.claude/PROGRESS.md`、`.claude/PROGRESS_ARCHIVE.md`。**票務 artifact 不由 compact 提交、不兜底**（Akira 2026-10-24 分工裁決，取代 2026-09-12 之「當前票 artifacts ＋ PROGRESS」兩段式）：票檔保存歸 TKA close（`close_helper.py persist`，於 read-back 確認 CLOSED 後以 `[<TICKET_ID>]` 單檔提交 `deliver/` 票檔，見 `ticket-author` Skill close 步驟 8b），票之實作提交歸 QA Step 4.5／低風險列之 `[<TICKET_ID>]` 提交；原兩段式之「QASV 清場」目的（`verify_checklist.sh` 未指定 `DIFF_END` 時以工作樹計 changed paths，前票殘留被判為次票 scope 汙染）改由該二 owner 承接，**compact 不得再以 `tmp/verify_cmd.conf` 之 `ALLOWED` 推定並提交票務檔**。
 
-  **第一段——當前票 artifacts**（來源 `tmp/verify_cmd.conf`，**MUST NOT** 另立歸屬來源、**MUST NOT** 以 manifest／session ID／目錄掃描推定）：
-  1. 該檔不存在、或缺 `TICKET_ID`／`ALLOWED` → **跳過本段**（不視為失敗），逕行第二段。
-  2. 候選 ＝ `ALLOWED` 各路徑（逗號切分，含 glob 展開）∩ `git status --porcelain` 之 **tracked dirty**（`??` untracked 一律排除，除非該路徑為下一項之票檔）。
-  3. 補入該票票檔：`plans/cso_briefing/project/{Pending,deliver,void}/<TICKET_ID>_*.md` 命中者（含新增）。
-  4. 候選為空 → 跳過本段。非空 → `git commit -o -m "[<TICKET_ID>] <一句話用途>" -- <候選路徑…>`。
-  5. commit 前綴 **MUST** 為 `[<TICKET_ID>]` 單票字面——TPL v3.8 三分流 R2 以 `BASE_COMMIT..HEAD` 之 commit **前綴**歸因（`ALREADY_EXECUTED`／`CANDIDATE_SUPERSEDED`），多票合一或 `[COMPACT-SYNC]` 提交程式碼即使 R2 失效。**MUST NOT** 於單筆 commit 合併多張票之 artifacts。
+  **PROGRESS（含 Archive）**（`INFRA-CTAWR-CKPT-TRIGGER-01` 補充修訂：`.claude/PROGRESS.md` 與 `.claude/PROGRESS_ARCHIVE.md` 同屬 `[COMPACT-SYNC]` 前綴之 Governance Artifact，見 `ssot-governance.md`「Governance Artifact 清單」表；原版僅提交前者，checkpoint 常態執行之最近 Ticket 表 5 筆輪替會同時異動兩檔，僅提交 PROGRESS.md 導致 Archive 每次殘留未提交，須靠 `/compact closeout` 才會被表驅動 Auto Commit 撿走——但多數 session 只用 `/compact` 預設 checkpoint，從不主動跑 closeout，殘留因而系統性發生）：兩檔各自以 `git diff --quiet HEAD -- <檔案>` 判定有無變更；**任一檔有變更**即提交，候選路徑僅含當次實際變更者（可能一檔或兩檔）：`git commit -o -m "[COMPACT-SYNC] PROGRESS checkpoint：<一句話摘要>" -- <實際變更之路徑…>`。兩檔變更判定互不依賴——**MUST NOT** 因其中一檔無變更而略過另一檔之提交；兩者同時有變更時**MAY**合併為單一 commit（同 prefix 合併原則，呼應 §「Auto Commit: Governance Artifacts」步驟 2 之既有慣例）。
 
-  **第二段——PROGRESS（含 Archive）**（`INFRA-CTAWR-CKPT-TRIGGER-01` 補充修訂：`.claude/PROGRESS.md` 與 `.claude/PROGRESS_ARCHIVE.md` 同屬 `[COMPACT-SYNC]` 前綴之 Governance Artifact，見 `ssot-governance.md`「Governance Artifact 清單」表；原版僅提交前者，checkpoint 常態執行之最近 Ticket 表 5 筆輪替會同時異動兩檔，僅提交 PROGRESS.md 導致 Archive 每次殘留未提交，須靠 `/compact closeout` 才會被表驅動 Auto Commit 撿走——但多數 session 只用 `/compact` 預設 checkpoint，從不主動跑 closeout，殘留因而系統性發生）：兩檔各自以 `git diff --quiet HEAD -- <檔案>` 判定有無變更；**任一檔有變更**即提交，候選路徑僅含當次實際變更者（可能一檔或兩檔）：`git commit -o -m "[COMPACT-SYNC] PROGRESS checkpoint：<一句話摘要>" -- <實際變更之路徑…>`。兩檔變更判定互不依賴——**MUST NOT** 因其中一檔無變更而略過另一檔之提交；兩者同時有變更時**MAY**合併為單一 commit（同 prefix 合併原則，呼應 §「Auto Commit: Governance Artifacts」步驟 2 之既有慣例）。
-
-  **兩段共同約束**：
+  **共同約束**：
   - `-o`（`--only`）為 pathspec 模式：**只提交所列路徑之工作樹內容，忽略 index 中其他已 stage 內容**，故無須 staged-contamination guard，亦不夾帶任何其他檔案。
   - **MUST NOT** 使用 `git add -A`／`git add .`／`git commit -a`／無 pathspec 之 `git commit`。
-  - **無關 dirty paths MUST 保留**：不在候選集合者一律留於工作樹，**MUST NOT** 因其存在而跳過任一段 commit（§3.2 不連坐律）。結尾 **SHOULD** 輸出一行 `⏸️ 保留 N 檔（未歸屬本票）：<路徑>`。
-  - **失敗一律降級不阻斷**：非 git 目錄、identity 缺失、hook 拒絕、無變更等任一情形 → 輸出 `⚠️ checkpoint commit 略過：<段別>／<原因>`，**MUST** 保留已寫入之 PROGRESS 與所有工作樹內容，**MUST NOT** rollback、**MUST NOT** 阻斷 checkpoint 或後續 `/clear`。第一段失敗 **MUST NOT** 阻斷第二段。
+  - **無關 dirty paths MUST 保留**：不在候選集合者一律留於工作樹，**MUST NOT** 因其存在而跳過 commit（§3.2 不連坐律）。結尾 **SHOULD** 輸出一行 `⏸️ 保留 N 檔（未歸屬本票）：<路徑>`。
+  - **失敗一律降級不阻斷**：非 git 目錄、identity 缺失、hook 拒絕、無變更等任一情形 → 輸出 `⚠️ checkpoint commit 略過：<原因>`，**MUST** 保留已寫入之 PROGRESS 與所有工作樹內容，**MUST NOT** rollback、**MUST NOT** 阻斷 checkpoint 或後續 `/clear`。
   - PROGRESS 之 commit prefix 依 `.claude/rules/ssot-governance.md`「Governance Artifact 清單」表（`.claude/PROGRESS.md` → `[COMPACT-SYNC]`），**MUST NOT** 自創前綴。
   - **MUST NOT** 於 `.claude/PROGRESS.md` 建立 `Session Artifacts:` 或任何等價之 session ticket 集合行；**MUST NOT** 新增 JSON／SQLite／cache／sidecar／lock 等第二狀態載體（Akira 2026-09-12 明示否決）。
 - **MAY** 執行非破壞性的 housekeeping，例如 Archive 歷史 handoff（見 §7），但不得影響 `.claude/PROGRESS.md` 的現況可讀性。
@@ -255,7 +248,7 @@ Get-ChildItem -Path $root -File -Filter 'SESSION_HANDOFF_*.md' |
 
 ### 8.1 預設原則
 
-- `brief` 與 `checkpoint` 模式 **MUST NOT** 自動執行 `git add -A`、`git add .` 或無 pathspec 之 `git commit`。`checkpoint` 之 `.claude/PROGRESS.md` 單檔 pathspec commit（`git commit -o -- .claude/PROGRESS.md`）為本條唯一例外，見 §4.2。
+- `brief` 與 `checkpoint` 模式 **MUST NOT** 自動執行 `git add -A`、`git add .` 或無 pathspec 之 `git commit`。`checkpoint` 之 `.claude/PROGRESS.md`／`.claude/PROGRESS_ARCHIVE.md` pathspec commit（`git commit -o -- <實際變更之路徑>`）為本條唯一例外，見 §4.2。
 - 任何 Git stage / commit 都 **MUST** 屬於顯式的 `closeout` 或 delivery 流程。
 - `.claude/PROGRESS.md` 更新不等於自動同意提交。
 
@@ -296,7 +289,7 @@ Do not preserve:
 
 1. 執行原生 `/clear` 前 **SHOULD** 先跑 `checkpoint` 模式——`/clear` 後 SessionStart `reset` 會注入 `.claude/PROGRESS.md`，未先 checkpoint 則注入內容為前次狀態。
 2. 於同一 session 內切換到不相關議題前 **SHOULD** 先跑 `checkpoint` 模式。
-3. 票 closeout 前 **SHOULD** 跑 `closeout` 模式（已由 §4.3 規範，本條僅作時機索引，不重複其行為規格）。
+3. 票之 closeout 與票檔保存由 `/sv` Step 11 與 TKA close 承擔（Akira 2026-10-24 分工裁決），compact 無需為票 closeout 配合執行 `closeout` 模式；`closeout` 僅用於 PROGRESS／ARCHIVE 之表驅動收束（§4.3）。
 
 ## 10. 操作流程
 
@@ -334,10 +327,9 @@ Do not preserve:
 
 **MUST** 在 `## Auto Commit: Governance Artifacts` 全部步驟之前執行，含以下三條機械判準（禁語義化裁量）：
 
-1. **觸發偵測**：`git status --short` 輸出中存在 `plans/cso_briefing/project/deliver/<票號>*.md`（票檔進交付區），或 `PROGRESS.md` diff 含該票號之 CLOSED 字面 → 該票號列入待驗清單。
+1. **觸發偵測**：`PROGRESS.md` diff 含該票號之 CLOSED 字面 → 該票號列入待驗清單。（票檔進 `deliver/` 不再是觸發條件：票檔位置與保存歸 TKA close，非 compact 之提交對象。）
 
-2. **一致性驗證（目錄—狀態明確集合，兩級判定）**：對待驗清單每一票號，以 `registry_list(project="SmartCameraApp1", ticket_id=<票號>)` 讀取冊面現值，依觸發訊號分級檢核：
-   - **級 A**（票檔進 `deliver/`）→ `lifecycle` ∈ {`REVIEW`, `CLOSED`}（`REVIEW` 為合法交付態，PLT 五段④；`VOID` 不屬 `deliver/`，其歸位為 `void/`）
+2. **一致性驗證（目錄—狀態明確集合）**：對待驗清單每一票號，以 `registry_list(project="SmartCameraApp1", ticket_id=<票號>)` 讀取冊面現值檢核：
    - **級 B**（`PROGRESS.md` diff 標該票 CLOSED）→ `lifecycle` = `CLOSED`
    - **共同**：`file` 欄指向現存路徑（非 `Pending/` 死指標）
    - **目錄—狀態明確集合**（判定之唯一依據，禁語義裁量），逐集合分別指認來源：
@@ -353,7 +345,7 @@ Do not preserve:
 
 待驗清單為空 → 該節 SKIPPED，**MUST NOT** 阻斷。
 
-**分類固定，禁個別 lifecycle 特例**：目錄歸屬分類恰有三類（`Pending/`／`deliver/`／`void/`），每一類只以其對應集合之成員關係判定。級 A、級 B、`PROGRESS.md` 觸發、`file` 欄檢核、`SKIPPED`／`FAILED`／`UNKNOWN` 處置皆為驗證規則而非目錄分類，不計入分類分支數。**MUST NOT** 因任一單一 lifecycle 值（如 `TICKET_RIGOR`／`IN_PROGRESS`／`EXECUTED`／`BLOCKED`／`DRAFT_NEEDED`）新增專屬判定分支、例外、轉向或例外處置；未列值一律走 `UNKNOWN_LIFECYCLE_MAPPING` 停止處置，不得回退為個別值例外。
+**分類固定，禁個別 lifecycle 特例**：目錄歸屬分類恰有三類（`Pending/`／`deliver/`／`void/`），每一類只以其對應集合之成員關係判定。級 B、`PROGRESS.md` 觸發、`file` 欄檢核、`SKIPPED`／`FAILED`／`UNKNOWN` 處置皆為驗證規則而非目錄分類，不計入分類分支數。**MUST NOT** 因任一單一 lifecycle 值（如 `TICKET_RIGOR`／`IN_PROGRESS`／`EXECUTED`／`BLOCKED`／`DRAFT_NEEDED`）新增專屬判定分支、例外、轉向或例外處置；未列值一律走 `UNKNOWN_LIFECYCLE_MAPPING` 停止處置，不得回退為個別值例外。
 
 ## Auto Commit: Governance Artifacts
 
@@ -364,7 +356,14 @@ Do not preserve:
    - **零 diff 判定**：`git status --short -- <檔案>` 輸出為空 → 判定 SKIPPED，回報 `⚪ Auto Commit SKIPPED（<檔案> 無異動）`，**不執行 commit**，**MUST NOT** 使用 `git commit --allow-empty`。
    - **Commit**：`git commit -o <檔案> -m "<Prefix> <檔案> Dashboard/Registry 同步：/compact 交接"`（**SHOULD** 加 `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` trailer）。同 Prefix 之多檔（如 PROGRESS.md + PROGRESS_ARCHIVE.md 同時異動）**MAY** 合併為單一 commit。Commit 失敗 → **MUST** 回報 `⛔ Auto Commit FAILED: [檔案]`，不得靜默吞錯。
 
-**SHOULD** 完成後輸出以下確認訊息（必須包含實際檔案路徑），並於末尾附加逐檔 Auto Commit 狀態行：
-「交接文件已儲存至 docs/session_handoff/SESSION_HANDOFF_<實際時間戳>.md，PROGRESS.md 已同步更新。Housekeeping 已完成：docs/session_handoff/ 僅保留當天 handoff，過期檔已移至 docs/session_handoff/Archive/。建議：開新對話 → 貼入 Dashboard 段 → 按需展開細節。」
+## 自身產物保存契約（Handoff／歸檔／PROGRESS，`ADV-COMPACT-01`）
+
+compact 只保存自身產物（`.claude/PROGRESS.md`、`.claude/PROGRESS_ARCHIVE.md`、`docs/session_handoff/` 之 handoff 與歸檔）；每項**寫後驗證**，未驗證通過 **MUST NOT** 宣稱已保存／已同步／已完成。
+
+1. **Handoff**：`docs/session_handoff/` 與其 `Archive/` 為被 `.gitignore:73` 排除之**本機載體**——其「保存」＝本機寫入並讀回確認檔案存在且非空，**MUST NOT** `git add -f`、**MUST NOT** 提交。寫入或讀回失敗 → 回報 `⛔ Handoff 未保存：<原因>`，**MUST NOT** 輸出「交接文件已儲存」。
+2. **歸檔（housekeeping）**：每次移動後確認來源已不在 handoff 根目錄且目的地存在；同名衝突跳過並載明（§7 既有規則）；任一移動失敗 → 回報未完成之檔案，**MUST NOT** 宣稱 housekeeping 已完成。
+3. **PROGRESS／ARCHIVE**：`[COMPACT-SYNC]` 提交後 **MUST** 以 `git status --short -- <檔>` 確認該檔已無差分；仍有差分或提交失敗 → 回報 `⛔ Auto Commit FAILED` 或保留之原因，**MUST NOT** 宣稱「PROGRESS.md 已同步」。
+4. **確認訊息逐項依驗證結果輸出**（已保存／未保存＋原因），不得以範本字面無條件輸出。全部通過時之範本：「交接文件已儲存至 docs/session_handoff/SESSION_HANDOFF_<實際時間戳>.md，PROGRESS.md 已同步更新。Housekeeping 已完成：docs/session_handoff/ 僅保留當天 handoff，過期檔已移至 docs/session_handoff/Archive/。建議：開新對話 → 貼入 Dashboard 段 → 按需展開細節。」；任一項未通過，僅輸出已通過項並逐項列出未通過項與原因。
+
 逐檔 Auto Commit 狀態行**之前**先輸出一行：`📌 收束閘: [PASS|SKIPPED|⛔FAILED@票號]`
 每檔各輸出一行：`📌 Auto Commit: [hash] [Prefix] <檔案>` / `📌 Auto Commit: SKIPPED（<檔案> 無異動）` / `⛔ Auto Commit BLOCKED/FAILED`（依上述判定擇一）
